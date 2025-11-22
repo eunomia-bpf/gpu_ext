@@ -435,3 +435,286 @@ However, until such changes are merged, **all struct_ops implementations must pr
 ## Contributing
 
 If you encounter similar issues or have improvements, please document them and contribute back to the tutorial.
+
+---
+
+## Issue 4: Cannot Re-attach struct_ops - "Failed to attach struct_ops"
+
+### Problem
+After running the `struct_ops` program and stopping it (with Ctrl-C or killing the process), attempting to run it again fails with:
+```
+Failed to attach struct_ops
+```
+
+Even though the process has exited, `lsmod` shows the kernel module reference count is still > 0:
+```bash
+$ lsmod | grep nvidia_uvm
+nvidia_uvm  2162688  1    # ← Reference count is 1, preventing re-attachment
+```
+
+### Root Cause
+
+The struct_ops registration system only allows **one active instance** at a time. The kernel module's registration code uses atomic compare-and-swap to enforce this:
+
+```c
+/* Only one instance at a time */
+if (cmpxchg(&testmod_ops, NULL, ops) != NULL)
+    return -EEXIST;  // ← Returns error if already registered
+```
+
+When a BPF program is loaded and attaches struct_ops, it:
+1. **Holds a reference** to the kernel module (prevents `rmmod`)
+2. **Registers the struct_ops callbacks** with the kernel module
+3. **Keeps the registration active** until explicitly destroyed
+
+The issue occurs when:
+- The userspace process exits **without properly calling `bpf_link__destroy()`**
+- This leaves the BPF programs loaded in the kernel
+- The struct_ops registration remains active
+- The module reference count stays elevated
+
+### Diagnosis Using bpftool
+
+Use `bpftool` to inspect BPF programs and maps:
+
+```bash
+# 1. Check if struct_ops programs are still loaded
+sudo bpftool prog show | grep struct_ops
+
+# Example output showing orphaned programs:
+# 3823: struct_ops  name bpf_testmod_test_1  tag 397299f95b412a64  gpl
+# 3825: struct_ops  name bpf_testmod_test_2  tag 537ead463891f5a6  gpl
+# 3826: struct_ops  name bpf_testmod_test_3  tag 68c5a916ec10267f  gpl
+
+# 2. Check struct_ops map
+sudo bpftool map show | grep struct_ops
+
+# Example output:
+# 340: struct_ops  name testmod_ops  flags 0x8000
+#      pids struct_ops(1045213)  # ← Shows PID holding the map
+
+# 3. View detailed map info
+sudo bpftool map show id 340
+
+# Output shows:
+# 340: struct_ops  name testmod_ops  flags 0x8000
+#      key 4B  value 128B  max_entries 1  memlock 4848B
+#      btf_id 2835
+#      pids struct_ops(1045213)  # ← Process 1045213 holds this map
+```
+
+### Solution 1: Kill the Process Holding struct_ops
+
+Find and kill the process that holds the BPF map reference:
+
+```bash
+# 1. Find the PID from bpftool output
+sudo bpftool map show | grep struct_ops
+# Output: pids struct_ops(1045213)
+
+# 2. Verify the process
+ps aux | grep 1045213
+# Output: root  1045213  0.0  0.0  24944 23288 ?  S  22:35  0:00 ./struct_ops
+
+# 3. Kill the process
+sudo kill 1045213
+
+# 4. Wait a moment for cleanup (1-2 seconds)
+sleep 2
+
+# 5. Verify map is gone
+sudo bpftool map show id 340
+# Output: Error: get map by id (340): No such file or directory  ✓
+
+# 6. Verify module reference count is 0
+lsmod | grep nvidia_uvm
+# Output: nvidia_uvm  2162688  0  ✓
+
+# 7. Check kernel log for unregister message
+sudo dmesg | tail -3
+# Output: bpf_testmod_ops unregistered from nvidia-uvm  ✓
+```
+
+### Solution 2: Programmatic Cleanup in Userspace
+
+Add automatic cleanup detection to the userspace program:
+
+```c
+/* Check for old struct_ops instances before attaching */
+static int cleanup_old_struct_ops(void) {
+    __u32 map_id = 0;
+    int cleaned = 0;
+    int err;
+
+    printf("Checking for old struct_ops instances...\n");
+
+    /* Iterate through all BPF maps */
+    while (1) {
+        struct bpf_map_info info = {};
+        __u32 len = sizeof(info);
+        int fd;
+
+        err = bpf_map_get_next_id(map_id, &map_id);
+        if (err) {
+            if (errno == ENOENT)
+                break; /* No more maps */
+            continue;
+        }
+
+        fd = bpf_map_get_fd_by_id(map_id);
+        if (fd < 0)
+            continue;
+
+        err = bpf_obj_get_info_by_fd(fd, &info, &len);
+        if (err) {
+            close(fd);
+            continue;
+        }
+
+        /* Check if this is our struct_ops map */
+        if (info.type == BPF_MAP_TYPE_STRUCT_OPS &&
+            strcmp(info.name, "testmod_ops") == 0) {
+            printf("Found old struct_ops map (ID: %u)\n", info.id);
+            printf("Please kill the holding process first.\n");
+            printf("Use: sudo kill <PID> (find PID with bpftool)\n");
+            close(fd);
+            return -EEXIST;
+        }
+
+        close(fd);
+    }
+
+    printf("No old struct_ops instances found.\n");
+    return 0;
+}
+
+int main(int argc, char **argv) {
+    /* ... */
+
+    /* Check for old instances before loading */
+    if (cleanup_old_struct_ops() != 0) {
+        fprintf(stderr, "Please clean up old struct_ops first\n");
+        return 1;
+    }
+
+    /* ... continue with normal flow ... */
+}
+```
+
+### Solution 3: Unload and Reload Kernel Module
+
+If you can't find the holding process, or want to force cleanup:
+
+```bash
+# 1. Try normal module unload (may fail if referenced)
+sudo rmmod nvidia_uvm
+
+# If it fails with "Module is in use":
+
+# 2. Find and kill all struct_ops processes
+ps aux | grep struct_ops
+sudo pkill -9 struct_ops
+
+# 3. Wait for kernel cleanup
+sleep 3
+
+# 4. Retry module unload
+sudo rmmod nvidia_uvm
+
+# 5. Reload the module
+sudo insmod /path/to/nvidia-uvm.ko
+
+# 6. Verify clean state
+lsmod | grep nvidia_uvm
+# Should show reference count 0
+```
+
+### Why Deleting Maps Doesn't Work
+
+You might try to delete the struct_ops map directly:
+
+```bash
+# This DOES NOT work:
+sudo bpftool map pin id 340 /sys/fs/bpf/testmod_cleanup
+sudo rm /sys/fs/bpf/testmod_cleanup
+
+# The map still exists!
+sudo bpftool map show id 340
+# Output: 340: struct_ops  name testmod_ops  ...  ✓ Still there
+```
+
+**Why?** Because:
+1. Pinning creates a **filesystem reference** to the map
+2. Deleting the pinned file removes only the **filesystem reference**
+3. The **process reference** still exists (the program holds an FD)
+4. Maps are only deleted when **all references** (filesystem + process FDs) are gone
+
+### Prevention: Always Handle Cleanup Properly
+
+Ensure your userspace program properly destroys links on exit:
+
+```c
+int main(int argc, char **argv) {
+    struct struct_ops_bpf *skel;
+    struct bpf_link *link;
+
+    /* ... load and attach ... */
+
+    /* Main loop */
+    while (!exiting) {
+        sleep(1);
+    }
+
+    printf("\nDetaching struct_ops...\n");
+    bpf_link__destroy(link);  // ← CRITICAL: Always call this
+
+cleanup:
+    struct_ops_bpf__destroy(skel);
+    return 0;
+}
+```
+
+### Key Takeaways
+
+1. **struct_ops allows only ONE instance** - enforced by atomic compare-and-swap
+2. **Process references prevent cleanup** - killing the process is necessary
+3. **bpftool is essential for debugging** - use it to find orphaned programs/maps
+4. **Pinning/unpinning doesn't delete maps** - only removes filesystem references
+5. **Always call `bpf_link__destroy()`** - ensures proper cleanup on program exit
+6. **Module reference counting matters** - struct_ops holds module references
+7. **Check before attaching** - programmatic detection prevents confusing errors
+
+### Testing the Fix
+
+After implementing cleanup detection:
+
+```bash
+# 1. Run struct_ops program
+sudo ./struct_ops
+# Output: Checking for old struct_ops instances...
+#         No old struct_ops instances found.
+#         Successfully loaded and attached BPF struct_ops!
+
+# 2. Kill it abruptly (simulating crash)
+sudo pkill -9 struct_ops
+
+# 3. Try to run again immediately
+sudo ./struct_ops
+# Output: Checking for old struct_ops instances...
+#         Found old struct_ops map (ID: 396)
+#         Please kill the holding process first.
+#         Please clean up old struct_ops first
+
+# 4. Find and kill the zombie process
+sudo bpftool map show | grep struct_ops
+# Output: pids struct_ops(1045213)
+sudo kill 1045213
+
+# 5. Now it works
+sudo ./struct_ops
+# Output: Checking for old struct_ops instances...
+#         No old struct_ops instances found.
+#         Successfully loaded and attached BPF struct_ops!
+```
+
+This provides clear feedback to users about what's wrong and how to fix it.

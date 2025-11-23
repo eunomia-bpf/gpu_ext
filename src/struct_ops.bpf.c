@@ -6,11 +6,27 @@
 
 char _license[] SEC("license") = "GPL";
 
+/* Declare the external kfunc from nvidia-uvm module */
+extern int bpf_uvm_strstr(const char *str, u32 str__sz, const char *substr, u32 substr__sz) __ksym;
+
 /* Implement the struct_ops callbacks */
 SEC("struct_ops/test_1")
 int BPF_PROG(bpf_testmod_test_1)
 {
+	char str[] = "Hello, GPU world!";
+	char substr[] = "GPU";
+	int result;
+
 	bpf_printk("BPF test_1 called!\n");
+
+	/* Test the kfunc */
+	result = bpf_uvm_strstr(str, sizeof(str) - 1, substr, sizeof(substr) - 1);
+	if (result != -1) {
+		bpf_printk("'%s' found in '%s' at index %d\n", substr, str, result);
+	} else {
+		bpf_printk("'%s' not found in '%s'\n", substr, str);
+	}
+
 	return 42;
 }
 

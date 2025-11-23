@@ -2,12 +2,10 @@
 #include <vmlinux.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
-#include "module/bpf_testmod.h"
+#include "uvm_types.h"
+#include "bpf_testmod.h"
 
 char _license[] SEC("license") = "GPL";
-
-/* Declare the external kfunc from nvidia-uvm module */
-extern int bpf_uvm_strstr(const char *str, u32 str__sz, const char *substr, u32 substr__sz) __ksym;
 
 /* Implement the struct_ops callbacks */
 SEC("struct_ops/uvm_bpf_test_trigger_kfunc")

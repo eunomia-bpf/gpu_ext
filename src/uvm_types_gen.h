@@ -1,5 +1,5 @@
-#ifndef __VMLINUX_H__
-#define __VMLINUX_H__
+#ifndef __UVM_TYPES_GEN_H__
+#define __UVM_TYPES_GEN_H__
 
 #ifndef BPF_NO_PRESERVE_ACCESS_INDEX
 #pragma clang attribute push (__attribute__((preserve_access_index)), apply_to = record)
@@ -10584,4 +10584,4 @@ extern int bpf_uvm_strstr(const char *str, u32 str__sz, const char *substr, u32 
 #pragma clang attribute pop
 #endif
 
-#endif /* __VMLINUX_H__ */
+#endif /* __UVM_TYPES_GEN_H__ */

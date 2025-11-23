@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
@@ -42,8 +44,8 @@ int main(int argc, char **argv) {
     /* Register struct_ops */
     link = bpf_map__attach_struct_ops(skel->maps.uvm_ops_always_max);
     if (!link) {
-        fprintf(stderr, "Failed to attach struct_ops\n");
-        err = -1;
+        err = -errno;
+        fprintf(stderr, "Failed to attach struct_ops: %s (%d)\n", strerror(-err), err);
         goto cleanup;
     }
 

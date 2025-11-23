@@ -3,7 +3,7 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
 #include <bpf/bpf_core_read.h>
-#include "uvm_vmlinux.h"
+#include "uvm_types.h"
 #include "bpf_testmod.h"
 
 char _license[] SEC("license") = "GPL";
@@ -27,7 +27,7 @@ int BPF_PROG(uvm_prefetch_before_compute,
     bpf_printk("BPF always_max: Setting prefetch region [%u, %u)\n",
                max_first, max_outer);
 
-    /* Set result_region to the full max_prefetch_region */
+    /* Use kfunc to set result_region */
     bpf_uvm_set_va_block_region(result_region, max_first, max_outer);
 
     /* Return BYPASS to skip default kernel computation */

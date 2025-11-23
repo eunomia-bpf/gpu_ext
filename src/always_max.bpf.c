@@ -2,41 +2,27 @@
 #include <vmlinux.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
-#include "module/bpf_testmod.h"
+#include <bpf/bpf_core_read.h>
+#include "uvm_vmlinux.h"
+#include "bpf_testmod.h"
 
 char _license[] SEC("license") = "GPL";
-
-/* Declare the external kfunc from nvidia-uvm module */
-extern void bpf_uvm_set_va_block_region(void *region, u32 first, u32 outer) __ksym;
 
 /* Always prefetch the maximum region policy
  * This is the simplest policy that always prefetches the entire max_prefetch_region
  */
 SEC("struct_ops/uvm_prefetch_before_compute")
 int BPF_PROG(uvm_prefetch_before_compute,
-             u32 page_index,
-             void *bitmap_tree,
-             void *max_prefetch_region,
-             void *result_region)
+             uvm_page_index_t page_index,
+             uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
+             uvm_va_block_region_t *max_prefetch_region,
+             uvm_va_block_region_t *result_region)
 {
     bpf_printk("BPF always_max: page_index=%u\n", page_index);
 
-    /* Read max_prefetch_region using bpf_probe_read_kernel */
-    u32 max_first, max_outer;
-
-    /* Read the first and outer fields from max_prefetch_region
-     * Assuming uvm_va_block_region_t has two u32 fields: first and outer
-     */
-    if (bpf_probe_read_kernel(&max_first, sizeof(max_first), max_prefetch_region) != 0) {
-        bpf_printk("Failed to read max_first\n");
-        return 0; /* UVM_BPF_ACTION_DEFAULT */
-    }
-
-    if (bpf_probe_read_kernel(&max_outer, sizeof(max_outer),
-                              max_prefetch_region + sizeof(u32)) != 0) {
-        bpf_printk("Failed to read max_outer\n");
-        return 0; /* UVM_BPF_ACTION_DEFAULT */
-    }
+    /* Use BPF CO-RE helpers to read max_prefetch_region fields */
+    uvm_page_index_t max_first = BPF_CORE_READ(max_prefetch_region, first);
+    uvm_page_index_t max_outer = BPF_CORE_READ(max_prefetch_region, outer);
 
     bpf_printk("BPF always_max: Setting prefetch region [%u, %u)\n",
                max_first, max_outer);
@@ -51,10 +37,10 @@ int BPF_PROG(uvm_prefetch_before_compute,
 /* This hook is called on each tree iteration - not used in always_max policy */
 SEC("struct_ops/uvm_prefetch_on_tree_iter")
 int BPF_PROG(uvm_prefetch_on_tree_iter,
-             u32 page_index,
-             void *bitmap_tree,
-             void *max_prefetch_region,
-             void *current_region,
+             uvm_page_index_t page_index,
+             uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
+             uvm_va_block_region_t *max_prefetch_region,
+             uvm_va_block_region_t *current_region,
              unsigned int counter,
              unsigned int subregion_pages)
 {

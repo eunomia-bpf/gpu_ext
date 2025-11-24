@@ -27,21 +27,16 @@ int BPF_PROG(uvm_pmm_chunk_activate,
     return 0;
 }
 
-SEC("struct_ops/uvm_pmm_chunk_populate")
-int BPF_PROG(uvm_pmm_chunk_populate,
+SEC("struct_ops/uvm_pmm_chunk_used")
+int BPF_PROG(uvm_pmm_chunk_used,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
              struct list_head *list)
 {
-    /* FIFO policy: Move newly populated chunk to head of list
-     * This makes it the FIRST candidate for eviction (oldest first)
-     *
-     * The kernel already moved the chunk to tail (lowest priority),
-     * so we move it to head to implement FIFO.
+    /* FIFO policy: skip this step
      */
-    bpf_printk("BPF FIFO: chunk_populate - moving to head (FIFO order)\n");
-    bpf_uvm_pmm_chunk_move_head(chunk, list);
-    return 0;
+    /* Return BYPASS to skip default kernel computation */
+    return 1; /* UVM_BPF_ACTION_BYPASS */
 }
 
 SEC("struct_ops/uvm_pmm_eviction_prepare")
@@ -64,6 +59,6 @@ struct uvm_gpu_ext uvm_ops_fifo = {
     .uvm_prefetch_before_compute = (void *)NULL,
     .uvm_prefetch_on_tree_iter = (void *)NULL,
     .uvm_pmm_chunk_activate = (void *)uvm_pmm_chunk_activate,
-    .uvm_pmm_chunk_populate = (void *)uvm_pmm_chunk_populate,
+    .uvm_pmm_chunk_used = (void *)uvm_pmm_chunk_used,
     .uvm_pmm_eviction_prepare = (void *)uvm_pmm_eviction_prepare,
 };

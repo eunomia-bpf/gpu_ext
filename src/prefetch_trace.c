@@ -55,35 +55,17 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 {
     const struct prefetch_event *e = data;
     __u64 elapsed_ms;
-    const char *hook_name;
 
     if (start_time_ns == 0)
         start_time_ns = e->timestamp_ns;
 
     elapsed_ms = (e->timestamp_ns - start_time_ns) / 1000000;
 
-    // Determine hook type name
-    switch (e->hook_type) {
-    case HOOK_PREFETCH_GET_HINT:
-        hook_name = "GET_HINT";
-        break;
-    case HOOK_PREFETCH_BEFORE_COMPUTE:
-        hook_name = "BEFORE_COMPUTE";
-        break;
-    case HOOK_PREFETCH_ON_TREE_ITER:
-        hook_name = "ON_TREE_ITER";
-        break;
-    default:
-        hook_name = "UNKNOWN";
-        break;
-    }
-
     // CSV output format:
-    // time_ms,cpu,hook,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed
-    printf("%llu,%u,%s,0x%llx,0x%llx,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+    // time_ms,cpu,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed
+    printf("%llu,%u,0x%llx,0x%llx,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
            (unsigned long long)elapsed_ms,
            e->cpu,
-           hook_name,
            (unsigned long long)e->va_start,
            (unsigned long long)e->va_end,
            e->page_index,
@@ -142,11 +124,9 @@ int main(int argc, char **argv)
     signal(SIGTERM, sig_handler);
 
     // Print CSV header
-    printf("time_ms,cpu,hook,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed\n");
+    printf("time_ms,cpu,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed\n");
 
     fprintf(stderr, "Tracing prefetch hooks... Press Ctrl-C to stop.\n");
-    fprintf(stderr, "  - uvm_perf_prefetch_get_hint_va_block (GET_HINT) - has VA block info\n");
-    fprintf(stderr, "  - uvm_bpf_call_before_compute_prefetch (BEFORE_COMPUTE) - no VA block info\n");
 
     // Process events
     while (!exiting) {

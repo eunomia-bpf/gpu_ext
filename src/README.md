@@ -547,6 +547,83 @@ while (1) {
 }
 ```
 
+### ⚠️ Prefetch的架构限制：只能在当前VA Block内
+
+**重要结论：Prefetch 只能在当前 VA block (2MB) 内操作，无法跨 VA block prefetch。**
+
+这是 NVIDIA UVM 驱动的架构限制，不是 BPF policy 可以改变的。
+
+#### 为什么有这个限制？
+
+从 UVM 源码 (`uvm_perf_prefetch.c`) 可以看到：
+
+```c
+// uvm_perf_prefetch_prenotify_fault_migrations() 中：
+if (uvm_va_block_is_hmm(va_block)) {
+    max_prefetch_region = uvm_hmm_get_prefetch_region(...);
+} else {
+    // 关键：max_prefetch_region 永远是当前 VA block 的范围
+    max_prefetch_region = uvm_va_block_region_from_block(va_block);
+}
+
+// uvm_va_block_region_from_block() 定义：
+static uvm_va_block_region_t uvm_va_block_region_from_block(uvm_va_block_t *va_block)
+{
+    return uvm_va_block_region(0, uvm_va_block_num_cpu_pages(va_block));
+}
+// 返回 (0, 512)，即 512 个 4KB 页 = 2MB
+```
+
+#### BPF hook 受到的限制
+
+```c
+int uvm_prefetch_before_compute(
+    uvm_page_index_t page_index,                    // 0-511 范围
+    uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
+    uvm_va_block_region_t *max_prefetch_region,     // 永远是 [0, 512)
+    uvm_va_block_region_t *result_region            // 只能设置在 [0, 512) 内
+);
+```
+
+即使 BPF policy 尝试设置超出范围的 `result_region`，内核也会 clamp 到 `max_prefetch_region`：
+
+```c
+// compute_prefetch_region() 中：
+if (prefetch_region.outer > max_prefetch_region.outer)
+    prefetch_region.outer = max_prefetch_region.outer;  // 强制限制
+```
+
+#### UVM 源码中的注释说明
+
+```c
+// Within a block we only allow prefetching to a single processor. Therefore,
+// if two processors are accessing non-overlapping regions within the same
+// block they won't benefit from prefetching.
+//
+// TODO: Bug 1778034: [uvm] Explore prefetching to different processors within
+// a VA block.
+```
+
+**NVIDIA 自己也知道这个限制，但目前没有实现跨 VA block prefetch。**
+
+#### 如果要实现跨 VA block prefetch？
+
+需要修改 UVM 驱动内核代码：
+1. 修改 `uvm_perf_prefetch_prenotify_fault_migrations` 扩展 `max_prefetch_region`
+2. 或创建新的 API 触发相邻 VA block 的 prefetch
+3. 这需要内核模块级别的修改，**BPF hook 无法绕过这个限制**
+
+#### 实际影响
+
+从 trace 数据分析，我们观察到：
+- **stride=69 页 (276KB)** 是主要访问模式
+- 一个 2MB VA block 内约有 **~7 个访问条纹**
+- 当访问跨越 VA block 边界时，需要等待新的 fault 触发新 VA block 的 prefetch
+
+**这意味着对于顺序扫描 workload，每 ~300KB 就可能有一次额外的 fault 延迟。**
+
+---
+
 ### Prefetch vs Eviction的关系
 
 ```

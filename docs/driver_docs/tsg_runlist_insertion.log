@@ -1,0 +1,110 @@
+TSG (Time-Slice Group) Runlist Insertion - Code Analysis Log
+================================================================
+
+问题：TSG 被插入到某个 runlist，就算 "这个任务 runnable 了" === 这个是在代码的哪里？
+
+关键概念：
+---------
+- TSG = 多个 channel + 一个 context 信息
+- TSG 被插入到 runlist 后，任务变为 runnable 状态
+- Runlist 是 GPU 硬件调度器用来管理可执行任务的列表
+
+主要代码路径：
+------------
+
+1. Channel 调度入口 - 使任务变为 Runnable
+   文件: src/nvidia/src/kernel/gpu/fifo/kernel_channel.c:3059
+   函数: kchannelCtrlCmdGpFifoSchedule_IMPL()
+
+   说明:
+   - 用户空间通过 NVA06F_CTRL_CMD_GPFIFO_SCHEDULE 控制命令触发
+   - 这是使 channel/TSG 变为可调度状态的主要入口点
+   - 调用 kchannelSetRunlistSet() 设置 runlist
+   - 最终通过 RPC 调用 GSP 或调用内部控制命令
+
+2. 绑定 Channel 到 Runlist
+   文件: src/nvidia/src/kernel/gpu/fifo/kernel_channel.c:2824
+   函数: kchannelBindToRunlist_IMPL()
+
+   说明:
+   - 将 channel 绑定到对应的 runlist
+   - 通过 NVA06F_CTRL_CMD_BIND 控制命令 (line 2857)
+   - 调用 kfifoRunlistSetIdByEngine_HAL() 设置 runlist ID (line 2867)
+
+3. TSG 的 Runlist 设置
+   文件: src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c:1251-1275
+   函数: kchangrpapiSetEngineContextMemDesc_IMPL() 或相关函数
+
+   关键代码:
+   - Line 1252-1257: 将 engineDesc 转换为 runlistId
+     ```c
+     kfifoEngineInfoXlate_HAL(pGpu, GPU_GET_KERNEL_FIFO(pGpu),
+         ENGINE_INFO_TYPE_ENG_DESC,
+         engineDesc,
+         ENGINE_INFO_TYPE_RUNLIST,
+         &pKernelChannelGroupApi->pKernelChannelGroup->runlistId));
+     ```
+
+   - Line 1259-1272: 遍历 TSG 中的所有 channels，为每个绑定到 runlist
+     ```c
+     for (pChanNode = pKernelChannelGroupApi->pKernelChannelGroup->pChanList->pHead;
+          pChanNode != NULL;
+          pChanNode = pChanNode->pNext)
+     {
+         kchannelBindToRunlist(pChanNode->pKernelChannel,
+                               localEngineType,
+                               engineDesc);
+     }
+     ```
+
+4. 底层 Runlist ID 设置
+   文件: src/nvidia/src/kernel/gpu/fifo/arch/maxwell/kernel_fifo_gm107.c:399
+   函数: kfifoRunlistSetId_GM107()
+
+   说明:
+   - 这个函数设置 channel 的 runlist ID 状态
+   - 注释明确说明: "Does not bind the channel to the runlist in sw or hw"
+   - 仅设置软件状态，实际的硬件绑定由其他函数完成
+
+控制流程总结：
+------------
+
+用户空间调用 Schedule
+    ↓
+kchannelCtrlCmdGpFifoSchedule_IMPL()  [kernel_channel.c:3059]
+    ↓
+为 TSG 设置 runlistId  [kernel_channel_group_api.c:1252-1257]
+    ↓
+遍历 TSG 中的所有 channels  [kernel_channel_group_api.c:1259-1272]
+    ↓
+kchannelBindToRunlist_IMPL()  [kernel_channel.c:2824]
+    ↓
+kfifoRunlistSetIdByEngine_HAL()  [kernel_fifo_gm107.c:467]
+    ↓
+kfifoRunlistSetId_HAL()  [kernel_fifo_gm107.c:399]
+    ↓
+硬件 runlist 更新 (在 GSP/Physical RM 中)
+
+关键数据结构：
+------------
+- KernelChannelGroup: 代表 TSG
+  - runlistId: TSG 对应的 runlist ID
+  - pChanList: TSG 中包含的 channels 列表
+
+- KernelChannel: 代表单个 channel
+  - runlistId: channel 对应的 runlist ID
+
+硬件相关：
+--------
+- Runlist 硬件寄存器定义: kernel-open/nvidia-uvm/hwref/ampere/ga100/dev_runlist.h
+- 包含 TSG preempt, TSG ID 等硬件字段
+
+答案：
+-----
+TSG 被插入到 runlist 的核心代码在：
+1. kernel_channel_group_api.c:1251-1275 (设置 TSG 的 runlist 并绑定所有 channels)
+2. kernel_channel.c:3059 (kchannelCtrlCmdGpFifoSchedule_IMPL - 调度入口)
+3. kernel_channel.c:2824 (kchannelBindToRunlist_IMPL - 实际绑定操作)
+
+当 NVA06F_CTRL_CMD_GPFIFO_SCHEDULE 命令被调用时，TSG 中的所有 channels 被绑定到
+对应的 runlist，此时 TSG 就变为 runnable 状态。

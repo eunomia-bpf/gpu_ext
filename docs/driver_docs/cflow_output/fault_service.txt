@@ -1,0 +1,336 @@
+    1 +-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    2   +-UVM_ASSERT()
+    3   +-uvm_tracker_init()
+    4   +-fetch_fault_buffer_entries() <NV_STATUS fetch_fault_buffer_entries (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context, fault_fetch_mode_t fetch_mode) at uvm_gpu_replayable_faults.c:844>
+    5   | +-UVM_ASSERT()
+    6   | +-uvm_sem_is_locked()
+    7   | +-UVM_SPIN_WHILE()
+    8   | +-uvm_global_get_status()
+    9   | +-smp_mb__after_atomic()
+   10   | +-UVM_PAGE_ALIGN_DOWN()
+   11   | +-cmp_fault_instance_ptr() <inline int cmp_fault_instance_ptr (const uvm_fault_buffer_entry_t *a, const uvm_fault_buffer_entry_t *b) at uvm_gpu_replayable_faults.c:695>
+   12   | | +-uvm_gpu_phys_addr_cmp()
+   13   | | \-UVM_CMP_DEFAULT()
+   14   | +-fetch_fault_buffer_try_merge_entry() <bool fetch_fault_buffer_try_merge_entry (uvm_fault_buffer_entry_t *current_entry, uvm_fault_service_batch_context_t *batch_context, uvm_fault_utlb_info_t *current_tlb, bool is_same_instance_ptr) at uvm_gpu_replayable_faults.c:782>
+   15   | | +-cmp_fault_instance_ptr() <inline int cmp_fault_instance_ptr (const uvm_fault_buffer_entry_t *a, const uvm_fault_buffer_entry_t *b) at uvm_gpu_replayable_faults.c:695>
+   16   | | | +-uvm_gpu_phys_addr_cmp()
+   17   | | | \-UVM_CMP_DEFAULT()
+   18   | | \-fetch_fault_buffer_merge_entry() <void fetch_fault_buffer_merge_entry (uvm_fault_buffer_entry_t *current_entry, uvm_fault_buffer_entry_t *last_entry) at uvm_gpu_replayable_faults.c:753>
+   19   | |   +-UVM_ASSERT()
+   20   | |   +-uvm_fault_access_type_mask_set()
+   21   | |   +-list_replace()
+   22   | |   \-list_add()
+   23   | +-uvm_fault_access_type_mask_bit()
+   24   | +-INIT_LIST_HEAD()
+   25   | \-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+   26   |   +-UVM_ASSERT()
+   27   |   \-uvm_sem_is_locked()
+   28   +-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+   29   | +-UVM_ASSERT()
+   30   | +-sort()
+   31   | +-cmp_sort_fault_entry_by_instance_ptr() <int cmp_sort_fault_entry_by_instance_ptr (const void *_a, const void *_b) at uvm_gpu_replayable_faults.c:990>
+   32   | | \-cmp_fault_instance_ptr() <inline int cmp_fault_instance_ptr (const uvm_fault_buffer_entry_t *a, const uvm_fault_buffer_entry_t *b) at uvm_gpu_replayable_faults.c:695>
+   33   | |   +-uvm_gpu_phys_addr_cmp()
+   34   | |   \-UVM_CMP_DEFAULT()
+   35   | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+   36   | | +-cmp_fault_instance_ptr() <inline int cmp_fault_instance_ptr (const uvm_fault_buffer_entry_t *a, const uvm_fault_buffer_entry_t *b) at uvm_gpu_replayable_faults.c:695>
+   37   | | | +-uvm_gpu_phys_addr_cmp()
+   38   | | | \-UVM_CMP_DEFAULT()
+   39   | | +-uvm_parent_gpu_fault_entry_to_va_space()
+   40   | | +-uvm_parent_gpu_find_first_valid_gpu()
+   41   | | +-UVM_ASSERT()
+   42   | | +-push_cancel_on_gpu_targeted() <NV_STATUS push_cancel_on_gpu_targeted (uvm_gpu_t *gpu, uvm_gpu_phys_address_t instance_ptr, NvU32 gpc_id, NvU32 client_id, uvm_tracker_t *tracker) at uvm_gpu_replayable_faults.c:418>
+   43   | | | \-push_cancel_on_gpu() <NV_STATUS push_cancel_on_gpu (uvm_gpu_t *gpu, uvm_gpu_phys_address_t instance_ptr, bool global_cancel, NvU32 gpc_id, NvU32 client_id, uvm_tracker_t *tracker) at uvm_gpu_replayable_faults.c:352>
+   44   | | +-push_cancel_on_gpu_global() <NV_STATUS push_cancel_on_gpu_global (uvm_gpu_t *gpu, uvm_gpu_phys_address_t instance_ptr, uvm_tracker_t *tracker) at uvm_gpu_replayable_faults.c:427>
+   45   | | | +-UVM_ASSERT()
+   46   | | | \-push_cancel_on_gpu() <NV_STATUS push_cancel_on_gpu (uvm_gpu_t *gpu, uvm_gpu_phys_address_t instance_ptr, bool global_cancel, NvU32 gpc_id, NvU32 client_id, uvm_tracker_t *tracker) at uvm_gpu_replayable_faults.c:352>
+   47   | | \-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+   48   | |   +-UVM_ASSERT()
+   49   | |   +-uvm_sem_is_locked()
+   50   | |   +-uvm_tracker_wait()
+   51   | |   +-hw_fault_buffer_flush_locked() <NV_STATUS hw_fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, hw_fault_buffer_flush_mode_t flush_mode) at uvm_gpu_replayable_faults.c:581>
+   52   | |   +-UVM_SPIN_WHILE()
+   53   | |   +-uvm_channel_manager_check_errors()
+   54   | |   +-uvm_global_get_status()
+   55   | |   +-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+   56   | |   +-fault_buffer_skip_replayable_entry() <void fault_buffer_skip_replayable_entry (uvm_parent_gpu_t *parent_gpu, NvU32 index) at uvm_gpu_replayable_faults.c:600>
+   57   | |   +-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+   58   | |   \-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+   59   | \-cmp_sort_fault_entry_by_va_space_gpu_address_access_type() <int cmp_sort_fault_entry_by_va_space_gpu_address_access_type (const void *_a, const void *_b) at uvm_gpu_replayable_faults.c:1000>
+   60   |   +-cmp_va_space() <inline int cmp_va_space (const uvm_va_space_t *a, const uvm_va_space_t *b) at uvm_gpu_replayable_faults.c:707>
+   61   |   | \-UVM_CMP_DEFAULT()
+   62   |   +-cmp_gpu() <inline int cmp_gpu (const uvm_gpu_t *a, const uvm_gpu_t *b) at uvm_gpu_replayable_faults.c:713>
+   63   |   | +-uvm_id_value()
+   64   |   | \-UVM_CMP_DEFAULT()
+   65   |   +-cmp_addr() <inline int cmp_addr (NvU64 a, NvU64 b) at uvm_gpu_replayable_faults.c:722>
+   66   |   | \-UVM_CMP_DEFAULT()
+   67   |   \-cmp_access_type() <inline int cmp_access_type (uvm_fault_access_type_t a, uvm_fault_access_type_t b) at uvm_gpu_replayable_faults.c:728>
+   68   |     +-UVM_ASSERT()
+   69   |     \-BUILD_BUG_ON()
+   70   +-service_fault_batch() <NV_STATUS service_fault_batch (uvm_parent_gpu_t *parent_gpu, fault_service_mode_t service_mode, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2232>
+   71   | +-UVM_ASSERT()
+   72   | +-uvm_ats_invalidate_tlbs()
+   73   | +-uvm_va_space_up_read()
+   74   | +-uvm_va_space_mm_release_unlock()
+   75   | +-uvm_va_space_mm_retain_lock()
+   76   | +-uvm_va_block_context_init()
+   77   | +-uvm_va_space_down_read()
+   78   | +-uvm_gpu_va_space_get()
+   79   | +-service_fault_batch_dispatch() <NV_STATUS service_fault_batch_dispatch (uvm_va_space_t *va_space, uvm_gpu_va_space_t *gpu_va_space, uvm_fault_service_batch_context_t *batch_context, NvU32 fault_index, NvU32 *block_faults, bool replay_per_va_block, const bool hmm_migratable) at uvm_gpu_replayable_faults.c:1946>
+   80   | | +-uvm_va_space_iter_gmmu_mappable_first()
+   81   | | +-UVM_ASSERT()
+   82   | | +-uvm_va_range_gmmu_mappable_next()
+   83   | | +-uvm_va_block_find_create_in_range()
+   84   | | +-uvm_hmm_va_block_find_create()
+   85   | | +-service_fault_batch_block() <NV_STATUS service_fault_batch_block (uvm_gpu_t *gpu, uvm_va_block_t *va_block, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, const bool hmm_migratable, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1606>
+   86   | | | +-uvm_va_block_is_hmm()
+   87   | | | +-uvm_hmm_migrate_begin_wait()
+   88   | | | +-uvm_mutex_lock()
+   89   | | | +-UVM_VA_BLOCK_RETRY_LOCKED()
+   90   | | | +-service_fault_batch_block_locked() <NV_STATUS service_fault_batch_block_locked (uvm_gpu_t *gpu, uvm_va_block_t *va_block, uvm_va_block_retry_t *va_block_retry, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, const bool hmm_migratable, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1375>
+   91   | | | +-uvm_tracker_add_tracker_safe()
+   92   | | | +-uvm_mutex_unlock()
+   93   | | | \-uvm_hmm_migrate_finish()
+   94   | | +-uvm_ats_can_service_faults()
+   95   | | +-min()
+   96   | | +-UVM_ALIGN_DOWN()
+   97   | | +-uvm_ats_check_in_gmmu_region()
+   98   | | +-service_fault_batch_fatal_notify() <void service_fault_batch_fatal_notify (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, NV_STATUS status, uvm_fault_cancel_va_mode_t cancel_va_mode, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1678>
+   99   | | | +-check_fault_entry_duplicate() <bool check_fault_entry_duplicate (const uvm_fault_buffer_entry_t *current_entry, const uvm_fault_buffer_entry_t *previous_entry) at uvm_gpu_replayable_faults.c:1180>
+  100   | | | +-service_fault_batch_fatal() <void service_fault_batch_fatal (uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, NV_STATUS status, uvm_fault_cancel_va_mode_t cancel_va_mode, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1656>
+  101   | | | \-update_batch_and_notify_fault() <void update_batch_and_notify_fault (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context, uvm_va_block_t *va_block, uvm_processor_id_t preferred_location, uvm_fault_buffer_entry_t *current_entry, bool is_duplicate) at uvm_gpu_replayable_faults.c:1193>
+  102   | | \-service_fault_batch_ats() <NV_STATUS service_fault_batch_ats (uvm_gpu_va_space_t *gpu_va_space, struct mm_struct *mm, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, NvU64 outer, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1892>
+  103   | |   +-find_vma_intersection()
+  104   | |   +-service_fault_batch_fatal_notify() <void service_fault_batch_fatal_notify (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, NV_STATUS status, uvm_fault_cancel_va_mode_t cancel_va_mode, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1678>
+  105   | |   \-service_fault_batch_ats_sub() <NV_STATUS service_fault_batch_ats_sub (uvm_gpu_va_space_t *gpu_va_space, struct vm_area_struct *vma, uvm_fault_service_batch_context_t *batch_context, NvU32 fault_index, NvU64 outer, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1788>
+  106   | \-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  107   |   +-uvm_push_begin_acquire()
+  108   |   +-uvm_tools_broadcast_replay()
+  109   |   +-uvm_push_end()
+  110   |   +-uvm_tracker_add_push_safe()
+  111   |   \-uvm_procfs_is_debug_enabled()
+  112   +-enable_disable_prefetch_faults() <void enable_disable_prefetch_faults (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2877>
+  113   | +-uvm_parent_gpu_disable_prefetch_faults() <void uvm_parent_gpu_disable_prefetch_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:3041>
+  114   | | +-UVM_ASSERT()
+  115   | | \-NV_GETTIME()
+  116   | +-NV_GETTIME()
+  117   | \-uvm_parent_gpu_enable_prefetch_faults() <void uvm_parent_gpu_enable_prefetch_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:3030>
+  118   |   \-UVM_ASSERT()
+  119   +-cancel_fault_batch() <void cancel_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2690>
+  120   | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+  121   | | +-UVM_ASSERT()
+  122   | | +-uvm_va_space_down_read()
+  123   | | +-uvm_gpu_va_space_get()
+  124   | | +-cancel_fault_precise_va() <NV_STATUS cancel_fault_precise_va (uvm_fault_buffer_entry_t *fault_entry, uvm_fault_cancel_va_mode_t cancel_va_mode) at uvm_gpu_replayable_faults.c:438>
+  125   | | | +-UVM_ASSERT()
+  126   | | | +-uvm_gpu_va_space_get()
+  127   | | | +-uvm_page_tree_pdb_address()
+  128   | | | +-uvm_tools_record_gpu_fatal_fault()
+  129   | | | +-uvm_push_begin_acquire()
+  130   | | | +-uvm_aperture_string()
+  131   | | | +-uvm_fault_access_type_string()
+  132   | | | +-UVM_ERR_PRINT()
+  133   | | | +-nvstatusToString()
+  134   | | | +-uvm_gpu_name()
+  135   | | | +-UVM_PAGE_ALIGN_DOWN()
+  136   | | | +-uvm_push_end_and_wait()
+  137   | | | \-uvm_tracker_clear()
+  138   | | +-uvm_va_space_up_read()
+  139   | | \-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+  140   | |   +-UVM_ASSERT()
+  141   | |   +-uvm_sem_is_locked()
+  142   | |   +-uvm_tracker_wait()
+  143   | |   +-hw_fault_buffer_flush_locked() <NV_STATUS hw_fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, hw_fault_buffer_flush_mode_t flush_mode) at uvm_gpu_replayable_faults.c:581>
+  144   | |   +-UVM_SPIN_WHILE()
+  145   | |   +-uvm_channel_manager_check_errors()
+  146   | |   +-uvm_global_get_status()
+  147   | |   +-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+  148   | |   +-fault_buffer_skip_replayable_entry() <void fault_buffer_skip_replayable_entry (uvm_parent_gpu_t *parent_gpu, NvU32 index) at uvm_gpu_replayable_faults.c:600>
+  149   | |   +-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  150   | |   \-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  151   | \-cancel_fault_batch_tlb() <void cancel_fault_batch_tlb (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2658>
+  152   |   +-uvm_va_space_down_read()
+  153   |   +-uvm_tools_record_gpu_fatal_fault()
+  154   |   +-list_for_each_entry()
+  155   |   +-uvm_va_space_up_read()
+  156   |   \-push_cancel_on_gpu_global() <NV_STATUS push_cancel_on_gpu_global (uvm_gpu_t *gpu, uvm_gpu_phys_address_t instance_ptr, uvm_tracker_t *tracker) at uvm_gpu_replayable_faults.c:427>
+  157   |     +-UVM_ASSERT()
+  158   |     \-push_cancel_on_gpu() <NV_STATUS push_cancel_on_gpu (uvm_gpu_t *gpu, uvm_gpu_phys_address_t instance_ptr, bool global_cancel, NvU32 gpc_id, NvU32 client_id, uvm_tracker_t *tracker) at uvm_gpu_replayable_faults.c:352>
+  159   +-uvm_tools_status_to_fatal_fault_reason()
+  160   +-uvm_tracker_wait()
+  161   +-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  162   | +-UVM_ASSERT()
+  163   | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+  164   | | +-UVM_ASSERT()
+  165   | | +-uvm_va_space_mm_retain_lock()
+  166   | | +-uvm_va_block_context_init()
+  167   | | +-uvm_va_space_down_read()
+  168   | | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+  169   | | | +-UVM_ASSERT()
+  170   | | | +-uvm_sem_is_locked()
+  171   | | | +-uvm_tracker_wait()
+  172   | | | +-hw_fault_buffer_flush_locked() <NV_STATUS hw_fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, hw_fault_buffer_flush_mode_t flush_mode) at uvm_gpu_replayable_faults.c:581>
+  173   | | | +-UVM_SPIN_WHILE()
+  174   | | | +-uvm_channel_manager_check_errors()
+  175   | | | +-uvm_global_get_status()
+  176   | | | +-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+  177   | | | +-fault_buffer_skip_replayable_entry() <void fault_buffer_skip_replayable_entry (uvm_parent_gpu_t *parent_gpu, NvU32 index) at uvm_gpu_replayable_faults.c:600>
+  178   | | | +-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  179   | | | \-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  180   | | +-uvm_tracker_wait()
+  181   | | +-hw_fault_buffer_flush_locked() <NV_STATUS hw_fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, hw_fault_buffer_flush_mode_t flush_mode) at uvm_gpu_replayable_faults.c:581>
+  182   | | | +-UVM_ASSERT()
+  183   | | | +-uvm_sem_is_locked()
+  184   | | | \-nvUvmInterfaceFlushReplayableFaultBuffer()
+  185   | | +-uvm_gpu_va_space_get()
+  186   | | +-fetch_fault_buffer_entries() <NV_STATUS fetch_fault_buffer_entries (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context, fault_fetch_mode_t fetch_mode) at uvm_gpu_replayable_faults.c:844>
+  187   | | | +-UVM_ASSERT()
+  188   | | | +-uvm_sem_is_locked()
+  189   | | | +-UVM_SPIN_WHILE()
+  190   | | | +-uvm_global_get_status()
+  191   | | | +-smp_mb__after_atomic()
+  192   | | | +-UVM_PAGE_ALIGN_DOWN()
+  193   | | | +-cmp_fault_instance_ptr() <inline int cmp_fault_instance_ptr (const uvm_fault_buffer_entry_t *a, const uvm_fault_buffer_entry_t *b) at uvm_gpu_replayable_faults.c:695>
+  194   | | | +-fetch_fault_buffer_try_merge_entry() <bool fetch_fault_buffer_try_merge_entry (uvm_fault_buffer_entry_t *current_entry, uvm_fault_service_batch_context_t *batch_context, uvm_fault_utlb_info_t *current_tlb, bool is_same_instance_ptr) at uvm_gpu_replayable_faults.c:782>
+  195   | | | +-uvm_fault_access_type_mask_bit()
+  196   | | | +-INIT_LIST_HEAD()
+  197   | | | \-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+  198   | | +-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+  199   | | | +-UVM_ASSERT()
+  200   | | | +-sort()
+  201   | | | +-cmp_sort_fault_entry_by_instance_ptr() <int cmp_sort_fault_entry_by_instance_ptr (const void *_a, const void *_b) at uvm_gpu_replayable_faults.c:990>
+  202   | | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+  203   | | | \-cmp_sort_fault_entry_by_va_space_gpu_address_access_type() <int cmp_sort_fault_entry_by_va_space_gpu_address_access_type (const void *_a, const void *_b) at uvm_gpu_replayable_faults.c:1000>
+  204   | | +-cancel_fault_precise_va() <NV_STATUS cancel_fault_precise_va (uvm_fault_buffer_entry_t *fault_entry, uvm_fault_cancel_va_mode_t cancel_va_mode) at uvm_gpu_replayable_faults.c:438>
+  205   | | | +-UVM_ASSERT()
+  206   | | | +-uvm_gpu_va_space_get()
+  207   | | | +-uvm_page_tree_pdb_address()
+  208   | | | +-uvm_tools_record_gpu_fatal_fault()
+  209   | | | +-uvm_push_begin_acquire()
+  210   | | | +-uvm_aperture_string()
+  211   | | | +-uvm_fault_access_type_string()
+  212   | | | +-UVM_ERR_PRINT()
+  213   | | | +-nvstatusToString()
+  214   | | | +-uvm_gpu_name()
+  215   | | | +-UVM_PAGE_ALIGN_DOWN()
+  216   | | | +-uvm_push_end_and_wait()
+  217   | | | \-uvm_tracker_clear()
+  218   | | +-service_fault_batch_dispatch() <NV_STATUS service_fault_batch_dispatch (uvm_va_space_t *va_space, uvm_gpu_va_space_t *gpu_va_space, uvm_fault_service_batch_context_t *batch_context, NvU32 fault_index, NvU32 *block_faults, bool replay_per_va_block, const bool hmm_migratable) at uvm_gpu_replayable_faults.c:1946>
+  219   | | | +-uvm_va_space_iter_gmmu_mappable_first()
+  220   | | | +-UVM_ASSERT()
+  221   | | | +-uvm_va_range_gmmu_mappable_next()
+  222   | | | +-uvm_va_block_find_create_in_range()
+  223   | | | +-uvm_hmm_va_block_find_create()
+  224   | | | +-service_fault_batch_block() <NV_STATUS service_fault_batch_block (uvm_gpu_t *gpu, uvm_va_block_t *va_block, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, const bool hmm_migratable, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1606>
+  225   | | | +-uvm_ats_can_service_faults()
+  226   | | | +-min()
+  227   | | | +-UVM_ALIGN_DOWN()
+  228   | | | +-uvm_ats_check_in_gmmu_region()
+  229   | | | +-service_fault_batch_fatal_notify() <void service_fault_batch_fatal_notify (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, NV_STATUS status, uvm_fault_cancel_va_mode_t cancel_va_mode, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1678>
+  230   | | | \-service_fault_batch_ats() <NV_STATUS service_fault_batch_ats (uvm_gpu_va_space_t *gpu_va_space, struct mm_struct *mm, uvm_fault_service_batch_context_t *batch_context, NvU32 first_fault_index, NvU64 outer, NvU32 *block_faults) at uvm_gpu_replayable_faults.c:1892>
+  231   | | +-uvm_ats_invalidate_tlbs()
+  232   | | +-uvm_va_space_up_read()
+  233   | | \-uvm_va_space_mm_release_unlock()
+  234   | \-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+  235   |   +-UVM_ASSERT()
+  236   |   +-find_fatal_fault_in_utlb() <NvU32 find_fatal_fault_in_utlb (uvm_fault_service_batch_context_t *batch_context, NvU32 utlb_id) at uvm_gpu_replayable_faults.c:2543>
+  237   |   | \-UVM_ASSERT()
+  238   |   +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+  239   |   | +-UVM_ASSERT()
+  240   |   | +-uvm_sem_is_locked()
+  241   |   | +-uvm_tracker_wait()
+  242   |   | +-hw_fault_buffer_flush_locked() <NV_STATUS hw_fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, hw_fault_buffer_flush_mode_t flush_mode) at uvm_gpu_replayable_faults.c:581>
+  243   |   | +-UVM_SPIN_WHILE()
+  244   |   | +-uvm_channel_manager_check_errors()
+  245   |   | +-uvm_global_get_status()
+  246   |   | +-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+  247   |   | +-fault_buffer_skip_replayable_entry() <void fault_buffer_skip_replayable_entry (uvm_parent_gpu_t *parent_gpu, NvU32 index) at uvm_gpu_replayable_faults.c:600>
+  248   |   | +-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  249   |   | \-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  250   |   +-uvm_tracker_wait()
+  251   |   +-fetch_fault_buffer_entries() <NV_STATUS fetch_fault_buffer_entries (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context, fault_fetch_mode_t fetch_mode) at uvm_gpu_replayable_faults.c:844>
+  252   |   | +-UVM_ASSERT()
+  253   |   | +-uvm_sem_is_locked()
+  254   |   | +-UVM_SPIN_WHILE()
+  255   |   | +-uvm_global_get_status()
+  256   |   | +-smp_mb__after_atomic()
+  257   |   | +-UVM_PAGE_ALIGN_DOWN()
+  258   |   | +-cmp_fault_instance_ptr() <inline int cmp_fault_instance_ptr (const uvm_fault_buffer_entry_t *a, const uvm_fault_buffer_entry_t *b) at uvm_gpu_replayable_faults.c:695>
+  259   |   | +-fetch_fault_buffer_try_merge_entry() <bool fetch_fault_buffer_try_merge_entry (uvm_fault_buffer_entry_t *current_entry, uvm_fault_service_batch_context_t *batch_context, uvm_fault_utlb_info_t *current_tlb, bool is_same_instance_ptr) at uvm_gpu_replayable_faults.c:782>
+  260   |   | +-uvm_fault_access_type_mask_bit()
+  261   |   | +-INIT_LIST_HEAD()
+  262   |   | \-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+  263   |   +-is_fatal_fault_in_buffer() <NvU32 is_fatal_fault_in_buffer (uvm_fault_service_batch_context_t *batch_context, uvm_fault_buffer_entry_t *fault) at uvm_gpu_replayable_faults.c:2560>
+  264   |   | +-UVM_ASSERT()
+  265   |   | \-cmp_fault_instance_ptr() <inline int cmp_fault_instance_ptr (const uvm_fault_buffer_entry_t *a, const uvm_fault_buffer_entry_t *b) at uvm_gpu_replayable_faults.c:695>
+  266   |   +-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+  267   |   | +-UVM_ASSERT()
+  268   |   | +-sort()
+  269   |   | +-cmp_sort_fault_entry_by_instance_ptr() <int cmp_sort_fault_entry_by_instance_ptr (const void *_a, const void *_b) at uvm_gpu_replayable_faults.c:990>
+  270   |   | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+  271   |   | \-cmp_sort_fault_entry_by_va_space_gpu_address_access_type() <int cmp_sort_fault_entry_by_va_space_gpu_address_access_type (const void *_a, const void *_b) at uvm_gpu_replayable_faults.c:1000>
+  272   |   +-service_fault_batch() <NV_STATUS service_fault_batch (uvm_parent_gpu_t *parent_gpu, fault_service_mode_t service_mode, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2232>
+  273   |   | +-UVM_ASSERT()
+  274   |   | +-uvm_ats_invalidate_tlbs()
+  275   |   | +-uvm_va_space_up_read()
+  276   |   | +-uvm_va_space_mm_release_unlock()
+  277   |   | +-uvm_va_space_mm_retain_lock()
+  278   |   | +-uvm_va_block_context_init()
+  279   |   | +-uvm_va_space_down_read()
+  280   |   | +-uvm_gpu_va_space_get()
+  281   |   | +-service_fault_batch_dispatch() <NV_STATUS service_fault_batch_dispatch (uvm_va_space_t *va_space, uvm_gpu_va_space_t *gpu_va_space, uvm_fault_service_batch_context_t *batch_context, NvU32 fault_index, NvU32 *block_faults, bool replay_per_va_block, const bool hmm_migratable) at uvm_gpu_replayable_faults.c:1946>
+  282   |   | \-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  283   |   +-try_to_cancel_utlbs() <NV_STATUS try_to_cancel_utlbs (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2495>
+  284   |   | +-UVM_ASSERT()
+  285   |   | +-is_first_fault_in_utlb() <bool is_first_fault_in_utlb (uvm_fault_service_batch_context_t *batch_context, NvU32 fault_index) at uvm_gpu_replayable_faults.c:2380>
+  286   |   | +-no_fatal_pages_in_utlb() <bool no_fatal_pages_in_utlb (uvm_fault_service_batch_context_t *batch_context, NvU32 start_index, NvU32 utlb_id) at uvm_gpu_replayable_faults.c:2435>
+  287   |   | +-record_fatal_fault_helper() <void record_fatal_fault_helper (uvm_fault_buffer_entry_t *entry, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2467>
+  288   |   | \-push_cancel_on_gpu_targeted() <NV_STATUS push_cancel_on_gpu_targeted (uvm_gpu_t *gpu, uvm_gpu_phys_address_t instance_ptr, NvU32 gpc_id, NvU32 client_id, uvm_tracker_t *tracker) at uvm_gpu_replayable_faults.c:418>
+  289   |   \-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  290   |     +-uvm_push_begin_acquire()
+  291   |     +-uvm_tools_broadcast_replay()
+  292   |     +-uvm_push_end()
+  293   |     +-uvm_tracker_add_push_safe()
+  294   |     \-uvm_procfs_is_debug_enabled()
+  295   +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  296   | +-uvm_parent_gpu_find_first_valid_gpu()
+  297   | \-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  298   |   +-uvm_push_begin_acquire()
+  299   |   +-uvm_tools_broadcast_replay()
+  300   |   +-uvm_push_end()
+  301   |   +-uvm_tracker_add_push_safe()
+  302   |   \-uvm_procfs_is_debug_enabled()
+  303   +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+  304   | +-UVM_ASSERT()
+  305   | +-uvm_sem_is_locked()
+  306   | +-uvm_tracker_wait()
+  307   | +-hw_fault_buffer_flush_locked() <NV_STATUS hw_fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, hw_fault_buffer_flush_mode_t flush_mode) at uvm_gpu_replayable_faults.c:581>
+  308   | | +-UVM_ASSERT()
+  309   | | +-uvm_sem_is_locked()
+  310   | | \-nvUvmInterfaceFlushReplayableFaultBuffer()
+  311   | +-UVM_SPIN_WHILE()
+  312   | +-uvm_channel_manager_check_errors()
+  313   | +-uvm_global_get_status()
+  314   | +-write_get() <void write_get (uvm_parent_gpu_t *parent_gpu, NvU32 get) at uvm_gpu_replayable_faults.c:558>
+  315   | | +-UVM_ASSERT()
+  316   | | \-uvm_sem_is_locked()
+  317   | +-fault_buffer_skip_replayable_entry() <void fault_buffer_skip_replayable_entry (uvm_parent_gpu_t *parent_gpu, NvU32 index) at uvm_gpu_replayable_faults.c:600>
+  318   | | +-UVM_ASSERT()
+  319   | | \-uvm_conf_computing_fault_increment_decrypt_iv()
+  320   | +-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  321   | | +-uvm_push_begin_acquire()
+  322   | | +-uvm_tools_broadcast_replay()
+  323   | | +-uvm_push_end()
+  324   | | +-uvm_tracker_add_push_safe()
+  325   | | \-uvm_procfs_is_debug_enabled()
+  326   | \-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  327   |   +-uvm_parent_gpu_find_first_valid_gpu()
+  328   |   \-push_replay_on_gpu() <NV_STATUS push_replay_on_gpu (uvm_gpu_t *gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:503>
+  329   |     +-uvm_push_begin_acquire()
+  330   |     +-uvm_tools_broadcast_replay()
+  331   |     +-uvm_push_end()
+  332   |     +-uvm_tracker_add_push_safe()
+  333   |     \-uvm_procfs_is_debug_enabled()
+  334   +-uvm_tracker_deinit()
+  335   +-UVM_DBG_PRINT()
+  336   \-uvm_parent_gpu_name()

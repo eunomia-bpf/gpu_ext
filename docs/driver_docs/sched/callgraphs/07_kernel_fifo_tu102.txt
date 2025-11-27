@@ -1,0 +1,28 @@
+    1 kfifoGenerateWorkSubmitTokenHal_TU102() <NV_STATUS kfifoGenerateWorkSubmitTokenHal_TU102 (OBJGPU *pGpu, KernelFifo *pKernelFifo, KernelChannel *pKernelChannel, NvU32 *pGeneratedToken, NvBool bUsedForHost) at src/nvidia/src/kernel/gpu/fifo/arch/turing/kernel_fifo_tu102.c:70>:
+    2     NV_ASSERT_OR_RETURN()
+    3     NV_ASSERT_OK_OR_RETURN()
+    4     vgpuGetCallingContextGfid()
+    5     IS_GFID_VF()
+    6     kfifoGetVChIdForSChId_HAL()
+    7     kchannelGetEngineType()
+    8     kchannelIsRunlistSet()
+    9     NV_PRINTF()
+   10     kchannelGetDebugTag()
+   11     FLD_SET_DRF_NUM()
+   12     kchannelGetRunlistId()
+   13 kfifoGetClientIdString_TU102() <const char *kfifoGetClientIdString_TU102 (OBJGPU *pGpu, KernelFifo *pKernelFifo, FIFO_MMU_EXCEPTION_DATA *pMmuExceptInfo) at src/nvidia/src/kernel/gpu/fifo/arch/turing/kernel_fifo_tu102.c:276>:
+   14 kfifoPrintInternalEngine_TU102() <const char *kfifoPrintInternalEngine_TU102 (OBJGPU *pGpu, KernelFifo *pKernelFifo, NvU32 engineID) at src/nvidia/src/kernel/gpu/fifo/arch/turing/kernel_fifo_tu102.c:175>:
+   15     GPU_GET_KERNEL_GMMU()
+   16     kfifoIsMmuFaultEngineIdPbdma()
+   17     NV_ASSERT_OR_RETURN()
+   18     kfifoGetPbdmaIdFromMmuFaultId()
+   19     kfifoPrintPbdmaId_HAL()
+   20     kgmmuIsFaultEngineBar1_HAL()
+   21     kgmmuIsFaultEngineBar2_HAL()
+   22     kfifoEngineInfoXlate_HAL()
+   23     IS_GR()
+   24 kfifoPrintPbdmaId_TU102() <const char *kfifoPrintPbdmaId_TU102 (OBJGPU *pGpu, KernelFifo *pKernelFifo, NvU32 pbdmaId) at src/nvidia/src/kernel/gpu/fifo/arch/turing/kernel_fifo_tu102.c:137>:
+   25     NV_ASSERT_OR_RETURN()
+   26 kfifoUpdateUsermodeDoorbell_TU102() <NV_STATUS kfifoUpdateUsermodeDoorbell_TU102 (OBJGPU *pGpu, KernelFifo *pKernelFifo, NvU32 workSubmitToken) at src/nvidia/src/kernel/gpu/fifo/arch/turing/kernel_fifo_tu102.c:45>:
+   27     NV_PRINTF()
+   28     GPU_VREG_WR32()

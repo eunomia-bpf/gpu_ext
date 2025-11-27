@@ -1,0 +1,522 @@
+diff --git a/src/nvidia/arch/nvalloc/unix/include/nv_escape.h b/src/nvidia/arch/nvalloc/unix/include/nv_escape.h
+index 3310292..565b0d7 100644
+--- a/src/nvidia/arch/nvalloc/unix/include/nv_escape.h
++++ b/src/nvidia/arch/nvalloc/unix/include/nv_escape.h
+@@ -52,4 +52,7 @@
+ #define NV_ESC_RM_UPDATE_DEVICE_MAPPING_INFO        0x5E
+ #define NV_ESC_RM_LOCKLESS_DIAGNOSTIC               0x5F
+ 
++// Added
++#define NV_ESC_RM_QUERY_GROUP                       0x60
++
+ #endif // NV_ESCAPE_H_INCLUDED
+diff --git a/src/nvidia/arch/nvalloc/unix/src/escape.c b/src/nvidia/arch/nvalloc/unix/src/escape.c
+index de09951..e79993e 100644
+--- a/src/nvidia/arch/nvalloc/unix/src/escape.c
++++ b/src/nvidia/arch/nvalloc/unix/src/escape.c
+@@ -49,8 +49,13 @@
+ #include "rmapi/client_resource.h"
+ #include "nvlog/nvlog.h"
+ #include <nv-ioctl-lockless-diag.h>
++#include <nv_list.h>
+ 
+ #include <ctrl/ctrl00fd.h>
++#include <ctrl/ctrl83de/ctrl83dedebug.h>
++#include <ctrl/ctrla06f/ctrla06fgpfifo.h>
++#include <class/clc56f.h>
++#include <kernel/gpu/fifo/kernel_channel_group_api.h>
+ 
+ #include <ctrl/ctrl00e0.h>
+ 
+@@ -72,6 +77,8 @@
+     }                                          \
+ }
+ 
++static void* g_clientOSInfo;
++
+ static NV_STATUS RmGetDeviceFd(NVOS54_PARAMETERS *pApi, NvS32 *pFd,
+                                NvBool *pSkipDeviceRef)
+ {
+@@ -418,9 +425,67 @@ NV_STATUS RmIoctl(
+                 Nv04AllocWithAccessSecInfo(pApiAccess, secInfo);
+             }
+ 
++            if((bAccessApi ? pApiAccess->hClass : pApi->hClass) == AMPERE_CHANNEL_GPFIFO_A)
++            {
++                // NV_PRINTF(LEVEL_ERROR, "clientOSInfo:0x%x\n", secInfo.clientOSInfo);
++                // NV_PRINTF(LEVEL_ERROR, "threadId:0x%x\n", portThreadGetCurrentThreadId());
++                g_clientOSInfo = secInfo.clientOSInfo;
++            }
++
+             break;
+         }
+ 
++        case NV_ESC_RM_QUERY_GROUP:
++        {
++            NVOS54_PARAMETERS *pApi = data;
++
++            NV_STATUS status;
++            NvHandle *pClientHandleList;
++            NvU32     clientHandleListSize;
++            RsClient *pClient;
++            RS_ITERATOR it, childIt;
++            NvHandle threadId = pApi->hClient;
++            // NV_PRINTF(LEVEL_ERROR, "Query clientOSInfo:0x%x\n", secInfo.clientOSInfo);
++            // NV_PRINTF(LEVEL_ERROR, "Query threadId:0x%x\n", pApi->hClient);
++            status = rmapiGetClientHandlesFromOSInfo(g_clientOSInfo, &pClientHandleList, &clientHandleListSize);
++            for(int i = 0; i < clientHandleListSize; ++i) {
++                // NV_PRINTF(LEVEL_ERROR, "client:0x%x\n", pClientHandleList[i]);
++                status = serverGetClientUnderLock(&g_resServ, pClientHandleList[i], &pClient);
++                if(status != NV_OK) {
++                    continue;
++                }
++                it = clientRefIter(pClient, NULL, classId(KernelChannelGroupApi), RS_ITERATE_DESCENDANTS, NV_TRUE);
++                while (clientRefIterNext(pClient, &it))
++                {
++                    KernelChannelGroupApi *pKernelChannelGroupApi = dynamicCast(it.pResourceRef->pResource, KernelChannelGroupApi);
++                    if(pKernelChannelGroupApi->threadId != threadId)
++                        continue;
++                    childIt = clientRefIter(pClient, it.pResourceRef, classId(KernelChannel), RS_ITERATE_CHILDREN, NV_TRUE);
++                    int cnt = 0;
++                    while (clientRefIterNext(pClient, &childIt))
++                        cnt++;
++                    if(cnt != 8)
++                        continue;
++                    pApi->hClient = pClientHandleList[i];
++                    pApi->hObject = it.pResourceRef->hResource;
++                    if(pApi->params == 0) continue;
++                    NV2080_CTRL_FIFO_DISABLE_CHANNELS_PARAMS params;
++                    params.numChannels = 0;
++                    childIt = clientRefIter(pClient, it.pResourceRef, classId(KernelChannel), RS_ITERATE_CHILDREN, NV_TRUE);
++                    while(clientRefIterNext(pClient, &childIt)) {
++                        // NV_PRINTF(LEVEL_ERROR, "KernelChannel handle = 0x%x\n", childIt.pResourceRef->hResource);
++                        params.hClientList[params.numChannels] = pClientHandleList[i];
++                        params.hChannelList[params.numChannels] = childIt.pResourceRef->hResource;
++                        params.numChannels++;
++                    }
++                    os_memcpy_to_user((void *)pApi->params, &params, sizeof(NV2080_CTRL_FIFO_DISABLE_CHANNELS_PARAMS));
++                    // NV_PRINTF(LEVEL_ERROR, "KernelChannelGroupApi handle = 0x%x\n", it.pResourceRef->hResource);
++                }
++            }
++            pApi->status = status;
++
++        }
++
+         case NV_ESC_RM_FREE:
+         {
+             NVOS00_PARAMETERS *pApi = data;
+@@ -799,7 +864,10 @@ NV_STATUS RmIoctl(
+                 secInfo.gpuOsInfo = priv;
+             }
+ 
+-            Nv04ControlWithSecInfo(pApi, secInfo);
++            // NV_PRINTF(LEVEL_ERROR, "Nv04Control time: %lu\n", nv_rdtsc() >> 1);
++
++            // Nv04ControlWithSecInfo(pApi, secInfo);
++            Nv04Control(pApi);
+ 
+             if ((pApi->status != NV_OK) && (priv != NULL))
+             {
+@@ -812,6 +880,8 @@ NV_STATUS RmIoctl(
+                 secInfo.gpuOsInfo = NULL;
+             }
+ 
++            // NV_PRINTF(LEVEL_ERROR, "control status = 0x%x\n", pApi->status);
++
+             break;
+         }
+ 
+diff --git a/src/nvidia/generated/g_kernel_channel_group_api_nvoc.h b/src/nvidia/generated/g_kernel_channel_group_api_nvoc.h
+index 8953a6a..1f6c8a6 100644
+--- a/src/nvidia/generated/g_kernel_channel_group_api_nvoc.h
++++ b/src/nvidia/generated/g_kernel_channel_group_api_nvoc.h
+@@ -137,6 +137,7 @@ struct KernelChannelGroupApi {
+     NvHandle hLegacykCtxShareSync;
+     NvHandle hLegacykCtxShareAsync;
+     NvHandle hVASpace;
++    NvU64    threadId;
+ };
+ 
+ #ifndef __NVOC_CLASS_KernelChannelGroupApi_TYPEDEF__
+diff --git a/src/nvidia/kernel/vgpu/nv/rpc.c b/src/nvidia/kernel/vgpu/nv/rpc.c
+index 158c179..8e4e8cb 100644
+--- a/src/nvidia/kernel/vgpu/nv/rpc.c
++++ b/src/nvidia/kernel/vgpu/nv/rpc.c
+@@ -28,6 +28,7 @@
+ //
+ //******************************************************************************
+ 
++#include <unistd.h>
+ #include "os/os.h"
+ #include "core/system.h"
+ #include "core/locks.h"
+@@ -54,6 +55,7 @@
+ #include "os/os.h"
+ #include "objtmr.h"
+ #include "lib/base_utils.h"
++#include "nv.h"
+ #if defined(NV_UNIX) && RMCFG_FEATURE_GSP_CLIENT_RM
+ #include "os-interface.h"
+ #endif
+@@ -1679,6 +1681,110 @@ NV_STATUS rpcRecvPoll_IMPL(OBJGPU *pGpu, OBJRPC *pRpc, NvU32 expectedFunc)
+     return NV_ERR_NOT_SUPPORTED;
+ }
+ 
++
++static NV_STATUS _myIssueRpcAndWait(OBJGPU *pGpu, OBJRPC *pRpc)
++{
++    // NvU64 start = nv_rdtsc();
++    NV_STATUS status = NV_OK;
++    RPC_METER_LIST *pNewEntry = NULL;
++
++    // should not be called in broadcast mode
++    NV_ASSERT_OR_RETURN(!gpumgrGetBcEnabledStatus(pGpu), NV_ERR_INVALID_STATE);
++
++    if (bProfileRPC)
++    {
++        // Create a new entry for our RPC profiler
++        pNewEntry = portMemAllocNonPaged(sizeof(RPC_METER_LIST));
++        if (pNewEntry == NULL)
++        {
++            NV_PRINTF(LEVEL_ERROR, "failed to allocate RPC meter memory!\n");
++            NV_ASSERT(0);
++            return NV_ERR_INSUFFICIENT_RESOURCES;
++        }
++
++        portMemSet(pNewEntry, 0, sizeof(RPC_METER_LIST));
++
++        if (rpcMeterHead.pHead == NULL)
++            rpcMeterHead.pHead = pNewEntry;
++        else
++            rpcMeterHead.pTail->pNext = pNewEntry;
++
++        rpcMeterHead.pTail = pNewEntry;
++
++        pNewEntry->rpcData.rpcDataTag = vgpu_rpc_message_header_v->function;
++
++        rpcProfilerEntryCount++;
++
++        osGetPerformanceCounter(&pNewEntry->rpcData.startTimeInNs);
++    }
++
++    // For HCC, cache expectedFunc value before encrypting.
++    NvU32 expectedFunc = vgpu_rpc_message_header_v->function;
++
++    // NV_PRINTF(LEVEL_ERROR, "rpcSendMessage time: %lu\n", nv_rdtsc() >> 1);
++    status = rpcSendMessage(pGpu, pRpc);
++    if (status != NV_OK)
++    {
++        NV_PRINTF_COND(pRpc->bQuietPrints, LEVEL_INFO, LEVEL_ERROR,
++            "rpcSendMessage failed with status 0x%08x for fn %d!\n",
++            status, vgpu_rpc_message_header_v->function);
++        //
++        // It has been observed that returning NV_ERR_BUSY_RETRY in a bad state (RPC
++        // buffers full and not being serviced) can make things worse, i.e. turn RPC
++        // failures into app hangs such that even nvidia-bug-report.sh gets stuck.
++        // Avoid this for now while still returning the correct error in other cases.
++        //
++        return (status == NV_ERR_BUSY_RETRY) ? NV_ERR_GENERIC : status;
++    }
++
++    // NvU64 mid = nv_rdtsc();
++    // Use cached expectedFunc here because vgpu_rpc_message_header_v is encrypted for HCC.
++    // status = rpcRecvPoll(pGpu, pRpc, expectedFunc);
++    // if (status != NV_OK)
++    // {
++    //     if (status == NV_ERR_TIMEOUT)
++    //     {
++    //         NV_PRINTF_COND(pRpc->bQuietPrints, LEVEL_INFO, LEVEL_ERROR,
++    //             "rpcRecvPoll timedout for fn %d!\n",
++    //              vgpu_rpc_message_header_v->function);
++    //     }
++    //     else
++    //     {
++    //         NV_PRINTF_COND(pRpc->bQuietPrints, LEVEL_INFO, LEVEL_ERROR,
++    //             "rpcRecvPoll failed with status 0x%08x for fn %d!\n",
++    //              status, vgpu_rpc_message_header_v->function);
++    //     }
++    //     return status;
++    // }
++    // NV_PRINTF(LEVEL_ERROR, "rpcRecvPoll finish time: %lu\n", nv_rdtsc() >> 1);
++
++    if (bProfileRPC)
++        osGetPerformanceCounter(&pNewEntry->rpcData.endTimeInNs);
++
++    // Now check if RPC really succeeded
++    // if (vgpu_rpc_message_header_v->rpc_result != NV_VGPU_MSG_RESULT_SUCCESS)
++    // {
++    //     NV_PRINTF(LEVEL_WARNING, "RPC failed with status 0x%08x for fn %d!\n",
++    //               vgpu_rpc_message_header_v->rpc_result,
++    //               vgpu_rpc_message_header_v->function);
++
++    //     if (vgpu_rpc_message_header_v->rpc_result < DRF_BASE(NV_VGPU_MSG_RESULT__VMIOP))
++    //         return vgpu_rpc_message_header_v->rpc_result;
++
++    //     return NV_ERR_GENERIC;
++    // }
++
++    // NvU64 end = nv_rdtsc();
++    // NvU64 sample = nv_rdtsc();
++    // NV_PRINTF(LEVEL_ERROR, "RPC time: %lu\n", (end - start) >> 1);
++    // NV_PRINTF(LEVEL_ERROR, "Poll time: %lu\n", (end - mid) >> 1);
++    // NV_PRINTF(LEVEL_ERROR, "Sample time: %lu\n", (sample - end) >> 1);
++
++    return NV_OK;
++}
++
++
++
+ static NV_STATUS _rpcSendMessage_VGPUGSP(OBJGPU *pGpu, OBJRPC *pRpc)
+ {
+     OBJVGPU *pVGpu = GPU_GET_VGPU(pGpu);
+@@ -1695,6 +1801,7 @@ static NV_STATUS _rpcRecvPoll_VGPUGSP(OBJGPU *pGpu, OBJRPC *pRPC, NvU32 expected
+ 
+ static NV_STATUS _issueRpcAndWait(OBJGPU *pGpu, OBJRPC *pRpc)
+ {
++    // NvU64 start = nv_rdtsc();
+     NV_STATUS status = NV_OK;
+     RPC_METER_LIST *pNewEntry = NULL;
+ 
+@@ -1732,6 +1839,7 @@ static NV_STATUS _issueRpcAndWait(OBJGPU *pGpu, OBJRPC *pRpc)
+     // For HCC, cache expectedFunc value before encrypting.
+     NvU32 expectedFunc = vgpu_rpc_message_header_v->function;
+ 
++    // NV_PRINTF(LEVEL_ERROR, "rpcSendMessage time: %lu\n", nv_rdtsc() >> 1);
+     status = rpcSendMessage(pGpu, pRpc);
+     if (status != NV_OK)
+     {
+@@ -1747,6 +1855,7 @@ static NV_STATUS _issueRpcAndWait(OBJGPU *pGpu, OBJRPC *pRpc)
+         return (status == NV_ERR_BUSY_RETRY) ? NV_ERR_GENERIC : status;
+     }
+ 
++    // NvU64 mid = nv_rdtsc();
+     // Use cached expectedFunc here because vgpu_rpc_message_header_v is encrypted for HCC.
+     status = rpcRecvPoll(pGpu, pRpc, expectedFunc);
+     if (status != NV_OK)
+@@ -1765,6 +1874,7 @@ static NV_STATUS _issueRpcAndWait(OBJGPU *pGpu, OBJRPC *pRpc)
+         }
+         return status;
+     }
++    // NV_PRINTF(LEVEL_ERROR, "rpcRecvPoll finish time: %lu\n", nv_rdtsc() >> 1);
+ 
+     if (bProfileRPC)
+         osGetPerformanceCounter(&pNewEntry->rpcData.endTimeInNs);
+@@ -1785,6 +1895,11 @@ static NV_STATUS _issueRpcAndWait(OBJGPU *pGpu, OBJRPC *pRpc)
+         return NV_ERR_GENERIC;
+     }
+ 
++    // NvU64 end = nv_rdtsc();
++    // NvU64 sample = nv_rdtsc();
++    // NV_PRINTF(LEVEL_ERROR, "RPC time: %lu\n", (end - start) >> 1);
++    // NV_PRINTF(LEVEL_ERROR, "Poll time: %lu\n", (end - mid) >> 1);
++
+     return NV_OK;
+ }
+ 
+@@ -9227,6 +9342,7 @@ NV_STATUS rpcRmApiControl_GSP
+     NvU32 paramsSize
+ )
+ {
++    // NV_PRINTF(LEVEL_ERROR, "rpcRmApiControl_GSP time: %lu\n", nv_rdtsc());
+     NV_STATUS status = NV_ERR_NOT_SUPPORTED;
+ 
+     OBJGPU *pGpu = (OBJGPU*)pRmApi->pPrivateContext;
+@@ -9378,6 +9494,9 @@ NV_STATUS rpcRmApiControl_GSP
+     }
+     else
+     {
++        // if(cmd == 0x2080110b)
++        //     status = _issueRpcAsync(pGpu, pRpc);
++        // else
+         status = _issueRpcAndWait(pGpu, pRpc);
+     }
+ 
+diff --git a/src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c b/src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c
+index 37f275b..0778a93 100644
+--- a/src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c
++++ b/src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c
+@@ -82,6 +82,8 @@ kchangrpapiConstruct_IMPL
+               pParams->hClient, pParams->hParent, pParams->hResource,
+               pParams->externalClassId);
+ 
++    pKernelChannelGroupApi->threadId = portThreadGetCurrentThreadId();
++
+     if (RS_IS_COPY_CTOR(pParams))
+     {
+         NV_ASSERT_OK_OR_GOTO(rmStatus,
+diff --git a/src/nvidia/src/kernel/gpu/gr/kernel_sm_debugger_session.c b/src/nvidia/src/kernel/gpu/gr/kernel_sm_debugger_session.c
+index 18f046f..2f581f0 100644
+--- a/src/nvidia/src/kernel/gpu/gr/kernel_sm_debugger_session.c
++++ b/src/nvidia/src/kernel/gpu/gr/kernel_sm_debugger_session.c
+@@ -242,6 +242,9 @@ ksmdbgssnConstruct_IMPL
+     hClass3dObject = pNv83deAllocParams->hClass3dObject;
+     hKernelSMDebuggerSession = pParams->hResource;
+ 
++    // NV_PRINTF(LEVEL_ERROR, "hAppClient = 0x%x, hClass3dObject = 0x%x, hKernelSMDebuggerSession = 0x%x\n",
++    //           hAppClient, hClass3dObject, hKernelSMDebuggerSession);
++
+     // If given a zero hAppClient, assume the client meant to target the calling hClient.
+     if (hAppClient == NV01_NULL_OBJECT)
+     {
+diff --git a/src/nvidia/src/kernel/rmapi/alloc_free.c b/src/nvidia/src/kernel/rmapi/alloc_free.c
+index 7d30414..210aa9c 100644
+--- a/src/nvidia/src/kernel/rmapi/alloc_free.c
++++ b/src/nvidia/src/kernel/rmapi/alloc_free.c
+@@ -1231,8 +1231,9 @@ rmapiAllocWithSecInfo
+         (pRmApi->bApiLockInternal || pRmApi->bGpuLockInternal))
+         allocInitStates |= RM_ALLOC_STATES_INTERNAL_ALLOC;
+ 
+-    NV_PRINTF(LEVEL_INFO, "client:0x%x parent:0x%x object:0x%x class:0x%x\n",
+-              hClient, hParent, *phObject, hClass);
++    // if(hClass == 0xc56f)
++    //     NV_PRINTF(LEVEL_ERROR, "client:0x%x parent:0x%x object:0x%x class:0x%x\n",
++    //           hClient, hParent, *phObject, hClass);
+ 
+     status = _rmAlloc(hClient,
+                       hParent,
+@@ -1440,8 +1441,8 @@ rmapiFreeWithSecInfo
+ 
+     portMemSet(&freeParams, 0, sizeof(freeParams));
+ 
+-    NV_PRINTF(LEVEL_INFO, "Nv01Free: client:0x%x object:0x%x\n", hClient,
+-              hObject);
++    // NV_PRINTF(LEVEL_ERROR, "Nv01Free: client:0x%x object:0x%x\n", hClient,
++    //           hObject);
+ 
+     status = rmapiPrologue(pRmApi, &rmApiContext);
+ 
+diff --git a/src/nvidia/src/kernel/rmapi/client.c b/src/nvidia/src/kernel/rmapi/client.c
+index 352ae62..919a51e 100644
+--- a/src/nvidia/src/kernel/rmapi/client.c
++++ b/src/nvidia/src/kernel/rmapi/client.c
+@@ -606,8 +606,11 @@ NV_STATUS rmclientUserClientSecurityCheckByHandle(NvHandle hClient, const API_SE
+     {
+         return _rmclientUserClientSecurityCheck(pClient, pSecInfo);
+     }
+-    else
++    else {
++        NV_PRINTF(LEVEL_ERROR, "rmclientUserClientSecurityCheckByHandle failed\n");
+         return NV_ERR_INVALID_CLIENT;
++    }
++
+ }
+ 
+ /**
+@@ -737,6 +740,7 @@ rmclientValidate_IMPL
+         {
+             if (pClient->pOSInfo != pSecInfo->clientOSInfo)
+             {
++                NV_PRINTF(LEVEL_ERROR, "Client OS info mismatch\n");
+                 status = NV_ERR_INVALID_CLIENT;
+             }
+         }
+diff --git a/src/nvidia/src/kernel/rmapi/control.c b/src/nvidia/src/kernel/rmapi/control.c
+index 0ed2e1e..24da7cd 100644
+--- a/src/nvidia/src/kernel/rmapi/control.c
++++ b/src/nvidia/src/kernel/rmapi/control.c
+@@ -431,6 +431,7 @@ _rmapiRmControl(NvHandle hClient, NvHandle hObject, NvU32 cmd, NvP64 pUserParams
+     if (serverutilGetClientUnderLock(hClient) == NULL)
+     {
+         rmStatus = NV_ERR_INVALID_CLIENT;
++        NV_PRINTF(LEVEL_ERROR, "serverutilGetClientUnderLock return invalid client\n");
+         goto done;
+     }
+ 
+@@ -442,6 +443,7 @@ _rmapiRmControl(NvHandle hClient, NvHandle hObject, NvU32 cmd, NvP64 pUserParams
+         if (pSecInfo->privLevel < RS_PRIV_LEVEL_KERNEL)
+         {
+             rmStatus = NV_ERR_INVALID_CLIENT;
++            NV_PRINTF(LEVEL_ERROR, "pSecInfo->privLevel < RS_PRIV_LEVEL_KERNEL\n");
+             goto done;
+         }
+     }
+diff --git a/src/nvidia/src/kernel/rmapi/resource.c b/src/nvidia/src/kernel/rmapi/resource.c
+index 06bd25e..e42f5aa 100644
+--- a/src/nvidia/src/kernel/rmapi/resource.c
++++ b/src/nvidia/src/kernel/rmapi/resource.c
+@@ -33,6 +33,7 @@
+ #include "gpu_mgr/gpu_mgr.h"
+ #include "vgpu/rpc.h"
+ #include "core/locks.h"
++#include "nv.h"
+ 
+ NV_STATUS
+ rmrescmnConstruct_IMPL
+@@ -258,6 +259,7 @@ rmresControl_Prologue_IMPL
+     RS_RES_CONTROL_PARAMS_INTERNAL *pParams
+ )
+ {
++    // NV_PRINTF(LEVEL_ERROR, "rmresControl_Prologue_IMPL time: %lu\n", nv_rdtsc() >> 1);
+     NV_STATUS status = NV_OK;
+     OBJGPU *pGpu = gpumgrGetGpu(pResource->rpcGpuInstance);
+ 
+diff --git a/src/nvidia/src/kernel/rmapi/rs_utils.c b/src/nvidia/src/kernel/rmapi/rs_utils.c
+index 96de03f..f05d115 100644
+--- a/src/nvidia/src/kernel/rmapi/rs_utils.c
++++ b/src/nvidia/src/kernel/rmapi/rs_utils.c
+@@ -39,8 +39,10 @@ serverutilGetResourceRef
+     *ppResourceRef = NULL;
+ 
+     status = serverGetClientUnderLock(&g_resServ, hClient, &pRsClient);
+-    if (status != NV_OK)
++    if (status != NV_OK) {
++        NV_PRINTF(LEVEL_ERROR, "serverGetClientUnderLock status: %d\n", status);
+         return NV_ERR_INVALID_CLIENT;
++    }
+ 
+     status = clientGetResourceRef(pRsClient, hObject, &pResourceRef);
+     if (status != NV_OK)
+@@ -352,13 +354,16 @@ serverutilAcquireClient
+     // LOCK TEST: we should have the API lock here
+     LOCK_ASSERT_AND_RETURN(rmapiLockIsOwner());
+ 
+-    if (NV_OK != serverAcquireClient(&g_resServ, hClient, access, &pRsClient))
++    if (NV_OK != serverAcquireClient(&g_resServ, hClient, access, &pRsClient)) {
++        NV_PRINTF(LEVEL_ERROR, "serverAcquireClient failed\n");
+         return NV_ERR_INVALID_CLIENT;
++    }
+ 
+     pClient = dynamicCast(pRsClient, RmClient);
+     if (pClient == NULL)
+     {
+         serverReleaseClient(&g_resServ, access, pRsClient);
++        NV_PRINTF(LEVEL_ERROR, "dynamicCast failed\n");
+         return NV_ERR_INVALID_CLIENT;
+     }
+ 
+diff --git a/src/nvidia/src/libraries/resserv/src/rs_resource.c b/src/nvidia/src/libraries/resserv/src/rs_resource.c
+index 98cde8f..07be257 100644
+--- a/src/nvidia/src/libraries/resserv/src/rs_resource.c
++++ b/src/nvidia/src/libraries/resserv/src/rs_resource.c
+@@ -197,6 +197,7 @@ resControl_IMPL
+     if (status == NV_WARN_NOTHING_TO_DO)
+     {
+         // Call handled by the prologue.
++        // NV_PRINTF(LEVEL_ERROR, "Control call 0x%x handled by prologue\n", pRsParams->cmd);
+         status = NV_OK;
+     }
+     else
+diff --git a/src/nvidia/src/libraries/resserv/src/rs_server.c b/src/nvidia/src/libraries/resserv/src/rs_server.c
+index a11a0f3..0d8a755 100644
+--- a/src/nvidia/src/libraries/resserv/src/rs_server.c
++++ b/src/nvidia/src/libraries/resserv/src/rs_server.c
+@@ -29,6 +29,7 @@
+ #include "resserv/rs_resource.h"
+ #include "tls/tls.h"
+ #include "nv_speculation_barrier.h"
++#include "ctrl/ctrl83de/ctrl83dedebug.h"
+ 
+ /**
+  * Get the RsClient from a client handle without taking locks
+@@ -1293,6 +1294,11 @@ serverControl
+             goto done;
+     }
+ 
++    // if(pParams->cmd == 0x83de0317) {
++    //     NV83DE_CTRL_CMD_DEBUG_SUSPEND_ALL_CONTEXTS_FOR_CLIENT_PARAMS *tp = (NV83DE_CTRL_CMD_DEBUG_SUSPEND_ALL_CONTEXTS_FOR_CLIENT_PARAMS *)(pParams->pParams);
++    //     NV_PRINTF(LEVEL_ERROR, "waitForEvent:0x%x, hResidentChannel:0x%x\n", tp->waitForEvent, tp->hResidentChannel);
++    // }
++
+     status = serverTopLock_Prologue(pServer, access, pLockInfo, &releaseFlags);
+     if (status != NV_OK)
+         goto done;

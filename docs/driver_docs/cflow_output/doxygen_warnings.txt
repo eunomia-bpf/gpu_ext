@@ -1,0 +1,24 @@
+/home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_channel.h:244: warning: no uniquely matching class member found for 
+  uvm_channel_pool_t::@6::DECLARE_BITMAP(push_locks, 16)
+Possible candidates:
+  'uvm_channel_manager_struct::DECLARE_BITMAP(ce_mask, 64)' at line 440 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_channel.h
+  'uvm_parent_gpu_struct::DECLARE_BITMAP(valid_gpus, 8)' at line 978 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_gpu.h
+  'uvm_gpu_semaphore_pool_page_struct::DECLARE_BITMAP(free_semaphores,(PAGE_SIZE/4))' at line 97 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_gpu_semaphore.c
+  'uvm_pmm_gpu_struct::DECLARE_BITMAP(chunk_split_cache_initialized,(ilog2(UVM_CHUNK_SIZE_MAX)+1))' at line 381 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_pmm_gpu.h
+  'uvm_parent_processor_mask_t::DECLARE_BITMAP(bitmap, \(32+1))' at line 536 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_processors.h
+  'uvm_processor_mask_t::DECLARE_BITMAP(bitmap, \((32 *8)+1))' at line 542 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_processors.h
+  'uvm_push_struct::DECLARE_BITMAP(flags, UVM_PUSH_FLAG_COUNT)' at line 105 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_push.h
+  'uvm_pushbuffer_struct::DECLARE_BITMAP(available_chunks, 16)' at line 226 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_pushbuffer.h
+  'uvm_pushbuffer_struct::DECLARE_BITMAP(idle_chunks, 16)' at line 229 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_pushbuffer.h
+  'uvm_thread_context_lock_struct::DECLARE_BITMAP(acquired_lock_orders, UVM_LOCK_ORDER_COUNT)' at line 42 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_thread_context.h
+  'uvm_thread_context_lock_struct::DECLARE_BITMAP(exclusive_acquired_lock_orders, UVM_LOCK_ORDER_COUNT)' at line 45 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_thread_context.h
+  'uvm_thread_context_lock_struct::DECLARE_BITMAP(out_of_order_acquired_lock_orders, UVM_LOCK_ORDER_COUNT)' at line 48 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_thread_context.h
+  'uvm_cpu_chunk_storage_mixed_t::DECLARE_BITMAP(big_chunks,((1ULL<< 21)/0x10000ULL))' at line 233 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_va_block.c
+  'uvm_va_block_gpu_state_t::DECLARE_BITMAP(big_ptes,((1ULL<< 21)/0x10000ULL))' at line 214 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_va_block.h
+  'uvm_page_mask_t::DECLARE_BITMAP(bitmap,((1ULL<< 21)/PAGE_SIZE))' at line 79 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_va_block_types.h
+  'uvm_va_block_new_pte_state_t::DECLARE_BITMAP(big_ptes,((1ULL<< 21)/0x10000ULL))' at line 104 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_va_block_types.h
+  'uvm_va_block_new_pte_state_t::DECLARE_BITMAP(big_ptes_covered,((1ULL<< 21)/0x10000ULL))' at line 111 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_va_block_types.h
+  'uvm_va_space_struct::DECLARE_BITMAP(enabled_peers,((((32 *8) - 1) *(((32 *8) - 1)+1))/2))' at line 239 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_va_space.h
+  'uvm_va_space_struct::DECLARE_BITMAP(enabled_peers_teardown,((((32 *8) - 1) *(((32 *8) - 1)+1))/2))' at line 243 of file /home/yunwei37/open-gpu-kernel-modules/kernel-open/nvidia-uvm/uvm_va_space.h
+warning: Caller graph for 'uvm_kvfree' not generated, too many nodes (106), threshold is 100. Consider increasing DOT_GRAPH_MAX_NODES.
+warning: Caller graph for 'uvm_kvfree' not generated, too many nodes (106), threshold is 100. Consider increasing DOT_GRAPH_MAX_NODES.

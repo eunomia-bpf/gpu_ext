@@ -1,0 +1,154 @@
+    1 +-uvm_perf_thrashing_get_hint() <uvm_perf_thrashing_hint_t uvm_perf_thrashing_get_hint (uvm_va_block_t *va_block, uvm_va_block_context_t *va_block_context, NvU64 address, uvm_processor_id_t requester) at uvm_perf_thrashing.c:1615>
+    2   +-uvm_va_block_get_va_space()
+    3   +-va_space_thrashing_info_get() <va_space_thrashing_info_t *va_space_thrashing_info_get (uvm_va_space_t *va_space) at uvm_perf_thrashing.c:550>
+    4   | +-va_space_thrashing_info_get_or_null() <va_space_thrashing_info_t *va_space_thrashing_info_get_or_null (uvm_va_space_t *va_space) at uvm_perf_thrashing.c:539>
+    5   | | \-uvm_perf_module_type_data()
+    6   | \-UVM_ASSERT()
+    7   +-uvm_va_block_cpu_page_index()
+    8   +-thrashing_info_get() <block_thrashing_info_t *thrashing_info_get (uvm_va_block_t *va_block) at uvm_perf_thrashing.c:637>
+    9   | +-uvm_assert_mutex_locked()
+   10   | \-uvm_perf_module_type_data()
+   11   +-NV_GETTIME()
+   12   +-for_each_va_block_page_in_mask()
+   13   +-thrashing_throttling_reset_page() <void thrashing_throttling_reset_page (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index) at uvm_perf_thrashing.c:865>
+   14   | +-for_each_id_in_mask()
+   15   | +-thrashing_throttle_end_processor() <void thrashing_throttle_end_processor (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index, uvm_processor_id_t processor) at uvm_perf_thrashing.c:841>
+   16   | | +-uvm_va_block_get_va_space()
+   17   | | +-uvm_va_block_cpu_page_address()
+   18   | | +-UVM_ASSERT()
+   19   | | +-uvm_processor_mask_test()
+   20   | | +-uvm_processor_mask_clear()
+   21   | | +-uvm_processor_mask_empty()
+   22   | | +-page_thrashing_set_throttling_end_time_stamp() <void page_thrashing_set_throttling_end_time_stamp (page_thrashing_info_t *entry, NvU64 time_stamp) at uvm_perf_thrashing.c:391>
+   23   | | +-UVM_ID_IS_GPU()
+   24   | | +-uvm_tools_record_throttling_end()
+   25   | | \-thrashing_state_checks() <bool thrashing_state_checks (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index) at uvm_perf_thrashing.c:721>
+   26   | +-UVM_ASSERT()
+   27   | \-uvm_processor_mask_empty()
+   28   +-UVM_ASSERT()
+   29   +-uvm_page_mask_empty()
+   30   +-uvm_kvfree()
+   31   +-uvm_page_mask_zero()
+   32   +-uvm_processor_mask_test()
+   33   +-page_thrashing_get_throttling_end_time_stamp() <NvU64 page_thrashing_get_throttling_end_time_stamp (page_thrashing_info_t *entry) at uvm_perf_thrashing.c:386>
+   34   +-uvm_id_equal()
+   35   +-thrashing_throttle_end_processor() <void thrashing_throttle_end_processor (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index, uvm_processor_id_t processor) at uvm_perf_thrashing.c:841>
+   36   | +-uvm_va_block_get_va_space()
+   37   | +-uvm_va_block_cpu_page_address()
+   38   | +-UVM_ASSERT()
+   39   | +-uvm_processor_mask_test()
+   40   | +-uvm_processor_mask_clear()
+   41   | +-uvm_processor_mask_empty()
+   42   | +-page_thrashing_set_throttling_end_time_stamp() <void page_thrashing_set_throttling_end_time_stamp (page_thrashing_info_t *entry, NvU64 time_stamp) at uvm_perf_thrashing.c:391>
+   43   | +-UVM_ID_IS_GPU()
+   44   | +-uvm_tools_record_throttling_end()
+   45   | \-thrashing_state_checks() <bool thrashing_state_checks (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index) at uvm_perf_thrashing.c:721>
+   46   |   +-uvm_va_block_get_va_space()
+   47   |   +-va_space_thrashing_info_get() <va_space_thrashing_info_t *va_space_thrashing_info_get (uvm_va_space_t *va_space) at uvm_perf_thrashing.c:550>
+   48   |   +-UVM_ASSERT()
+   49   |   +-uvm_page_mask_subset()
+   50   |   +-uvm_page_mask_test()
+   51   |   +-uvm_processor_mask_subset()
+   52   |   +-UVM_ID_IS_VALID()
+   53   |   +-UVM_ID_IS_INVALID()
+   54   |   \-uvm_processor_mask_empty()
+   55   +-page_thrashing_get_time_stamp() <NvU64 page_thrashing_get_time_stamp (page_thrashing_info_t *entry) at uvm_perf_thrashing.c:376>
+   56   +-uvm_processor_mask_set()
+   57   +-thrashing_throttle_update() <void thrashing_throttle_update (va_space_thrashing_info_t *va_space_thrashing, uvm_va_block_t *va_block, page_thrashing_info_t *page_thrashing, uvm_processor_id_t processor, NvU64 time_stamp) at uvm_perf_thrashing.c:772>
+   58   | +-page_thrashing_get_throttling_end_time_stamp() <NvU64 page_thrashing_get_throttling_end_time_stamp (page_thrashing_info_t *entry) at uvm_perf_thrashing.c:386>
+   59   | +-uvm_assert_mutex_locked()
+   60   | +-page_thrashing_set_throttling_end_time_stamp() <void page_thrashing_set_throttling_end_time_stamp (page_thrashing_info_t *entry, NvU64 time_stamp) at uvm_perf_thrashing.c:391>
+   61   | +-uvm_id_equal()
+   62   | \-UVM_ID_IS_INVALID()
+   63   +-get_hint_for_migration_thrashing() <uvm_perf_thrashing_hint_t get_hint_for_migration_thrashing (va_space_thrashing_info_t *va_space_thrashing, uvm_va_block_t *va_block, uvm_va_block_context_t *va_block_context, uvm_page_index_t page_index, page_thrashing_info_t *page_thrashing, uvm_processor_id_t requester) at uvm_perf_thrashing.c:1455>
+   64   | +-uvm_va_block_get_va_space()
+   65   | +-uvm_va_policy_get()
+   66   | +-uvm_va_block_cpu_page_address()
+   67   | +-uvm_va_block_page_get_closest_resident()
+   68   | +-uvm_va_block_is_hmm()
+   69   | +-UVM_ID_IS_INVALID()
+   70   | +-UVM_ASSERT()
+   71   | +-UVM_ID_IS_VALID()
+   72   | +-thrashing_processors_can_access() <bool thrashing_processors_can_access (uvm_va_space_t *va_space, page_thrashing_info_t *page_thrashing, uvm_processor_id_t to) at uvm_perf_thrashing.c:1382>
+   73   | | +-UVM_ID_IS_INVALID()
+   74   | | +-uvm_processor_mask_subset()
+   75   | | \-uvm_id_value()
+   76   | +-preferred_location_is_thrashing() <bool preferred_location_is_thrashing (uvm_processor_id_t preferred_location, page_thrashing_info_t *page_thrashing) at uvm_perf_thrashing.c:1446>
+   77   | | +-UVM_ID_IS_INVALID()
+   78   | | \-uvm_processor_mask_test()
+   79   | +-thrashing_processors_have_fast_access_to() <bool thrashing_processors_have_fast_access_to (uvm_va_space_t *va_space, uvm_va_block_context_t *va_block_context, page_thrashing_info_t *page_thrashing, uvm_processor_id_t to) at uvm_perf_thrashing.c:1393>
+   80   | | +-UVM_ID_IS_INVALID()
+   81   | | +-uvm_processor_mask_and()
+   82   | | +-uvm_id_value()
+   83   | | +-UVM_ID_IS_CPU()
+   84   | | +-uvm_processor_mask_set()
+   85   | | +-uvm_processor_mask_range_fill()
+   86   | | +-uvm_gpu_id_from_sub_processor()
+   87   | | +-uvm_parent_gpu_id_from_gpu_id()
+   88   | | \-uvm_processor_mask_subset()
+   89   | +-UVM_ID_IS_CPU()
+   90   | +-UVM_ID_IS_GPU()
+   91   | +-uvm_id_equal()
+   92   | +-thrashing_processors_common_locations() <void thrashing_processors_common_locations (uvm_va_space_t *va_space, page_thrashing_info_t *page_thrashing, uvm_processor_mask_t *common_locations) at uvm_perf_thrashing.c:1424>
+   93   | | +-uvm_processor_mask_zero()
+   94   | | +-for_each_id_in_mask()
+   95   | | +-uvm_processor_mask_copy()
+   96   | | +-uvm_id_value()
+   97   | | \-uvm_processor_mask_and()
+   98   | +-uvm_processor_mask_empty()
+   99   | +-uvm_processor_mask_find_closest_id()
+  100   | +-uvm_processor_mask_test()
+  101   | +-uvm_id_value()
+  102   | \-uvm_processor_has_memory()
+  103   +-thrashing_pin_page() <NV_STATUS thrashing_pin_page (va_space_thrashing_info_t *va_space_thrashing, uvm_va_block_t *va_block, uvm_va_block_context_t *va_block_context, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index, NvU64 time_stamp, uvm_processor_id_t residency, uvm_processor_id_t requester) at uvm_perf_thrashing.c:902>
+  104   | +-uvm_assert_mutex_locked()
+  105   | +-UVM_ASSERT()
+  106   | +-uvm_processor_mask_test()
+  107   | +-uvm_va_block_page_resident_processors()
+  108   | +-thrashing_throttling_reset_page() <void thrashing_throttling_reset_page (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index) at uvm_perf_thrashing.c:865>
+  109   | | +-for_each_id_in_mask()
+  110   | | +-thrashing_throttle_end_processor() <void thrashing_throttle_end_processor (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index, uvm_processor_id_t processor) at uvm_perf_thrashing.c:841>
+  111   | | +-UVM_ASSERT()
+  112   | | \-uvm_processor_mask_empty()
+  113   | +-nv_kmem_cache_zalloc()
+  114   | +-uvm_spin_lock()
+  115   | +-list_add_tail()
+  116   | +-list_is_singular()
+  117   | +-schedule_delayed_work()
+  118   | +-usecs_to_jiffies()
+  119   | +-uvm_spin_unlock()
+  120   | +-UVM_PERF_SATURATING_INC()
+  121   | +-uvm_page_mask_set()
+  122   | \-thrashing_state_checks() <bool thrashing_state_checks (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index) at uvm_perf_thrashing.c:721>
+  123   |   +-uvm_va_block_get_va_space()
+  124   |   +-va_space_thrashing_info_get() <va_space_thrashing_info_t *va_space_thrashing_info_get (uvm_va_space_t *va_space) at uvm_perf_thrashing.c:550>
+  125   |   +-UVM_ASSERT()
+  126   |   +-uvm_page_mask_subset()
+  127   |   +-uvm_page_mask_test()
+  128   |   +-uvm_processor_mask_subset()
+  129   |   +-UVM_ID_IS_VALID()
+  130   |   +-UVM_ID_IS_INVALID()
+  131   |   \-uvm_processor_mask_empty()
+  132   +-PROCESSOR_THRASHING_STATS_INC()
+  133   +-uvm_processor_mask_copy()
+  134   +-thrashing_throttle_processor() <void thrashing_throttle_processor (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index, uvm_processor_id_t processor) at uvm_perf_thrashing.c:805>
+  135   | +-uvm_va_block_get_va_space()
+  136   | +-uvm_va_block_cpu_page_address()
+  137   | +-uvm_assert_mutex_locked()
+  138   | +-UVM_ASSERT()
+  139   | +-uvm_id_equal()
+  140   | +-uvm_processor_mask_test_and_set()
+  141   | +-UVM_ID_IS_GPU()
+  142   | +-uvm_tools_record_throttling_start()
+  143   | +-UVM_PERF_SATURATING_INC()
+  144   | \-thrashing_state_checks() <bool thrashing_state_checks (uvm_va_block_t *va_block, block_thrashing_info_t *block_thrashing, page_thrashing_info_t *page_thrashing, uvm_page_index_t page_index) at uvm_perf_thrashing.c:721>
+  145   |   +-uvm_va_block_get_va_space()
+  146   |   +-va_space_thrashing_info_get() <va_space_thrashing_info_t *va_space_thrashing_info_get (uvm_va_space_t *va_space) at uvm_perf_thrashing.c:550>
+  147   |   +-UVM_ASSERT()
+  148   |   +-uvm_page_mask_subset()
+  149   |   +-uvm_page_mask_test()
+  150   |   +-uvm_processor_mask_subset()
+  151   |   +-UVM_ID_IS_VALID()
+  152   |   +-UVM_ID_IS_INVALID()
+  153   |   \-uvm_processor_mask_empty()
+  154   \-UVM_ID_IS_INVALID()

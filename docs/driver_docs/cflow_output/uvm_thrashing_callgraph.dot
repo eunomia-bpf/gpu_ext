@@ -1,0 +1,87 @@
+digraph uvm_thrashing_policy {
+    rankdir=TB;
+    node [shape=box, style="rounded,filled", fillcolor=lightblue];
+    edge [color=darkblue];
+
+    // API入口
+    api [label="uvm_perf_thrashing_get_hint\n(uvm_perf_thrashing.h:77)\n⭐ PUBLIC API", fillcolor=yellow, style="rounded,filled,bold"];
+
+    api -> check_enabled [label="1. Check"];
+    check_enabled [label="if (uvm_perf_thrashing_enable == 0)\n  return HINT_TYPE_NONE", shape=diamond, fillcolor=lightyellow];
+
+    api -> get_info [label="2. Get info"];
+    get_info [label="thrashing_info_get\nva_block的thrashing数据"];
+
+    api -> detect [label="3. Detect"];
+    detect [label="thrashing_detected\n检查是否在thrashing", fillcolor=lightcoral];
+    detect -> check_counters [label="检查计数"];
+    check_counters [label="检查page的\nfault counters\nvs threshold", shape=diamond];
+
+    api -> decide_hint [label="4. Decide"];
+    decide_hint [label="⭐ Policy Decision:\nPIN or THROTTLE?", shape=diamond, fillcolor=orange, style="filled,bold"];
+
+    // PIN策略分支
+    decide_hint -> pin_decision [label="if should_pin"];
+    pin_decision [label="⭐ PIN Policy", fillcolor=lightgreen, style="filled,bold"];
+    pin_decision -> pin_params [label="设置"];
+    pin_params [label="hint.type = PIN\nhint.pin.residency\nhint.pin.processors"];
+
+    pin_decision -> check_threshold [label="基于"];
+    check_threshold [label="Check:\nfault_count >\nuvm_perf_thrashing\n_pin_threshold\n(默认: 10)", shape=diamond, fillcolor=lightyellow];
+
+    // THROTTLE策略分支
+    decide_hint -> throttle_decision [label="else"];
+    throttle_decision [label="⭐ THROTTLE Policy", fillcolor=lightcoral, style="filled,bold"];
+    throttle_decision -> throttle_params [label="设置"];
+    throttle_params [label="hint.type = THROTTLE\nhint.throttle.end_time\n= now + nap_usec"];
+
+    throttle_decision -> calc_nap [label="基于"];
+    calc_nap [label="Calculate NAP time:\nuvm_perf_thrashing_nap\n* epoch_count\n(默认: 100us * epoch)", shape=diamond, fillcolor=lightyellow];
+
+    // 使用hint
+    api -> return_hint [label="5. Return"];
+    return_hint [label="Return hint\nto caller"];
+
+    // Hint使用者
+    return_hint -> fault_handler [label="被调用于"];
+    fault_handler [label="Fault Handler\nservice_fault_batch"];
+
+    fault_handler -> apply_pin [label="if PIN"];
+    apply_pin [label="Map pages remotely\nAvoid migration"];
+
+    fault_handler -> apply_throttle [label="if THROTTLE"];
+    apply_throttle [label="Sleep/delay\nuntil end_time"];
+
+    // Module Parameters
+    subgraph cluster_params {
+        label="Module Parameters\n(Runtime Tunable)";
+        style=filled;
+        fillcolor=lightyellow;
+
+        p1 [label="uvm_perf_thrashing_enable\n= 1 (启用)", fillcolor=white];
+        p2 [label="uvm_perf_thrashing_threshold\n= 3 (检测阈值)", fillcolor=white];
+        p3 [label="uvm_perf_thrashing_pin_threshold\n= 10 (PIN阈值)", fillcolor=white];
+        p4 [label="uvm_perf_thrashing_lapse_usec\n= 10000 (时间窗口)", fillcolor=white];
+        p5 [label="uvm_perf_thrashing_nap\n= 100 (NAP时长us)", fillcolor=white];
+        p6 [label="uvm_perf_thrashing_epoch\n= 3 (epoch长度)", fillcolor=white];
+        p7 [label="uvm_perf_thrashing_pin\n= 1 (PIN策略开关)", fillcolor=white];
+        p8 [label="uvm_perf_thrashing_max_resets\n= 200 (最大重置)", fillcolor=white];
+    }
+
+    check_enabled -> p1 [style=dashed, color=gray];
+    check_counters -> p2 [style=dashed, color=gray];
+    check_threshold -> p3 [style=dashed, color=gray];
+    calc_nap -> p5 [style=dashed, color=gray];
+
+    // Legend
+    subgraph cluster_legend {
+        label="Legend";
+        style=filled;
+        fillcolor=white;
+
+        l1 [label="Yellow = Entry Point", fillcolor=yellow, style=filled];
+        l2 [label="Orange = Policy Decision", fillcolor=orange, style=filled];
+        l3 [label="Green = PIN Policy", fillcolor=lightgreen, style=filled];
+        l4 [label="Coral = THROTTLE Policy", fillcolor=lightcoral, style=filled];
+    }
+}

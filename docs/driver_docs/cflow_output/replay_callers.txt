@@ -1,0 +1,135 @@
+  +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+  | | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+  | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+  | | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+  | | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+  | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+  | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+  | | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+--
++-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+  | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+  | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+  | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+  | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+  | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+  | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+  | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+--
+  +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+  | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+  | | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+  | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+  | | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+  | | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+  | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+  | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+  | | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+  | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+  | | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+--
+    +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+    | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+    | | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+    | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+    | | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+    | | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+--
+    +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+    | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+    | | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+    | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+    | | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+    | | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+--
+    +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+    | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+    | | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+    | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+    | | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+    | | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+--
+    +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+    | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+    | | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+    | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+    | | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+    | | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>
+--
+    +-push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu (uvm_parent_gpu_t *parent_gpu, uvm_fault_replay_type_t type, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:546>
+    | +-fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked (uvm_parent_gpu_t *parent_gpu, uvm_gpu_t *gpu, uvm_gpu_buffer_flush_mode_t flush_mode, uvm_fault_replay_type_t fault_replay, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:613>
+    | | +-uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush (uvm_gpu_t *gpu) at uvm_gpu_replayable_faults.c:674>
+    | | +-translate_instance_ptrs() <NV_STATUS translate_instance_ptrs (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1028>
+    | | | \-preprocess_fault_batch() <NV_STATUS preprocess_fault_batch (uvm_parent_gpu_t *parent_gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:1134>
+    | | |   +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   +-cancel_faults_precise_tlb() <NV_STATUS cancel_faults_precise_tlb (uvm_gpu_t *gpu, uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2727>
+    | | |   | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-service_fault_batch_for_cancel() <NV_STATUS service_fault_batch_for_cancel (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2042>
+    | | | \-cancel_faults_precise() <NV_STATUS cancel_faults_precise (uvm_fault_service_batch_context_t *batch_context) at uvm_gpu_replayable_faults.c:2863>
+    | | |   \-uvm_parent_gpu_service_replayable_faults() <void uvm_parent_gpu_service_replayable_faults (uvm_parent_gpu_t *parent_gpu) at uvm_gpu_replayable_faults.c:2906>
+    | | +-cancel_faults_all() <NV_STATUS cancel_faults_all (uvm_fault_service_batch_context_t *batch_context, UvmEventFatalReason reason) at uvm_gpu_replayable_faults.c:2583>

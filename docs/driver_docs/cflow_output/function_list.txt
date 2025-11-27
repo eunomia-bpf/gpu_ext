@@ -1,0 +1,50 @@
+uvm_gpu_fault_buffer_flush() <NV_STATUS uvm_gpu_fault_buffer_flush () at uvm_gpu_replayable_faults.c:674>:
+    UVM_ASSERT()
+    uvm_parent_gpu_replayable_faults_isr_lock()
+    fault_buffer_flush_locked() <NV_STATUS fault_buffer_flush_locked () at uvm_gpu_replayable_faults.c:613>:
+        UVM_ASSERT()
+        uvm_sem_is_locked()
+        uvm_tracker_wait()
+        hw_fault_buffer_flush_locked() <NV_STATUS hw_fault_buffer_flush_locked () at uvm_gpu_replayable_faults.c:581>:
+            UVM_ASSERT()
+            uvm_sem_is_locked()
+            nvUvmInterfaceFlushReplayableFaultBuffer()
+        UVM_SPIN_WHILE()
+        uvm_channel_manager_check_errors()
+        uvm_global_get_status()
+        write_get() <void write_get () at uvm_gpu_replayable_faults.c:558>:
+            UVM_ASSERT()
+            uvm_sem_is_locked()
+        fault_buffer_skip_replayable_entry() <void fault_buffer_skip_replayable_entry () at uvm_gpu_replayable_faults.c:600>:
+            UVM_ASSERT()
+            uvm_conf_computing_fault_increment_decrypt_iv()
+        push_replay_on_gpu() <NV_STATUS push_replay_on_gpu () at uvm_gpu_replayable_faults.c:503>:
+            uvm_push_begin_acquire()
+            uvm_tools_broadcast_replay()
+            uvm_push_end()
+            uvm_tracker_add_push_safe()
+            uvm_procfs_is_debug_enabled()
+        push_replay_on_parent_gpu() <NV_STATUS push_replay_on_parent_gpu () at uvm_gpu_replayable_faults.c:546>:
+            uvm_parent_gpu_find_first_valid_gpu()
+            push_replay_on_gpu() <NV_STATUS push_replay_on_gpu () at uvm_gpu_replayable_faults.c:503>:
+                uvm_push_begin_acquire()
+                uvm_tools_broadcast_replay()
+                uvm_push_end()
+                uvm_tracker_add_push_safe()
+                uvm_procfs_is_debug_enabled()
+    uvm_parent_gpu_replayable_faults_isr_unlock()
+uvm_parent_gpu_fault_buffer_init() <NV_STATUS uvm_parent_gpu_fault_buffer_init () at uvm_gpu_replayable_faults.c:247>:
+    uvm_assert_mutex_locked()
+    UVM_ASSERT()
+    uvm_rm_locked_call()
+    nvUvmInterfaceInitFaultInfo()
+    UVM_ERR_PRINT()
+    nvstatusToString()
+    uvm_parent_gpu_name()
+    fault_buffer_init_replayable_faults() <NV_STATUS fault_buffer_init_replayable_faults () at uvm_gpu_replayable_faults.c:140>:
+        UVM_ASSERT()
+        max()
+        min()
+        UVM_INFO_PRINT()
+        uvm_parent_gpu_name()
+        uvm_kvmalloc_zero()

@@ -51,6 +51,14 @@ struct {
     __type(value, struct pid_chunk_stats);
 } pid_chunk_count SEC(".maps");
 
+/* Active chunk tracking: chunk_ptr -> owner_pid */
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 65536);
+    __type(key, u64);    /* chunk pointer */
+    __type(value, u32);  /* owner_pid */
+} active_chunks SEC(".maps");
+
 static __always_inline u64 get_config_u64(u32 key)
 {
     u64 *val = bpf_map_lookup_elem(&config, &key);
@@ -89,10 +97,18 @@ int BPF_PROG(uvm_pmm_chunk_activate,
     u32 owner_pid;
     struct pid_chunk_stats *stats;
     struct pid_chunk_stats new_stats = {0};
+    u64 chunk_ptr = (u64)chunk;
 
     owner_pid = get_owner_pid_from_chunk(chunk);
     if (owner_pid == 0)
         return 0;
+
+    /* Check if this chunk was already tracked (avoid double counting) */
+    if (bpf_map_lookup_elem(&active_chunks, &chunk_ptr))
+        return 0;
+
+    /* Track this chunk as active */
+    bpf_map_update_elem(&active_chunks, &chunk_ptr, &owner_pid, BPF_ANY);
 
     /* Update per-PID stats */
     stats = bpf_map_lookup_elem(&pid_chunk_count, &owner_pid);
@@ -185,8 +201,9 @@ int BPF_PROG(uvm_pmm_eviction_prepare,
 {
     struct list_head *first;
     uvm_gpu_chunk_t *chunk;
-    u32 owner_pid;
+    u32 *tracked_pid;
     struct pid_chunk_stats *stats;
+    u64 chunk_ptr;
 
     if (!va_block_used)
         return 0;
@@ -203,16 +220,21 @@ int BPF_PROG(uvm_pmm_eviction_prepare,
      */
     chunk = (uvm_gpu_chunk_t *)((char *)first -
               __builtin_offsetof(struct uvm_gpu_chunk_struct, list));
+    chunk_ptr = (u64)chunk;
 
-    owner_pid = get_owner_pid_from_chunk(chunk);
-    if (owner_pid == 0)
-        return 0;
+    /* Only decrement if we tracked this chunk in activate */
+    tracked_pid = bpf_map_lookup_elem(&active_chunks, &chunk_ptr);
+    if (!tracked_pid)
+        return 0;  /* Chunk was not tracked by us, don't decrement */
 
-    /* Decrement current_count for this PID */
-    stats = bpf_map_lookup_elem(&pid_chunk_count, &owner_pid);
+    /* Decrement current_count for the tracked PID */
+    stats = bpf_map_lookup_elem(&pid_chunk_count, tracked_pid);
     if (stats && stats->current_count > 0) {
         __sync_fetch_and_sub(&stats->current_count, 1);
     }
+
+    /* Remove from active_chunks */
+    bpf_map_delete_elem(&active_chunks, &chunk_ptr);
 
     return 0;
 }

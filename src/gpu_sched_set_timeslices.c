@@ -42,22 +42,55 @@ static void sig_handler(int sig)
     exiting = true;
 }
 
+struct timeslice_record {
+    __u64 tsg_id;
+    __u64 old_timeslice;
+    __u64 new_timeslice;
+    char comm[TASK_COMM_LEN];
+};
+
 static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
 {
-    int fd = bpf_map__fd(skel->maps.stats);
+    int stats_fd = bpf_map__fd(skel->maps.stats);
+    int history_fd = bpf_map__fd(skel->maps.timeslice_history);
+    int index_fd = bpf_map__fd(skel->maps.history_index);
     __u64 task_init = 0, bind = 0, task_destroy = 0, timeslice_mod = 0;
+    __u64 policy_hit = 0, policy_miss = 0;
     __u32 key;
 
-    key = 0; bpf_map_lookup_elem(fd, &key, &task_init);
-    key = 1; bpf_map_lookup_elem(fd, &key, &bind);
-    key = 2; bpf_map_lookup_elem(fd, &key, &task_destroy);
-    key = 3; bpf_map_lookup_elem(fd, &key, &timeslice_mod);
+    key = 0; bpf_map_lookup_elem(stats_fd, &key, &task_init);
+    key = 1; bpf_map_lookup_elem(stats_fd, &key, &bind);
+    key = 2; bpf_map_lookup_elem(stats_fd, &key, &task_destroy);
+    key = 3; bpf_map_lookup_elem(stats_fd, &key, &timeslice_mod);
+    key = 4; bpf_map_lookup_elem(stats_fd, &key, &policy_hit);
+    key = 5; bpf_map_lookup_elem(stats_fd, &key, &policy_miss);
 
     printf("\n=== Statistics ===\n");
     printf("task_init:      %llu\n", (unsigned long long)task_init);
     printf("bind:           %llu\n", (unsigned long long)bind);
     printf("task_destroy:   %llu\n", (unsigned long long)task_destroy);
     printf("timeslice_mod:  %llu\n", (unsigned long long)timeslice_mod);
+    printf("policy_hit:     %llu\n", (unsigned long long)policy_hit);
+    printf("policy_miss:    %llu\n", (unsigned long long)policy_miss);
+
+    /* Print timeslice modification history */
+    __u32 idx = 0;
+    key = 0;
+    if (bpf_map_lookup_elem(index_fd, &key, &idx) == 0 && idx > 0) {
+        printf("\n=== Timeslice Modification History (last %u) ===\n", idx > 32 ? 32 : idx);
+        int start = idx > 32 ? idx - 32 : 0;
+        for (int i = start; i < (int)idx && i < start + 32; i++) {
+            struct timeslice_record rec = {};
+            __u32 slot = i % 32;
+            if (bpf_map_lookup_elem(history_fd, &slot, &rec) == 0) {
+                printf("  TSG %llu [%s]: %llu -> %llu us\n",
+                       (unsigned long long)rec.tsg_id,
+                       rec.comm,
+                       (unsigned long long)rec.old_timeslice,
+                       (unsigned long long)rec.new_timeslice);
+            }
+        }
+    }
 }
 
 static void usage(const char *prog)

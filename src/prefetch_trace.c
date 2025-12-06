@@ -67,10 +67,12 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
     elapsed_ms = (e->timestamp_ns - start_time_ns) / 1000000;
 
     // CSV output format:
-    // time_ms,cpu,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed
-    printf("%llu,%u,0x%llx,0x%llx,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+    // time_ms,cpu,fault_pid,owner_tgid,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed
+    printf("%llu,%u,%u,%u,0x%llx,0x%llx,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
            (unsigned long long)elapsed_ms,
            e->cpu,
+           e->fault_pid,
+           e->owner_tgid,
            (unsigned long long)e->va_start,
            (unsigned long long)e->va_end,
            e->page_index,
@@ -129,7 +131,7 @@ int main(int argc, char **argv)
     signal(SIGTERM, sig_handler);
 
     // Print CSV header
-    printf("time_ms,cpu,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed\n");
+    printf("time_ms,cpu,fault_pid,owner_tgid,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed\n");
 
     fprintf(stderr, "Tracing prefetch hooks... Press Ctrl-C to stop.\n");
 

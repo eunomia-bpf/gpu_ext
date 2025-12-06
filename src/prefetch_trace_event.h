@@ -36,6 +36,10 @@ struct prefetch_event {
     // faulted_region info
     __u32 faulted_first;        // faulted_region.first
     __u32 faulted_outer;        // faulted_region.outer
+
+    // PID info (from va_block->cpu.fault_authorized or mm_struct)
+    __u32 fault_pid;            // PID that caused the fault (from fault_authorized.first_pid)
+    __u32 owner_tgid;           // Owner process TGID (from mm->owner->tgid)
 };
 
 #endif /* __PREFETCH_TRACE_EVENT_H */

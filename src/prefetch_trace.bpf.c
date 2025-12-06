@@ -24,6 +24,8 @@ struct va_block_info {
     u64 va_end;
     u32 faulted_first;
     u32 faulted_outer;
+    u32 fault_pid;      // PID from fault_authorized.first_pid
+    u32 owner_tgid;     // Owner TGID from mm->owner->tgid
 };
 
 struct {
@@ -99,10 +101,38 @@ int BPF_KPROBE(trace_get_hint_va_block,
         info->va_block = (u64)va_block;
         info->va_start = BPF_CORE_READ(va_block, start);
         info->va_end = BPF_CORE_READ(va_block, end);
+
+        // Get fault_authorized.first_pid - this is the PID that caused the fault
+        info->fault_pid = BPF_CORE_READ(va_block, cpu.fault_authorized.first_pid);
+
+        // Try to get owner TGID via va_block->managed_range->va_range.va_space->va_space_mm.mm->owner->tgid
+        uvm_va_range_managed_t *managed_range = BPF_CORE_READ(va_block, managed_range);
+        if (managed_range) {
+            uvm_va_space_t *va_space = BPF_CORE_READ(managed_range, va_range.va_space);
+            if (va_space) {
+                struct mm_struct *mm = BPF_CORE_READ(va_space, va_space_mm.mm);
+                if (mm) {
+                    struct task_struct *owner = BPF_CORE_READ(mm, owner);
+                    if (owner) {
+                        info->owner_tgid = BPF_CORE_READ(owner, tgid);
+                    } else {
+                        info->owner_tgid = 0;
+                    }
+                } else {
+                    info->owner_tgid = 0;
+                }
+            } else {
+                info->owner_tgid = 0;
+            }
+        } else {
+            info->owner_tgid = 0;
+        }
     } else {
         info->va_block = 0;
         info->va_start = 0;
         info->va_end = 0;
+        info->fault_pid = 0;
+        info->owner_tgid = 0;
     }
 
     // Extract faulted_region (packed as first:16, outer:16)
@@ -150,12 +180,16 @@ int BPF_KPROBE(trace_before_compute,
         e->va_end = cached_info->va_end;
         e->faulted_first = cached_info->faulted_first;
         e->faulted_outer = cached_info->faulted_outer;
+        e->fault_pid = cached_info->fault_pid;
+        e->owner_tgid = cached_info->owner_tgid;
     } else {
         e->va_block = 0;
         e->va_start = 0;
         e->va_end = 0;
         e->faulted_first = 0;
         e->faulted_outer = 0;
+        e->fault_pid = 0;
+        e->owner_tgid = 0;
     }
 
     // Read max_prefetch_region using CO-RE

@@ -7,23 +7,9 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
-#include "eviction_pid_lfu.skel.h"
+#include "eviction_pid_quota.skel.h"
 #include "cleanup_struct_ops.h"
-
-#define CONFIG_PRIORITY_PID 0
-#define CONFIG_PRIORITY_QUOTA 1
-#define CONFIG_LOW_PRIORITY_PID 2
-#define CONFIG_LOW_PRIORITY_QUOTA 3
-#define CONFIG_DEFAULT_QUOTA 4
-
-/* Per-PID statistics structure - must match BPF side */
-struct pid_chunk_stats {
-    __u64 current_count;    /* Current active chunk count */
-    __u64 total_activate;   /* Total chunks activated */
-    __u64 total_used;       /* Total chunk_used calls */
-    __u64 in_quota;         /* Times within quota (moved) */
-    __u64 over_quota;       /* Times over quota (not moved) */
-};
+#include "eviction_common.h"
 
 static __u64 g_priority_pid = 0;
 static __u64 g_low_priority_pid = 0;
@@ -39,40 +25,40 @@ void handle_signal(int sig) {
     exiting = true;
 }
 
-static void print_stats(struct eviction_pid_lfu_bpf *skel) {
+static void print_stats(struct eviction_pid_quota_bpf *skel) {
     int pid_stats_fd = bpf_map__fd(skel->maps.pid_chunk_count);
     struct pid_chunk_stats ps;
     __u32 pid;
     __u64 total_current = 0;
     __u64 total_activate = 0;
     __u64 total_used = 0;
-    __u64 total_in_quota = 0;
-    __u64 total_over_quota = 0;
+    __u64 total_allow = 0;
+    __u64 total_deny = 0;
 
     printf("\n=== Per-PID Statistics ===\n");
 
     if (g_priority_pid > 0) {
         pid = (__u32)g_priority_pid;
         if (bpf_map_lookup_elem(pid_stats_fd, &pid, &ps) == 0) {
-            __u64 used_total = ps.in_quota + ps.over_quota;
+            __u64 used_total = ps.policy_allow + ps.policy_deny;
             printf("  High priority PID %u:\n", pid);
             printf("    Current active chunks: %llu\n", ps.current_count);
             printf("    Total activated: %llu\n", ps.total_activate);
             printf("    Total used calls: %llu\n", ps.total_used);
-            printf("    In quota (moved): %llu", ps.in_quota);
+            printf("    Policy allow (moved): %llu", ps.policy_allow);
             if (used_total > 0)
-                printf(" (%.1f%%)", 100.0 * ps.in_quota / used_total);
+                printf(" (%.1f%%)", 100.0 * ps.policy_allow / used_total);
             printf("\n");
-            printf("    Over quota (not moved): %llu", ps.over_quota);
+            printf("    Policy deny (not moved): %llu", ps.policy_deny);
             if (used_total > 0)
-                printf(" (%.1f%%)", 100.0 * ps.over_quota / used_total);
+                printf(" (%.1f%%)", 100.0 * ps.policy_deny / used_total);
             printf("\n");
 
             total_current += ps.current_count;
             total_activate += ps.total_activate;
             total_used += ps.total_used;
-            total_in_quota += ps.in_quota;
-            total_over_quota += ps.over_quota;
+            total_allow += ps.policy_allow;
+            total_deny += ps.policy_deny;
         } else {
             printf("  High priority PID %u: no data\n", pid);
         }
@@ -81,25 +67,25 @@ static void print_stats(struct eviction_pid_lfu_bpf *skel) {
     if (g_low_priority_pid > 0) {
         pid = (__u32)g_low_priority_pid;
         if (bpf_map_lookup_elem(pid_stats_fd, &pid, &ps) == 0) {
-            __u64 used_total = ps.in_quota + ps.over_quota;
+            __u64 used_total = ps.policy_allow + ps.policy_deny;
             printf("  Low priority PID %u:\n", pid);
             printf("    Current active chunks: %llu\n", ps.current_count);
             printf("    Total activated: %llu\n", ps.total_activate);
             printf("    Total used calls: %llu\n", ps.total_used);
-            printf("    In quota (moved): %llu", ps.in_quota);
+            printf("    Policy allow (moved): %llu", ps.policy_allow);
             if (used_total > 0)
-                printf(" (%.1f%%)", 100.0 * ps.in_quota / used_total);
+                printf(" (%.1f%%)", 100.0 * ps.policy_allow / used_total);
             printf("\n");
-            printf("    Over quota (not moved): %llu", ps.over_quota);
+            printf("    Policy deny (not moved): %llu", ps.policy_deny);
             if (used_total > 0)
-                printf(" (%.1f%%)", 100.0 * ps.over_quota / used_total);
+                printf(" (%.1f%%)", 100.0 * ps.policy_deny / used_total);
             printf("\n");
 
             total_current += ps.current_count;
             total_activate += ps.total_activate;
             total_used += ps.total_used;
-            total_in_quota += ps.in_quota;
-            total_over_quota += ps.over_quota;
+            total_allow += ps.policy_allow;
+            total_deny += ps.policy_deny;
         } else {
             printf("  Low priority PID %u: no data\n", pid);
         }
@@ -109,14 +95,14 @@ static void print_stats(struct eviction_pid_lfu_bpf *skel) {
     printf("  Total current chunks: %llu\n", total_current);
     printf("  Total activated: %llu\n", total_activate);
     printf("  Total used calls: %llu\n", total_used);
-    __u64 grand_total = total_in_quota + total_over_quota;
-    printf("  In quota (moved): %llu", total_in_quota);
+    __u64 grand_total = total_allow + total_deny;
+    printf("  Policy allow (moved): %llu", total_allow);
     if (grand_total > 0)
-        printf(" (%.1f%%)", 100.0 * total_in_quota / grand_total);
+        printf(" (%.1f%%)", 100.0 * total_allow / grand_total);
     printf("\n");
-    printf("  Over quota (not moved): %llu", total_over_quota);
+    printf("  Policy deny (not moved): %llu", total_deny);
     if (grand_total > 0)
-        printf(" (%.1f%%)", 100.0 * total_over_quota / grand_total);
+        printf(" (%.1f%%)", 100.0 * total_deny / grand_total);
     printf("\n");
 }
 
@@ -139,14 +125,14 @@ static void usage(const char *prog) {
 }
 
 int main(int argc, char **argv) {
-    struct eviction_pid_lfu_bpf *skel;
+    struct eviction_pid_quota_bpf *skel;
     struct bpf_link *link;
     int err;
     __u64 priority_pid = 0;
-    __u64 priority_quota = 0;      /* 0 = unlimited */
+    __u64 priority_param = 0;      /* 0 = unlimited */
     __u64 low_priority_pid = 0;
-    __u64 low_priority_quota = 100; /* Default: 100 chunks */
-    __u64 default_quota = 0;       /* 0 = unlimited */
+    __u64 low_priority_param = 100; /* Default: 100% */
+    __u64 default_param = 0;       /* 0 = unlimited */
     int opt;
 
     while ((opt = getopt(argc, argv, "p:P:l:L:d:h")) != -1) {
@@ -156,17 +142,17 @@ int main(int argc, char **argv) {
                 g_priority_pid = priority_pid;
                 break;
             case 'P':
-                priority_quota = atoll(optarg);
+                priority_param = atoll(optarg);
                 break;
             case 'l':
                 low_priority_pid = atoi(optarg);
                 g_low_priority_pid = low_priority_pid;
                 break;
             case 'L':
-                low_priority_quota = atoll(optarg);
+                low_priority_param = atoll(optarg);
                 break;
             case 'd':
-                default_quota = atoll(optarg);
+                default_param = atoll(optarg);
                 break;
             case 'h':
             default:
@@ -182,13 +168,13 @@ int main(int argc, char **argv) {
 
     cleanup_old_struct_ops();
 
-    skel = eviction_pid_lfu_bpf__open();
+    skel = eviction_pid_quota_bpf__open();
     if (!skel) {
         fprintf(stderr, "Failed to open BPF skeleton\n");
         return 1;
     }
 
-    err = eviction_pid_lfu_bpf__load(skel);
+    err = eviction_pid_quota_bpf__load(skel);
     if (err) {
         fprintf(stderr, "Failed to load BPF skeleton: %d\n", err);
         goto cleanup;
@@ -201,17 +187,17 @@ int main(int argc, char **argv) {
     key = CONFIG_PRIORITY_PID;
     bpf_map_update_elem(config_fd, &key, &priority_pid, BPF_ANY);
 
-    key = CONFIG_PRIORITY_QUOTA;
-    bpf_map_update_elem(config_fd, &key, &priority_quota, BPF_ANY);
+    key = CONFIG_PRIORITY_PARAM;
+    bpf_map_update_elem(config_fd, &key, &priority_param, BPF_ANY);
 
     key = CONFIG_LOW_PRIORITY_PID;
     bpf_map_update_elem(config_fd, &key, &low_priority_pid, BPF_ANY);
 
-    key = CONFIG_LOW_PRIORITY_QUOTA;
-    bpf_map_update_elem(config_fd, &key, &low_priority_quota, BPF_ANY);
+    key = CONFIG_LOW_PRIORITY_PARAM;
+    bpf_map_update_elem(config_fd, &key, &low_priority_param, BPF_ANY);
 
-    key = CONFIG_DEFAULT_QUOTA;
-    bpf_map_update_elem(config_fd, &key, &default_quota, BPF_ANY);
+    key = CONFIG_DEFAULT_PARAM;
+    bpf_map_update_elem(config_fd, &key, &default_param, BPF_ANY);
 
     link = bpf_map__attach_struct_ops(skel->maps.uvm_ops_pid_lfu);
     if (!link) {
@@ -223,15 +209,15 @@ int main(int argc, char **argv) {
     printf("Successfully loaded quota-based eviction policy!\n");
     printf("\nConfiguration (quota as percentage of total chunks):\n");
     printf("  High priority PID: %llu (quota: %s)\n",
-           priority_pid, priority_quota == 0 ? "unlimited" : "set");
-    if (priority_quota > 0)
-        printf("    Quota: %llu%%\n", priority_quota);
+           priority_pid, priority_param == 0 ? "unlimited" : "set");
+    if (priority_param > 0)
+        printf("    Quota: %llu%%\n", priority_param);
     printf("  Low priority PID:  %llu (quota: %llu%%)\n",
-           low_priority_pid, low_priority_quota);
+           low_priority_pid, low_priority_param);
     printf("  Default quota:     %s\n",
-           default_quota == 0 ? "unlimited" : "set");
-    if (default_quota > 0)
-        printf("    Quota: %llu%%\n", default_quota);
+           default_param == 0 ? "unlimited" : "set");
+    if (default_param > 0)
+        printf("    Quota: %llu%%\n", default_param);
     printf("\nPress Ctrl-C to exit...\n");
 
     while (!exiting) {
@@ -244,6 +230,6 @@ int main(int argc, char **argv) {
     bpf_link__destroy(link);
 
 cleanup:
-    eviction_pid_lfu_bpf__destroy(skel);
+    eviction_pid_quota_bpf__destroy(skel);
     return err < 0 ? -err : 0;
 }

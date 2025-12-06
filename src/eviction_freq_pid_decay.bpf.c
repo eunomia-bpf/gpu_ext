@@ -1,13 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * PID-based Quota Eviction Policy for GPU Memory Management
+ * PID-based Frequency Decay Eviction Policy for GPU Memory Management
  *
  * Strategy:
- * - Each process has a chunk quota (percentage of total active chunks)
- * - Within quota: move_tail (LRU, protected)
- * - Over quota: don't move (easier to evict)
+ * - High priority: every access moves to tail (always protected)
+ * - Low priority: every N accesses moves to tail (decayed protection)
  *
- * This creates differentiated memory residency based on quota allocation.
+ * This creates differentiated memory residency based on access frequency.
  */
 
 #include <vmlinux.h>
@@ -17,6 +16,8 @@
 #include "uvm_types.h"
 #include "bpf_testmod.h"
 #include "trace_helper.h"
+
+#include "eviction_common.h"
 
 char _license[] SEC("license") = "GPL";
 
@@ -28,22 +29,7 @@ struct {
     __type(value, u64);
 } config SEC(".maps");
 
-#define CONFIG_PRIORITY_PID 0       /* High priority PID */
-#define CONFIG_PRIORITY_QUOTA 1     /* High priority quota (percentage) */
-#define CONFIG_LOW_PRIORITY_PID 2   /* Low priority PID */
-#define CONFIG_LOW_PRIORITY_QUOTA 3 /* Low priority quota (percentage) */
-#define CONFIG_DEFAULT_QUOTA 4      /* Default quota for other PIDs */
-
-/* Per-PID statistics structure */
-struct pid_chunk_stats {
-    u64 current_count;      /* Current active chunk count */
-    u64 total_activate;     /* Total chunks activated */
-    u64 total_used;         /* Total chunk_used calls */
-    u64 in_quota;           /* Times within quota (moved) */
-    u64 over_quota;         /* Times over quota (not moved) */
-};
-
-/* Per-PID chunk counter: owner_pid -> stats */
+/* Per-PID stats: owner_pid -> stats */
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 256);
@@ -59,33 +45,18 @@ struct {
     __type(value, u32);  /* owner_pid */
 } active_chunks SEC(".maps");
 
+/* Per-chunk access counter: chunk_ptr -> access_count */
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 65536);
+    __type(key, u64);    /* chunk pointer */
+    __type(value, u64);  /* access count */
+} chunk_access_count SEC(".maps");
+
 static __always_inline u64 get_config_u64(u32 key)
 {
     u64 *val = bpf_map_lookup_elem(&config, &key);
     return val ? *val : 0;
-}
-
-/* Get total active chunks across all PIDs */
-static __always_inline u64 get_total_active_chunks(void)
-{
-    u64 total = 0;
-    u32 priority_pid = (u32)get_config_u64(CONFIG_PRIORITY_PID);
-    u32 low_priority_pid = (u32)get_config_u64(CONFIG_LOW_PRIORITY_PID);
-    struct pid_chunk_stats *stats;
-
-    if (priority_pid != 0) {
-        stats = bpf_map_lookup_elem(&pid_chunk_count, &priority_pid);
-        if (stats)
-            total += stats->current_count;
-    }
-
-    if (low_priority_pid != 0) {
-        stats = bpf_map_lookup_elem(&pid_chunk_count, &low_priority_pid);
-        if (stats)
-            total += stats->current_count;
-    }
-
-    return total > 0 ? total : 1;
 }
 
 SEC("struct_ops/uvm_pmm_chunk_activate")
@@ -133,11 +104,11 @@ int BPF_PROG(uvm_pmm_chunk_used,
     u32 owner_pid;
     u64 priority_pid;
     u64 low_priority_pid;
-    u64 quota_percent;
+    u64 decay_factor;
     struct pid_chunk_stats *pid_stats;
-    u64 current_count;
-    u64 total_chunks;
-    u64 quota_chunks;
+    u64 chunk_ptr = (u64)chunk;
+    u64 *access_count;
+    u64 count;
 
     owner_pid = get_owner_pid_from_chunk(chunk);
     if (owner_pid == 0)
@@ -146,50 +117,49 @@ int BPF_PROG(uvm_pmm_chunk_used,
     priority_pid = get_config_u64(CONFIG_PRIORITY_PID);
     low_priority_pid = get_config_u64(CONFIG_LOW_PRIORITY_PID);
 
-    /* Get current active chunk count for this PID */
+    /* Get per-PID stats */
     pid_stats = bpf_map_lookup_elem(&pid_chunk_count, &owner_pid);
-    current_count = pid_stats ? pid_stats->current_count : 0;
 
     /* Update total_used for this PID */
     if (pid_stats) {
         __sync_fetch_and_add(&pid_stats->total_used, 1);
     }
 
-    /* Get total active chunks for percentage calculation */
-    total_chunks = get_total_active_chunks();
-
-    /* Determine quota percentage based on PID (0-100) */
+    /* Determine decay factor based on PID */
     if (priority_pid != 0 && owner_pid == (u32)priority_pid) {
-        quota_percent = get_config_u64(CONFIG_PRIORITY_QUOTA);
+        decay_factor = get_config_u64(CONFIG_PRIORITY_PARAM);
+        if (decay_factor == 0) decay_factor = 1;  /* Default: every access */
     } else if (low_priority_pid != 0 && owner_pid == (u32)low_priority_pid) {
-        quota_percent = get_config_u64(CONFIG_LOW_PRIORITY_QUOTA);
+        decay_factor = get_config_u64(CONFIG_LOW_PRIORITY_PARAM);
+        if (decay_factor == 0) decay_factor = 10; /* Default: every 10 accesses */
     } else {
-        quota_percent = get_config_u64(CONFIG_DEFAULT_QUOTA);
+        decay_factor = get_config_u64(CONFIG_DEFAULT_PARAM);
+        if (decay_factor == 0) decay_factor = 5;  /* Default: every 5 accesses */
     }
 
-    /* If quota is 0, treat as unlimited (default LRU) */
-    if (quota_percent == 0) {
-        return 0; /* Default LRU behavior */
+    /* Get and increment access count for this chunk */
+    access_count = bpf_map_lookup_elem(&chunk_access_count, &chunk_ptr);
+    if (access_count) {
+        count = __sync_fetch_and_add(access_count, 1) + 1;
+    } else {
+        /* First access, initialize */
+        u64 one = 1;
+        bpf_map_update_elem(&chunk_access_count, &chunk_ptr, &one, BPF_ANY);
+        count = 1;
     }
 
-    /* Calculate quota in chunks: quota_chunks = total_chunks * quota_percent / 100 */
-    quota_chunks = (total_chunks * quota_percent) / 100;
-    if (quota_chunks == 0)
-        quota_chunks = 1;
-
-    /* Within quota: move_tail (LRU, protected) */
-    if (current_count <= quota_chunks) {
+    /* Move tail only when access count reaches decay threshold */
+    if (count % decay_factor == 0) {
         bpf_uvm_pmm_chunk_move_tail(chunk, list);
         if (pid_stats) {
-            __sync_fetch_and_add(&pid_stats->in_quota, 1);
+            __sync_fetch_and_add(&pid_stats->policy_allow, 1);
         }
-        return 1; /* BYPASS */
+    } else {
+        if (pid_stats) {
+            __sync_fetch_and_add(&pid_stats->policy_deny, 1);
+        }
     }
 
-    /* Over quota: don't move (easier to evict) */
-    if (pid_stats) {
-        __sync_fetch_and_add(&pid_stats->over_quota, 1);
-    }
     return 1; /* BYPASS - don't let kernel do LRU move */
 }
 
@@ -233,14 +203,15 @@ int BPF_PROG(uvm_pmm_eviction_prepare,
         __sync_fetch_and_sub(&stats->current_count, 1);
     }
 
-    /* Remove from active_chunks */
+    /* Remove from tracking maps */
     bpf_map_delete_elem(&active_chunks, &chunk_ptr);
+    bpf_map_delete_elem(&chunk_access_count, &chunk_ptr);
 
     return 0;
 }
 
 SEC(".struct_ops")
-struct uvm_gpu_ext uvm_ops_pid_lfu = {
+struct uvm_gpu_ext uvm_ops_freq_pid_decay = {
     .uvm_bpf_test_trigger_kfunc = (void *)NULL,
     .uvm_prefetch_before_compute = (void *)NULL,
     .uvm_prefetch_on_tree_iter = (void *)NULL,

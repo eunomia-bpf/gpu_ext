@@ -15,23 +15,21 @@
 #include "uvm_types.h"
 
 /*
- * get_owner_pid_from_chunk - Get owner PID from a GPU chunk
- * @chunk: pointer to uvm_gpu_chunk_struct
+ * get_owner_pid_from_va_block - Get owner PID from a VA block
+ * @va_block: pointer to uvm_va_block_struct
  *
  * Returns: owner process PID (tgid), or 0 if not available
+ *
+ * Data path: va_block -> managed_range -> va_range.va_space
+ *            -> va_space_mm.mm -> owner (task_struct*) -> tgid
  */
-static __always_inline u32 get_owner_pid_from_chunk(uvm_gpu_chunk_t *chunk)
+static __always_inline u32 get_owner_pid_from_va_block(uvm_va_block_t *va_block)
 {
-    uvm_va_block_t *va_block;
     uvm_va_range_managed_t *managed_range;
     uvm_va_space_t *va_space;
     struct mm_struct *mm;
     struct task_struct *owner;
 
-    if (!chunk)
-        return 0;
-
-    va_block = BPF_CORE_READ(chunk, va_block);
     if (!va_block)
         return 0;
 
@@ -52,6 +50,23 @@ static __always_inline u32 get_owner_pid_from_chunk(uvm_gpu_chunk_t *chunk)
         return 0;
 
     return BPF_CORE_READ(owner, tgid);
+}
+
+/*
+ * get_owner_pid_from_chunk - Get owner PID from a GPU chunk
+ * @chunk: pointer to uvm_gpu_chunk_struct
+ *
+ * Returns: owner process PID (tgid), or 0 if not available
+ *
+ * Data path: chunk -> va_block -> ... (same as get_owner_pid_from_va_block)
+ */
+static __always_inline u32 get_owner_pid_from_chunk(uvm_gpu_chunk_t *chunk)
+{
+    if (!chunk)
+        return 0;
+
+    uvm_va_block_t *va_block = BPF_CORE_READ(chunk, va_block);
+    return get_owner_pid_from_va_block(va_block);
 }
 
 #endif /* __TRACE_HELPER_H__ */

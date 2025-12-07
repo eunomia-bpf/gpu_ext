@@ -55,15 +55,22 @@ inline void run_gemm(size_t total_working_set, const std::string& mode,
                      std::vector<float>& runtimes, KernelResult& result) {
     (void)stride_bytes;
 
-    // 权重复用设计：一个大 buffer + 偏移访问
-    // 模拟神经网络推理：每层权重 dim x hidden，多个 token 遍历所有层
-    const int dim = 1024;
-    const int hidden = 3072;
-    size_t layer_size = (size_t)dim * hidden * sizeof(DATA_TYPE);  // ~12MB per layer
+    // =========================================================================
+    // LLM-style 权重复用设计（类似 LLaMA-7B）
+    // - 固定合理的层大小（~180MB/层），通过层数控制总工作量
+    // - 多个 token 遍历所有层，产生 temporal locality
+    // =========================================================================
 
-    // 根据 total_working_set 计算层数
+    // 类似 LLaMA-7B 的参数: dim=4096, hidden=11008, 32 layers
+    // 每层权重: 4096 * 11008 * 4 bytes ≈ 180MB
+    const int dim = 4096;
+    const int hidden = 11008;
+    size_t layer_size = (size_t)dim * hidden * sizeof(DATA_TYPE);  // ~180MB per layer
+
+    // 根据 total_working_set 计算层数（而不是放大单层）
     int num_layers = total_working_set / layer_size;
     if (num_layers < 1) num_layers = 1;
+    if (num_layers > 200) num_layers = 200;  // 合理上限，避免太多层
 
     size_t weights_size = (size_t)num_layers * layer_size;
 
@@ -133,8 +140,13 @@ inline void run_gemm(size_t total_working_set, const std::string& mode,
     dim3 block(256);
     dim3 grid((hidden + block.x - 1) / block.x);
 
-    // 多个 token 遍历所有层
+    // 多个 token 遍历所有层（模拟推理多个 token）
     int num_tokens = 10;
+
+    fprintf(stderr, "GEMM config: dim=%d, hidden=%d, layers=%d, tokens=%d\n",
+            dim, hidden, num_layers, num_tokens);
+    fprintf(stderr, "  Layer size: %.1f MB, Total weights: %.1f MB\n",
+            layer_size / (1024.0 * 1024.0), weights_size / (1024.0 * 1024.0));
 
     auto launch = [&]() {
         for (int t = 0; t < num_tokens; t++) {

@@ -81,39 +81,59 @@ inline void run_jacobi2d(size_t total_working_set, const std::string& mode,
                          std::vector<float>& runtimes, KernelResult& result) {
     (void)stride_bytes;  // Jacobi2D uses fixed 5-point stencil pattern
 
-    // Calculate grid size based on working set
-    // Working set = 2 arrays (A, B) * N * N * sizeof(DATA_TYPE)
-    size_t array_bytes = total_working_set / 2;
-    int N = (int)sqrt((double)array_bytes / sizeof(DATA_TYPE));
+    // =========================================================================
+    // 固定网格大小 + 迭代次数控制总工作量
+    // - 4096×4096 网格 ≈ 130MB (2 arrays)，符合真实 PDE 求解器
+    // - 通过 Jacobi 迭代次数控制总访问量
+    // =========================================================================
 
-    // Align to block size
-    N = (N / DIM_THREAD_BLOCK_X) * DIM_THREAD_BLOCK_X;
-    if (N < DIM_THREAD_BLOCK_X) N = DIM_THREAD_BLOCK_X;
+    // 固定合理的网格大小
+    const int GRID_SIZE = 4096;
+    int N = GRID_SIZE;
+    size_t size = (size_t)N * N;
+    size_t single_pass_bytes = 2 * size * sizeof(DATA_TYPE);  // ~130MB
 
-    int TSTEPS = 20;  // Number of Jacobi iterations
+    // 根据 total_working_set 计算迭代次数
+    int TSTEPS = total_working_set / single_pass_bytes;
+    if (TSTEPS < 10) TSTEPS = 10;
+    if (TSTEPS > 10000) TSTEPS = 10000;  // 合理上限
 
     DATA_TYPE *A_gpu, *B_gpu;
 
-    // Allocate UVM memory
-    cudaMallocManaged(&A_gpu, sizeof(DATA_TYPE) * N * N);
-    cudaMallocManaged(&B_gpu, sizeof(DATA_TYPE) * N * N);
+    // Allocate memory
+    if (mode == "device") {
+        CUDA_CHECK(cudaMalloc(&A_gpu, sizeof(DATA_TYPE) * size));
+        CUDA_CHECK(cudaMalloc(&B_gpu, sizeof(DATA_TYPE) * size));
+        CUDA_CHECK(cudaMemset(A_gpu, 0, sizeof(DATA_TYPE) * size));
+        CUDA_CHECK(cudaMemset(B_gpu, 0, sizeof(DATA_TYPE) * size));
+    } else {
+        CUDA_CHECK(cudaMallocManaged(&A_gpu, sizeof(DATA_TYPE) * size));
+        CUDA_CHECK(cudaMallocManaged(&B_gpu, sizeof(DATA_TYPE) * size));
 
-    // Initialize data (same as original PolyBench init)
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            A_gpu[i * N + j] = ((DATA_TYPE)(i * (j + 2) + 10)) / N;
-            B_gpu[i * N + j] = ((DATA_TYPE)((i - 4) * (j - 1) + 11)) / N;
+        // Initialize data on CPU (same as original PolyBench init)
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                A_gpu[i * N + j] = ((DATA_TYPE)(i * (j + 2) + 10)) / N;
+                B_gpu[i * N + j] = ((DATA_TYPE)((i - 4) * (j - 1) + 11)) / N;
+            }
         }
     }
 
     // Apply UVM hints if needed
-    if (mode == "uvm_prefetch") {
+    if (mode != "device" && mode != "uvm") {
         int dev;
-        cudaGetDevice(&dev);
-        cudaMemPrefetchAsync(A_gpu, sizeof(DATA_TYPE) * N * N, dev, 0);
-        cudaMemPrefetchAsync(B_gpu, sizeof(DATA_TYPE) * N * N, dev, 0);
-        cudaDeviceSynchronize();
+        CUDA_CHECK(cudaGetDevice(&dev));
+        apply_uvm_hints(A_gpu, sizeof(DATA_TYPE) * size, mode, dev);
+        apply_uvm_hints(B_gpu, sizeof(DATA_TYPE) * size, mode, dev);
+        if (mode == "uvm_prefetch") {
+            CUDA_CHECK(cudaDeviceSynchronize());
+        }
     }
+
+    fprintf(stderr, "Jacobi2D config: grid=%dx%d, iterations=%d\n", N, N, TSTEPS);
+    fprintf(stderr, "  Single pass: %.1f MB, Total access: %.1f MB\n",
+            single_pass_bytes / (1024.0 * 1024.0),
+            single_pass_bytes * TSTEPS / (1024.0 * 1024.0));
 
     dim3 block(DIM_THREAD_BLOCK_X, DIM_THREAD_BLOCK_Y);
     dim3 grid((unsigned int)ceil(((float)N) / ((float)block.x)),

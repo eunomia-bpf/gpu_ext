@@ -11,6 +11,7 @@
 #include "kernels/bfs.cuh"
 #include "kernels/kmeans.cuh"
 #include "kernels/gemm.cuh"
+#include "kernels/pagerank.cuh"
 
 struct Config {
     std::string kernel = "seq_stream";
@@ -114,6 +115,7 @@ const KernelEntry g_kernels[] = {
     // Tier 1: Real benchmark kernels - Random/Mixed access pattern
     {"bfs",                 "UVM Benchmark BFS graph traversal (random access)", run_bfs},
     {"kmeans",              "UVM Benchmark K-Means clustering (mixed access)", run_kmeans},
+    {"pagerank",            "PageRank iterative graph algorithm (random + iteration)", run_pagerank},
 };
 
 const int g_num_kernels = sizeof(g_kernels) / sizeof(g_kernels[0]);

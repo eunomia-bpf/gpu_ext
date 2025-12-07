@@ -183,18 +183,23 @@ inline void run_hotspot(size_t total_working_set, const std::string& mode,
                         std::vector<float>& runtimes, KernelResult& result) {
     (void)stride_bytes;  // Hotspot uses fixed stencil pattern
 
-    // Calculate grid size based on working set
-    // Working set = 3 arrays (power, temp_src, temp_dst) * grid_size^2 * sizeof(float)
-    size_t array_bytes = total_working_set / 3;
-    int grid_size = (int)sqrt((double)array_bytes / sizeof(float));
+    // =========================================================================
+    // 固定网格大小 + 迭代次数控制总工作量
+    // - 4096×4096 网格 ≈ 200MB (3 arrays)，符合真实 CFD/热传导模拟
+    // - 通过迭代次数控制总访问量，产生 temporal locality
+    // =========================================================================
 
-    // Align to block size
-    grid_size = (grid_size / BLOCK_SIZE) * BLOCK_SIZE;
-    if (grid_size < BLOCK_SIZE) grid_size = BLOCK_SIZE;
+    // 固定合理的网格大小（类似真实 CFD 模拟）
+    const int GRID_SIZE = 4096;  // 4096×4096，单次 kernel 访问 ~67MB per array
+    int grid_rows = GRID_SIZE;
+    int grid_cols = GRID_SIZE;
+    size_t size = (size_t)grid_rows * grid_cols;
+    size_t single_pass_bytes = 3 * size * sizeof(float);  // ~200MB
 
-    int grid_rows = grid_size;
-    int grid_cols = grid_size;
-    size_t size = grid_rows * grid_cols;
+    // 根据 total_working_set 计算迭代次数
+    int total_iterations = total_working_set / single_pass_bytes;
+    if (total_iterations < 10) total_iterations = 10;
+    if (total_iterations > 10000) total_iterations = 10000;  // 合理上限
 
     // Chip parameters
     float t_chip = 0.0005;
@@ -203,31 +208,47 @@ inline void run_hotspot(size_t total_working_set, const std::string& mode,
 
     float *MatrixTemp[2], *MatrixPower;
 
-    // Allocate UVM memory
-    cudaMallocManaged(&MatrixTemp[0], sizeof(float) * size);
-    cudaMallocManaged(&MatrixTemp[1], sizeof(float) * size);
-    cudaMallocManaged(&MatrixPower, sizeof(float) * size);
+    // Allocate UVM memory (固定大小)
+    if (mode == "device") {
+        CUDA_CHECK(cudaMalloc(&MatrixTemp[0], sizeof(float) * size));
+        CUDA_CHECK(cudaMalloc(&MatrixTemp[1], sizeof(float) * size));
+        CUDA_CHECK(cudaMalloc(&MatrixPower, sizeof(float) * size));
+        CUDA_CHECK(cudaMemset(MatrixTemp[0], 0, sizeof(float) * size));
+        CUDA_CHECK(cudaMemset(MatrixTemp[1], 0, sizeof(float) * size));
+        CUDA_CHECK(cudaMemset(MatrixPower, 0, sizeof(float) * size));
+    } else {
+        CUDA_CHECK(cudaMallocManaged(&MatrixTemp[0], sizeof(float) * size));
+        CUDA_CHECK(cudaMallocManaged(&MatrixTemp[1], sizeof(float) * size));
+        CUDA_CHECK(cudaMallocManaged(&MatrixPower, sizeof(float) * size));
 
-    // Initialize data
-    for (size_t i = 0; i < size; i++) {
-        MatrixTemp[0][i] = 80.0f + (float)(i % 100) * 0.1f;
-        MatrixTemp[1][i] = MatrixTemp[0][i];
-        MatrixPower[i] = (float)(i % 50) * 0.01f;
+        // Initialize data on CPU
+        for (size_t i = 0; i < size; i++) {
+            MatrixTemp[0][i] = 80.0f + (float)(i % 100) * 0.1f;
+            MatrixTemp[1][i] = MatrixTemp[0][i];
+            MatrixPower[i] = (float)(i % 50) * 0.01f;
+        }
     }
 
     // Apply UVM hints if needed
-    if (mode == "uvm_prefetch") {
+    if (mode != "device" && mode != "uvm") {
         int dev;
-        cudaGetDevice(&dev);
-        cudaMemPrefetchAsync(MatrixTemp[0], sizeof(float) * size, dev, 0);
-        cudaMemPrefetchAsync(MatrixTemp[1], sizeof(float) * size, dev, 0);
-        cudaMemPrefetchAsync(MatrixPower, sizeof(float) * size, dev, 0);
-        cudaDeviceSynchronize();
+        CUDA_CHECK(cudaGetDevice(&dev));
+        apply_uvm_hints(MatrixTemp[0], sizeof(float) * size, mode, dev);
+        apply_uvm_hints(MatrixTemp[1], sizeof(float) * size, mode, dev);
+        apply_uvm_hints(MatrixPower, sizeof(float) * size, mode, dev);
+        if (mode == "uvm_prefetch") {
+            CUDA_CHECK(cudaDeviceSynchronize());
+        }
     }
+
+    fprintf(stderr, "Hotspot config: grid=%dx%d, iterations=%d\n",
+            grid_rows, grid_cols, total_iterations);
+    fprintf(stderr, "  Single pass: %.1f MB, Total access: %.1f MB\n",
+            single_pass_bytes / (1024.0 * 1024.0),
+            single_pass_bytes * total_iterations / (1024.0 * 1024.0));
 
     // Pyramid parameters
     int pyramid_height = 1;
-    int total_iterations = 60;
 
     #define EXPAND_RATE 2
     int borderCols = (pyramid_height) * EXPAND_RATE / 2;

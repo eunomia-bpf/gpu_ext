@@ -127,6 +127,357 @@ libbpf: map 'pid_stats': created successfully, fd=4
 libbpf: map 'va_block_pid_cache': created successfully, fd=5
 libbpf: map 'prefetch.rodata': created successfully, fd=6
 libbpf: map 'uvm_ops_prefetch_pid_tree': created successfully, fd=7
-Failed to attach struct_ops: Device or resource busy (-16)
 Checking for old struct_ops instances...
 No old struct_ops instances found.
+Successfully loaded PID-based prefetch policy!
+
+Configuration (lower threshold = more prefetch bandwidth):
+  High priority PID: 64613 (threshold: 0%)
+  Low priority PID:  64614 (threshold: 0%)
+  Default threshold: 50%
+
+Press Ctrl-C to exit...
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 93190
+    Total used calls: 0
+    Policy allow (prefetched): 93190 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 93500
+    Total used calls: 0
+    Policy allow (prefetched): 93500 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 186690
+  Policy allow (prefetched): 186690 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 437000
+    Total used calls: 0
+    Policy allow (prefetched): 437000 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 439110
+    Total used calls: 0
+    Policy allow (prefetched): 439110 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 876110
+  Policy allow (prefetched): 876110 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 800520
+    Total used calls: 0
+    Policy allow (prefetched): 800520 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 802510
+    Total used calls: 0
+    Policy allow (prefetched): 802510 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 1603030
+  Policy allow (prefetched): 1603030 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 1163720
+    Total used calls: 0
+    Policy allow (prefetched): 1163720 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 1165740
+    Total used calls: 0
+    Policy allow (prefetched): 1165740 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 2329460
+  Policy allow (prefetched): 2329460 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 1526740
+    Total used calls: 0
+    Policy allow (prefetched): 1526740 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 1528590
+    Total used calls: 0
+    Policy allow (prefetched): 1528590 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 3055330
+  Policy allow (prefetched): 3055330 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 1890200
+    Total used calls: 0
+    Policy allow (prefetched): 1890200 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 1892370
+    Total used calls: 0
+    Policy allow (prefetched): 1892370 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 3782570
+  Policy allow (prefetched): 3782570 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 2253620
+    Total used calls: 0
+    Policy allow (prefetched): 2253620 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 2256010
+    Total used calls: 0
+    Policy allow (prefetched): 2256010 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 4509630
+  Policy allow (prefetched): 4509630 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 2617080
+    Total used calls: 0
+    Policy allow (prefetched): 2617080 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 2619570
+    Total used calls: 0
+    Policy allow (prefetched): 2619570 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 5236650
+  Policy allow (prefetched): 5236650 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 2980960
+    Total used calls: 0
+    Policy allow (prefetched): 2980960 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 2983410
+    Total used calls: 0
+    Policy allow (prefetched): 2983410 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 5964370
+  Policy allow (prefetched): 5964370 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 3344860
+    Total used calls: 0
+    Policy allow (prefetched): 3344860 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 3347100
+    Total used calls: 0
+    Policy allow (prefetched): 3347100 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 6691960
+  Policy allow (prefetched): 6691960 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 3708440
+    Total used calls: 0
+    Policy allow (prefetched): 3708440 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 3710870
+    Total used calls: 0
+    Policy allow (prefetched): 3710870 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 7419310
+  Policy allow (prefetched): 7419310 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 4072020
+    Total used calls: 0
+    Policy allow (prefetched): 4072020 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 4074430
+    Total used calls: 0
+    Policy allow (prefetched): 4074430 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 8146450
+  Policy allow (prefetched): 8146450 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 4435670
+    Total used calls: 0
+    Policy allow (prefetched): 4435670 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 4437850
+    Total used calls: 0
+    Policy allow (prefetched): 4437850 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 8873520
+  Policy allow (prefetched): 8873520 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 4799440
+    Total used calls: 0
+    Policy allow (prefetched): 4799440 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 4801570
+    Total used calls: 0
+    Policy allow (prefetched): 4801570 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 9601010
+  Policy allow (prefetched): 9601010 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 5163020
+    Total used calls: 0
+    Policy allow (prefetched): 5163020 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 5165230
+    Total used calls: 0
+    Policy allow (prefetched): 5165230 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 10328250
+  Policy allow (prefetched): 10328250 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 5526970
+    Total used calls: 0
+    Policy allow (prefetched): 5526970 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 5529130
+    Total used calls: 0
+    Policy allow (prefetched): 5529130 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 11056100
+  Policy allow (prefetched): 11056100 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 5798670
+    Total used calls: 0
+    Policy allow (prefetched): 5798670 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 5797610
+    Total used calls: 0
+    Policy allow (prefetched): 5797610 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 11596280
+  Policy allow (prefetched): 11596280 (100.0%)
+  Policy deny (skipped): 0 (0.0%)
+
+Detaching struct_ops...
+
+=== Per-PID Statistics ===
+  High priority PID 64613:
+    Current active chunks: 0
+    Total activated: 5798670
+    Total used calls: 0
+    Policy allow (prefetched): 5798670 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+  Low priority PID 64614:
+    Current active chunks: 0
+    Total activated: 5797610
+    Total used calls: 0
+    Policy allow (prefetched): 5797610 (100.0%)
+    Policy deny (skipped): 0 (0.0%)
+
+=== Summary ===
+  Total activated: 11596280
+  Policy allow (prefetched): 11596280 (100.0%)
+  Policy deny (skipped): 0 (0.0%)

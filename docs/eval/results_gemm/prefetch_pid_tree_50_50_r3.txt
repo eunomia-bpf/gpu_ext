@@ -127,6 +127,129 @@ libbpf: map 'pid_stats': created successfully, fd=4
 libbpf: map 'va_block_pid_cache': created successfully, fd=5
 libbpf: map 'prefetch.rodata': created successfully, fd=6
 libbpf: map 'uvm_ops_prefetch_pid_tree': created successfully, fd=7
-Failed to attach struct_ops: Device or resource busy (-16)
 Checking for old struct_ops instances...
 No old struct_ops instances found.
+Successfully loaded PID-based prefetch policy!
+
+Configuration (lower threshold = more prefetch bandwidth):
+  High priority PID: 67974 (threshold: 50%)
+  Low priority PID:  67975 (threshold: 50%)
+  Default threshold: 50%
+
+Press Ctrl-C to exit...
+
+=== Per-PID Statistics ===
+  High priority PID 67974:
+    Current active chunks: 0
+    Total activated: 542260
+    Total used calls: 0
+    Policy allow (prefetched): 316318 (58.3%)
+    Policy deny (skipped): 225942 (41.7%)
+  Low priority PID 67975:
+    Current active chunks: 0
+    Total activated: 543550
+    Total used calls: 0
+    Policy allow (prefetched): 317070 (58.3%)
+    Policy deny (skipped): 226480 (41.7%)
+
+=== Summary ===
+  Total activated: 1085810
+  Policy allow (prefetched): 633388 (58.3%)
+  Policy deny (skipped): 452422 (41.7%)
+
+=== Per-PID Statistics ===
+  High priority PID 67974:
+    Current active chunks: 0
+    Total activated: 7265560
+    Total used calls: 0
+    Policy allow (prefetched): 4187623 (57.6%)
+    Policy deny (skipped): 3077937 (42.4%)
+  Low priority PID 67975:
+    Current active chunks: 0
+    Total activated: 7266790
+    Total used calls: 0
+    Policy allow (prefetched): 4188292 (57.6%)
+    Policy deny (skipped): 3078498 (42.4%)
+
+=== Summary ===
+  Total activated: 14532350
+  Policy allow (prefetched): 8375915 (57.6%)
+  Policy deny (skipped): 6156435 (42.4%)
+
+=== Per-PID Statistics ===
+  High priority PID 67974:
+    Current active chunks: 0
+    Total activated: 13999530
+    Total used calls: 0
+    Policy allow (prefetched): 8007093 (57.2%)
+    Policy deny (skipped): 5992437 (42.8%)
+  Low priority PID 67975:
+    Current active chunks: 0
+    Total activated: 13985110
+    Total used calls: 0
+    Policy allow (prefetched): 7998982 (57.2%)
+    Policy deny (skipped): 5986128 (42.8%)
+
+=== Summary ===
+  Total activated: 27984640
+  Policy allow (prefetched): 16006075 (57.2%)
+  Policy deny (skipped): 11978565 (42.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 67974:
+    Current active chunks: 0
+    Total activated: 20734010
+    Total used calls: 0
+    Policy allow (prefetched): 11826861 (57.0%)
+    Policy deny (skipped): 8907149 (43.0%)
+  Low priority PID 67975:
+    Current active chunks: 0
+    Total activated: 20700990
+    Total used calls: 0
+    Policy allow (prefetched): 11808376 (57.0%)
+    Policy deny (skipped): 8892614 (43.0%)
+
+=== Summary ===
+  Total activated: 41435000
+  Policy allow (prefetched): 23635237 (57.0%)
+  Policy deny (skipped): 17799763 (43.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 67974:
+    Current active chunks: 0
+    Total activated: 23452570
+    Total used calls: 0
+    Policy allow (prefetched): 13368845 (57.0%)
+    Policy deny (skipped): 10083725 (43.0%)
+  Low priority PID 67975:
+    Current active chunks: 0
+    Total activated: 23410230
+    Total used calls: 0
+    Policy allow (prefetched): 13345124 (57.0%)
+    Policy deny (skipped): 10065106 (43.0%)
+
+=== Summary ===
+  Total activated: 46862800
+  Policy allow (prefetched): 26713969 (57.0%)
+  Policy deny (skipped): 20148831 (43.0%)
+
+Detaching struct_ops...
+
+=== Per-PID Statistics ===
+  High priority PID 67974:
+    Current active chunks: 0
+    Total activated: 23452570
+    Total used calls: 0
+    Policy allow (prefetched): 13368845 (57.0%)
+    Policy deny (skipped): 10083725 (43.0%)
+  Low priority PID 67975:
+    Current active chunks: 0
+    Total activated: 23410230
+    Total used calls: 0
+    Policy allow (prefetched): 13345124 (57.0%)
+    Policy deny (skipped): 10065106 (43.0%)
+
+=== Summary ===
+  Total activated: 46862800
+  Policy allow (prefetched): 26713969 (57.0%)
+  Policy deny (skipped): 20148831 (43.0%)

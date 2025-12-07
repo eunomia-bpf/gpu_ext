@@ -4,8 +4,8 @@ Test PID-based eviction policies.
 Compares performance of high-priority vs low-priority processes.
 
 Usage:
-  python3 test_pid_lfu.py --policy eviction_pid_quota -P 80 -L 20
-  python3 test_pid_lfu.py --policy eviction_freq_pid_decay -P 1 -L 10
+  python3 test_multi_tenant_memory.py --policy eviction_pid_quota -P 80 -L 20
+  python3 test_multi_tenant_memory.py --policy eviction_freq_pid_decay -P 1 -L 10
 """
 
 import subprocess

@@ -32,18 +32,18 @@ ITERATIONS = 1
 # KERNEL = "rand_stream"
 # KERNEL = "seq_stream"
 KERNEL = "gemm"
-NUM_ROUNDS = 10
+NUM_ROUNDS = 1
 
 # Policy configurations to test
 POLICIES = [
     # (policy_name, policy_binary, configs)
     # configs = [(high_param, low_param), ...]
     ("no_policy", None, [(50, 50)]),
-    ("eviction_pid_quota", "eviction_pid_quota", [(50, 50), (80, 20), (90, 10)]),
-    ("eviction_fifo_chance", "eviction_fifo_chance", [(0, 0), (3, 0), (5, 0), (8, 1)]),
+    # ("eviction_pid_quota", "eviction_pid_quota", [(50, 50), (80, 20), (90, 10)]),
+    # ("eviction_fifo_chance", "eviction_fifo_chance", [(0, 0), (3, 0), (5, 0), (8, 1)]),
     # eviction_freq_pid_decay: -P = high decay (1=always protected), -L = low decay (larger=less protected)
-    ("eviction_freq_pid_decay", "eviction_freq_pid_decay", [(1, 1), (1, 10), (1, 5)]),
-    ("prefetch_pid_tree", "prefetch_pid_tree", [(0, 0), (50, 50), (20, 80), (0, 20), (0, 40)]),
+    # ("eviction_freq_pid_decay", "eviction_freq_pid_decay", [(1, 1), (1, 10), (1, 5)]),
+    ("prefetch_pid_tree", "prefetch_pid_tree", [(0, 0), (50, 50), (20, 80), (0, 20), (0, 40), (40, 40), (60, 60), (80, 80)]),
 ]
 
 

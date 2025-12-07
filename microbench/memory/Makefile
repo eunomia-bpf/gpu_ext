@@ -5,7 +5,7 @@
 all: uvmbench
 
 KERNEL_HEADERS = kernels/synthetic.cuh kernels/hotspot.cuh kernels/conv2d.cuh \
-                 kernels/jacobi2d.cuh kernels/bfs.cuh kernels/kmeans.cuh
+                 kernels/jacobi2d.cuh kernels/bfs.cuh kernels/kmeans.cuh kernels/gemm.cuh
 
 uvmbench: main.cu $(KERNEL_HEADERS)
 	nvcc -arch=sm_120 -O3 -I. -o uvmbench main.cu -lcudart

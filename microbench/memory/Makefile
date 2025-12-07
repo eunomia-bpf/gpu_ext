@@ -4,7 +4,10 @@
 
 all: uvmbench
 
-uvmbench: main.cu kernels/synthetic.cuh
+KERNEL_HEADERS = kernels/synthetic.cuh kernels/hotspot.cuh kernels/conv2d.cuh \
+                 kernels/jacobi2d.cuh kernels/bfs.cuh kernels/kmeans.cuh
+
+uvmbench: main.cu $(KERNEL_HEADERS)
 	nvcc -arch=sm_120 -O3 -I. -o uvmbench main.cu -lcudart
 
 clean:

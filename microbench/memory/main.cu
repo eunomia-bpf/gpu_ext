@@ -5,6 +5,12 @@
 #include <cstring>
 #include <cuda_runtime.h>
 #include "kernels/synthetic.cuh"
+#include "kernels/hotspot.cuh"
+#include "kernels/conv2d.cuh"
+#include "kernels/jacobi2d.cuh"
+#include "kernels/bfs.cuh"
+#include "kernels/kmeans.cuh"
+#include "kernels/gemm.cuh"
 
 struct Config {
     std::string kernel = "seq_stream";
@@ -95,11 +101,19 @@ struct KernelEntry {
 
 // Registry of available kernels
 const KernelEntry g_kernels[] = {
+    // Tier 0: Synthetic kernels
     {"seq_stream",          "Sequential streaming with light compute", run_seq_stream},
     {"seq_device_prefetch", "Sequential with GPU-side PTX prefetch.global.L2", run_seq_device_prefetch},
     {"rand_stream",         "Random access pattern with index indirection", run_rand_stream},
     {"pointer_chase",       "Pointer chasing for TLB/cache stress", run_pointer_chase},
-    // Add new kernels here: {"gemm", "Matrix multiply", run_gemm},
+    // Tier 1: Real benchmark kernels - Sequential (stencil) access pattern
+    {"hotspot",             "Rodinia Hotspot thermal simulation (5-point stencil)", run_hotspot},
+    {"conv2d",              "PolyBench 2D Convolution (3x3 stencil)", run_conv2d},
+    {"jacobi2d",            "PolyBench Jacobi 2D iterative solver (5-point stencil)", run_jacobi2d},
+    {"gemm",                "PolyBench GEMM matrix multiplication (dense)", run_gemm},
+    // Tier 1: Real benchmark kernels - Random/Mixed access pattern
+    {"bfs",                 "UVM Benchmark BFS graph traversal (random access)", run_bfs},
+    {"kmeans",              "UVM Benchmark K-Means clustering (mixed access)", run_kmeans},
 };
 
 const int g_num_kernels = sizeof(g_kernels) / sizeof(g_kernels[0]);

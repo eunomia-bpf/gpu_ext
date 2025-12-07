@@ -1,0 +1,19 @@
+kernel,mode,size_factor,working_set_bytes,bytes_accessed,iterations,median_ms,min_ms,max_ms,bw_GBps,mode_label,kernel_label
+seq_stream,uvm,0.25,8417329152,8417329152,5,0.284,0.283,0.286,29605.125,Baseline UVM,Sequential
+seq_stream,uvm_prefetch,0.25,8417329152,8417329152,5,0.286,0.284,0.286,29479.048,Prefetch,Sequential
+seq_stream,uvm_advise_read,0.25,8417329152,8417329152,5,3065.691,3053.743,3091.87,2.746,ReadMostly,Sequential
+seq_stream,uvm_advise_pref_gpu,0.25,8417329152,8417329152,5,0.286,0.284,0.288,29455.941,PrefGPU,Sequential
+seq_stream,uvm_advise_pref_cpu,0.25,8417329152,8417329152,5,34.498,34.402,34.651,243.997,PrefCPU,Sequential
+seq_stream,uvm_advise_access,0.25,8417329152,8417329152,5,1.732,1.723,1.742,4858.902,AccessedBy,Sequential
+rand_stream,uvm,0.25,8417329152,8417329152,5,0.287,0.285,0.288,29321.317,Baseline UVM,Random
+rand_stream,uvm_prefetch,0.25,8417329152,8417329152,5,0.29,0.289,0.292,29004.469,Prefetch,Random
+rand_stream,uvm_advise_read,0.25,8417329152,8417329152,5,3130.174,3108.148,3150.352,2.689,ReadMostly,Random
+rand_stream,uvm_advise_pref_gpu,0.25,8417329152,8417329152,5,0.286,0.284,0.287,29446.046,PrefGPU,Random
+rand_stream,uvm_advise_pref_cpu,0.25,8417329152,8417329152,5,34.559,34.429,34.623,243.564,PrefCPU,Random
+rand_stream,uvm_advise_access,0.25,8417329152,8417329152,5,1.756,1.752,1.786,4793.206,AccessedBy,Random
+pointer_chase,uvm,0.25,8417329152,6291456,5,0.009,0.008,0.01,736.36,Baseline UVM,PtrChase
+pointer_chase,uvm_prefetch,0.25,8417329152,6291456,5,0.009,0.009,0.01,666.468,Prefetch,PtrChase
+pointer_chase,uvm_advise_read,0.25,8417329152,6291456,5,0.33,0.203,0.42,19.081,ReadMostly,PtrChase
+pointer_chase,uvm_advise_pref_gpu,0.25,8417329152,6291456,5,0.009,0.008,0.011,675.629,PrefGPU,PtrChase
+pointer_chase,uvm_advise_pref_cpu,0.25,8417329152,6291456,5,0.014,0.013,0.014,465.896,PrefCPU,PtrChase
+pointer_chase,uvm_advise_access,0.25,8417329152,6291456,5,0.009,0.008,0.01,689.853,AccessedBy,PtrChase

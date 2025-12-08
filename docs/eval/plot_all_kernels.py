@@ -120,14 +120,14 @@ def plot_kernel_subplot(ax, df, kernel_name):
 
     # Add baseline lines
     single_1x = df[df['policy'] == 'single_1x']['high_latency_s'].values
-    single_2x = df[df['policy'] == 'single_2x']['high_latency_s'].values
 
     if len(single_1x) > 0:
         ax.axhline(y=single_1x[0], color='#3498db', linestyle='--', linewidth=2,
-                   label=f'Single 1x ({single_1x[0]:.1f}s)')
-    if len(single_2x) > 0:
-        ax.axhline(y=single_2x[0], color='#9b59b6', linestyle='--', linewidth=2,
-                   label=f'Single 2x ({single_2x[0]:.1f}s)')
+                   label='Single 1x')
+        # Theoretical optimum: 2 × Single 1x
+        theoretical_opt = single_1x[0] * 2
+        ax.axhline(y=theoretical_opt, color='#9b59b6', linestyle='--', linewidth=2,
+                   label='2×Single 1x')
 
     ax.set_ylabel('Completion Time (s)')
     ax.set_title(kernel_name)

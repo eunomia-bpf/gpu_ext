@@ -18,12 +18,12 @@ from pathlib import Path
 # Use a clean style
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams.update({
-    'font.size': 20,
-    'axes.labelsize': 24,
-    'axes.titlesize': 26,
-    'legend.fontsize': 18,
-    'xtick.labelsize': 18,
-    'ytick.labelsize': 18,
+    'font.size': 22,
+    'axes.labelsize': 26,
+    'axes.titlesize': 28,
+    'legend.fontsize': 22,
+    'xtick.labelsize': 22,
+    'ytick.labelsize': 22,
     'figure.dpi': 150,
 })
 
@@ -126,14 +126,14 @@ def plot_kernel_subplot(ax, df, kernel_name):
 
     # Add baseline lines
     single_1x = df[df['policy'] == 'single_1x']['high_latency_s'].values
-    single_2x = df[df['policy'] == 'single_2x']['high_latency_s'].values
 
     if len(single_1x) > 0:
         ax.axhline(y=single_1x[0], color='#2ecc71', linestyle='--', linewidth=2.5,
-                   label=f'Single 1x ({single_1x[0]:.1f}s)')
-    if len(single_2x) > 0:
-        ax.axhline(y=single_2x[0], color='#9b59b6', linestyle='--', linewidth=2.5,
-                   label=f'Single 2x ({single_2x[0]:.1f}s)')
+                   label='Single 1x')
+        # Theoretical optimum: 2 × Single 1x (sequential execution of two workloads)
+        theoretical_opt = single_1x[0] * 2
+        ax.axhline(y=theoretical_opt, color='#9b59b6', linestyle='--', linewidth=2.5,
+                   label='2×Single 1x')
 
     ax.set_ylabel('Completion Time (s)')
     ax.set_title(kernel_name)
@@ -176,7 +176,7 @@ def main():
     print_improvements(data)
 
     # Create figure with 3 subplots
-    fig, axes = plt.subplots(1, 3, figsize=(20, 7))
+    fig, axes = plt.subplots(1, 3, figsize=(22, 8))
 
     # Plot each kernel
     for idx, (kernel_name, df) in enumerate(data.items()):

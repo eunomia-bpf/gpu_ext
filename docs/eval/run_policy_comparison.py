@@ -31,7 +31,7 @@ SIZE_FACTOR = 0.6
 ITERATIONS = 1
 # KERNEL = "rand_stream"
 # KERNEL = "seq_stream"
-KERNEL = "gemm"
+KERNEL = "hotspot"
 NUM_ROUNDS = 1
 
 # Policy configurations to test
@@ -46,6 +46,13 @@ POLICIES = [
     ("prefetch_pid_tree", "prefetch_pid_tree", [(0, 0), (50, 50), (20, 80), (0, 20), (0, 40), (40, 40), (60, 60), (80, 80)]),
 ]
 
+# Single process configurations (no policy needed)
+# (config_name, size_factor_multiplier)
+SINGLE_PROCESS_CONFIGS = [
+    ("single_1x", 1),      # SIZE_FACTOR * 1
+    ("single_2x", 2),      # SIZE_FACTOR * 2
+]
+
 
 def cleanup_processes():
     """Kill any existing policy processes and cleanup struct_ops."""
@@ -57,11 +64,13 @@ def cleanup_processes():
     time.sleep(1)
 
 
-def run_uvmbench(output_file):
+def run_uvmbench(output_file, size_factor=None):
     """Start a uvmbench process."""
+    if size_factor is None:
+        size_factor = SIZE_FACTOR
     cmd = [
         str(UVM),
-        f"--size_factor={SIZE_FACTOR}",
+        f"--size_factor={size_factor}",
         "--mode=uvm",
         f"--iterations={ITERATIONS}",
         f"--kernel={KERNEL}",
@@ -110,6 +119,9 @@ def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx)
     policy_output = None
 
     try:
+        # Record start time
+        start_time = time.time()
+
         # Start both uvmbench processes
         high_proc = run_uvmbench(high_output.name)
         low_proc = run_uvmbench(low_output.name)
@@ -129,9 +141,30 @@ def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx)
                 policy_proc = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
             time.sleep(1)
 
-        # Wait for uvmbench to complete
-        high_proc.wait()
-        low_proc.wait()
+        # Wait for uvmbench to complete, record end times
+        high_end_time = None
+        low_end_time = None
+
+        while high_proc.poll() is None or low_proc.poll() is None:
+            if high_end_time is None and high_proc.poll() is not None:
+                high_end_time = time.time()
+            if low_end_time is None and low_proc.poll() is not None:
+                low_end_time = time.time()
+            time.sleep(0.01)
+
+        # Ensure end times are recorded
+        if high_end_time is None:
+            high_end_time = time.time()
+        if low_end_time is None:
+            low_end_time = time.time()
+
+        # Calculate latency (seconds)
+        high_latency = high_end_time - start_time
+        low_latency = low_end_time - start_time
+
+        # Calculate throughput (iterations per second)
+        high_throughput = ITERATIONS / high_latency if high_latency > 0 else 0
+        low_throughput = ITERATIONS / low_latency if low_latency > 0 else 0
 
         # Stop policy process
         if policy_proc:
@@ -149,14 +182,62 @@ def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx)
         return {
             'high_median_ms': high_median,
             'high_bw_gbps': high_bw,
+            'high_latency_s': high_latency,
+            'high_throughput': high_throughput,
             'low_median_ms': low_median,
             'low_bw_gbps': low_bw,
+            'low_latency_s': low_latency,
+            'low_throughput': low_throughput,
         }
 
     finally:
         # Cleanup temp files
         os.unlink(high_output.name)
         os.unlink(low_output.name)
+
+
+def run_single_experiment(config_name, size_multiplier, round_idx):
+    """Run a single process experiment without any policy."""
+
+    cleanup_processes()
+
+    # Create temp file for output
+    output = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+    output.close()
+
+    try:
+        # Calculate actual size factor
+        actual_size_factor = SIZE_FACTOR * size_multiplier
+
+        # Record start time
+        start_time = time.time()
+
+        # Start single uvmbench process
+        proc = run_uvmbench(output.name, size_factor=actual_size_factor)
+
+        # Wait for uvmbench to complete
+        proc.wait()
+        end_time = time.time()
+
+        # Calculate latency (seconds)
+        latency = end_time - start_time
+
+        # Calculate throughput (iterations per second)
+        throughput = ITERATIONS / latency if latency > 0 else 0
+
+        # Parse results
+        median_ms, bw_gbps = parse_uvmbench_output(output.name)
+
+        return {
+            'median_ms': median_ms,
+            'bw_gbps': bw_gbps,
+            'latency_s': latency,
+            'throughput': throughput,
+        }
+
+    finally:
+        # Cleanup temp file
+        os.unlink(output.name)
 
 
 def warmup():
@@ -177,6 +258,7 @@ def load_completed_tests(csv_path):
     """Load completed tests from existing CSV file.
 
     Returns a set of (policy_name, high_param, low_param, round) tuples.
+    For single process tests, high_param and low_param will be empty strings.
     """
     completed = set()
     if not csv_path or not Path(csv_path).exists():
@@ -191,11 +273,11 @@ def load_completed_tests(csv_path):
         if not line:
             continue
         parts = line.split(',')
-        if len(parts) >= 7:
+        if len(parts) >= 12:
             policy = parts[0]
-            high_param = int(parts[1])
-            low_param = int(parts[2])
-            round_num = int(parts[7]) if len(parts) > 7 else int(parts[6])
+            high_param = parts[1]  # Keep as string (may be empty for single process)
+            low_param = parts[2]
+            round_num = int(parts[11])
             completed.add((policy, high_param, low_param, round_num))
 
     return completed
@@ -236,7 +318,7 @@ def main():
         csv_path = OUT / f"policy_comparison_{timestamp}.csv"
         # Write CSV header for new file
         with open(csv_path, 'w') as f:
-            f.write("policy,high_param,low_param,high_median_ms,high_bw_gbps,low_median_ms,low_bw_gbps,round\n")
+            f.write("policy,high_param,low_param,high_median_ms,high_bw_gbps,high_latency_s,high_throughput,low_median_ms,low_bw_gbps,low_latency_s,low_throughput,round\n")
 
     print("=" * 60)
     print("Policy Comparison Evaluation")
@@ -246,11 +328,17 @@ def main():
 
     # Count remaining tests
     remaining = 0
+    # Count dual-process tests
     for policy_name, policy_binary, configs in POLICIES:
         for high_param, low_param in configs:
             for round_idx in range(NUM_ROUNDS):
-                if (policy_name, high_param, low_param, round_idx + 1) not in completed_tests:
+                if (policy_name, str(high_param), str(low_param), round_idx + 1) not in completed_tests:
                     remaining += 1
+    # Count single-process tests
+    for config_name, size_multiplier in SINGLE_PROCESS_CONFIGS:
+        for round_idx in range(NUM_ROUNDS):
+            if (config_name, "", "", round_idx + 1) not in completed_tests:
+                remaining += 1
     print(f"Remaining tests: {remaining}")
     print()
 
@@ -260,11 +348,51 @@ def main():
     # Run all experiments
     results = []
 
+    # Run single-process experiments first
+    for config_name, size_multiplier in SINGLE_PROCESS_CONFIGS:
+        for round_idx in range(NUM_ROUNDS):
+            # Skip completed tests
+            if (config_name, "", "", round_idx + 1) in completed_tests:
+                print(f"=== SKIP {config_name} R{round_idx+1} (already done) ===")
+                continue
+
+            exp_name = f"{config_name} (size={SIZE_FACTOR * size_multiplier}) R{round_idx+1}"
+            print(f"=== {exp_name} ===")
+
+            result = run_single_experiment(config_name, size_multiplier, round_idx)
+
+            # Print result
+            print(f"  {result['median_ms']:.2f}ms {result['bw_gbps']:.2f}GB/s "
+                  f"latency={result['latency_s']:.2f}s throughput={result['throughput']:.2f}/s")
+
+            # Write to CSV (leave high_param, low_param, low_* fields empty)
+            with open(csv_path, 'a') as f:
+                f.write(f"{config_name},,,"
+                       f"{result['median_ms']},{result['bw_gbps']},"
+                       f"{result['latency_s']},{result['throughput']},"
+                       f",,,,{round_idx+1}\n")
+
+            results.append({
+                'policy': config_name,
+                'high_param': '',
+                'low_param': '',
+                'round': round_idx + 1,
+                'high_median_ms': result['median_ms'],
+                'high_bw_gbps': result['bw_gbps'],
+                'high_latency_s': result['latency_s'],
+                'high_throughput': result['throughput'],
+                'low_median_ms': 0,
+                'low_bw_gbps': 0,
+                'low_latency_s': 0,
+                'low_throughput': 0,
+            })
+
+    # Run dual-process experiments
     for policy_name, policy_binary, configs in POLICIES:
         for high_param, low_param in configs:
             for round_idx in range(NUM_ROUNDS):
                 # Skip completed tests
-                if (policy_name, high_param, low_param, round_idx + 1) in completed_tests:
+                if (policy_name, str(high_param), str(low_param), round_idx + 1) in completed_tests:
                     print(f"=== SKIP {policy_name} {high_param}/{low_param} R{round_idx+1} (already done) ===")
                     continue
 
@@ -275,13 +403,17 @@ def main():
 
                 # Print result
                 print(f"  H:{result['high_median_ms']:.2f}ms {result['high_bw_gbps']:.2f}GB/s "
-                      f"L:{result['low_median_ms']:.2f}ms {result['low_bw_gbps']:.2f}GB/s")
+                      f"lat={result['high_latency_s']:.2f}s tput={result['high_throughput']:.2f}/s")
+                print(f"  L:{result['low_median_ms']:.2f}ms {result['low_bw_gbps']:.2f}GB/s "
+                      f"lat={result['low_latency_s']:.2f}s tput={result['low_throughput']:.2f}/s")
 
                 # Write to CSV
                 with open(csv_path, 'a') as f:
                     f.write(f"{policy_name},{high_param},{low_param},"
                            f"{result['high_median_ms']},{result['high_bw_gbps']},"
+                           f"{result['high_latency_s']},{result['high_throughput']},"
                            f"{result['low_median_ms']},{result['low_bw_gbps']},"
+                           f"{result['low_latency_s']},{result['low_throughput']},"
                            f"{round_idx+1}\n")
 
                 results.append({
@@ -311,15 +443,31 @@ def main():
         if not line:
             continue
         parts = line.split(',')
-        if len(parts) >= 7:
+        if len(parts) >= 12:
+            policy = parts[0]
+            # Handle single process tests (empty params)
+            high_param = parts[1] if parts[1] else ''
+            low_param = parts[2] if parts[2] else ''
+            high_median = float(parts[3]) if parts[3] else 0.0
+            high_bw = float(parts[4]) if parts[4] else 0.0
+            high_latency = float(parts[5]) if parts[5] else 0.0
+            high_throughput = float(parts[6]) if parts[6] else 0.0
+            low_median = float(parts[7]) if parts[7] else 0.0
+            low_bw = float(parts[8]) if parts[8] else 0.0
+            low_latency = float(parts[9]) if parts[9] else 0.0
+            low_throughput = float(parts[10]) if parts[10] else 0.0
             all_results.append({
-                'policy': parts[0],
-                'high_param': int(parts[1]),
-                'low_param': int(parts[2]),
-                'high_median_ms': float(parts[3]),
-                'high_bw_gbps': float(parts[4]),
-                'low_median_ms': float(parts[5]),
-                'low_bw_gbps': float(parts[6]),
+                'policy': policy,
+                'high_param': high_param,
+                'low_param': low_param,
+                'high_median_ms': high_median,
+                'high_bw_gbps': high_bw,
+                'high_latency_s': high_latency,
+                'high_throughput': high_throughput,
+                'low_median_ms': low_median,
+                'low_bw_gbps': low_bw,
+                'low_latency_s': low_latency,
+                'low_throughput': low_throughput,
             })
 
     # Group by policy and config
@@ -328,16 +476,22 @@ def main():
         key = (r['policy'], r['high_param'], r['low_param'])
         grouped[key].append(r)
 
-    print(f"{'Policy':<25} {'Params':<10} {'H_Med(ms)':<12} {'H_BW(GB/s)':<12} {'L_Med(ms)':<12} {'L_BW(GB/s)':<12}")
-    print("-" * 85)
+    print(f"{'Policy':<22} {'Params':<8} {'H_Lat(s)':<10} {'H_Tput':<10} {'L_Lat(s)':<10} {'L_Tput':<10}")
+    print("-" * 75)
 
     for (policy, hp, lp), runs in grouped.items():
-        h_med_avg = sum(r['high_median_ms'] for r in runs) / len(runs)
-        h_bw_avg = sum(r['high_bw_gbps'] for r in runs) / len(runs)
-        l_med_avg = sum(r['low_median_ms'] for r in runs) / len(runs)
-        l_bw_avg = sum(r['low_bw_gbps'] for r in runs) / len(runs)
+        h_lat_avg = sum(r['high_latency_s'] for r in runs) / len(runs)
+        h_tput_avg = sum(r['high_throughput'] for r in runs) / len(runs)
+        l_lat_avg = sum(r['low_latency_s'] for r in runs) / len(runs)
+        l_tput_avg = sum(r['low_throughput'] for r in runs) / len(runs)
 
-        print(f"{policy:<25} {hp}/{lp:<8} {h_med_avg:<12.2f} {h_bw_avg:<12.2f} {l_med_avg:<12.2f} {l_bw_avg:<12.2f}")
+        # Format params display
+        if hp == '' and lp == '':
+            params_str = "(single)"
+        else:
+            params_str = f"{hp}/{lp}"
+
+        print(f"{policy:<22} {params_str:<8} {h_lat_avg:<10.2f} {h_tput_avg:<10.2f} {l_lat_avg:<10.2f} {l_tput_avg:<10.2f}")
 
     print()
     print(f"Results saved to: {csv_path}")

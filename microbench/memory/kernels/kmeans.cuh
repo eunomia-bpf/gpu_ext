@@ -27,7 +27,8 @@
 // /memory/uvm_bench/UVM_benchmark/UVM_benchmarks/kmeans/kmeans_cuda.cu lines 16-78
 // ============================================================================
 
-#define I(row, col, ncols) (row * ncols + col)
+// Use size_t cast to avoid integer overflow for large arrays
+#define I(row, col, ncols) ((size_t)(row) * (ncols) + (col))
 
 __global__ void get_dst(float *dst, float *x, float *y,
 			float *mu_x, float *mu_y){
@@ -64,8 +65,8 @@ __global__ void clear(float *sum_x, float *sum_y, int *nx, int *ny){
 }
 
 __global__ void recenter_step1(float *sum_x, float *sum_y, int *nx, int *ny,
-			       float *x, float *y, int *group, int n){
-  int i;
+			       float *x, float *y, int *group, size_t n){
+  size_t i;
   int j = threadIdx.x;
 
   for(i = 0; i < n; ++i){
@@ -106,7 +107,8 @@ inline void run_kmeans(size_t total_working_set, const std::string& mode,
     // Working set ~= n * (x + y + group + dst*k) + k * (mu_x + mu_y + sum_x + sum_y + nx + ny)
     // Simplified: working_set ~= n * (2*float + int + k*float) + k * (4*float + 2*int)
     int k = 16;  // Number of clusters
-    int n = (int)(total_working_set / (3 * sizeof(float) + sizeof(int) + k * sizeof(float)));
+    // Use size_t to avoid overflow for large working sets
+    size_t n = total_working_set / (3 * sizeof(float) + sizeof(int) + k * sizeof(float));
     if (n < 1000) n = 1000;
 
     // Allocate UVM memory

@@ -55,9 +55,12 @@ __global__ void convolution2D_kernel(int ni, int nj, DATA_TYPE *A, DATA_TYPE *B)
 
 	if ((i < ni-1) && (j < nj-1) && (i > 0) && (j > 0))
 	{
-		B[i * nj + j] =  c11 * A[(i - 1) * nj + (j - 1)]  + c21 * A[(i - 1) * nj + (j + 0)] + c31 * A[(i - 1) * nj + (j + 1)]
-			+ c12 * A[(i + 0) * nj + (j - 1)]  + c22 * A[(i + 0) * nj + (j + 0)] +  c32 * A[(i + 0) * nj + (j + 1)]
-			+ c13 * A[(i + 1) * nj + (j - 1)]  + c23 * A[(i + 1) * nj + (j + 0)] +  c33 * A[(i + 1) * nj + (j + 1)];
+		// Use size_t to avoid integer overflow for large grids (nj > 46340)
+		size_t idx = (size_t)i * nj + j;
+		size_t nj_s = (size_t)nj;
+		B[idx] =  c11 * A[idx - nj_s - 1]  + c21 * A[idx - nj_s] + c31 * A[idx - nj_s + 1]
+			+ c12 * A[idx - 1]  + c22 * A[idx] +  c32 * A[idx + 1]
+			+ c13 * A[idx + nj_s - 1]  + c23 * A[idx + nj_s] +  c33 * A[idx + nj_s + 1];
 	}
 }
 
@@ -84,26 +87,25 @@ inline void run_conv2d(size_t total_working_set, const std::string& mode,
 
     int NI = grid_size;
     int NJ = grid_size;
+    // Use size_t to avoid overflow for large grids
+    size_t total_elements = (size_t)NI * NJ;
 
     DATA_TYPE *A_gpu, *B_gpu;
 
     // Allocate UVM memory
-    cudaMallocManaged(&A_gpu, sizeof(DATA_TYPE) * NI * NJ);
-    cudaMallocManaged(&B_gpu, sizeof(DATA_TYPE) * NI * NJ);
+    cudaMallocManaged(&A_gpu, sizeof(DATA_TYPE) * total_elements);
+    cudaMallocManaged(&B_gpu, sizeof(DATA_TYPE) * total_elements);
 
-    // Initialize data (same as original PolyBench init)
-    for (int i = 0; i < NI; ++i) {
-        for (int j = 0; j < NJ; ++j) {
-            A_gpu[i * NJ + j] = (float)rand() / RAND_MAX;
-        }
-    }
+    // Use cudaMemset for large allocations to avoid CPU page faults
+    cudaMemset(A_gpu, 0, sizeof(DATA_TYPE) * total_elements);
+    cudaMemset(B_gpu, 0, sizeof(DATA_TYPE) * total_elements);
 
     // Apply UVM hints if needed
     if (mode == "uvm_prefetch") {
         int dev;
         cudaGetDevice(&dev);
-        cudaMemPrefetchAsync(A_gpu, sizeof(DATA_TYPE) * NI * NJ, dev, 0);
-        cudaMemPrefetchAsync(B_gpu, sizeof(DATA_TYPE) * NI * NJ, dev, 0);
+        cudaMemPrefetchAsync(A_gpu, sizeof(DATA_TYPE) * total_elements, dev, 0);
+        cudaMemPrefetchAsync(B_gpu, sizeof(DATA_TYPE) * total_elements, dev, 0);
         cudaDeviceSynchronize();
     }
 
@@ -143,7 +145,8 @@ inline void run_conv2d(size_t total_working_set, const std::string& mode,
     result.max_ms = runtimes.back();
 
     // Bytes accessed: read 9 elements from A, write 1 to B per output pixel
-    size_t output_pixels = (NI - 2) * (NJ - 2);
+    // Use size_t cast to avoid integer overflow
+    size_t output_pixels = (size_t)(NI - 2) * (NJ - 2);
     result.bytes_accessed = output_pixels * (9 + 1) * sizeof(DATA_TYPE);
 
     // Cleanup

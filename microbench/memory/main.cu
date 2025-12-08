@@ -109,8 +109,10 @@ const KernelEntry g_kernels[] = {
     {"pointer_chase",       "Pointer chasing for TLB/cache stress", run_pointer_chase},
     // Tier 1: Real benchmark kernels - Sequential (stencil) access pattern
     {"hotspot",             "Rodinia Hotspot thermal simulation (5-point stencil)", run_hotspot},
+    {"hotspot_multigrid",   "Hotspot multi-grid oversub (eviction stress test)", run_hotspot_multigrid},
     {"conv2d",              "PolyBench 2D Convolution (3x3 stencil)", run_conv2d},
     {"jacobi2d",            "PolyBench Jacobi 2D iterative solver (5-point stencil)", run_jacobi2d},
+    {"jacobi2d_multigrid",  "Jacobi2D multi-grid oversub (eviction stress test)", run_jacobi2d_multigrid},
     {"gemm",                "PolyBench GEMM matrix multiplication (dense)", run_gemm},
     // Tier 1: Real benchmark kernels - Random/Mixed access pattern
     {"bfs",                 "UVM Benchmark BFS graph traversal (random access)", run_bfs},

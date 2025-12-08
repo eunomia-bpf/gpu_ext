@@ -113,7 +113,7 @@ def parse_uvmbench_output(output_file):
     return median_ms, bw_gbps
 
 
-def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx, size_factor, kernel):
+def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx, size_factor, kernel, output_dir):
     """Run a single experiment with the given policy configuration."""
 
     cleanup_processes()
@@ -138,7 +138,7 @@ def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx,
         # Start policy process if needed
         if policy_binary:
             policy_path = SRC / policy_binary
-            policy_output = OUT / f"{policy_binary}_{high_param}_{low_param}_r{round_idx+1}.txt"
+            policy_output = output_dir / f"{policy_binary}_{high_param}_{low_param}_r{round_idx+1}.txt"
 
             cmd = [
                 "sudo", str(policy_path),
@@ -339,7 +339,7 @@ def main():
         print(f"Found {len(completed_tests)} completed tests")
     else:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        csv_path = OUT / f"policy_comparison_{timestamp}.csv"
+        csv_path = output_dir / f"policy_comparison_{timestamp}.csv"
         # Write CSV header for new file
         with open(csv_path, 'w') as f:
             f.write("policy,high_param,low_param,high_median_ms,high_bw_gbps,high_latency_s,high_throughput,low_median_ms,low_bw_gbps,low_latency_s,low_throughput,round\n")
@@ -428,7 +428,7 @@ def main():
                 exp_name = f"{policy_name} {high_param}/{low_param} R{round_idx+1}"
                 print(f"=== {exp_name} ===")
 
-                result = run_experiment(policy_name, policy_binary, high_param, low_param, round_idx, size_factor, kernel)
+                result = run_experiment(policy_name, policy_binary, high_param, low_param, round_idx, size_factor, kernel, output_dir)
 
                 # Print result
                 print(f"  H:{result['high_median_ms']:.2f}ms {result['high_bw_gbps']:.2f}GB/s "

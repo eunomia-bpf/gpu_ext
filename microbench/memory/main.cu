@@ -116,7 +116,8 @@ const KernelEntry g_kernels[] = {
     {"gemm",                "PolyBench GEMM matrix multiplication (dense)", run_gemm},
     // Tier 1: Real benchmark kernels - Random/Mixed access pattern
     {"bfs",                 "UVM Benchmark BFS graph traversal (random access)", run_bfs},
-    {"kmeans",              "UVM Benchmark K-Means clustering (mixed access)", run_kmeans},
+    {"kmeans",              "UVM Benchmark K-Means clustering (mixed access, dense)", run_kmeans},
+    {"kmeans_sparse",       "K-Means with sparse data layout (uses stride_bytes)", run_kmeans_sparse},
     {"pagerank",            "PageRank iterative graph algorithm (random + iteration)", run_pagerank},
 };
 

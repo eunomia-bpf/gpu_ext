@@ -10,6 +10,9 @@ KERNEL_HEADERS = kernels/synthetic.cuh kernels/hotspot.cuh kernels/conv2d.cuh \
 uvmbench: main.cu $(KERNEL_HEADERS)
 	nvcc -arch=sm_120 -O3 -I. -o uvmbench main.cu -lcudart
 
+uvm_prefetch:
+	nvcc -arch=sm_120 -O3 -I. -DGEMM_PREFETCH_AHEAD  -o uvmbench main.cu -lcudart
+
 clean:
 	rm -f uvmbench *.o
 

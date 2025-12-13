@@ -128,7 +128,23 @@ __global__ void recenter_step1_sparse(float *sum_x, float *sum_y, int *nx, int *
   size_t i;
   int j = threadIdx.x;
 
+#ifdef KMEANS_PREFETCH_AHEAD
+  // Prefetch 配置
+  #ifndef PREFETCH_DISTANCE
+  #define PREFETCH_DISTANCE 64
+  #endif
+#endif
+
   for(i = 0; i < n; ++i){
+#ifdef KMEANS_PREFETCH_AHEAD
+    // Prefetch 未来要访问的点
+    if (i + PREFETCH_DISTANCE < n) {
+      size_t prefetch_offset = (i + PREFETCH_DISTANCE) * stride;
+      prefetch_l2(&x[prefetch_offset]);
+      prefetch_l2(&y[prefetch_offset]);
+      prefetch_l2(&group[prefetch_offset]);
+    }
+#endif
     size_t offset = i * stride;
     if(group[offset] == (j + 1)){
       sum_x[j] += x[offset];

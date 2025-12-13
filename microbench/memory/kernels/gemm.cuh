@@ -28,12 +28,38 @@
 // C = alpha * A * B + beta * C
 // A: NI x NK, B: NK x NJ, C: NI x NJ
 
+// prefetch_l2 defined in synthetic.cuh
+
 __global__ void gemm_kernel(int ni, int nj, int nk,
                             DATA_TYPE alpha, DATA_TYPE beta,
                             DATA_TYPE *a, DATA_TYPE *b, DATA_TYPE *c)
 {
 	int j = blockIdx.x * blockDim.x + threadIdx.x;
 	int i = blockIdx.y * blockDim.y + threadIdx.y;
+
+#ifdef GEMM_PREFETCH_AHEAD
+	// Prefetch 当前 kernel 未来要访问的远端行
+	// PREFETCH_K_START: 从第几行开始 prefetch (默认 512)
+	// PREFETCH_K_STRIDE: 每隔几行 prefetch 一次 (默认 64)
+	// PREFETCH_K_COUNT: prefetch 多少次 (默认 8)
+	#ifndef PREFETCH_K_START
+	#define PREFETCH_K_START 1024
+	#endif
+	#ifndef PREFETCH_K_STRIDE
+	#define PREFETCH_K_STRIDE 64
+	#endif
+	#ifndef PREFETCH_K_COUNT
+	#define PREFETCH_K_COUNT 8
+	#endif
+	{
+		for (int p = 0; p < PREFETCH_K_COUNT; p++) {
+			int pk = PREFETCH_K_START + p * PREFETCH_K_STRIDE;
+			if (pk < nk) {
+				prefetch_l2(&b[pk * nj + j]);
+			}
+		}
+	}
+#endif
 
 	if ((i < ni) && (j < nj))
 	{

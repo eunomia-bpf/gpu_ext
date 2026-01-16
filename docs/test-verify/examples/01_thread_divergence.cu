@@ -176,108 +176,74 @@ __device__ void generate_packet(unsigned char *pkt, int pkt_idx, int *pkt_type) 
  *   - No infinite loops
  *
  * GPU reality:
- *   - 10% packets exit at L2 (non-IP)
- *   - 10% packets exit at L3 (non-TCP)
- *   - 10% packets exit at L4 (non-HTTP)
- *   - 70% packets parse HTTP, then diverge on path matching
- *   - Each layer adds more divergence!
+ *   - Threads take different paths based on packet content
+ *   - Warp serialization: only one path executes at a time
+ *   - N-way divergence from path matching
  */
 __device__ void ebpf_hook_BAD_xdp_parse(unsigned char *pkt_data, int pkt_len) {
-    void *data = pkt_data;
-    void *data_end = pkt_data + pkt_len;
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Layer 2: Parse Ethernet header
-    // ─────────────────────────────────────────────────────────────────────
-    struct ethhdr *eth = (struct ethhdr *)data;
-    if (!bpf_check_bounds(data, data_end, eth, sizeof(*eth))) {
-        return;  // Packet too small
-    }
-
-    // Check if IPv4
-    if (eth->h_proto != ETH_P_IP) {
-        // DIVERGENCE: Non-IP packets take this path
-        bpf_map_atomic_inc(&protocol_counters[0]);
-        return;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Layer 3: Parse IPv4 header
-    // ─────────────────────────────────────────────────────────────────────
-    struct iphdr *ip = (struct iphdr *)((unsigned char *)eth + sizeof(*eth));
-    if (!bpf_check_bounds(data, data_end, ip, sizeof(*ip))) {
-        return;
-    }
-
-    // Check if TCP
-    if (ip->protocol != IPPROTO_TCP) {
-        // DIVERGENCE: Non-TCP packets (UDP, ICMP, etc.) take this path
-        bpf_map_atomic_inc(&protocol_counters[1]);
-        return;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Layer 4: Parse TCP header
-    // ─────────────────────────────────────────────────────────────────────
+    // Parse all layers (all threads do this)
+    struct ethhdr *eth = (struct ethhdr *)pkt_data;
+    struct iphdr *ip = (struct iphdr *)(pkt_data + sizeof(struct ethhdr));
     int ip_hdr_len = (ip->ihl_version & 0x0F) * 4;
     struct tcphdr *tcp = (struct tcphdr *)((unsigned char *)ip + ip_hdr_len);
-    if (!bpf_check_bounds(data, data_end, tcp, sizeof(*tcp))) {
-        return;
-    }
-
-    // Check if HTTP (port 80)
-    if (tcp->dest != HTTP_PORT) {
-        // DIVERGENCE: Non-HTTP TCP (HTTPS, SSH, etc.) takes this path
-        bpf_map_atomic_inc(&protocol_counters[2]);
-        return;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Layer 7: Parse HTTP and extract path
-    // ─────────────────────────────────────────────────────────────────────
-    bpf_map_atomic_inc(&protocol_counters[3]);  // Count HTTP packets
-
     int tcp_hdr_len = ((tcp->flags >> 12) & 0x0F) * 4;
     if (tcp_hdr_len < 20) tcp_hdr_len = 20;
     char *http_data = (char *)tcp + tcp_hdr_len;
+    char *path = http_data + 4;
 
-    if (!bpf_check_bounds(data, data_end, http_data, 32)) {
-        return;
-    }
+    // ═══════════════════════════════════════════════════════════════════
+    // BAD PATTERN: Different paths do VASTLY different amounts of work
+    // Threads with less work WAIT for threads with more work = wasted cycles
+    // ═══════════════════════════════════════════════════════════════════
 
-    // Parse HTTP path - MORE DIVERGENCE based on path content!
-    // Each path match is a different branch
-    if (http_data[0] == 'G' && http_data[1] == 'E' && http_data[2] == 'T') {
-        // GET request - check path
-        char *path = http_data + 4;  // Skip "GET "
+    // Compute predicates
+    int is_ip = (eth->h_proto == ETH_P_IP);
+    int is_tcp = (ip->protocol == IPPROTO_TCP);
+    int is_http = (tcp->dest == HTTP_PORT);
 
-        if (path[0] == '/' && path[1] == 'a' && path[2] == 'p' && path[3] == 'i') {
-            // /api/* routes
-            if (path[5] == 'u') {
-                bpf_map_atomic_inc(&path_counters[PATH_API_USERS]);
-            } else if (path[5] == 'o') {
-                bpf_map_atomic_inc(&path_counters[PATH_API_ORDERS]);
-            } else if (path[5] == 'p') {
-                bpf_map_atomic_inc(&path_counters[PATH_API_PRODUCTS]);
-            } else {
-                bpf_map_atomic_inc(&path_counters[PATH_OTHER]);
-            }
-        } else if (path[0] == '/' && path[1] == 's' && path[2] == 't') {
-            // /static/*
+    unsigned long long work = 0;
+
+    // DIVERGENT: Each path has DIFFERENT amounts of compute work
+    // Using pure computation to avoid memory bottlenecks
+    if (!is_ip) {
+        // Non-IP (10%): heavy compute
+        for (int i = 0; i < 1000; i++) work = work * 3 + 7;
+        bpf_map_atomic_inc(&protocol_counters[0]);
+    } else if (!is_tcp) {
+        // Non-TCP (10%): heavy compute
+        for (int i = 0; i < 1000; i++) work = work * 5 + 11;
+        bpf_map_atomic_inc(&protocol_counters[1]);
+    } else if (!is_http) {
+        // Non-HTTP (10%): heavy compute
+        for (int i = 0; i < 1000; i++) work = work * 7 + 13;
+        bpf_map_atomic_inc(&protocol_counters[2]);
+    } else {
+        // HTTP (70%): heavy compute
+        for (int i = 0; i < 1000; i++) work = work * 11 + 17;
+        bpf_map_atomic_inc(&protocol_counters[3]);
+
+        // Further divergence on path
+        if (path[1] == 'a' && path[5] == 'u') {
+            bpf_map_atomic_inc(&path_counters[PATH_API_USERS]);
+        } else if (path[1] == 'a' && path[5] == 'o') {
+            bpf_map_atomic_inc(&path_counters[PATH_API_ORDERS]);
+        } else if (path[1] == 'a' && path[5] == 'p') {
+            bpf_map_atomic_inc(&path_counters[PATH_API_PRODUCTS]);
+        } else if (path[1] == 's') {
             bpf_map_atomic_inc(&path_counters[PATH_STATIC]);
-        } else if (path[0] == '/' && path[1] == 'i' && path[2] == 'n') {
-            // /index.html
+        } else if (path[1] == 'i') {
             bpf_map_atomic_inc(&path_counters[PATH_INDEX]);
-        } else if (path[0] == '/' && path[1] == 'h' && path[2] == 'e') {
-            // /health
+        } else if (path[1] == 'h') {
             bpf_map_atomic_inc(&path_counters[PATH_HEALTH]);
-        } else if (path[0] == '/' && path[1] == 'm' && path[2] == 'e') {
-            // /metrics
+        } else if (path[1] == 'm') {
             bpf_map_atomic_inc(&path_counters[PATH_METRICS]);
         } else {
             bpf_map_atomic_inc(&path_counters[PATH_OTHER]);
         }
     }
+
+    // Prevent optimization
+    if (work == 0xDEADBEEFCAFE) atomicAdd(&protocol_counters[0], 1ULL);
 }
 
 //=============================================================================
@@ -286,48 +252,66 @@ __device__ void ebpf_hook_BAD_xdp_parse(unsigned char *pkt_data, int pkt_len) {
 
 /**
  * GPU-optimized: All threads do same work, use predication instead of branches
- * No divergence - all threads execute all instructions
+ * No divergence - all threads execute all instructions uniformly
  */
 __device__ void ebpf_hook_GOOD_uniform(unsigned char *pkt_data, int pkt_len) {
-    void *data = pkt_data;
-
-    // Parse all layers unconditionally (all threads do this)
-    struct ethhdr *eth = (struct ethhdr *)data;
-    struct iphdr *ip = (struct iphdr *)((unsigned char *)eth + sizeof(*eth));
+    // Parse all layers (all threads do this - same as BAD)
+    struct ethhdr *eth = (struct ethhdr *)pkt_data;
+    struct iphdr *ip = (struct iphdr *)(pkt_data + sizeof(struct ethhdr));
     int ip_hdr_len = (ip->ihl_version & 0x0F) * 4;
     struct tcphdr *tcp = (struct tcphdr *)((unsigned char *)ip + ip_hdr_len);
     int tcp_hdr_len = ((tcp->flags >> 12) & 0x0F) * 4;
     if (tcp_hdr_len < 20) tcp_hdr_len = 20;
     char *http_data = (char *)tcp + tcp_hdr_len;
+    char *path = http_data + 4;
 
-    // Compute predicates without branching (all threads compute all of these)
+    // ═══════════════════════════════════════════════════════════════════
+    // GOOD PATTERN: ALL threads do the SAME work uniformly
+    // Same total work as BAD, but executed in PARALLEL (no divergence)
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Compute predicates uniformly (all threads do this)
     int is_ip = (eth->h_proto == ETH_P_IP);
     int is_tcp = (ip->protocol == IPPROTO_TCP);
     int is_http = (tcp->dest == HTTP_PORT);
-    int is_get = (http_data[0] == 'G' && http_data[1] == 'E' && http_data[2] == 'T');
 
-    // Use predication to update counters uniformly
-    // All threads evaluate all conditions, only matching ones increment
-    if (!is_ip) atomicAdd(&protocol_counters[0], 1ULL);
-    if (is_ip && !is_tcp) atomicAdd(&protocol_counters[1], 1ULL);
-    if (is_ip && is_tcp && !is_http) atomicAdd(&protocol_counters[2], 1ULL);
-    if (is_ip && is_tcp && is_http) atomicAdd(&protocol_counters[3], 1ULL);
+    unsigned long long work = 0;
 
-    // Parse HTTP path uniformly - all threads evaluate all conditions
-    if (is_ip && is_tcp && is_http && is_get) {
-        char *path = http_data + 4;
-        int is_api = (path[0] == '/' && path[1] == 'a' && path[2] == 'p' && path[3] == 'i');
+    // ALL threads do 1000 iterations uniformly (same as each BAD branch)
+    // In BAD, a warp does 4 passes of 1000 iterations = 4000 serial iterations
+    // In GOOD, all 32 threads do 1000 iterations in parallel = 1000 cycles
+    // Expected: GOOD should be ~4x faster due to parallel execution
+    for (int i = 0; i < 1000; i++) work = work * 3 + 7;
 
-        // All threads check all path patterns (no early exits)
-        if (is_api && path[5] == 'u') atomicAdd(&path_counters[PATH_API_USERS], 1ULL);
-        else if (is_api && path[5] == 'o') atomicAdd(&path_counters[PATH_API_ORDERS], 1ULL);
-        else if (is_api && path[5] == 'p') atomicAdd(&path_counters[PATH_API_PRODUCTS], 1ULL);
-        else if (path[1] == 's' && path[2] == 't') atomicAdd(&path_counters[PATH_STATIC], 1ULL);
-        else if (path[1] == 'i' && path[2] == 'n') atomicAdd(&path_counters[PATH_INDEX], 1ULL);
-        else if (path[1] == 'h' && path[2] == 'e') atomicAdd(&path_counters[PATH_HEALTH], 1ULL);
-        else if (path[1] == 'm' && path[2] == 'e') atomicAdd(&path_counters[PATH_METRICS], 1ULL);
-        else atomicAdd(&path_counters[PATH_OTHER], 1ULL);
+    // Determine protocol category with predicated assignments (uniform)
+    int proto_idx = 0;  // Default: non-IP
+    proto_idx = is_ip && !is_tcp ? 1 : proto_idx;
+    proto_idx = is_ip && is_tcp && !is_http ? 2 : proto_idx;
+    proto_idx = is_ip && is_tcp && is_http ? 3 : proto_idx;
+
+    // Single atomic per thread (all threads do this - uniform)
+    atomicAdd(&protocol_counters[proto_idx], 1ULL);
+
+    // For HTTP packets, determine path category uniformly
+    int path_idx = PATH_OTHER;  // Default for non-HTTP or unknown paths
+
+    // Predicated path selection (all HTTP threads evaluate, uniform)
+    int http_valid = is_ip && is_tcp && is_http;
+    path_idx = (http_valid && path[1] == 'a' && path[5] == 'u') ? PATH_API_USERS : path_idx;
+    path_idx = (http_valid && path[1] == 'a' && path[5] == 'o') ? PATH_API_ORDERS : path_idx;
+    path_idx = (http_valid && path[1] == 'a' && path[5] == 'p') ? PATH_API_PRODUCTS : path_idx;
+    path_idx = (http_valid && path[1] == 's') ? PATH_STATIC : path_idx;
+    path_idx = (http_valid && path[1] == 'i') ? PATH_INDEX : path_idx;
+    path_idx = (http_valid && path[1] == 'h') ? PATH_HEALTH : path_idx;
+    path_idx = (http_valid && path[1] == 'm') ? PATH_METRICS : path_idx;
+
+    // Single atomic per HTTP thread (uniform - only HTTP threads increment)
+    if (http_valid) {
+        atomicAdd(&path_counters[path_idx], 1ULL);
     }
+
+    // Prevent optimization
+    if (work == 0xDEADBEEFCAFE) atomicAdd(&protocol_counters[0], 1ULL);
 }
 
 //=============================================================================
@@ -451,12 +435,13 @@ int main() {
 
     printf("Performance Impact:\n");
     if (bad_time > good_time) {
-        printf("  BAD is %.2fx slower than GOOD\n\n", bad_time / good_time);
+        printf("  BAD is %.2fx slower than GOOD (divergence overhead visible)\n\n", bad_time / good_time);
     } else {
-        printf("  BAD is %.2fx faster than GOOD (%.2fx speedup)\n", good_time / bad_time, good_time / bad_time);
-        printf("  (Note: On some GPUs, simple divergence may be faster than\n");
-        printf("   complex non-divergent code with poor memory patterns)\n\n");
+        printf("  BAD is %.2fx faster (modern GPUs optimize divergence well)\n\n", good_time / bad_time);
     }
+    printf("Note: Modern GPUs with predicated execution handle simple divergence\n");
+    printf("efficiently. The verification concern is for complex divergence patterns\n");
+    printf("that cause severe serialization or resource contention.\n\n");
 
     printf("Protocol Statistics (last iteration):\n");
     printf("─────────────────────────────────────────────────────────────────\n");

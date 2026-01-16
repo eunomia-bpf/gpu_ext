@@ -1,7 +1,7 @@
 # Makefile for GPU eBPF Verification Gap Examples
 
 NVCC := nvcc
-NVCC_FLAGS := -O2 -arch=sm_75 -Wno-deprecated-gpu-targets
+NVCC_FLAGS := -O2 -arch=sm_61 -Wno-deprecated-gpu-targets
 
 # Detect CUDA installation
 CUDA_PATH ?= /usr/local/cuda

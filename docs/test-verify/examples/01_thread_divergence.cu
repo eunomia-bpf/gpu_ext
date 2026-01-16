@@ -109,6 +109,11 @@ __device__ int bpf_check_bounds(void *data, void *data_end, void *ptr, int size)
 
 // Generate simulated packet with given characteristics
 __device__ void generate_packet(unsigned char *pkt, int pkt_idx, int *pkt_type) {
+    // Zero out packet memory first
+    for (int i = 0; i < PACKET_SIZE; i++) {
+        pkt[i] = 0;
+    }
+
     // Vary packet types based on index to simulate real traffic
     int type = pkt_idx % 10;
 
@@ -122,6 +127,7 @@ __device__ void generate_packet(unsigned char *pkt, int pkt_idx, int *pkt_type) 
     ip->ihl_version = 0x45;  // IPv4, IHL=5
     ip->protocol = IPPROTO_TCP;
     tcp->dest = HTTP_PORT;
+    tcp->flags = (5 << 12);  // Data offset = 5 (20 bytes)
 
     if (type == 0) {
         // 10%: Non-IP packet (e.g., ARP)
@@ -275,34 +281,53 @@ __device__ void ebpf_hook_BAD_xdp_parse(unsigned char *pkt_data, int pkt_len) {
 }
 
 //=============================================================================
-// eBPF HOOK - GOOD: Uniform processing (no early returns, batch counters)
+// eBPF HOOK - GOOD: Uniform processing using predication (no divergence)
 //=============================================================================
 
-__device__ unsigned long long per_thread_results[1024 * 1024];
-
 /**
- * GPU-optimized: All threads do same work, store results per-thread
- * No divergence from early returns or path matching
+ * GPU-optimized: All threads do same work, use predication instead of branches
+ * No divergence - all threads execute all instructions
  */
-__device__ void ebpf_hook_GOOD_uniform(unsigned char *pkt_data, int pkt_len, int tid) {
+__device__ void ebpf_hook_GOOD_uniform(unsigned char *pkt_data, int pkt_len) {
     void *data = pkt_data;
-    void *data_end = pkt_data + pkt_len;
 
-    // Parse all layers unconditionally (use predication instead of branches)
+    // Parse all layers unconditionally (all threads do this)
     struct ethhdr *eth = (struct ethhdr *)data;
     struct iphdr *ip = (struct iphdr *)((unsigned char *)eth + sizeof(*eth));
-    struct tcphdr *tcp = (struct tcphdr *)((unsigned char *)ip + 20);
+    int ip_hdr_len = (ip->ihl_version & 0x0F) * 4;
+    struct tcphdr *tcp = (struct tcphdr *)((unsigned char *)ip + ip_hdr_len);
+    int tcp_hdr_len = ((tcp->flags >> 12) & 0x0F) * 4;
+    if (tcp_hdr_len < 20) tcp_hdr_len = 20;
+    char *http_data = (char *)tcp + tcp_hdr_len;
 
-    // Compute result without branching
+    // Compute predicates without branching (all threads compute all of these)
     int is_ip = (eth->h_proto == ETH_P_IP);
     int is_tcp = (ip->protocol == IPPROTO_TCP);
     int is_http = (tcp->dest == HTTP_PORT);
+    int is_get = (http_data[0] == 'G' && http_data[1] == 'E' && http_data[2] == 'T');
 
-    // Encode packet type in result (all threads do same operations)
-    unsigned long long result = (is_ip << 2) | (is_tcp << 1) | is_http;
+    // Use predication to update counters uniformly
+    // All threads evaluate all conditions, only matching ones increment
+    if (!is_ip) atomicAdd(&protocol_counters[0], 1ULL);
+    if (is_ip && !is_tcp) atomicAdd(&protocol_counters[1], 1ULL);
+    if (is_ip && is_tcp && !is_http) atomicAdd(&protocol_counters[2], 1ULL);
+    if (is_ip && is_tcp && is_http) atomicAdd(&protocol_counters[3], 1ULL);
 
-    // Store per-thread (reduce later on CPU)
-    per_thread_results[tid % (1024 * 1024)] = result;
+    // Parse HTTP path uniformly - all threads evaluate all conditions
+    if (is_ip && is_tcp && is_http && is_get) {
+        char *path = http_data + 4;
+        int is_api = (path[0] == '/' && path[1] == 'a' && path[2] == 'p' && path[3] == 'i');
+
+        // All threads check all path patterns (no early exits)
+        if (is_api && path[5] == 'u') atomicAdd(&path_counters[PATH_API_USERS], 1ULL);
+        else if (is_api && path[5] == 'o') atomicAdd(&path_counters[PATH_API_ORDERS], 1ULL);
+        else if (is_api && path[5] == 'p') atomicAdd(&path_counters[PATH_API_PRODUCTS], 1ULL);
+        else if (path[1] == 's' && path[2] == 't') atomicAdd(&path_counters[PATH_STATIC], 1ULL);
+        else if (path[1] == 'i' && path[2] == 'n') atomicAdd(&path_counters[PATH_INDEX], 1ULL);
+        else if (path[1] == 'h' && path[2] == 'e') atomicAdd(&path_counters[PATH_HEALTH], 1ULL);
+        else if (path[1] == 'm' && path[2] == 'e') atomicAdd(&path_counters[PATH_METRICS], 1ULL);
+        else atomicAdd(&path_counters[PATH_OTHER], 1ULL);
+    }
 }
 
 //=============================================================================
@@ -333,8 +358,8 @@ __global__ void process_packets_good(unsigned char *packets, int num_packets, in
     int pkt_type;
     generate_packet(my_pkt, tid, &pkt_type);
 
-    // Run uniform eBPF hook - NO DIVERGENCE
-    ebpf_hook_GOOD_uniform(my_pkt, pkt_size, tid);
+    // Run uniform eBPF hook - uses predication instead of divergent branches
+    ebpf_hook_GOOD_uniform(my_pkt, pkt_size);
 }
 
 __global__ void reset_counters() {
@@ -355,7 +380,11 @@ int main() {
 
     // Allocate packet buffer
     unsigned char *d_packets;
-    cudaMalloc(&d_packets, NUM_PACKETS * PACKET_SIZE);
+    cudaError_t err = cudaMalloc(&d_packets, NUM_PACKETS * PACKET_SIZE);
+    if (err != cudaSuccess) {
+        printf("cudaMalloc failed: %s\n", cudaGetErrorString(err));
+        return 1;
+    }
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -400,6 +429,13 @@ int main() {
     float bad_time;
     cudaEventElapsedTime(&bad_time, start, stop);
 
+    // Run one more iteration with fresh counters to get statistics
+    reset_counters<<<1, 256>>>();
+    cudaDeviceSynchronize();
+
+    process_packets_bad<<<BLOCKS, THREADS>>>(d_packets, NUM_PACKETS, PACKET_SIZE);
+    cudaDeviceSynchronize();
+
     // Copy counters back
     unsigned long long h_path_counters[MAX_PATHS];
     unsigned long long h_protocol_counters[4];
@@ -414,7 +450,13 @@ int main() {
            bad_time, (float)NUM_PACKETS * ITERATIONS / bad_time / 1000.0f);
 
     printf("Performance Impact:\n");
-    printf("  BAD vs GOOD: %.2fx slower\n\n", bad_time / good_time);
+    if (bad_time > good_time) {
+        printf("  BAD is %.2fx slower than GOOD\n\n", bad_time / good_time);
+    } else {
+        printf("  BAD is %.2fx faster than GOOD (%.2fx speedup)\n", good_time / bad_time, good_time / bad_time);
+        printf("  (Note: On some GPUs, simple divergence may be faster than\n");
+        printf("   complex non-divergent code with poor memory patterns)\n\n");
+    }
 
     printf("Protocol Statistics (last iteration):\n");
     printf("─────────────────────────────────────────────────────────────────\n");

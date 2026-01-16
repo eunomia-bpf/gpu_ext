@@ -41,10 +41,15 @@ __device__ void bpf_map_atomic_inc(unsigned long long *counter) {
     atomicAdd(counter, 1ULL);
 }
 
-// eBPF Helper: Per-thread counter update (no contention)
-__device__ void bpf_percpu_map_inc(unsigned long long *counters, unsigned long long tid) {
-    if (tid < 1024 * 1024) {
-        counters[tid] += 1;
+// eBPF Helper: Warp-level reduction then single atomic (efficient pattern)
+__device__ void bpf_warp_reduce_inc(unsigned long long *counter) {
+    // Each thread contributes 1, use warp reduction
+    unsigned mask = __activemask();
+    int count = __popc(mask);  // Count active threads in warp
+
+    // Only lane 0 does the atomic add with the aggregated count
+    if ((threadIdx.x % 32) == 0) {
+        atomicAdd(counter, (unsigned long long)count);
     }
 }
 
@@ -67,9 +72,11 @@ __device__ void bpf_percpu_map_inc(unsigned long long *counters, unsigned long l
  *   - In multi-tenant GPU, this is a denial-of-service attack vector
  */
 __device__ void ebpf_hook_BAD() {
-    // Every thread increments the SAME global counter
-    // This is a common eBPF pattern for counting events
-    bpf_map_atomic_inc(&bpf_counter);
+    // Every thread increments the SAME global counter multiple times
+    // This amplifies the contention effect
+    for (int i = 0; i < 10; i++) {
+        bpf_map_atomic_inc(&bpf_counter);
+    }
 }
 
 //=============================================================================
@@ -87,26 +94,33 @@ __device__ void ebpf_hook_MEDIUM() {
     unsigned long long tid = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned long long warp_id = tid / 32;
 
-    // Only lane 0 of each warp increments
-    if (tid % 32 == 0) {
-        atomicAdd(&warp_counters[warp_id % NUM_WARP_COUNTERS], 32ULL);
+    // All threads in warp increment the same warp counter
+    for (int i = 0; i < 10; i++) {
+        atomicAdd(&warp_counters[warp_id % NUM_WARP_COUNTERS], 1ULL);
     }
 }
 
 //=============================================================================
-// eBPF HOOK - GOOD: Per-thread counters (no contention)
+// eBPF HOOK - GOOD: Warp-level reduction (minimal contention)
 //=============================================================================
 
+// Per-warp counters - small array that fits in cache
+#define NUM_GOOD_COUNTERS 32768
+__device__ unsigned long long good_counters[NUM_GOOD_COUNTERS];
+
 /**
- * GPU-aware eBPF: Per-thread counters, reduce later
- * No atomic contention - each thread updates its own counter
+ * GPU-aware eBPF: Use warp reduction to minimize atomic contention
+ * Only 1 thread per warp does atomic = 32x fewer atomics
  */
 __device__ void ebpf_hook_GOOD() {
-    unsigned long long tid, ty, tz;
-    bpf_get_thread_idx(&tid, &ty, &tz);
+    unsigned long long tid = threadIdx.x + blockIdx.x * blockDim.x;
+    unsigned long long warp_id = tid / 32;
 
-    // Each thread updates its OWN counter - zero contention
-    bpf_percpu_map_inc(bpf_percpu_counters, tid);
+    // Each iteration: all threads contribute, warp reduces, one atomic
+    for (int i = 0; i < 10; i++) {
+        // Use different counter per warp to avoid inter-warp contention
+        bpf_warp_reduce_inc(&good_counters[warp_id % NUM_GOOD_COUNTERS]);
+    }
 }
 
 //=============================================================================
@@ -114,37 +128,43 @@ __device__ void ebpf_hook_GOOD() {
 //=============================================================================
 
 __global__ void compute_with_bad_hook(float *data, int n) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid >= n) return;
+
+    // eBPF hook at kernel entry - count invocations
     ebpf_hook_BAD();
 
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tid < n) {
-        data[tid] = data[tid] * 2.0f;
-    }
+    // Minimal work to make atomic contention visible
+    float val = data[tid];
+    data[tid] = val + 1.0f;
 }
 
 __global__ void compute_with_medium_hook(float *data, int n) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid >= n) return;
+
     ebpf_hook_MEDIUM();
 
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tid < n) {
-        data[tid] = data[tid] * 2.0f;
-    }
+    float val = data[tid];
+    data[tid] = val + 1.0f;
 }
 
 __global__ void compute_with_good_hook(float *data, int n) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tid >= n) return;
+
     ebpf_hook_GOOD();
 
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tid < n) {
-        data[tid] = data[tid] * 2.0f;
-    }
+    float val = data[tid];
+    data[tid] = val + 1.0f;
 }
 
 __global__ void compute_no_hook(float *data, int n) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tid < n) {
-        data[tid] = data[tid] * 2.0f;
-    }
+    if (tid >= n) return;
+
+    float val = data[tid];
+    data[tid] = val + 1.0f;
 }
 
 // Reset counters
@@ -152,7 +172,7 @@ __global__ void reset_counters() {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid == 0) bpf_counter = 0;
     if (tid < NUM_WARP_COUNTERS) warp_counters[tid] = 0;
-    if (tid < 1024 * 1024) bpf_percpu_counters[tid] = 0;
+    if (tid < NUM_GOOD_COUNTERS) good_counters[tid] = 0;
 }
 
 //=============================================================================
@@ -241,7 +261,7 @@ int main() {
     printf("Results (%d iterations):\n", ITERATIONS);
     printf("─────────────────────────────────────────────────────────────────\n");
     printf("  No hook (baseline):           %8.2f ms\n", baseline);
-    printf("  GOOD hook (per-thread):       %8.2f ms  (%.2fx overhead)\n", good_time, good_time/baseline);
+    printf("  GOOD hook (warp-reduce):      %8.2f ms  (%.2fx overhead)\n", good_time, good_time/baseline);
     printf("  MEDIUM hook (per-warp):       %8.2f ms  (%.2fx overhead)\n", medium_time, medium_time/baseline);
     printf("  BAD hook (single counter):    %8.2f ms  (%.2fx overhead)\n\n", bad_time, bad_time/baseline);
 
@@ -253,8 +273,8 @@ int main() {
     printf("─────────────────────────────────────────────────────────────────\n");
     printf("Atomic Contention Levels:\n");
     printf("  BAD:    %d threads → 1 counter = %d-way contention\n", N, N);
-    printf("  MEDIUM: %d threads → %d counters = %dx less contention\n", N, N/32, 32);
-    printf("  GOOD:   %d threads → %d counters = 0 contention\n\n", N, N);
+    printf("  MEDIUM: %d threads → %d counters = 32-way contention per warp\n", N, N/32);
+    printf("  GOOD:   %d threads → %d counters via warp reduction = minimal contention\n\n", N, N/32);
 
     printf("This is a common eBPF pattern:\n");
     printf("  bpf_map_atomic_inc(&event_counter);\n\n");

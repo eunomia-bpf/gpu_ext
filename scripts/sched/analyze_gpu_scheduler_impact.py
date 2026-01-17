@@ -192,7 +192,10 @@ class GPUSchedulerAnalyzer:
 
             print(f"  PID {pid} ({events['comm'].iloc[0]}):")
             print(f"    Total runtime: {total_time/1e6:.2f} ms")
-            print(f"    Total off-CPU: {total_offcpu_time/1e6:.2f} ms ({total_offcpu_time/total_time*100:.1f}%)")
+            if total_time > 0:
+                print(f"    Total off-CPU: {total_offcpu_time/1e6:.2f} ms ({total_offcpu_time/total_time*100:.1f}%)")
+            else:
+                print(f"    Total off-CPU: {total_offcpu_time/1e6:.2f} ms (N/A)")
             print(f"    Kernel launches: {len(launches)}")
             print(f"    Context switches: {num_switches} ({switch_freq:.2f} Hz)")
 

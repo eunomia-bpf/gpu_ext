@@ -2,7 +2,7 @@
 
 ## 概述
 
-分析 CPU 调度器行为对 GPU 工作负载性能的影响，识别调度瓶颈并量化性能损失。
+分析 CPU 调度器对 GPU 工作负载的实际影响，**区分调度问题与应用问题**，量化优化价值。
 
 ---
 
@@ -26,278 +26,404 @@ python3 analyze_gpu_scheduler_impact.py ../../tools/trace.csv -o report.md
 
 ---
 
+## 核心分析方法
+
+### 🎯 关键问题
+
+**不是看"launch delay 有多大"，而是看"context switch 是否造成了额外延迟"**
+
+### 正确的分析流程
+
+#### 1. **对比有无 Context Switch 的 Launch Pairs**
+
+将连续的 launch pairs 分为两组：
+- **Group A**: Launch 之间无 context switch（正常流程）
+- **Group B**: Launch 之间有 context switch（被打断）
+
+对比两组的 interval 分布：
+```
+Group A: P50=2µs, P90=4µs    (连续提交)
+Group B: P50=15ms, P90=15ms  (被抢占)
+
+Preemption Penalty = 15ms - 2µs = 14.998ms
+```
+
+**如果 Group B 显著慢于 Group A → 调度器有影响**
+
+#### 2. **Tail Latency 归因分析**
+
+找出 P95-P99 的慢 launch pairs，检查其中有多少伴随 context switch：
+
+```
+P95+ 慢 pairs: 2580 个
+其中有 switch 的: 62 个 (2.4%)
+
+结论：97.6% 的 tail latency 是应用特性，只有 2.4% 是调度造成的
+```
+
+**如果 tail latency 中大部分无 switch → 主要是应用问题，非调度**
+
+#### 3. **Burst 模式识别**
+
+识别批量提交模式（多个 launch 在短时间内连续提交）：
+
+```
+Burst 定义: N 个 launch 间隔 <100µs
+
+分析结果：
+- 54 个 burst，每个约 950 个 launch
+- Burst 内部被打断: 11%
+- Burst 之间间隔: 数十 ms
+
+结论：应用是批量提交模式，优化 burst 间隔更重要
+```
+
+#### 4. **量化优化价值**
+
+```
+调度器影响 = 被打断的 pairs 数量 × Preemption Penalty
+           = 62 × 15ms = 0.93 秒
+
+占总运行时间: 0.93 / 79.5 = 1.2%
+
+优化上限: 绑核/提高优先级最多省 1.2%
+```
+
+---
+
 ## 能分析出什么信息？
 
-### 1. **Kernel Launch 延迟** ⭐ 最重要
+### 1. **调度抢占比例** ⭐ 最重要
 
-**含义**：进程从被调度回 CPU 到提交 GPU kernel 的时间
-
-**为什么重要**：
-- 反映了 CPU 调度器对 GPU 提交的**直接影响**
-- 延迟越大，GPU 空闲时间越长
-- 这是调度器影响 GPU 性能的**主要途径**
+**指标**: Launch pairs 中被 context switch 打断的百分比
 
 **典型值**：
-- 优秀：< 50µs
-- 一般：50-200µs
-- 差：> 200µs
+- 优秀：< 1% (几乎不被打断)
+- 一般：1-5%
+- 差：> 10% (频繁抢占)
 
-**示例场景**：
-```
-时间线：
-T0: GPU kernel 完成
-T1: 进程被调度出 CPU (OFF-CPU)
-T2: 进程被调度回 CPU (ON-CPU)  <-- 调度延迟
-T3: 提交下一个 kernel              <-- Launch 延迟 = T3-T2
+**qwen3 实例**：
+- 总 pairs: 51463
+- 被打断: 62 (0.1%)
+- **结论**: 调度器工作良好
 
-影响：GPU 从 T0 到 T3 处于空闲状态
-```
+### 2. **Preemption Penalty** ⭐ 影响大小
 
-### 2. **Sync 期间的调度行为**
+**指标**: 有 switch vs 无 switch 的 interval 差值
+
+**典型值**：
+- 轻微：< 1ms
+- 中等：1-10ms
+- 严重：> 10ms
+
+**qwen3 实例**：
+- 无 switch: P50 = 2µs
+- 有 switch: P50 = 15.3ms
+- **Penalty = 15ms (严重！)**
+
+**关键洞察**：
+- OFF-CPU 本身只有 28µs (P50)
+- 但被抢占后等待重新调度很长
+- 说明系统有其他高优先级任务
+
+### 3. **Tail Latency 根因**
+
+**指标**: P95-P99 outliers 中有 switch 的比例
+
+**判断标准**：
+- > 80%: 主要是调度问题 → 绑核/优先级有效
+- 20-80%: 混合问题
+- < 20%: 主要是应用问题 → 优化应用更重要
+
+**qwen3 实例**：
+- P95+ outliers: 2580 个
+- 其中有 switch: 62 个 (2.4%)
+- **结论**: 97.6% 的慢 launch 是应用特性，非调度
+
+### 4. **Burst 提交模式**
 
 **能看到的信息**：
-- `cudaDeviceSynchronize()` 调用期间进程的调度状态
-- OFF-CPU 时间占比
-- 上下文切换次数
+- Burst 数量和大小
+- Burst 内部被打断的概率
+- Burst 之间的间隔分布
 
-**为什么重要**：
-- Sync 期间进程被调度出去 → GPU 完成后无法立即响应
-- 理想情况：进程应该 spin-wait 或高效 yield
-
-**示例**：
-```
-T0: cudaDeviceSynchronize() 进入
-T1: 进程 OFF-CPU (等待中被抢占)
-T2: GPU 实际完成 (但进程仍在 OFF-CPU!)
-T3: 进程 ON-CPU
-T4: Sync 返回
-
-损失：T2 到 T3 的不必要延迟
-```
-
-### 3. **上下文切换频率**
-
-**含义**：GPU 进程每秒被切换的次数
-
-**为什么重要**：
-- 每次切换有固定开销 (~1-10µs)
-- 高频切换会累积大量开销
-- 表明进程与其他任务竞争激烈
-
-**典型值**：
-- 优秀：< 50 Hz
-- 一般：50-200 Hz
-- 差：> 200 Hz
-
-### 4. **整体 OFF-CPU 占比**
-
-**含义**：进程在整个运行期间被调度出 CPU 的时间百分比
-
-**注意事项**：
-- 如果程序有 sleep/IO，高 OFF-CPU 是正常的
-- **关键看 Launch 延迟**，而不是单看 OFF-CPU 占比
-- 对于纯计算 GPU 负载，>50% OFF-CPU 才是问题
-
-### 5. **调度模式识别**
-
-通过事件序列可以识别：
-
-**模式 A - 频繁抢占**：
-```
-Launch → OFF-CPU (5ms) → ON-CPU → Launch → OFF-CPU (8ms) → ...
-```
-→ 说明 CPU 负载高，进程被频繁抢占
-
-**模式 B - 批量提交**：
-```
-Launch → Launch → Launch → OFF-CPU → ...
-```
-→ 说明 GPU 任务提交效率高
-
-**模式 C - Sync 阻塞**：
-```
-Launch → SyncEnter → OFF-CPU (多次) → SyncExit
-```
-→ 说明 Sync 期间被频繁调度
+**qwen3 实例**：
+- 54 个 burst，每个 ~950 launches
+- Burst 内被打断: 11%
+- **结论**: 批量提交模式，主要瓶颈在 burst 间隔
 
 ---
 
-## 核心洞察
+## 误区与正确理解
 
-### 💡 Launch 延迟 > OFF-CPU 占比
+### ❌ 常见误区
 
-**为什么？**
-- GPU 性能取决于**何时**提交任务，而不是进程总共运行了多久
-- Launch 延迟 10µs vs 200µs：GPU 空闲时间相差 190µs
-- OFF-CPU 50% vs 80%：如果 Launch 延迟一样，GPU 性能可能相同
-
-**实际案例**：
+#### 误区 1: "Launch Delay 很大，所以调度有问题"
 ```
-场景 A：OFF-CPU 20%, Launch 延迟 150µs → GPU 利用率 70%
-场景 B：OFF-CPU 60%, Launch 延迟 15µs  → GPU 利用率 95%
+错误分析：
+平均 launch delay = 4.8ms → 延迟很大！
 
-结论：场景 B 虽然 OFF-CPU 更高，但 GPU 性能更好！
+问题：这包含了 CPU 计算数据的时间，不是调度延迟
 ```
 
-### 💡 Sync 行为反映调度策略
-
-**观察到的模式**：
-
-1. **Spin-wait**：Sync 期间持续 ON-CPU
-   - 优点：响应快
-   - 缺点：占用 CPU
-
-2. **Yield + 被抢占**：Sync 期间频繁 OFF-CPU
-   - 优点：释放 CPU
-   - 缺点：GPU 完成后响应慢
-
-3. **混合**：短时间 spin，然后 yield
-   - CUDA 默认行为（取决于 `cudaDeviceSchedule` 设置）
-
-### 💡 调度器影响 GPU 的三个层次
-
-**层次 1 - 任务提交延迟**（最直接）
+#### 误区 2: "OFF-CPU 占比高，调度器影响大"
 ```
-调度延迟 → Launch 延迟增大 → GPU 空闲增加
+错误分析：
+OFF-CPU 占比 60% → 调度器抢占太多！
+
+问题：GPU workload 本来就应该低 CPU 使用率
 ```
 
-**层次 2 - Sync 响应延迟**（中等）
+#### 误区 3: "Context Switch 频率高就是问题"
 ```
-Sync 期间被抢占 → GPU 完成后无法立即响应 → 端到端延迟增加
+错误分析：
+592 次 switch，7.44 Hz → 频繁切换！
+
+问题：要看这些 switch 是否在关键路径上（launch 之间）
 ```
 
-**层次 3 - 上下文切换开销**（累积）
+### ✅ 正确理解
+
+#### 正确分析 1: 对比分组
 ```
-高频切换 → 开销累积 → 总体性能下降
+无 switch: P50 = 2µs
+有 switch: P50 = 15ms
+
+结论：调度器造成 15ms penalty，但只影响 0.1% 的 pairs
+```
+
+#### 正确分析 2: 归因 Tail Latency
+```
+P99+ 的 515 个慢 pairs:
+- 有 switch: 62 个 (12%)
+- 无 switch: 453 个 (88%)
+
+结论：88% 的 tail latency 是应用本身，调度优化效果有限
+```
+
+#### 正确分析 3: 识别模式
+```
+发现 54 个 burst，每个 950 launches
+Burst 间隔远大于 burst 内部
+
+结论：应用是批量模式，优化 burst 间的 CPU 计算更重要
 ```
 
 ---
 
-## 指标解读
+## 什么是真正可优化的？
 
-### 调度影响评分 (0-100)
+### ✅ 可优化（调度器层面）
 
-**计算公式**：
+#### 场景 1: 高抢占比例 + 高 Penalty
 ```
-score = min(100, off_cpu_ratio * 100 + switch_freq_hz * 2)
+被打断: 10% 的 pairs
+Penalty: 10ms
+影响: 10% × 10ms × N pairs = 显著
+
+优化措施：
+- CPU 绑核 (taskset -c 0-3 ./app)
+- 提高优先级 (nice -n -10)
+- CPU 隔离 (isolcpus)
 ```
 
-**分级**：
-- 0-20: 🟢 低影响 - 调度器干扰最小
-- 20-50: 🟡 中等影响 - 可接受，有优化空间
-- 50-100: 🔴 高影响 - 显著性能损失
+#### 场景 2: Tail Latency 主要由 Switch 造成
+```
+P95+ outliers: 80% 有 context switch
 
-**注意**：需结合 Launch 延迟判断是否为真问题
+优化措施：
+- 实时优先级 (chrt -f 50)
+- CFS 调优 (减小 sched_min_granularity_ns)
+```
+
+#### 场景 3: Burst 内部被频繁打断
+```
+Burst 内抢占: 50%
+
+优化措施：
+- CPU 绑核 + 隔离其他任务
+- 减少同时运行的进程
+```
+
+### ❌ 不可优化（应用问题）
+
+#### 场景 1: 无 Switch 但 Interval 大
+```
+Group A (无 switch): P50 = 5ms
+Group B (有 switch): P50 = 5.5ms
+
+结论：主要是 CPU 计算慢，非调度
+
+应优化：
+- CPU 侧的数据准备
+- 内存分配策略
+- 算法优化
+```
+
+#### 场景 2: Tail Latency 无 Switch
+```
+P99+ outliers: 90% 无 context switch
+
+结论：应用偶尔有长计算
+
+应优化：
+- 找到慢的 launch 对应的 kernel
+- 优化 CPU 预处理逻辑
+```
+
+#### 场景 3: Burst 间隔主导
+```
+Burst 内: 2µs
+Burst 间: 20ms (占总时间 90%)
+
+结论：优化 burst 之间的逻辑
+
+应优化：
+- Pipeline CPU/GPU 工作
+- 减少 sync 操作
+- 增加 batch size
+```
+
+### 🤔 无法判断（数据缺失）
+
+#### 缺失 1: GPU 实际执行时间
+```
+无法判断：
+- Launch delay 50µs + GPU 执行 100ms → 影响 0.05% (无所谓)
+- Launch delay 50µs + GPU 执行 60µs → 影响 45% (严重！)
+
+需要：
+- CUDA event timing
+- Nsight 追踪
+```
+
+#### 缺失 2: 抢占来源
+```
+无法判断：
+- 被系统 daemon 抢占 → 可能无法避免
+- 被同优先级用户进程抢占 → 可以调优
+
+需要：
+- 记录 sched_switch 的 next 进程
+```
+
+#### 缺失 3: 内存传输影响
+```
+无法判断：
+- cudaMemcpy 是否也被抢占？
+- PCIe 是否瓶颈？
+
+需要：
+- Hook cudaMemcpy 系列函数
+```
 
 ---
 
-## 优化策略
+## 实际案例：qwen3.cu 分析
 
-### 策略 1: CPU 绑核
+### 程序特征
+- Qwen3 0.6B LLM 推理
+- 单次推理生成约 30 tokens
+- 每个 token 多个 transformer layers
 
+### 追踪数据
 ```bash
-# 将 GPU 进程绑定到特定核心
-taskset -c 0-3 ./your_gpu_app
-```
-**效果**：减少缓存失效，降低迁移开销
-
-### 策略 2: 提高优先级
-
-```bash
-# 提高调度优先级
-nice -n -10 ./your_gpu_app  # 需要权限
-```
-**效果**：减少被抢占次数
-
-### 策略 3: CUDA 级别优化
-
-```cpp
-// 使用异步流避免阻塞
-cudaStreamCreate(&stream);
-kernel<<<grid, block, 0, stream>>>(...);
-// 不用 cudaDeviceSynchronize，而是用 event
+sudo ./cuda_sched_trace > qwen3_trace.csv 2> qwen3.log &
+./runcu Qwen3-0.6B-FP32.gguf -q "What is eBPF?" -r 1
+# Output: 56 tok/s
+pkill -f cuda_sched_trace
 ```
 
-### 策略 4: 批量提交
+### 分析结果
 
-```cpp
-// 差的方式
-for (int i = 0; i < N; i++) {
-    kernel<<<1, 256>>>(...);  // N 次 launch 开销
-}
+**基础指标**：
+- 总运行时间: 79.5 秒
+- Kernel launches: 51,464 次
+- Context switches: 592 次 (7.44 Hz)
+- OFF-CPU 时间: 7.88 ms (0.01%)
 
-// 好的方式
-kernel<<<N, 256>>>(...);      // 1 次 launch 开销
+**Launch Pair 分析**：
+```
+总 pairs: 51,463
+被打断 (有 switch): 62 (0.1%)
+未打断 (无 switch): 51,401 (99.9%)
+
+Interval 分布：
+- 无 switch: P50=2µs, P90=4µs, P99=4µs, Max=17.7s
+- 有 switch: P50=15.3ms, P90=15.5ms, P99=5.0s, Max=12.7s
+
+Preemption Penalty: 15.3ms (中位数)
 ```
 
----
-
-## 实际案例
-
-### 案例：测试程序分析
-
-**程序**：5 次 kernel launch，每次间隔 100ms sleep
-
-**结果**：
+**Tail Latency 归因**：
 ```
-Launch 延迟：平均 12µs (最大 13.81µs)
-OFF-CPU 占比：99.9%
-上下文切换：11 次 (21.96 Hz)
-评分：100/100 [高]
+P95+ 慢 pairs: 2,580 个
+  其中有 switch: 62 个 (2.4%)
+
+P99+ 慢 pairs: 515 个
+  其中有 switch: 62 个 (12.0%)
+
+结论：97.6% 的 P95 tail latency 是应用特性
 ```
 
-**解读**：
-- ✅ Launch 延迟优秀 (< 15µs) → **调度器不影响 GPU 提交**
-- ⚠️ OFF-CPU 极高但**预期内**（程序主动 sleep）
-- ✅ 切换频率低
-- 结论：虽然评分高，但**不是调度问题**，是程序设计就是 sleep
-
-**关键判断依据**：Launch 延迟小 → 调度器工作良好
-
-### 案例：LLM 推理优化（假设）
-
-**优化前**：
+**Burst 模式**：
 ```
-Launch 延迟: 125µs
-上下文切换: 180 Hz
-Sync OFF-CPU: 60%
-评分: 87/100
+Burst 数量: 54 个
+Burst 大小: 948-958 launches/burst (平均 952)
+Burst 内被打断: 6/54 (11.1%)
+
+模式识别：
+每个 burst ≈ 1 个 token 的所有 layers
+Burst 间隔 ≈ CPU 准备下一个 token 的数据
 ```
 
-**优化措施**：
-1. CPU 绑核 → Launch 延迟降到 35µs
-2. 批量 token 处理 → 切换频率降到 90 Hz
-3. 用 CUDA event 代替 sync → OFF-CPU 降到 20%
+### 结论
 
-**优化后**：
-```
-Launch 延迟: 35µs (降低 72%)
-上下文切换: 90 Hz (降低 50%)
-评分: 42/100
-推理延迟: 120ms → 85ms (快 29%)
-```
+**调度器影响**：
+- 影响范围: 0.1% 的 pairs
+- Penalty: 15ms/次
+- 总影响: 62 × 15ms ≈ 0.93 秒
+- 占比: 0.93 / 79.5 = **1.2%**
+
+**优化建议**：
+1. ✅ **不值得优化调度器** (只能省 1.2%)
+2. ✅ **优先优化应用层**:
+   - Burst 间隔占总时间 >50%
+   - 优化 CPU 侧的 token 准备逻辑
+   - Pipeline CPU/GPU 工作
+3. ⚠️ **如果追求极致**:
+   - CPU 绑核可能省 0.9 秒
+   - 提高优先级避免被抢占
 
 ---
 
 ## 追踪数据格式
 
-CSV 关键字段：
+CSV 字段：
 
 | 字段 | 说明 |
 |------|------|
 | `timestamp_ns` | 相对时间戳（纳秒） |
-| `event_type` | 事件类型：`cuLaunchKernel`, `cudaLaunchKernel`, `syncEnter`, `syncExit`, `schedSwitch` |
-| `last_offcpu_ns` | 上次 OFF-CPU 的时间戳（0=当前是 ON-CPU 事件） |
-| `last_oncpu_ns` | 上次 ON-CPU 的时间戳（0=当前是 OFF-CPU 事件） |
+| `event_type` | `cuLaunchKernel`, `cudaLaunchKernel`, `syncEnter`, `syncExit`, `schedSwitch` |
+| `pid`, `tid` | 进程/线程 ID |
+| `comm` | 进程名 |
+| `cpu` | CPU 核心 |
+| `grid_x/y/z` | CUDA grid 维度 (launch 事件) |
+| `block_x/y/z` | CUDA block 维度 (launch 事件) |
+| `shared_mem` | Shared memory 大小 (launch 事件) |
+| `stream` | CUDA stream 指针 (launch 事件) |
+| `last_offcpu_ns` | 上次 OFF-CPU 的时间戳（0 = 当前 ON-CPU） |
+| `last_oncpu_ns` | 上次 ON-CPU 的时间戳（0 = 当前 OFF-CPU） |
 
 ---
 
 ## 局限性
 
 1. **eBPF 开销**：追踪本身有 1-5% 开销
-2. **仅追踪 CUDA**：不支持其他 GPU API (OpenCL, Vulkan)
-3. **Driver/Runtime 重复**：可能看到同一个 launch 的两个事件
-4. **需要权限**：必须 sudo 运行
+2. **仅追踪 CUDA**：不支持其他 GPU API
+3. **缺少 GPU 侧数据**：不知道 kernel 实际执行时间
+4. **缺少抢占来源**：不知道是谁抢占了 GPU 进程
+5. **需要权限**：必须 sudo 运行
 
 ---
 
@@ -305,149 +431,114 @@ CSV 关键字段：
 
 ### 🎯 核心原则
 
-1. **Launch 延迟是关键指标** - 直接影响 GPU 利用率
-2. **OFF-CPU 占比需结合场景** - 有 sleep/IO 时高 OFF-CPU 是正常的
-3. **Sync 行为反映调度策略** - 可以看到 spin-wait vs yield 的权衡
+1. **对比分组，而非绝对值**
+   - 有 switch vs 无 switch 的差异才是调度影响
+
+2. **归因 tail latency**
+   - 多少 outlier 是调度造成的？
+
+3. **识别提交模式**
+   - Burst 模式下，burst 间隔通常更重要
+
+4. **量化优化价值**
+   - 调度器优化通常只有 1-5% 收益
+   - 应用层优化才是大头
 
 ### 📊 能回答的问题
 
-- ✅ CPU 调度器是否延迟了 GPU 任务提交？
-- ✅ Sync 期间进程的调度状态如何？
-- ✅ 上下文切换是否过于频繁？
-- ✅ 绑核/提高优先级是否有效？
+- ✅ 调度器是否打断了 GPU 提交流程？
+- ✅ 被打断的影响有多大（Penalty）？
+- ✅ Tail latency 有多少是调度造成的？
+- ✅ 应用是批量提交还是单个提交？
+- ✅ 优化调度器的价值有多大？
 - ❌ GPU 内部执行瓶颈（需要 Nsight）
-- ❌ PCIe 传输瓶颈（需要其他工具）
-
-### 🔧 优化决策树
-
-```
-Launch 延迟 > 100µs?
-├─ 是 → CPU 绑核 + 提高优先级
-└─ 否 → 调度器影响小
-    ├─ 上下文切换 > 100 Hz?
-    │  └─ 是 → 批量操作，减少 syscall
-    └─ Sync OFF-CPU > 50%?
-       └─ 是 → 用异步 stream + event
-```
+- ❌ PCIe 传输瓶颈（需要 memcpy 追踪）
 
 ---
 
-## 深入思考：还缺什么信息？
+## 生产环境案例：Meta AI 训练
 
-### 当前能看到的 ✅
-1. Launch 延迟（ON-CPU 到 launch 的时间）
-2. Sync 期间的 OFF-CPU 占比
-3. 上下文切换频率和时机
+### 背景（来源：LPC 2025）
 
-### 缺失的关键信息 ❌
+Meta 在分布式 AI 训练场景中使用 sched_ext (scx_layered) 优化调度器，取得显著成效。
 
-#### 1. **GPU 实际执行时间**
-**为什么重要**：无法判断 GPU 是否真的被 CPU 延迟阻塞了
-```
-Launch 延迟 50µs + GPU 执行 0.1ms → 影响 0.05%（几乎无影响）
-Launch 延迟 50µs + GPU 执行 60µs → 影响 45%（严重影响）
-```
-**如何获取**：需要 CUDA event 或 Nsight 追踪
+**问题场景**：
+- 多个 GPU ranks 需要同步，最慢的 rank 拖慢所有人
+- CPU 的任务是"喂饱" GPU（keep the accelerator "fed"）
+- **关键发现**：如果 trainer_main 线程在 latency-bound 阶段被抢占，整个 workflow 因同步而丢失 QPS
 
-#### 2. **CPU 侧的具体工作**
-**为什么重要**：ON-CPU 期间在做什么？准备数据？还是其他计算？
+**Latency-bound 阶段**：
 ```
-ON-CPU 20ms → 是在准备下一个 kernel 的数据（必要）
-ON-CPU 20ms → 在处理无关的 CPU 计算（可优化）
-```
-**如何获取**：需要用户态函数追踪（uprobe 更多函数）
-
-#### 3. **数据传输时间**
-**为什么重要**：`cudaMemcpy` 也会受调度影响
-```
-Timeline:
-memcpy 开始 → OFF-CPU → ON-CPU (延迟!) → memcpy 继续
-```
-**如何获取**：hook `cudaMemcpy`/`cuMemcpy` 系列函数
-
-#### 4. **抢占来源**
-**为什么重要**：知道是谁抢占了 GPU 进程才能针对性优化
-```
-被 System daemon 抢占 → 可能无法避免
-被同优先级用户进程抢占 → 可以调整优先级
-被其他 GPU 进程抢占 → 可能需要资源隔离
-```
-**如何获取**：记录 `sched_switch` 的 `next` 进程信息
-
-#### 5. **CUDA Runtime 开销**
-**为什么重要**：区分真实的调度延迟 vs CUDA 自身开销
-```
-总 Launch 延迟 100µs = 调度延迟 20µs + CUDA 开销 80µs
-→ 优化调度器只能改善 20%
-```
-**如何获取**：需要更细粒度的 CUDA 内部追踪
-
----
-
-## 深入思考：什么才是真正可优化的？
-
-### 🎯 本质问题
-**CPU 调度器影响 GPU 性能的唯一机制**：
-```
-延迟 GPU 任务的提交时机
+GPU 执行 CUDA kernels 很快（可能在执行模型的上层）
+GPU 大部分时间在等 CPU
+→ 如果 trainer_main 被抢占 → workflow 丢失 QPS
 ```
 
-其他一切（OFF-CPU 占比、切换频率）都是**现象**，不是根因。
+### 解决方案：分层调度
 
-### 三类"优化"
+使用 scx_layered 将任务分为不同优先级层：
 
-#### 类型 A：真正的调度器优化
-**手段**：
-- CPU 绑核 (`taskset`)
-- 提高优先级 (`nice`, `chrt`)
-- 隔离 CPU (`isolcpus`)
+| 层级 | 任务类型 | 策略 |
+|------|---------|------|
+| **Latency critical** | PyTorch kernel launching (最多 24 个线程) | 减少抢占、高频核心、保持 cache locality |
+| **Data pipeline** | Data loading/transforms (数百个) | 可变 CPU 数量、低频核心、限制内存带宽 |
+| **Supporting** | RPC/Routing (数千个) | 限制到固定数量 CPU |
+| **The rest** | 其他 | 使用剩余资源 |
 
-**效果**：减少 Launch 延迟
-**局限**：只能优化几十到几百微秒
+### 遇到的问题（与我们的发现一致！）
 
-#### 类型 B：减少对调度器的依赖
-**手段**：
-- 批量提交（减少 launch 次数）
-- 异步 stream（不等待 GPU）
-- Pipeline（CPU/GPU 并行）
+**基础问题**：
+- 如何识别 latency critical 任务？
+- 如何避免在保护重要任务时拖慢 data pipeline？
+- CPU 频率随利用率下降
+- 内存带宽压力下 LLC miss 代价增加
+- NUMA balancing 困难
 
-**效果**：让调度延迟变得不重要
-**本质**：不是优化调度器，是绕过调度器
+**Corner Cases**：
+- ✅ **Tasks get pinned to specific cores** ← qwen3 也遇到了！
+- Latency critical 任务频繁 yield()
+- 任务依赖复杂（Python GIL、data transforms → data loaders）
+- 线程池被到处复制，默认配置创建数十万任务
+- IRQ 抢占重要任务
 
-#### 类型 C：改变 CUDA 行为
-**手段**：
-```cpp
-cudaSetDeviceFlags(cudaDeviceScheduleYield);     // 主动 yield
-cudaSetDeviceFlags(cudaDeviceScheduleSpin);      // Busy-wait
-cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync); // 阻塞等待
-```
+### 实际效果
 
-**效果**：改变 Sync 期间的调度行为
-**权衡**：CPU 占用 vs 响应速度
+**生产部署结果**：
+- 节省约 **4% 的 GPU 容量**（数万 GPU 的集群）
+- 目标节省 **~30% 的远程数据处理容量**
+- 无病理性退化
 
-### 💡 核心洞察
+**性能度量**：
+- 使用 GPU 硬件计数器（SM Utilization、Tensor Core Active %）作为代理指标
+- A/A vs A/B 测试验证改进
 
-**90% 的"调度问题"其实是应用设计问题**：
-```
-❌ 错误思路：优化调度器让 OFF-CPU 从 50% 降到 30%
-✅ 正确思路：重新设计应用让 GPU 不依赖 CPU 实时响应
+### 对我们工具的启示
 
-示例：
-Sequential:  Launch → Sync → [OFF-CPU] → Launch → Sync
-Pipeline:    Launch → Launch → Launch → (后台 Sync)
-             ↑ GPU 满载，不关心 CPU 何时调度
-```
+**我们的工具能做什么**：
+- ✅ 识别被抢占的 launch pairs（Meta 的核心问题）
+- ✅ 量化 preemption penalty（对应 Meta 的 latency impact）
+- ✅ 识别 burst 模式（对应 Meta 的 batch submission）
+- ✅ Tail latency 归因（区分调度 vs 应用问题）
 
-**真正值得优化调度器的场景**：
-1. **实时性要求高**：低延迟推理（<10ms）
-2. **GPU kernel 很短**：<100µs，调度延迟占比大
-3. **无法改变应用**：第三方库，无法重构
+**我们缺少的**：
+- ❌ 自动识别 latency critical 任务（Meta 使用 kprobe NVIDIA driver + heuristics）
+- ❌ NUMA 感知的任务放置建议
+- ❌ 线程池大小的合理性检查
 
-其他场景：**优先考虑应用层优化**（类型 B），成本更低，效果更好。
+**改进方向**（来自 Meta 的建议）：
+- 标准化接口：让 GPU vendor 报告哪些任务在提交工作
+- 更多 tracepoints：context creation、async copies、kernel launches
+- BPF 支持：任务迁移时移动内存、限制内存分配到 local NUMA
 
 ---
 
 **工具位置**：
 - 追踪工具：`tools/cuda_sched_trace`
-- 分析脚本：`scripts/sched/analyze_gpu_scheduler_impact.py`
+- 旧分析脚本：`scripts/sched/analyze_gpu_scheduler_impact.py`（基础统计）
+- 新分析脚本：`scripts/sched/analyze_preemption_impact.py`（深度分析）
 - 文档：`scripts/sched/README.md`
+
+**参考资料**：
+- Meta LPC 2025: Accelerating AI Training with sched_ext
+  - 本地文件：`scripts/sched/sched_ext_ai.pdf`
+  - 在线链接：https://lpc.events/event/19/contributions/2039/

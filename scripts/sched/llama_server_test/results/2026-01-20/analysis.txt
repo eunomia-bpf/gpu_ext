@@ -1,0 +1,70 @@
+====================================================================================================
+CPU Scheduler Overhead Analysis - llama-server
+====================================================================================================
+
+Table 1: Performance Results (Without Tracing)
+----------------------------------------------------------------------------------------------------
+Scenario                  tok/s    TPOT Mean     TPOT P99    TTFT Mean     TTFT P99   Slowdown
+----------------------------------------------------------------------------------------------------
+Baseline                 209.82       2.86ms       3.25ms      64.40ms     100.53ms          -
+CPU Stress               188.93       3.92ms       6.54ms      85.09ms     152.72ms      10.0%
+Network Stress           208.54       3.02ms       3.89ms      59.24ms      96.33ms       0.6%
+Disk Stress              209.74       2.87ms       3.24ms      64.07ms     101.88ms       0.0%
+Heavy Load               146.69       5.31ms       9.09ms     100.58ms     262.93ms      30.1%
+CPU Pinned               181.62       3.96ms       6.50ms      87.09ms     151.07ms      13.4%
+
+Table 2: Scheduler Metrics (With Tracing)
+----------------------------------------------------------------------------------------------------
+Scenario               Launches   Sched/1K   SoftIRQ/1K   HardIRQ/1K     IRQ Time
+----------------------------------------------------------------------------------------------------
+Baseline                394,664        3.6         77.0          0.1     211.14ms
+CPU Stress              352,957   132585.0         78.0          0.0     102.95ms
+Network Stress          394,664       15.2         71.7          0.9     166.14ms
+Disk Stress             394,664        3.8         73.3          1.5     199.19ms
+Heavy Load              304,503    81006.7         85.2         84.6     133.34ms
+CPU Pinned              358,444   132748.9         71.5          0.2      83.02ms
+
+Table 3: Tracer Overhead
+----------------------------------------------------------------------------------------------------
+Scenario              No Trace tok/s   With Trace tok/s     Overhead
+----------------------------------------------------------------------------------------------------
+Baseline                      209.82             209.67        0.1%
+CPU Stress                    188.93             163.96       13.2%
+Network Stress                208.54             209.13       -0.3%
+Disk Stress                   209.74             209.60        0.1%
+Heavy Load                    146.69             135.82        7.4%
+CPU Pinned                    181.62             155.10       14.6%
+
+====================================================================================================
+Key Findings
+====================================================================================================
+
+RQ1: CPU Scheduler Impact in Clean Environment
+  - Scheduler Impact: 3.6 context switches per 1K launches
+  - IRQ Time: 211.14ms total
+
+RQ3: Noisy Neighbor Impact
+  - CPU Stress: 10.0% slowdown
+  - Network Stress: 0.6% slowdown
+  - Disk Stress: 0.0% slowdown
+  - Heavy Load: 30.1% slowdown
+
+Context Switch Comparison (Sched/1K):
+  - Baseline:    3.6
+  - CPU Stress:  132585.0 (36413.7x increase)
+  - Heavy Load:  81006.7 (22248.0x increase)
+
+RQ4: CPU Pinning Effectiveness
+  - Context switch reduction: -0.1%
+  - Performance recovery: -3.9%
+
+Heavy Load Soft IRQ Breakdown:
+  - NET_RX      : 16215 events,    95842.1us total,    5.9us avg
+  - RCU         :  3513 events,     4432.4us total,    1.3us avg
+  - TIMER       :  2950 events,     4411.0us total,    1.5us avg
+  - BLOCK       :  2942 events,     3282.0us total,    1.1us avg
+  - SCHED       :   326 events,     1877.3us total,    5.8us avg
+
+====================================================================================================
+Full results saved to: /home/yunwei37/workspace/gpu/co-processor-demo/gpu_ext_policy/scripts/sched/llama_server_test/results/2026-01-20
+====================================================================================================

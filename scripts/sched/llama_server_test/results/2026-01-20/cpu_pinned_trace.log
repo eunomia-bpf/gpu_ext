@@ -1,0 +1,240 @@
+libbpf: loading object 'cuda_sched_trace_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 1440, link 1, flags 0, type=2
+libbpf: elf: section(3) tp_btf/sched_switch, size 1192, link 0, flags 6, type=1
+libbpf: sec 'tp_btf/sched_switch': found program 'sched_switch' at insn offset 0 (0 bytes), code size 149 insns (1192 bytes)
+libbpf: elf: section(4) uprobe/cuLaunchKernel, size 768, link 0, flags 6, type=1
+libbpf: sec 'uprobe/cuLaunchKernel': found program 'trace_cuLaunchKernel' at insn offset 0 (0 bytes), code size 96 insns (768 bytes)
+libbpf: elf: section(5) uprobe/cudaLaunchKernel, size 712, link 0, flags 6, type=1
+libbpf: sec 'uprobe/cudaLaunchKernel': found program 'trace_cudaLaunchKernel' at insn offset 0 (0 bytes), code size 89 insns (712 bytes)
+libbpf: elf: section(6) uprobe/cudaDeviceSynchronize, size 416, link 0, flags 6, type=1
+libbpf: sec 'uprobe/cudaDeviceSynchronize': found program 'trace_cudaDeviceSynchronize_enter' at insn offset 0 (0 bytes), code size 52 insns (416 bytes)
+libbpf: elf: section(7) uretprobe/cudaDeviceSynchronize, size 416, link 0, flags 6, type=1
+libbpf: sec 'uretprobe/cudaDeviceSynchronize': found program 'trace_cudaDeviceSynchronize_exit' at insn offset 0 (0 bytes), code size 52 insns (416 bytes)
+libbpf: elf: section(8) tp_btf/irq_handler_entry, size 792, link 0, flags 6, type=1
+libbpf: sec 'tp_btf/irq_handler_entry': found program 'irq_handler_entry' at insn offset 0 (0 bytes), code size 99 insns (792 bytes)
+libbpf: elf: section(9) tp_btf/irq_handler_exit, size 736, link 0, flags 6, type=1
+libbpf: sec 'tp_btf/irq_handler_exit': found program 'irq_handler_exit' at insn offset 0 (0 bytes), code size 92 insns (736 bytes)
+libbpf: elf: section(10) tp_btf/softirq_entry, size 584, link 0, flags 6, type=1
+libbpf: sec 'tp_btf/softirq_entry': found program 'softirq_entry' at insn offset 0 (0 bytes), code size 73 insns (584 bytes)
+libbpf: elf: section(11) tp_btf/softirq_exit, size 536, link 0, flags 6, type=1
+libbpf: sec 'tp_btf/softirq_exit': found program 'softirq_exit' at insn offset 0 (0 bytes), code size 67 insns (536 bytes)
+libbpf: elf: section(12) license, size 4, link 0, flags 3, type=1
+libbpf: license of cuda_sched_trace_bpf is GPL
+libbpf: elf: section(13) .maps, size 112, link 0, flags 3, type=1
+libbpf: elf: section(14) .reltp_btf/sched_switch, size 128, link 2, flags 40, type=9
+libbpf: elf: section(15) .reluprobe/cuLaunchKernel, size 64, link 2, flags 40, type=9
+libbpf: elf: section(16) .reluprobe/cudaLaunchKernel, size 64, link 2, flags 40, type=9
+libbpf: elf: section(17) .reluprobe/cudaDeviceSynchronize, size 48, link 2, flags 40, type=9
+libbpf: elf: section(18) .reluretprobe/cudaDeviceSynchronize, size 48, link 2, flags 40, type=9
+libbpf: elf: section(19) .reltp_btf/irq_handler_entry, size 80, link 2, flags 40, type=9
+libbpf: elf: section(20) .reltp_btf/irq_handler_exit, size 64, link 2, flags 40, type=9
+libbpf: elf: section(21) .reltp_btf/softirq_entry, size 80, link 2, flags 40, type=9
+libbpf: elf: section(22) .reltp_btf/softirq_exit, size 64, link 2, flags 40, type=9
+libbpf: elf: section(23) .BTF, size 35284, link 0, flags 0, type=1
+libbpf: elf: section(24) .BTF.ext, size 6172, link 0, flags 0, type=1
+libbpf: looking for externs among 60 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'events': at sec_idx 13, offset 0.
+libbpf: map 'events': found type = 27.
+libbpf: map 'events': found max_entries = 1048576.
+libbpf: map 'gpu_pids': at sec_idx 13, offset 16.
+libbpf: map 'gpu_pids': found type = 1.
+libbpf: map 'gpu_pids': found key [14], sz = 4.
+libbpf: map 'gpu_pids': found value [17], sz = 1.
+libbpf: map 'gpu_pids': found max_entries = 1024.
+libbpf: map 'stats': at sec_idx 13, offset 48.
+libbpf: map 'stats': found type = 2.
+libbpf: map 'stats': found key [14], sz = 4.
+libbpf: map 'stats': found value [26], sz = 8.
+libbpf: map 'stats': found max_entries = 10.
+libbpf: map 'irq_start': at sec_idx 13, offset 80.
+libbpf: map 'irq_start': found type = 6.
+libbpf: map 'irq_start': found key [14], sz = 4.
+libbpf: map 'irq_start': found value [26], sz = 8.
+libbpf: map 'irq_start': found max_entries = 1.
+libbpf: sec '.reltp_btf/sched_switch': collecting relocation for section(3) 'tp_btf/sched_switch'
+libbpf: sec '.reltp_btf/sched_switch': relo #0: insn #23 against 'gpu_pids'
+libbpf: prog 'sched_switch': found map 1 (gpu_pids, sec 13, off 16) for insn #23
+libbpf: sec '.reltp_btf/sched_switch': relo #1: insn #27 against 'events'
+libbpf: prog 'sched_switch': found map 0 (events, sec 13, off 0) for insn #27
+libbpf: sec '.reltp_btf/sched_switch': relo #2: insn #37 against 'stats'
+libbpf: prog 'sched_switch': found map 2 (stats, sec 13, off 48) for insn #37
+libbpf: sec '.reltp_btf/sched_switch': relo #3: insn #76 against 'stats'
+libbpf: prog 'sched_switch': found map 2 (stats, sec 13, off 48) for insn #76
+libbpf: sec '.reltp_btf/sched_switch': relo #4: insn #89 against 'gpu_pids'
+libbpf: prog 'sched_switch': found map 1 (gpu_pids, sec 13, off 16) for insn #89
+libbpf: sec '.reltp_btf/sched_switch': relo #5: insn #95 against 'events'
+libbpf: prog 'sched_switch': found map 0 (events, sec 13, off 0) for insn #95
+libbpf: sec '.reltp_btf/sched_switch': relo #6: insn #105 against 'stats'
+libbpf: prog 'sched_switch': found map 2 (stats, sec 13, off 48) for insn #105
+libbpf: sec '.reltp_btf/sched_switch': relo #7: insn #141 against 'stats'
+libbpf: prog 'sched_switch': found map 2 (stats, sec 13, off 48) for insn #141
+libbpf: sec '.reluprobe/cuLaunchKernel': collecting relocation for section(4) 'uprobe/cuLaunchKernel'
+libbpf: sec '.reluprobe/cuLaunchKernel': relo #0: insn #12 against 'gpu_pids'
+libbpf: prog 'trace_cuLaunchKernel': found map 1 (gpu_pids, sec 13, off 16) for insn #12
+libbpf: sec '.reluprobe/cuLaunchKernel': relo #1: insn #20 against 'stats'
+libbpf: prog 'trace_cuLaunchKernel': found map 2 (stats, sec 13, off 48) for insn #20
+libbpf: sec '.reluprobe/cuLaunchKernel': relo #2: insn #25 against 'events'
+libbpf: prog 'trace_cuLaunchKernel': found map 0 (events, sec 13, off 0) for insn #25
+libbpf: sec '.reluprobe/cuLaunchKernel': relo #3: insn #36 against 'stats'
+libbpf: prog 'trace_cuLaunchKernel': found map 2 (stats, sec 13, off 48) for insn #36
+libbpf: sec '.reluprobe/cudaLaunchKernel': collecting relocation for section(5) 'uprobe/cudaLaunchKernel'
+libbpf: sec '.reluprobe/cudaLaunchKernel': relo #0: insn #12 against 'gpu_pids'
+libbpf: prog 'trace_cudaLaunchKernel': found map 1 (gpu_pids, sec 13, off 16) for insn #12
+libbpf: sec '.reluprobe/cudaLaunchKernel': relo #1: insn #19 against 'stats'
+libbpf: prog 'trace_cudaLaunchKernel': found map 2 (stats, sec 13, off 48) for insn #19
+libbpf: sec '.reluprobe/cudaLaunchKernel': relo #2: insn #24 against 'events'
+libbpf: prog 'trace_cudaLaunchKernel': found map 0 (events, sec 13, off 0) for insn #24
+libbpf: sec '.reluprobe/cudaLaunchKernel': relo #3: insn #35 against 'stats'
+libbpf: prog 'trace_cudaLaunchKernel': found map 2 (stats, sec 13, off 48) for insn #35
+libbpf: sec '.reluprobe/cudaDeviceSynchronize': collecting relocation for section(6) 'uprobe/cudaDeviceSynchronize'
+libbpf: sec '.reluprobe/cudaDeviceSynchronize': relo #0: insn #6 against 'stats'
+libbpf: prog 'trace_cudaDeviceSynchronize_enter': found map 2 (stats, sec 13, off 48) for insn #6
+libbpf: sec '.reluprobe/cudaDeviceSynchronize': relo #1: insn #13 against 'events'
+libbpf: prog 'trace_cudaDeviceSynchronize_enter': found map 0 (events, sec 13, off 0) for insn #13
+libbpf: sec '.reluprobe/cudaDeviceSynchronize': relo #2: insn #24 against 'stats'
+libbpf: prog 'trace_cudaDeviceSynchronize_enter': found map 2 (stats, sec 13, off 48) for insn #24
+libbpf: sec '.reluretprobe/cudaDeviceSynchronize': collecting relocation for section(7) 'uretprobe/cudaDeviceSynchronize'
+libbpf: sec '.reluretprobe/cudaDeviceSynchronize': relo #0: insn #6 against 'stats'
+libbpf: prog 'trace_cudaDeviceSynchronize_exit': found map 2 (stats, sec 13, off 48) for insn #6
+libbpf: sec '.reluretprobe/cudaDeviceSynchronize': relo #1: insn #13 against 'events'
+libbpf: prog 'trace_cudaDeviceSynchronize_exit': found map 0 (events, sec 13, off 0) for insn #13
+libbpf: sec '.reluretprobe/cudaDeviceSynchronize': relo #2: insn #24 against 'stats'
+libbpf: prog 'trace_cudaDeviceSynchronize_exit': found map 2 (stats, sec 13, off 48) for insn #24
+libbpf: sec '.reltp_btf/irq_handler_entry': collecting relocation for section(8) 'tp_btf/irq_handler_entry'
+libbpf: sec '.reltp_btf/irq_handler_entry': relo #0: insn #9 against 'gpu_pids'
+libbpf: prog 'irq_handler_entry': found map 1 (gpu_pids, sec 13, off 16) for insn #9
+libbpf: sec '.reltp_btf/irq_handler_entry': relo #1: insn #22 against 'irq_start'
+libbpf: prog 'irq_handler_entry': found map 3 (irq_start, sec 13, off 80) for insn #22
+libbpf: sec '.reltp_btf/irq_handler_entry': relo #2: insn #26 against 'events'
+libbpf: prog 'irq_handler_entry': found map 0 (events, sec 13, off 0) for insn #26
+libbpf: sec '.reltp_btf/irq_handler_entry': relo #3: insn #37 against 'stats'
+libbpf: prog 'irq_handler_entry': found map 2 (stats, sec 13, off 48) for insn #37
+libbpf: sec '.reltp_btf/irq_handler_entry': relo #4: insn #91 against 'stats'
+libbpf: prog 'irq_handler_entry': found map 2 (stats, sec 13, off 48) for insn #91
+libbpf: sec '.reltp_btf/irq_handler_exit': collecting relocation for section(9) 'tp_btf/irq_handler_exit'
+libbpf: sec '.reltp_btf/irq_handler_exit': relo #0: insn #9 against 'gpu_pids'
+libbpf: prog 'irq_handler_exit': found map 1 (gpu_pids, sec 13, off 16) for insn #9
+libbpf: sec '.reltp_btf/irq_handler_exit': relo #1: insn #21 against 'irq_start'
+libbpf: prog 'irq_handler_exit': found map 3 (irq_start, sec 13, off 80) for insn #21
+libbpf: sec '.reltp_btf/irq_handler_exit': relo #2: insn #27 against 'events'
+libbpf: prog 'irq_handler_exit': found map 0 (events, sec 13, off 0) for insn #27
+libbpf: sec '.reltp_btf/irq_handler_exit': relo #3: insn #38 against 'stats'
+libbpf: prog 'irq_handler_exit': found map 2 (stats, sec 13, off 48) for insn #38
+libbpf: sec '.reltp_btf/softirq_entry': collecting relocation for section(10) 'tp_btf/softirq_entry'
+libbpf: sec '.reltp_btf/softirq_entry': relo #0: insn #8 against 'gpu_pids'
+libbpf: prog 'softirq_entry': found map 1 (gpu_pids, sec 13, off 16) for insn #8
+libbpf: sec '.reltp_btf/softirq_entry': relo #1: insn #20 against 'irq_start'
+libbpf: prog 'softirq_entry': found map 3 (irq_start, sec 13, off 80) for insn #20
+libbpf: sec '.reltp_btf/softirq_entry': relo #2: insn #24 against 'events'
+libbpf: prog 'softirq_entry': found map 0 (events, sec 13, off 0) for insn #24
+libbpf: sec '.reltp_btf/softirq_entry': relo #3: insn #34 against 'stats'
+libbpf: prog 'softirq_entry': found map 2 (stats, sec 13, off 48) for insn #34
+libbpf: sec '.reltp_btf/softirq_entry': relo #4: insn #65 against 'stats'
+libbpf: prog 'softirq_entry': found map 2 (stats, sec 13, off 48) for insn #65
+libbpf: sec '.reltp_btf/softirq_exit': collecting relocation for section(11) 'tp_btf/softirq_exit'
+libbpf: sec '.reltp_btf/softirq_exit': relo #0: insn #8 against 'gpu_pids'
+libbpf: prog 'softirq_exit': found map 1 (gpu_pids, sec 13, off 16) for insn #8
+libbpf: sec '.reltp_btf/softirq_exit': relo #1: insn #18 against 'irq_start'
+libbpf: prog 'softirq_exit': found map 3 (irq_start, sec 13, off 80) for insn #18
+libbpf: sec '.reltp_btf/softirq_exit': relo #2: insn #24 against 'events'
+libbpf: prog 'softirq_exit': found map 0 (events, sec 13, off 0) for insn #24
+libbpf: sec '.reltp_btf/softirq_exit': relo #3: insn #34 against 'stats'
+libbpf: prog 'softirq_exit': found map 2 (stats, sec 13, off 48) for insn #34
+libbpf: object 'cuda_sched_trac': failed (-95) to create BPF token from '/sys/fs/bpf', skipping optional step...
+libbpf: loaded kernel BTF from '/sys/kernel/btf/vmlinux'
+libbpf: sec 'tp_btf/sched_switch': found 3 CO-RE relocations
+libbpf: CO-RE relocating [37] struct task_struct: found target candidate [115] struct task_struct in [vmlinux]
+libbpf: prog 'sched_switch': relo #0: <byte_off> [37] struct task_struct.pid (0:78 @ offset 1400)
+libbpf: prog 'sched_switch': relo #0: matching candidate #0 <byte_off> [115] struct task_struct.pid (0:93 @ offset 2768)
+libbpf: prog 'sched_switch': relo #0: patched insn #0 (ALU/ALU64) imm 1400 -> 2768
+libbpf: prog 'sched_switch': relo #1: <byte_off> [37] struct task_struct.comm (0:112 @ offset 1928)
+libbpf: prog 'sched_switch': relo #1: matching candidate #0 <byte_off> [115] struct task_struct.comm (0:128 @ offset 3312)
+libbpf: prog 'sched_switch': relo #1: patched insn #50 (ALU/ALU64) imm 1928 -> 3312
+libbpf: prog 'sched_switch': relo #2: <byte_off> [37] struct task_struct.comm (0:112 @ offset 1928)
+libbpf: prog 'sched_switch': relo #2: matching candidate #0 <byte_off> [115] struct task_struct.comm (0:128 @ offset 3312)
+libbpf: prog 'sched_switch': relo #2: patched insn #117 (ALU/ALU64) imm 1928 -> 3312
+libbpf: sec 'uprobe/cuLaunchKernel': found 7 CO-RE relocations
+libbpf: CO-RE relocating [338] struct pt_regs: found target candidate [185] struct pt_regs in [vmlinux]
+libbpf: prog 'trace_cuLaunchKernel': relo #0: <byte_off> [338] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'trace_cuLaunchKernel': relo #0: matching candidate #0 <byte_off> [185] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'trace_cuLaunchKernel': relo #0: patched insn #55 (LDX/ST/STX) off 112 -> 112
+libbpf: prog 'trace_cuLaunchKernel': relo #1: <byte_off> [338] struct pt_regs.si (0:13 @ offset 104)
+libbpf: prog 'trace_cuLaunchKernel': relo #1: matching candidate #0 <byte_off> [185] struct pt_regs.si (0:13 @ offset 104)
+libbpf: prog 'trace_cuLaunchKernel': relo #1: patched insn #57 (LDX/ST/STX) off 104 -> 104
+libbpf: prog 'trace_cuLaunchKernel': relo #2: <byte_off> [338] struct pt_regs.dx (0:12 @ offset 96)
+libbpf: prog 'trace_cuLaunchKernel': relo #2: matching candidate #0 <byte_off> [185] struct pt_regs.dx (0:12 @ offset 96)
+libbpf: prog 'trace_cuLaunchKernel': relo #2: patched insn #59 (LDX/ST/STX) off 96 -> 96
+libbpf: prog 'trace_cuLaunchKernel': relo #3: <byte_off> [338] struct pt_regs.cx (0:11 @ offset 88)
+libbpf: prog 'trace_cuLaunchKernel': relo #3: matching candidate #0 <byte_off> [185] struct pt_regs.cx (0:11 @ offset 88)
+libbpf: prog 'trace_cuLaunchKernel': relo #3: patched insn #61 (LDX/ST/STX) off 88 -> 88
+libbpf: prog 'trace_cuLaunchKernel': relo #4: <byte_off> [338] struct pt_regs.r8 (0:9 @ offset 72)
+libbpf: prog 'trace_cuLaunchKernel': relo #4: matching candidate #0 <byte_off> [185] struct pt_regs.r8 (0:9 @ offset 72)
+libbpf: prog 'trace_cuLaunchKernel': relo #4: patched insn #63 (LDX/ST/STX) off 72 -> 72
+libbpf: prog 'trace_cuLaunchKernel': relo #5: <byte_off> [338] struct pt_regs.r9 (0:8 @ offset 64)
+libbpf: prog 'trace_cuLaunchKernel': relo #5: matching candidate #0 <byte_off> [185] struct pt_regs.r9 (0:8 @ offset 64)
+libbpf: prog 'trace_cuLaunchKernel': relo #5: patched insn #65 (LDX/ST/STX) off 64 -> 64
+libbpf: prog 'trace_cuLaunchKernel': relo #6: <byte_off> [338] struct pt_regs.sp (0:19 @ offset 152)
+libbpf: prog 'trace_cuLaunchKernel': relo #6: matching candidate #0 <byte_off> [185] struct pt_regs.sp (0:19 @ offset 152)
+libbpf: prog 'trace_cuLaunchKernel': relo #6: patched insn #67 (LDX/ST/STX) off 152 -> 152
+libbpf: sec 'uprobe/cudaLaunchKernel': found 6 CO-RE relocations
+libbpf: prog 'trace_cudaLaunchKernel': relo #0: <byte_off> [338] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'trace_cudaLaunchKernel': relo #0: matching candidate #0 <byte_off> [185] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'trace_cudaLaunchKernel': relo #0: patched insn #54 (LDX/ST/STX) off 112 -> 112
+libbpf: prog 'trace_cudaLaunchKernel': relo #1: <byte_off> [338] struct pt_regs.si (0:13 @ offset 104)
+libbpf: prog 'trace_cudaLaunchKernel': relo #1: matching candidate #0 <byte_off> [185] struct pt_regs.si (0:13 @ offset 104)
+libbpf: prog 'trace_cudaLaunchKernel': relo #1: patched insn #56 (LDX/ST/STX) off 104 -> 104
+libbpf: prog 'trace_cudaLaunchKernel': relo #2: <byte_off> [338] struct pt_regs.dx (0:12 @ offset 96)
+libbpf: prog 'trace_cudaLaunchKernel': relo #2: matching candidate #0 <byte_off> [185] struct pt_regs.dx (0:12 @ offset 96)
+libbpf: prog 'trace_cudaLaunchKernel': relo #2: patched insn #58 (LDX/ST/STX) off 96 -> 96
+libbpf: prog 'trace_cudaLaunchKernel': relo #3: <byte_off> [338] struct pt_regs.cx (0:11 @ offset 88)
+libbpf: prog 'trace_cudaLaunchKernel': relo #3: matching candidate #0 <byte_off> [185] struct pt_regs.cx (0:11 @ offset 88)
+libbpf: prog 'trace_cudaLaunchKernel': relo #3: patched insn #60 (LDX/ST/STX) off 88 -> 88
+libbpf: prog 'trace_cudaLaunchKernel': relo #4: <byte_off> [338] struct pt_regs.r8 (0:9 @ offset 72)
+libbpf: prog 'trace_cudaLaunchKernel': relo #4: matching candidate #0 <byte_off> [185] struct pt_regs.r8 (0:9 @ offset 72)
+libbpf: prog 'trace_cudaLaunchKernel': relo #4: patched insn #64 (LDX/ST/STX) off 72 -> 72
+libbpf: prog 'trace_cudaLaunchKernel': relo #5: <byte_off> [338] struct pt_regs.sp (0:19 @ offset 152)
+libbpf: prog 'trace_cudaLaunchKernel': relo #5: matching candidate #0 <byte_off> [185] struct pt_regs.sp (0:19 @ offset 152)
+libbpf: prog 'trace_cudaLaunchKernel': relo #5: patched insn #66 (LDX/ST/STX) off 152 -> 152
+libbpf: sec 'tp_btf/irq_handler_entry': found 1 CO-RE relocations
+libbpf: CO-RE relocating [387] struct irqaction: found target candidate [5015] struct irqaction in [vmlinux]
+libbpf: prog 'irq_handler_entry': relo #0: <byte_off> [387] struct irqaction.name (0:11 @ offset 80)
+libbpf: prog 'irq_handler_entry': relo #0: matching candidate #0 <byte_off> [5015] struct irqaction.name (0:11 @ offset 80)
+libbpf: prog 'irq_handler_entry': relo #0: patched insn #59 (ALU/ALU64) imm 80 -> 80
+libbpf: sec 'tp_btf/irq_handler_exit': found 1 CO-RE relocations
+libbpf: prog 'irq_handler_exit': relo #0: <byte_off> [387] struct irqaction.name (0:11 @ offset 80)
+libbpf: prog 'irq_handler_exit': relo #0: matching candidate #0 <byte_off> [5015] struct irqaction.name (0:11 @ offset 80)
+libbpf: prog 'irq_handler_exit': relo #0: patched insn #63 (ALU/ALU64) imm 80 -> 80
+libbpf: map 'events': created successfully, fd=3
+libbpf: map 'gpu_pids': created successfully, fd=4
+libbpf: map 'stats': created successfully, fd=5
+libbpf: map 'irq_start': created successfully, fd=6
+Attached tracepoint: sched_switch
+Attached tracepoint: irq_handler_entry
+Attached tracepoint: irq_handler_exit
+Attached tracepoint: softirq_entry
+Attached tracepoint: softirq_exit
+Using CUDA Driver library: /usr/lib/x86_64-linux-gnu/libcuda.so
+libbpf: elf: symbol address match for 'cuLaunchKernel' in '/usr/lib/x86_64-linux-gnu/libcuda.so': 0x3dd180
+Attached uprobe to cuLaunchKernel in /usr/lib/x86_64-linux-gnu/libcuda.so
+Using CUDA Runtime library: /usr/local/cuda/lib64/libcudart.so
+libbpf: elf: symbol address match for 'cudaLaunchKernel' in '/usr/local/cuda/lib64/libcudart.so': 0x7ce80
+Attached uprobe to cudaLaunchKernel in /usr/local/cuda/lib64/libcudart.so
+libbpf: elf: symbol address match for 'cudaDeviceSynchronize' in '/usr/local/cuda/lib64/libcudart.so': 0x4c210
+Attached uprobe to cudaDeviceSynchronize in /usr/local/cuda/lib64/libcudart.so
+libbpf: elf: symbol address match for 'cudaDeviceSynchronize' in '/usr/local/cuda/lib64/libcudart.so': 0x4c210
+Attached uretprobe to cudaDeviceSynchronize in /usr/local/cuda/lib64/libcudart.so
+Tracing CUDA + scheduler + IRQ events... Press Ctrl-C to stop.
+CSV output will be written to stdout
+
+===============================================================================
+CUDA + SCHEDULER + IRQ TRACE SUMMARY
+===============================================================================
+cuLaunchKernel              358444
+cudaLaunchKernel            352694
+cudaSync Enter                   0
+cudaSync Exit                    0
+Sched Switches Tracked    47583037
+Hard IRQs Tracked               67
+Soft IRQs Tracked            25636
+===============================================================================

@@ -35,13 +35,13 @@ Each bug class is categorized along two dimensions:
 | 8 | Block-Size Dependence | Correctness | GPU-specific |
 | 9 | Launch Config Assumptions | Correctness | GPU-specific |
 | 10 | "Forgot Volatile" | Correctness | GPU-specific |
-| 11 | Shared-Memory Data Races | Correctness | GPU-amplified |
-| 12 | Atomic Contention | Performance | GPU-amplified |
-| 13 | Deadlocks Beyond Barrier | Safety | GPU-amplified |
-| 14 | Kernel Non-Termination | Safety | GPU-amplified |
-| 15 | Redundant Barriers | Performance | GPU-amplified |
-| 16 | Global-Memory Data Races | Correctness | CPU-shared |
-| 17 | Host ↔ Device Async Races | Correctness | CPU-shared |
+| 11 | Shared-Memory Data Races | Correctness | GPU-specific |
+| 12 | Redundant Barriers | Performance | GPU-specific |
+| 13 | Host ↔ Device Async Races | Correctness | GPU-specific |
+| 14 | Atomic Contention | Performance | GPU-amplified |
+| 15 | Deadlocks Beyond Barrier | Safety | GPU-amplified |
+| 16 | Kernel Non-Termination | Safety | GPU-amplified |
+| 17 | Global-Memory Data Races | Correctness | CPU-shared |
 | 18 | Memory Safety | Safety | CPU-shared |
 | 19 | Arithmetic Errors | Correctness/Safety | CPU-shared |
 
@@ -330,7 +330,7 @@ while (flag == 0) { }         // may spin if compiler hoists load / visibility i
 
 ---
 
-### 11) Shared-Memory Data Races (`__shared__`) — Correctness, GPU-amplified
+### 11) Shared-Memory Data Races (`__shared__`) — Correctness, GPU-specific
 
 #### What it is / why it matters
   Threads in a block access on-chip shared memory concurrently; missing/incorrect synchronization causes races. This is a classic CUDA bug class (AuCS/Wu).
@@ -368,7 +368,65 @@ __global__ void k(int* g) {
 
 ---
 
-### 12) Atomic Contention — Performance, GPU-amplified
+### 12) Redundant Barriers (unnecessary `__syncthreads`) — Performance, GPU-specific
+
+#### What it is / why it matters
+  A redundant barrier is a performance-pathology class: removing the barrier **does not introduce a race**, so the barrier was unnecessary overhead.
+
+#### Bug example
+
+```cuda
+__global__ void k(int* out) {
+  __shared__ int s[256];
+  int t = threadIdx.x;
+  s[t] = t;             // no cross-thread dependence here
+  __syncthreads();      // redundant
+  out[t] = s[t];
+}
+```
+
+#### Seen in / checked by
+  * Wu et al.: defines "redundant barrier function."([arXiv][21])
+  * Simulee: detects redundant barrier bugs and reports numbers across projects.([zhangyuqun.github.io][19])
+  * AuCS: repairs synchronization bugs, including redundant barriers.([Shinhwei][6])
+  * GPURepair tooling also exists to insert/remove barriers to fix races and remove unnecessary ones.([GitHub][17])
+
+#### Checking approach
+  * **Static/dynamic dependence analysis:** determine whether any read-after-write / write-after-read across threads is protected by the barrier; if not, barrier is removable (Simulee/AuCS angle).([zhangyuqun.github.io][19])
+
+#### How gpu_ext should use it
+  For gpu_ext, this supports your "performance = safety" story: even "correct" policies can be unacceptable if they introduce barrier overhead. Since policies should avoid barriers entirely, you can convert this into a simpler rule: **"no barriers in policy,"** and separately "policy overhead must be bounded," eliminating this issue by construction. If helpers include barriers internally, you need cost models or architectural restrictions.
+
+---
+
+### 13) Host ↔ Device Asynchronous Data Races (API ordering bugs) — Correctness, GPU-specific
+
+#### What it is / why it matters
+  CUDA exposes async kernel launches/memcpy/events; host code can race with device work if synchronization is missing. This is a major real-world bug source in heterogeneous programs and is *not* covered by pure kernel-only verifiers.
+
+#### Bug example
+
+```cpp
+int* d_data;
+cudaMalloc(&d_data, N * sizeof(int));
+kernel<<<grid, block>>>(d_data);
+// missing cudaDeviceSynchronize() here
+int* h_data = (int*)malloc(N * sizeof(int));
+cudaMemcpy(h_data, d_data, N * sizeof(int), cudaMemcpyDeviceToHost);  // race with kernel
+```
+
+#### Seen in / checked by
+  * CuSan is an open-source detector for "data races between (asynchronous) CUDA calls and the host," using Clang/LLVM instrumentation plus ThreadSanitizer.([GitHub][5])
+
+#### Checking approach
+  * **Dynamic detection (CuSan-style):** instrument host-side CUDA API calls and detect ordering violations at runtime.
+
+#### How gpu_ext should use it
+  If gpu_ext policies interact with host-visible buffers or involve asynchronous map copies, define a strict **lifetime & ordering contract** (e.g., "policy writes are only consumed after a guaranteed sync point"). For testing, integrate CuSan into CI for host-side integration tests of the runtime/loader.
+
+---
+
+### 14) Atomic Contention — Performance, GPU-amplified
 
 #### What it is / why it matters
   Heavy atomic contention is a classic "performance bug that behaves like a DoS" under massive parallelism. Even when correctness is preserved, contention on a single address can cause extreme slowdowns (orders of magnitude). With millions of threads, a single hot atomic can serialize execution and cause tail latency explosion.
@@ -396,7 +454,7 @@ __global__ void k(int* counter) {
 
 ---
 
-### 13) Deadlocks Beyond Barrier Divergence (locks/spin + SIMT lockstep + named-barrier misuse) — Safety, GPU-amplified
+### 15) Deadlocks Beyond Barrier Divergence (locks/spin + SIMT lockstep + named-barrier misuse) — Safety, GPU-amplified
 
 #### What it is / why it matters
   Besides barrier divergence (which is specifically about `__syncthreads` under divergent control flow), SIMT lockstep can create deadlocks in other patterns that are unusual on CPUs: spin-waiting, lock contention within a warp, and named-barrier misuse. Warp-specialized kernels often use **named barriers** or structured synchronization patterns between warps/roles (producer/consumer). Bugs include: (a) spin deadlock due to missing signals, (b) unsafe barrier reuse ("recycling") across iterations, (c) races between producers/consumers.
@@ -434,7 +492,7 @@ __global__ void k(int* flag, int* data) {
 
 ---
 
-### 14) Kernel Non-Termination / Infinite Loops — Safety, GPU-amplified
+### 16) Kernel Non-Termination / Infinite Loops — Safety, GPU-amplified
 
 #### What it is / why it matters
   Infinite loops can hang GPU execution. In practice, non-termination is especially dangerous because GPU preemption/recovery can be coarse.
@@ -460,38 +518,7 @@ __global__ void k(int* flag) {
 
 ---
 
-### 15) Redundant Barriers (unnecessary `__syncthreads`) — Performance, GPU-amplified
-
-#### What it is / why it matters
-  A redundant barrier is a performance-pathology class: removing the barrier **does not introduce a race**, so the barrier was unnecessary overhead.
-
-#### Bug example
-
-```cuda
-__global__ void k(int* out) {
-  __shared__ int s[256];
-  int t = threadIdx.x;
-  s[t] = t;             // no cross-thread dependence here
-  __syncthreads();      // redundant
-  out[t] = s[t];
-}
-```
-
-#### Seen in / checked by
-  * Wu et al.: defines "redundant barrier function."([arXiv][21])
-  * Simulee: detects redundant barrier bugs and reports numbers across projects.([zhangyuqun.github.io][19])
-  * AuCS: repairs synchronization bugs, including redundant barriers.([Shinhwei][6])
-  * GPURepair tooling also exists to insert/remove barriers to fix races and remove unnecessary ones.([GitHub][17])
-
-#### Checking approach
-  * **Static/dynamic dependence analysis:** determine whether any read-after-write / write-after-read across threads is protected by the barrier; if not, barrier is removable (Simulee/AuCS angle).([zhangyuqun.github.io][19])
-
-#### How gpu_ext should use it
-  For gpu_ext, this supports your "performance = safety" story: even "correct" policies can be unacceptable if they introduce barrier overhead. Since policies should avoid barriers entirely, you can convert this into a simpler rule: **"no barriers in policy,"** and separately "policy overhead must be bounded," eliminating this issue by construction. If helpers include barriers internally, you need cost models or architectural restrictions.
-
----
-
-### 16) Global-Memory Data Races — Correctness, CPU-shared
+### 17) Global-Memory Data Races — Correctness, CPU-shared
 
 #### What it is / why it matters
   Races on global memory are a fundamental correctness issue. Unlike shared memory (block-local), global memory is accessible by all threads across all blocks, making races harder to reason about. Many GPU race detectors historically focused on shared memory and ignored global-memory races.
@@ -517,33 +544,6 @@ __global__ void k(int* g, int n) {
 
 #### How gpu_ext should use it
   If policies can write to global memory (maps, counters, logs), require either: (1) warp-uniform single-writer rules, (2) atomic-only helpers, or (3) per-thread/per-warp sharding. Ban unprotected global writes from policies.
-
----
-
-### 17) Host ↔ Device Asynchronous Data Races (API ordering bugs) — Correctness, CPU-shared
-
-#### What it is / why it matters
-  CUDA exposes async kernel launches/memcpy/events; host code can race with device work if synchronization is missing. This is a major real-world bug source in heterogeneous programs and is *not* covered by pure kernel-only verifiers.
-
-#### Bug example
-
-```cpp
-int* d_data;
-cudaMalloc(&d_data, N * sizeof(int));
-kernel<<<grid, block>>>(d_data);
-// missing cudaDeviceSynchronize() here
-int* h_data = (int*)malloc(N * sizeof(int));
-cudaMemcpy(h_data, d_data, N * sizeof(int), cudaMemcpyDeviceToHost);  // race with kernel
-```
-
-#### Seen in / checked by
-  * CuSan is an open-source detector for "data races between (asynchronous) CUDA calls and the host," using Clang/LLVM instrumentation plus ThreadSanitizer.([GitHub][5])
-
-#### Checking approach
-  * **Dynamic detection (CuSan-style):** instrument host-side CUDA API calls and detect ordering violations at runtime.
-
-#### How gpu_ext should use it
-  If gpu_ext policies interact with host-visible buffers or involve asynchronous map copies, define a strict **lifetime & ordering contract** (e.g., "policy writes are only consumed after a guaranteed sync point"). For testing, integrate CuSan into CI for host-side integration tests of the runtime/loader.
 
 ---
 

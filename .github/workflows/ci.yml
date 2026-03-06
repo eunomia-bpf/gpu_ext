@@ -6,6 +6,11 @@ on:
     branches:
       - master
 
+env:
+  KERNEL_HEADERS_VERSION: 6.15.11-061511
+  KERNEL_HEADERS_DEB_VERSION: 6.15.11-061511.202508201748
+  KERNEL_HEADERS_URL: https://kernel.ubuntu.com/mainline/v6.15.11/amd64
+
 jobs:
   extension-build:
     runs-on: ubuntu-24.04
@@ -40,12 +45,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            bc build-essential dwarves libelf-dev linux-headers-generic xz-utils
+            bc build-essential curl dwarves libelf-dev xz-utils
+
+      - name: Install compatible kernel headers
+        run: |
+          curl -fsSLO "${KERNEL_HEADERS_URL}/linux-headers-${KERNEL_HEADERS_VERSION}_${KERNEL_HEADERS_DEB_VERSION}_all.deb"
+          curl -fsSLO "${KERNEL_HEADERS_URL}/linux-headers-${KERNEL_HEADERS_VERSION}-generic_${KERNEL_HEADERS_DEB_VERSION}_amd64.deb"
+          sudo apt-get install -y ./linux-headers-"${KERNEL_HEADERS_VERSION}"_"${KERNEL_HEADERS_DEB_VERSION}"_all.deb \
+            ./linux-headers-"${KERNEL_HEADERS_VERSION}"-generic_"${KERNEL_HEADERS_DEB_VERSION}"_amd64.deb
 
       - name: Resolve kernel headers
         id: kernel
         run: |
-          header_pkg="$(dpkg-query -W -f='${Package}\n' 'linux-headers-[0-9]*-generic' 2>/dev/null | sort -V | tail -n1)"
+          header_pkg="linux-headers-${KERNEL_HEADERS_VERSION}-generic"
           if [ -z "$header_pkg" ]; then
             echo "failed to resolve a linux-headers-*-generic package" >&2
             exit 1

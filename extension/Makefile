@@ -14,22 +14,43 @@ ARCH ?= $(shell uname -m | sed 's/x86_64/x86/' \
 			 | sed 's/arm.*/arm/' \
 			 | sed 's/riscv64/riscv/')
 VMLINUX := ../vmlinux/$(ARCH)/vmlinux.h
+CUDA_INCLUDE_DIR ?= /usr/local/cuda/include
+CUDA_STUB_DIR ?= /usr/local/cuda/lib64/stubs
 # Use our own libbpf API headers and Linux UAPI headers distributed with
 # libbpf to avoid dependency on system-wide headers, which could be missing or
 # outdated
-INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX)) -I/usr/local/cuda/include
+INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX)) -I$(CUDA_INCLUDE_DIR)
 CFLAGS := -g -Wall
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 # sched_ext (scx) headers for GPU-aware scheduler
-SCX_INCLUDE_DIR := $(HOME)/workspace/gpu/linux/tools/sched_ext/include
+SCX_INCLUDE_DIR ?=
+SCX_HEADER := $(if $(SCX_INCLUDE_DIR),$(SCX_INCLUDE_DIR)/scx/common.bpf.h,)
 SCX_VMLINUX := ../vmlinux/$(ARCH)/scx/vmlinux.h
-SCX_INCLUDES := -I$(SCX_INCLUDE_DIR) -I$(dir $(SCX_VMLINUX))
+SCX_INCLUDES := $(if $(SCX_INCLUDE_DIR),-I$(SCX_INCLUDE_DIR),) -I$(dir $(SCX_VMLINUX))
+HAVE_SCX := $(if $(SCX_INCLUDE_DIR),$(if $(wildcard $(SCX_HEADER)),$(if $(wildcard $(SCX_VMLINUX)),1,0),0),0)
+HAVE_NVML := $(if $(wildcard $(CUDA_INCLUDE_DIR)/nvml.h),$(if $(firstword $(wildcard $(CUDA_STUB_DIR)/libnvidia-ml.so $(CUDA_STUB_DIR)/libnvidia-ml.so.*)),1,0),0)
+HAVE_CUDA := $(if $(wildcard $(CUDA_INCLUDE_DIR)/cuda.h),$(if $(firstword $(wildcard $(CUDA_STUB_DIR)/libcuda.so $(CUDA_STUB_DIR)/libcuda.so.*)),1,0),0)
 
 BPF_APPS = struct_ops prefetch_always_max prefetch_none prefetch_adaptive_tree_iter prefetch_adaptive_sequential prefetch_pid_tree prefetch_eviction_pid prefetch_stride eviction_fifo eviction_lfu eviction_mru eviction_pid_quota eviction_freq_pid_decay eviction_fifo_chance eviction_cycle_moe chunk_trace prefetch_trace gpu_sched_trace gpu_preempt_ctrl gpu_sched_set_timeslices eviction_lfu_xcoord prefetch_always_max_cycle_moe prefetch_max_mru_expert prefetch_max_passive_mru prefetch_cross_block_v2 prefetch_template_belady prefetch_proactive_layer prefetch_always_max_xcoord prefetch_always_max_qos test_preempt_kfunc test_preempt_demo test_preempt_multi test_uprobe_preempt prefetch_faiss_phase prefetch_serving_adaptive # BPF apps that need skeletons
 SCX_APPS = sched_gpu_baseline sched_gpu_minimal sched_gpu_serving sched_gpu_xcoord sched_gpu_xcoord_noad sched_gpu_coord # sched_ext apps (need scx headers)
 TOOL_APPS = cleanup_struct_ops_tool # Pure userspace tools
-APPS = $(BPF_APPS) $(SCX_APPS) $(TOOL_APPS) # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+
+# Apps that need NVML
+NVML_APPS = prefetch_adaptive_tree_iter prefetch_adaptive_sequential
+
+# Apps that need pthread
+PTHREAD_APPS = gpu_preempt_ctrl
+
+# Apps that need CUDA driver API + pthread
+CUDA_APPS = test_preempt_demo test_preempt_multi
+
+CORE_BPF_APPS = $(filter-out $(NVML_APPS) $(CUDA_APPS),$(BPF_APPS))
+ENABLED_NVML_APPS = $(if $(filter 1,$(HAVE_NVML)),$(NVML_APPS),)
+ENABLED_CUDA_APPS = $(if $(filter 1,$(HAVE_CUDA)),$(CUDA_APPS),)
+ENABLED_SCX_APPS = $(if $(filter 1,$(HAVE_SCX)),$(SCX_APPS),)
+APPS = $(CORE_BPF_APPS) $(ENABLED_NVML_APPS) $(PTHREAD_APPS) $(ENABLED_CUDA_APPS) $(ENABLED_SCX_APPS) $(TOOL_APPS) # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+ALL_APPS = $(BPF_APPS) $(SCX_APPS) $(TOOL_APPS)
 
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
@@ -37,8 +58,21 @@ BZS_APPS :=
 else
 BZS_APPS := # profile
 APPS += $(BZS_APPS)
+ALL_APPS += $(BZS_APPS)
 # Required by libblazesym
 ALL_LDFLAGS += -lrt -ldl -lpthread -lm
+endif
+
+ifeq ($(HAVE_NVML),0)
+$(info Skipping NVML apps; set CUDA_INCLUDE_DIR/CUDA_STUB_DIR to enable: $(NVML_APPS))
+endif
+
+ifeq ($(HAVE_CUDA),0)
+$(info Skipping CUDA apps; set CUDA_INCLUDE_DIR/CUDA_STUB_DIR to enable: $(CUDA_APPS))
+endif
+
+ifeq ($(HAVE_SCX),0)
+$(info Skipping sched_ext apps; set SCX_INCLUDE_DIR to a kernel tools/sched_ext include tree and ensure $(SCX_VMLINUX) exists: $(SCX_APPS))
 endif
 
 # Get Clang's default includes on this system. We'll explicitly add these dirs
@@ -79,7 +113,7 @@ all: $(APPS)
 .PHONY: clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)rm -rf $(OUTPUT) $(APPS)
+	$(Q)rm -rf $(OUTPUT) $(ALL_APPS)
 
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
@@ -155,15 +189,6 @@ $(patsubst %,$(OUTPUT)/%.o,$(BZS_APPS)): $(LIBBLAZESYM_HEADER)
 
 $(BZS_APPS): $(LIBBLAZESYM_OBJ)
 
-# Apps that need NVML
-NVML_APPS = prefetch_adaptive_tree_iter prefetch_adaptive_sequential
-
-# Apps that need pthread
-PTHREAD_APPS = gpu_preempt_ctrl
-
-# Apps that need CUDA driver API + pthread
-CUDA_APPS = test_preempt_demo test_preempt_multi
-
 # Build application binary (exclude special apps from generic rule)
 $(filter-out $(NVML_APPS) $(PTHREAD_APPS) $(CUDA_APPS),$(APPS)): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
@@ -172,7 +197,7 @@ $(filter-out $(NVML_APPS) $(PTHREAD_APPS) $(CUDA_APPS),$(APPS)): %: $(OUTPUT)/%.
 # Special rule for apps with NVML
 $(NVML_APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -L/usr/local/cuda/lib64/stubs -lnvidia-ml -o $@
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -L$(CUDA_STUB_DIR) -lnvidia-ml -o $@
 
 # Special rule for apps with pthread
 $(PTHREAD_APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
@@ -182,7 +207,7 @@ $(PTHREAD_APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
 # Special rule for apps with CUDA + pthread
 $(CUDA_APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -lcuda -lpthread -o $@
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -L$(CUDA_STUB_DIR) -lcuda -lpthread -o $@
 
 # delete failed targets
 .DELETE_ON_ERROR:

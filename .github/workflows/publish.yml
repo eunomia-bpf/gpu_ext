@@ -51,6 +51,7 @@ jobs:
 
     - name: install deps
       run: |
+        sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
         libelf1 libelf-dev zlib1g-dev libclang-dev \
         make git clang llvm pkg-config build-essential
@@ -62,8 +63,6 @@ jobs:
       if:   github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: softprops/action-gh-release@v1
       with:
-          files: |
-            src/bootstrap
           prerelease: false
           tag_name: ${{ steps.set_version.outputs.result }}
           generate_release_notes: true

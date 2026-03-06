@@ -68,6 +68,11 @@ make build    # Compiles all BPF policies + userspace loaders
 
 This builds libbpf and bpftool from submodules, then compiles each `.bpf.c` policy into BPF bytecode (`.bpf.o`) and a userspace loader binary. BPF objects and skeleton headers go to `extension/.output/`; loader binaries are placed directly in `extension/`.
 
+Some optional extension binaries require extra host dependencies:
+- `sched_gpu_*` needs `SCX_INCLUDE_DIR=/path/to/linux/tools/sched_ext/include`
+- `prefetch_adaptive_*` needs CUDA/NVML headers and stubs
+- `test_preempt_demo` / `test_preempt_multi` need CUDA driver headers and stubs
+
 ### 2. Build Kernel Module
 
 The modified NVIDIA kernel module (based on Open GPU Kernel Modules v575.57.08) adds BPF struct_ops hook points to `nvidia-uvm` for memory management and to `nvidia` for GPU scheduling.

@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  extension-build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install extension build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential clang llvm \
+            libelf1 libelf-dev zlib1g-dev libclang-dev \
+            pkg-config
+
+      - name: Build extension
+        run: make build
+
+  kernel-module-build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install kernel module build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc build-essential dwarves libelf-dev linux-headers-generic xz-utils
+
+      - name: Resolve kernel headers
+        id: kernel
+        run: |
+          header_pkg="$(dpkg-query -W -f='${Package}\n' 'linux-headers-[0-9]*-generic' 2>/dev/null | sort -V | tail -n1)"
+          if [ -z "$header_pkg" ]; then
+            echo "failed to resolve a linux-headers-*-generic package" >&2
+            exit 1
+          fi
+
+          syssrc="/usr/src/${header_pkg}"
+          if [ ! -d "$syssrc" ]; then
+            echo "kernel headers directory not found: $syssrc" >&2
+            exit 1
+          fi
+
+          echo "syssrc=$syssrc" >> "$GITHUB_OUTPUT"
+
+      - name: Build kernel module
+        run: make -C kernel-module/nvidia-module modules -j"$(nproc)" SYSSRC="${{ steps.kernel.outputs.syssrc }}"

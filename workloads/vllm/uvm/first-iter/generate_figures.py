@@ -324,7 +324,7 @@ def plot_speedup_comparison():
 
 def plot_ttft_tpot_combined():
     """Plot combined TTFT and TPOT comparison (side by side) and save as PDF."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
 
     x = np.arange(len(data["configurations"]))
     width = 0.25
@@ -334,12 +334,12 @@ def plot_ttft_tpot_combined():
     bars2 = ax1.bar(x, data["ttft_median"], width, label='Median', color=colors[1], alpha=0.8)
     bars3 = ax1.bar(x + width, data["ttft_p99"], width, label='P99', color=colors[2], alpha=0.8)
 
-    ax1.set_xlabel('', fontsize=24)
-    ax1.set_ylabel('Time to First Token (ms)', fontsize=24)
+    ax1.set_xlabel('', fontsize=32)
+    ax1.set_ylabel('Time to First Token (ms)', fontsize=32)
     ax1.set_xticks(x)
-    ax1.set_xticklabels(data["configurations"], fontsize=20)
-    ax1.tick_params(axis='y', labelsize=20)
-    ax1.legend(fontsize=18)
+    ax1.set_xticklabels(data["configurations"], fontsize=26)
+    ax1.tick_params(axis='y', labelsize=26)
+    ax1.legend(fontsize=31)
     ax1.grid(axis='y', alpha=0.3)
 
     # Plot TPOT
@@ -347,12 +347,12 @@ def plot_ttft_tpot_combined():
     bars5 = ax2.bar(x, data["tpot_median"], width, label='Median', color=colors[1], alpha=0.8)
     bars6 = ax2.bar(x + width, data["tpot_p99"], width, label='P99', color=colors[2], alpha=0.8)
 
-    ax2.set_xlabel('', fontsize=24)
-    ax2.set_ylabel('Time per Output Token (ms)', fontsize=24)
+    ax2.set_xlabel('', fontsize=32)
+    ax2.set_ylabel('Time per Output Token (ms)', fontsize=32)
     ax2.set_xticks(x)
-    ax2.set_xticklabels(data["configurations"], fontsize=20)
-    ax2.tick_params(axis='y', labelsize=20)
-    ax2.legend(fontsize=18)
+    ax2.set_xticklabels(data["configurations"], fontsize=26)
+    ax2.tick_params(axis='y', labelsize=26)
+    ax2.legend(fontsize=31)
     ax2.grid(axis='y', alpha=0.3)
 
     plt.tight_layout()

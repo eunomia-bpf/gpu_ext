@@ -12,13 +12,13 @@ from pathlib import Path
 
 # OSDI-style formatting
 plt.rcParams.update({
-    'font.size': 14,
+    'font.size': 22,
     'font.family': 'serif',
-    'axes.labelsize': 16,
-    'axes.titlesize': 16,
-    'xtick.labelsize': 14,
-    'ytick.labelsize': 14,
-    'legend.fontsize': 14,
+    'axes.labelsize': 28,
+    'axes.titlesize': 28,
+    'xtick.labelsize': 22,
+    'ytick.labelsize': 22,
+    'legend.fontsize': 22,
     'figure.dpi': 150,
     'axes.linewidth': 1,
     'lines.linewidth': 2,
@@ -298,7 +298,7 @@ def plot_main_result():
     native_be_tput = calc_throughput("native")
     policy_be_tput = calc_throughput("policy")
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
     colors = ['#E74C3C', '#2ECC71']
 
     # Panel (a): LC P99 - Bar chart
@@ -317,11 +317,11 @@ def plot_main_result():
 
     # Add value labels on bars
     ax1.text(0, native_mean * 1.02, f'{native_mean:.0f}',
-             ha='center', va='bottom', fontsize=14)
+             ha='center', va='bottom', fontsize=22)
     ax1.text(1, policy_mean * 1.5, f'{policy_mean:.0f}',
-             ha='center', va='bottom', fontsize=14)
+             ha='center', va='bottom', fontsize=22)
 
-    ax1.set_title(f'(a) LC P99 Launch Latency  [-{reduction:.0f}%]')
+    ax1.set_title(f'(a) LC P99 Latency  [-{reduction:.0f}%]')
 
     # Panel (b): BE Throughput - Bar chart
     native_tput = native_be_tput  # Already a single value
@@ -341,9 +341,9 @@ def plot_main_result():
 
     # Add value labels
     ax2.text(0, native_tput * 1.02,
-             f'{native_tput:.2f}', ha='center', va='bottom', fontsize=14)
+             f'{native_tput:.2f}', ha='center', va='bottom', fontsize=22)
     ax2.text(1, policy_tput * 1.02,
-             f'{policy_tput:.2f}', ha='center', va='bottom', fontsize=14)
+             f'{policy_tput:.2f}', ha='center', va='bottom', fontsize=22)
 
     ax2.set_title(f'(b) BE Throughput  [{sign}{tput_change:.1f}%]')
 

@@ -18,7 +18,7 @@ tg128 = [16.34, 18.18, 7.72, 49.31, 86.89]
 x = np.arange(len(configs))
 width = 0.6
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
 
 # Left plot: Prefill throughput (pp512)
 rects1 = ax1.bar(x, pp512, width, color="tab:blue", alpha=0.8)

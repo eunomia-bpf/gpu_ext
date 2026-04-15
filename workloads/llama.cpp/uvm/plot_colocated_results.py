@@ -13,13 +13,13 @@ from pathlib import Path
 # OSDI-style formatting
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams.update({
-    'font.size': 20,
+    'font.size': 26,
     'font.family': 'serif',
-    'axes.labelsize': 24,
-    'axes.titlesize': 24,
-    'xtick.labelsize': 22,
-    'ytick.labelsize': 22,
-    'legend.fontsize': 18,
+    'axes.labelsize': 30,
+    'axes.titlesize': 30,
+    'xtick.labelsize': 26,
+    'ytick.labelsize': 26,
+    'legend.fontsize': 24,
     'figure.dpi': 150,
     'axes.linewidth': 1,
 })
@@ -198,15 +198,6 @@ def plot_main_figure():
     ax1.axhline(y=single_vals[1] * 2, color='#9b59b6', linestyle=':', linewidth=2,
                 label='2× Single (P99)')
 
-    # Add value labels
-    for bar in bars1:
-        val = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2, val + max(uvm_vals)*0.02, f'{val:.0f}',
-                 ha='center', va='bottom', fontsize=14)
-    for bar in bars2:
-        val = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2, val + max(uvm_vals)*0.02, f'{val:.0f}',
-                 ha='center', va='bottom', fontsize=14)
 
     ax1.set_ylabel('Latency (ms)')
     ax1.set_title('(a) TTFT')
@@ -238,15 +229,6 @@ def plot_main_figure():
     ax2.axhline(y=single_tpot[1] * 2, color='#9b59b6', linestyle=':', linewidth=2,
                 label='2× Single (P99)')
 
-    # Add value labels
-    for bar in bars3:
-        val = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2, val + max(uvm_tpot)*0.02, f'{val:.1f}',
-                 ha='center', va='bottom', fontsize=14)
-    for bar in bars4:
-        val = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2, val + max(uvm_tpot)*0.02, f'{val:.1f}',
-                 ha='center', va='bottom', fontsize=14)
 
     ax2.set_ylabel('Latency (ms)')
     ax2.set_title('(b) TPOT')
@@ -274,11 +256,6 @@ def plot_main_figure():
     ax3.axhline(y=single_gnn * 2, color='#9b59b6', linestyle=':', linewidth=2,
                 label='2× Single')
 
-    # Add value labels
-    for bar in bars5:
-        val = bar.get_height()
-        ax3.text(bar.get_x() + bar.get_width()/2, val + 0.5, f'{val:.1f}s',
-                 ha='center', va='bottom', fontsize=14)
 
     ax3.set_ylabel('Epoch Time (s)')
     ax3.set_title('(c) GNN Training')
@@ -292,10 +269,10 @@ def plot_main_figure():
     # Combine unique handles
     fig.legend(handles1 + handles3, labels1 + labels3,
                loc='lower center', ncol=4, bbox_to_anchor=(0.5, -0.05),
-               frameon=True, fontsize=20)
+               frameon=True, fontsize=24)
 
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.22)
+    plt.subplots_adjust(bottom=0.30)
 
     # Save
     output_path = OUTPUT_DIR / 'fig_colocated_results'

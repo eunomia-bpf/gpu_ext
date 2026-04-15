@@ -18,12 +18,12 @@ from pathlib import Path
 # Use a clean style
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams.update({
-    'font.size': 22,
-    'axes.labelsize': 26,
-    'axes.titlesize': 28,
-    'legend.fontsize': 22,
-    'xtick.labelsize': 22,
-    'ytick.labelsize': 22,
+    'font.size': 28,
+    'axes.labelsize': 32,
+    'axes.titlesize': 34,
+    'legend.fontsize': 28,
+    'xtick.labelsize': 26,
+    'ytick.labelsize': 26,
     'figure.dpi': 150,
 })
 
@@ -190,7 +190,7 @@ def main():
     print_improvements(data, sched_data)
 
     # Create figure with 3 subplots
-    fig, axes = plt.subplots(1, 3, figsize=(22, 8))
+    fig, axes = plt.subplots(1, 3, figsize=(20, 8))
 
     # Plot each kernel
     for idx, (kernel_name, df) in enumerate(data.items()):
@@ -202,7 +202,7 @@ def main():
     fig.legend(handles, labels, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.02))
 
     plt.tight_layout()
-    plt.subplots_adjust(top=0.88)
+    plt.subplots_adjust(top=0.85)
 
     # Save
     output_path = base_dir / 'all_kernels_stacked'

@@ -190,7 +190,7 @@ def main():
     print_improvements(data, sched_data)
 
     # Create figure with 3 subplots
-    fig, axes = plt.subplots(1, 3, figsize=(20, 8))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 7))
 
     # Plot each kernel
     for idx, (kernel_name, df) in enumerate(data.items()):

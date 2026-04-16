@@ -164,7 +164,7 @@ def print_analysis():
 def plot_main_figure():
     """Create 3-subplot figure: (a) TTFT, (b) TPOT, (c) GNN Epoch Time."""
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 6))
 
     colors_uvm = '#e74c3c'  # Red for baseline UVM
     colors_bpf = '#2ecc71'  # Green for BPF

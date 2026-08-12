@@ -1,0 +1,202 @@
+evidence_class=SYSTEM_NVIDIA_DRIVER_USERSPACE_UVM
+collected_utc=2026-08-12T16:42:17+00:00
+gpu_ext_root=/home/peng/workspace/gpu_ext
+
+===== uname -a =====
+Linux nserver05 6.15.11-gpuext-gpuext #1 SMP PREEMPT_DYNAMIC Fri Jun 26 19:09:17 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+[exit_code=0]
+
+===== uname -r =====
+6.15.11-gpuext-gpuext
+[exit_code=0]
+
+===== nvidia-smi =====
+Wed Aug 12 16:42:17 2026
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 575.57.08              Driver Version: 575.57.08      CUDA Version: 12.9     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A30                     On  |   00000000:C1:00.0 Off |                    0 |
+| N/A   30C    P0             28W /  165W |       0MiB /  24576MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+[exit_code=0]
+
+===== nvidia-smi query =====
+name, driver_version, memory.total [MiB], memory.free [MiB]
+NVIDIA A30, 575.57.08, 24576 MiB, 24165 MiB
+[exit_code=0]
+
+===== proc driver version =====
+NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  575.57.08  Release Build  (dvs-builder@U22-I3-H04-01-5)  Sat May 24 07:03:13 UTC 2025
+GCC version:  gcc version 10.5.0 (Ubuntu 10.5.0-1ubuntu1~22.04.3)
+[exit_code=0]
+
+===== nvcc version =====
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+[exit_code=0]
+
+===== cmake version =====
+cmake version 3.22.1
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+[exit_code=0]
+
+===== git status =====
+A  experiments/uvm_basic/.gitignore
+A  experiments/uvm_basic/CMakeLists.txt
+A  experiments/uvm_basic/README.md
+AM experiments/uvm_basic/analysis/summarize.py
+AM experiments/uvm_basic/docs/CALL_PATH.md
+AM experiments/uvm_basic/docs/EXPERIMENT_PLAN.md
+A  experiments/uvm_basic/docs/EXPERIMENT_REPORT.md
+A  experiments/uvm_basic/docs/RESULTS.md
+A  experiments/uvm_basic/results/.gitkeep
+A  experiments/uvm_basic/results/environment.txt
+A  experiments/uvm_basic/results/gpu_ext_stage2_preflight.json
+A  experiments/uvm_basic/results/summary.csv
+A  experiments/uvm_basic/scripts/SAFE_GPU_EXT_COMMANDS.sh
+AM experiments/uvm_basic/scripts/check_gpu_ext_stage2.sh
+AM experiments/uvm_basic/scripts/collect_environment.sh
+AM experiments/uvm_basic/scripts/common.sh
+A  experiments/uvm_basic/scripts/profile_nsys.sh
+AM experiments/uvm_basic/scripts/run_basic.sh
+A  experiments/uvm_basic/scripts/run_gpu_ext_trace.sh
+AM experiments/uvm_basic/scripts/run_matrix.sh
+AM experiments/uvm_basic/scripts/run_oversubscription.sh
+A  experiments/uvm_basic/src/uvm_vector_add.cu
+[exit_code=0]
+
+===== git submodules =====
+ 4a0b800a1d3b0c54544df153bcaa4f443b3deb76 bpftool (v7.5.0-64-g4a0b800)
+ 02bdeb7a2c2e7cb2c9cecb125527a9c5a6bbf139 bpftool/libbpf (v1.5.0-105-g02bdeb7)
+-0884b66349d7cd96948580b91f1fa2e8077036be docs/paper
+-921567e16857811de57d57aef111782df70847e2 kernel-module/nvidia-module
+ 02bdeb7a2c2e7cb2c9cecb125527a9c5a6bbf139 libbpf (v1.5.0-105-g02bdeb7)
+-221b5c2450f80d0710bbe392be8c48ead6bd1a9d workloads/faiss/faiss
+-26836b27ae1ec9d6e94c6b56306cca75c7e86814 workloads/llama.cpp/llama.cpp
+-3ec7b051563670b3af9cf5c10bc8ba3295ec125f workloads/vllm/vllm
+[exit_code=0]
+
+===== loaded NVIDIA modules =====
+nvidia_uvm           2134016  0
+nvidia_modeset       1732608  0
+video                  77824  1 nvidia_modeset
+nvidia              11522048  7 nvidia_uvm,nvidia_modeset
+[exit_code=0]
+
+===== loaded nvidia_uvm metadata =====
+filename:       /lib/modules/6.15.11-gpuext-gpuext/updates/dkms/nvidia-uvm.ko
+version:        575.57.08
+supported:      external
+license:        Dual MIT/GPL
+srcversion:     182AB87276B2337B4B1A4CD
+depends:        nvidia
+name:           nvidia_uvm
+retpoline:      Y
+vermagic:       6.15.11-gpuext-gpuext SMP preempt mod_unload modversions
+sig_id:         PKCS#7
+signer:         nserver05 Secure Boot Module Signature key
+sig_key:        16:19:27:5D:08:9A:3E:CE:7B:9A:D2:61:68:81:00:1F:37:14:66:65
+sig_hashalgo:   sha512
+signature:      14:01:5B:28:4B:96:DA:73:AD:5F:79:F6:F8:F6:86:35:EF:9D:7D:EA:
+		CE:55:17:97:53:83:BD:F4:97:6C:7D:92:77:FA:FD:B3:0C:7C:AB:C7:
+		DF:96:42:F3:14:37:6C:B6:66:AC:6F:B5:62:0F:DD:D7:02:49:FE:3A:
+		4D:94:FA:3A:AE:C5:DD:C2:86:9D:B6:80:6D:35:5F:1B:30:35:25:52:
+		B3:AE:AC:A7:87:61:05:11:A1:F8:BF:1A:D6:C5:1A:9F:AD:CB:64:5B:
+		41:68:A2:0F:22:42:1E:96:95:90:AB:46:66:12:1E:59:3F:5C:00:1B:
+		AD:5B:37:16:E5:CE:E9:A4:C6:0C:3A:C2:FE:DB:79:81:63:2A:E1:98:
+		6E:0D:DF:D6:53:B7:E9:A5:E1:FE:5D:91:7E:A2:FD:2D:9D:01:3A:66:
+		ED:F2:55:BD:D2:59:6B:CD:0B:11:3A:93:A5:5F:25:BD:94:94:8F:6F:
+		CD:0B:17:71:55:25:7C:55:EB:7C:FD:44:47:0E:3B:E6:BC:16:C5:C8:
+		FE:55:6D:FA:1D:CC:C1:C7:27:7A:62:A0:B9:41:B7:71:9D:53:10:50:
+		FD:0C:C5:83:7A:27:6E:05:D3:80:13:12:83:CB:E9:84:31:54:5E:DC:
+		7E:56:FB:EA:D7:2E:5A:B5:DC:A3:96:3F:E8:23:43:47
+parm:           uvm_conf_computing_channel_iv_rotation_limit:ulong
+parm:           uvm_ats_mode:Set to 0 to disable ATS (Address Translation Services). Any other value is ignored. Has no effect unless the platform supports ATS. (int)
+parm:           uvm_policy_dry_run_enable:uint
+parm:           uvm_policy_dry_run_target_tgid:int
+parm:           uvm_policy_dry_run_sample_log2:uint
+parm:           uvm_policy_prefetch_suppress_enable:uint
+parm:           uvm_policy_migration_throttle_apply_enable:uint
+parm:           uvm_policy_migration_throttle_delay_us:uint
+parm:           uvm_policy_slot_lookup_debug_enable:uint
+parm:           uvm_perf_prefetch_enable:uint
+parm:           uvm_perf_prefetch_threshold:uint
+parm:           uvm_perf_prefetch_min_faults:uint
+parm:           uvm_perf_thrashing_enable:uint
+parm:           uvm_perf_thrashing_threshold:uint
+parm:           uvm_perf_thrashing_pin_threshold:uint
+parm:           uvm_perf_thrashing_lapse_usec:uint
+parm:           uvm_perf_thrashing_nap:uint
+parm:           uvm_perf_thrashing_epoch:uint
+parm:           uvm_perf_thrashing_pin:uint
+parm:           uvm_perf_thrashing_max_resets:uint
+parm:           uvm_perf_map_remote_on_native_atomics_fault:uint
+parm:           uvm_disable_hmm:Force-disable HMM functionality in the UVM driver. Default: false (HMM is enabled if possible). However, even with uvm_disable_hmm=false, HMM will not be enabled if is not supported in this driver build configuration, or if ATS settings conflict with HMM. (bool)
+parm:           uvm_perf_migrate_cpu_preunmap_enable:int
+parm:           uvm_perf_migrate_cpu_preunmap_block_order:uint
+parm:           uvm_global_oversubscription:Enable (1) or disable (0) global oversubscription support. (int)
+parm:           uvm_perf_pma_batch_nonpinned_order:uint
+parm:           uvm_cpu_chunk_allocation_sizes:OR'ed value of all CPU chunk allocation sizes. (uint)
+parm:           uvm_leak_checker:Enable uvm memory leak checking. 0 = disabled, 1 = count total bytes allocated and freed, 2 = per-allocation origin tracking. (int)
+parm:           uvm_force_prefetch_fault_support:uint
+parm:           uvm_debug_enable_push_desc:Enable push description tracking (uint)
+parm:           uvm_debug_enable_push_acquire_info:Enable push acquire information tracking (uint)
+parm:           uvm_page_table_location:Set the location for UVM-allocated page tables. Choices are: vid, sys. (charp)
+parm:           uvm_perf_access_counter_migration_enable:Whether access counters will trigger migrations.Valid values: <= -1 (default policy), 0 (off), >= 1 (on) (int)
+parm:           uvm_perf_access_counter_batch_count:uint
+parm:           uvm_perf_access_counter_threshold:Number of remote accesses on a region required to trigger a notification.Valid values: [1, 65535] (uint)
+parm:           uvm_perf_reenable_prefetch_faults_lapse_msec:uint
+parm:           uvm_perf_fault_batch_count:uint
+parm:           uvm_perf_fault_replay_policy:uint
+parm:           uvm_perf_fault_replay_update_put_ratio:uint
+parm:           uvm_perf_fault_max_batches_per_service:uint
+parm:           uvm_perf_fault_max_throttle_per_service:uint
+parm:           uvm_perf_fault_coalesce:uint
+parm:           uvm_fault_force_sysmem:Force (1) using sysmem storage for pages that faulted. Default: 0. (int)
+parm:           uvm_perf_map_remote_on_eviction:int
+parm:           uvm_block_cpu_to_cpu_copy_with_ce:Use GPU CEs for CPU-to-CPU migrations. (int)
+parm:           uvm_exp_gpu_cache_peermem:Force caching for mappings to peer memory. This is an experimental parameter that may cause correctness issues if used. (uint)
+parm:           uvm_exp_gpu_cache_sysmem:Force caching for mappings to system memory. This is an experimental parameter that may cause correctness issues if used. (uint)
+parm:           uvm_downgrade_force_membar_sys:Force all TLB invalidation downgrades to use MEMBAR_SYS (uint)
+parm:           uvm_channel_num_gpfifo_entries:uint
+parm:           uvm_channel_gpfifo_loc:charp
+parm:           uvm_channel_gpput_loc:charp
+parm:           uvm_channel_pushbuffer_loc:charp
+parm:           uvm_enable_va_space_mm:Set to 0 to disable UVM from using mmu_notifiers to create an association between a UVM VA space and a process. This will also disable pageable memory access via either ATS or HMM. (int)
+parm:           uvm_enable_debug_procfs:Enable debug procfs entries in /proc/driver/nvidia-uvm (int)
+parm:           uvm_peer_copy:Choose the addressing mode for peer copying, options: phys [default] or virt. Valid for Ampere+ GPUs. (charp)
+parm:           uvm_debug_prints:Enable uvm debug prints. (int)
+parm:           uvm_enable_builtin_tests:Enable the UVM built-in tests. (This is a security risk) (int)
+parm:           uvm_release_asserts:Enable uvm asserts included in release builds. (int)
+parm:           uvm_release_asserts_dump_stack:dump_stack() on failed UVM release asserts. (int)
+parm:           uvm_release_asserts_set_global_error:Set UVM global fatal error on failed release asserts. (int)
+[exit_code=0]
+
+===== custom module compatibility =====
+custom_module_dir=/home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open
+loaded_driver_version=575.57.08
+custom_driver_version=575.57.08
+custom_vermagic=6.15.11-gpuext-gpuext SMP preempt mod_unload modversions
+loaded_uvm_path=/lib/modules/6.15.11-gpuext-gpuext/updates/dkms/nvidia-uvm.ko
+5802edbad2d4f9f0304707e1d2ce9a2344e45ef83f8f683714879af30b4e2be6  /lib/modules/6.15.11-gpuext-gpuext/updates/dkms/nvidia-uvm.ko
+077caffa37f940a9637f959cb553b44fe03bf37b83f0a683ec13ecd4c4f983c2  /home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open/nvidia-uvm.ko
+custom_module_identity=MATCHES_VERSION_AND_KERNEL
+custom_module_binary=NOT_LOADED
+risk=Version/vermagic match, but a manual reload remains disruptive and runtime compatibility is not proven.

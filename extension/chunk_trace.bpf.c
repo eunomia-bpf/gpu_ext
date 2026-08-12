@@ -116,7 +116,7 @@ static __always_inline void submit_event(u32 hook_type, u64 chunk, u64 list)
 }
 
 /* Hook 1: Activate (chunk becomes evictable) */
-SEC("kprobe/uvm_bpf_call_pmm_chunk_activate")
+SEC("kprobe/uvm_bpf_call_gpu_block_activate")
 int BPF_KPROBE(trace_activate, void *pmm, void *chunk, void *list)
 {
     inc_stat(STAT_ACTIVATE);
@@ -125,7 +125,7 @@ int BPF_KPROBE(trace_activate, void *pmm, void *chunk, void *list)
 }
 
 /* Hook 2: Used (chunk gets accessed/used) */
-SEC("kprobe/uvm_bpf_call_pmm_chunk_used")
+SEC("kprobe/uvm_bpf_call_gpu_block_access")
 int BPF_KPROBE(trace_used, void *pmm, void *chunk, void *list)
 {
     inc_stat(STAT_POPULATE);
@@ -134,7 +134,7 @@ int BPF_KPROBE(trace_used, void *pmm, void *chunk, void *list)
 }
 
 /* Hook 3: Eviction prepare (before selecting chunk to evict) */
-SEC("kprobe/uvm_bpf_call_pmm_eviction_prepare")
+SEC("kprobe/uvm_bpf_call_gpu_evict_prepare")
 int BPF_KPROBE(trace_eviction_prepare, void *pmm, void *used_list, void *unused_list)
 {
     inc_stat(STAT_EVICTION_PREPARE);

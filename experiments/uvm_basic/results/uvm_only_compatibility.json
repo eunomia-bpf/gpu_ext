@@ -1,0 +1,78 @@
+{
+  "custom_uvm": {
+    "path": "/home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open/nvidia-uvm.ko",
+    "sha256": "077caffa37f940a9637f959cb553b44fe03bf37b83f0a683ec13ecd4c4f983c2"
+  },
+  "distribution_uvm": {
+    "path": "/usr/lib/modules/6.15.11-gpuext-gpuext/updates/dkms/nvidia-uvm.ko",
+    "sha256": "5802edbad2d4f9f0304707e1d2ce9a2344e45ef83f8f683714879af30b4e2be6"
+  },
+  "driver_version_match": true,
+  "evidence_class": "STATIC_KERNEL_MODULE_ABI",
+  "inputs": {
+    "custom_symvers": "/home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open/Module.symvers",
+    "distribution_symvers": "/var/lib/dkms/nvidia/575.57.08/6.15.11-gpuext-gpuext/x86_64/module/Module.symvers",
+    "kernel_symvers": "/lib/modules/6.15.11-gpuext-gpuext/build/Module.symvers"
+  },
+  "kernel_release": "6.15.11-gpuext-gpuext",
+  "limitations": [
+    "Static modversion evidence cannot prove that insmod will succeed.",
+    "A manual maintenance-window load must still check unresolved symbols and kernel logs."
+  ],
+  "nvidia_core_exports": {
+    "custom_count": 99,
+    "custom_only_exports": [
+      "nv_gpu_sched_bind",
+      "nv_gpu_sched_struct_ops_exit",
+      "nv_gpu_sched_struct_ops_init",
+      "nv_gpu_sched_task_destroy",
+      "nv_gpu_sched_task_init",
+      "nv_gpu_sched_token_request"
+    ],
+    "custom_only_exports_required_by_custom_uvm": [],
+    "distribution_count": 93,
+    "shared_count": 93,
+    "shared_crc_mismatches": {}
+  },
+  "nvidia_interfaces": {
+    "count": 76,
+    "crc_mismatches": []
+  },
+  "recommendation": "TRY_UVM_ONLY_SWITCH_FIRST",
+  "required_symbols": {
+    "custom_count": 327,
+    "custom_only": {
+      "__register_bpf_struct_ops": {
+        "kernel_crc": "0x7ecff5f0",
+        "match": true,
+        "required_crc": "0x7ecff5f0"
+      },
+      "bpf_base_func_proto": {
+        "kernel_crc": "0x6c6a355d",
+        "match": true,
+        "required_crc": "0x6c6a355d"
+      },
+      "btf_ctx_access": {
+        "kernel_crc": "0x83a703e2",
+        "match": true,
+        "required_crc": "0x83a703e2"
+      },
+      "proc_create": {
+        "kernel_crc": "0x33b70071",
+        "match": true,
+        "required_crc": "0x33b70071"
+      },
+      "register_btf_kfunc_id_set": {
+        "kernel_crc": "0x41793ff3",
+        "match": true,
+        "required_crc": "0x41793ff3"
+      }
+    },
+    "distribution_count": 328,
+    "shared_count": 322,
+    "shared_crc_mismatches": {}
+  },
+  "root_operation_executed": false,
+  "status": "SUPPORTED_BY_STATIC_MODVERSION_EVIDENCE",
+  "vermagic_match": true
+}

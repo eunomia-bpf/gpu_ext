@@ -1,0 +1,47 @@
+{
+  "evidence_class": "GPU_EXT_STAGE2_RUNTIME_ACCEPTANCE",
+  "status": "PASS_GPU_EXT_STAGE2_POLICY_MATRIX",
+  "executed_utc": "2026-08-12",
+  "gpu": "NVIDIA A30",
+  "driver_version": "575.57.08",
+  "kernel_release": "6.15.11-gpuext-gpuext",
+  "custom_uvm_srcversion": "2A011BD52759A63796A0B00",
+  "restored_distribution_uvm_srcversion": "182AB87276B2337B4B1A4CD",
+  "policies": [
+    "custom_no_policy",
+    "prefetch_none",
+    "prefetch_always_max",
+    "prefetch_adaptive_sequential"
+  ],
+  "run_counts": {
+    "total": 80,
+    "timing": 60,
+    "trace": 16,
+    "nsight": 4,
+    "per_policy": 20
+  },
+  "acceptance": {
+    "zero_exit_runs": 80,
+    "correct_runs": 80,
+    "detached_runs": 80,
+    "trace_runs_available": 20,
+    "new_xid_runs": 0,
+    "nsight_reports": 4,
+    "policy_attach_logs": 60,
+    "policy_detach_logs": 60,
+    "residual_struct_ops": false,
+    "distribution_uvm_restored": true,
+    "custom_hook_visible_after_restore": false,
+    "final_gpu_memory_used_mib": 0
+  },
+  "safety": {
+    "modules_installed": false,
+    "modules_copied_to_lib_modules": false,
+    "oversubscription_executed": false,
+    "eviction_policy_executed": false,
+    "bpf_gpu_block_move_head_used": false
+  },
+  "raw_results": "results/stage2/",
+  "summary": "results/stage2_summary.csv",
+  "trace_summary": "results/stage2_trace_summary.csv"
+}

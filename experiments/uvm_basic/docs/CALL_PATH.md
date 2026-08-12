@@ -6,11 +6,22 @@ Source was verified against the readable 575.57.08 tree at `/home/peng/workspace
 
 In `kernel-open/nvidia-uvm/uvm_gpu_replayable_faults.c`:
 
-- `service_fault_batch_dispatch()` starts at line 1946 and dispatches a VA block to `service_fault_batch()` around line 1983.
-- `service_fault_batch()` starts at line 1606 and enters `service_fault_batch_block_locked()` through `UVM_VA_BLOCK_RETRY_LOCKED` around line 1628.
+- The top-level `service_fault_batch()` starts at line 2232 and calls `service_fault_batch_dispatch()` at line 2325.
+- `service_fault_batch_dispatch()` starts at line 1946 and dispatches a VA block to `service_fault_batch_block()` at line 1983.
+- `service_fault_batch_block()` starts at line 1606 and enters `service_fault_batch_block_locked()` through `UVM_VA_BLOCK_RETRY_LOCKED` around line 1628.
 - `service_fault_batch_block_locked()` starts at line 1375, computes per-page residency, and calls `uvm_va_block_service_locked()` at line 1586 when faults need service.
 
 In `kernel-open/nvidia-uvm/uvm_va_block.c`, `uvm_va_block_service_locked()` starts at line 12307 and calls its local prefetch-hint helper at line 12332 before performing migrations and mappings.
+
+The verified replayable-fault path is therefore:
+
+```text
+service_fault_batch()
+  -> service_fault_batch_dispatch()
+  -> service_fault_batch_block()
+  -> service_fault_batch_block_locked()
+  -> uvm_va_block_service_locked()
+```
 
 ## Prefetch Policy Hook
 

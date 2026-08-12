@@ -52,6 +52,8 @@ struct Options {
     std::string cpu_retouch = "none";
     bool gpu_prefetch = false;
     bool cpu_prefetch_before_retouch = false;
+    std::string after_retouch = "legacy";
+    bool stop_after_hot = false;
     bool verify = true;
     std::string output;
 };
@@ -133,6 +135,7 @@ void usage(const char *program)
               << " --bytes SIZE --allocation managed|device --iterations N"
               << " --cpu-retouch none|page|full --gpu-prefetch yes|no"
               << " --cpu-prefetch-before-retouch yes|no --verify yes|no"
+              << " --after-retouch demand|prefetch --stop-after-hot yes|no"
               << " --output FILE\n";
 }
 
@@ -152,6 +155,8 @@ Options parse_args(int argc, char **argv)
         else if (arg == "--gpu-prefetch") options.gpu_prefetch = parse_yes_no(value());
         else if (arg == "--cpu-prefetch-before-retouch")
             options.cpu_prefetch_before_retouch = parse_yes_no(value());
+        else if (arg == "--after-retouch") options.after_retouch = value();
+        else if (arg == "--stop-after-hot") options.stop_after_hot = parse_yes_no(value());
         else if (arg == "--verify") options.verify = parse_yes_no(value());
         else if (arg == "--output") options.output = value();
         else if (arg == "--help" || arg == "-h") {
@@ -165,6 +170,9 @@ Options parse_args(int argc, char **argv)
     if (options.cpu_retouch != "none" && options.cpu_retouch != "page" &&
         options.cpu_retouch != "full")
         throw std::invalid_argument("cpu-retouch must be none, page, or full");
+    if (options.after_retouch != "legacy" && options.after_retouch != "demand" &&
+        options.after_retouch != "prefetch")
+        throw std::invalid_argument("after-retouch must be demand or prefetch");
     if (options.iterations <= 0)
         throw std::invalid_argument("iterations must be positive");
     if (options.bytes < sizeof(float) || options.bytes % sizeof(float) != 0)
@@ -172,8 +180,14 @@ Options parse_args(int argc, char **argv)
     if (options.output.empty())
         throw std::invalid_argument("--output is required");
     if (options.allocation == "device" &&
-        (options.cpu_retouch != "none" || options.cpu_prefetch_before_retouch || options.gpu_prefetch))
+        (options.cpu_retouch != "none" || options.cpu_prefetch_before_retouch ||
+         options.gpu_prefetch || options.after_retouch != "legacy"))
         throw std::invalid_argument("retouch and prefetch options apply only to managed allocation");
+    if (options.after_retouch != "legacy" && options.cpu_retouch == "none")
+        throw std::invalid_argument("after-retouch requires page or full CPU retouch");
+    if (options.after_retouch != "legacy" &&
+        (options.cpu_prefetch_before_retouch || options.gpu_prefetch))
+        throw std::invalid_argument("after-retouch cannot be combined with legacy prefetch options");
     return options;
 }
 
@@ -246,13 +260,16 @@ public:
         output_ << "{\"run_id\":\"" << json_escape(run_id_)
                 << "\",\"phase\":\"" << json_escape(phase)
                 << "\",\"allocation\":\"" << options_.allocation
-                << "\",\"bytes_per_array\":" << options_.bytes
+                << "\",\"case\":\"" << json_escape(options_.after_retouch)
+                << "\",\"process_id\":" << getpid()
+                << ",\"bytes_per_array\":" << options_.bytes
                 << ",\"elements\":" << options_.bytes / sizeof(float)
                 << ",\"iterations\":" << options_.iterations
                 << ",\"cpu_retouch\":\"" << options_.cpu_retouch
                 << "\",\"gpu_prefetch\":" << (options_.gpu_prefetch ? "true" : "false")
                 << ",\"cpu_prefetch_before_retouch\":"
                 << (options_.cpu_prefetch_before_retouch ? "true" : "false")
+                << ",\"stop_after_hot\":" << (options_.stop_after_hot ? "true" : "false")
                 << ",\"elapsed_ms\":" << std::fixed << std::setprecision(6) << milliseconds
                 << ",\"bandwidth_gbps\":" << bandwidth
                 << ",\"logical_bytes\":" << std::fixed << std::setprecision(0) << logical_bytes
@@ -423,6 +440,74 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
             if (!correct) throw std::runtime_error("kernel_2_hot verification failed");
         }
 
+        if (options.stop_after_hot)
+            goto managed_cleanup;
+
+        if (options.after_retouch != "legacy") {
+            {
+                NvtxRange range("cpu_prefetch_to_cpu");
+                const auto start = Clock::now();
+                CUDA_CHECK(cudaMemPrefetchAsync(a, options.bytes, cudaCpuDeviceId, stream));
+                CUDA_CHECK(cudaMemPrefetchAsync(b, options.bytes, cudaCpuDeviceId, stream));
+                CUDA_CHECK(cudaMemPrefetchAsync(c, options.bytes, cudaCpuDeviceId, stream));
+                CUDA_CHECK(cudaStreamSynchronize(stream));
+                CUDA_CHECK(cudaDeviceSynchronize());
+                recorder.row("cpu_prefetch_to_cpu", elapsed_ms(start, Clock::now()),
+                             3.0 * options.bytes, true);
+            }
+
+            {
+                NvtxRange range("cpu_retouch");
+                const auto start = Clock::now();
+                size_t touched = 0;
+                if (options.cpu_retouch == "page") {
+                    const size_t stride = std::max<size_t>(
+                        1, static_cast<size_t>(page_size) / sizeof(float));
+                    for (size_t i = 0; i < elements; i += stride) {
+                        a[i] += 1.0f;
+                        b[i] += 1.0f;
+                        ++touched;
+                    }
+                }
+                else {
+                    for (size_t i = 0; i < elements; ++i) {
+                        a[i] += 1.0f;
+                        b[i] += 1.0f;
+                    }
+                    touched = elements;
+                }
+                recorder.row("cpu_retouch", elapsed_ms(start, Clock::now()),
+                             2.0 * touched * sizeof(float), true);
+            }
+
+            if (options.after_retouch == "prefetch") {
+                NvtxRange range("gpu_prefetch_after_retouch");
+                const auto start = Clock::now();
+                CUDA_CHECK(cudaMemPrefetchAsync(a, options.bytes, device, stream));
+                CUDA_CHECK(cudaMemPrefetchAsync(b, options.bytes, device, stream));
+                CUDA_CHECK(cudaMemPrefetchAsync(c, options.bytes, device, stream));
+                CUDA_CHECK(cudaStreamSynchronize(stream));
+                CUDA_CHECK(cudaDeviceSynchronize());
+                recorder.row("gpu_prefetch_after_retouch", elapsed_ms(start, Clock::now()),
+                             3.0 * options.bytes, true);
+            }
+            else {
+                recorder.row("gpu_prefetch_after_retouch", 0.0, 0.0, true,
+                             "demand case: GPU prefetch intentionally omitted", 0, 0, true);
+            }
+
+            {
+                const std::string phase = "kernel_after_retouch_" + options.after_retouch;
+                NvtxRange range(phase.c_str());
+                const float time = launch_timed(options, a, b, c, elements, stream);
+                const bool correct = !options.verify || verify_on_gpu(
+                    a, b, c, device_indices, indices.size(), device_mismatches);
+                recorder.row(phase, time, 3.0 * options.bytes * options.iterations, correct);
+                if (!correct) throw std::runtime_error(phase + " verification failed");
+            }
+            goto managed_cleanup;
+        }
+
         if (options.cpu_prefetch_before_retouch && options.cpu_retouch != "none") {
             NvtxRange range("cpu_prefetch_before_retouch");
             const auto start = Clock::now();
@@ -511,6 +596,7 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
         if (a) cuda_cleanup(cudaFree(a), "cudaFree(A)");
         throw;
     }
+managed_cleanup:
     CUDA_CHECK(cudaStreamDestroy(stream));
     CUDA_CHECK(cudaFree(device_mismatches));
     CUDA_CHECK(cudaFree(device_indices));

@@ -20,13 +20,16 @@ It does not use PyTorch, an LLM workload, GPU scheduling changes, memory oversub
 | 256 MiB matrix | PASS | Five configurations, all correctness checks passed |
 | 1 GiB matrix | PASS | Five configurations, all correctness checks passed |
 | Nsight Unified Memory observation | PASS | CPU/GPU fault collection and phase-filtered migration reports available |
+| Stage 1B independent prefetch A/B | PASS | 16/16 correctness runs plus two separate Nsight profiles |
 | gpu_ext userspace tools | PASS | Five trace/policy binaries and dependencies verified |
-| gpu_ext custom module runtime | NOT EXECUTED | Distribution `nvidia_uvm` remains loaded; custom hook is not visible |
+| gpu_ext custom module runtime | PASS | UVM-only switch, four-policy matrix, exact-PID detach, and distribution restore completed |
 | Oversubscription | NOT EXECUTED | Deliberately excluded from the default safe experiment |
 
 Overall first-stage status: `PASS_USERSPACE_UVM_BASIC`.
 
-Second-stage status: `READY_FOR_MANUAL_MODULE_SWITCH`.
+Stage 1B status: `PASS_UVM_PREFETCH_AB`.
+
+Second-stage status: `PASS_GPU_EXT_STAGE2_POLICY_MATRIX`.
 
 ## Environment
 
@@ -38,7 +41,8 @@ Second-stage status: `READY_FOR_MANUAL_MODULE_SWITCH`.
 - CMake: 3.22.1.
 - CPU page size: obtained at runtime with `sysconf(_SC_PAGESIZE)`.
 - Final GPU memory use: 0 MiB.
-- Kernel log Xid count during the experiment window: 0.
+- Original Stage 1 kernel log Xid count: 0.
+- Stage 1B Xid count: unavailable because this unprivileged user cannot read `dmesg` and has restricted/empty journal visibility; no zero-Xid claim is made for that window.
 
 The custom `nvidia-uvm.ko` has matching driver version and kernel vermagic, but its `srcversion` differs from the loaded distribution module. It was not loaded automatically.
 
@@ -54,7 +58,7 @@ The CUDA program supports:
 - deterministic GPU-side sampled correctness validation;
 - JSONL output and compact terminal tables.
 
-Managed-memory execution order:
+Legacy managed-memory execution order, retained for compatibility:
 
 ```text
 cudaMallocManaged
@@ -71,6 +75,28 @@ cudaMallocManaged
 The device-memory control uses `cudaMalloc`, explicit HtoD copies, two kernels, and an explicit DtoH copy. All CUDA calls, including cleanup paths, check return values.
 
 The default runner rejects a per-array size above 1 GiB and requires the three arrays to fit within 20% of currently free GPU memory. Oversubscription is guarded by a separate opt-in environment variable and was not run.
+
+Stage 1B adds `--after-retouch demand|prefetch`. Both variants run in separate processes and explicitly prefetch A/B/C to the CPU after the hot kernel. The demand process launches its post-retouch kernel directly; the prefetch process first explicitly migrates A/B/C to the GPU. `--stop-after-hot yes` supplies the exact two-kernel workload used by Stage 2.
+
+## Stage 1B Prefetch A/B
+
+All 16 independent processes passed correctness: five demand and five prefetch runs at 256 MiB per array, followed by three of each at 1 GiB per array.
+
+| Bytes per array | Case | CPU prefetch-to-CPU mean | CPU retouch mean | GPU prefetch mean | Post-retouch kernel mean |
+|---:|---|---:|---:|---:|---:|
+| 256 MiB | demand | 174.672 ms | 6.813 ms | omitted | 243.066 ms |
+| 256 MiB | prefetch | 173.514 ms | 6.694 ms | 34.841 ms | 1.008 ms |
+| 1 GiB | demand | 690.965 ms | 27.551 ms | omitted | 911.878 ms |
+| 1 GiB | prefetch | 696.315 ms | 27.928 ms | 137.094 ms | 4.052 ms |
+
+Separate 256 MiB Nsight runs provide the migration evidence:
+
+| Case | Run HtoD | Run DtoH | Run GPU faults | Post-retouch kernel HtoD | Post-retouch kernel GPU faults | Explicit-prefetch HtoD |
+|---|---:|---:|---:|---:|---:|---:|
+| demand | 1610.613 MB | 805.306 MB | 11,950 | 805.306 MB | 6,092 | N/A |
+| prefetch | 1610.613 MB | 805.306 MB | 6,091 | 0 MB | 0 | 805.306 MB |
+
+This validates the tested hypothesis: explicit prefetch moved the second HtoD transfer out of the post-retouch kernel interval, and that kernel had no recorded GPU UVM faults. CPU fault counts are run-wide totals (2,304 in each representative run), not phase-attributed values. Full statistics are in [PREFETCH_AB_RESULTS.md](PREFETCH_AB_RESULTS.md).
 
 ## Runtime Matrix
 
@@ -121,8 +147,9 @@ Nsight repeats the run-wide CPU fault total in each NVTX-filtered `um_total_sum`
 The matching 575.57.08 source was inspected directly. The relevant chain is:
 
 ```text
-service_fault_batch_dispatch
-  -> service_fault_batch
+service_fault_batch
+  -> service_fault_batch_dispatch
+  -> service_fault_batch_block
   -> service_fault_batch_block_locked
   -> uvm_va_block_service_locked
   -> uvm_va_block_get_prefetch_hint
@@ -136,7 +163,7 @@ service_fault_batch_dispatch
 
 Exact source paths and line references are recorded in [CALL_PATH.md](CALL_PATH.md). The experiment does not depend on `gpu_block_access`, and the selected prefetch-only policies do not call `bpf_gpu_block_move_head()`.
 
-## gpu_ext Stage 2 Preflight
+## gpu_ext Stage 2
 
 The following existing extension programs were built from the repository source and passed ELF/dependency checks:
 
@@ -146,15 +173,21 @@ The following existing extension programs were built from the repository source 
 - `prefetch_always_max`;
 - `prefetch_adaptive_sequential`.
 
-The loaded module is `/lib/modules/6.15.11-gpuext-gpuext/updates/dkms/nvidia-uvm.ko`, with `srcversion=182AB87276B2337B4B1A4CD`. The custom module has `srcversion=2A011BD52759A63796A0B00`. The custom prefetch hook is not visible in `/proc/kallsyms`, so the trace runner correctly refused to attach.
+The distribution module has `srcversion=182AB87276B2337B4B1A4CD`; the custom module has `srcversion=2A011BD52759A63796A0B00`. A UVM-only switch loaded the custom module, exposed the gpu_ext hook, ran the matrix, and then restored the distribution module. The final loaded srcversion is again `182AB87276B2337B4B1A4CD`, the custom hook is absent, and `nvidia-smi` reports 0 MiB in use.
 
-No BPF program, struct_ops policy, or custom module was loaded during this work.
+Stage 2 completed 80 runs: each of `custom_no_policy`, `prefetch_none`, `prefetch_always_max`, and `prefetch_adaptive_sequential` ran 10 timing, 3 trace, and 1 Nsight process at 256 MiB, plus 5 timing and 1 trace process at 1 GiB. All runs returned zero, passed correctness, and detached their policy. The custom no-policy result is not substituted with the distribution-driver baseline.
+
+The UVM-only switch was first supported by static modversion evidence: 322 shared required symbols, 76 shared `nvUvmInterface*` symbols, and 93 shared `nvidia.ko` exports all had zero CRC mismatches. Runtime loading then confirmed that the UVM-only path works with the existing `nvidia.ko`.
+
+At 256 MiB, custom no-policy kernel 1 averaged 240.731 ms versus the one-run system baseline of 240.293 ms (+0.182%). `prefetch_none` averaged 2111.166 ms with 29,820 representative GPU faults; `prefetch_always_max` averaged 78.379 ms with 1,369 faults; `prefetch_adaptive_sequential` averaged 186.242 ms with 7,088 faults. All hot kernels were approximately 1 ms. These are sequential vector-add results, not a general policy ranking.
+
+All 20 trace runs attached successfully. The 256 MiB trace means were 17,742 callbacks for custom no-policy, 393,216 for no-prefetch, 768 for always-max, and 13,831 for adaptive sequential. Callback counts are not page-fault counts. Chunk activate was 384 per representative run and eviction prepare was zero, as expected without oversubscription.
 
 ## Safety
 
 - No `make modules_install` was run.
 - No module was copied into `/lib/modules`.
-- No `sudo`, `rmmod`, `insmod`, or `modprobe` command was executed.
+- The reviewed UVM-only switch used temporary `rmmod`/`insmod` and restored the distribution module; no permanent install occurred.
 - No system NVIDIA driver setting, MIG mode, clock, or power limit was changed.
 - `SAFE_GPU_EXT_COMMANDS.sh` remains non-executable and defaults to inspection only.
 - Trace policy cleanup uses exact child PIDs and a shell trap.
@@ -179,7 +212,7 @@ Non-privileged Stage 2 preflight:
 bash scripts/check_gpu_ext_stage2.sh
 ```
 
-The custom module switch, trace attach, and system-driver restoration remain explicit manual actions in `scripts/SAFE_GPU_EXT_COMMANDS.sh`. They must only be used during a GPU maintenance window after reviewing active compute and display users.
+The custom module switch, trace attach, and system-driver restoration remain guarded actions in `scripts/SAFE_GPU_EXT_COMMANDS.sh`. They must only be used during a GPU maintenance window after reviewing active compute and display users.
 
 ## Artifacts
 
@@ -187,6 +220,8 @@ Committed lightweight evidence:
 
 - `results/environment.txt`;
 - `results/summary.csv`;
+- `results/prefetch_ab_runs.csv` and `results/prefetch_ab_summary.csv`;
+- `results/stage2_summary.csv` and `results/stage2_trace_summary.csv`;
 - `results/gpu_ext_stage2_preflight.json`;
 - this report and the generated `RESULTS.md`.
 
@@ -199,4 +234,4 @@ Large or machine-specific raw artifacts remain local and are intentionally ignor
 
 ## Remaining Work
 
-The only next step in this experiment is the manually authorized custom-module tracing matrix: baseline, `prefetch_none`, `prefetch_always_max`, and `prefetch_adaptive_sequential`. Oversubscription should remain separate and disabled until the non-oversubscribed trace matrix is stable and detached cleanly.
+The next optional step is a separately guarded, gradually increasing oversubscription experiment to observe eviction behavior. It should not reuse the current no-pressure conclusion, and it must stop on the first Xid, correctness failure, or residual struct_ops.

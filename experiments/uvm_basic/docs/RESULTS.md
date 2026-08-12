@@ -56,11 +56,13 @@ Nsight repeats the run-wide CPU page-fault total in NVTX-filtered `um_total_sum`
 
 ## gpu_ext Trace Counts
 
-- Extension binary preflight: READY_FOR_MANUAL_MODULE_SWITCH
+- Stage 2 status: PASS_GPU_EXT_STAGE2_POLICY_MATRIX
+- Stage 2 run manifests: 80
 - All trace/policy binaries ready: True
-- Custom gpu_ext module loaded: False
-- BPF attached by this experiment: False
-`UNAVAILABLE`: the custom gpu_ext module was not loaded; no BPF policy was attached.
+- Custom gpu_ext module loaded during Stage 2: True
+- All Stage 2 runs correct: True
+- All policy instances detached: True
+Detailed aggregated callback and chunk counts are in `stage2_trace_summary.csv` and `STAGE2_GPU_EXT_RESULTS.md`.
 
 ## Limitations
 

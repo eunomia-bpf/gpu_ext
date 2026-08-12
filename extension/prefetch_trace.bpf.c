@@ -3,7 +3,7 @@
 /*
  * Prefetch Trace Tool - Trace prefetch calls using kprobes
  *
- * Traces uvm_bpf_call_before_compute_prefetch with VA block info
+ * Traces uvm_bpf_call_gpu_page_prefetch with VA block info
  * VA block info is captured from uvm_perf_prefetch_get_hint_va_block
  * and stored in per-CPU map for correlation
  */
@@ -76,7 +76,7 @@ static __always_inline u32 popcount64(u64 x)
  * Hook: uvm_perf_prefetch_get_hint_va_block
  *
  * Captures VA block info and stores it in per-CPU map.
- * This is called BEFORE uvm_bpf_call_before_compute_prefetch.
+ * This is called before uvm_bpf_call_gpu_page_prefetch.
  */
 SEC("kprobe/uvm_perf_prefetch_get_hint_va_block")
 int BPF_KPROBE(trace_get_hint_va_block,
@@ -143,12 +143,12 @@ int BPF_KPROBE(trace_get_hint_va_block,
 }
 
 /*
- * Hook: uvm_bpf_call_before_compute_prefetch
+ * Hook: uvm_bpf_call_gpu_page_prefetch
  *
  * Main event output - combines VA block info from per-CPU cache
  * with prefetch computation parameters.
  */
-SEC("kprobe/uvm_bpf_call_before_compute_prefetch")
+SEC("kprobe/uvm_bpf_call_gpu_page_prefetch")
 int BPF_KPROBE(trace_before_compute,
                u32 page_index,
                uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,

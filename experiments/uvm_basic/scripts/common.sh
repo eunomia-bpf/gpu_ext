@@ -58,3 +58,29 @@ build_uvm_basic() {
     cmake -S "${UVM_BASIC_DIR}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=RelWithDebInfo
     cmake --build "${BUILD_DIR}" --parallel "${JOBS:-4}"
 }
+
+capture_kernel_log() {
+    local output="$1"
+    if dmesg --color=never >"${output}" 2>"${output}.stderr"; then
+        printf 'DMESG\n' >"${output}.source"
+        return 0
+    fi
+    if journalctl -k --no-pager >"${output}" 2>>"${output}.stderr" && [[ -s "${output}" ]] &&
+       ! grep -q 'not seeing messages from other users' "${output}.stderr" &&
+       ! grep -qx -- '-- No entries --' "${output}"; then
+        printf 'JOURNALCTL\n' >"${output}.source"
+        return 0
+    fi
+    printf 'KERNEL_LOG_UNAVAILABLE\n' >"${output}"
+    printf 'UNAVAILABLE\n' >"${output}.source"
+    return 0
+}
+
+xid_count_or_unavailable() {
+    local log="$1"
+    if grep -qx 'KERNEL_LOG_UNAVAILABLE' "${log}"; then
+        printf 'UNAVAILABLE\n'
+    else
+        grep -Eic 'NVRM: Xid|NVIDIA.*Xid' "${log}" || true
+    fi
+}

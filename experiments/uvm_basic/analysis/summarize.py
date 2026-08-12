@@ -164,6 +164,14 @@ def summarize(experiment_dir: Path) -> None:
     um_phases = nsys_um_phases(results)
     stage2_path = results / "gpu_ext_stage2_preflight.json"
     stage2 = json.loads(stage2_path.read_text()) if stage2_path.exists() else {}
+    stage2_manifests = sorted((results / "stage2").glob("*/*/manifest.json"))
+    stage2_data = [json.loads(path.read_text()) for path in stage2_manifests]
+    stage2_pass = (
+        len(stage2_data) == 80
+        and all(item.get("exit_code") == 0 and item.get("correct")
+                and item.get("struct_ops_detached") for item in stage2_data)
+    )
+    stage2_status = "PASS_GPU_EXT_STAGE2_POLICY_MATRIX" if stage2_pass else stage2.get("status", "UNAVAILABLE")
 
     managed = [row for row in summary_rows if row["allocation"] == "managed"]
     device = [row for row in summary_rows if row["allocation"] == "device"]
@@ -247,13 +255,17 @@ def summarize(experiment_dir: Path) -> None:
     ]
     lines += ["", "## gpu_ext Trace Counts", ""]
     lines += [
-        f"- Extension binary preflight: {stage2.get('status', 'UNAVAILABLE')}",
+        f"- Stage 2 status: {stage2_status}",
+        f"- Stage 2 run manifests: {len(stage2_data)}",
         f"- All trace/policy binaries ready: {stage2.get('all_binaries_ready', 'UNAVAILABLE')}",
-        f"- Custom gpu_ext module loaded: {stage2.get('custom_binary_loaded', 'UNAVAILABLE')}",
-        f"- BPF attached by this experiment: {stage2.get('bpf_attached', False)}",
+        f"- Custom gpu_ext module loaded during Stage 2: {stage2.get('custom_binary_loaded', 'UNAVAILABLE')}",
+        f"- All Stage 2 runs correct: {all(item.get('correct') for item in stage2_data) if stage2_data else 'UNAVAILABLE'}",
+        f"- All policy instances detached: {all(item.get('struct_ops_detached') for item in stage2_data) if stage2_data else 'UNAVAILABLE'}",
     ]
-    if not prefetch_counts and not chunk_counts:
-        lines.append("`UNAVAILABLE`: the custom gpu_ext module was not loaded; no BPF policy was attached.")
+    if stage2_pass:
+        lines.append("Detailed aggregated callback and chunk counts are in `stage2_trace_summary.csv` and `STAGE2_GPU_EXT_RESULTS.md`.")
+    elif not prefetch_counts and not chunk_counts:
+        lines.append("`UNAVAILABLE`: no completed gpu_ext trace matrix was found.")
     else:
         for name, count in prefetch_counts.items():
             lines.append(f"- Prefetch callbacks `{name}`: {count}")

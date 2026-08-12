@@ -1,0 +1,31 @@
+SOURCE_ROOT=/home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open/nvidia-uvm
+SOURCE_VERSION=575.57.08
+
+uvm_gpu_replayable_faults.c
+1375: service_fault_batch_block_locked
+1586: call uvm_va_block_service_locked
+1606: service_fault_batch_block
+1628: call service_fault_batch_block_locked
+1946: service_fault_batch_dispatch
+1983: call service_fault_batch_block
+2232: service_fault_batch
+2325: call service_fault_batch_dispatch
+
+uvm_va_block.c
+11828: uvm_va_block_get_prefetch_hint
+11846: call uvm_perf_prefetch_get_hint_va_block
+12307: uvm_va_block_service_locked
+12332: call local prefetch-hint helper
+
+uvm_perf_prefetch.c
+103: compute_prefetch_region
+113: call uvm_bpf_call_gpu_page_prefetch
+324: compute_prefetch_mask
+352: uvm_perf_prefetch_prenotify_fault_migrations
+408: call compute_prefetch_mask
+472: uvm_perf_prefetch_get_hint_va_block
+494: call uvm_perf_prefetch_prenotify_fault_migrations
+
+uvm_bpf_struct_ops.c
+381: uvm_bpf_call_gpu_page_prefetch
+392-395: gpu_mem_ops.gpu_page_prefetch dispatch

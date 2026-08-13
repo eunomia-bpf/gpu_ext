@@ -26,10 +26,11 @@ static const char *hook_names[] = {
     [1] = "ACTIVATE",
     [2] = "POPULATE",
     [3] = "EVICTION_PREPARE",
+    [4] = "EVICTION_SELECTED",
 };
 
 // Statistics
-static __u64 stats[4] = {0};
+static __u64 stats[5] = {0};
 static __u64 va_block_count = 0;  // Count events with VA block info
 static __u64 va_block_null = 0;   // Count events without VA block info
 static __u64 start_time_ns = 0;
@@ -39,11 +40,20 @@ static void sig_handler(int sig)
     exiting = 1;
 }
 
-static __u64 get_time_ns(void)
+static __u64 __attribute__((unused)) get_time_ns(void)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (__u64)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
+
+static __u64 pointer_id(__u64 value)
+{
+    value ^= value >> 33;
+    value *= 0xff51afd7ed558ccdULL;
+    value ^= value >> 33;
+    value *= 0xc4ceb9fe1a85ec53ULL;
+    return value ^ (value >> 33);
 }
 
 static int handle_event(void *ctx, void *data, size_t data_sz)
@@ -56,46 +66,49 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 
     elapsed_ms = (e->timestamp_ns - start_time_ns) / 1000000;
 
-    const char *hook_name = (e->hook_type < 4) ? hook_names[e->hook_type] : "UNKNOWN";
+    const char *hook_name = (e->hook_type < 5) ? hook_names[e->hook_type] : "UNKNOWN";
 
     // CSV output format:
     // time_ms,hook_type,pid,owner_pid,va_space,cpu,chunk_addr,list_addr,va_block,va_start,va_end,va_page_index
 
-    if (e->hook_type == 4) {
+    if (e->hook_type == HOOK_EVICTION_PREPARE) {
         // EVICTION_PREPARE: chunk_addr is used_list, list_addr is unused_list
-        printf("%llu,%s,%u,,,%u,0x%llx,0x%llx,,,,%u\n",
+        printf("%llu,%llu,%s,%u,,,%u,0x%llx,0x%llx,,,,%u\n",
                elapsed_ms,
+               e->timestamp_ns,
                hook_name,
                e->pid,
                e->cpu,
-               e->chunk_addr,  // used_list
-               e->list_addr,   // unused_list
+               pointer_id(e->chunk_addr),  // used_list ID
+               pointer_id(e->list_addr),   // unused_list ID
                e->va_page_index);
     } else {
         // Regular hooks
         if (e->va_block != 0) {
-            printf("%llu,%s,%u,%u,0x%llx,%u,0x%llx,0x%llx,0x%llx,0x%llx,0x%llx,%u\n",
+            printf("%llu,%llu,%s,%u,%u,0x%llx,%u,0x%llx,0x%llx,0x%llx,0x%llx,0x%llx,%u\n",
                    elapsed_ms,
+                   e->timestamp_ns,
                    hook_name,
                    e->pid,
                    e->owner_pid,
-                   e->va_space,
+                   pointer_id(e->va_space),
                    e->cpu,
-                   e->chunk_addr,
-                   e->list_addr,
-                   e->va_block,
+                   pointer_id(e->chunk_addr),
+                   pointer_id(e->list_addr),
+                   pointer_id(e->va_block),
                    e->va_start,
                    e->va_end,
                    e->va_page_index);
             va_block_count++;
         } else {
-            printf("%llu,%s,%u,,,%u,0x%llx,0x%llx,,,,%u\n",
+            printf("%llu,%llu,%s,%u,,,%u,0x%llx,0x%llx,,,,%u\n",
                    elapsed_ms,
+                   e->timestamp_ns,
                    hook_name,
                    e->pid,
                    e->cpu,
-                   e->chunk_addr,
-                   e->list_addr,
+                   pointer_id(e->chunk_addr),
+                   pointer_id(e->list_addr),
                    e->va_page_index);
             va_block_null++;
         }
@@ -104,7 +117,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
     return 0;
 }
 
-static void print_stats(struct chunk_trace_bpf *skel)
+static void __attribute__((unused)) print_stats(struct chunk_trace_bpf *skel)
 {
     int stats_fd = bpf_map__fd(skel->maps.stats);
     __u32 key;
@@ -119,7 +132,7 @@ static void print_stats(struct chunk_trace_bpf *skel)
     printf("--------------------------------------------------------------------------------\n");
 
     // Read all stats
-    for (key = 0; key < 4; key++) {
+    for (key = 0; key < 5; key++) {
         if (bpf_map_lookup_elem(stats_fd, &key, &val) == 0) {
             stats[key] = val;
         }
@@ -128,9 +141,10 @@ static void print_stats(struct chunk_trace_bpf *skel)
     printf("ACTIVATE                  %8llu\n", stats[0]);
     printf("POPULATE                  %8llu\n", stats[1]);
     printf("EVICTION_PREPARE          %8llu\n", stats[2]);
+    printf("EVICTION_SELECTED         %8llu\n", stats[4]);
     printf("--------------------------------------------------------------------------------\n");
     printf("TOTAL                     %8llu\n",
-           stats[0] + stats[1] + stats[2]);
+           stats[0] + stats[1] + stats[2] + stats[4]);
 
     if (stats[3] > 0) {
         printf("\n⚠️  Dropped events:          %8llu\n", stats[3]);
@@ -201,7 +215,7 @@ int main(int argc, char **argv)
     signal(SIGTERM, sig_handler);
 
     // Print CSV header
-    printf("time_ms,hook_type,pid,owner_pid,va_space,cpu,chunk_addr,list_addr,va_block,va_start,va_end,va_page_index\n");
+    printf("time_ms,timestamp_ns,hook_type,pid,owner_pid,va_space_id,cpu,chunk_id,list_id,va_block_id,va_start,va_end,va_page_index\n");
 
     // Process events
     while (!exiting) {

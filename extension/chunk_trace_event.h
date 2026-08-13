@@ -8,6 +8,7 @@
 #define HOOK_ACTIVATE 1
 #define HOOK_POPULATE 2
 #define HOOK_EVICTION_PREPARE 3
+#define HOOK_EVICTION_SELECTED 4
 
 // Event structure shared between BPF and userspace
 struct hook_event {

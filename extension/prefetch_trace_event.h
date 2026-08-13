@@ -8,12 +8,17 @@
 #define HOOK_PREFETCH_BEFORE_COMPUTE 1
 #define HOOK_PREFETCH_ON_TREE_ITER 2
 #define HOOK_PREFETCH_GET_HINT 3
+#define HOOK_PREFETCH_DECISION 4
 
 // Event structure shared between BPF and userspace
 struct prefetch_event {
     __u64 timestamp_ns;
+    __u64 call_id;
     __u32 cpu;
     __u32 hook_type;
+
+    __u32 current_pid;
+    __u32 action;
 
     // Page fault info
     __u32 page_index;           // Triggering page index
@@ -21,6 +26,16 @@ struct prefetch_event {
     // max_prefetch_region
     __u32 max_region_first;     // max_prefetch_region.first
     __u32 max_region_outer;     // max_prefetch_region.outer
+
+    // Policy callback output before UVM traversal and clamping
+    __u32 policy_region_first;
+    __u32 policy_region_outer;
+
+    // Region actually returned by compute_prefetch_region()
+    __u32 final_region_first;
+    __u32 final_region_outer;
+    __u32 final_pages;
+    __u32 reserved;
 
     // bitmap_tree info
     __u32 tree_offset;          // bitmap_tree->offset

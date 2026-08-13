@@ -6,6 +6,7 @@ GPU_EXT_ROOT="$(cd "${UVM_BASIC_DIR}/../.." && pwd)"
 BUILD_DIR="${UVM_BASIC_DIR}/build"
 RESULTS_DIR="${UVM_BASIC_DIR}/results"
 PROGRAM="${BUILD_DIR}/uvm_vector_add"
+PHASE_SCAN_PROGRAM="${BUILD_DIR}/uvm_phase_scan"
 
 mkdir -p "${BUILD_DIR}" "${RESULTS_DIR}"
 

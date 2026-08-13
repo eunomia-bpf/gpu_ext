@@ -27,10 +27,10 @@ static void print_stats(struct prefetch_trace_bpf *skel)
     int stats_fd = bpf_map__fd(skel->maps.stats);
     __u32 key;
     __u64 val;
-    __u64 stats[4] = {0};
+    __u64 stats[5] = {0};
 
     // Read all stats
-    for (key = 0; key < 4; key++) {
+    for (key = 0; key < 5; key++) {
         if (bpf_map_lookup_elem(stats_fd, &key, &val) == 0) {
             stats[key] = val;
         }
@@ -43,8 +43,9 @@ static void print_stats(struct prefetch_trace_bpf *skel)
     fprintf(stderr, "GET_HINT_VA_BLOCK         %8llu\n", stats[0]);
     fprintf(stderr, "BEFORE_COMPUTE            %8llu\n", stats[1]);
     fprintf(stderr, "ON_TREE_ITER              %8llu\n", stats[2]);
+    fprintf(stderr, "FINAL_DECISION            %8llu\n", stats[4]);
     fprintf(stderr, "--------------------------------------------------------------------------------\n");
-    fprintf(stderr, "TOTAL                     %8llu\n", stats[0] + stats[1] + stats[2]);
+    fprintf(stderr, "TOTAL                     %8llu\n", stats[0] + stats[1] + stats[2] + stats[4]);
     if (stats[3] > 0) {
         fprintf(stderr, "DROPPED                   %8llu\n", stats[3]);
     }
@@ -66,11 +67,22 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 
     elapsed_ms = (e->timestamp_ns - start_time_ns) / 1000000;
 
-    // CSV output format:
-    // time_ms,cpu,fault_pid,owner_tgid,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed
-    printf("%llu,%u,%u,%u,0x%llx,0x%llx,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+    const char *event_type = e->hook_type == HOOK_PREFETCH_DECISION ? "DECISION" : "CALLBACK";
+    const char *action_name = "UNAVAILABLE";
+    if (e->hook_type == HOOK_PREFETCH_DECISION) {
+        if (e->action == 0) action_name = "DEFAULT";
+        else if (e->action == 1) action_name = "BYPASS";
+        else if (e->action == 2) action_name = "ENTER_LOOP";
+        else action_name = "UNKNOWN";
+    }
+
+    printf("%llu,%llu,%s,%llu,%u,%u,%u,%u,0x%llx,0x%llx,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
            (unsigned long long)elapsed_ms,
+           (unsigned long long)e->timestamp_ns,
+           event_type,
+           (unsigned long long)e->call_id,
            e->cpu,
+           e->current_pid,
            e->fault_pid,
            e->owner_tgid,
            (unsigned long long)e->va_start,
@@ -80,6 +92,13 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
            e->faulted_outer,
            e->max_region_first,
            e->max_region_outer,
+           e->action,
+           action_name,
+           e->policy_region_first,
+           e->policy_region_outer,
+           e->final_region_first,
+           e->final_region_outer,
+           e->final_pages,
            e->tree_offset,
            e->tree_leaf_count,
            e->tree_level_count,
@@ -131,7 +150,7 @@ int main(int argc, char **argv)
     signal(SIGTERM, sig_handler);
 
     // Print CSV header
-    printf("time_ms,cpu,fault_pid,owner_tgid,va_start,va_end,page_index,faulted_first,faulted_outer,max_first,max_outer,tree_offset,leaf_count,level_count,pages_accessed\n");
+    printf("time_ms,timestamp_ns,event_type,call_id,cpu,current_pid,fault_pid,owner_tgid,va_start,va_end,page_index,faulted_first,faulted_outer,max_candidate_first,max_candidate_outer,action,action_name,policy_result_first,policy_result_outer,final_effective_first,final_effective_outer,final_pages,tree_offset,leaf_count,level_count,pages_accessed\n");
 
     fprintf(stderr, "Tracing prefetch hooks... Press Ctrl-C to stop.\n");
 

@@ -64,13 +64,17 @@ def trace_summary(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     pid = manifest.get("workload_pid")
     prefetch_all = csv_rows(run_dir / "prefetch_trace.csv")
     chunk_all = csv_rows(run_dir / "chunk_trace.csv")
-    prefetch = [row for row in prefetch_all if pid_matches(row, pid, ("fault_pid", "owner_tgid"))]
+    prefetch = [row for row in prefetch_all
+                if row.get("event_type", "CALLBACK") == "CALLBACK"
+                and pid_matches(row, pid, ("fault_pid", "owner_tgid"))]
     chunk = [row for row in chunk_all if pid_matches(row, pid, ("pid", "owner_pid"))]
     hook_counts = Counter(row.get("hook_type", "UNKNOWN") for row in chunk)
     max_pages = []
     page_indices = []
     for row in prefetch:
-        first, outer, index = number(row.get("max_first")), number(row.get("max_outer")), number(row.get("page_index"))
+        first = number(row.get("max_first") or row.get("max_candidate_first"))
+        outer = number(row.get("max_outer") or row.get("max_candidate_outer"))
+        index = number(row.get("page_index"))
         if first is not None and outer is not None and outer >= first: max_pages.append(outer - first)
         if index is not None: page_indices.append(index)
     return {

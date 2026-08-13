@@ -35,16 +35,30 @@ struct {
     __type(value, struct va_block_info);
 } va_block_cache SEC(".maps");
 
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 16384);
+    __type(key, u64);
+    __type(value, u64);
+} active_call_ids SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, u32);
+    __type(value, u64);
+} call_sequence SEC(".maps");
+
 // Ring buffer for outputting events
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, 256 * 1024);
+    __uint(max_entries, 8 * 1024 * 1024);
 } events SEC(".maps");
 
 // Statistics counters
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 4);
+    __uint(max_entries, 5);
     __type(key, u32);
     __type(value, u64);
 } stats SEC(".maps");
@@ -53,6 +67,7 @@ struct {
 #define STAT_BEFORE_COMPUTE 1
 #define STAT_ON_TREE_ITER 2
 #define STAT_DROPPED 3
+#define STAT_DECISION 4
 
 static __always_inline void inc_stat(u32 key)
 {
@@ -158,6 +173,15 @@ int BPF_KPROBE(trace_before_compute,
     struct prefetch_event *e;
     u32 key = 0;
     struct va_block_info *cached_info;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u64 call_id = 0;
+    u64 *sequence;
+
+    sequence = bpf_map_lookup_elem(&call_sequence, &key);
+    if (sequence)
+        call_id = __sync_fetch_and_add(sequence, 1) + 1;
+    if (call_id)
+        bpf_map_update_elem(&active_call_ids, &pid_tgid, &call_id, BPF_ANY);
 
     inc_stat(STAT_BEFORE_COMPUTE);
 
@@ -167,9 +191,14 @@ int BPF_KPROBE(trace_before_compute,
         return 0;
     }
 
+    __builtin_memset(e, 0, sizeof(*e));
+
     e->timestamp_ns = bpf_ktime_get_ns();
+    e->call_id = call_id;
     e->cpu = bpf_get_smp_processor_id();
     e->hook_type = HOOK_PREFETCH_BEFORE_COMPUTE;
+    e->current_pid = (u32)pid_tgid;
+    e->action = 0;
     e->page_index = page_index;
 
     // Get cached VA block info from per-CPU map
@@ -222,6 +251,70 @@ int BPF_KPROBE(trace_before_compute,
         e->pages_accessed = 0;
     }
 
+    bpf_ringbuf_submit(e, 0);
+    return 0;
+}
+
+SEC("kprobe/uvm_bpf_trace_gpu_page_prefetch_decision")
+int BPF_KPROBE(trace_prefetch_decision,
+               u32 page_index,
+               u32 action,
+               uvm_va_block_region_t *max_candidate_region,
+               uvm_va_block_region_t *policy_result_region,
+               uvm_va_block_region_t *final_effective_region)
+{
+    struct prefetch_event *e;
+    struct va_block_info *cached_info;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u64 *call_id;
+    u32 key = 0;
+
+    inc_stat(STAT_DECISION);
+    e = bpf_ringbuf_reserve(&events, sizeof(*e), 0);
+    if (!e) {
+        inc_stat(STAT_DROPPED);
+        bpf_map_delete_elem(&active_call_ids, &pid_tgid);
+        return 0;
+    }
+
+    __builtin_memset(e, 0, sizeof(*e));
+
+    e->timestamp_ns = bpf_ktime_get_ns();
+    call_id = bpf_map_lookup_elem(&active_call_ids, &pid_tgid);
+    e->call_id = call_id ? *call_id : 0;
+    e->cpu = bpf_get_smp_processor_id();
+    e->hook_type = HOOK_PREFETCH_DECISION;
+    e->current_pid = (u32)pid_tgid;
+    e->page_index = page_index;
+    e->action = action;
+
+    cached_info = bpf_map_lookup_elem(&va_block_cache, &key);
+    if (cached_info) {
+        e->va_block = cached_info->va_block;
+        e->va_start = cached_info->va_start;
+        e->va_end = cached_info->va_end;
+        e->faulted_first = cached_info->faulted_first;
+        e->faulted_outer = cached_info->faulted_outer;
+        e->fault_pid = cached_info->fault_pid;
+        e->owner_tgid = cached_info->owner_tgid;
+    }
+
+    if (max_candidate_region) {
+        e->max_region_first = BPF_CORE_READ(max_candidate_region, first);
+        e->max_region_outer = BPF_CORE_READ(max_candidate_region, outer);
+    }
+    if (policy_result_region) {
+        e->policy_region_first = BPF_CORE_READ(policy_result_region, first);
+        e->policy_region_outer = BPF_CORE_READ(policy_result_region, outer);
+    }
+    if (final_effective_region) {
+        e->final_region_first = BPF_CORE_READ(final_effective_region, first);
+        e->final_region_outer = BPF_CORE_READ(final_effective_region, outer);
+        if (e->final_region_outer > e->final_region_first)
+            e->final_pages = e->final_region_outer - e->final_region_first;
+    }
+
+    bpf_map_delete_elem(&active_call_ids, &pid_tgid);
     bpf_ringbuf_submit(e, 0);
     return 0;
 }

@@ -232,6 +232,35 @@ Large or machine-specific raw artifacts remain local and are intentionally ignor
 - phase-level Nsight CSV exports;
 - build products and extension binaries.
 
-## Remaining Work
+## Stage 3 Runtime (2026-08-12 and 2026-08-13)
 
-The next optional step is a separately guarded, gradually increasing oversubscription experiment to observe eviction behavior. It should not reuse the current no-pressure conclusion, and it must stop on the first Xid, correctness failure, or residual struct_ops.
+Status: `PARTIAL_GPU_EXT_STAGE3_STOPPED_AT_RUNTIME_LIMIT`.
+
+Stage 3 adds two minimal probe points to the matching private custom-module tree:
+
+- `uvm_bpf_trace_gpu_page_prefetch_decision()` after action processing and final region clamp;
+- `uvm_bpf_trace_gpu_eviction_selected()` after UVM selects the victim and before eviction starts.
+
+The rebuilt temporary `nvidia-uvm.ko` is version `575.57.08`, has kernel vermagic `6.15.11-gpuext-gpuext`, srcversion `5446825F901EFEAA48651FC`, and SHA256 `c785d8bcf2a953c238140c03ce7d19fc5953c94ac6d159c73e040839effe57a4`. It was loaded temporarily through the reviewed UVM-only switch; no `.ko` was installed. The distribution module was restored at the end with srcversion `182AB87276B2337B4B1A4CD`.
+
+The enhanced `prefetch_trace` now distinguishes callback input, policy output, and final effective region with run-local `call_id`. `chunk_trace` distinguishes eviction preparation from the selected victim and hashes kernel identities before CSV output. The exact schema is in `PREFETCH_TRACE_SCHEMA.md`.
+
+New CUDA modes first passed a distribution-driver smoke test at deliberately small sizes:
+
+- full and page-stride CPU-first-touch-only at 16 MiB;
+- `read-a`, `read-b`, `write-c`, and `vector-add` at 16 MiB;
+- one 64 MiB A-B-A phase scan without oversubscription.
+
+The enhanced runtime then established:
+
+- callback/final-decision one-to-one correlation and complete candidate/policy/final region semantics;
+- `prefetch_none` CPU first-touch slowdown from fine-grained empty-region decisions;
+- exact A/B/C migration attribution, disproving the old 620.757 MB `always_max` interpretation;
+- a complete, correct 0.95x four-policy matrix with no selected eviction;
+- 13,355 selected evictions and 602 proven A-B-A refaulted VA blocks at 1.05x custom no-policy.
+
+The first 1.05x run exposed an auxiliary verifier allocation bug after pressure. The verifier was changed to reserve its fixed 4096-index state before the scan, and the corrected no-policy matrix passed. `prefetch_none` then exceeded the unchanged 300 s limit on its first corrected 1.05x timing run. It was not retried and the timeout was not relaxed.
+
+A later bounded continuation completed 23 additional runs: always-max and adaptive at 1.05x, plus no-policy, always-max, and adaptive timing/trace/Nsight characterization at 1.10x. All 23 returned zero, passed correctness, detached cleanly, and reported no new Xid. At 1.10x, selected-eviction counts were approximately 14.7k and same-block refault counts were approximately 1.2k for all three tested policies. `prefetch_none` remains missing at 1.10x, so the four-policy Stage 3C prerequisite is not complete and Stage 3D was not run. Full details are in `STAGE3_RESULTS.md`.
+
+All policies detached, no Xid or correctness failure occurred in completed runs, GPU memory returned to 0 MiB, and the distribution UVM module was restored after both runtime windows. No GPU setting, full NVIDIA module stack, or permanent system module was changed.

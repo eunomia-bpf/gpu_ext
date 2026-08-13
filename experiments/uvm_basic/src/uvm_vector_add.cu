@@ -54,6 +54,10 @@ struct Options {
     bool cpu_prefetch_before_retouch = false;
     std::string after_retouch = "legacy";
     bool stop_after_hot = false;
+    bool stop_after_cpu_first_touch = false;
+    std::string cpu_first_touch = "full";
+    bool prefetch_cpu_before_first_touch = false;
+    std::string kernel_mode = "vector-add";
     bool verify = true;
     std::string output;
 };
@@ -136,6 +140,9 @@ void usage(const char *program)
               << " --cpu-retouch none|page|full --gpu-prefetch yes|no"
               << " --cpu-prefetch-before-retouch yes|no --verify yes|no"
               << " --after-retouch demand|prefetch --stop-after-hot yes|no"
+              << " --stop-after-cpu-first-touch yes|no --cpu-first-touch full|page"
+              << " --prefetch-cpu-before-first-touch yes|no"
+              << " --kernel-mode vector-add|read-a|read-b|write-c"
               << " --output FILE\n";
 }
 
@@ -157,6 +164,12 @@ Options parse_args(int argc, char **argv)
             options.cpu_prefetch_before_retouch = parse_yes_no(value());
         else if (arg == "--after-retouch") options.after_retouch = value();
         else if (arg == "--stop-after-hot") options.stop_after_hot = parse_yes_no(value());
+        else if (arg == "--stop-after-cpu-first-touch")
+            options.stop_after_cpu_first_touch = parse_yes_no(value());
+        else if (arg == "--cpu-first-touch") options.cpu_first_touch = value();
+        else if (arg == "--prefetch-cpu-before-first-touch")
+            options.prefetch_cpu_before_first_touch = parse_yes_no(value());
+        else if (arg == "--kernel-mode") options.kernel_mode = value();
         else if (arg == "--verify") options.verify = parse_yes_no(value());
         else if (arg == "--output") options.output = value();
         else if (arg == "--help" || arg == "-h") {
@@ -188,6 +201,17 @@ Options parse_args(int argc, char **argv)
     if (options.after_retouch != "legacy" &&
         (options.cpu_prefetch_before_retouch || options.gpu_prefetch))
         throw std::invalid_argument("after-retouch cannot be combined with legacy prefetch options");
+    if (options.cpu_first_touch != "full" && options.cpu_first_touch != "page")
+        throw std::invalid_argument("cpu-first-touch must be full or page");
+    if (options.cpu_first_touch == "page" && !options.stop_after_cpu_first_touch)
+        throw std::invalid_argument("page CPU first touch is only valid with stop-after-cpu-first-touch");
+    if (options.stop_after_cpu_first_touch && options.allocation != "managed")
+        throw std::invalid_argument("stop-after-cpu-first-touch requires managed allocation");
+    if (options.kernel_mode != "vector-add" && options.kernel_mode != "read-a" &&
+        options.kernel_mode != "read-b" && options.kernel_mode != "write-c")
+        throw std::invalid_argument("unsupported kernel-mode: " + options.kernel_mode);
+    if (options.allocation == "device" && options.kernel_mode != "vector-add")
+        throw std::invalid_argument("array-isolation kernel modes require managed allocation");
     return options;
 }
 
@@ -209,6 +233,38 @@ __global__ void vector_add(const float *a, const float *b, float *c, size_t elem
     const size_t stride = static_cast<size_t>(blockDim.x) * gridDim.x;
     for (size_t i = index; i < elements; i += stride)
         c[i] = a[i] + b[i];
+}
+
+__global__ void read_only_checksum(const float *input,
+                                   size_t elements,
+                                   unsigned long long *checksum)
+{
+    const size_t index = static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const size_t stride = static_cast<size_t>(blockDim.x) * gridDim.x;
+    unsigned long long local = 0;
+    for (size_t i = index; i < elements; i += stride)
+        local += static_cast<unsigned long long>(__float_as_uint(input[i]));
+    if (local)
+        atomicAdd(checksum, local);
+}
+
+__global__ void write_constant(float *output, size_t elements, float value)
+{
+    const size_t index = static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    const size_t stride = static_cast<size_t>(blockDim.x) * gridDim.x;
+    for (size_t i = index; i < elements; i += stride)
+        output[i] = value;
+}
+
+__global__ void verify_constant_samples(const float *values,
+                                        float expected,
+                                        const size_t *indices,
+                                        size_t count,
+                                        unsigned int *mismatches)
+{
+    const size_t i = static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if (i < count && fabsf(values[indices[i]] - expected) > 1.0e-5f)
+        atomicAdd(mismatches, 1U);
 }
 
 __global__ void verify_samples(const float *a,
@@ -257,6 +313,9 @@ public:
         const double bandwidth = milliseconds > 0.0
                                      ? logical_bytes / (milliseconds * 1.0e6)
                                      : 0.0;
+        const auto end_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            Clock::now().time_since_epoch()).count();
+        const auto start_ns = end_ns - static_cast<long long>(milliseconds * 1.0e6);
         output_ << "{\"run_id\":\"" << json_escape(run_id_)
                 << "\",\"phase\":\"" << json_escape(phase)
                 << "\",\"allocation\":\"" << options_.allocation
@@ -270,7 +329,15 @@ public:
                 << ",\"cpu_prefetch_before_retouch\":"
                 << (options_.cpu_prefetch_before_retouch ? "true" : "false")
                 << ",\"stop_after_hot\":" << (options_.stop_after_hot ? "true" : "false")
+                << ",\"stop_after_cpu_first_touch\":"
+                << (options_.stop_after_cpu_first_touch ? "true" : "false")
+                << ",\"cpu_first_touch_pattern\":\"" << options_.cpu_first_touch << "\""
+                << ",\"prefetch_cpu_before_first_touch\":"
+                << (options_.prefetch_cpu_before_first_touch ? "true" : "false")
+                << ",\"kernel_mode\":\"" << options_.kernel_mode << "\""
                 << ",\"elapsed_ms\":" << std::fixed << std::setprecision(6) << milliseconds
+                << ",\"monotonic_start_ns\":" << start_ns
+                << ",\"monotonic_end_ns\":" << end_ns
                 << ",\"bandwidth_gbps\":" << bandwidth
                 << ",\"logical_bytes\":" << std::fixed << std::setprecision(0) << logical_bytes
                 << ",\"cuda_device_id\":" << device_
@@ -286,6 +353,30 @@ public:
                   << std::setw(14) << std::fixed << std::setprecision(3) << milliseconds
                   << std::setw(14) << std::setprecision(3) << bandwidth
                   << std::setw(11) << (skipped ? "SKIP" : (correct ? "yes" : "NO")) << '\n';
+    }
+
+    void allocation_addresses(const float *a, const float *b, const float *c)
+    {
+        auto address = [](const void *pointer) {
+            return static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(pointer));
+        };
+        output_ << "{\"run_id\":\"" << json_escape(run_id_)
+                << "\",\"phase\":\"allocation_addresses\",\"allocation\":\""
+                << options_.allocation << "\",\"bytes_per_array\":" << options_.bytes
+                << ",\"a_base\":\"0x" << std::hex << address(a)
+                << "\",\"a_end\":\"0x" << address(a) + options_.bytes
+                << "\",\"b_base\":\"0x" << address(b)
+                << "\",\"b_end\":\"0x" << address(b) + options_.bytes
+                << "\",\"c_base\":\"0x" << address(c)
+                << "\",\"c_end\":\"0x" << address(c) + options_.bytes
+                << "\",\"a_base_u64\":" << std::dec << address(a)
+                << ",\"a_end_u64\":" << address(a) + options_.bytes
+                << ",\"b_base_u64\":" << address(b)
+                << ",\"b_end_u64\":" << address(b) + options_.bytes
+                << ",\"c_base_u64\":" << address(c)
+                << ",\"c_end_u64\":" << address(c) + options_.bytes
+                << ",\"correct\":true,\"evidence_class\":\"PROGRAM_ALLOCATION_RANGE\"}\n";
+        output_.flush();
     }
 
 private:
@@ -363,23 +454,84 @@ bool verify_on_gpu(const float *a,
     return mismatches == 0;
 }
 
+bool verify_constant_on_gpu(const float *values,
+                            float expected,
+                            const size_t *device_indices,
+                            size_t sample_count,
+                            unsigned int *device_mismatches)
+{
+    CUDA_CHECK(cudaMemset(device_mismatches, 0, sizeof(*device_mismatches)));
+    constexpr unsigned int threads = 256;
+    const unsigned int blocks = static_cast<unsigned int>((sample_count + threads - 1) / threads);
+    verify_constant_samples<<<blocks, threads>>>(values, expected, device_indices,
+                                                 sample_count, device_mismatches);
+    CUDA_CHECK(cudaGetLastError());
+    unsigned int mismatches = 0;
+    CUDA_CHECK(cudaMemcpy(&mismatches, device_mismatches, sizeof(mismatches),
+                          cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaDeviceSynchronize());
+    return mismatches == 0;
+}
+
+unsigned long long expected_read_checksum(float value, size_t elements, int iterations)
+{
+    uint32_t bits = 0;
+    static_assert(sizeof(bits) == sizeof(value), "float bit width changed");
+    std::memcpy(&bits, &value, sizeof(bits));
+    return static_cast<unsigned long long>(bits) * elements *
+           static_cast<unsigned long long>(iterations);
+}
+
 float launch_timed(const Options &options,
                    const float *a,
                    const float *b,
                    float *c,
                    size_t elements,
-                   cudaStream_t stream)
+                   cudaStream_t stream,
+                   unsigned long long *device_checksum = nullptr)
 {
     const unsigned int threads = 256;
     const size_t requested_blocks = (elements + threads - 1) / threads;
     const unsigned int blocks = static_cast<unsigned int>(std::min<size_t>(requested_blocks, 65535));
+    if ((options.kernel_mode == "read-a" || options.kernel_mode == "read-b") && !device_checksum)
+        throw std::invalid_argument("read-only kernel mode requires a checksum allocation");
+    if (device_checksum)
+        CUDA_CHECK(cudaMemsetAsync(device_checksum, 0, sizeof(*device_checksum), stream));
     CudaEventPair events;
     return events.measure(stream, [&] {
         for (int iteration = 0; iteration < options.iterations; ++iteration) {
-            vector_add<<<blocks, threads, 0, stream>>>(a, b, c, elements);
+            if (options.kernel_mode == "read-a")
+                read_only_checksum<<<blocks, threads, 0, stream>>>(a, elements, device_checksum);
+            else if (options.kernel_mode == "read-b")
+                read_only_checksum<<<blocks, threads, 0, stream>>>(b, elements, device_checksum);
+            else if (options.kernel_mode == "write-c")
+                write_constant<<<blocks, threads, 0, stream>>>(c, elements, 3.0f);
+            else
+                vector_add<<<blocks, threads, 0, stream>>>(a, b, c, elements);
             CUDA_CHECK(cudaGetLastError());
         }
     });
+}
+
+bool verify_kernel_mode(const Options &options,
+                        const float *a,
+                        const float *b,
+                        const float *c,
+                        const size_t *device_indices,
+                        size_t sample_count,
+                        unsigned int *device_mismatches,
+                        unsigned long long *device_checksum,
+                        size_t elements)
+{
+    if (options.kernel_mode == "read-a" || options.kernel_mode == "read-b") {
+        unsigned long long observed = 0;
+        CUDA_CHECK(cudaMemcpy(&observed, device_checksum, sizeof(observed), cudaMemcpyDeviceToHost));
+        const float expected_value = options.kernel_mode == "read-a" ? 1.0f : 2.0f;
+        return observed == expected_read_checksum(expected_value, elements, options.iterations);
+    }
+    if (options.kernel_mode == "write-c")
+        return verify_constant_on_gpu(c, 3.0f, device_indices, sample_count, device_mismatches);
+    return verify_on_gpu(a, b, c, device_indices, sample_count, device_mismatches);
 }
 
 void run_managed(const Options &options, Recorder &recorder, int device, long page_size)
@@ -389,6 +541,7 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
     float *c = nullptr;
     size_t *device_indices = nullptr;
     unsigned int *device_mismatches = nullptr;
+    unsigned long long *device_checksum = nullptr;
     cudaStream_t stream = nullptr;
     const size_t elements = options.bytes / sizeof(float);
     const auto indices = sample_indices(elements);
@@ -401,6 +554,7 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
         CUDA_CHECK(cudaMallocManaged(&c, options.bytes));
         CUDA_CHECK(cudaMalloc(&device_indices, indices.size() * sizeof(size_t)));
         CUDA_CHECK(cudaMalloc(&device_mismatches, sizeof(*device_mismatches)));
+        CUDA_CHECK(cudaMalloc(&device_checksum, sizeof(*device_checksum)));
         CUDA_CHECK(cudaStreamCreate(&stream));
         CUDA_CHECK(cudaMemcpy(device_indices, indices.data(), indices.size() * sizeof(size_t),
                               cudaMemcpyHostToDevice));
@@ -410,32 +564,68 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
         recorder.row("allocation", elapsed_ms(allocation_start, allocation_end),
                      0.0, true, "cudaMemGetInfo is auxiliary, not residency proof",
                      free_after, total_after);
+        recorder.allocation_addresses(a, b, c);
+
+        if (options.prefetch_cpu_before_first_touch) {
+            NvtxRange range("prefetch_cpu_before_first_touch");
+            const auto start = Clock::now();
+            CUDA_CHECK(cudaMemPrefetchAsync(a, options.bytes, cudaCpuDeviceId, stream));
+            CUDA_CHECK(cudaMemPrefetchAsync(b, options.bytes, cudaCpuDeviceId, stream));
+            CUDA_CHECK(cudaMemPrefetchAsync(c, options.bytes, cudaCpuDeviceId, stream));
+            CUDA_CHECK(cudaStreamSynchronize(stream));
+            recorder.row("prefetch_cpu_before_first_touch", elapsed_ms(start, Clock::now()),
+                         3.0 * options.bytes, true);
+        }
 
         {
             NvtxRange range("cpu_first_touch");
             const auto start = Clock::now();
-            for (size_t i = 0; i < elements; ++i) {
+            const size_t stride = options.cpu_first_touch == "page"
+                                      ? std::max<size_t>(1, static_cast<size_t>(page_size) / sizeof(float))
+                                      : 1;
+            size_t touched = 0;
+            for (size_t i = 0; i < elements; i += stride) {
                 a[i] = 1.0f;
                 b[i] = 2.0f;
                 c[i] = 0.0f;
+                ++touched;
             }
             const auto end = Clock::now();
-            recorder.row("cpu_first_touch", elapsed_ms(start, end), 3.0 * options.bytes, true);
+            bool cpu_correct = true;
+            const size_t sample_step = std::max<size_t>(1, touched / 2048);
+            size_t sample_number = 0;
+            for (size_t i = 0; i < elements; i += stride) {
+                if ((sample_number++ % sample_step) != 0)
+                    continue;
+                if (a[i] != 1.0f || b[i] != 2.0f || c[i] != 0.0f) {
+                    cpu_correct = false;
+                    break;
+                }
+            }
+            recorder.row("cpu_first_touch", elapsed_ms(start, end),
+                         3.0 * touched * sizeof(float), cpu_correct);
+            if (!cpu_correct)
+                throw std::runtime_error("CPU first-touch verification failed");
         }
+
+        if (options.stop_after_cpu_first_touch)
+            goto managed_cleanup;
 
         {
             NvtxRange range("kernel_1_demand");
-            const float time = launch_timed(options, a, b, c, elements, stream);
-            const bool correct = !options.verify || verify_on_gpu(a, b, c, device_indices,
-                                                                  indices.size(), device_mismatches);
+            const float time = launch_timed(options, a, b, c, elements, stream, device_checksum);
+            const bool correct = !options.verify || verify_kernel_mode(
+                options, a, b, c, device_indices, indices.size(), device_mismatches,
+                device_checksum, elements);
             recorder.row("kernel_1_demand", time, 3.0 * options.bytes * options.iterations, correct);
             if (!correct) throw std::runtime_error("kernel_1_demand verification failed");
         }
         {
             NvtxRange range("kernel_2_hot");
-            const float time = launch_timed(options, a, b, c, elements, stream);
-            const bool correct = !options.verify || verify_on_gpu(a, b, c, device_indices,
-                                                                  indices.size(), device_mismatches);
+            const float time = launch_timed(options, a, b, c, elements, stream, device_checksum);
+            const bool correct = !options.verify || verify_kernel_mode(
+                options, a, b, c, device_indices, indices.size(), device_mismatches,
+                device_checksum, elements);
             recorder.row("kernel_2_hot", time, 3.0 * options.bytes * options.iterations, correct);
             if (!correct) throw std::runtime_error("kernel_2_hot verification failed");
         }
@@ -499,9 +689,10 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
             {
                 const std::string phase = "kernel_after_retouch_" + options.after_retouch;
                 NvtxRange range(phase.c_str());
-                const float time = launch_timed(options, a, b, c, elements, stream);
-                const bool correct = !options.verify || verify_on_gpu(
-                    a, b, c, device_indices, indices.size(), device_mismatches);
+                const float time = launch_timed(options, a, b, c, elements, stream, device_checksum);
+                const bool correct = !options.verify || verify_kernel_mode(
+                    options, a, b, c, device_indices, indices.size(), device_mismatches,
+                    device_checksum, elements);
                 recorder.row(phase, time, 3.0 * options.bytes * options.iterations, correct);
                 if (!correct) throw std::runtime_error(phase + " verification failed");
             }
@@ -550,9 +741,10 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
 
         {
             NvtxRange range("kernel_3_after_cpu_touch");
-            const float time = launch_timed(options, a, b, c, elements, stream);
-            const bool correct = !options.verify || verify_on_gpu(a, b, c, device_indices,
-                                                                  indices.size(), device_mismatches);
+            const float time = launch_timed(options, a, b, c, elements, stream, device_checksum);
+            const bool correct = !options.verify || verify_kernel_mode(
+                options, a, b, c, device_indices, indices.size(), device_mismatches,
+                device_checksum, elements);
             recorder.row("kernel_3_after_cpu_touch", time,
                          3.0 * options.bytes * options.iterations, correct);
             if (!correct) throw std::runtime_error("kernel_3_after_cpu_touch verification failed");
@@ -573,9 +765,10 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
             }
             {
                 NvtxRange range("kernel_4_after_gpu_prefetch");
-                const float time = launch_timed(options, a, b, c, elements, stream);
-                const bool correct = !options.verify || verify_on_gpu(a, b, c, device_indices,
-                                                                      indices.size(), device_mismatches);
+                const float time = launch_timed(options, a, b, c, elements, stream, device_checksum);
+                const bool correct = !options.verify || verify_kernel_mode(
+                    options, a, b, c, device_indices, indices.size(), device_mismatches,
+                    device_checksum, elements);
                 recorder.row("kernel_4_after_gpu_prefetch", time,
                              3.0 * options.bytes * options.iterations, correct);
                 if (!correct) throw std::runtime_error("kernel_4_after_gpu_prefetch verification failed");
@@ -589,6 +782,7 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
     }
     catch (...) {
         if (stream) cuda_cleanup(cudaStreamDestroy(stream), "cudaStreamDestroy");
+        if (device_checksum) cuda_cleanup(cudaFree(device_checksum), "cudaFree(checksum)");
         if (device_mismatches) cuda_cleanup(cudaFree(device_mismatches), "cudaFree(mismatches)");
         if (device_indices) cuda_cleanup(cudaFree(device_indices), "cudaFree(indices)");
         if (c) cuda_cleanup(cudaFree(c), "cudaFree(C)");
@@ -598,6 +792,7 @@ void run_managed(const Options &options, Recorder &recorder, int device, long pa
     }
 managed_cleanup:
     CUDA_CHECK(cudaStreamDestroy(stream));
+    CUDA_CHECK(cudaFree(device_checksum));
     CUDA_CHECK(cudaFree(device_mismatches));
     CUDA_CHECK(cudaFree(device_indices));
     CUDA_CHECK(cudaFree(c));

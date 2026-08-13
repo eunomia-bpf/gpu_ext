@@ -20,13 +20,13 @@ char LICENSE[] SEC("license") = "GPL";
 // Ring buffer for outputting events
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, 256 * 1024);
+    __uint(max_entries, 8 * 1024 * 1024);
 } events SEC(".maps");
 
 // Statistics counters
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 4);
+    __uint(max_entries, 5);
     __type(key, u32);
     __type(value, u64);
 } stats SEC(".maps");
@@ -35,6 +35,7 @@ struct {
 #define STAT_POPULATE 1
 #define STAT_EVICTION_PREPARE 2
 #define STAT_DROPPED 3
+#define STAT_EVICTION_SELECTED 4
 
 static __always_inline void inc_stat(u32 key)
 {
@@ -140,5 +141,14 @@ int BPF_KPROBE(trace_eviction_prepare, void *pmm, void *used_list, void *unused_
     inc_stat(STAT_EVICTION_PREPARE);
     // For eviction_prepare, chunk_addr stores used_list, list_addr stores unused_list
     submit_event(HOOK_EVICTION_PREPARE, (u64)used_list, (u64)unused_list);
+    return 0;
+}
+
+/* Hook 4: the exact victim selected by UVM, before eviction starts. */
+SEC("kprobe/uvm_bpf_trace_gpu_eviction_selected")
+int BPF_KPROBE(trace_eviction_selected, void *chunk)
+{
+    inc_stat(STAT_EVICTION_SELECTED);
+    submit_event(HOOK_EVICTION_SELECTED, (u64)chunk, 0);
     return 0;
 }

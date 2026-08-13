@@ -21,6 +21,21 @@ The independent-process prefetch A/B results are in [docs/PREFETCH_AB_RESULTS.md
 
 Static module-version evidence for the UVM-only switch is documented in [docs/UVM_ONLY_COMPATIBILITY.md](docs/UVM_ONLY_COMPATIBILITY.md). Stage 2 completed as `PASS_GPU_EXT_STAGE2_POLICY_MATRIX`; the distribution UVM module was restored afterward.
 
+## Stage 3
+
+Stage 3 added a closed prefetch-decision schema, CPU-first-touch and per-array migration diagnostics, and a guarded A-B-A managed-memory phase scan. The complete 0.95x matrix passed. At 1.05x, `prefetch_none` exceeded the fixed 300 s limit and remains a recorded resource limit; it was not retried. A bounded continuation completed no-policy, always-max, and adaptive characterization at 1.10x, including trace and Nsight evidence, without unlocking Stage 3D. The exact partial status and restoration evidence are in [docs/STAGE3_RESULTS.md](docs/STAGE3_RESULTS.md).
+
+Non-privileged preparation:
+
+```bash
+bash scripts/check_stage3.sh
+python3 analysis/analyze_prefetch_decisions.py --experiment-dir .
+python3 analysis/analyze_eviction_refault.py --experiment-dir .
+python3 analysis/summarize_stage3.py --experiment-dir .
+```
+
+All module switching, BPF attachment, and oversubscription commands remain isolated in the intentionally non-executable `scripts/SAFE_STAGE3_COMMANDS.sh`. The runtime used that reviewed path, detached every policy, and restored the distribution `nvidia_uvm`.
+
 ## Evidence Boundary
 
 - CUDA Event timing compares demand access, hot access, CPU retouch, and explicit prefetch.

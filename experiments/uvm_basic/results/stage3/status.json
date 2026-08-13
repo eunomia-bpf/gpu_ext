@@ -1,0 +1,43 @@
+{
+  "evidence_class": "GPU_EXT_STAGE3_STATUS",
+  "full_four_policy_ratios": [
+    "0.95"
+  ],
+  "full_pass": false,
+  "joint_policy_executed": false,
+  "observed_ratios": [
+    "0.95",
+    "1.05",
+    "1.10"
+  ],
+  "runtime_limits": [
+    {
+      "exit_code": 124,
+      "policy": "prefetch_none",
+      "ratio": "1.05",
+      "run_dir": "results/stage3/oversub/prefetch_none/1.05/20260812T214954Z_timing_r1",
+      "run_kind": "timing"
+    }
+  ],
+  "status": "PARTIAL_GPU_EXT_STAGE3_STOPPED_AT_RUNTIME_LIMIT",
+  "successful_timing_runs": {
+    "0.95": {
+      "custom_no_policy": 3,
+      "prefetch_adaptive_sequential": 3,
+      "prefetch_always_max": 3,
+      "prefetch_none": 3
+    },
+    "1.05": {
+      "custom_no_policy": 3,
+      "prefetch_adaptive_sequential": 3,
+      "prefetch_always_max": 3,
+      "prefetch_none": 0
+    },
+    "1.10": {
+      "custom_no_policy": 3,
+      "prefetch_adaptive_sequential": 3,
+      "prefetch_always_max": 3,
+      "prefetch_none": 0
+    }
+  }
+}

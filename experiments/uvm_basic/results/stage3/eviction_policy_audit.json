@@ -1,0 +1,126 @@
+[
+  {
+    "bounded_state": false,
+    "direct_list_operation": false,
+    "high_frequency_printk": true,
+    "hooks": [
+      "gpu_block_access",
+      "gpu_block_activate",
+      "gpu_evict_prepare"
+    ],
+    "initial_oversub_suitable": false,
+    "kfuncs": [],
+    "move_head": false,
+    "move_tail": false,
+    "policy": "eviction_fifo",
+    "sleepable_kfunc_or_wq": false,
+    "source": "/home/peng/workspace/gpu_ext/extension/eviction_fifo.bpf.c"
+  },
+  {
+    "bounded_state": true,
+    "direct_list_operation": false,
+    "high_frequency_printk": false,
+    "hooks": [
+      "gpu_block_access",
+      "gpu_block_activate",
+      "gpu_evict_prepare"
+    ],
+    "initial_oversub_suitable": true,
+    "kfuncs": [
+      "bpf_gpu_block_move_tail"
+    ],
+    "move_head": false,
+    "move_tail": true,
+    "policy": "eviction_cycle_moe",
+    "sleepable_kfunc_or_wq": false,
+    "source": "/home/peng/workspace/gpu_ext/extension/eviction_cycle_moe.bpf.c"
+  },
+  {
+    "bounded_state": true,
+    "direct_list_operation": false,
+    "high_frequency_printk": false,
+    "hooks": [
+      "gpu_block_access",
+      "gpu_block_activate",
+      "gpu_evict_prepare",
+      "gpu_page_prefetch",
+      "gpu_page_prefetch_iter",
+      "gpu_test_trigger"
+    ],
+    "initial_oversub_suitable": true,
+    "kfuncs": [
+      "bpf_gpu_block_move_tail",
+      "bpf_gpu_set_prefetch_region"
+    ],
+    "move_head": false,
+    "move_tail": true,
+    "policy": "prefetch_always_max_cycle_moe",
+    "sleepable_kfunc_or_wq": false,
+    "source": "/home/peng/workspace/gpu_ext/extension/prefetch_always_max_cycle_moe.bpf.c"
+  },
+  {
+    "bounded_state": true,
+    "direct_list_operation": false,
+    "high_frequency_printk": false,
+    "hooks": [
+      "gpu_block_access",
+      "gpu_block_activate",
+      "gpu_evict_prepare",
+      "gpu_page_prefetch",
+      "gpu_page_prefetch_iter",
+      "gpu_test_trigger"
+    ],
+    "initial_oversub_suitable": false,
+    "kfuncs": [
+      "bpf_gpu_block_move_tail",
+      "bpf_gpu_migrate_range",
+      "bpf_gpu_set_prefetch_region"
+    ],
+    "move_head": false,
+    "move_tail": true,
+    "policy": "prefetch_cooperative",
+    "sleepable_kfunc_or_wq": true,
+    "source": "/home/peng/workspace/gpu_ext/extension/prefetch_cooperative.bpf.c"
+  },
+  {
+    "bounded_state": true,
+    "direct_list_operation": false,
+    "high_frequency_printk": true,
+    "hooks": [
+      "gpu_block_access",
+      "gpu_block_activate",
+      "gpu_evict_prepare"
+    ],
+    "initial_oversub_suitable": false,
+    "kfuncs": [
+      "bpf_gpu_block_insert_after",
+      "bpf_gpu_block_move_head",
+      "bpf_gpu_block_move_tail"
+    ],
+    "move_head": true,
+    "move_tail": true,
+    "policy": "eviction_lfu",
+    "sleepable_kfunc_or_wq": false,
+    "source": "/home/peng/workspace/gpu_ext/extension/eviction_lfu.bpf.c"
+  },
+  {
+    "bounded_state": false,
+    "direct_list_operation": false,
+    "high_frequency_printk": true,
+    "hooks": [
+      "gpu_block_access",
+      "gpu_block_activate",
+      "gpu_evict_prepare"
+    ],
+    "initial_oversub_suitable": false,
+    "kfuncs": [
+      "bpf_gpu_block_move_head",
+      "bpf_gpu_block_move_tail"
+    ],
+    "move_head": true,
+    "move_tail": true,
+    "policy": "eviction_mru",
+    "sleepable_kfunc_or_wq": false,
+    "source": "/home/peng/workspace/gpu_ext/extension/eviction_mru.bpf.c"
+  }
+]

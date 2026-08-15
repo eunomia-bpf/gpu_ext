@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <random>
 #include <sstream>
@@ -37,12 +38,37 @@ using Clock = std::chrono::steady_clock;
 
 struct Options {
     size_t total_bytes = 0;
+    size_t reserve_device_bytes = 0;
+    size_t target_effective_gpu_bytes = 0;
+    size_t safety_headroom_bytes = 1ULL << 30;
     double working_set_ratio = 0.80;
     double region_a_ratio = 0.50;
     int cycles = 1;
     int gpu_id = 0;
     bool verify = true;
+    bool reserve_touch = true;
+    bool reserve_verify = true;
     std::string output;
+};
+
+struct CapacityInfo {
+    size_t gpu_total_bytes = 0;
+    size_t gpu_free_before_reserve = 0;
+    size_t reserve_requested_bytes = 0;
+    size_t reserve_actual_bytes = 0;
+    size_t gpu_free_after_reserve = 0;
+    size_t safety_headroom_bytes = 0;
+    size_t effective_gpu_capacity_bytes = 0;
+    size_t target_effective_gpu_bytes = 0;
+    bool reserve_touched = false;
+    bool reserve_verified = false;
+    bool reduced_capacity = false;
+
+    const char *evidence_class() const
+    {
+        return reduced_capacity ? "REDUCED_EFFECTIVE_GPU_CAPACITY"
+                                : "NATURAL_GPU_CAPACITY";
+    }
 };
 
 struct NvtxRange {
@@ -97,6 +123,13 @@ Options parse_args(int argc, char **argv)
             return std::string(argv[i]);
         };
         if (arg == "--total-bytes") options.total_bytes = parse_size(next());
+        else if (arg == "--reserve-device-bytes") options.reserve_device_bytes = parse_size(next());
+        else if (arg == "--target-effective-gpu-bytes")
+            options.target_effective_gpu_bytes = parse_size(next());
+        else if (arg == "--safety-headroom-bytes")
+            options.safety_headroom_bytes = parse_size(next());
+        else if (arg == "--reserve-touch") options.reserve_touch = yes_no(next());
+        else if (arg == "--reserve-verify") options.reserve_verify = yes_no(next());
         else if (arg == "--working-set-ratio") options.working_set_ratio = std::stod(next());
         else if (arg == "--region-a-ratio") options.region_a_ratio = std::stod(next());
         else if (arg == "--cycles") options.cycles = std::stoi(next());
@@ -105,7 +138,10 @@ Options parse_args(int argc, char **argv)
         else if (arg == "--output") options.output = next();
         else if (arg == "--help" || arg == "-h") {
             std::cout << "uvm_phase_scan --total-bytes SIZE|auto --working-set-ratio R "
-                         "--region-a-ratio R --cycles N --gpu-id N --verify yes|no --output FILE\n";
+                         "--region-a-ratio R --cycles N --gpu-id N --verify yes|no "
+                         "[--reserve-device-bytes SIZE | --target-effective-gpu-bytes SIZE] "
+                         "[--reserve-touch yes|no] [--reserve-verify yes|no] "
+                         "[--safety-headroom-bytes SIZE] --output FILE\n";
             std::exit(0);
         }
         else throw std::invalid_argument("unknown argument: " + arg);
@@ -115,6 +151,11 @@ Options parse_args(int argc, char **argv)
     if (!(options.region_a_ratio > 0.0 && options.region_a_ratio < 1.0))
         throw std::invalid_argument("region-a-ratio must be in (0, 1)");
     if (options.cycles <= 0) throw std::invalid_argument("cycles must be positive");
+    if (options.reserve_device_bytes && options.target_effective_gpu_bytes)
+        throw std::invalid_argument("reserve-device-bytes and target-effective-gpu-bytes are exclusive");
+    if (options.reserve_verify && !options.reserve_touch &&
+        (options.reserve_device_bytes || options.target_effective_gpu_bytes))
+        throw std::invalid_argument("reserve-verify requires reserve-touch");
     if (options.output.empty()) throw std::invalid_argument("--output is required");
     return options;
 }
@@ -147,8 +188,8 @@ std::string run_id()
 
 class Recorder {
 public:
-    Recorder(const Options &options, const std::string &id, size_t free_bytes, size_t total_bytes)
-        : options_(options), id_(id), free_bytes_(free_bytes), total_bytes_(total_bytes),
+    Recorder(const Options &options, const CapacityInfo &capacity, const std::string &id)
+        : options_(options), capacity_(capacity), id_(id),
           output_(options.output, std::ios::app)
     {
         if (!output_) throw std::runtime_error("cannot open output: " + options.output);
@@ -167,9 +208,11 @@ public:
                 << ",\"total_working_set\":" << options_.total_bytes
                 << ",\"requested_working_set_ratio\":" << options_.working_set_ratio
                 << ",\"actual_working_set_ratio\":"
-                << static_cast<double>(options_.total_bytes) / static_cast<double>(free_bytes_)
-                << ",\"usable_gpu_memory\":" << free_bytes_
-                << ",\"gpu_memory_total\":" << total_bytes_
+                << static_cast<double>(options_.total_bytes) /
+                       static_cast<double>(capacity_.effective_gpu_capacity_bytes)
+                << ",\"usable_gpu_memory\":" << capacity_.effective_gpu_capacity_bytes
+                << ",\"gpu_memory_total\":" << capacity_.gpu_total_bytes
+                << ",\"capacity_model\":\"" << capacity_.evidence_class() << "\""
                 << ",\"region_a_ratio\":" << options_.region_a_ratio
                 << ",\"cycles\":" << options_.cycles
                 << ",\"correct\":" << (correct ? "true" : "false")
@@ -178,6 +221,30 @@ public:
         std::cout << std::left << std::setw(28) << phase << std::right
                   << std::setw(12) << std::fixed << std::setprecision(3) << elapsed_ms
                   << " ms  " << (correct ? "PASS" : "FAIL") << '\n';
+    }
+
+    void capacity()
+    {
+        output_ << "{\"run_id\":\"" << id_
+                << "\",\"phase\":\"capacity_manifest\""
+                << ",\"gpu_total_bytes\":" << capacity_.gpu_total_bytes
+                << ",\"gpu_free_before_reserve\":" << capacity_.gpu_free_before_reserve
+                << ",\"reserve_requested_bytes\":" << capacity_.reserve_requested_bytes
+                << ",\"reserve_actual_bytes\":" << capacity_.reserve_actual_bytes
+                << ",\"gpu_free_after_reserve\":" << capacity_.gpu_free_after_reserve
+                << ",\"safety_headroom_bytes\":" << capacity_.safety_headroom_bytes
+                << ",\"target_effective_gpu_bytes\":" << capacity_.target_effective_gpu_bytes
+                << ",\"effective_gpu_capacity_bytes\":"
+                << capacity_.effective_gpu_capacity_bytes
+                << ",\"managed_working_set_bytes\":" << options_.total_bytes
+                << ",\"working_set_ratio\":"
+                << static_cast<double>(options_.total_bytes) /
+                       static_cast<double>(capacity_.effective_gpu_capacity_bytes)
+                << ",\"reserve_touched\":" << (capacity_.reserve_touched ? "true" : "false")
+                << ",\"reserve_verified\":" << (capacity_.reserve_verified ? "true" : "false")
+                << ",\"correct\":true,\"evidence_class\":\""
+                << capacity_.evidence_class() << "\"}\n";
+        output_.flush();
     }
 
     void allocation(const float *buffer)
@@ -194,11 +261,41 @@ public:
 
 private:
     const Options &options_;
+    const CapacityInfo &capacity_;
     std::string id_;
-    size_t free_bytes_;
-    size_t total_bytes_;
     std::ofstream output_;
 };
+
+size_t aligned_down(size_t value, size_t alignment)
+{
+    return value / alignment * alignment;
+}
+
+size_t select_target_capacity(size_t requested, size_t free_bytes, size_t headroom)
+{
+    constexpr size_t gib = 1ULL << 30;
+    const size_t candidates[] = {requested, 6ULL * gib, 4ULL * gib};
+    for (const size_t candidate : candidates) {
+        if (candidate >= 4ULL * gib && free_bytes > candidate &&
+            free_bytes - candidate > headroom)
+            return candidate;
+    }
+    throw std::runtime_error("cannot retain the minimum 4 GiB effective GPU capacity");
+}
+
+bool verify_reserve_bytes(unsigned char *reserve, size_t bytes)
+{
+    constexpr size_t sample_size = 64;
+    unsigned char first[sample_size] = {};
+    unsigned char last[sample_size] = {};
+    CUDA_CHECK(cudaMemcpy(first, reserve, sample_size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(last, reserve + bytes - sample_size, sample_size,
+                          cudaMemcpyDeviceToHost));
+    return std::all_of(std::begin(first), std::end(first),
+                       [](unsigned char value) { return value == 0xa5; }) &&
+           std::all_of(std::begin(last), std::end(last),
+                       [](unsigned char value) { return value == 0xa5; });
+}
 
 double run_phase(float *buffer, size_t begin, size_t count, cudaStream_t stream)
 {
@@ -226,6 +323,7 @@ double run_phase(float *buffer, size_t begin, size_t count, cudaStream_t stream)
 int main(int argc, char **argv)
 {
     float *buffer = nullptr;
+    unsigned char *reserve_buffer = nullptr;
     size_t *device_indices = nullptr;
     unsigned int *device_mismatches = nullptr;
     size_t verification_count = 0;
@@ -233,14 +331,78 @@ int main(int argc, char **argv)
     try {
         Options options = parse_args(argc, argv);
         CUDA_CHECK(cudaSetDevice(options.gpu_id));
-        size_t free_bytes = 0, total_bytes = 0;
-        CUDA_CHECK(cudaMemGetInfo(&free_bytes, &total_bytes));
         const size_t page_size = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+        if (page_size == 0) throw std::runtime_error("invalid system page size");
+
+        CUDA_CHECK(cudaStreamCreate(&stream));
+
+        // Fixed verifier allocations must not consume capacity after the reserve is established.
+        if (options.verify) {
+            CUDA_CHECK(cudaMalloc(&device_indices, 4096 * sizeof(size_t)));
+            CUDA_CHECK(cudaMalloc(&device_mismatches, sizeof(*device_mismatches)));
+        }
+
+        CapacityInfo capacity;
+        CUDA_CHECK(cudaMemGetInfo(&capacity.gpu_free_before_reserve,
+                                  &capacity.gpu_total_bytes));
+        const bool reduced_capacity = options.reserve_device_bytes != 0 ||
+                                      options.target_effective_gpu_bytes != 0;
+        capacity.reduced_capacity = reduced_capacity;
+        capacity.safety_headroom_bytes = reduced_capacity ? options.safety_headroom_bytes : 0;
+        capacity.target_effective_gpu_bytes = options.target_effective_gpu_bytes;
+
+        if (options.target_effective_gpu_bytes) {
+            capacity.target_effective_gpu_bytes = select_target_capacity(
+                options.target_effective_gpu_bytes,
+                capacity.gpu_free_before_reserve,
+                capacity.safety_headroom_bytes);
+            capacity.reserve_requested_bytes = aligned_down(
+                capacity.gpu_free_before_reserve - capacity.safety_headroom_bytes -
+                    capacity.target_effective_gpu_bytes,
+                page_size);
+        }
+        else {
+            capacity.reserve_requested_bytes = aligned_down(options.reserve_device_bytes,
+                                                             page_size);
+        }
+
+        if (capacity.reserve_requested_bytes) {
+            if (capacity.reserve_requested_bytes < 64)
+                throw std::invalid_argument("reserve-device-bytes must be at least 64 bytes");
+            CUDA_CHECK(cudaMalloc(&reserve_buffer, capacity.reserve_requested_bytes));
+            if (options.reserve_touch) {
+                CUDA_CHECK(cudaMemsetAsync(reserve_buffer, 0xa5,
+                                           capacity.reserve_requested_bytes, stream));
+                CUDA_CHECK(cudaStreamSynchronize(stream));
+                capacity.reserve_touched = true;
+            }
+            if (options.reserve_verify) {
+                capacity.reserve_verified = verify_reserve_bytes(
+                    reserve_buffer, capacity.reserve_requested_bytes);
+                if (!capacity.reserve_verified)
+                    throw std::runtime_error("reserve buffer verification failed");
+            }
+        }
+
+        CUDA_CHECK(cudaMemGetInfo(&capacity.gpu_free_after_reserve, &capacity.gpu_total_bytes));
+        capacity.reserve_actual_bytes =
+            capacity.gpu_free_before_reserve > capacity.gpu_free_after_reserve
+                ? capacity.gpu_free_before_reserve - capacity.gpu_free_after_reserve
+                : 0;
+        if (capacity.gpu_free_after_reserve <= capacity.safety_headroom_bytes)
+            throw std::runtime_error("reserve leaves no effective GPU capacity");
+        capacity.effective_gpu_capacity_bytes =
+            capacity.gpu_free_after_reserve - capacity.safety_headroom_bytes;
+        if (reduced_capacity && capacity.effective_gpu_capacity_bytes < (4ULL << 30))
+            throw std::runtime_error("effective GPU capacity is below the 4 GiB safety floor");
+
         if (!options.total_bytes) {
-            const long double requested = static_cast<long double>(free_bytes) * options.working_set_ratio;
+            const long double requested =
+                static_cast<long double>(capacity.effective_gpu_capacity_bytes) *
+                options.working_set_ratio;
             if (requested > static_cast<long double>(std::numeric_limits<size_t>::max()))
                 throw std::overflow_error("derived working set overflows size_t");
-            options.total_bytes = static_cast<size_t>(requested) / page_size * page_size;
+            options.total_bytes = aligned_down(static_cast<size_t>(requested), page_size);
         }
         if (options.total_bytes < 2 * page_size || options.total_bytes % sizeof(float))
             throw std::invalid_argument("total working set is too small or misaligned");
@@ -252,11 +414,10 @@ int main(int argc, char **argv)
         const size_t region_b_begin = region_a_elements;
 
         CUDA_CHECK(cudaMallocManaged(&buffer, options.total_bytes));
-        CUDA_CHECK(cudaStreamCreate(&stream));
-        Recorder recorder(options, run_id(), free_bytes, total_bytes);
+        Recorder recorder(options, capacity, run_id());
+        recorder.capacity();
         recorder.allocation(buffer);
 
-        // Reserve the fixed-size verifier state before oversubscription fills GPU memory.
         if (options.verify) {
             std::vector<size_t> indices;
             verification_count = std::min<size_t>(4096, elements);
@@ -265,8 +426,6 @@ int main(int argc, char **argv)
             std::uniform_int_distribution<size_t> distribution(0, elements - 1);
             for (size_t i = 0; i < verification_count; ++i)
                 indices.push_back(distribution(generator));
-            CUDA_CHECK(cudaMalloc(&device_indices, indices.size() * sizeof(size_t)));
-            CUDA_CHECK(cudaMalloc(&device_mismatches, sizeof(*device_mismatches)));
             CUDA_CHECK(cudaMemcpy(device_indices, indices.data(), indices.size() * sizeof(size_t),
                                   cudaMemcpyHostToDevice));
         }
@@ -316,8 +475,9 @@ int main(int argc, char **argv)
 
         if (device_mismatches) CUDA_CHECK(cudaFree(device_mismatches));
         if (device_indices) CUDA_CHECK(cudaFree(device_indices));
-        CUDA_CHECK(cudaStreamDestroy(stream));
         CUDA_CHECK(cudaFree(buffer));
+        if (reserve_buffer) CUDA_CHECK(cudaFree(reserve_buffer));
+        CUDA_CHECK(cudaStreamDestroy(stream));
         CUDA_CHECK(cudaDeviceSynchronize());
         return 0;
     }
@@ -325,8 +485,9 @@ int main(int argc, char **argv)
         std::cerr << "uvm_phase_scan: " << error.what() << '\n';
         if (device_mismatches) cudaFree(device_mismatches);
         if (device_indices) cudaFree(device_indices);
-        if (stream) cudaStreamDestroy(stream);
         if (buffer) cudaFree(buffer);
+        if (reserve_buffer) cudaFree(reserve_buffer);
+        if (stream) cudaStreamDestroy(stream);
         return 1;
     }
 }

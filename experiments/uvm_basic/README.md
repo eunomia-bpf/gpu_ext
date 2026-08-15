@@ -36,6 +36,10 @@ python3 analysis/summarize_stage3.py --experiment-dir .
 
 All module switching, BPF attachment, and oversubscription commands remain isolated in the intentionally non-executable `scripts/SAFE_STAGE3_COMMANDS.sh`. The runtime used that reviewed path, detached every policy, and restored the distribution `nvidia_uvm`.
 
+## Stage 4
+
+Stage 4 adds a `cudaMalloc` reserve buffer that is physically touched before the managed workload, allowing pressure to be expressed against a measured effective capacity rather than the A30's nominal capacity. The implementation and static policy audit are ready, but the reduced-capacity matrix has not been run because it requires a manual custom-UVM switch. See [docs/STAGE4_RESULTS.md](docs/STAGE4_RESULTS.md) and the intentionally non-executable `scripts/SAFE_STAGE4_COMMANDS.sh`.
+
 ## Evidence Boundary
 
 - CUDA Event timing compares demand access, hot access, CPU retouch, and explicit prefetch.

@@ -1,0 +1,95 @@
+import csv
+import importlib.util
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
+audit = load("stage4_audit", ROOT / "analysis" / "audit_eviction_policies.py")
+summary = load("stage4_summary", ROOT / "analysis" / "summarize_stage4.py")
+
+
+class Stage4AuditTests(unittest.TestCase):
+    def test_requested_candidates_are_conservative(self):
+        data = audit.audit(ROOT.parents[1] / "extension")
+        items = {item["policy"]: item for item in data["policies"]}
+        self.assertFalse(items["eviction_fifo"]["suitable_for_initial_pressure_test"])
+        self.assertTrue(items["prefetch_always_max_cycle_moe"]["suitable_for_initial_pressure_test"])
+        self.assertFalse(items["prefetch_cooperative"]["suitable_for_initial_pressure_test"])
+        self.assertTrue(items["prefetch_cooperative"]["uses_bpf_wq"])
+        self.assertTrue(items["prefetch_cooperative"]["calls_bpf_gpu_migrate_range"])
+
+    def test_move_head_activate_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad.bpf.c"
+            path.write_text(
+                'SEC("struct_ops/gpu_block_activate")\n'
+                'int BPF_PROG(gpu_block_activate, void *p, void *c, void *l) {'
+                ' bpf_gpu_block_move_head(c, l); return 1; }\n'
+                'SEC(".struct_ops") struct gpu_mem_ops x = {};\n'
+            )
+            item = audit.audit_file(path)
+            self.assertIsNotNone(item)
+            self.assertFalse(item["suitable_for_initial_pressure_test"])
+            self.assertTrue(any("move_head" in reason for reason in item["rejection_reasons"]))
+
+
+class Stage4SummaryTests(unittest.TestCase):
+    def test_reduced_capacity_grouping_and_trace_actions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "reduced_capacity" / "prefetch_always_max" / "1.10" / "run"
+            root.mkdir(parents=True)
+            (root / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "evidence_class": "GPU_EXT_STAGE4_RUN",
+                        "experiment": "reduced_capacity",
+                        "policy": "prefetch_always_max",
+                        "ratio": "1.10",
+                        "run_kind": "trace",
+                        "correct": True,
+                        "struct_ops_detached": True,
+                        "xid_delta": 0,
+                    }
+                )
+            )
+            rows = [
+                {
+                    "phase": "capacity_manifest",
+                    "evidence_class": "REDUCED_EFFECTIVE_GPU_CAPACITY",
+                    "effective_gpu_capacity_bytes": 8 << 30,
+                    "managed_working_set_bytes": int(8 * 1.1 * (1 << 30)),
+                },
+                *({"phase": phase, "elapsed_ms": index + 1, "correct": True}
+                  for index, phase in enumerate(summary.PHASES)),
+            ]
+            (root / "program.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+            with (root / "prefetch_decision_trace.csv").open("w", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=["action_name", "final_pages"])
+                writer.writeheader()
+                writer.writerow({"action_name": "BYPASS", "final_pages": "512"})
+            (root / "chunk_trace.csv").write_text(
+                "hook_type,timestamp_ns,va_start\nEVICTION_SELECTED,2,0x1000\n"
+            )
+            result = summary.summarize(summary.collect(Path(tmp)))
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0]["capacity_model"], "REDUCED_EFFECTIVE_GPU_CAPACITY")
+            self.assertEqual(result[0]["action_bypass_count"], 1)
+            self.assertEqual(result[0]["final_pages_mean"], 512.0)
+            self.assertEqual(result[0]["selected_eviction_count"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

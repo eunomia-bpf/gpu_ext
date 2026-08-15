@@ -11,6 +11,9 @@ INDEX="1"
 FIRST_TOUCH="full"
 PREFETCH_CPU="no"
 KERNEL_MODE="vector-add"
+TARGET_EFFECTIVE=""
+RESERVE_BYTES=""
+SAFETY_HEADROOM="1G"
 
 while (($#)); do
     case "$1" in
@@ -22,6 +25,9 @@ while (($#)); do
         --first-touch) FIRST_TOUCH="$2"; shift 2 ;;
         --prefetch-cpu) PREFETCH_CPU="$2"; shift 2 ;;
         --kernel-mode) KERNEL_MODE="$2"; shift 2 ;;
+        --target-effective) TARGET_EFFECTIVE="$2"; shift 2 ;;
+        --reserve-bytes) RESERVE_BYTES="$2"; shift 2 ;;
+        --safety-headroom) SAFETY_HEADROOM="$2"; shift 2 ;;
         *) echo "Unknown argument: $1" >&2; exit 2 ;;
     esac
 done
@@ -161,6 +167,20 @@ case "${EXPERIMENT}" in
             --region-a-ratio 0.5 --cycles 1 --gpu-id "${CUDA_DEVICE:-0}"
             --verify yes --output "${RUN_DIR}/program.jsonl")
         ;;
+    reduced_capacity|joint_stage4|natural_stage4)
+        WORKLOAD=("${PHASE_SCAN_PROGRAM}" --total-bytes auto --working-set-ratio "${RATIO}"
+            --region-a-ratio 0.5 --cycles 1 --gpu-id "${CUDA_DEVICE:-0}"
+            --verify yes --output "${RUN_DIR}/program.jsonl")
+        if [[ -n "${TARGET_EFFECTIVE}" ]]; then
+            WORKLOAD+=(--target-effective-gpu-bytes "${TARGET_EFFECTIVE}"
+                --reserve-touch yes --reserve-verify yes
+                --safety-headroom-bytes "${SAFETY_HEADROOM}")
+        elif [[ -n "${RESERVE_BYTES}" ]]; then
+            WORKLOAD+=(--reserve-device-bytes "${RESERVE_BYTES}"
+                --reserve-touch yes --reserve-verify yes
+                --safety-headroom-bytes "${SAFETY_HEADROOM}")
+        fi
+        ;;
     *) echo "Unknown experiment: ${EXPERIMENT}" >&2; exit 2 ;;
 esac
 
@@ -217,7 +237,8 @@ printf '%s\n' "${RC}" >"${RUN_DIR}/exit_code"
 python3 - "${RUN_DIR}" "${EXPERIMENT}" "${POLICY}" "${KIND}" "${RATIO}" \
     "${INDEX}" "${RC}" "${TRACE_START_NS}" "${WORKLOAD_START_NS}" "${WORKLOAD_END_NS}" \
     "${FIRST_TOUCH}" "${PREFETCH_CPU}" "${KERNEL_MODE}" "${CLEANUP_OK}" \
-    "${GPU_USED_BEFORE}" "${GPU_USED_AFTER}" "${ACTIVE_AFTER}" <<'PY'
+    "${GPU_USED_BEFORE}" "${GPU_USED_AFTER}" "${ACTIVE_AFTER}" \
+    "${GPU_EXT_RUN_EVIDENCE_CLASS:-GPU_EXT_STAGE3_RUN}" <<'PY'
 import json, re, sys
 from pathlib import Path
 root = Path(sys.argv[1])
@@ -229,7 +250,7 @@ before = (root / "kernel_log_before.txt").read_text(errors="replace")
 after = (root / "kernel_log_after.txt").read_text(errors="replace")
 xid = lambda text: len(re.findall(r"NVRM:\s*Xid|NVIDIA.*Xid", text, re.I))
 data = {
-    "evidence_class": "GPU_EXT_STAGE3_RUN",
+    "evidence_class": sys.argv[18],
     "experiment": sys.argv[2], "policy": sys.argv[3], "run_kind": sys.argv[4],
     "ratio": sys.argv[5], "repetition": int(sys.argv[6]), "exit_code": int(sys.argv[7]),
     "trace_start_monotonic_ns": int(sys.argv[8]) if sys.argv[8] else None,

@@ -1,0 +1,2062 @@
+{
+  "approved_for_smoke": [
+    "prefetch_always_max_cycle_moe"
+  ],
+  "evidence_class": "SOURCE_STATIC_AUDIT",
+  "extension_dir": "/home/peng/workspace/gpu_ext/extension",
+  "limitations": [
+    "Static approval is necessary but not sufficient; attach/detach and runtime smoke remain required.",
+    "The audit does not prove semantic correctness of NVIDIA UVM list ordering."
+  ],
+  "policies": [
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_cycle_moe.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail"
+      ],
+      "maps": [
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "eviction_cycle_moe",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "behavior depends on gpu_block_access, which is not a reliable current hook"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 2,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_fifo.bpf.c",
+      "kfunc_calls": [],
+      "maps": [],
+      "non_fixed_map_key": false,
+      "policy": "eviction_fifo",
+      "rejection_reasons": [
+        "contains bpf_printk in a memory-management hot path",
+        "behavior depends on gpu_block_access, which is not a reliable current hook",
+        "FIFO comments claim list ordering but the implementation does not reorder chunks"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": true,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_fifo_chance.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail"
+      ],
+      "maps": [
+        {
+          "max_entries": "8",
+          "name": "policy_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "65536",
+          "name": "chunk_states",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "256",
+          "name": "pid_chunk_count",
+          "type": "BPF_MAP_TYPE_HASH"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "eviction_fifo_chance",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "behavior depends on gpu_block_access, which is not a reliable current hook"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_freq_pid_decay.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail"
+      ],
+      "maps": [
+        {
+          "max_entries": "8",
+          "name": "policy_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "256",
+          "name": "pid_chunk_count",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "65536",
+          "name": "active_chunks",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "65536",
+          "name": "chunk_access_count",
+          "type": "BPF_MAP_TYPE_HASH"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "eviction_freq_pid_decay",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "behavior depends on gpu_block_access, which is not a reliable current hook"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 2,
+      "calls_bpf_gpu_block_move_head": true,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_lfu.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_insert_after",
+        "bpf_gpu_block_move_head",
+        "bpf_gpu_block_move_tail"
+      ],
+      "maps": [
+        {
+          "max_entries": "100000",
+          "name": "chunk_freq",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "MAX_FREQ + 1",
+          "name": "freq_to_chunk",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "lfu_global",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "eviction_lfu",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "gpu_block_activate calls bpf_gpu_block_move_head",
+        "contains bpf_printk in a memory-management hot path",
+        "behavior depends on gpu_block_access, which is not a reliable current hook"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_lfu_xcoord.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail"
+      ],
+      "maps": [
+        {
+          "max_entries": "8",
+          "name": "policy_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "256",
+          "name": "pid_chunk_count",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "65536",
+          "name": "active_chunks",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "65536",
+          "name": "chunk_access_count",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "XCOORD_MAX_PIDS",
+          "name": "gpu_state_map",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "XCOORD_MAX_WORKERS",
+          "name": "uvm_worker_pids",
+          "type": "BPF_MAP_TYPE_HASH"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "eviction_lfu_xcoord",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "behavior depends on gpu_block_access, which is not a reliable current hook"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 2,
+      "calls_bpf_gpu_block_move_head": true,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_mru.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_head",
+        "bpf_gpu_block_move_tail"
+      ],
+      "maps": [],
+      "non_fixed_map_key": false,
+      "policy": "eviction_mru",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path",
+        "behavior depends on gpu_block_access, which is not a reliable current hook"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/eviction_pid_quota.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail"
+      ],
+      "maps": [
+        {
+          "max_entries": "8",
+          "name": "policy_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "256",
+          "name": "pid_chunk_count",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "65536",
+          "name": "active_chunks",
+          "type": "BPF_MAP_TYPE_HASH"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "eviction_pid_quota",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "behavior depends on gpu_block_access, which is not a reliable current hook"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 4,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/gpu_sched_set_timeslices.bpf.c",
+      "kfunc_calls": [],
+      "maps": [
+        {
+          "max_entries": "256",
+          "name": "process_timeslice",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "8",
+          "name": "stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "256 * 1024",
+          "name": "gpu_trace_events",
+          "type": "BPF_MAP_TYPE_RINGBUF"
+        },
+        {
+          "max_entries": "32",
+          "name": "timeslice_history",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "history_index",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "gpu_sched_set_timeslices",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "on_bind",
+        "on_task_destroy",
+        "on_task_init"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 3,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_adaptive_sequential.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "prefetch_pct_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "prefetch_direction_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "prefetch_num_pages_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_adaptive_sequential",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 2,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_adaptive_tree_iter.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "threshold_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_adaptive_tree_iter",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 2,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_always_max.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_always_max",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "APPROVED_FOR_SMOKE",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_always_max_cycle_moe.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_always_max_cycle_moe",
+      "rejection_reasons": [],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": true,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": true,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": true,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_always_max_qos.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_head",
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "XCOORD_MAX_PIDS",
+          "name": "gpu_state_map",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "XCOORD_MAX_WORKERS",
+          "name": "uvm_worker_pids",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "MAX_LC_PIDS",
+          "name": "lc_pid_array",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "8",
+          "name": "stats",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_always_max_qos",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "gpu_block_activate calls bpf_gpu_block_move_head"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_always_max_xcoord.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "XCOORD_MAX_PIDS",
+          "name": "gpu_state_map",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "XCOORD_MAX_WORKERS",
+          "name": "uvm_worker_pids",
+          "type": "BPF_MAP_TYPE_HASH"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_always_max_xcoord",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": true,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_cooperative.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "9",
+          "name": "prefetch_ring",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "coop_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_cooperative",
+      "rejection_reasons": [
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_cross_block_v2.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "4",
+          "name": "xb_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "10",
+          "name": "xb_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_cross_block_v2",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 2,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_eviction_pid.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "8",
+          "name": "policy_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1024",
+          "name": "pid_stats",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_pid_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "65536",
+          "name": "active_chunks",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "65536",
+          "name": "chunk_access_count",
+          "type": "BPF_MAP_TYPE_HASH"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_eviction_pid",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_faiss_phase.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "phase_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "fp_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_faiss_phase",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_faiss_uprobe.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "phase_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "fu_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_faiss_uprobe",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": true,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_gnn_proactive.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_space_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "feature_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1024",
+          "name": "alloc_args_map",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "1",
+          "name": "pending_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "sync_state_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "MAX_PREFETCH_BLOCKS",
+          "name": "proactive_wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "XB_WQ_SLOTS",
+          "name": "xb_wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "gnn_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_gnn_proactive",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_llama_phase.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "phase_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "lp_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_llama_phase",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": true,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_max_mru_expert.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_head",
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_max_mru_expert",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "gpu_block_activate calls bpf_gpu_block_move_head"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_max_passive_mru.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_max_passive_mru",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": true,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_moe_expert.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "model_buffer_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "BITMAP_WORDS",
+          "name": "fault_bitmap_current",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "BITMAP_WORDS",
+          "name": "fault_bitmap_prev",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_space_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "token_stats_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "16",
+          "name": "debug_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "first_block_start",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "target_tgid_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1024",
+          "name": "alloc_args_map",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "1",
+          "name": "pending_prefetch_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_sync_ns_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_moe_expert",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 1,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_none.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_none",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 1,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_pid_tree.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "8",
+          "name": "policy_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1024",
+          "name": "pid_stats",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_pid_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_pid_tree",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_proactive_layer.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "config_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "MAX_LAYERS",
+          "name": "layer_boundaries",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "state_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_proactive_layer",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_reuse_dist.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "last_access_time",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "ewma_reuse",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "rd_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_reuse_dist",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_serving_adaptive.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "4",
+          "name": "sa_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "stat_prefetch",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "stat_skip",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "fault_tracker",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_serving_adaptive",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 1,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_stride.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "8",
+          "name": "policy_config",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "4096",
+          "name": "stride_map",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "global_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "prefetch_stride",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": true,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_stride_multiblock.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "stride_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "384",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "12",
+          "name": "sm_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_stride_multiblock",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": true,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": true,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_template_belady.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_head",
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "config_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "MAX_LAYERS",
+          "name": "layer_boundaries",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "65536",
+          "name": "va_to_layer_map",
+          "type": "BPF_MAP_TYPE_HASH"
+        },
+        {
+          "max_entries": "1",
+          "name": "state_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_template_belady",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "gpu_block_activate calls bpf_gpu_block_move_head"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_throttled_xb.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "fault_rate",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "txb_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_throttled_xb",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_vllm_phase.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "phase_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "vp_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_vllm_phase",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 0,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": true,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": true,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/prefetch_vllm_phase_transparent.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "phase_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "faults_since_decode",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "va_block_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "direction_cache",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "COUNTER_SLOTS",
+          "name": "access_counts",
+          "type": "BPF_MAP_TYPE_PERCPU_ARRAY"
+        },
+        {
+          "max_entries": "64",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "last_prefetch_target",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "NUM_STATS",
+          "name": "vtp_stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "prefetch_vllm_phase_transparent",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    },
+    {
+      "bpf_printk_count": 6,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/struct_ops.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_strstr"
+      ],
+      "maps": [],
+      "non_fixed_map_key": false,
+      "policy": "struct_ops",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 3,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": false,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/test_chunk_access.bpf.c",
+      "kfunc_calls": [],
+      "maps": [
+        {
+          "max_entries": "1024",
+          "name": "chunk_freq",
+          "type": "BPF_MAP_TYPE_HASH"
+        }
+      ],
+      "non_fixed_map_key": false,
+      "policy": "test_chunk_access",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_block_access",
+        "gpu_block_activate",
+        "gpu_evict_prepare"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": false
+    },
+    {
+      "bpf_printk_count": 4,
+      "calls_bpf_gpu_block_move_head": false,
+      "calls_bpf_gpu_block_move_tail": false,
+      "calls_bpf_gpu_migrate_range": true,
+      "combines_prefetch_and_eviction": false,
+      "contains_loop": false,
+      "decision": "REJECTED_INITIAL_STAGE4",
+      "direct_list_head_access": false,
+      "file": "/home/peng/workspace/gpu_ext/extension/test_uprobe_prefetch.bpf.c",
+      "kfunc_calls": [
+        "bpf_gpu_migrate_range",
+        "bpf_gpu_set_prefetch_region"
+      ],
+      "maps": [
+        {
+          "max_entries": "1",
+          "name": "va_space_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "pending_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "1",
+          "name": "wq_map",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        },
+        {
+          "max_entries": "4",
+          "name": "stats",
+          "type": "BPF_MAP_TYPE_ARRAY"
+        }
+      ],
+      "non_fixed_map_key": true,
+      "policy": "test_uprobe_prefetch",
+      "rejection_reasons": [
+        "not in the explicitly scoped Stage 4 initial candidate set",
+        "uses bpf_wq; bounded completion and context safety are not proven",
+        "performs cross-VA-block migration via bpf_gpu_migrate_range",
+        "contains bpf_printk in a memory-management hot path"
+      ],
+      "struct_ops_hooks": [
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_test_trigger"
+      ],
+      "suitable_for_initial_pressure_test": false,
+      "uses_bpf_wq": true
+    }
+  ],
+  "schema_version": "1.0"
+}

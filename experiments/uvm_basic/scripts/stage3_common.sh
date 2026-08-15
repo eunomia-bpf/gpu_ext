@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
-STAGE3_RESULTS="${RESULTS_DIR}/stage3"
+STAGE3_RESULTS="${STAGE3_RESULTS:-${RESULTS_DIR}/stage3}"
 EXTENSION_DIR="${GPU_EXT_ROOT}/extension"
 CUSTOM_UVM="${GPU_EXT_CUSTOM_UVM:-/home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open/nvidia-uvm.ko}"
 mkdir -p "${STAGE3_RESULTS}"

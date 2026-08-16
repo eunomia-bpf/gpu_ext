@@ -171,6 +171,13 @@ def collect(results: Path) -> list[dict[str, object]]:
         root = manifest_path.parent
         program = read_jsonl(root / "program.jsonl")
         capacity = next((row for row in program if row.get("phase") == "capacity_manifest"), {})
+        capacity_model = capacity.get("evidence_class", "UNKNOWN")
+        if capacity_model == "REDUCED_EFFECTIVE_GPU_CAPACITY":
+            capacity_model = "LEGACY_MATHEMATICAL_HEADROOM_MODEL"
+        snapshots = {
+            str(row.get("checkpoint")): integer(row.get("gpu_free_bytes"))
+            for row in program if row.get("phase") == "gpu_memory_snapshot"
+        }
         phases = {
             phase: [float(row["elapsed_ms"]) for row in program if row.get("phase") == phase]
             for phase in PHASES
@@ -184,9 +191,21 @@ def collect(results: Path) -> list[dict[str, object]]:
                 "policy": manifest.get("policy"),
                 "ratio": str(manifest.get("ratio")),
                 "kind": manifest.get("run_kind"),
-                "capacity_model": capacity.get("evidence_class", "UNKNOWN"),
+                "capacity_model": capacity_model,
                 "effective_capacity": capacity.get("effective_gpu_capacity_bytes"),
                 "working_set": capacity.get("managed_working_set_bytes"),
+                "actual_ratio": capacity.get("actual_working_set_ratio",
+                                             capacity.get("working_set_ratio")),
+                "main_reserve": capacity.get("main_reserve_allocated_bytes"),
+                "guard": capacity.get("guard_allocated_bytes"),
+                "gpu_free_initial": capacity.get("gpu_free_initial"),
+                "gpu_free_after_main_reserve": capacity.get("gpu_free_after_main_reserve"),
+                "gpu_free_after_guard": capacity.get("gpu_free_after_guard"),
+                "capacity_target_relative_error": capacity.get("capacity_target_relative_error"),
+                "working_set_ratio_error": capacity.get("working_set_ratio_error"),
+                "region_a_bytes": capacity.get("region_a_bytes"),
+                "region_b_bytes": capacity.get("region_b_bytes"),
+                "snapshots": snapshots,
                 "correct": bool(manifest.get("correct")),
                 "detached": bool(manifest.get("struct_ops_detached")),
                 "xid_delta": int(manifest.get("xid_delta", 0)),
@@ -204,14 +223,14 @@ def summarize(runs: list[dict[str, object]]) -> list[dict[str, object]]:
     for run in runs:
         key = (
             run["capacity_model"], run["experiment"], run["policy"],
-            run["ratio"], run["effective_capacity"], run["kind"],
+            run["ratio"], run["kind"],
         )
         groups[key].append(run)
     output = []
     for key, members in sorted(groups.items(), key=lambda item: tuple(str(x) for x in item[0])):
         row: dict[str, object] = {
             "capacity_model": key[0], "experiment": key[1], "policy": key[2],
-            "ratio": key[3], "effective_capacity_bytes": key[4], "run_kind": key[5],
+            "ratio": key[3], "run_kind": key[4],
             "runs": len(members),
             "correctness_pass_rate": sum(bool(x["correct"]) for x in members) / len(members),
             "all_detached": all(bool(x["detached"]) for x in members),
@@ -219,6 +238,36 @@ def summarize(runs: list[dict[str, object]]) -> list[dict[str, object]]:
             "selected_eviction_count": sum(int(x["selected_evictions"]) for x in members),
             "evidence_class": "PROGRAM_TIMING|GPU_EXT_PREFETCH_DECISION_TRACE|GPU_EXT_CHUNK_TRACE",
         }
+        scalar_fields = {
+            "effective_capacity_bytes": "effective_capacity",
+            "managed_working_set_bytes": "working_set",
+            "actual_working_set_ratio": "actual_ratio",
+            "main_reserve_allocated_bytes": "main_reserve",
+            "guard_allocated_bytes": "guard",
+            "gpu_free_initial": "gpu_free_initial",
+            "gpu_free_after_main_reserve": "gpu_free_after_main_reserve",
+            "gpu_free_after_guard": "gpu_free_after_guard",
+            "capacity_target_relative_error": "capacity_target_relative_error",
+            "working_set_ratio_error": "working_set_ratio_error",
+            "region_a_bytes": "region_a_bytes",
+            "region_b_bytes": "region_b_bytes",
+        }
+        for output_name, member_name in scalar_fields.items():
+            values = [float(member[member_name]) for member in members
+                      if member.get(member_name) not in (None, "", "UNAVAILABLE")]
+            values_stats = stats(values)
+            row[f"{output_name}_mean"] = values_stats["mean"]
+            row[f"{output_name}_min"] = values_stats["min"]
+            row[f"{output_name}_max"] = values_stats["max"]
+        snapshot_names = (
+            "after_managed_allocation", "after_cpu_first_touch", "after_phase_A_first",
+            "after_phase_B_first", "after_phase_A_reuse", "after_phase_B_reuse",
+            "before_cleanup", "after_cleanup",
+        )
+        for checkpoint in snapshot_names:
+            values = [float(member["snapshots"][checkpoint]) for member in members
+                      if checkpoint in member["snapshots"]]
+            row[f"gpu_free_{checkpoint}_mean"] = stats(values)["mean"]
         for phase in PHASES:
             values = [value for member in members for value in member["phases"][phase]]
             for name, value in stats(values).items():

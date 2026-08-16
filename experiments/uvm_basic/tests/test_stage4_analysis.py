@@ -68,9 +68,19 @@ class Stage4SummaryTests(unittest.TestCase):
             rows = [
                 {
                     "phase": "capacity_manifest",
-                    "evidence_class": "REDUCED_EFFECTIVE_GPU_CAPACITY",
+                    "evidence_class": "PHYSICALLY_RESERVED_GUARD_MODEL",
                     "effective_gpu_capacity_bytes": 8 << 30,
                     "managed_working_set_bytes": int(8 * 1.1 * (1 << 30)),
+                    "actual_working_set_ratio": 1.1,
+                    "main_reserve_allocated_bytes": 15 << 30,
+                    "guard_allocated_bytes": 1 << 30,
+                    "gpu_free_initial": 24 << 30,
+                    "gpu_free_after_main_reserve": 9 << 30,
+                    "gpu_free_after_guard": 8 << 30,
+                    "capacity_target_relative_error": 0.0,
+                    "working_set_ratio_error": 0.0,
+                    "region_a_bytes": int(4.4 * (1 << 30)),
+                    "region_b_bytes": int(4.4 * (1 << 30)),
                 },
                 *({"phase": phase, "elapsed_ms": index + 1, "correct": True}
                   for index, phase in enumerate(summary.PHASES)),
@@ -85,10 +95,36 @@ class Stage4SummaryTests(unittest.TestCase):
             )
             result = summary.summarize(summary.collect(Path(tmp)))
             self.assertEqual(len(result), 1)
-            self.assertEqual(result[0]["capacity_model"], "REDUCED_EFFECTIVE_GPU_CAPACITY")
+            self.assertEqual(result[0]["capacity_model"], "PHYSICALLY_RESERVED_GUARD_MODEL")
+            self.assertEqual(result[0]["guard_allocated_bytes_mean"], float(1 << 30))
+            self.assertEqual(result[0]["actual_working_set_ratio_mean"], 1.1)
             self.assertEqual(result[0]["action_bypass_count"], 1)
             self.assertEqual(result[0]["final_pages_mean"], 512.0)
             self.assertEqual(result[0]["selected_eviction_count"], 1)
+
+    def test_legacy_mathematical_headroom_is_relabelled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "reduced_capacity" / "custom_no_policy" / "1.10" / "run"
+            root.mkdir(parents=True)
+            (root / "manifest.json").write_text(json.dumps({
+                "evidence_class": "GPU_EXT_STAGE4_RUN",
+                "experiment": "reduced_capacity",
+                "policy": "custom_no_policy",
+                "ratio": "1.10",
+                "run_kind": "timing",
+                "correct": True,
+                "struct_ops_detached": True,
+                "xid_delta": 0,
+            }))
+            (root / "program.jsonl").write_text(json.dumps({
+                "phase": "capacity_manifest",
+                "evidence_class": "REDUCED_EFFECTIVE_GPU_CAPACITY",
+                "effective_gpu_capacity_bytes": 8 << 30,
+                "managed_working_set_bytes": int(8.8 * (1 << 30)),
+            }) + "\n")
+            result = summary.summarize(summary.collect(Path(tmp)))
+            self.assertEqual(result[0]["capacity_model"],
+                             "LEGACY_MATHEMATICAL_HEADROOM_MODEL")
 
 
 if __name__ == "__main__":

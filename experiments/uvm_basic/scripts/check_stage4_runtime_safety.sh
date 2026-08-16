@@ -34,31 +34,32 @@ stage3_has_struct_ops "${SNAPSHOT}" && { echo "Residual struct_ops exists." >&2;
 
 GPU_FREE="$(gpu_free_bytes)"
 TARGET_BYTES="$(bytes_from_size "${TARGET}")"
-HEADROOM_BYTES="$(bytes_from_size "${STAGE4_SAFETY_HEADROOM}")"
-((GPU_FREE > TARGET_BYTES + HEADROOM_BYTES)) || {
+GUARD_BYTES="$(bytes_from_size "${STAGE4_GUARD_DEVICE_BYTES}")"
+((GPU_FREE > TARGET_BYTES + GUARD_BYTES)) || {
     echo "Cannot reserve enough memory for target effective capacity ${TARGET}." >&2
     exit 2
 }
-RESERVE_BYTES="$((GPU_FREE - TARGET_BYTES - HEADROOM_BYTES))"
+RESERVE_BYTES="$((GPU_FREE - TARGET_BYTES - GUARD_BYTES))"
 MANAGED_BYTES="$(python3 - "${TARGET_BYTES}" "${RATIO}" <<'PY'
 import sys
 print(int(int(sys.argv[1]) * float(sys.argv[2])))
 PY
 )"
 HOST_AVAILABLE_BYTES="$(( $(awk '/^MemAvailable:/ {print $2}' /proc/meminfo) * 1024 ))"
-HOST_REQUIRED_BYTES="$((MANAGED_BYTES + RESERVE_BYTES + (16 << 30)))"
+HOST_REQUIRED_BYTES="$((MANAGED_BYTES + RESERVE_BYTES + GUARD_BYTES + (16 << 30)))"
 
-python3 - "${OUTPUT}" "${RATIO}" "${TARGET_BYTES}" "${HEADROOM_BYTES}" "${GPU_FREE}" \
+python3 - "${OUTPUT}" "${RATIO}" "${TARGET_BYTES}" "${GUARD_BYTES}" "${GPU_FREE}" \
     "${RESERVE_BYTES}" "${MANAGED_BYTES}" "${HOST_AVAILABLE_BYTES}" "${HOST_REQUIRED_BYTES}" <<'PY'
 import json, sys
 from pathlib import Path
 ratio = float(sys.argv[2])
-target, headroom, free = map(int, sys.argv[3:6])
+target, guard, free = map(int, sys.argv[3:6])
 data = {
     "evidence_class": "GPU_EXT_STAGE4_RUNTIME_SAFETY",
     "ratio": ratio,
     "target_effective_gpu_bytes": target,
-    "safety_headroom_bytes": headroom,
+    "guard_device_bytes": guard,
+    "capacity_model": "PHYSICALLY_RESERVED_GUARD_MODEL",
     "gpu_free_before_bytes": free,
     "planned_reserve_bytes": int(sys.argv[6]),
     "planned_managed_working_set_bytes": int(sys.argv[7]),

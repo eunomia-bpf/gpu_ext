@@ -13,7 +13,7 @@ PREFETCH_CPU="no"
 KERNEL_MODE="vector-add"
 TARGET_EFFECTIVE=""
 RESERVE_BYTES=""
-SAFETY_HEADROOM="1G"
+GUARD_BYTES="1G"
 
 while (($#)); do
     case "$1" in
@@ -27,7 +27,8 @@ while (($#)); do
         --kernel-mode) KERNEL_MODE="$2"; shift 2 ;;
         --target-effective) TARGET_EFFECTIVE="$2"; shift 2 ;;
         --reserve-bytes) RESERVE_BYTES="$2"; shift 2 ;;
-        --safety-headroom) SAFETY_HEADROOM="$2"; shift 2 ;;
+        --guard-bytes) GUARD_BYTES="$2"; shift 2 ;;
+        --safety-headroom) GUARD_BYTES="$2"; shift 2 ;;
         *) echo "Unknown argument: $1" >&2; exit 2 ;;
     esac
 done
@@ -167,18 +168,18 @@ case "${EXPERIMENT}" in
             --region-a-ratio 0.5 --cycles 1 --gpu-id "${CUDA_DEVICE:-0}"
             --verify yes --output "${RUN_DIR}/program.jsonl")
         ;;
-    reduced_capacity|joint_stage4|natural_stage4)
+    reduced_capacity|physical_guard_calibration|joint_stage4|natural_stage4)
         WORKLOAD=("${PHASE_SCAN_PROGRAM}" --total-bytes auto --working-set-ratio "${RATIO}"
             --region-a-ratio 0.5 --cycles 1 --gpu-id "${CUDA_DEVICE:-0}"
             --verify yes --output "${RUN_DIR}/program.jsonl")
         if [[ -n "${TARGET_EFFECTIVE}" ]]; then
             WORKLOAD+=(--target-effective-gpu-bytes "${TARGET_EFFECTIVE}"
                 --reserve-touch yes --reserve-verify yes
-                --safety-headroom-bytes "${SAFETY_HEADROOM}")
+                --guard-device-bytes "${GUARD_BYTES}" --guard-touch yes)
         elif [[ -n "${RESERVE_BYTES}" ]]; then
             WORKLOAD+=(--reserve-device-bytes "${RESERVE_BYTES}"
                 --reserve-touch yes --reserve-verify yes
-                --safety-headroom-bytes "${SAFETY_HEADROOM}")
+                --guard-device-bytes "${GUARD_BYTES}" --guard-touch yes)
         fi
         ;;
     *) echo "Unknown experiment: ${EXPERIMENT}" >&2; exit 2 ;;
@@ -249,6 +250,7 @@ for line in (root / "program.jsonl").read_text(errors="replace").splitlines() if
 before = (root / "kernel_log_before.txt").read_text(errors="replace")
 after = (root / "kernel_log_after.txt").read_text(errors="replace")
 xid = lambda text: len(re.findall(r"NVRM:\s*Xid|NVIDIA.*Xid", text, re.I))
+capacity = next((row for row in rows if row.get("phase") == "capacity_manifest"), {})
 data = {
     "evidence_class": sys.argv[18],
     "experiment": sys.argv[2], "policy": sys.argv[3], "run_kind": sys.argv[4],
@@ -270,6 +272,18 @@ data = {
     "trace_pid_attribution": "OWNER_TGID_AND_ISOLATED_WINDOW",
     "trace_limit": "Events without a usable owner_tgid retain isolated-window attribution only.",
 }
+for field in (
+    "gpu_total_bytes", "gpu_free_initial", "target_effective_gpu_bytes",
+    "main_reserve_requested_bytes", "main_reserve_allocated_bytes",
+    "gpu_free_after_main_reserve", "guard_requested_bytes", "guard_allocated_bytes",
+    "gpu_free_after_guard", "effective_gpu_capacity_bytes",
+    "managed_working_set_requested_bytes", "managed_working_set_actual_bytes",
+    "requested_working_set_ratio", "actual_working_set_ratio",
+    "region_a_bytes", "region_b_bytes", "capacity_target_relative_error",
+    "working_set_ratio_error", "capacity_target_pass", "working_set_ratio_pass",
+):
+    data[field] = capacity.get(field)
+data["capacity_model"] = capacity.get("evidence_class", "UNKNOWN")
 (root / "manifest.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 if (data["exit_code"] or not data["correct"] or not data["struct_ops_detached"]
         or data["xid_delta"] or not data["gpu_memory_released"] or data["active_compute_after"]):

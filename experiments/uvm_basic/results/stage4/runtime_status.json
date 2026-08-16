@@ -1,51 +1,59 @@
 {
-  "schema_version": "1.0",
-  "timestamp_utc": "2026-08-15T21:55:26Z",
-  "status": "FAILED_STAGE4_REDUCED_CAPACITY_CALIBRATION",
-  "stage4a": {
+  "schema_version": "1.2",
+  "status": "PASS_STAGE4A_PHYSICAL_GUARD_CALIBRATION",
+  "next_gate": "READY_FOR_STAGE4B_PREFETCH_MATRIX",
+  "implementation": {
+    "capacity_model": "PHYSICALLY_RESERVED_GUARD_MODEL",
+    "main_reserve_physically_allocated": true,
+    "guard_physically_allocated": true,
+    "effective_capacity_source": "gpu_free_after_guard",
+    "capacity_target_relative_error_limit": 0.02,
+    "working_set_ratio_absolute_error_limit": 0.01,
+    "build_passed": true,
+    "unit_tests_passed": 11,
+    "static_safety_passed": true
+  },
+  "legacy_calibration": {
+    "evidence_class": "LEGACY_MATHEMATICAL_HEADROOM_MODEL",
+    "status": "FAILED_STAGE4_REDUCED_CAPACITY_CALIBRATION",
+    "preserved": true
+  },
+  "physical_guard_calibration": {
     "executed": true,
-    "policy": "custom_no_policy",
-    "target_effective_capacity": "8G",
-    "effective_capacity_bytes": 8589344768,
-    "gpu_free_after_reserve_bytes": 9663086592,
-    "safety_headroom_bytes": 1073741824,
-    "ratios_completed": [
-      "0.95",
-      "1.05",
-      "1.10"
-    ],
+    "result_root": "results/stage4/physical_guard_calibration",
     "runs_completed": 9,
     "runs_planned": 9,
+    "main_reserve_allocated_bytes": 15428747264,
+    "guard_allocated_bytes": 1073741824,
+    "gpu_free_after_guard": 8589344768,
+    "effective_gpu_capacity_bytes": 8589344768,
+    "capacity_target_relative_error": 0.0000686646,
+    "ratios": {
+      "0.95": {
+        "actual_ratio": 0.95,
+        "selected_evictions": 0,
+        "same_block_refaults": null,
+        "refaulted_bytes": null
+      },
+      "1.05": {
+        "actual_ratio": 1.05,
+        "selected_evictions": 4730,
+        "same_block_refaults": 206,
+        "refaulted_bytes": 432013312
+      },
+      "1.10": {
+        "actual_ratio": 1.10,
+        "selected_evictions": 5279,
+        "same_block_refaults": 411,
+        "refaulted_bytes": 861929472
+      }
+    },
     "correctness_failures": 0,
     "xid_delta": 0,
-    "all_struct_ops_detached": true,
-    "selected_evictions": {
-      "0.95": 0,
-      "1.05": 0,
-      "1.10": 0
-    },
-    "calibration_gate_passed": false,
-    "failure_reason": "The 1 GiB safety headroom was subtracted from the reported effective capacity but remained physically available to UVM. The nominal 1.10x managed working set was still about 205 MiB below actual free GPU memory after reserve, so no eviction pressure was created."
-  },
-  "stage4b": {
-    "executed": false,
-    "reason": "Stage 4A calibration gate failed."
-  },
-  "stage4c_runtime_smoke": {
-    "executed": false,
-    "reason": "Stage 4A calibration gate failed."
-  },
-  "stage4d": {
-    "executed": false,
-    "reason": "Stage 4A calibration gate failed."
-  },
-  "stage4e": {
-    "executed": false,
-    "reason": "Stage 4A calibration gate failed."
-  },
-  "stage4f": {
-    "executed": false,
-    "reason": "Maintenance window stopped at the failed Stage 4A gate."
+    "all_traces_detached": true,
+    "all_gpu_memory_released": true,
+    "all_capacity_gates_passed": true,
+    "all_ratio_gates_passed": true
   },
   "restoration": {
     "distribution_nvidia_uvm_restored": true,
@@ -55,5 +63,5 @@
     "active_compute_processes": 0,
     "residual_struct_ops": false
   },
-  "ready_for_llm_workload": false
+  "stage4b_allowed": true
 }

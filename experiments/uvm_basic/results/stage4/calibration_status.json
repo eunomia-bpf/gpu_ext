@@ -1,16 +1,114 @@
 {
   "checks": {
     "095_has_none_or_little_eviction": true,
-    "105_has_eviction": false,
-    "110_exceeds_105": false,
-    "all_ratios_present": true
+    "095_has_none_or_little_refault": true,
+    "105_has_eviction": true,
+    "110_not_below_105": true,
+    "110_refault_not_below_105": true,
+    "all_ratios_present": true,
+    "all_timing_and_trace_runs_present": true,
+    "capacity_target_within_2_percent": true,
+    "correctness_cleanup_and_xid": true,
+    "working_set_ratios_within_0_01": true
   },
-  "evidence_class": "GPU_EXT_STAGE4_CALIBRATION",
+  "evidence_class": "PHYSICALLY_RESERVED_GUARD_MODEL",
+  "physical_guard": "1G",
+  "ratios": {
+    "0.95": {
+      "timing": {
+        "actual_ratio": 0.95,
+        "all_detached": true,
+        "capacity_target_relative_error": 6.86646e-05,
+        "correctness_pass_rate": 1.0,
+        "effective_capacity_bytes": 8589344768.0,
+        "refaulted_bytes": null,
+        "runs": 2,
+        "same_block_refaults": null,
+        "selected_evictions": 0,
+        "working_set_ratio_error": 2.86122e-07,
+        "xid_delta": 0
+      },
+      "trace": {
+        "actual_ratio": 0.95,
+        "all_detached": true,
+        "capacity_target_relative_error": 6.86646e-05,
+        "correctness_pass_rate": 1.0,
+        "effective_capacity_bytes": 8589344768.0,
+        "refaulted_bytes": null,
+        "runs": 1,
+        "same_block_refaults": null,
+        "selected_evictions": 0,
+        "working_set_ratio_error": 2.86122e-07,
+        "xid_delta": 0
+      }
+    },
+    "1.05": {
+      "timing": {
+        "actual_ratio": 1.05,
+        "all_detached": true,
+        "capacity_target_relative_error": 6.86646e-05,
+        "correctness_pass_rate": 1.0,
+        "effective_capacity_bytes": 8589344768.0,
+        "refaulted_bytes": null,
+        "runs": 2,
+        "same_block_refaults": null,
+        "selected_evictions": 0,
+        "working_set_ratio_error": 1.90748e-07,
+        "xid_delta": 0
+      },
+      "trace": {
+        "actual_ratio": 1.05,
+        "all_detached": true,
+        "capacity_target_relative_error": 6.86646e-05,
+        "correctness_pass_rate": 1.0,
+        "effective_capacity_bytes": 8589344768.0,
+        "refaulted_bytes": 432013312.0,
+        "runs": 1,
+        "same_block_refaults": 206.0,
+        "selected_evictions": 4730,
+        "working_set_ratio_error": 1.90748e-07,
+        "xid_delta": 0
+      }
+    },
+    "1.10": {
+      "timing": {
+        "actual_ratio": 1.1,
+        "all_detached": true,
+        "capacity_target_relative_error": 6.86646e-05,
+        "correctness_pass_rate": 1.0,
+        "effective_capacity_bytes": 8589344768.0,
+        "refaulted_bytes": null,
+        "runs": 2,
+        "same_block_refaults": null,
+        "selected_evictions": 0,
+        "working_set_ratio_error": 3.81496e-07,
+        "xid_delta": 0
+      },
+      "trace": {
+        "actual_ratio": 1.1,
+        "all_detached": true,
+        "capacity_target_relative_error": 6.86646e-05,
+        "correctness_pass_rate": 1.0,
+        "effective_capacity_bytes": 8589344768.0,
+        "refaulted_bytes": 861929472.0,
+        "runs": 1,
+        "same_block_refaults": 411.0,
+        "selected_evictions": 5279,
+        "working_set_ratio_error": 3.81496e-07,
+        "xid_delta": 0
+      }
+    }
+  },
+  "same_block_refaults": {
+    "0.95": null,
+    "1.05": 206.0,
+    "1.10": 411.0
+  },
   "selected_evictions": {
     "0.95": 0,
-    "1.05": 0,
-    "1.10": 0
+    "1.05": 4730,
+    "1.10": 5279
   },
-  "status": "FAILED_STAGE4_REDUCED_CAPACITY_CALIBRATION",
+  "status": "PASS_STAGE4A_PHYSICAL_GUARD_CALIBRATION",
   "target_effective_capacity": "8G"
 }

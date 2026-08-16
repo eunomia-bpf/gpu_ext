@@ -21,7 +21,9 @@ DISK_KIB="$(df -Pk "${STAGE4_RESULTS}" | awk 'NR == 2 {print $4}')"
 MEM_KIB="$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)"
 
 python3 - "${OUTPUT}" "${CUSTOM_UVM}" "${CUSTOM_SRCVERSION}" "${LOADED_SRCVERSION}" \
-    "${HOOK_VISIBLE}" "${ACTIVE}" "${DISK_KIB}" "${MEM_KIB}" <<'PY'
+    "${HOOK_VISIBLE}" "${ACTIVE}" "${DISK_KIB}" "${MEM_KIB}" \
+    "$(bytes_from_size "${STAGE4_TARGET_EFFECTIVE}")" \
+    "$(bytes_from_size "${STAGE4_GUARD_DEVICE_BYTES}")" <<'PY'
 import json, sys
 from pathlib import Path
 custom = Path(sys.argv[2])
@@ -40,9 +42,12 @@ data = {
     "host_mem_available_bytes": int(sys.argv[8]) << 10,
     "nonprivileged_build": "PASS",
     "audit_generated": True,
+    "capacity_model": "PHYSICALLY_RESERVED_GUARD_MODEL",
+    "target_effective_gpu_bytes": int(sys.argv[9]),
+    "guard_device_bytes": int(sys.argv[10]),
 }
-data["status"] = ("READY_FOR_STAGE4_RUNTIME" if data["custom_module_loaded"]
-                  else "READY_FOR_MANUAL_GPU_EXT_STAGE4")
+data["status"] = ("READY_FOR_STAGE4A_RECALIBRATION" if data["custom_module_loaded"]
+                  else "READY_FOR_MANUAL_STAGE4A_RECALIBRATION")
 Path(sys.argv[1]).write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 print(json.dumps(data, indent=2, sort_keys=True))
 PY

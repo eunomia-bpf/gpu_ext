@@ -72,6 +72,14 @@ run_trace_overhead() {
         bash "${EXP}/scripts/measure_trace_disabled_overhead.sh"
 }
 
+restore_results_owner() {
+    local uid gid
+    uid="$(id -u)"
+    gid="$(id -g)"
+    [[ -d "${EXP}/results/stage4" ]]
+    sudo find "${EXP}/results/stage4" -xdev -exec chown --no-dereference "${uid}:${gid}" {} +
+}
+
 case "${ACTION}" in
     inspect) inspect ;;
     switch-uvm-only) switch_uvm_only ;;
@@ -81,6 +89,7 @@ case "${ACTION}" in
     joint-matrix) run_joint_matrix ;;
     natural-confirmation) run_natural_confirmation ;;
     trace-overhead) run_trace_overhead ;;
+    results-owner) restore_results_owner ;;
     restore) restore_distribution_uvm ;;
     help)
         cat <<'EOF'
@@ -94,6 +103,7 @@ Manual sequence (review after each step):
   bash scripts/SAFE_STAGE4_COMMANDS.sh natural-confirmation
   bash scripts/SAFE_STAGE4_COMMANDS.sh trace-overhead
   bash scripts/SAFE_STAGE4_COMMANDS.sh restore
+  bash scripts/SAFE_STAGE4_COMMANDS.sh results-owner
 
 Stop immediately on Xid, CUDA/correctness failure, detach failure, or GPU loss.
 EOF

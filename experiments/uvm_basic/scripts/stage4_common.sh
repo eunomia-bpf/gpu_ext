@@ -25,16 +25,20 @@ stage4_require_disk() {
 }
 
 stage4_require_host_memory() {
-    local target="$1" ratio="$2" target_bytes planned available
+    local target="$1" ratio="$2" target_bytes planned available gpu_free headroom reserve required
     target_bytes="$(bytes_from_size "${target}")"
     planned="$(python3 - "${target_bytes}" "${ratio}" <<'PY'
 import sys
 print(int(int(sys.argv[1]) * float(sys.argv[2])))
 PY
 )"
+    gpu_free="$(gpu_free_bytes)"
+    headroom="$(bytes_from_size "${STAGE4_SAFETY_HEADROOM}")"
+    reserve=$((gpu_free > target_bytes + headroom ? gpu_free - target_bytes - headroom : 0))
+    required=$((planned + reserve + (16 << 30)))
     available="$(( $(awk '/^MemAvailable:/ {print $2}' /proc/meminfo) * 1024 ))"
-    ((available > planned + (16 << 30))) || {
-        echo "Host MemAvailable does not cover the working set plus 16 GiB." >&2
+    ((available > required)) || {
+        echo "Host MemAvailable does not cover managed working set + reserve + 16 GiB." >&2
         return 2
     }
 }

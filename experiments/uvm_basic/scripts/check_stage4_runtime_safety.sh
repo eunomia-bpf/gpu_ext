@@ -39,8 +39,17 @@ HEADROOM_BYTES="$(bytes_from_size "${STAGE4_SAFETY_HEADROOM}")"
     echo "Cannot reserve enough memory for target effective capacity ${TARGET}." >&2
     exit 2
 }
+RESERVE_BYTES="$((GPU_FREE - TARGET_BYTES - HEADROOM_BYTES))"
+MANAGED_BYTES="$(python3 - "${TARGET_BYTES}" "${RATIO}" <<'PY'
+import sys
+print(int(int(sys.argv[1]) * float(sys.argv[2])))
+PY
+)"
+HOST_AVAILABLE_BYTES="$(( $(awk '/^MemAvailable:/ {print $2}' /proc/meminfo) * 1024 ))"
+HOST_REQUIRED_BYTES="$((MANAGED_BYTES + RESERVE_BYTES + (16 << 30)))"
 
-python3 - "${OUTPUT}" "${RATIO}" "${TARGET_BYTES}" "${HEADROOM_BYTES}" "${GPU_FREE}" <<'PY'
+python3 - "${OUTPUT}" "${RATIO}" "${TARGET_BYTES}" "${HEADROOM_BYTES}" "${GPU_FREE}" \
+    "${RESERVE_BYTES}" "${MANAGED_BYTES}" "${HOST_AVAILABLE_BYTES}" "${HOST_REQUIRED_BYTES}" <<'PY'
 import json, sys
 from pathlib import Path
 ratio = float(sys.argv[2])
@@ -51,7 +60,10 @@ data = {
     "target_effective_gpu_bytes": target,
     "safety_headroom_bytes": headroom,
     "gpu_free_before_bytes": free,
-    "planned_managed_working_set_bytes": int(target * ratio),
+    "planned_reserve_bytes": int(sys.argv[6]),
+    "planned_managed_working_set_bytes": int(sys.argv[7]),
+    "host_mem_available_bytes": int(sys.argv[8]),
+    "host_mem_required_bytes": int(sys.argv[9]),
     "checks": {
         "custom_module_loaded": True,
         "no_active_compute_process": True,

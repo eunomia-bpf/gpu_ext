@@ -1,0 +1,71 @@
+{
+  "artifacts": {
+    "binaries": [
+      "/home/peng/workspace/gpu_ext/experiments/uvm_basic/build/uvm_phase_scan",
+      "/home/peng/workspace/gpu_ext/extension/prefetch_trace",
+      "/home/peng/workspace/gpu_ext/extension/chunk_trace",
+      "/home/peng/workspace/gpu_ext/extension/prefetch_none",
+      "/home/peng/workspace/gpu_ext/extension/prefetch_always_max",
+      "/home/peng/workspace/gpu_ext/extension/prefetch_adaptive_sequential",
+      "/home/peng/workspace/gpu_ext/extension/prefetch_always_max_cycle_moe"
+    ],
+    "binaries_ready": true,
+    "runners": [
+      "/home/peng/workspace/gpu_ext/experiments/uvm_basic/scripts/run_reduced_capacity_calibration.sh",
+      "/home/peng/workspace/gpu_ext/experiments/uvm_basic/scripts/run_reduced_capacity_prefetch_matrix.sh",
+      "/home/peng/workspace/gpu_ext/experiments/uvm_basic/scripts/run_eviction_smoke.sh",
+      "/home/peng/workspace/gpu_ext/experiments/uvm_basic/scripts/run_joint_policy_matrix.sh",
+      "/home/peng/workspace/gpu_ext/experiments/uvm_basic/scripts/run_natural_capacity_confirmation.sh",
+      "/home/peng/workspace/gpu_ext/experiments/uvm_basic/scripts/measure_trace_disabled_overhead.sh"
+    ],
+    "runners_ready": true
+  },
+  "custom_hook_symbols": [],
+  "custom_hook_symbols_visible": false,
+  "custom_module_loaded": false,
+  "custom_uvm": {
+    "exists": true,
+    "path": "/home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open/nvidia-uvm.ko",
+    "sha256": "c785d8bcf2a953c238140c03ce7d19fc5953c94ac6d159c73e040839effe57a4",
+    "srcversion": "5446825F901EFEAA48651FC"
+  },
+  "driver": {
+    "custom_version": "575.57.08",
+    "loaded_version": "575.57.08",
+    "version_match": true
+  },
+  "evidence_class": "GPU_EXT_STAGE4_RUNTIME_PREFLIGHT",
+  "gpu": {
+    "active_compute_pids": [],
+    "driver_version": "575.57.08",
+    "memory_free_mib": 24165,
+    "memory_total_mib": 24576,
+    "name": "NVIDIA A30"
+  },
+  "kernel": {
+    "release": "6.15.11-gpuext-gpuext",
+    "vermagic_match": true
+  },
+  "kernel_log_xid_check": "UNAVAILABLE_NONPRIVILEGED",
+  "loaded_uvm": {
+    "kind": "DISTRIBUTION",
+    "path": "/lib/modules/6.15.11-gpuext-gpuext/updates/dkms/nvidia-uvm.ko",
+    "sha256": "5802edbad2d4f9f0304707e1d2ce9a2344e45ef83f8f683714879af30b4e2be6",
+    "srcversion": "182AB87276B2337B4B1A4CD"
+  },
+  "resources": {
+    "host_mem_available_bytes": 261054242816,
+    "host_memory_pass": true,
+    "host_required_including_reserve_and_16gib_bytes": 42303959859,
+    "planned_8g_110_managed_bytes": 9448928051,
+    "planned_8g_110_reserve_bytes": 15675162624,
+    "result_disk_free_bytes": 45928431616,
+    "result_disk_minimum_bytes": 34359738368,
+    "result_disk_pass": true
+  },
+  "runtime_executed": false,
+  "schema_version": "1.0",
+  "status": "READY_FOR_MANUAL_STAGE4_MODULE_SWITCH",
+  "stop_reason": "Distribution nvidia_uvm is loaded and custom gpu_ext hook symbols are not visible. Safety policy forbids automatic module switching.",
+  "timestamp_utc": "2026-08-15T21:32:56Z"
+}

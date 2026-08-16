@@ -5,6 +5,7 @@ set -Eeuo pipefail
 ROOT=/home/peng/workspace/gpu_ext
 EXP="${ROOT}/experiments/uvm_basic"
 CUSTOM_UVM="${GPU_EXT_CUSTOM_UVM:-/home/peng/workspace/gpu_ext_private/kernel-module/nvidia-module/kernel-open/nvidia-uvm.ko}"
+BPFTOOL="${GPU_EXT_BPFTOOL:-${ROOT}/tools/bpftool-stage2/bpftool}"
 ACTION="${1:-help}"
 
 inspect() {
@@ -80,6 +81,14 @@ restore_results_owner() {
     sudo find "${EXP}/results/stage4" -xdev -exec chown --no-dereference "${uid}:${gid}" {} +
 }
 
+verify_restoration() {
+    [[ -x "${BPFTOOL}" ]]
+    cat /sys/module/nvidia_uvm/srcversion
+    grep -E 'uvm_bpf_trace_gpu_page_prefetch_decision|gpu_mem_ops' /proc/kallsyms || true
+    sudo "${BPFTOOL}" struct_ops list
+    nvidia-smi
+}
+
 case "${ACTION}" in
     inspect) inspect ;;
     switch-uvm-only) switch_uvm_only ;;
@@ -91,6 +100,7 @@ case "${ACTION}" in
     trace-overhead) run_trace_overhead ;;
     results-owner) restore_results_owner ;;
     restore) restore_distribution_uvm ;;
+    verify-restoration) verify_restoration ;;
     help)
         cat <<'EOF'
 Manual sequence (review after each step):
@@ -104,6 +114,7 @@ Manual sequence (review after each step):
   bash scripts/SAFE_STAGE4_COMMANDS.sh trace-overhead
   bash scripts/SAFE_STAGE4_COMMANDS.sh restore
   bash scripts/SAFE_STAGE4_COMMANDS.sh results-owner
+  bash scripts/SAFE_STAGE4_COMMANDS.sh verify-restoration
 
 Stop immediately on Xid, CUDA/correctness failure, detach failure, or GPU loss.
 EOF

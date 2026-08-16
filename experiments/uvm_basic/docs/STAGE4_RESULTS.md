@@ -1,61 +1,65 @@
 # GPU UVM Stage 4 Results
 
-Overall status: `PASS_STAGE4A_PHYSICAL_GUARD_CALIBRATION`
+Overall status: `PASS_GPU_EXT_STAGE4_RUNTIME_AND_JOINT_POLICY`
 
-Next gate: `READY_FOR_STAGE4B_PREFETCH_MATRIX`
-
-## Scope Completed
-
-- Replaced the mathematical-headroom model with touched, long-lived main-reserve and physical-guard device allocations.
-- Preserved natural-capacity behavior when no reserve option is supplied.
-- Added fixed 1 GiB safety headroom, a 4 GiB effective-capacity floor, and JSON capacity manifests.
-- Added calibration, four-policy, eviction smoke, joint-policy, natural-confirmation, and trace-overhead runners.
-- Added machine-readable static auditing and conservative runtime approval gates.
-- Added aggregation that keeps reduced and natural capacity evidence separate.
-- Passed a 64 MiB reserve/64 MiB managed implementation regression on the distribution driver.
+Stages 4A through 4E completed. Stage 4F completed its required measurements,
+but its <=1% disabled-path overhead target was not met.
 
 ## Runtime Status
 
 | Stage | Status |
 |---|---|
-| 4A legacy mathematical-headroom calibration | EXECUTED, FAILED PRESSURE GATE |
-| 4A physical-guard implementation | PASS (build and non-pressure regression) |
-| 4A physical-guard 0.95x/1.05x/1.10x recalibration | PASS |
-| 4B four-policy matrix | NOT EXECUTED |
-| 4C static policy audit | PASS |
-| 4C runtime smoke | NOT EXECUTED |
-| 4D joint matrix | NOT EXECUTED |
-| 4E natural confirmation | NOT READY |
-| 4F fresh overhead measurement | NOT EXECUTED |
+| 4A physical-guard calibration | `PASS_STAGE4A_PHYSICAL_GUARD_CALIBRATION` |
+| 4B four-policy reduced-capacity matrix | `PASS_STAGE4_REDUCED_CAPACITY_PREFETCH_MATRIX` |
+| 4C static audit | PASS; one policy eligible for smoke |
+| 4C `cycle_moe` runtime smoke | PASS; `APPROVED_FOR_STAGE4D` |
+| 4D joint matrix | `PASS_STAGE4_JOINT_POLICY_MATRIX` |
+| 4E natural confirmation | `PASS_STAGE4_NATURAL_CAPACITY_CONFIRMATION` |
+| 4F trace disabled-path overhead | `COMPLETE_TARGET_NOT_MET` |
 
-The 2026-08-15 custom-UVM window used only `custom_no_policy`; no prefetch or joint policy was attached. That legacy run remains evidence of the failed mathematical-headroom model.
+## Stage 4A
 
-## Runtime Preflight
+The repaired model physically allocated and touched both the main reserve and a 1 GiB guard. It measured 8,589,344,768 bytes effective capacity. At 0.95x/1.05x/1.10x, selected eviction was 0/4,730/5,279 and same-block refault was unavailable/206/411. All nine runs passed correctness, cleanup, and Xid gates. See [REDUCED_CAPACITY_CALIBRATION.md](REDUCED_CAPACITY_CALIBRATION.md).
 
-The 2026-08-15 runtime preflight passed the driver version, kernel vermagic, binary, runner, GPU-idle, result-disk, and host-memory checks. The host-memory gate now includes the planned device reserve as well as the managed working set and 16 GiB margin.
+## Stage 4B
 
-Before the authorized temporary switch, runtime preflight observed the distribution UVM srcversion (`182AB87276B2337B4B1A4CD`) rather than the custom module srcversion (`5446825F901EFEAA48651FC`), and no gpu_ext hook symbol was visible. This was the expected pre-switch state recorded in [STAGE4_RUNTIME_PREFLIGHT.md](STAGE4_RUNTIME_PREFLIGHT.md), not the final maintenance-window outcome.
+All 36 timing, 12 enhanced-trace, and four Nsight runs completed for `custom_no_policy`, `prefetch_none`, `prefetch_always_max`, and `prefetch_adaptive_sequential` at 0.95x, 1.05x, and 1.10x.
 
-After explicit authorization, the custom UVM module was temporarily loaded and Stage 4A ran all nine legacy calibration cases. Every run passed correctness and cleanup, but 1.05x and 1.10x produced zero selected evictions. The calibration gate correctly prevented Stage 4B through Stage 4F.
+`prefetch_none` completed under the 300 second per-process limit, including 1.10x. Its mean total phase time rose from about 34.8 seconds at 0.95x to 71.1 and 75.0 seconds at 1.05x and 1.10x. `prefetch_always_max` was fastest in this sequential scan at about 0.96/2.67/2.83 seconds; adaptive was intermediate at about 1.59/3.68/3.84 seconds.
 
-The measured 1.10x working set remained about 205 MiB below actual GPU free memory after reserve because the 1 GiB safety headroom was subtracted from the reported effective capacity but remained physically usable. See [REDUCED_CAPACITY_CALIBRATION.md](REDUCED_CAPACITY_CALIBRATION.md).
+Eviction/refault changed primarily with ratio. At 1.10x, selected eviction was 5,283/5,301/5,284/5,310 and same-block refault was 411/420/411/420 in the same policy order. See [STAGE4_PREFETCH_MATRIX.md](STAGE4_PREFETCH_MATRIX.md).
 
-The repaired model allocates and touches both `main_reserve_buffer` and a 1 GiB `guard_buffer`, retains both through the A-B-A-B scan, and defines effective capacity as the measured `gpu_free_after_guard`. The 2026-08-16 custom-UVM window completed all nine planned runs. The measured effective capacity was 8,589,344,768 bytes with actual ratios 0.95, 1.05, and 1.10. Selected eviction increased from 0 to 4,730 to 5,279; same-block refault was unavailable at 0.95x because there was no eviction, then increased from 206 to 411. All runs passed correctness, capacity, ratio, cleanup, and Xid gates.
+## Stage 4C/D
 
-The machine-readable maintenance-window result is in `results/stage4/runtime_status.json`.
+Static audit continued to reject `eviction_fifo` and `prefetch_cooperative`. `prefetch_always_max_cycle_moe` passed 64 MiB timing/trace and 0.95x reduced-capacity smoke, then completed Stage 4D at 1.05x and 1.10x.
 
-## Static Audit
+For this non-MoE sequential A-B-A-B scan, `cycle_moe` and `always_max` were effectively identical. At 1.10x their mean total phase times were 2,837.1 and 2,836.2 ms; both recorded 411 same-block refaults and about 862 MB refaulted data. No reuse benefit from the cycle policy was observed. See [STAGE4_JOINT_POLICY_RESULTS.md](STAGE4_JOINT_POLICY_RESULTS.md).
 
-| Candidate | Static decision | Reason |
-|---|---|---|
-| `eviction_fifo` | rejected | Hot-path printk, unreliable access-hook dependency, and no implemented FIFO reorder |
-| `prefetch_always_max_cycle_moe` | approved for smoke only | Bounded map and move-tail behavior; runtime validation still required |
-| `prefetch_cooperative` | rejected | Workqueue and cross-VA-block migration require deeper proof |
+## Stage 4E/F
 
-The complete audit is in [EVICTION_POLICY_SAFETY_AUDIT_STAGE4.md](EVICTION_POLICY_SAFETY_AUDIT_STAGE4.md).
+Natural-capacity 1.05x completed two timings and one trace for each of
+`custom_no_policy`, `prefetch_always_max`, and
+`prefetch_always_max_cycle_moe`. Their mean untraced total phase times were
+17,600.8/7,567.5/7,582.9 ms. The reduced-capacity trend was confirmed for this
+sequential scan, but `cycle_moe` again provided no measurable advantage over
+`always_max`.
 
-## Safety Boundary
+The first natural-capacity attempt stopped at the disk-headroom gate. Purging
+only the unrelated pip cache recovered enough space, and the remaining cases
+then completed. Stage 4F's 20 untraced and 20 traced runs measured kernel-1
+means of 244.138 and 285.353 ms. The current disabled path is 1.415% above the
+240.731 ms Stage 2 reference, so the <=1% target remains unmet. See
+[NATURAL_CAPACITY_CONFIRMATION.md](NATURAL_CAPACITY_CONFIRMATION.md) and
+[TRACE_DISABLED_OVERHEAD_STAGE4.md](TRACE_DISABLED_OVERHEAD_STAGE4.md).
 
-All root/module/BPF runtime steps are isolated in the intentionally non-executable `scripts/SAFE_STAGE4_COMMANDS.sh`. The scripts retain the 300 second timeout, 32 GiB result-disk minimum, host working-set plus 16 GiB memory margin, exact PID cleanup, residual struct_ops checks, and Xid/correctness stop conditions.
+## Safety And Restoration
 
-The distribution `nvidia_uvm` was restored with srcversion `182AB87276B2337B4B1A4CD`; gpu_ext hook symbols are not visible, GPU memory is 0 MiB, and no compute process remains. Stage 4A is complete and Stage 4B may now be scheduled as a separate guarded maintenance window.
+- correctness failures: 0 in completed Stage 4B-F cases;
+- Xid delta: 0;
+- all completed policies detached cleanly;
+- GPU memory returned to 0 MiB;
+- no compute process remains;
+- distribution `nvidia_uvm` srcversion `182AB87276B2337B4B1A4CD` was restored;
+- custom gpu_ext hook symbols are no longer visible.
+
+These are functional UVM control-policy experiments. Reduced-capacity timings are not native 24 GiB A30 performance, and none of these results should be generalized to LLM workloads without a separate workload phase.

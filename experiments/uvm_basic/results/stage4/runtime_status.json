@@ -1,67 +1,65 @@
 {
-  "schema_version": "1.2",
-  "status": "PASS_STAGE4A_PHYSICAL_GUARD_CALIBRATION",
-  "next_gate": "READY_FOR_STAGE4B_PREFETCH_MATRIX",
-  "implementation": {
-    "capacity_model": "PHYSICALLY_RESERVED_GUARD_MODEL",
-    "main_reserve_physically_allocated": true,
-    "guard_physically_allocated": true,
-    "effective_capacity_source": "gpu_free_after_guard",
-    "capacity_target_relative_error_limit": 0.02,
-    "working_set_ratio_absolute_error_limit": 0.01,
-    "build_passed": true,
-    "unit_tests_passed": 11,
-    "static_safety_passed": true
+  "schema_version": "1.3",
+  "status": "PASS_GPU_EXT_STAGE4_RUNTIME_AND_JOINT_POLICY",
+  "stage4a": {
+    "status": "PASS_STAGE4A_PHYSICAL_GUARD_CALIBRATION",
+    "effective_capacity_bytes": 8589344768,
+    "runs": 9
   },
-  "legacy_calibration": {
-    "evidence_class": "LEGACY_MATHEMATICAL_HEADROOM_MODEL",
-    "status": "FAILED_STAGE4_REDUCED_CAPACITY_CALIBRATION",
-    "preserved": true
+  "stage4b": {
+    "status": "PASS_STAGE4_REDUCED_CAPACITY_PREFETCH_MATRIX",
+    "timing_runs": 36,
+    "trace_runs": 12,
+    "nsight_runs": 4,
+    "prefetch_none_completed": true
   },
-  "physical_guard_calibration": {
-    "executed": true,
-    "result_root": "results/stage4/physical_guard_calibration",
-    "runs_completed": 9,
-    "runs_planned": 9,
-    "main_reserve_allocated_bytes": 15428747264,
-    "guard_allocated_bytes": 1073741824,
-    "gpu_free_after_guard": 8589344768,
-    "effective_gpu_capacity_bytes": 8589344768,
-    "capacity_target_relative_error": 0.0000686646,
-    "ratios": {
-      "0.95": {
-        "actual_ratio": 0.95,
-        "selected_evictions": 0,
-        "same_block_refaults": null,
-        "refaulted_bytes": null
-      },
-      "1.05": {
-        "actual_ratio": 1.05,
-        "selected_evictions": 4730,
-        "same_block_refaults": 206,
-        "refaulted_bytes": 432013312
-      },
-      "1.10": {
-        "actual_ratio": 1.10,
-        "selected_evictions": 5279,
-        "same_block_refaults": 411,
-        "refaulted_bytes": 861929472
-      }
-    },
+  "stage4c": {
+    "status": "PASS_STAGE4C_CYCLE_MOE_SMOKE",
+    "approved_for_stage4d": [
+      "prefetch_always_max_cycle_moe"
+    ]
+  },
+  "stage4d": {
+    "status": "PASS_STAGE4_JOINT_POLICY_MATRIX",
+    "policies": [
+      "custom_no_policy",
+      "prefetch_always_max",
+      "prefetch_always_max_cycle_moe"
+    ]
+  },
+  "stage4e": {
+    "status": "PASS_STAGE4_NATURAL_CAPACITY_CONFIRMATION",
+    "completed_policies": [
+      "custom_no_policy",
+      "prefetch_always_max",
+      "prefetch_always_max_cycle_moe"
+    ],
+    "unrun_policies": [],
+    "timing_runs": 6,
+    "trace_runs": 3
+  },
+  "stage4f": {
+    "status": "COMPLETE_TARGET_NOT_MET",
+    "timing_runs": 20,
+    "trace_runs": 20,
+    "stage2_custom_baseline_ms": 240.7309311,
+    "untraced_kernel_1_mean_ms": 244.13844445,
+    "trace_attached_kernel_1_mean_ms": 285.35336765,
+    "disabled_path_overhead_percent": 1.415486300173252,
+    "trace_attached_overhead_percent": 16.88178332292147,
+    "target_percent": 1.0,
+    "target_met": false
+  },
+  "safety": {
     "correctness_failures": 0,
     "xid_delta": 0,
-    "all_traces_detached": true,
-    "all_gpu_memory_released": true,
-    "all_capacity_gates_passed": true,
-    "all_ratio_gates_passed": true
+    "all_completed_policies_detached": true,
+    "gpu_memory_used_mib_after_restore": 0,
+    "active_compute_processes_after_restore": 0
   },
   "restoration": {
     "distribution_nvidia_uvm_restored": true,
     "loaded_srcversion": "182AB87276B2337B4B1A4CD",
-    "custom_hook_symbols_visible": false,
-    "gpu_memory_used_mib": 0,
-    "active_compute_processes": 0,
-    "residual_struct_ops": false
-  },
-  "stage4b_allowed": true
+    "custom_hook_symbols_visible": false
+  }
 }

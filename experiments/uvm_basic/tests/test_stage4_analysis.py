@@ -126,6 +126,34 @@ class Stage4SummaryTests(unittest.TestCase):
             self.assertEqual(result[0]["capacity_model"],
                              "LEGACY_MATHEMATICAL_HEADROOM_MODEL")
 
+    def test_trace_overhead_uses_vector_kernel_timings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for kind, values in (("timing", (100.0, 102.0)), ("trace", (103.0, 105.0))):
+                for index, elapsed in enumerate(values):
+                    root = Path(tmp) / "trace_overhead" / kind / str(index)
+                    root.mkdir(parents=True)
+                    (root / "manifest.json").write_text(json.dumps({
+                        "evidence_class": "GPU_EXT_STAGE4_TRACE_OVERHEAD",
+                        "experiment": "trace_overhead",
+                        "policy": "custom_no_policy",
+                        "ratio": "256M",
+                        "run_kind": kind,
+                        "correct": True,
+                        "struct_ops_detached": True,
+                        "xid_delta": 0,
+                    }))
+                    (root / "program.jsonl").write_text(json.dumps({
+                        "phase": "kernel_1_demand", "elapsed_ms": elapsed,
+                    }) + "\n")
+            rows = summary.summarize_trace_overhead(summary.collect(Path(tmp)))
+            by_kind = {row["run_kind"]: row for row in rows}
+            self.assertEqual(by_kind["timing"]["kernel_1_demand_count"], 2)
+            self.assertEqual(by_kind["timing"]["kernel_1_demand_mean"], 101.0)
+            self.assertAlmostEqual(
+                by_kind["trace"]["trace_attached_kernel_1_overhead_percent"],
+                (104.0 / 101.0 - 1.0) * 100.0,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

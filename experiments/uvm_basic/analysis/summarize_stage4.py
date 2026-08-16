@@ -9,10 +9,12 @@ import json
 import math
 import statistics
 from collections import Counter, defaultdict
+from collections.abc import Iterator
 from pathlib import Path
 
 
 PHASES = ("phase_A_first", "phase_B_first", "phase_A_reuse", "phase_B_reuse")
+VECTOR_PHASES = ("allocation", "cpu_first_touch", "kernel_1_demand", "kernel_2_hot")
 
 
 def percentile(values: list[float], fraction: float) -> float | None:
@@ -84,14 +86,14 @@ def integer(value: object) -> int:
         return 0
 
 
-def csv_rows(path: Path) -> list[dict[str, str]]:
+def csv_rows(path: Path) -> Iterator[dict[str, str]]:
     if not path.exists() or path.stat().st_size == 0:
-        return []
+        return
     try:
         with path.open(newline="", errors="replace") as stream:
-            return list(csv.DictReader(stream))
+            yield from csv.DictReader(stream)
     except (csv.Error, OSError):
-        return []
+        return
 
 
 def refault_evidence(program: list[dict[str, object]], root: Path) -> dict[str, object]:
@@ -180,7 +182,7 @@ def collect(results: Path) -> list[dict[str, object]]:
         }
         phases = {
             phase: [float(row["elapsed_ms"]) for row in program if row.get("phase") == phase]
-            for phase in PHASES
+            for phase in (*PHASES, *VECTOR_PHASES)
         }
         actions, final_pages = read_trace(root / "prefetch_decision_trace.csv")
         refault = refault_evidence(program, root)
@@ -299,6 +301,40 @@ def summarize(runs: list[dict[str, object]]) -> list[dict[str, object]]:
     return output
 
 
+def summarize_trace_overhead(runs: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Summarize the independent vector-add runs used by Stage 4F."""
+    selected = [run for run in runs if run["experiment"] == "trace_overhead"]
+    groups: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for run in selected:
+        groups[str(run["kind"])].append(run)
+
+    rows: list[dict[str, object]] = []
+    means: dict[str, float] = {}
+    for kind, members in sorted(groups.items()):
+        row: dict[str, object] = {
+            "run_kind": kind,
+            "runs": len(members),
+            "correctness_pass_rate": sum(bool(x["correct"]) for x in members) / len(members),
+            "all_detached": all(bool(x["detached"]) for x in members),
+            "xid_delta": sum(int(x["xid_delta"]) for x in members),
+            "evidence_class": "PROGRAM_TIMING",
+        }
+        for phase in VECTOR_PHASES:
+            values = [value for member in members for value in member["phases"][phase]]
+            phase_stats = stats(values)
+            for name, value in phase_stats.items():
+                row[f"{phase}_{name}"] = value
+            if phase == "kernel_1_demand" and phase_stats["mean"] is not None:
+                means[kind] = float(phase_stats["mean"])
+        rows.append(row)
+
+    if "timing" in means and "trace" in means and means["timing"]:
+        overhead = (means["trace"] / means["timing"] - 1.0) * 100.0
+        for row in rows:
+            row["trace_attached_kernel_1_overhead_percent"] = overhead
+    return rows
+
+
 def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = sorted({key for row in rows for key in row}) if rows else ["status"]
@@ -321,6 +357,20 @@ def main() -> int:
     output = args.output or args.results / "stage4_prefetch_summary.csv"
     write_csv(output, rows)
     write_csv(args.results / "stage4_eviction_refault_summary.csv", rows)
+    canonical = args.results.parent
+    write_csv(canonical / "stage4_summary.csv", rows)
+    write_csv(canonical / "stage4_eviction_refault_summary.csv", rows)
+    write_csv(canonical / "stage4_prefetch_summary.csv", [
+        row for row in rows if row.get("experiment") == "prefetch_matrix_stage4"
+    ])
+    write_csv(canonical / "stage4_joint_summary.csv", [
+        row for row in rows if row.get("experiment") == "joint_stage4"
+    ])
+    write_csv(canonical / "stage4_natural_confirmation.csv", [
+        row for row in rows if row.get("experiment") == "natural_stage4"
+    ])
+    overhead_output = canonical / "stage4_trace_overhead.csv"
+    write_csv(overhead_output, summarize_trace_overhead(runs))
     print(json.dumps({"runs": len(runs), "groups": len(rows), "output": str(output)}, indent=2))
     return 0
 

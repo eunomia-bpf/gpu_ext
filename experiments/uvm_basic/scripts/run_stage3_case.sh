@@ -168,7 +168,7 @@ case "${EXPERIMENT}" in
             --region-a-ratio 0.5 --cycles 1 --gpu-id "${CUDA_DEVICE:-0}"
             --verify yes --output "${RUN_DIR}/program.jsonl")
         ;;
-    reduced_capacity|physical_guard_calibration|joint_stage4|natural_stage4)
+    reduced_capacity|physical_guard_calibration|prefetch_matrix_stage4|joint_stage4|natural_stage4)
         WORKLOAD=("${PHASE_SCAN_PROGRAM}" --total-bytes auto --working-set-ratio "${RATIO}"
             --region-a-ratio 0.5 --cycles 1 --gpu-id "${CUDA_DEVICE:-0}"
             --verify yes --output "${RUN_DIR}/program.jsonl")

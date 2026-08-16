@@ -1,9 +1,21 @@
 # Stage 4 Trace Disabled-Path Overhead
 
-Status: `IMPLEMENTED_NOT_EXECUTED`
+Status: `COMPLETE_TARGET_NOT_MET`
 
-The Stage 3 enhanced decision wrapper performs no allocation, string formatting, or printk, but the current private module still executes a noinline wrapper call and compiler barrier when no trace program is attached. Stage 3 measured a +1.149% mean difference from the older custom baseline, slightly above the target.
+Stage 4F ran 20 fresh untraced and 20 trace-attached independent 256 MiB
+vector-add processes. All 40 runs passed correctness, clean-detach, Xid, and
+GPU-memory-release checks.
 
-The Stage 4 runner provides 20 fresh independent timing runs with tracing disabled and 20 with tracing attached. No new measurement has been made, and no private kernel-module source was modified in this non-privileged implementation pass. A true static-key/listener optimization requires rebuilding and manually reloading the temporary custom UVM module, so it cannot be claimed complete here.
+| Mode | Runs | Mean ms | Median ms | Stddev ms | P95 ms | 95% CI ms |
+|---|---:|---:|---:|---:|---:|---:|
+| current custom, trace not attached | 20 | 244.138 | 244.343 | 3.012 | 247.611 | 242.818-245.459 |
+| current custom, trace attached | 20 | 285.353 | 285.014 | 3.193 | 289.948 | 283.954-286.753 |
 
-The acceptance target remains untraced overhead at or below 1%, reported with mean, median, standard deviation, p95, and a 95% confidence interval. Results must be reported even if the target is missed.
+The Stage 2 custom no-policy reference was 240.731 ms. The current untraced
+mean is therefore 1.415% higher, so the <=1% disabled-path target was not met.
+Attaching the enhanced trace increased kernel-1 time by 16.882% relative to
+the current untraced runs. No outliers were removed.
+
+This window measured the current implementation; it did not alter the kernel
+hot path. The summarizer's streaming CSV change only reduces offline analysis
+memory use and is not a kernel-overhead optimization.

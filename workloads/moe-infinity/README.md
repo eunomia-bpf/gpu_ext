@@ -37,7 +37,7 @@ offline implementation now includes:
   counters and an ownership-safe loader;
 - a UVM Tools V2 monitor that counts actual `UvmEventTypeEviction` records;
 - a fail-closed admission/command harness with exact model, binary, source,
-  environment, GPU, storage, and struct_ops checks.
+  environment, GPU, storage, loaded-UVM-interface, and struct_ops checks.
 
 Run the CPU-only checks and read-only admission with:
 
@@ -72,6 +72,9 @@ The recorded pre-run deviation in `plan.md` moves all four cells to the same
 610.43.02 stack and identifies the workspace NVMe by filesystem UUID. Build
 the pinned port in the sibling `gpu_ext-kernel-610` checkout; the existing
 575 source checkout is not modified. The custom 610 modules are not loaded.
-Unrelated SGLang processes still own about 31 GiB on GPU 0. The harness never
-signals them or clears unknown struct_ops state. No GPU correctness or
-performance run is accepted until isolation and real preflight succeed.
+The unrelated SGLang processes later exited without intervention. Admission
+now also refuses the stock UVM module: it requires live BTF proof of the exact
+custom `gpu_mem_ops` ABI and policy kfuncs. The harness never signals foreign
+processes or clears unknown struct_ops state. No GPU correctness or performance
+run is accepted until the idle UVM module is temporarily replaced and real
+preflight succeeds.

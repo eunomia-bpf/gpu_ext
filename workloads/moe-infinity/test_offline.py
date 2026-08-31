@@ -9,6 +9,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -232,6 +233,49 @@ class CombinedPolicyTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    def test_loaded_uvm_gate_accepts_exact_port_interface(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            version = root / "version"
+            btf = root / "nvidia_uvm"
+            version.write_text(runner.EXPECTED_DRIVER + "\n")
+            btf.touch()
+            members = "".join(
+                f"\t'{name}' type_id=1 bits_offset={index * 64}\n"
+                for index, name in enumerate((
+                    "gpu_test_trigger", "gpu_page_prefetch",
+                    "gpu_page_prefetch_iter", "gpu_block_activate",
+                    "gpu_block_access", "gpu_evict_prepare",
+                ))
+            )
+            dump = "[1] STRUCT 'gpu_mem_ops' size=48 vlen=6\n" + members + "".join(
+                f"[2] FUNC '{name}' type_id=1 linkage=static\n"
+                for name in (
+                    "bpf_gpu_block_move_head", "bpf_gpu_block_move_tail",
+                    "bpf_gpu_set_prefetch_region",
+                )
+            )
+            with mock.patch.object(runner, "LOADED_UVM_VERSION", version), \
+                 mock.patch.object(runner, "LOADED_UVM_BTF", btf), \
+                 mock.patch.object(runner, "run_checked", return_value=dump):
+                observed = runner.verify_loaded_uvm_interface()
+        self.assertEqual(observed["version"], runner.EXPECTED_DRIVER)
+        self.assertEqual(len(observed["gpu_mem_ops_members"]), 6)
+        self.assertEqual(len(observed["required_kfuncs"]), 3)
+
+    def test_loaded_uvm_gate_rejects_stock_or_incomplete_module(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            version = root / "version"
+            btf = root / "nvidia_uvm"
+            version.write_text(runner.EXPECTED_DRIVER + "\n")
+            btf.touch()
+            with mock.patch.object(runner, "LOADED_UVM_VERSION", version), \
+                 mock.patch.object(runner, "LOADED_UVM_BTF", btf), \
+                 mock.patch.object(runner, "run_checked", return_value=""):
+                with self.assertRaisesRegex(runner.GateError, "six-member"):
+                    runner.verify_loaded_uvm_interface()
+
     def test_uvm_and_gpubpf_server_commands_are_byte_identical(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:
             attempt = Path(temporary)

@@ -367,16 +367,16 @@ separate NVBit experiment retains its supported 575 stack requirement.
 The workspace NVMe enumerated as `/dev/nvme1n1p1` before the reboot and now
 as `/dev/nvme0n1p1`; admission uses its ext4 UUID instead of a device number.
 
-The host is currently not admitted because unrelated SGLang processes own
-about 31 GiB of GPU memory. They are outside this task's authority. The custom
-610 modules are built but not loaded. Real preflight must still validate
-policy attachment, native eviction events, correctness, and runtime isolation.
+The unrelated SGLang processes later exited without intervention and the GPU
+became idle. The custom 610 modules are built but not loaded. Real preflight
+must still validate policy attachment, native eviction events, correctness,
+and runtime isolation.
 
 Offline implementation status (2026-08-31): the frozen workload, observational
 MoE instrumentation, combined one-object policy, ownership-safe loader, UVM
 Tools V2 completed-eviction monitor, exact command/environment manifest, and
 fail-closed no-launch admission are implemented. The combined policy and both
-userspace probes compile cleanly; 26 CPU-only tests pass. A full content audit
+userspace probes compile cleanly; 28 CPU-only tests pass. A full content audit
 passed for all 15 HF shards, seven HF metadata files, and the public GGUF.
 GPU correctness preflight and timed attempts remain prohibited until admission
 succeeds. The four custom 610.43.02 module hashes and 7.1.12 vermagic are
@@ -385,3 +385,13 @@ The compile-only `test_uvm_tools_abi.c` check passes against the pinned 610
 headers (23 assertions for ioctl values, V2 record sizes, and field offsets).
 The monitor's wire layout needs no change; event delivery remains a real
 preflight obligation, not a consequence of ABI compatibility.
+
+Preflight admission repair (2026-08-31): artifact hashes alone did not prove
+that the running UVM module was the custom port rather than the installed stock
+610 module. Admission now requires live module version 610.43.02 and module BTF
+containing the exact six-member `gpu_mem_ops` ABI plus the three kfuncs used by
+the combined policy. The stock UVM currently fails this gate because it has no
+live module BTF or gpubpf interface. This strengthens execution identity without
+changing a configuration, workload, metric, or stopping rule. Before the first
+real preflight, only idle `nvidia_uvm` may be temporarily replaced; the official
+610 core retained by GDM is not part of the replacement.

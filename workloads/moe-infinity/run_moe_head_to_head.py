@@ -42,6 +42,8 @@ POLICY_LOADER = EXTENSION / "prefetch_stride_lfu"
 POLICY_BPF_OBJECT = EXTENSION / ".output/prefetch_stride_lfu.bpf.o"
 EVICTION_MONITOR = HERE / "uvm_eviction_monitor"
 KERNEL_MODULE_ROOT = GPU_EXT.parent / "gpu_ext-kernel-610/kernel-open"
+LOADED_UVM_VERSION = Path("/sys/module/nvidia_uvm/version")
+LOADED_UVM_BTF = Path("/sys/kernel/btf/nvidia_uvm")
 ARTIFACTS = HERE / "artifacts-current.json"
 WORKLOAD_MANIFEST = HERE / "workload-manifest.json"
 PROMPTS = HERE / "prompts.json"
@@ -352,6 +354,56 @@ def verify_small_artifacts() -> dict[str, Any]:
     return observed
 
 
+def verify_loaded_uvm_interface() -> dict[str, Any]:
+    """Prove that the live UVM module exposes the frozen gpubpf ABI."""
+    if not LOADED_UVM_VERSION.is_file():
+        raise GateError(f"loaded UVM version is unavailable: {LOADED_UVM_VERSION}")
+    version = LOADED_UVM_VERSION.read_text().strip()
+    if version != EXPECTED_DRIVER:
+        raise GateError(f"loaded UVM version mismatch: expected {EXPECTED_DRIVER}, found {version}")
+    if not LOADED_UVM_BTF.is_file():
+        raise GateError(
+            "loaded nvidia_uvm has no module BTF; the custom gpubpf UVM interface "
+            "is not proven"
+        )
+    raw = run_checked(
+        ["sudo", "-n", "bpftool", "btf", "dump", "file", str(LOADED_UVM_BTF),
+         "format", "raw"]
+    )
+    struct_match = re.search(
+        r"STRUCT 'gpu_mem_ops' size=48 vlen=6\n(?P<members>(?:\t[^\n]+\n){6})",
+        raw,
+    )
+    expected_members = (
+        "gpu_test_trigger",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_block_activate",
+        "gpu_block_access",
+        "gpu_evict_prepare",
+    )
+    if struct_match is None:
+        raise GateError("loaded UVM BTF lacks the exact six-member gpu_mem_ops ABI")
+    members = tuple(re.findall(r"\t'([^']+)'", struct_match.group("members")))
+    if members != expected_members:
+        raise GateError(f"loaded gpu_mem_ops member mismatch: {members}")
+    required_kfuncs = (
+        "bpf_gpu_block_move_head",
+        "bpf_gpu_block_move_tail",
+        "bpf_gpu_set_prefetch_region",
+    )
+    missing_kfuncs = [name for name in required_kfuncs if f"FUNC '{name}'" not in raw]
+    if missing_kfuncs:
+        raise GateError(f"loaded UVM BTF lacks policy kfuncs: {missing_kfuncs}")
+    return {
+        "version": version,
+        "btf_path": str(LOADED_UVM_BTF),
+        "btf_dump_sha256": hashlib.sha256(raw.encode()).hexdigest(),
+        "gpu_mem_ops_members": list(members),
+        "required_kfuncs": list(required_kfuncs),
+    }
+
+
 def verify_model_artifacts(full_hashes: bool) -> dict[str, Any]:
     frozen = json.loads(ARTIFACTS.read_text())
     expected_weights = frozen["model"]["weight_sha256"]
@@ -425,6 +477,10 @@ def admission(port: int, full_hashes: bool = False) -> dict[str, Any]:
             errors.append(f"pre-existing struct_ops state: {evidence['struct_ops']}")
     except Exception as exc:
         errors.append(f"struct_ops inventory: {exc}")
+    try:
+        evidence["loaded_uvm_interface"] = verify_loaded_uvm_interface()
+    except Exception as exc:
+        errors.append(f"loaded UVM interface: {exc}")
     try:
         evidence["mount"] = mount_state(HERE)
         mount = evidence["mount"]

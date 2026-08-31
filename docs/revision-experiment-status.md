@@ -10,7 +10,7 @@ The driver port and CPU tests are dependencies, not research results.
 | Work | Evidence and current status |
 | --- | --- |
 | NVIDIA 610 port | [port branch](https://github.com/eunomia-bpf/gpu_ext-kernel-modules/tree/port/nvidia-610.43.02), including [build and runtime notes](https://github.com/eunomia-bpf/gpu_ext-kernel-modules/blob/port/nvidia-610.43.02/GPUBPF-PORT.md). All five modules build for 6.15.11 and 7.1.12; BTF verifies both struct_ops and all nine kfuncs. No runtime replacement/attach test yet. |
-| MoE-Infinity | [Plan](../workloads/moe-infinity/plan.md) and [review](../workloads/moe-infinity/plan-review.md) approved; host stride/LFU policy, native read-only counters, UVM eviction monitor, workload, and runner persisted. All 26 offline tests pass. Real preflight and five complete valid blocks remain pending. |
+| MoE-Infinity | [Plan](../workloads/moe-infinity/plan.md) and [review](../workloads/moe-infinity/plan-review.md) approved; host stride/LFU policy, native read-only counters, UVM eviction monitor, workload, and runner persisted. The offline suite includes loaded-UVM identity-gate tests. Real preflight and five complete valid blocks remain pending. |
 | LMCache NVMe | [Plan](../workloads/lmcache-disk/plan.md) and [review](../workloads/lmcache-disk/plan-review.md) approved. All eight CPU tests pass. Three real preflight attempts failed before any request: trace-path launch error, DeepGEMM FP8 scale-layout failure after loading the checkpoint, then an invalid 0.99 vLLM startup-memory budget. The reviewed protocol is closed without O_DIRECT, correctness, or performance evidence; a fourth attempt needs a newly reviewed protocol. |
 | Agent-study artifacts (R7) | [Public entry-point index](eval/agent/README.md) links historical analyses and benchmark sources. The metric extractor now accepts explicit corpus/output paths. Original study sessions are absent from the old local directory; prompts/logs remain unreleased pending archive recovery and privacy review. |
 | XSched | [Review](../workloads/xsched/plan-review.md) closed the first proposal after three rounds. The CUPTI/globaltimer epoch proof and interpretation categories require repair in a new proposal. The CUDA workload builds; no GPU result. |
@@ -70,8 +70,8 @@ stack per comparison, preserving the reviewed workloads, correctness checks,
 and analysis. MoE pins the four custom 7.1.12 modules from port commit
 `74a036fe7b7c8701914f0703d802eb17269a730f`; LMCache uses the installed official
 610 stack and needs no custom hooks. The MoE monitor's wire layout passes
-23 compile-only assertions against the 610 headers. The 26 MoE and eight
-LMCache CPU tests pass; no runtime attach/event-delivery result is implied.
+23 compile-only assertions against the 610 headers. The MoE and LMCache CPU
+tests pass; no runtime attach/event-delivery result is implied.
 
 The reboot also renumbered the workspace Samsung 9100 PRO from `nvme1n1p1`
 to `nvme0n1p1`. Both runners now identify its ext4 filesystem by UUID, not by

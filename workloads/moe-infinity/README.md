@@ -107,3 +107,11 @@ see `runtime-preflight.md`.
 That revision is now approved: `taskset -c 0-7` wraps both `strace` and the
 Python server, while attempt 1 remains preserved and counted. Fixed-namespace
 attempt 2 is authorized; timing is still gated on a fully passing preflight.
+
+Attempt 2 completed the warm-up and all 16 MoE correctness requests, each with
+exact 512+64 token accounting, but the two greedy passes differed on six of
+eight prompts. The unchanged oracle rejected the attempt before timing. Source
+inspection identified separate expert CUDA streams writing the shared
+accumulator without a GPU completion barrier or fixed reduction order. The
+final attempt is unauthorized until that race has a disclosed repair, rebuild,
+GPU determinism check, and independent review; see `runtime-preflight.md`.

@@ -1,7 +1,7 @@
 # MoE-Infinity oversized-route repair experiment — proposal 3 revision 3
 
-Status: **launcher-only revision independently approved; repaired-protocol
-attempt 2 is authorized**.
+Status: **revision 3 attempt 2 failed the unchanged exact-output gate; unchanged
+attempt 3 is not authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -173,8 +173,11 @@ are visible.
   3 passes 38 offline checks and independent review.
 - EXPERIMENT: attempt 1 completed the original 512+64-token warm-up but failed
   the CPU-affinity gate because the tracing wrapper sat outside `taskset`; see
-  `runtime-preflight.md`. Revision 3 implements only the approved wrapper-order
-  repair; fixed-namespace attempt 2 is the next authorized action.
+  `runtime-preflight.md`. Revision 3 fixed that launcher defect, and attempt 2
+  completed both eight-prompt smoke passes but exposed nondeterministic
+  cross-stream expert accumulation in the upstream dispatcher. A disclosed
+  deterministic-accumulation repair, rebuild, GPU gate, and independent review
+  are required before the final fixed-namespace attempt.
 - WRITE: closed by user instruction until experiments are complete.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.

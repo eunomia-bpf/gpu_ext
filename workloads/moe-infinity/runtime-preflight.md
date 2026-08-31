@@ -85,3 +85,36 @@ No timing ran. An unchanged attempt 2 is prohibited. The next proposal may
 only move `taskset` outside the tracing wrapper so every owned process inherits
 the frozen CPU set; it must retain attempt 1, increment the protocol revision,
 count the next launch as attempt 2, and receive independent review first.
+
+## Repaired protocol attempt 2: full smoke executed, output race detected
+
+The independently approved launcher-only revision ran at
+`raw/repaired-preflight/attempt-02`. The recorded command placed
+`taskset -c 0-7` outside `strace`; both tracer and Python server retained the
+frozen affinity, so attempt 1's harness defect did not recur.
+
+The repaired MoE configuration completed the excluded 512+64-token warm-up and
+both complete correctness passes: 16 further requests each returned HTTP 200
+with exactly 512 prompt tokens and 64 completion tokens. The two output texts
+matched for prompts 5 and 7 but differed for the other six prompts. The
+unchanged exact-output gate therefore rejected the configuration before
+engagement acceptance or the remaining three configurations:
+
+```text
+non-deterministic smoke output for prompt 1
+```
+
+The requests used `temperature=0.0` and MoE-Infinity's sampler took its greedy
+`argmax` path, so sampling randomness does not explain the divergence. Source
+inspection instead found that four expert workers enqueue in-place additions
+to shared `final_hidden_states_` from separate CUDA streams. The host mutex
+serializes enqueue calls but neither waits for each GPU write nor imposes a
+fixed expert reduction order. This is a concrete upstream accumulation race,
+not a reason to weaken the frozen correctness oracle.
+
+Attempt 2 is preserved with `status=failed` and `retry_allowed=false`; cleanup
+returned the GPU and struct_ops state to idle/empty, and no timing ran. An
+unchanged attempt 3 is prohibited. Any final attempt requires a disclosed
+deterministic accumulation repair, a GPU numerical/determinism gate, rebuild,
+read-only admission, and independent review while preserving both earlier
+attempts and every scientific setting.

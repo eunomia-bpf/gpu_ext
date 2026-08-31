@@ -1,7 +1,7 @@
-# MoE-Infinity oversized-route repair experiment — proposal 3 revision 3
+# MoE-Infinity oversized-route repair experiment — proposal 3 revision 4
 
-Status: **revision 3 attempt 2 failed the unchanged exact-output gate; unchanged
-attempt 3 is not authorized**.
+Status: **stream-handoff and deterministic-accumulation repairs rebuilt,
+GPU-validated, and follow-up approved; fixed attempt 3 is authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -47,14 +47,27 @@ first of three attempts. Only a reviewed protocol-ID change permits the next
 attempt after that deterministic failure; an unchanged deterministic failure
 still blocks retry.
 
+Revision 4 responds to attempt 2 without weakening its exact-output oracle.
+The four upstream expert compute threads and their CUDA streams remain intact,
+but each worker installs its external-stream guard before constructing its
+mask/input, checks completion of its float32 output, and places it in a pending
+list. `WaitHiddenStates()` propagates any worker failure instead of returning a
+partial result, then reduces successful outputs on the caller stream in
+expert-index order. This removes both the producer/consumer handoff race and
+concurrent in-place writes, and makes the reduction order independent of
+worker arrival order. Attempts 1 and 2 remain the first two of the fixed
+three-attempt budget.
+
 ## 3. Disclosed source repair
 
 The source base remains EfficientMoE/MoE-Infinity commit
-`b766f8f1f6379fac6cd23594713ba6f4c7650ad9`. Two patch artifacts are applied:
+`b766f8f1f6379fac6cd23594713ba6f4c7650ad9`. Three patch artifacts are applied:
 
 1. `instrumentation.patch`, the already approved load-only cache-counter and
    stats-route patch; and
-2. the tracked `row-chunking.patch` file.
+2. the tracked `row-chunking.patch` file; and
+3. `deterministic-accumulation.patch`, which repairs the upstream dispatcher
+   race exposed by attempt 2.
 
 The row repair changes `core/parallel/expert_module.cpp` and its declaration in
 `core/parallel/expert_module.h`. The repair-specific numerical test is exposed
@@ -68,12 +81,21 @@ dequantized expert weights over stable consecutive chunks of at most 256 rows,
 copy each chunk result into the corresponding rows of one full-sized output,
 then restore all reusable buffer views to 256 rows.
 
+The accumulation repair keeps four parallel expert compute workers. It binds
+each worker's PyTorch mask/input construction and expert forward pass to that
+worker's non-blocking external stream, checks output completion before
+publication, and stores the output and mask without touching the shared
+destination. The caller rejects any worker failure, sorts completed records by
+expert ID, and performs the original float32 weighted addition on its stream.
+It does not serialize expert computation or change the number of expert
+threads.
+
 The patch does not change routing, expert selection, routing weights, model
 weights, quantization, activation, prompt length, output length, cache
 capacity, device-memory ratio, expert-store layout, or the comparison cells.
-It adds no prefetch or caching policy. The baseline must be labeled
-"MoE-Infinity public commit plus disclosed oversized-route correctness repair,"
-not the unmodified public artifact.
+They add no prefetch or caching policy. The baseline must be labeled
+"MoE-Infinity public commit plus disclosed oversized-route and deterministic-
+accumulation correctness repairs," not the unmodified public artifact.
 
 ## 4. BUILD gate
 
@@ -83,6 +105,8 @@ following must pass:
 1. `git apply --unidiff-zero --check --reverse row-chunking.patch` against the
    staged source; the zero-context form avoids embedding Git blob identifiers
    in the patch artifact;
+   `deterministic-accumulation.patch` must pass the same reverse-application
+   check;
 2. source checks proving the old `batch_size > kMaxTokens` fatal is absent,
    the `<=256` fast path and `>256` stable-row chunk path are both present, and
    the full output is restored in original row order;
@@ -96,7 +120,14 @@ following must pass:
    257, and 353 rows against the same-parameter reference evaluated in stable
    chunks of at most 256 rows, explicitly synchronizes both paths, and requires
    `rtol=1e-2` and `atol=1e-2`;
-8. read-only admission accepts the exact model, binaries, custom loaded-UVM
+8. the same GPU gate sends four distinct arrival orders of four synthetic
+   353-row expert outputs through the production reduction helper and requires
+   exact equality with an expert-index-order reference after explicit
+   synchronization; and
+9. source checks require the external-stream guard before mask/input
+   construction, a checked output-publication barrier, and propagation of
+   worker exceptions through `WaitHiddenStates()`; and
+10. read-only admission accepts the exact model, binaries, custom loaded-UVM
    BTF interface, idle GPU, NVMe filesystem, and empty struct_ops inventory.
 
 Together these checks establish build identity, control-flow boundaries, and
@@ -154,7 +185,8 @@ independent result review before any number is promoted to revision evidence.
 Any eventual report must disclose all of the following alongside the result:
 
 - the unmodified public artifact failed the same frozen warm-up at 353 rows;
-- the published baseline therefore uses the exact disclosed correctness patch;
+- the published baseline therefore uses both exact disclosed correctness
+  patches;
 - the repair preserves the upstream fast path for routes at or below 256 rows,
   but no unsupported claim of zero binary-level overhead is made;
 - this is a deployment comparison across different runtimes, not a causal
@@ -168,16 +200,18 @@ are visible.
 
 ## 8. Auto-research gate state
 
-- BUILD: source repair, rebuilt extensions, standalone GPU numerical
-  comparison, and read-only admission remain unchanged; launcher-only revision
-  3 passes 38 offline checks and independent review.
+- BUILD: stream handoff, checked publication, worker-error propagation, and
+  deterministic accumulation are implemented in one disclosed patch. The
+  fresh rebuild and both GPU gates pass, including exact equality across four
+  arrival orders. Forty offline checks and read-only admission pass. Follow-up
+  review approves the fixed attempt 3.
 - EXPERIMENT: attempt 1 completed the original 512+64-token warm-up but failed
   the CPU-affinity gate because the tracing wrapper sat outside `taskset`; see
   `runtime-preflight.md`. Revision 3 fixed that launcher defect, and attempt 2
   completed both eight-prompt smoke passes but exposed nondeterministic
-  cross-stream expert accumulation in the upstream dispatcher. A disclosed
-  deterministic-accumulation repair, rebuild, GPU gate, and independent review
-  are required before the final fixed-namespace attempt.
+  cross-stream expert accumulation in the upstream dispatcher. Revision 4
+  implements the bounded stream-handoff and deterministic-accumulation repair;
+  follow-up review authorizes the final fixed-namespace attempt.
 - WRITE: closed by user instruction until experiments are complete.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.

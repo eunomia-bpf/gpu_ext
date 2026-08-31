@@ -1,0 +1,176 @@
+diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatcher.cpp
+--- a/core/parallel/expert_dispatcher.cpp
++++ b/core/parallel/expert_dispatcher.cpp
+@@ -21,0 +22 @@
++#include <algorithm>
+@@ -29,0 +31,29 @@ extern void fp8_dequant_blockwise_cuda(const void* weight, const void* scale,
++using PendingAccumulation =
++    std::tuple<int64_t, torch::Tensor, torch::Tensor>;
++
++static void AccumulateInExpertOrder(
++    torch::Tensor& final_hidden_states, const torch::Tensor& router_weight,
++    int64_t batch_size, std::vector<PendingAccumulation> pending) {
++  std::sort(pending.begin(), pending.end(),
++            [](const PendingAccumulation& lhs,
++               const PendingAccumulation& rhs) {
++              return std::get<0>(lhs) < std::get<0>(rhs);
++            });
++  for (const auto& item : pending) {
++    int64_t expert_idx = std::get<0>(item);
++    const auto& output_tensor = std::get<1>(item);
++    const auto& token_mask = std::get<2>(item);
++    if (batch_size == 1) {
++      final_hidden_states.add_(
++          output_tensor *
++          router_weight.index({torch::indexing::Slice(), expert_idx}));
++    } else {
++      auto token_indices = torch::nonzero(token_mask).squeeze(1);
++      auto weights =
++          router_weight.index({token_mask, expert_idx}).unsqueeze(1);
++      final_hidden_states.index_add_(0, token_indices,
++                                     output_tensor * weights);
++    }
++  }
++}
++
+@@ -590,0 +629,3 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
++  c10::cuda::CUDAStream torch_stream =
++      c10::cuda::getStreamFromExternal(stream, gpu_id);
++  c10::cuda::CUDAStreamGuard guard(torch_stream);
+@@ -638,4 +678,0 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
+-      c10::cuda::CUDAStream torch_stream =
+-          c10::cuda::getStreamFromExternal(stream, gpu_id);
+-      c10::cuda::CUDAStreamGuard guard(torch_stream);
+-
+@@ -661,0 +699,10 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
++      {
++        std::lock_guard<std::mutex> error_lock(worker_error_mutex_);
++        if (worker_error_.empty()) {
++          std::ostringstream message;
++          message << "expert forward failed: " << e.what()
++                  << " (expert_idx=" << args.expert_node->expert_idx
++                  << " layer_idx=" << args.expert_node->layer_idx << ")";
++          worker_error_ = message.str();
++        }
++      }
+@@ -676,0 +724,2 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
++  CUDA_CHECK(
++      cudaStreamSynchronize(at::cuda::getCurrentCUDAStream(gpu_id).stream()));
+@@ -685 +733,0 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+-  int64_t batch_size = hidden_states_.size(0);
+@@ -701,11 +749 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+-    if (batch_size == 1) {
+-      final_hidden_states_.add_(
+-          output_tensor *
+-          router_weight_.index({torch::indexing::Slice(), expert_idx}));
+-    } else {
+-      auto token_indices = torch::nonzero(token_mask).squeeze(1);
+-      auto weights =
+-          router_weight_.index({token_mask, expert_idx}).unsqueeze(1);
+-      auto weighted_output = output_tensor * weights;
+-      final_hidden_states_.index_add_(0, token_indices, weighted_output);
+-    }
++    pending_accumulations_.emplace_back(expert_idx, output_tensor, token_mask);
+@@ -740,0 +779 @@ torch::Tensor ExpertDispatcher::WaitHiddenStates() {
++  lock.unlock();
+@@ -741,0 +781,13 @@ torch::Tensor ExpertDispatcher::WaitHiddenStates() {
++  std::string worker_error;
++  {
++    std::lock_guard<std::mutex> error_lock(worker_error_mutex_);
++    worker_error.swap(worker_error_);
++  }
++  std::vector<PendingAccumulation> pending;
++  {
++    std::lock_guard<std::mutex> accum_lock(accum_mutex_);
++    pending.swap(pending_accumulations_);
++  }
++  TORCH_CHECK(worker_error.empty(), worker_error);
++  AccumulateInExpertOrder(final_hidden_states_, router_weight_,
++                          hidden_states_.size(0), std::move(pending));
+@@ -750,0 +803,10 @@ void ExpertDispatcher::SetInputs(const torch::Tensor& hidden_states,
++  {
++    std::lock_guard<std::mutex> lock(accum_mutex_);
++    TORCH_CHECK(pending_accumulations_.empty(),
++                "previous expert accumulations were not consumed");
++  }
++  {
++    std::lock_guard<std::mutex> error_lock(worker_error_mutex_);
++    TORCH_CHECK(worker_error_.empty(),
++                "previous expert worker error was not consumed");
++  }
+@@ -755,0 +818,54 @@ void ExpertDispatcher::SetInputs(const torch::Tensor& hidden_states,
++
++std::vector<double>
++ExpertDispatcher::NumericalDeterministicAccumulationCheck(
++    int64_t rows, double rtol, double atol) {
++  TORCH_CHECK(rows == 353, "deterministic accumulation test requires 353 rows");
++  constexpr int64_t hdim = 64;
++  constexpr int64_t experts = 4;
++  auto options = torch::TensorOptions()
++                     .dtype(torch::kFloat32)
++                     .device(CUDA_DEVICE(at::cuda::current_device()));
++  auto base = torch::arange(rows * hdim, options).reshape({rows, hdim});
++  auto mask = torch::ones({rows}, options.dtype(torch::kBool));
++  auto router_weight = torch::empty({rows, experts}, options);
++  std::vector<torch::Tensor> outputs;
++  for (int64_t expert = 0; expert < experts; ++expert) {
++    router_weight.index_put_({torch::indexing::Slice(), expert},
++                             0.1 * static_cast<double>(expert + 1));
++    outputs.push_back(
++        torch::sin(base * (0.003 * static_cast<double>(expert + 1))));
++  }
++
++  auto reference = torch::zeros({rows, hdim}, options);
++  for (int64_t expert = 0; expert < experts; ++expert) {
++    reference.add_(outputs[expert] *
++                   router_weight.index(
++                       {torch::indexing::Slice(), expert}).unsqueeze(1));
++  }
++  CUDA_CHECK(cudaStreamSynchronize(
++      at::cuda::getCurrentCUDAStream().stream()));
++
++  std::vector<int64_t> order = {3, 1, 0, 2};
++  double max_abs = 0.0;
++  double max_rel = 0.0;
++  bool exact = true;
++  for (int repetition = 0; repetition < 4; ++repetition) {
++    std::vector<PendingAccumulation> pending;
++    for (int64_t expert : order) {
++      pending.emplace_back(expert, outputs[expert], mask);
++    }
++    auto actual = torch::zeros({rows, hdim}, options);
++    AccumulateInExpertOrder(actual, router_weight, rows, std::move(pending));
++    CUDA_CHECK(cudaStreamSynchronize(
++        at::cuda::getCurrentCUDAStream().stream()));
++    auto absolute = (actual - reference).abs();
++    max_abs = std::max(max_abs, absolute.max().item<double>());
++    auto denominator = reference.abs().clamp_min(1.0e-6);
++    max_rel = std::max(
++        max_rel, (absolute / denominator).max().item<double>());
++    exact = exact && torch::equal(actual, reference) &&
++            torch::allclose(actual, reference, rtol, atol);
++    std::rotate(order.begin(), order.begin() + 1, order.end());
++  }
++  return {max_abs, max_rel, exact ? 1.0 : 0.0};
++}
+diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher.h
+--- a/core/parallel/expert_dispatcher.h
++++ b/core/parallel/expert_dispatcher.h
+@@ -16,0 +17 @@
++#include <tuple>
+@@ -113,0 +116,2 @@ class ExpertDispatcher : public base::noncopyable {
++  static std::vector<double> NumericalDeterministicAccumulationCheck(
++      int64_t rows, double rtol, double atol);
+@@ -172,0 +177,4 @@ class ExpertDispatcher : public base::noncopyable {
++  std::vector<std::tuple<int64_t, torch::Tensor, torch::Tensor>>
++      pending_accumulations_;
++  std::mutex worker_error_mutex_;
++  std::string worker_error_;
+diff --git a/core/python/py_archer_prefetch.cpp b/core/python/py_archer_prefetch.cpp
+--- a/core/python/py_archer_prefetch.cpp
++++ b/core/python/py_archer_prefetch.cpp
+@@ -110,0 +112,4 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
++  m.def("deterministic_accumulation_check",
++        &ExpertDispatcher::NumericalDeterministicAccumulationCheck,
++        py::arg("rows"), py::arg("rtol"), py::arg("atol"),
++        "Verify expert outputs reduce identically across arrival orders.");

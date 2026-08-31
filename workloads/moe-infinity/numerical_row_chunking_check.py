@@ -35,6 +35,22 @@ def main() -> int:
         if not record["within_tolerance"]:
             raise RuntimeError(f"MoEMLP numerical mismatch: {record}")
 
+    max_abs, max_rel, exact = _store.deterministic_accumulation_check(
+        353, RTOL, ATOL
+    )
+    torch.cuda.synchronize()
+    accumulation = {
+        "rows": 353,
+        "arrival_orders": 4,
+        "max_abs": max_abs,
+        "max_rel": max_rel,
+        "exact": bool(exact),
+    }
+    if not accumulation["exact"]:
+        raise RuntimeError(
+            f"deterministic expert accumulation mismatch: {accumulation}"
+        )
+
     print(
         json.dumps(
             {
@@ -43,6 +59,7 @@ def main() -> int:
                 "rtol": RTOL,
                 "atol": ATOL,
                 "results": results,
+                "accumulation": accumulation,
             },
             sort_keys=True,
         )

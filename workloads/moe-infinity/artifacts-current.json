@@ -110,7 +110,7 @@
     },
     "_store": {
       "filename": "_store.cpython-312-x86_64-linux-gnu.so",
-      "size": 71782016,
+      "size": 72170104,
       "measurement_instrumented": true,
       "row_chunking_repair": true,
       "device_code": [
@@ -138,12 +138,13 @@
   "measurement_instrumentation": {
     "patch": "instrumentation.patch",
     "semantics": "load-only ExpertDispatcher cache counters plus stats route",
-    "offline_tests": 38
+    "offline_tests": 40
   },
   "source_repair": {
     "patch": "row-chunking.patch",
-    "scope": "MoEMLP::forward only",
-    "semantics": "preserve the upstream fast path at or below 256 rows; otherwise execute routed expert rows in stable consecutive chunks of at most 256 using the same resident and dequantized expert weights",
+    "deterministic_accumulation_patch": "deterministic-accumulation.patch",
+    "scope": "MoEMLP::forward oversized-route handling and ExpertDispatcher output accumulation",
+    "semantics": "preserve the upstream fast path at or below 256 rows; otherwise execute routed expert rows in stable consecutive chunks of at most 256 using the same resident and dequantized expert weights; retain four parallel expert compute streams, bind mask/input creation to each external stream, check completed output publication, propagate worker errors, and reduce successful outputs in expert-index order on the caller stream",
     "boundary_cases": [
       1,
       256,
@@ -165,7 +166,17 @@
       "max_relative_error": 0.0,
       "status": "passed"
     },
-    "performance_status": "attempt 2 completed warm-up and 16 exact 512+64-token MoE smoke requests; 6 of 8 two-pass output pairs differed because of an upstream cross-stream accumulation race; no timing yet"
+    "deterministic_accumulation_gate": {
+      "rows": 353,
+      "arrival_orders": 4,
+      "rtol": 0.01,
+      "atol": 0.01,
+      "max_absolute_error": 0.0,
+      "max_relative_error": 0.0,
+      "exact": true,
+      "status": "passed"
+    },
+    "performance_status": "attempt 2 exposed upstream stream-handoff and shared-accumulation races; revision 4 repairs both, rebuilt successfully, passed the row and deterministic-reduction GPU gates exactly, and received follow-up approval for the final preflight; no timing yet"
   },
   "frozen_workload": {
     "manifest": "workload-manifest.json",
@@ -206,8 +217,8 @@
     "repair_plan": "repair-plan.md",
     "repair_plan_review": "repair-plan-review.md",
     "numerical_check": "numerical_row_chunking_check.py",
-    "protocol": "proposal-3-revision-3",
-    "plan_review": "approved",
+    "protocol": "proposal-3-revision-4",
+    "plan_review": "follow-up approved",
     "repaired_preflight_attempts": 3,
     "repaired_preflight_root": "raw/repaired-preflight",
     "commands": "commands.json",
@@ -215,6 +226,6 @@
     "uvm_eviction_monitor": "uvm_eviction_monitor",
     "uvm_event_type": "UvmEventTypeEviction (14)",
     "uvm_event_abi": "V2, 72-byte queue entries",
-    "offline_tests": 38
+    "offline_tests": 40
   }
 }

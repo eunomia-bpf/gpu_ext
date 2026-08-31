@@ -122,3 +122,51 @@ Verdict: **APPROVE**.
 
 Fixed-namespace attempt 2 is authorized. Timing remains unauthorized until a
 complete repaired preflight passes every correctness and engagement gate.
+
+## Revision 4 deterministic-repair review
+
+Attempt 2 completed the warm-up and both eight-prompt smoke passes, but six of
+eight exact-output pairs differed. Revision 4 initially removed concurrent
+in-place writes to the shared accumulator and imposed expert-index reduction
+order while retaining four expert compute streams.
+
+A fresh read-only review returned **BLOCK** before attempt 3. It found three
+result-invalidating defects:
+
+1. each worker constructed its `token_mask` and gathered input before installing
+   the guard for its non-blocking external CUDA stream, leaving an unchecked
+   producer/consumer stream handoff before `MoEMLP::forward()`;
+2. the output-publication `cudaStreamSynchronize()` return value was ignored;
+   and
+3. a caught expert-forward exception decremented `pending_` and allowed
+   `WaitHiddenStates()` to return a partial result.
+
+The implementation now moves the external-stream guard before all worker
+PyTorch mask/input operations, uses the existing checked CUDA-call wrapper at
+the publication barrier, records the first worker failure, clears partial
+pending output, and raises that failure from `WaitHiddenStates()`. These are
+implementation repairs only; the model, requests, exact-output oracle, four
+expert compute threads, schedule, metrics, and fixed three-attempt budget are
+unchanged. The revised implementation must be rebuilt, rerun through both GPU
+gates, and receive a follow-up review before the final attempt is authorized.
+
+### Follow-up round 1
+
+The repaired implementation was rebuilt for sm_120. The row gate and all four
+deterministic-reduction arrival orders passed exactly; 40 offline tests, all
+three reverse-application checks, diff checks, dependency checks, and fresh
+read-only admission also passed.
+
+The same reviewer verified that the external-stream guard now covers the
+worker's mask/input construction, dequantization, forward pass, and output
+publication; the publication synchronization is checked; and the first worker
+failure is carried to `WaitHiddenStates()`, where partial pending output is
+cleared and the error is raised before any result is returned. The reviewer
+found no new lock cycle or stale-error path. The exact-output oracle, four
+expert compute threads, model, request schedule, and fixed attempts 1--3 remain
+unchanged.
+
+Follow-up verdict: **APPROVE**.
+
+The fixed-namespace attempt 3 is authorized. Timing remains unauthorized until
+that complete real preflight passes every correctness and engagement gate.

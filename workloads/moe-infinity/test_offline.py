@@ -198,6 +198,42 @@ class RowChunkingRepairTests(unittest.TestCase):
         self.assertIn("run_row_chunking_numerical_gate()", runner_source)
 
 
+class DeterministicAccumulationRepairTests(unittest.TestCase):
+    def test_patch_exactly_matches_worktree(self) -> None:
+        subprocess.run(
+            [
+                "git",
+                "apply",
+                "--unidiff-zero",
+                "--check",
+                "--reverse",
+                str(ROOT / "deterministic-accumulation.patch"),
+            ],
+            cwd=UPSTREAM,
+            check=True,
+        )
+
+    def test_worker_results_reduce_in_expert_order_after_stream_completion(self) -> None:
+        source = (UPSTREAM / "core/parallel/expert_dispatcher.cpp").read_text()
+        header = (UPSTREAM / "core/parallel/expert_dispatcher.h").read_text()
+        binding = (UPSTREAM / "core/python/py_archer_prefetch.cpp").read_text()
+        script = (ROOT / "numerical_row_chunking_check.py").read_text()
+        guard = source.index("c10::cuda::CUDAStreamGuard guard(torch_stream);")
+        gathered_input = source.index("auto token_mask = router_mask_.index")
+        self.assertLess(guard, gathered_input)
+        self.assertIn("CUDA_CHECK(\n      cudaStreamSynchronize", source)
+        self.assertIn("pending_accumulations_.emplace_back", source)
+        self.assertIn("std::sort(pending.begin(), pending.end()", source)
+        self.assertIn("AccumulateInExpertOrder(final_hidden_states_", source)
+        self.assertIn("worker_error_ = message.str()", source)
+        self.assertIn("TORCH_CHECK(worker_error.empty(), worker_error)", source)
+        self.assertIn("pending_accumulations_", header)
+        self.assertIn("worker_error_", header)
+        self.assertIn("deterministic_accumulation_check", binding)
+        self.assertIn("arrival_orders", script)
+        self.assertIn('accumulation.get("exact") is not True', RUNNER_PATH.read_text())
+
+
 class FrozenWorkloadTests(unittest.TestCase):
     def test_manifest_names_generated_artifacts(self) -> None:
         manifest = json.loads((ROOT / "workload-manifest.json").read_text())

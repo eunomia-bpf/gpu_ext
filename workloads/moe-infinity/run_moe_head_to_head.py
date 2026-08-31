@@ -53,8 +53,11 @@ PLAN = HERE / "plan.md"
 REPAIR_PLAN = HERE / "repair-plan.md"
 RUNNER = Path(__file__).resolve()
 REPAIRED_PREFLIGHT_ROOT = HERE / "raw/repaired-preflight"
-PROTOCOL_ID = "proposal-3-revision-3"
-REVIEWED_PREDECESSOR_PROTOCOLS = {"proposal-3-revision-2"}
+PROTOCOL_ID = "proposal-3-revision-4"
+REVIEWED_PREDECESSOR_PROTOCOLS = {
+    "proposal-3-revision-2",
+    "proposal-3-revision-3",
+}
 
 HF_REVISION = "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
 GGUF_REVISION = "238abdd290bb874b90a5da1b4549881b7d05c091"
@@ -153,7 +156,11 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False)
                 f"{repo}: repaired source file set mismatch: expected "
                 f"{sorted(expected_status)}, found {sorted(normalized_status)}"
             )
-        for patch_name in ("instrumentation.patch", "row-chunking.patch"):
+        for patch_name in (
+            "instrumentation.patch",
+            "row-chunking.patch",
+            "deterministic-accumulation.patch",
+        ):
             patch = HERE / patch_name
             run_checked(
                 [
@@ -465,6 +472,15 @@ def run_row_chunking_numerical_gate() -> dict[str, Any]:
         item.get("within_tolerance") for item in observed.get("results", [])
     ):
         raise GateError(f"MoEMLP GPU numerical gate is incomplete: {observed}")
+    accumulation = observed.get("accumulation", {})
+    if (
+        accumulation.get("rows") != 353
+        or accumulation.get("arrival_orders") != 4
+        or accumulation.get("exact") is not True
+    ):
+        raise GateError(
+            f"expert accumulation determinism gate is incomplete: {observed}"
+        )
 
     deadline = time.monotonic() + 30
     while True:
@@ -512,6 +528,7 @@ def verify_small_artifacts() -> dict[str, Any]:
         LLAMA_TOKENIZE,
         HERE / frozen["measurement_instrumentation"]["patch"],
         HERE / frozen["source_repair"]["patch"],
+        HERE / frozen["source_repair"]["deterministic_accumulation_patch"],
         EXTENSION / frozen["combined_policy"]["bpf_source"].replace("../../extension/", ""),
         EXTENSION / frozen["combined_policy"]["loader_source"].replace("../../extension/", ""),
         POLICY_BPF_OBJECT,

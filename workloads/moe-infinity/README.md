@@ -87,7 +87,7 @@ At the author's direction, a new protocol now carries a disclosed repair in
 `row-chunking.patch`. It keeps the same model, prompt, routing, and 256-row
 workspace, but executes a large per-expert route in stable consecutive chunks
 and concatenates the outputs in original row order. The active Python 3.12
-repaired `_store` builds for sm_120, 38 offline tests pass, and the standalone
+repaired `_store` builds for sm_120, 40 offline tests are defined, and the standalone
 GPU numerical gate executes the actual repaired `MoEMLP::forward()` at
 1/256/257/353 rows against a same-parameter reference. All four comparisons
 passed at `rtol=1e-2`, `atol=1e-2`, with zero observed maximum absolute and
@@ -115,3 +115,11 @@ inspection identified separate expert CUDA streams writing the shared
 accumulator without a GPU completion barrier or fixed reduction order. The
 final attempt is unauthorized until that race has a disclosed repair, rebuild,
 GPU determinism check, and independent review; see `runtime-preflight.md`.
+
+Revision 4 now carries that repair separately in
+`deterministic-accumulation.patch`: four expert compute streams remain, worker
+mask/input creation runs on the corresponding external stream, outputs are
+checked for completion before publication, worker errors propagate instead of
+returning partial results, and the caller reduces successful outputs in
+expert-index order. The fresh build and both GPU gates pass, and follow-up
+review authorizes the fixed final attempt 3.

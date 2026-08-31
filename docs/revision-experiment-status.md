@@ -16,6 +16,33 @@ The driver port and CPU tests are dependencies, not research results.
 | XSched | [Review](../workloads/xsched/plan-review.md) closed the first proposal after three rounds. The CUPTI/globaltimer epoch proof and interpretation categories require repair in a new proposal. The CUDA workload builds; no GPU result. |
 | RTX 5090/NVBit | [Review](../workloads/llama.cpp/observability_overhead/revision-rq4/plan-review.md) closed the first proposal. Final runner defects were repaired but not independently approved. The frozen NVBit comparison requires a supported 575.x stack; a 610 diagnostic cannot satisfy R6. |
 
+## Complete revision requirement matrix
+
+The active queue is broader than the three new R1 artifacts. Requirements are
+separated below so that a build, qualitative discussion, or historical number
+cannot be mistaken for a completed experiment.
+
+| Revision item | Required experiment or evidence | Acceptance boundary | Current disposition |
+| --- | --- | --- | --- |
+| R1: MoE research baseline | Same-model, same-workload head-to-head against MoE-Infinity on the RTX 5090. | Correct outputs, actual expert-offload and gpubpf-hook engagement, five valid paired blocks; the host-only stride/LFU cell is an ablation, not the submitted full device-observed policy. | Approved protocol; zero real preflight attempts. Next executable experiment. If the artifact cannot run, route to the named DeepSpeed ZeRO-Inference or PowerInfer fallback instead of leaving the MoE axis empty. |
+| R1: scheduling research baseline | XSched on sm_120, explicitly labeled public Level-1 inter-kernel preemption. | Correct epoch/timestamp proof, matched multi-tenant workload, policy engagement, and a predeclared interpretation that permits regressions. | First proposal closed after three reviews; a repaired proposal is needed. Orion is the named fallback if XSched cannot yield an accepted run. |
+| R1: storage-tier KV baseline | LMCache local-NVMe backend versus CPU retention and recomputation. | Exact cache hits, O_DIRECT proof, deterministic outputs, and valid paired blocks; no failed preflight may become a performance sample. | First protocol closed after three failed real preflights and no served request. A new reviewed protocol or an explicitly documented fallback is required. |
+| R1: existing GPREEMPT-equivalent evidence | Re-establish the foreground launch-latency and best-effort throughput claims on a matched, interleaved schedule. | Measure the intended host-submit-to-kernel-entry event, prove timeslice and preemption engagement per run, and report robust run-level effects rather than an outlier-driven mean. | Historical evidence audit found that the submitted 96% aggregation is driven by one native run and that the launcher does not establish preemption engagement. Fresh evidence is required before retaining the strong numeric claim. |
+| R3: expert-management granularity | Quantify page-granular partial-expert reuse and compute/transfer overlap against an expert-atomic design. | Treat the MoE-Infinity deployment comparison separately from any causal granularity comparison; report unsupported cases as unavailable, not reproduced. | No dedicated accepted protocol yet. MoE-Infinity can provide system-level context but cannot alone identify the granularity effect. |
+| R4: mechanism versus policy | Re-run the memory-policy and scheduling-policy comparison underlying Fig. 13. | Matched repeated blocks, successful attach and live-hit evidence, correct concurrent completion-time estimand, and separately reported memory/scheduling effects. | Historical audit found one round per memory pair, missing scheduling engagement evidence, and invalid sequential wait timing. The 55--92% and under-1% claims are not yet fresh revision evidence. |
+| R5: safety and design depth | Executable verifier/transition rejection cases plus a source-backed re-count of the 50 agent safety events. | Demonstrate lane-varying, loop/bounds, overflow, stale, and conflicting-transition handling without claiming full-stack formal verification. | Writing exists in the submitted paper, but the revision-grade rejection bundle and raw-event reconciliation remain pending. |
+| R6: current-hardware overhead | RTX 5090 Table 1 comparison including NVBit, plus the gpubpf device-side tools. | Same benchmark and measurement boundary, supported NVBit stack, exact tool/source identities, correctness before timing, repeated runs. | Hard rebuttal commitment. Current 610 driver is outside NVBit's frozen supported stack; the first proposal is closed and a new 575 execution protocol is required. |
+| R7: study artifacts | Publish prompts, interaction logs, metric extraction, and benchmark harnesses. | Redact secrets/private data, retain raw provenance and public hashes, and make every reported aggregate reproducible. | Hard artifact commitment. Public index and path-parameterized extractor are pushed; the original study sessions are still absent from the local archive. |
+| R8: portability/deployment evidence | Audit the SASS patching prototype, the reported 273 ms one-time ptrace attach, the LD_PRELOAD route, and the approximately 100-LOC open-module patch boundary. | Bind each statement to runnable code or retained raw evidence; otherwise narrow it to design discussion. | The 610 Open Kernel Modules port is built and pushed, but that port is not a substitute for the promised SASS/attach/deployment evidence. |
+| R2, R9, and LOC corrections | Expressibility table, design/discussion text, and corrected policy LOC arithmetic. | Cite concrete in-tree programs and distinguish measured, inferred, and out-of-scope claims. No fabricated experiment. | Pending paper work. CXL/GDS implementation, multi-vendor campaigns, LithOS-scale experiments, and upstream GPREEMPT binary reproduction remain explicitly out of scope. |
+
+The two author-response commitments that cannot be dropped are R6's RTX 5090
+Table 1/NVBit result and R7's public prompts and benchmark harnesses. The fuller
+revision plan additionally names the three R1 research artifacts and R3/R4
+quantification. Evidence defects discovered during revision are treated as
+requirements to repair, even when the original plan described the old figure
+as merely being foregrounded.
+
 ## Live state and next actions
 
 The host changed from Linux `6.15.11-061511-generic` to
@@ -32,8 +59,8 @@ GDM/Xorg still holds the core NVIDIA module. A request for permission to
 temporarily stop GDM for full scheduling-module validation has not been
 answered; display ownership is therefore unchanged.
 
-After compute users release the GPU, memory-hook validation may replace only
-the unused `nvidia_uvm` module while retaining the matching official 610 core.
+While the GPU remains idle, memory-hook validation may replace only the unused
+`nvidia_uvm` module while retaining the matching official 610 core.
 Full scheduling validation needs an idle GPU and an authorized display
 maintenance window. Use temporary `insmod`, with system `modprobe` as recovery;
 never install custom modules persistently.

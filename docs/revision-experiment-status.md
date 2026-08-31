@@ -5,6 +5,15 @@ The active work is implementation and evaluation against
 GPU experiment or paper-facing performance result is claimed by this handoff.
 The driver port and CPU tests are dependencies, not research results.
 
+The [verbatim author response and shepherd follow-up](revision-shepherd-comment.md)
+are first-class revision requirements. In particular, completion requires more
+than bringing up the three named baselines: the revised paper must compare
+faithful gpubpf policy reimplementations with runnable original monolithic
+implementations, attribute headline gains to policy versus mechanism, disclose
+mechanism overheads, identify genuinely new agent-discovered policies, group
+cross-cutting evidence under common headings, and fix the two shepherded
+typographic issues.
+
 ## Persisted work
 
 | Work | Evidence and current status |
@@ -35,6 +44,8 @@ cannot be mistaken for a completed experiment.
 | R7: study artifacts | Publish prompts, interaction logs, metric extraction, and benchmark harnesses. | Redact secrets/private data, retain raw provenance and public hashes, and make every reported aggregate reproducible. | Hard artifact commitment. Public index and path-parameterized extractor are pushed; the original study sessions are still absent from the local archive. |
 | R8: portability/deployment evidence | Audit the SASS patching prototype, the reported 273 ms one-time ptrace attach, the LD_PRELOAD route, and the approximately 100-LOC open-module patch boundary. | Bind each statement to runnable code or retained raw evidence; otherwise narrow it to design discussion. | The 610 Open Kernel Modules port is built and pushed, but that port is not a substitute for the promised SASS/attach/deployment evidence. |
 | R2, R9, and LOC corrections | Expressibility table, design/discussion text, and corrected policy LOC arithmetic. | Cite concrete in-tree programs and distinguish measured, inferred, and out-of-scope claims. No fabricated experiment. | Pending paper work. CXL/GDS implementation, multi-vendor campaigns, LithOS-scale experiments, and upstream GPREEMPT binary reproduction remain explicitly out of scope. |
+| Shepherd: policy versus mechanism | For each existing policy, establish whether gpubpf implements it and, when the original artifact is runnable, compare against the original ad-hoc/unsafe/monolithic implementation. Audit headline claims in the abstract and introduction for policy/mechanism attribution and disclose any general-mechanism cost. | Matching SOTA remains a valid outcome; no result may imply that a policy improvement was caused by the mechanism. Novel-policy claims require concrete code and evidence, especially for agent-discovered policies. | Highest-priority cross-cutting requirement. The current historical Fig. 12/Fig. 13 evidence is insufficient; fresh matched evidence and a paper-wide claim audit remain pending. |
+| Shepherd: exposition and typography | Regroup scattered safety and SOTA-reimplementation answers under common labeled headings; fix Section 5.3 paragraph headings with two trailing periods and audit bibliography curly-brace escaping. | Preserve technical meaning and bibliography semantics; compile the paper and inspect the affected output. | Pending after experiment evidence stabilizes; the verbatim source comment is retained in the repository. |
 
 The two author-response commitments that cannot be dropped are R6's RTX 5090
 Table 1/NVBit result and R7's public prompts and benchmark harnesses. The fuller

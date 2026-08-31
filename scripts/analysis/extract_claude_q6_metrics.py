@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import re
@@ -11,10 +12,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-BASE = Path.home() / ".claude/projects/-home-yunwei37-workspace-gpu-gpu-ext"
-REPORT = Path(
-    "/home/yunwei37/workspace/gpu/gpu_ext/docs/gpu-ext/eval/agent/q6_precise_metrics.md"
-)
+BASE: Path
 PAUSE_GAP = timedelta(minutes=30)
 FOCUS_PREFIXES = [
     "6b21980a",
@@ -919,9 +917,20 @@ def render_markdown(
 
 
 def main() -> None:
+    global BASE
+    parser = argparse.ArgumentParser(description="Recompute the historical Q6 transcript metrics.")
+    parser.add_argument("--corpus", type=Path, required=True, help="archived project JSONL directory")
+    parser.add_argument("--output", type=Path, required=True, help="destination Markdown report")
+    args = parser.parse_args()
+    BASE = args.corpus.resolve()
+    if not BASE.is_dir():
+        parser.error(f"corpus directory does not exist: {BASE}")
     primary_paths = sorted(path for path in BASE.glob("*.jsonl"))
     primary_metrics = [parse_transcript(path, "primary") for path in primary_paths]
     primary_by_prefix = {item.short_id: item for item in primary_metrics}
+    missing = sorted(set(FOCUS_PREFIXES) - primary_by_prefix.keys())
+    if missing:
+        parser.error(f"historical corpus is incomplete; missing session prefixes: {', '.join(missing)}")
 
     nested_paths: list[Path] = []
     nested_counts: dict[str, tuple[int, int]] = {}
@@ -966,8 +975,8 @@ def main() -> None:
         nested_counts=nested_counts,
         case_data=case_data,
     )
-    REPORT.write_text(markdown)
-    print(f"Wrote {REPORT}")
+    args.output.write_text(markdown)
+    print(f"Wrote {args.output}")
 
 
 if __name__ == "__main__":

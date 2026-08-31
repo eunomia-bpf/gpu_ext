@@ -1,7 +1,7 @@
 # MoE-Infinity oversized-route repair experiment — proposal 3 revision 2
 
-Status: **independently approved; repaired-protocol GPU preflight is
-authorized**.
+Status: **revision 2 attempt 1 failed after the repaired warm-up completed;
+unchanged execution is not authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -162,8 +162,10 @@ are visible.
 
 - BUILD: implementation, rebuild, offline checks, standalone GPU numerical
   comparison, read-only admission, and independent re-review complete.
-- EXPERIMENT: repaired-protocol preflight attempt 1 is the next authorized
-  action.
+- EXPERIMENT: attempt 1 completed the original 512+64-token warm-up but failed
+  the CPU-affinity gate because the tracing wrapper sat outside `taskset`; see
+  `runtime-preflight.md`. A minimal launcher-only revision and independent
+  review are required before attempt 2.
 - WRITE: closed by user instruction until experiments are complete.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.

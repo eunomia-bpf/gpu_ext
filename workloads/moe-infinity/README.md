@@ -96,3 +96,10 @@ runner was tightened to accept only the three fixed, internally consistent
 preflight attempt directories. The 120B preflight is now authorized; timing
 remains unauthorized until one complete preflight passes every correctness and
 engagement gate.
+
+Repaired-protocol attempt 1 then completed the exact 512-input/64-output
+MoE-Infinity warm-up that had previously failed at 353 routed rows. The harness
+subsequently rejected the outer tracing wrapper's CPU affinity before the
+correctness passes, so the attempt is retained as failed and no timing ran.
+Attempt 2 requires an independently reviewed launcher-only protocol revision;
+see `runtime-preflight.md`.

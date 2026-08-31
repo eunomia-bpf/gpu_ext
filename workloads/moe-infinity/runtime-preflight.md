@@ -53,3 +53,35 @@ The cleanup helper now escalates from SIGINT to SIGTERM and finally SIGKILL only
 for the already verified owned process group. This execution-safety repair does
 not alter any scientific configuration. The failed raw directory remains local
 and is not a paper result.
+
+## Repaired protocol attempt 1: oversized route completed, harness rejected
+
+The independently approved repaired protocol's first attempt is preserved at
+`raw/repaired-preflight/attempt-01`. Admission and the standalone numerical
+gate passed, and `moe_infinity_075` again ran first. The exact GPT-OSS-120B
+model and topology reached a healthy API with the active repaired Python 3.12
+extensions.
+
+Unlike the unmodified artifact, the identical frozen 512-token warm-up crossed
+the previously failing oversized expert route and returned HTTP 200 with
+exactly 512 prompt tokens and 64 completion tokens. The server log contains no
+256-row fatal, CUDA error, or traceback. This is direct evidence that the
+disclosed row-chunking repair reaches and completes the original failure path;
+it is not a complete correctness or performance sample.
+
+Immediately after the excluded warm-up, the CPU-affinity gate rejected the
+owned process tree. The Python server had affinity CPU 0--7 as frozen, but the
+outer `strace` process had CPU 0--23 because the launcher placed `strace`
+outside the recorded `taskset` command. The gate therefore failed before the
+two correctness passes:
+
+```text
+owned process tree escaped CPU 0-7
+```
+
+The runner recorded `status=failed` and `retry_allowed=false`, stopped the
+owned process group, and returned the GPU and struct_ops state to idle/empty.
+No timing ran. An unchanged attempt 2 is prohibited. The next proposal may
+only move `taskset` outside the tracing wrapper so every owned process inherits
+the frozen CPU set; it must retain attempt 1, increment the protocol revision,
+count the next launch as attempt 2, and receive independent review first.

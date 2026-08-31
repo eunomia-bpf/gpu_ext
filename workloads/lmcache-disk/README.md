@@ -18,7 +18,11 @@ Tracked reproducibility artifacts:
 - `build-smoke.md`: current and historical build evidence.
 
 The runner never signals a process it did not start.  GPU execution remains
-disabled while the host driver differs from `575.57.08`, foreign SGLang
+disabled while the host driver differs from `610.43.02`, foreign SGLang
 processes occupy the RTX 5090, or final independent plan approval is absent.
 The current admission check therefore exits with an explicit blocker report;
 offline validation continues without touching the GPU.
+
+The pre-run driver deviation is recorded in `plan.md`: all three cells use
+the same 610.43.02 stack, with the reviewed workload and analysis unchanged.
+No custom module replacement is needed for this storage-only comparison.

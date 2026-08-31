@@ -32,7 +32,7 @@ throughput before measurement.
 
 ## 3. Frozen environment and artifacts
 
-- RTX 5090 (32 GiB), one GPU; NVIDIA driver exactly `575.57.08`.
+- RTX 5090 (32 GiB), one GPU; NVIDIA driver exactly `610.43.02`.
 - CUDA 12.9; Python 3.12; official vLLM `0.27.1+cu129` wheel.
 - official LMCache `v0.5.4` source commit
   `3e11b8ed191631e6f098b8038235823f1a410b24`, rebuilt for `sm_120`.
@@ -178,7 +178,16 @@ python run_lmcache_disk.py run --output raw/run-<id> \
 python run_lmcache_disk.py analyze raw/run-<id>
 ```
 
-The current host is not admitted: it has driver 610 rather than 575.57.08 and
-an unrelated SGLang service owns about 31 GiB.  Those processes are outside
-this task's authority.  Offline build, freezing, validation, and plan review
-continue; no GPU launch is authorized while either condition remains.
+Recorded pre-run deviation (2026-08-31): following the requested 610 port,
+all three configurations will use the same installed Open Kernel Modules
+610.43.02 stack on Linux 7.1.12-070112-generic instead of 575.57.08. No GPU
+preflight or timed block has run, so no older-driver samples are retained.
+The reviewed CUDA/Python/runtime versions, model, workload, correctness
+checks, repetitions, and analysis remain unchanged. This storage experiment
+does not require custom gpubpf modules. The first real preflight must qualify
+the retained CUDA 12.9 runtime on this driver; its results cannot be pooled
+with submitted 575 measurements or used for the separate NVBit comparison.
+
+The current host is not admitted because an unrelated SGLang service owns
+about 31 GiB. Those processes are outside this task's authority. No GPU launch
+is authorized while the occupancy and isolation checks fail.

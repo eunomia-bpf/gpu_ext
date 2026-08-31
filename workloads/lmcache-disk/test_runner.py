@@ -5,6 +5,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 MODULE_PATH = Path(__file__).with_name("run_lmcache_disk.py")
@@ -15,6 +16,18 @@ SPEC.loader.exec_module(runner)
 
 
 class HarnessTests(unittest.TestCase):
+    def test_strace_output_is_absolute_across_server_cwd(self):
+        with tempfile.TemporaryDirectory(dir=".") as tmp:
+            root = Path(tmp).resolve().relative_to(Path.cwd())
+            self.assertFalse(root.is_absolute())
+            with patch.object(runner.subprocess, "Popen"):
+                _, log, _, launch = runner.start_server(
+                    "lmcache_disk", Path("/model"), root.resolve() / "cache",
+                    18080, root / "server.log", root / "strace")
+            log.close()
+            trace_output = Path(launch[launch.index("-o") + 1])
+            self.assertEqual(trace_output, root.resolve() / "strace/open.trace")
+
     def test_request_scoped_log_parser(self):
         request_id = "cmpl-lmc-p3-warm-0"
         log = "\n".join(

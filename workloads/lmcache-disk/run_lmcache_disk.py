@@ -487,6 +487,7 @@ def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_
     argv = server_argv(config, model_path, port)
     launch = list(argv)
     if trace_dir is not None:
+        trace_dir = trace_dir.resolve()
         trace_dir.mkdir(parents=True, exist_ok=False)
         launch = ["/usr/bin/strace", "-ff", "-qq", "-s", "4096", "-e", "trace=open,openat",
                   "-o", str(trace_dir / "open.trace")] + launch

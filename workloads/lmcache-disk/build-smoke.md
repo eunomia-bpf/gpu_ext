@@ -69,3 +69,16 @@ built using Python 3.10, torch 2.8.0, CUDA 12.9, and `sm_120`:
 
 It is retained for provenance/sensitivity only and is not the primary
 paper-facing storage-tier experiment.
+
+## 610 runtime preflight — 2026-08-31
+
+After the foreign GPU jobs exited, read-only admission passed on the uniform
+610.43.02 stack. Attempt 1 (`raw/preflight-610-20260831-01`) stopped before
+vLLM startup: strace could not open its relative output path after the child
+changed to the vLLM workload directory. The original server log and manifest
+are retained. No O_DIRECT or model-correctness result was obtained.
+
+The repair resolves the trace directory before spawning the child; it does
+not change the model, requests, I/O mode, or comparison. A regression test
+checks the launch command with a relative output root and a different server
+working directory. All seven CPU tests pass after the repair.

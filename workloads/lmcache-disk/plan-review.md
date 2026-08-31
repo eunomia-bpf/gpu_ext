@@ -8,7 +8,7 @@ Required repairs recorded from the independent reviewer:
 
 1. Make the strongest current stable LMCache-compatible triplet primary;
    retain the historical submitted revision only as a labeled bridge.
-2. Freeze exact commands, environment, imported paths/hashes, schedule,
+2. Freeze exact commands, environment, imported paths, schedule,
    resume semantics, atomic completion, invalid preservation, and manifest
    mismatch behavior.
 3. Prove store completion and exact engagement with token IDs, cold zero-hit

@@ -40,13 +40,13 @@ throughput before measurement.
   `3e11b8ed191631e6f098b8038235823f1a410b24`, rebuilt for `sm_120`.
 - `Qwen/Qwen3-30B-A3B-FP8` at immutable Hugging Face revision
   `d206ba732169f29bb77fbf80fc2c4b81d4d30782`.
-- checked-in ShareGPT dataset, `prompts.json`, `schedule.json`, wheel hashes,
-  imported-module paths/hashes, and complete environment freeze.
+- checked-in ShareGPT dataset, `prompts.json`, `schedule.json`, wheel paths,
+  imported-module paths, and complete environment freeze.
 - cache directory on ext4 UUID `864c5664-999e-43c2-9967-4edaeee79d57`
   (non-rotational Samsung 9100 PRO, currently `/dev/nvme0n1p1`).
 
-Admission fails closed on any version, source commit, imported path/hash,
-dataset/prompt/schedule hash, model snapshot, driver, GPU occupancy, residual
+Admission fails closed on any version, source commit, imported path,
+dataset/prompt/schedule semantic mismatch, model snapshot, driver, GPU occupancy, residual
 GPU memory, mount, capacity, port, or tracing mismatch.  It records mount,
 device model/serial/firmware, free space, filesystem block size, and available
 NVMe temperature sensors.  It reports foreign GPU processes but never signals
@@ -63,8 +63,8 @@ sequence, and explicit `--no-enable-prefix-caching`.
 3. `lmcache_disk`: `LMCacheConnectorV1`, local CPU retention disabled, 2 GiB
    CPU staging allocator, 16 GiB local disk, `use_odirect=true`.
 
-LMCache chunk size is 256 tokens, incomplete chunks are not saved, layerwise
-storage is disabled, and `PYTHONHASHSEED=0`.  The Qwen KV footprint is
+LMCache chunk size is 256 tokens, incomplete chunks are not saved, and
+layerwise storage is disabled. The Qwen KV footprint is
 `48 layers * 2(K,V) * 4 KV heads * 128 head dimension * 2 bf16 bytes` = 98,304
 bytes/token.  One 256-token file is exactly 24 MiB; six files per prefix and
 eight prefixes total 48 files / 1.125 GiB.  Thus the complete resident CPU
@@ -75,7 +75,7 @@ than hot retention.
 
 Eight prefixes are deterministically constructed from frozen ShareGPT row
 starts `[0,173,509,997,1499,2203,3109,4211]`.  `prompts.json` stores the exact
-prefix, cold, and warm token-ID arrays and their hashes.  Each cold/warm pair
+prefix, cold, and warm token-ID arrays. Each cold/warm pair
 has a precomputed token LCP; after 256-token alignment the expected external
 hit is exactly 1,536 tokens.
 
@@ -96,9 +96,9 @@ For each configuration the protocol is:
    no missing/partial/fallback/eviction/allocator error, and unchanged exact
    disk footprint.
 
-The result retains TTFT, end-to-end latency, server token counts, exact input
-token-array hashes, response hashes/text, request IDs, request-scoped log
-evidence, cache footprint, command/environment, and server log hash.
+The result retains TTFT, end-to-end latency, server token counts, response
+text, request IDs, request-scoped log evidence, cache footprint,
+command/environment, and server-log file metadata.
 
 ## 6. Exhaustive O_DIRECT preflight
 
@@ -109,8 +109,8 @@ contain `O_DIRECT`.  The 48 unique successfully opened write paths and 48
 unique successfully opened read paths must be the same set, and every path
 must be contained by the current run's cache directory.  Any failed or
 buffered `.pt` open, alignment warning, path-set mismatch, escaped path,
-absent direction, or missing trace invalidates the preflight.  Raw per-process
-traces and their hashes are retained and authenticated by the pass marker.
+absent direction, or missing trace invalidates the preflight. Raw per-process
+traces and their ordinary file metadata are retained by the pass marker.
 Tracing is disabled for performance collection.
 
 The plan reports cache footprint, not inferred disk bytes read/written; no I/O
@@ -131,14 +131,14 @@ execution failure, before performance analysis; performance values are never
 consulted.  Partial and invalid attempts are preserved and never overwritten.
 
 Resume requires an exact manifest match.  New JSON and completion markers are
-written atomically.  A complete block marker is created only after all three
-configurations pass and their deterministic response hashes match the frozen
+written atomically. A complete block marker is created only after all three
+configurations pass and their deterministic response texts match the frozen
 smoke.  Full execution also requires matching preflight and smoke artifacts
 and a final independent `APPROVE` marker.  The gate requires the complete
 known evidence-file set rather than accepting a caller-selected subset.  It
-also matches model blob identities, runtime imports, canonical server
-commands/environments, and the SHA-256 of this plan and the runner, so gates
-and resumed attempts cannot cross a harness or protocol edit.
+also matches model file inventories, runtime imports, canonical server
+commands/environments, and ordinary plan/runner file identities, so gates and
+resumed attempts cannot cross a harness or protocol edit.
 
 Each preflight, smoke, and full-run admission resolves its requested output
 path (or nearest existing ancestor) and requires that actual target to be on

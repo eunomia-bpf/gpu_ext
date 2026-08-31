@@ -7,13 +7,14 @@ historical submitted LMCache build is retained only as provenance.
 
 Tracked reproducibility artifacts:
 
-- `plan.md`: predeclared question, gates, estimands, stopping, and blockers;
-- `plan-review.md`: independent review decisions and required repairs;
+- `plan-v2.md`: active predeclared question, gates, estimands, and stopping;
+- `plan-review-v2.md`: independent revision-2 review and launch decision;
+- `plan.md` and `plan-review.md`: closed revision-1 failure provenance;
 - `run_lmcache_disk.py`: fail-closed preflight/smoke/run/analyze harness;
 - `test_runner.py`: CPU-only structural gate tests;
 - `prompts.json`: public exact token arrays and expected aligned hits;
 - `schedule.json`: all 15 precomputed attempts for ten valid blocks;
-- `artifacts-current.json`: wheel, source, build, and imported-module hashes;
+- `artifacts-current.json`: wheel, source, build, and exact import paths;
 - `current-requirements.txt`: full primary Python environment freeze;
 - `build-smoke.md`: current and historical build evidence.
 
@@ -23,7 +24,8 @@ approval. Admission later passed on an idle RTX 5090, but all three allowed
 real preflight attempts failed before serving a request. The preserved failures
 and exact causes are recorded in `plan.md` and `build-smoke.md`; none is a
 performance result, and this protocol must not be relaunched under a new output
-name.
+name. Revision 2 uses the reviewed 0.98 startup budget and semantic evidence;
+it does not generate or compare content fingerprints.
 
 The pre-run driver deviation is recorded in `plan.md`: all three cells use
 the same 610.43.02 stack, with the reviewed workload and analysis unchanged.

@@ -21,7 +21,7 @@ class HarnessTests(unittest.TestCase):
             env = runner.server_environment(config, Path("/cache"))
             self.assertEqual(env["VLLM_USE_DEEP_GEMM"], "0")
             argv = runner.server_argv(config, Path("/model"), 18080)
-            self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.99")
+            self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.98")
 
     def test_strace_output_is_absolute_across_server_cwd(self):
         with tempfile.TemporaryDirectory(dir=".") as tmp:
@@ -108,8 +108,21 @@ class HarnessTests(unittest.TestCase):
 
     def test_frozen_prompt_expectations(self):
         prompts = runner.load_prompts(runner.PROMPTS)
+        self.assertEqual(prompts["schema"], 3)
         self.assertEqual(len(prompts["prefixes"]), 8)
         self.assertTrue(all(x["expected_hit_tokens"] == 1536 for x in prompts["prefixes"]))
+
+    def test_runner_uses_semantic_evidence_without_content_fingerprints(self):
+        source = MODULE_PATH.read_text()
+        forbidden = ("hashlib", "sha256", "checksum", "digest", "output_hash")
+        self.assertFalse(any(term in source.lower() for term in forbidden))
+
+    def test_schedule_semantics_are_exact(self):
+        schedule = runner.json.loads(runner.SCHEDULE.read_text())
+        runner.validate_schedule(schedule)
+        schedule["attempts"][0]["order"] = ["recompute"]
+        with self.assertRaises(runner.GateError):
+            runner.validate_schedule(schedule)
 
     def test_disk_environment_disables_hot_cpu_tier(self):
         with tempfile.TemporaryDirectory() as tmp:

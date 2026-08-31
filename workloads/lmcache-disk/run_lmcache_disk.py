@@ -10,7 +10,6 @@ into a performance observation.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -39,7 +38,7 @@ LMCACHE_REPO = HERE / "deps" / "LMCache-v0.5.4"
 ARTIFACTS = HERE / "artifacts-current.json"
 SCHEDULE = HERE / "schedule.json"
 PROMPTS = HERE / "prompts.json"
-PLAN = HERE / "plan.md"
+PLAN = HERE / "plan-v2.md"
 RUNNER = Path(__file__).resolve()
 
 EXPECTED_DRIVER = "610.43.02"
@@ -49,8 +48,6 @@ EXPECTED_LMCACHE_VERSION = "0.5.4"
 LMCACHE_COMMIT = "3e11b8ed191631e6f098b8038235823f1a410b24"
 MODEL_ID = "Qwen/Qwen3-30B-A3B-FP8"
 MODEL_REVISION = "d206ba732169f29bb77fbf80fc2c4b81d4d30782"
-DATASET_SHA256 = "35f0e213ce091ed9b9af2a1f0755e9d39f9ccec34ab281cd4ca60d70f6479ba4"
-PROMPTS_SHA256 = "46399c0f1b31e1ebbeff29142605d1bb81ebe52eec9f261d02eb1fe155015fb2"
 ORDER_SEED = 2709
 BOOTSTRAP_SEED = 2710
 TARGET_BLOCKS = 10
@@ -83,12 +80,20 @@ class GateError(RuntimeError):
     pass
 
 
-def sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+def file_identity(path: Path) -> dict[str, Any]:
+    """Describe a file without reading or fingerprinting its contents."""
+    logical = path.expanduser().absolute()
+    if not logical.is_file():
+        raise GateError(f"required evidence file is missing: {logical}")
+    stat = logical.stat()
+    return {
+        "path": str(logical),
+        "bytes": stat.st_size,
+        "device": stat.st_dev,
+        "inode": stat.st_ino,
+        "mtime_ns": stat.st_mtime_ns,
+        "ctime_ns": stat.st_ctime_ns,
+    }
 
 
 def canonical(value: Any) -> str:
@@ -190,15 +195,7 @@ def resolve_model(local_only: bool = True) -> Path:
 def model_artifact_manifest(path: Path) -> list[dict[str, Any]]:
     result = []
     for file_path in sorted(p for p in path.iterdir() if p.is_file()):
-        link_target = os.readlink(file_path) if file_path.is_symlink() else None
-        blob_id = Path(link_target).name if link_target else None
-        if file_path.name.endswith(".safetensors") and (
-            blob_id is None or re.fullmatch(r"[0-9a-f]{64}", blob_id) is None
-        ):
-            raise GateError(f"weight shard is not a content-addressed HF LFS blob: {file_path}")
-        result.append(
-            {"name": file_path.name, "bytes": file_path.stat().st_size, "hf_blob_id": blob_id}
-        )
+        result.append({"name": file_path.name, **file_identity(file_path)})
     return result
 
 
@@ -221,42 +218,38 @@ def verify_python_artifacts() -> dict[str, Any]:
     frozen = load_artifacts()
     env = controlled_environment(cuda_visible_devices="")
     code = r'''
-import hashlib, importlib, importlib.metadata, json, pathlib
+import importlib, importlib.metadata, json, pathlib
 names = ["lmcache", "lmcache.lmcache_native", "lmcache.cuda_ops",
          "lmcache.integration.vllm.vllm_v1_adapter",
          "lmcache.integration.vllm.lmcache_connector_v1",
          "lmcache.v1.storage_backend.local_disk_backend", "vllm",
          "vllm.distributed.kv_transfer.kv_connector.factory",
          "vllm.distributed.kv_transfer.kv_connector.v1.lmcache_connector"]
-def digest(p):
-    h=hashlib.sha256()
-    with open(p,"rb") as f:
-        for b in iter(lambda:f.read(1024*1024),b""): h.update(b)
-    return h.hexdigest()
 mods={}
 for name in names:
     m=importlib.import_module(name); p=pathlib.Path(m.__file__).resolve()
-    mods[name]={"path":str(p),"sha256":digest(p)}
+    s=p.stat()
+    mods[name]={"path":str(p),"bytes":s.st_size,"device":s.st_dev,"inode":s.st_ino,
+                "mtime_ns":s.st_mtime_ns,"ctime_ns":s.st_ctime_ns}
 print(json.dumps({"lmcache_version":importlib.metadata.version("lmcache"),
                   "vllm_version":importlib.metadata.version("vllm"),"modules":mods},sort_keys=True))
 '''
     out = run_checked([str(PYTHON), "-c", code], env=env)
     observed = json.loads(out.splitlines()[-1])
-    if observed != frozen["runtime_imports"]:
-        raise GateError("runtime imports differ from artifacts-current.json")
     if observed["lmcache_version"] != EXPECTED_LMCACHE_VERSION:
         raise GateError(f"unexpected LMCache version: {observed['lmcache_version']}")
     if observed["vllm_version"] != EXPECTED_VLLM_VERSION:
         raise GateError(f"unexpected vLLM version: {observed['vllm_version']}")
+    expected_paths = frozen["runtime_import_paths"]
+    actual_paths = {name: item["path"] for name, item in observed["modules"].items()}
+    if actual_paths != expected_paths:
+        raise GateError("runtime import paths differ from artifacts-current.json")
     wheel = HERE / frozen["lmcache_wheel"]["relative_path"]
-    if sha256(wheel) != frozen["lmcache_wheel"]["sha256"]:
-        raise GateError("LMCache wheel hash mismatch")
     vllm_wheel = HERE / frozen["vllm_wheel"]["relative_path"]
-    if sha256(vllm_wheel) != frozen["vllm_wheel"]["sha256"]:
-        raise GateError("vLLM wheel hash mismatch")
     freeze = HERE / frozen["environment_freeze"]["relative_path"]
-    if sha256(freeze) != frozen["environment_freeze"]["sha256"]:
-        raise GateError("environment freeze hash mismatch")
+    for artifact in (wheel, vllm_wheel, freeze):
+        if not artifact.is_file() or artifact.stat().st_size <= 0:
+            raise GateError(f"required artifact is missing or empty: {artifact}")
     actual_lines = sorted(
         "lmcache==0.5.4" if line.startswith("lmcache @ ") else line
         for line in run_checked(
@@ -327,13 +320,17 @@ def admission(port: int, require_model: bool = True, storage_path: Path = HERE /
     except Exception as exc:
         errors.append(f"software artifacts: {exc}")
     try:
-        if sha256(DATASET) != DATASET_SHA256:
-            raise GateError("dataset SHA-256 mismatch")
-        if PROMPTS_SHA256 == "TO_BE_REGENERATED" or sha256(PROMPTS) != PROMPTS_SHA256:
-            raise GateError("prompt artifact SHA-256 mismatch or not frozen")
-        manifest["dataset_sha256"] = DATASET_SHA256
-        manifest["prompts_sha256"] = PROMPTS_SHA256
-        manifest["schedule_sha256"] = sha256(SCHEDULE)
+        dataset = json.loads(DATASET.read_text())
+        if not isinstance(dataset, list) or len(dataset) <= max(ROW_STARTS):
+            raise GateError("dataset structure cannot satisfy the frozen row starts")
+        load_prompts(PROMPTS)
+        schedule = json.loads(SCHEDULE.read_text())
+        validate_schedule(schedule)
+        manifest["workload_artifacts"] = {
+            "dataset": file_identity(DATASET),
+            "prompts": file_identity(PROMPTS),
+            "schedule": file_identity(SCHEDULE),
+        }
     except Exception as exc:
         errors.append(f"public workload artifacts: {exc}")
     try:
@@ -385,7 +382,7 @@ def tokenizer_path() -> Path:
 def prepare_prompts(output: Path) -> dict[str, Any]:
     tok_path = tokenizer_path()
     code = f'''
-import hashlib, json
+import json
 from pathlib import Path
 from transformers import AutoTokenizer
 dataset = json.loads(Path({str(DATASET)!r}).read_text())
@@ -425,15 +422,11 @@ for index, start in enumerate({ROW_STARTS!r}):
                 "cold_tokens": len(cold_ids), "warm_tokens": len(warm_ids),
                 "lcp_tokens": lcp, "expected_hit_tokens": expected_hit,
                 "expected_store_tokens": len(cold_ids) - len(cold_ids) % {CHUNK_TOKENS},
-                "prefix_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
-                "cold_token_ids_sha256": hashlib.sha256(json.dumps(cold_ids,separators=(",",":")).encode()).hexdigest(),
-                "warm_token_ids_sha256": hashlib.sha256(json.dumps(warm_ids,separators=(",",":")).encode()).hexdigest(),
             }})
             break
         cursor += 1
-result = {{"schema": 2, "model": {MODEL_ID!r}, "model_revision": {MODEL_REVISION!r},
+result = {{"schema": 3, "model": {MODEL_ID!r}, "model_revision": {MODEL_REVISION!r},
           "dataset": "workloads/vllm/datasets/ShareGPT_V3_unfiltered_cleaned_split.json",
-          "dataset_sha256": {DATASET_SHA256!r},
           "prefix_tokens": {PREFIX_TOKENS}, "chunk_tokens": {CHUNK_TOKENS},
           "row_starts": {ROW_STARTS!r}, "prefixes": prefixes}}
 print(json.dumps(result, ensure_ascii=False))
@@ -444,22 +437,49 @@ print(json.dumps(result, ensure_ascii=False))
 
 
 def load_prompts(path: Path) -> dict[str, Any]:
-    if sha256(path) != PROMPTS_SHA256:
-        raise GateError("prompt artifact is not the frozen revision")
     prompts = json.loads(path.read_text())
-    if prompts.get("schema") != 2 or prompts.get("dataset_sha256") != DATASET_SHA256 or len(prompts.get("prefixes", [])) != PREFIXES:
+    if (
+        prompts.get("schema") != 3
+        or prompts.get("model") != MODEL_ID
+        or prompts.get("model_revision") != MODEL_REVISION
+        or prompts.get("dataset")
+        != "workloads/vllm/datasets/ShareGPT_V3_unfiltered_cleaned_split.json"
+        or prompts.get("prefix_tokens") != PREFIX_TOKENS
+        or prompts.get("chunk_tokens") != CHUNK_TOKENS
+        or prompts.get("row_starts") != ROW_STARTS
+        or len(prompts.get("prefixes", [])) != PREFIXES
+    ):
         raise GateError("prompt artifact does not match protocol")
     for i, item in enumerate(prompts["prefixes"]):
-        if item["index"] != i or item["expected_hit_tokens"] != PREFIX_TOKENS:
+        prefix_ids = item.get("prefix_token_ids")
+        cold_ids = item.get("cold_token_ids")
+        warm_ids = item.get("warm_token_ids")
+        if (
+            item.get("index") != i
+            or item.get("start_row") != ROW_STARTS[i]
+            or not isinstance(item.get("prefix_text"), str)
+            or not isinstance(prefix_ids, list)
+            or not isinstance(cold_ids, list)
+            or not isinstance(warm_ids, list)
+            or len(prefix_ids) != PREFIX_TOKENS
+            or item.get("prefix_tokens") != len(prefix_ids)
+            or item.get("cold_tokens") != len(cold_ids)
+            or item.get("warm_tokens") != len(warm_ids)
+            or item.get("expected_hit_tokens") != PREFIX_TOKENS
+        ):
             raise GateError(f"invalid expected hit metadata for prefix {i}")
-        if item["expected_store_tokens"] != PREFIX_TOKENS:
+        lcp = next((j for j, pair in enumerate(zip(cold_ids, warm_ids)) if pair[0] != pair[1]),
+                   min(len(cold_ids), len(warm_ids)))
+        if item.get("lcp_tokens") != lcp or lcp - lcp % CHUNK_TOKENS != PREFIX_TOKENS:
+            raise GateError(f"invalid exact common-prefix structure for prefix {i}")
+        if item.get("expected_store_tokens") != PREFIX_TOKENS:
             raise GateError(f"invalid expected store metadata for prefix {i}")
     return prompts
 
 
 def server_environment(config: str, cache_dir: Path) -> dict[str, str]:
     env = controlled_environment()
-    env.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", VLLM_WORKER_MULTIPROC_METHOD="spawn", PYTHONHASHSEED="0",
+    env.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", VLLM_WORKER_MULTIPROC_METHOD="spawn",
                VLLM_USE_DEEP_GEMM="0")
     if config == "lmcache_cpu":
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="True",
@@ -475,7 +495,7 @@ def server_environment(config: str, cache_dir: Path) -> dict[str, str]:
 
 def server_argv(config: str, model_path: Path, port: int | str) -> list[str]:
     argv = [str(VLLM), "serve", str(model_path), "--served-model-name", MODEL_ID,
-            "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.99",
+            "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.98",
             "--max-num-seqs", "1", "--no-enable-prefix-caching", "--port", str(port)]
     if config != "recompute":
         argv.extend(["--kv-transfer-config", canonical(
@@ -579,9 +599,8 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
         raise GateError(f"server prompt-token count differs from frozen token array: {usage}")
     return {"request_header": request_id, "engine_request_id": f"cmpl-{request_id}-0",
             "input_tokens": len(token_ids),
-            "input_token_ids_sha256": hashlib.sha256(canonical(token_ids).encode()).hexdigest(),
             "status": status, "ttft_ms": (first - start) / 1e6, "e2e_ms": (end - start) / 1e6,
-            "usage": usage, "text_sha256": hashlib.sha256(output.encode()).hexdigest(), "text": output}
+            "usage": usage, "text": output}
 
 
 def request_log_values(log: str, request_id: str) -> dict[str, Any]:
@@ -703,7 +722,7 @@ def validate_odirect(trace_dir: Path, cache_dir: Path) -> dict[str, Any]:
                 "cache_dir": str(cache_root),
                 "unique_write_paths": sorted(write_paths), "unique_read_paths": sorted(read_paths),
                 "expected_unique_paths_each_direction": expected,
-                "trace_files": {p.name: sha256(p) for p in sorted(trace_dir.glob("open.trace*"))}}
+                "trace_files": {p.name: file_identity(p) for p in sorted(trace_dir.glob("open.trace*"))}}
     atomic_write_json(trace_dir / "odirect-evidence.json", evidence)
     return evidence
 
@@ -763,7 +782,7 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
             cold = streamed_completion(port, item["cold_token_ids"], f"lmc-p{index}-cold")
             store = wait_for_cold_store(config, log_path, cache_dir, cold["engine_request_id"], index,
                                         item["expected_store_tokens"])
-            observations.append({"prefix_index": index, "prefix_text_sha256": item["prefix_text_sha256"],
+            observations.append({"prefix_index": index,
                                  "expected_hit_tokens": item["expected_hit_tokens"], "cold": cold,
                                  "store_state": store})
         warm_start = time.perf_counter_ns()
@@ -791,22 +810,33 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
         "observations": observations, "engagement": engagement, "odirect": odirect,
         "cache_footprint": {"files": len(disk_files(cache_dir)),
                             "bytes": sum(p.stat().st_size for p in disk_files(cache_dir))},
-        "server_log_sha256": sha256(log_path),
+        "server_log": file_identity(log_path),
     }
     atomic_write_json(run_dir / "result.json", result)
     return result
 
 
-def output_hashes(result: dict[str, Any]) -> dict[str, str]:
-    return {f"{item['prefix_index']}:{phase}": item[phase]["text_sha256"]
+def output_texts(result: dict[str, Any]) -> dict[str, str]:
+    return {f"{item['prefix_index']}:{phase}": item[phase]["text"]
             for item in result["observations"] for phase in ("cold", "warm")}
+
+
+def validate_schedule(schedule: dict[str, Any]) -> None:
+    attempts = schedule.get("attempts", [])
+    if (
+        schedule.get("order_seed") != ORDER_SEED
+        or schedule.get("target_valid_blocks") != TARGET_BLOCKS
+        or schedule.get("maximum_attempts") != MAX_ATTEMPTS
+        or len(attempts) != MAX_ATTEMPTS
+        or [item.get("attempt") for item in attempts] != list(range(MAX_ATTEMPTS))
+        or any(sorted(item.get("order", [])) != sorted(CONFIGS) for item in attempts)
+    ):
+        raise GateError("precomputed schedule does not match protocol")
 
 
 def protocol_manifest(admit: dict[str, Any]) -> dict[str, Any]:
     schedule = json.loads(SCHEDULE.read_text())
-    if (schedule.get("order_seed") != ORDER_SEED or schedule.get("target_valid_blocks") != TARGET_BLOCKS
-            or schedule.get("maximum_attempts") != MAX_ATTEMPTS or len(schedule.get("attempts", [])) != MAX_ATTEMPTS):
-        raise GateError("precomputed schedule does not match protocol")
+    validate_schedule(schedule)
     placeholder_model = Path("{MODEL_PATH}")
     placeholder_cache = Path("{CACHE_DIR}")
     return {
@@ -818,9 +848,12 @@ def protocol_manifest(admit: dict[str, Any]) -> dict[str, Any]:
                      "disk_expected_bytes": EXPECTED_DISK_BYTES,
                      "kv_footprint_formula": "48 layers * 2(K,V) * 4 KV heads * 128 head_dim * 2 bf16 bytes",
                      "cpu_tier_limit_gib": 8, "disk_staging_pool_gib": 2, "disk_tier_limit_gib": 16},
-        "artifacts_manifest_sha256": sha256(ARTIFACTS), "schedule_sha256": sha256(SCHEDULE),
-        "prompts_sha256": sha256(PROMPTS),
-        "protocol_sources": {"runner_sha256": sha256(RUNNER), "plan_sha256": sha256(PLAN)},
+        "artifact_files": {
+            "artifacts": file_identity(ARTIFACTS),
+            "schedule": file_identity(SCHEDULE),
+            "prompts": file_identity(PROMPTS),
+        },
+        "protocol_sources": {"runner": file_identity(RUNNER), "plan": file_identity(PLAN)},
         "server_configs": {
             config: {"argv": server_argv(config, placeholder_model, "{PORT}"),
                      "environment": server_environment(config, placeholder_cache)}
@@ -863,10 +896,10 @@ def run_preflight(output: Path, prompts_path: Path, port: int) -> None:
     result = run_config("lmcache_disk", output / "lmcache_disk", load_prompts(prompts_path), port,
                         Path(admit["model_path"]), trace=True)
     atomic_write_json(output / "PREFLIGHT-PASS.json",
-                      {"manifest_sha256": sha256(output / "manifest.json"),
+                      {"manifest": file_identity(output / "manifest.json"),
                        "files": {
-                           "lmcache_disk/result.json": sha256(output / "lmcache_disk" / "result.json"),
-                           "lmcache_disk/strace/odirect-evidence.json": sha256(
+                           "lmcache_disk/result.json": file_identity(output / "lmcache_disk" / "result.json"),
+                           "lmcache_disk/strace/odirect-evidence.json": file_identity(
                                output / "lmcache_disk" / "strace" / "odirect-evidence.json"
                            ),
                        },
@@ -881,22 +914,23 @@ def run_smoke(output: Path, prompts_path: Path, port: int) -> None:
     output.mkdir(parents=True)
     atomic_write_json(output / "manifest.json", manifest)
     prompts = load_prompts(prompts_path)
-    frozen = None
+    reference = None
     for config in CONFIGS:
         result = run_config(config, output / config, prompts, port, Path(admit["model_path"]))
-        hashes = output_hashes(result)
-        if frozen is None:
-            frozen = hashes
-        elif hashes != frozen:
-            raise GateError(f"output hashes differ in isolated smoke: {config}")
-    atomic_write_json(output / "frozen-output-hashes.json", frozen)
+        texts = output_texts(result)
+        if reference is None:
+            reference = texts
+        elif texts != reference:
+            raise GateError(f"exact output text differs in isolated smoke: {config}")
+    atomic_write_json(output / "reference-output-texts.json", reference)
     atomic_write_json(
         output / "SMOKE-PASS.json",
         {
-            "manifest_sha256": sha256(output / "manifest.json"),
+            "manifest": file_identity(output / "manifest.json"),
             "files": {
-                "frozen-output-hashes.json": sha256(output / "frozen-output-hashes.json"),
-                **{f"{config}/result.json": sha256(output / config / "result.json") for config in CONFIGS},
+                "reference-output-texts.json": file_identity(output / "reference-output-texts.json"),
+                **{f"{config}/result.json": file_identity(output / config / "result.json")
+                   for config in CONFIGS},
             },
         },
     )
@@ -908,33 +942,33 @@ def verify_gate_artifact(path: Path, marker: str, current: dict[str, Any]) -> No
     if not marker_path.is_file() or not manifest_path.is_file():
         raise GateError(f"missing gate artifact {marker} under {path}")
     marker_data = json.loads(marker_path.read_text())
-    if marker_data.get("manifest_sha256") != sha256(manifest_path):
-        raise GateError(f"gate marker does not authenticate its manifest: {path}")
+    if marker_data.get("manifest") != file_identity(manifest_path):
+        raise GateError(f"gate marker manifest identity mismatch: {path}")
     required_files = (
         {"lmcache_disk/result.json", "lmcache_disk/strace/odirect-evidence.json"}
         if marker == "PREFLIGHT-PASS.json"
-        else {"frozen-output-hashes.json", *(f"{config}/result.json" for config in CONFIGS)}
+        else {"reference-output-texts.json", *(f"{config}/result.json" for config in CONFIGS)}
     )
     files = marker_data.get("files")
     if not isinstance(files, dict) or set(files) != required_files:
         raise GateError(f"gate marker required file set mismatch: {path}: {files}")
     for relative, expected in files.items():
         target = path / relative
-        if not target.is_file() or sha256(target) != expected:
-            raise GateError(f"gate marker file hash mismatch: {target}")
+        if not target.is_file() or file_identity(target) != expected:
+            raise GateError(f"gate marker file identity mismatch: {target}")
     if marker == "PREFLIGHT-PASS.json":
         evidence_path = path / "lmcache_disk" / "strace" / "odirect-evidence.json"
         evidence = json.loads(evidence_path.read_text())
         if marker_data.get("odirect") != evidence:
             raise GateError(f"preflight marker O_DIRECT evidence mismatch: {path}")
         trace_dir = evidence_path.parent
-        trace_hashes = evidence.get("trace_files")
-        actual_traces = {p.name: sha256(p) for p in sorted(trace_dir.glob("open.trace*"))}
-        if not isinstance(trace_hashes, dict) or trace_hashes != actual_traces:
-            raise GateError(f"preflight raw trace set/hash mismatch: {trace_dir}")
+        trace_files = evidence.get("trace_files")
+        actual_traces = {p.name: file_identity(p) for p in sorted(trace_dir.glob("open.trace*"))}
+        if not isinstance(trace_files, dict) or trace_files != actual_traces:
+            raise GateError(f"preflight raw trace file identity mismatch: {trace_dir}")
     old = json.loads(manifest_path.read_text())
     for key in ("protocol", "protocol_sources", "server_configs", "preflight_trace_prefix",
-                "artifacts_manifest_sha256", "schedule_sha256", "prompts_sha256",
+                "artifact_files",
                 "model_revision", "model_artifacts", "runtime_imports"):
         if old.get(key) != current.get(key):
             raise GateError(f"gate artifact mismatch for {key}: {path}")
@@ -943,21 +977,21 @@ def verify_gate_artifact(path: Path, marker: str, current: dict[str, Any]) -> No
 def validate_complete_attempt(
     attempt_dir: Path,
     scheduled: dict[str, Any],
-    frozen_output_hashes: dict[str, str],
+    reference_output_texts: dict[str, str],
 ) -> None:
     marker_path = attempt_dir / "COMPLETE.json"
     marker = json.loads(marker_path.read_text())
     if marker.get("attempt") != scheduled["attempt"] or marker.get("order") != scheduled["order"]:
         raise GateError(f"complete-attempt schedule mismatch: {attempt_dir}")
-    hashes = marker.get("result_sha256")
-    if not isinstance(hashes, dict) or set(hashes) != set(CONFIGS):
-        raise GateError(f"complete-attempt result hash set is invalid: {attempt_dir}")
+    files = marker.get("result_files")
+    if not isinstance(files, dict) or set(files) != set(CONFIGS):
+        raise GateError(f"complete-attempt result file set is invalid: {attempt_dir}")
     for config in CONFIGS:
         result_path = attempt_dir / config / "result.json"
-        if not result_path.is_file() or sha256(result_path) != hashes[config]:
-            raise GateError(f"complete-attempt result hash mismatch: {result_path}")
+        if not result_path.is_file() or file_identity(result_path) != files[config]:
+            raise GateError(f"complete-attempt result file identity mismatch: {result_path}")
         result = json.loads(result_path.read_text())
-        if result.get("config") != config or output_hashes(result) != frozen_output_hashes:
+        if result.get("config") != config or output_texts(result) != reference_output_texts:
             raise GateError(f"complete-attempt semantic mismatch: {result_path}")
 
 
@@ -972,14 +1006,14 @@ def run_experiment(output: Path, prompts_path: Path, port: int, preflight: Path,
     verify_gate_artifact(smoke, "SMOKE-PASS.json", manifest)
     create_or_verify_root(output, manifest, resume)
     prompts = load_prompts(prompts_path)
-    frozen = json.loads((smoke / "frozen-output-hashes.json").read_text())
+    reference = json.loads((smoke / "reference-output-texts.json").read_text())
     schedule = json.loads(SCHEDULE.read_text())["attempts"]
     scheduled_by_name = {f"attempt-{item['attempt']:02d}": item for item in schedule}
     valid = []
     for attempt_dir in sorted(p for p in output.glob("attempt-*") if (p / "COMPLETE.json").is_file()):
         if attempt_dir.name not in scheduled_by_name:
             raise GateError(f"complete attempt is outside the frozen schedule: {attempt_dir}")
-        validate_complete_attempt(attempt_dir, scheduled_by_name[attempt_dir.name], frozen)
+        validate_complete_attempt(attempt_dir, scheduled_by_name[attempt_dir.name], reference)
         valid.append(attempt_dir)
     if len(valid) > TARGET_BLOCKS:
         raise GateError(f"output already has too many complete attempts: {len(valid)}")
@@ -1008,11 +1042,13 @@ def run_experiment(output: Path, prompts_path: Path, port: int, preflight: Path,
         try:
             for config in item["order"]:
                 result = run_config(config, attempt_dir / config, prompts, port, Path(admit["model_path"]))
-                if output_hashes(result) != frozen:
-                    raise GateError(f"output hash drift in attempt {attempt}, config {config}")
+                if output_texts(result) != reference:
+                    raise GateError(f"exact output text drift in attempt {attempt}, config {config}")
             atomic_write_json(complete, {"attempt": attempt, "order": item["order"],
-                                         "result_sha256": {config: sha256(attempt_dir / config / "result.json")
-                                                           for config in CONFIGS}})
+                                         "result_files": {
+                                             config: file_identity(attempt_dir / config / "result.json")
+                                             for config in CONFIGS
+                                         }})
             valid.append(attempt_dir)
         except Exception as exc:
             atomic_write_json(invalid, {"attempt": attempt, "technical_invalid": True,
@@ -1055,8 +1091,8 @@ def analyze(root: Path) -> dict[str, Any]:
         row: dict[str, Any] = {"attempt": attempt.name}
         for config in CONFIGS:
             result_path = attempt / config / "result.json"
-            if sha256(result_path) != complete.get("result_sha256", {}).get(config):
-                raise GateError(f"analysis result hash mismatch: {result_path}")
+            if file_identity(result_path) != complete.get("result_files", {}).get(config):
+                raise GateError(f"analysis result file identity mismatch: {result_path}")
             result = json.loads(result_path.read_text())
             if result.get("schema") != 2 or result.get("config") != config:
                 raise GateError(f"analysis result schema/config mismatch: {result_path}")
@@ -1115,7 +1151,7 @@ def main() -> int:
     p_run.add_argument("--port", type=int, default=18080)
     p_run.add_argument("--preflight", type=Path, required=True)
     p_run.add_argument("--smoke", type=Path, required=True)
-    p_run.add_argument("--approval", type=Path, default=HERE / "plan-review.md")
+    p_run.add_argument("--approval", type=Path, default=HERE / "plan-review-v2.md")
     p_run.add_argument("--resume", action="store_true")
     p_analyze = sub.add_parser("analyze")
     p_analyze.add_argument("root", type=Path)

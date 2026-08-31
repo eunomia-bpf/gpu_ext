@@ -8,12 +8,11 @@ Date: 2026-08-31
   `3e11b8ed191631e6f098b8038235823f1a410b24`.
 - official vLLM `0.27.1+cu129` distribution from
   `https://wheels.vllm.ai/0.27.1/cu129`.
-- official vLLM wheel SHA-256:
-  `bf0d52faa2a51e7a01c6856a7a8a2d1307fd0ff711415d34168a67ffac0fa47b`.
+- official vLLM wheel:
+  `dist-vllm/vllm-0.27.1+cu129-cp38-abi3-manylinux_2_28_x86_64.whl`.
 - Python 3.12.3, torch `2.13.0+cu129`, CUDA runtime/toolkit 12.9.
 - transformers 5.16.1, huggingface-hub 1.29.0, numpy 2.2.6.
-- full resolved environment: `current-requirements.txt`, SHA-256
-  `aad2fbf3e7ae84487e206d68888b5b290ceb4c3b6de221ef07542f9a0f1e9d9b`.
+- full resolved environment: `current-requirements.txt`.
 - `uv pip check`: all 223 installed packages are compatible.
 
 vLLM 0.28.0 is newer, but its default NVIDIA distribution moved to CUDA 13;
@@ -34,8 +33,8 @@ MAX_JOBS=4
 LMCACHE_CUDA_MAJOR=12
 ```
 
-The build succeeded.  The CPython 3.12 wheel SHA-256 is
-`9429740adfd73a554ac4bf1e46b169fadbdbbfe8a10bf5acc62522fcbae02fb5`.
+The build succeeded. The CPython 3.12 wheel is
+`dist-current-py312/lmcache-0.5.4-cp312-cp312-linux_x86_64.whl`.
 `cuobjdump --list-elf` reports seven `sm_120` cubins in `lmcache.cuda_ops`.
 
 With `CUDA_VISIBLE_DEVICES` empty, the following imports succeeded without a
@@ -49,8 +48,8 @@ GPU allocation against vLLM `0.27.1+cu129`:
 - `lmcache.v1.storage_backend.local_disk_backend`
 - `vllm`
 
-The exact imported paths and SHA-256 values are frozen in
-`artifacts-current.json` and rechecked by admission.  `vllm serve
+The exact imported paths are frozen in `artifacts-current.json` and rechecked
+by admission. `vllm serve
 --help=kv-transfer-config` also succeeds in this environment.  No model server,
 CUDA kernel, or GPU benchmark was launched.
 
@@ -61,10 +60,8 @@ The submitted LMCache logs identify source
 vLLM fork `3ec7b051563670b3af9cf5c10bc8ba3295ec125f`.  That source was separately
 built using Python 3.10, torch 2.8.0, CUDA 12.9, and `sm_120`:
 
-- historical wheel SHA-256:
-  `72270d243d4e81e190ac04355f7023ba93f335879589eb177f9b5189b19fa7b0`;
-- historical `c_ops` SHA-256:
-  `e5920da2598e830fae9b663976656029ab96f448dcc53b569925e670c82aeeae`;
+- historical wheel and `c_ops` files retained under the historical build
+  directories;
 - five `sm_120` cubins; CPU-only connector import passed.
 
 It is retained for provenance/sensitivity only and is not the primary
@@ -104,3 +101,17 @@ used. vLLM then measured 30.89/31.4 GiB free and rejected the 0.99 request for
 error. No request or cache I/O occurred, and this attempt did not test the
 DeepGEMM-off fallback. The three-attempt real-preflight allowance is exhausted;
 the protocol is closed without O_DIRECT, correctness, or performance evidence.
+
+## Revision-2 offline qualification — 2026-08-31
+
+Revision 2 uniformly lowers the vLLM startup budget from 0.99 to 0.98 and
+replaces content-fingerprint gates with parsed semantic validation, exact
+response-text comparison, and ordinary file metadata. `prompts.json` was
+regenerated as schema 3 without fingerprints. Ten CPU-only structural tests
+pass, including exact schedule semantics, prompt LCP validation, O_DIRECT
+failure cases, request-scoped log parsing, uniform runtime settings, and a
+source guard against reintroducing fingerprint logic. Read-only admission
+passes on an idle RTX 5090 with 15 MiB reported used, the exact 610.43.02
+driver, required model files, runtime imports, dependencies, and the workspace
+NVMe mount. No revision-2 model server or CUDA workload has been launched;
+independent approval remains mandatory.

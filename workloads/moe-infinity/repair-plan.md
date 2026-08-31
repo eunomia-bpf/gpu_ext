@@ -1,7 +1,7 @@
-# MoE-Infinity oversized-route repair experiment — proposal 3 revision 2
+# MoE-Infinity oversized-route repair experiment — proposal 3 revision 3
 
-Status: **revision 2 attempt 1 failed after the repaired warm-up completed;
-unchanged execution is not authorized**.
+Status: **launcher-only revision independently approved; repaired-protocol
+attempt 2 is authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -38,6 +38,14 @@ Sections 2 through 9 of `plan.md` remain normative without modification for:
 This proposal overrides only MoE-Infinity source identity, repaired-build
 identity, preflight attempt accounting, and the execution authorization in
 section 10. Any other change requires a new reviewed revision.
+
+Revision 3 leaves the approved source repair and all scientific settings
+unchanged. It moves the existing `taskset -c 0-7` prefix outside the `strace`
+wrapper so both the owned tracer and Python server inherit CPU 0--7, and records
+the actual wrapped command in `launch.json`. Revision-2 attempt 1 remains the
+first of three attempts. Only a reviewed protocol-ID change permits the next
+attempt after that deterministic failure; an unchanged deterministic failure
+still blocks retry.
 
 ## 3. Disclosed source repair
 
@@ -160,12 +168,13 @@ are visible.
 
 ## 8. Auto-research gate state
 
-- BUILD: implementation, rebuild, offline checks, standalone GPU numerical
-  comparison, read-only admission, and independent re-review complete.
+- BUILD: source repair, rebuilt extensions, standalone GPU numerical
+  comparison, and read-only admission remain unchanged; launcher-only revision
+  3 passes 38 offline checks and independent review.
 - EXPERIMENT: attempt 1 completed the original 512+64-token warm-up but failed
   the CPU-affinity gate because the tracing wrapper sat outside `taskset`; see
-  `runtime-preflight.md`. A minimal launcher-only revision and independent
-  review are required before attempt 2.
+  `runtime-preflight.md`. Revision 3 implements only the approved wrapper-order
+  repair; fixed-namespace attempt 2 is the next authorized action.
 - WRITE: closed by user instruction until experiments are complete.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.

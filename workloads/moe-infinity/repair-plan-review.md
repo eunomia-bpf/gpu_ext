@@ -104,3 +104,21 @@ Final follow-up verdict: **APPROVE**.
 The repaired-protocol 120B preflight is authorized. Timing remains unauthorized
 until a complete repaired preflight passes every correctness and engagement
 gate.
+
+## Revision 3 launcher-repair review
+
+Revision-2 attempt 1 completed the exact 512+64-token warm-up and then failed
+only because the outer `strace` wrapper did not inherit the server's frozen CPU
+set. Revision 3 moves the unchanged `taskset -c 0-7` prefix outside `strace`,
+records the executed command, and permits attempt 2 only when the deterministic
+predecessor is the specifically reviewed revision 2. Current, missing, or any
+other protocol identifier remains fail-closed.
+
+A fresh read-only review checked the raw attempt, launcher, attempt accounting,
+38 offline tests, read-only admission, diff scope, and unchanged model,
+requests, metrics, source repair, commands, and schedule.
+
+Verdict: **APPROVE**.
+
+Fixed-namespace attempt 2 is authorized. Timing remains unauthorized until a
+complete repaired preflight passes every correctness and engagement gate.

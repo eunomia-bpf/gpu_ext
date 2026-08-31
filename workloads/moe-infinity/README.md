@@ -87,7 +87,7 @@ At the author's direction, a new protocol now carries a disclosed repair in
 `row-chunking.patch`. It keeps the same model, prompt, routing, and 256-row
 workspace, but executes a large per-expert route in stable consecutive chunks
 and concatenates the outputs in original row order. The active Python 3.12
-repaired `_store` builds for sm_120, 36 offline tests pass, and the standalone
+repaired `_store` builds for sm_120, 38 offline tests pass, and the standalone
 GPU numerical gate executes the actual repaired `MoEMLP::forward()` at
 1/256/257/353 rows against a same-parameter reference. All four comparisons
 passed at `rtol=1e-2`, `atol=1e-2`, with zero observed maximum absolute and
@@ -103,3 +103,7 @@ subsequently rejected the outer tracing wrapper's CPU affinity before the
 correctness passes, so the attempt is retained as failed and no timing ran.
 Attempt 2 requires an independently reviewed launcher-only protocol revision;
 see `runtime-preflight.md`.
+
+That revision is now approved: `taskset -c 0-7` wraps both `strace` and the
+Python server, while attempt 1 remains preserved and counted. Fixed-namespace
+attempt 2 is authorized; timing is still gated on a fully passing preflight.

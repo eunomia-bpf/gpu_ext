@@ -348,7 +348,13 @@ class RunnerTests(unittest.TestCase):
                 first = root / "attempt-01"
                 first.mkdir()
                 (first / "preflight-result.json").write_text(
-                    json.dumps({"status": "failed", "retry_allowed": False})
+                    json.dumps(
+                        {
+                            "protocol": runner.PROTOCOL_ID,
+                            "status": "failed",
+                            "retry_allowed": False,
+                        }
+                    )
                 )
                 with self.assertRaisesRegex(runner.GateError, "deterministic"):
                     runner.authorize_repaired_preflight_attempt(2)
@@ -361,6 +367,46 @@ class RunnerTests(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(runner.GateError, "must be 1, 2, or 3"):
                     runner.authorize_repaired_preflight_attempt(4)
+
+    def test_reviewed_protocol_change_can_use_next_attempt(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first = root / "attempt-01"
+            first.mkdir()
+            (first / "preflight-result.json").write_text(
+                json.dumps(
+                    {
+                        "protocol": "proposal-3-revision-2",
+                        "status": "failed",
+                        "retry_allowed": False,
+                    }
+                )
+            )
+            with mock.patch.object(runner, "REPAIRED_PREFLIGHT_ROOT", root):
+                self.assertEqual(
+                    runner.authorize_repaired_preflight_attempt(2),
+                    root / "attempt-02",
+                )
+                (first / "preflight-result.json").write_text(
+                    json.dumps(
+                        {
+                            "protocol": "unreviewed-revision",
+                            "status": "failed",
+                            "retry_allowed": False,
+                        }
+                    )
+                )
+                with self.assertRaisesRegex(runner.GateError, "unchanged protocol"):
+                    runner.authorize_repaired_preflight_attempt(2)
+
+    def test_moe_trace_wrapper_inherits_frozen_taskset(self) -> None:
+        argv = ["taskset", "-c", "0-7", "/venv/python", "-m", "server"]
+        wrapped = runner.traced_moe_argv(argv, Path("/trace"))
+        self.assertEqual(wrapped[:3], ["taskset", "-c", "0-7"])
+        self.assertEqual(wrapped[3], "/usr/bin/strace")
+        self.assertEqual(wrapped[-3:], ["/venv/python", "-m", "server"])
+        with self.assertRaisesRegex(runner.GateError, "frozen CPU"):
+            runner.traced_moe_argv(argv[3:], Path("/trace"))
 
     def test_timing_accepts_only_matching_fixed_preflight_attempt(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:

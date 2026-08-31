@@ -53,7 +53,8 @@ PLAN = HERE / "plan.md"
 REPAIR_PLAN = HERE / "repair-plan.md"
 RUNNER = Path(__file__).resolve()
 REPAIRED_PREFLIGHT_ROOT = HERE / "raw/repaired-preflight"
-PROTOCOL_ID = "proposal-3-revision-2"
+PROTOCOL_ID = "proposal-3-revision-3"
+REVIEWED_PREDECESSOR_PROTOCOLS = {"proposal-3-revision-2"}
 
 HF_REVISION = "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
 GGUF_REVISION = "238abdd290bb874b90a5da1b4549881b7d05c091"
@@ -391,7 +392,11 @@ def authorize_repaired_preflight_attempt(attempt: int) -> Path:
         result = json.loads(result_path.read_text())
         if result.get("status") == "passed":
             raise GateError(f"repaired preflight attempt {previous} already passed")
-        if not result.get("retry_allowed", False):
+        prior_protocol = result.get("protocol")
+        if (
+            not result.get("retry_allowed", False)
+            and prior_protocol not in REVIEWED_PREDECESSOR_PROTOCOLS
+        ):
             raise GateError(
                 f"attempt {previous} recorded a deterministic failure; "
                 "an unchanged protocol may not repeat it"
@@ -472,6 +477,22 @@ def run_row_chunking_numerical_gate() -> dict[str, Any]:
             )
         time.sleep(1)
     return observed
+
+
+def traced_moe_argv(argv: list[str], trace_dir: Path) -> list[str]:
+    if argv[:3] != ["taskset", "-c", "0-7"]:
+        raise GateError("MoE trace wrapper requires the frozen CPU 0-7 taskset")
+    return argv[:3] + [
+        "/usr/bin/strace",
+        "-ff",
+        "-qq",
+        "-s",
+        "4096",
+        "-e",
+        "trace=open,openat,openat2",
+        "-o",
+        str(trace_dir / "open.trace"),
+    ] + argv[3:]
 
 
 def verify_small_artifacts() -> dict[str, Any]:
@@ -1134,20 +1155,18 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
         if config == "gpubpf_host_stride_lfu":
             policy, policy_log, policy_ready = start_policy(run_dir)
         argv, cwd = server_command(config, port, run_dir)
-        atomic_write_json(
-            run_dir / "launch.json",
-            {"argv": argv, "cwd": str(cwd), "environment": controlled_environment(config),
-             "policy_ready": policy_ready},
-        )
         launch_argv = argv
         trace_dir = None
         if config == "moe_infinity_075":
             trace_dir = run_dir / "strace"
             trace_dir.mkdir()
-            launch_argv = [
-                "/usr/bin/strace", "-ff", "-qq", "-s", "4096",
-                "-e", "trace=open,openat,openat2", "-o", str(trace_dir / "open.trace"),
-            ] + argv
+            launch_argv = traced_moe_argv(argv, trace_dir)
+        atomic_write_json(
+            run_dir / "launch.json",
+            {"argv": argv, "executed_argv": launch_argv, "cwd": str(cwd),
+             "environment": controlled_environment(config),
+             "policy_ready": policy_ready},
+        )
         server_log = log_path.open("x", buffering=1)
         server = subprocess.Popen(
             launch_argv, cwd=cwd, env=controlled_environment(config), stdout=server_log,

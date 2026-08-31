@@ -459,7 +459,8 @@ def load_prompts(path: Path) -> dict[str, Any]:
 
 def server_environment(config: str, cache_dir: Path) -> dict[str, str]:
     env = controlled_environment()
-    env.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", VLLM_WORKER_MULTIPROC_METHOD="spawn", PYTHONHASHSEED="0")
+    env.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", VLLM_WORKER_MULTIPROC_METHOD="spawn", PYTHONHASHSEED="0",
+               VLLM_USE_DEEP_GEMM="0")
     if config == "lmcache_cpu":
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="True",
                    LMCACHE_MAX_LOCAL_CPU_SIZE="8.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
@@ -474,7 +475,7 @@ def server_environment(config: str, cache_dir: Path) -> dict[str, str]:
 
 def server_argv(config: str, model_path: Path, port: int | str) -> list[str]:
     argv = [str(VLLM), "serve", str(model_path), "--served-model-name", MODEL_ID,
-            "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.90",
+            "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.99",
             "--max-num-seqs", "1", "--no-enable-prefix-caching", "--port", str(port)]
     if config != "recompute":
         argv.extend(["--kv-transfer-config", canonical(

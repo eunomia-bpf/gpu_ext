@@ -16,6 +16,13 @@ SPEC.loader.exec_module(runner)
 
 
 class HarnessTests(unittest.TestCase):
+    def test_all_cells_share_runtime_repair(self):
+        for config in runner.CONFIGS:
+            env = runner.server_environment(config, Path("/cache"))
+            self.assertEqual(env["VLLM_USE_DEEP_GEMM"], "0")
+            argv = runner.server_argv(config, Path("/model"), 18080)
+            self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.99")
+
     def test_strace_output_is_absolute_across_server_cwd(self):
         with tempfile.TemporaryDirectory(dir=".") as tmp:
             root = Path(tmp).resolve().relative_to(Path.cwd())

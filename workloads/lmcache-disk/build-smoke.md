@@ -82,3 +82,17 @@ The repair resolves the trace directory before spawning the child; it does
 not change the model, requests, I/O mode, or comparison. A regression test
 checks the launch command with a relative output root and a different server
 working directory. All seven CPU tests pass after the repair.
+
+Attempt 2 (`raw/preflight-610-20260831-02`) then loaded all seven real Qwen
+checkpoint shards. Engine initialization failed during DeepGEMM FP8 scale
+conversion in `deep_gemm.py` / `fp8_utils.py`, ending at
+`layout.hpp:60: Unknown SF transformation`. No cache request was served; the
+server exited and its owned GPU memory was released.
+
+Before attempt 3, every comparison cell disables DeepGEMM with the upstream
+`VLLM_USE_DEEP_GEMM=0` setting and increases the common vLLM memory budget from
+0.90 to 0.99. The capacity rationale and unchanged comparison are recorded in
+`plan.md`. The repair uses source-native settings, not a patched vLLM fork;
+eight CPU tests pass. See the official
+[environment switch](https://docs.vllm.ai/en/latest/configuration/env_vars/)
+and [memory-budget definition](https://docs.vllm.ai/en/stable/cli/bench/throughput/).

@@ -196,3 +196,17 @@ not the boot-dependent device number; storage and capacity requirements remain.
 The current host is not admitted because an unrelated SGLang service owns
 about 31 GiB. Those processes are outside this task's authority. No GPU launch
 is authorized while the occupancy and isolation checks fail.
+
+Runtime update (2026-08-31): the foreign jobs subsequently exited and admission
+passed. Preflight 1 failed before server startup because strace received a
+relative output path; this is repaired without changing the experiment.
+Preflight 2 loaded the exact 30.22 GiB checkpoint, then DeepGEMM weight-scale
+conversion failed with `Unknown SF transformation`. Before attempt 3, all
+three cells now set the official `VLLM_USE_DEEP_GEMM=0` switch, leaving vLLM to
+select another supported backend; the selected backend remains in the logs.
+All three also use `--gpu-memory-utilization 0.99`, since the checkpoint alone
+exceeds the old 0.90 nominal budget (about 28.66 GiB on this GPU). The latter
+is a capacity correction inferred before KV allocation, not a measured OOM.
+No timed sample exists under either old setting. Model identity, prompt token
+arrays, cache capacities, O_DIRECT, correctness checks, and analysis are
+unchanged. These operational deviations do not count as successful preflight.

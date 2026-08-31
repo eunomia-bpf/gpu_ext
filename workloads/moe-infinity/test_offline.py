@@ -147,6 +147,8 @@ class RowChunkingRepairTests(unittest.TestCase):
         body = source[start:end]
 
         self.assertNotIn("batch_size > kMaxTokens", body)
+        self.assertIn("if (batch_size <= kMaxTokens)", body)
+        self.assertIn("auto output = output_.clone()", body)
         self.assertIn("row_begin += kMaxTokens", body)
         self.assertIn(
             "std::min(kMaxTokens, batch_size - row_begin)", body

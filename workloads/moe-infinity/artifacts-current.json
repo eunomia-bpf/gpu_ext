@@ -106,7 +106,7 @@
       "device_code": ["sm_120"]
     },
     "_store": {
-      "sha256": "df49737a785eefdb1ee2898f25848d0d742be1cb31862fc5aeeb7ea0317f1497",
+      "sha256": "662821e2c636644f8543ab8c8356cb9a9987f04f5762293ea8511a7a7fe58bf2",
       "measurement_instrumented": true,
       "row_chunking_repair": true,
       "device_code": ["sm_120"]
@@ -146,9 +146,9 @@
   },
   "source_repair": {
     "patch": "row-chunking.patch",
-    "patch_sha256": "b1e808f32de45b6762a77647229f269b722aef7f1cd5b29e307807b49888e24e",
+    "patch_sha256": "ce2366d27ebfe41f0572124dd7dc16002dd6cb56925a10d2714e750f2b94a224",
     "scope": "MoEMLP::forward only",
-    "semantics": "execute routed expert rows in stable consecutive chunks of at most 256 using the same resident and dequantized expert weights",
+    "semantics": "preserve the upstream fast path at or below 256 rows; otherwise execute routed expert rows in stable consecutive chunks of at most 256 using the same resident and dequantized expert weights",
     "boundary_cases": [1, 256, 257, 353],
     "performance_status": "build verified only; no repaired-protocol GPU preflight or timing yet"
   },
@@ -210,7 +210,7 @@
     "uvm_eviction_monitor_sha256": "b0383ddf8bbe04cf226f50c4bf353fed803bb4c044fbcf9e8585afea22494397",
     "uvm_event_type": "UvmEventTypeEviction (14)",
     "uvm_event_abi": "V2, 72-byte queue entries",
-    "offline_test_file_sha256": "ac580a826309280bb3b3212f41a2d906269eecbbe71789890f288e4cf776ee24",
+    "offline_test_file_sha256": "fe3acf16bba8bd656a249cacc92d50a031478d5b0fe192b06c01f217f5c89f71",
     "offline_tests": 31,
     "full_model_hash_audit": "passed 2026-08-31; all 15 HF shards, 7 metadata files, and GGUF content verified"
   }

@@ -1,5 +1,5 @@
 diff --git a/core/parallel/expert_module.cpp b/core/parallel/expert_module.cpp
-index c92a1c9..02f6ba8 100644
+index c92a1c9..6ad5828 100644
 --- a/core/parallel/expert_module.cpp
 +++ b/core/parallel/expert_module.cpp
 @@ -3,6 +3,8 @@
@@ -11,7 +11,7 @@ index c92a1c9..02f6ba8 100644
  #include "expert_module.h"
  #include "utils/cuda_utils.h"
  #include "utils/logger.h"
-@@ -191,58 +193,56 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
+@@ -191,58 +193,75 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
    auto& output_ = buffer_[1];
  
    int64_t batch_size = hidden_states.size(0);
@@ -61,6 +61,25 @@ index c92a1c9..02f6ba8 100644
 +      }
      }
 +  };
++
++  // Preserve the original single-workspace path for every previously
++  // supported invocation. This keeps decode and ordinary prefill calls on the
++  // same copy, compute, synchronize, and clone sequence as upstream.
++  if (batch_size <= kMaxTokens) {
++    cudaMemcpyAsync(input_.data_ptr(), hidden_states.data_ptr(),
++                    hidden_states.numel() * hidden_states.element_size(),
++                    cudaMemcpyDeviceToDevice, stream);
++    resize_buffers(batch_size);
++    cudaStreamSynchronize(stream);
++
++    ForwardHelper(stream);
++    param_set_ = false;
++    cudaStreamSynchronize(stream);
++
++    auto output = output_.clone();
++    resize_buffers(kMaxTokens);
++    return output;
++  }
 +
 +  // Some prefill routes contain more than kMaxTokens rows for one expert.
 +  // Keep the fixed reusable workspace, execute consecutive row chunks with

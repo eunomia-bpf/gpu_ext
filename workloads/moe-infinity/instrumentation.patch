@@ -1,0 +1,137 @@
+diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatcher.cpp
+index f3b525a..317a6bb 100644
+--- a/core/parallel/expert_dispatcher.cpp
++++ b/core/parallel/expert_dispatcher.cpp
+@@ -333,6 +333,14 @@ double ExpertDispatcher::GetCacheHitRate() const {
+   return static_cast<double>(hits) / static_cast<double>(access);
+ }
+ 
++std::tuple<std::uint64_t, std::uint64_t>
++ExpertDispatcher::GetCacheCounts() const {
++  return {
++      cache_access_count_.load(std::memory_order_relaxed),
++      cache_hit_count_.load(std::memory_order_relaxed),
++  };
++}
++
+ // void ExpertDispatcher::GPUThreadFunc(int gpu_id) {
+ //   while (!main_thread_stop_flag_.load()) {
+ //   }
+diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher.h
+index 47d3b69..a554146 100644
+--- a/core/parallel/expert_dispatcher.h
++++ b/core/parallel/expert_dispatcher.h
+@@ -110,6 +110,7 @@ class ExpertDispatcher : public base::noncopyable {
+   void ClearExpertCacheCounts();
+   // Read-only observability accessors; neither alters routing/dispatch.
+   std::int64_t GetCacheOccupancyBytes();
++  std::tuple<std::uint64_t, std::uint64_t> GetCacheCounts() const;
+   double GetCacheHitRate() const;
+   void SetExpectedQueue(int expected_pending = 0) {
+     pending_.store(expected_pending);
+diff --git a/core/python/py_archer_prefetch.cpp b/core/python/py_archer_prefetch.cpp
+index 18591ce..dd02b6c 100644
+--- a/core/python/py_archer_prefetch.cpp
++++ b/core/python/py_archer_prefetch.cpp
+@@ -118,6 +118,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+            &ExpertDispatcher::ClearExpertCacheCounts)
+       .def("get_cache_occupancy_bytes",
+            &ExpertDispatcher::GetCacheOccupancyBytes)
++      .def("get_cache_counts", &ExpertDispatcher::GetCacheCounts)
+       .def("get_cache_hit_rate", &ExpertDispatcher::GetCacheHitRate)
+       .def("set_scales", &ExpertDispatcher::SetScales,
+            "Store fp8 block scales for dequant-on-copy (fp8-in-store path)");
+diff --git a/moe_infinity/entrypoints/openai/revision_server.py b/moe_infinity/entrypoints/openai/revision_server.py
+new file mode 100644
+index 0000000..669248f
+--- /dev/null
++++ b/moe_infinity/entrypoints/openai/revision_server.py
+@@ -0,0 +1,88 @@
++"""Measurement-only entrypoint for the approved RTX 5090 revision run."""
++
++from __future__ import annotations
++
++import os
++from typing import Any
++
++import torch
++from fastapi.responses import JSONResponse
++
++from moe_infinity.entrypoints.openai import api_server_v2 as server
++
++
++torch.set_num_threads(8)
++
++
++def _unavailable(message: str) -> JSONResponse:
++    return JSONResponse(
++        status_code=503,
++        content={"error": {"message": message, "type": "server_error"}},
++    )
++
++
++@server.app.get("/revision/stats")
++async def revision_stats() -> JSONResponse:
++    runtime = server.engine
++    if runtime is None:
++        return _unavailable("Service is starting. Please retry shortly.")
++
++    offload_engine: Any = getattr(runtime, "engine", None)
++    dispatcher: Any = getattr(offload_engine, "expert_dispatcher", None)
++    get_cache_counts = getattr(dispatcher, "get_cache_counts", None)
++    if not callable(get_cache_counts):
++        return _unavailable("Side-effect-free expert cache counters unavailable.")
++
++    accesses_raw, hits_raw = get_cache_counts()
++    accesses = int(accesses_raw)
++    hits = int(hits_raw)
++    if accesses < 0 or hits < 0 or hits > accesses:
++        return _unavailable("Expert cache counters are inconsistent.")
++
++    get_exposed = getattr(offload_engine, "get_exposed_fetch_seconds", None)
++    exposed_seconds = float(get_exposed()) if callable(get_exposed) else 0.0
++    stats = runtime.get_stats()
++
++    return JSONResponse(
++        content={
++            "engine_generated_tokens": int(
++                stats.get("total_generated_tokens", 0)
++            ),
++            "engine_steps": int(stats.get("num_steps", 0)),
++            "expert_cache_accesses": accesses,
++            "expert_cache_hits": hits,
++            "expert_cache_misses": accesses - hits,
++            "exposed_fetch_seconds_total": exposed_seconds,
++            "kv_cache_num_blocks": int(stats.get("kv_cache_num_blocks", 0)),
++        }
++    )
++
++
++def main() -> None:
++    """Run the official server with its original initialization sequence."""
++
++    args = server.parse_args()
++    server._max_waiting_requests = max(0, int(args.max_waiting_requests))
++    server._max_n = max(1, int(args.max_n))
++    server._configure_auth(
++        args.api_key or os.environ.get("MOE_API_KEYS"), args.rate_limit
++    )
++    with server._contextpilot_state_lock:
++        server._contextpilot_enabled = server._resolve_contextpilot_enabled(
++            args.enable_contextpilot
++        )
++        server._contextpilot_debug = bool(args.contextpilot_debug)
++        server._contextpilot_fault = "none"
++    server._startup_args = args
++
++    server.uvicorn.run(
++        server.app,
++        host=args.host,
++        port=args.port,
++        log_level="info",
++        timeout_keep_alive=server.TIMEOUT_KEEP_ALIVE,
++    )
++
++
++if __name__ == "__main__":
++    main()

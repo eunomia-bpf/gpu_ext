@@ -1,0 +1,35 @@
+{
+  "bootstrap": {
+    "api": "np.random.default_rng(seed).integers(0,5,(10000,5),endpoint=False,dtype=np.int64)",
+    "dtype": "int64",
+    "path": "bootstrap-indices.npy",
+    "seed": 1797,
+    "sha256": "ccf937054d069f237434124dafdbdd594c489c2b92e1c31dbfb4c415e0bbced2",
+    "shape": [
+      10000,
+      5
+    ]
+  },
+  "generator": {
+    "numpy": "2.5.2",
+    "path": "freeze_workload.py",
+    "sha256": "60d953503719a92b720d6d86e00ff132d668b97a08c8b885e5a58f9b896d9191"
+  },
+  "inputs": {
+    "dataset_sha256": "35f0e213ce091ed9b9af2a1f0755e9d39f9ccec34ab281cd4ca60d70f6479ba4",
+    "gguf_sha256": "582bd40f6886200101f4c4ed9f25f3fe80cc14c86e9e2b37746cd8904a0c622d",
+    "hf_tokenizer_json_sha256": "0614fe83cadab421296e664e1f48f4261fa8fef6e03e63bb75c20f38e37d07d3",
+    "llama_tokenize_sha256": "7a6a6339708f5dc285148d1c69284b390e9ace0a7736674ac48a9e6c44095fef"
+  },
+  "prompts": {
+    "path": "prompts.json",
+    "records": 9,
+    "sha256": "db71c406f860c0918fb0d522d3c0c13fcc5dc2d5bf4c6c650af55c9071b8a0b8"
+  },
+  "schedule": {
+    "attempts": 8,
+    "path": "schedule.json",
+    "sha256": "d951e3b838614aff9a51d2548c2ea5719960ac924d7a75565dff5073b2c64f8c"
+  },
+  "schema": 1
+}

@@ -2,9 +2,9 @@
 """
 Multi-Tenant Scheduler Results Analysis
 
-Analyzes the experimental data to verify the claim:
-- High latency events reduced by ~35% with policy
-- BE throughput maintained unchanged
+Recompute historical event-gap and kernel-duration statistics.
+These summaries do not validate host-to-kernel latency, aggregate throughput,
+policy engagement, or statistical significance.
 """
 
 import pandas as pd
@@ -113,9 +113,11 @@ def analyze(data):
         len(data['policy_be']) == 8000
     )
     print(f"Status: {'PASS' if completeness_ok else 'INCOMPLETE'}")
+    if not completeness_ok:
+        raise ValueError("Historical CSV file/sample counts are incomplete")
 
     # LC Latency Analysis
-    print("\n[2] LC LAUNCH LATENCY")
+    print("\n[2] LC EVENT-GAP STATISTICS (CSV launch_latency_ms)")
     print("-" * 40)
 
     # Overall percentiles (across all samples)
@@ -191,8 +193,8 @@ def analyze(data):
     policy_lc_p50 = np.percentile(data['policy_lc'], 50)
     print(f"\nP50: Native={native_lc_p50:.1f}µs, Policy={policy_lc_p50:.1f}µs")
 
-    # BE Throughput Analysis
-    print("\n[3] BE THROUGHPUT")
+    # Historical figure denominator: summed kernel durations, not wall time.
+    print("\n[3] BE INVERSE MEAN KERNEL DURATION (NOT AGGREGATE THROUGHPUT)")
     print("-" * 40)
     native_be_tput = len(data['native_be']) / (data['native_be_duration'] / 1000)
     policy_be_tput = len(data['policy_be']) / (data['policy_be_duration'] / 1000)
@@ -237,56 +239,16 @@ def analyze(data):
     print(f"{'LC P99 per-run median (µs)':<40} {native_lc_p99_median:>15.1f} {policy_lc_p99_median:>15.1f} {lc_p99_median_change:>+11.1f}%")
     print(f"{'LC P99 per-run std (µs)':<40} {native_lc_p99_std:>15.1f} {policy_lc_p99_std:>15.1f} {lc_p99_std_change:>+11.1f}%")
     print(f"{'LC High Latency Events (>1ms)':<40} {native_lc_high:>15} {policy_lc_high:>15} {lc_high_change:>+11.1f}%")
-    print(f"{'BE Throughput (kernels/s)':<40} {native_be_tput:>15.2f} {policy_be_tput:>15.2f} {tput_change:>+11.1f}%")
+    print(f"{'BE inverse mean duration (1/s)':<40} {native_be_tput:>15.2f} {policy_be_tput:>15.2f} {tput_change:>+11.1f}%")
     print(f"{'BE High Latency Events (>1ms)':<40} {native_be_high:>15} {policy_be_high:>15} {be_high_change:>+11.1f}%")
 
-    # Verification
     print("\n" + "=" * 70)
-    print("CLAIM VERIFICATION")
+    print("INTERPRETATION LIMITS")
     print("=" * 70)
-
-    # Claim 1: LC P99 per-run mean reduced significantly (negative change means reduction)
-    claim1_pass = lc_p99_mean_change < -50  # >50% reduction
-    print(f"\n[Claim 1] LC P99 per-run mean reduced significantly")
-    print(f"          Native: {native_lc_p99_mean:.1f}µs, Policy: {policy_lc_p99_mean:.1f}µs")
-    print(f"          Change: {lc_p99_mean_change:+.1f}%")
-    print(f"          Status: {'VERIFIED' if claim1_pass else 'NOT VERIFIED'}")
-
-    # Claim 2: BE throughput maintained
-    claim2_pass = abs(tput_change) < 5  # Within ±5%
-    print(f"\n[Claim 2] BE throughput maintained unchanged")
-    print(f"          Native: {native_be_tput:.2f} k/s, Policy: {policy_be_tput:.2f} k/s")
-    print(f"          Change: {tput_change:+.1f}%")
-    print(f"          Status: {'VERIFIED' if claim2_pass else 'NOT VERIFIED'}")
-
-    # Overall
-    print("\n" + "-" * 70)
-    all_pass = claim1_pass and claim2_pass
-    if all_pass:
-        print("OVERALL: ALL CLAIMS VERIFIED")
-    else:
-        print("OVERALL: SOME CLAIMS NOT VERIFIED")
-    print("=" * 70)
-
-    # Conclusion
-    print("\n" + "=" * 70)
-    print("CONCLUSION")
-    print("=" * 70)
-    print(f"""
-Based on {len(data['native_lc_per_run'])} runs:
-
-LC (Latency-Critical):
-  - P99 per-run mean: {native_lc_p99_mean:.0f}µs → {policy_lc_p99_mean:.0f}µs ({lc_p99_mean_change:+.1f}%)
-  - P99 per-run std:  {native_lc_p99_std:.0f}µs → {policy_lc_p99_std:.0f}µs ({lc_p99_std_change:+.1f}%)
-  - High latency events (>1ms): {native_lc_high} → {policy_lc_high} ({lc_high_change:+.1f}%)
-
-BE (Best-Effort):
-  - Throughput: {native_be_tput:.2f} → {policy_be_tput:.2f} kernels/s ({tput_change:+.1f}%)
-  - High latency events (>1ms): {native_be_high} → {policy_be_high} ({be_high_change:+.1f}%)
-
-KEY FINDING: Policy reduces LC tail latency by {-lc_p99_mean_change:.0f}% while maintaining BE throughput.
-""")
-    print("=" * 70)
+    print("Mean of per-run P99s is not the P99 of pooled samples.")
+    print("The CSV measures CUDA event gaps, not host submission to kernel entry.")
+    print("Summed kernel durations do not measure aggregate BE wall-clock throughput.")
+    print("Arithmetic reproduction alone does not validate the paper claims.")
 
     return {
         'lc_p99_mean_native': native_lc_p99_mean,
@@ -295,9 +257,6 @@ KEY FINDING: Policy reduces LC tail latency by {-lc_p99_mean_change:.0f}% while 
         'be_tput_native': native_be_tput,
         'be_tput_policy': policy_be_tput,
         'tput_change': tput_change,
-        'claim1_pass': claim1_pass,
-        'claim2_pass': claim2_pass,
-        'all_pass': all_pass,
     }
 
 
@@ -308,10 +267,8 @@ def main():
         return 1
 
     data = load_data()
-    results = analyze(data)
-
-    # Return exit code based on verification
-    return 0 if results['all_pass'] else 1
+    analyze(data)
+    return 0
 
 
 if __name__ == "__main__":

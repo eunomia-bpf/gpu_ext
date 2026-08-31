@@ -1,5 +1,11 @@
 # 多租户 GPU 调度器评估
 
+> Revision audit (2026-08-31): the historical numbers below reproduce, but the
+> CSV's event gap is not a host-to-kernel latency measurement, and the plotted
+> BE statistic is inverse mean recorded duration rather than aggregate
+> throughput. The 95.5% result is a mean of per-run P99s, not pooled P99. See
+> [the RQ3 evidence audit](../rq3-revision-audit.md) before reusing these claims.
+
 我们在 NVIDIA RTX 5090 GPU 上评估 BPF struct_ops 策略对多租户工作负载的调度效果。实验模拟典型的云端 GPU 共享场景：2 个延迟敏感型 (LC) 进程与 4 个尽力而为型 (BE) 进程并发执行，每个进程运行 4 个 CUDA stream，每个 stream 提交 50 个 compute kernel (~80ms/kernel)。我们对比原生调度器与启用 BPF 策略 (LC timeslice=1s, BE timeslice=200µs) 两种模式，每种模式重复 10 轮，共收集 12,000 个 kernel launch latency 样本。结果表明：策略将 LC 的每轮 P99 均值从 1188µs 降至 53µs (降低 95.5%)，同时 P99 标准差从 3405µs 降至 35µs (降低 99%)，而 BE 吞吐量仅变化 +0.8%。这验证了 BPF struct_ops 能够在不牺牲 BE 吞吐量的前提下，显著降低 LC 工作负载的尾延迟并提升调度稳定性。
 
 ## 核心结论

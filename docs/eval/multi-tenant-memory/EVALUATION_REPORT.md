@@ -1,5 +1,11 @@
 # 多租户 GPU 内存优先级策略评估报告
 
+> Revision audit (2026-08-31): the tables below are historical single-round
+> observations. The scheduler launcher attaches after workload startup and
+> does not preserve policy-engagement evidence, so these rows do not establish
+> an engaged scheduler's ineffectiveness. The 2×Single reference is not a
+> proven concurrent lower bound. See [the evidence audit](../rq3-revision-audit.md).
+
 ## 摘要
 
 本实验评估基于 eBPF 的 GPU 内存管理策略在多租户场景下实现优先级划分的效果。我们在共享 GPU 上同时运行两个相同的进程，分别标记为高优先级和低优先级，测试三种代表性 workload：Hotspot（空间局部性）、GEMM（计算密集）和 K-Means（稀疏访问）。

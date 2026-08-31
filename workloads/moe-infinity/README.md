@@ -81,6 +81,13 @@ struct_ops state.
 Runtime update: full admission subsequently passed with the custom UVM, but
 the first real preflight failed on MoE-Infinity's fixed 256-row expert buffer
 when the frozen 512-token warm-up routed 353 rows to one expert. No request or
-timing completed. The protocol is closed rather than modifying its frozen
-source/workload; see `runtime-preflight.md`. Revision work proceeds with the
-named MoE fallback systems.
+timing completed, and that original protocol remains closed; see
+`runtime-preflight.md`.
+
+At the author's direction, a new protocol now carries a disclosed repair in
+`row-chunking.patch`. It keeps the same model, prompt, routing, and 256-row
+workspace, but executes a large per-expert route in stable consecutive chunks
+and concatenates the outputs in original row order. The repaired `_store`
+builds for sm_120 and 31 offline tests cover the patch identity and 1/256/257/
+353-row boundaries. These are BUILD-gate results only: the new protocol still
+requires independent review before any GPU preflight or timing is accepted.

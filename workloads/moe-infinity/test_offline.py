@@ -126,6 +126,52 @@ class InstrumentationTests(unittest.TestCase):
         self.assertNotIn("num_offloaded_experts", source)
 
 
+class RowChunkingRepairTests(unittest.TestCase):
+    def test_patch_exactly_matches_worktree(self) -> None:
+        subprocess.run(
+            [
+                "git",
+                "apply",
+                "--check",
+                "--reverse",
+                str(ROOT / "row-chunking.patch"),
+            ],
+            cwd=UPSTREAM,
+            check=True,
+        )
+
+    def test_native_forward_chunks_without_changing_row_order(self) -> None:
+        source = (UPSTREAM / "core/parallel/expert_module.cpp").read_text()
+        start = source.index("torch::Tensor MoEMLP::forward(")
+        end = source.index("void MoEMLP::ForwardHelper", start)
+        body = source[start:end]
+
+        self.assertNotIn("batch_size > kMaxTokens", body)
+        self.assertIn("row_begin += kMaxTokens", body)
+        self.assertIn(
+            "std::min(kMaxTokens, batch_size - row_begin)", body
+        )
+        self.assertIn(
+            "hidden_contiguous.narrow(0, row_begin, chunk_rows)", body
+        )
+        self.assertIn(
+            "output.narrow(0, row_begin, chunk_rows).copy_(output_)", body
+        )
+        self.assertIn("resize_buffers(kMaxTokens)", body)
+
+    def test_required_row_boundaries_are_covered(self) -> None:
+        def chunks(rows: int) -> list[tuple[int, int]]:
+            return [
+                (begin, min(256, rows - begin))
+                for begin in range(0, rows, 256)
+            ]
+
+        self.assertEqual(chunks(1), [(0, 1)])
+        self.assertEqual(chunks(256), [(0, 256)])
+        self.assertEqual(chunks(257), [(0, 256), (256, 1)])
+        self.assertEqual(chunks(353), [(0, 256), (256, 97)])
+
+
 class FrozenWorkloadTests(unittest.TestCase):
     def test_manifest_hashes_generated_artifacts(self) -> None:
         manifest = json.loads((ROOT / "workload-manifest.json").read_text())

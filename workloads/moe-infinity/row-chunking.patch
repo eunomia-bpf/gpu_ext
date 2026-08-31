@@ -1,0 +1,112 @@
+diff --git a/core/parallel/expert_module.cpp b/core/parallel/expert_module.cpp
+index c92a1c9..02f6ba8 100644
+--- a/core/parallel/expert_module.cpp
++++ b/core/parallel/expert_module.cpp
+@@ -3,6 +3,8 @@
+ 
+ // EfficientMoE Team
+ 
++#include <algorithm>
++
+ #include "expert_module.h"
+ #include "utils/cuda_utils.h"
+ #include "utils/logger.h"
+@@ -191,58 +193,56 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
+   auto& output_ = buffer_[1];
+ 
+   int64_t batch_size = hidden_states.size(0);
+-  int64_t hdim = hidden_states.size(1);
+-
+-  DLOG_FATAL_IF(batch_size > kMaxTokens || batch_size <= 0,
+-                "batch_size should be (0,", kMaxTokens, "] , but got",
++  DLOG_FATAL_IF(batch_size <= 0, "batch_size should be positive, but got",
+                 batch_size);
+   TORCH_CHECK(hidden_states.scalar_type() == input_.scalar_type(),
+               "hidden_states dtype must match expert input dtype");
+ 
+-  // Use async copy with the provided execution stream
+-  cudaMemcpyAsync(input_.data_ptr(), hidden_states.data_ptr(),
+-                  hidden_states.numel() * hidden_states.element_size(),
+-                  cudaMemcpyDeviceToDevice, stream);
+-
+-  // Dynamically reshape buffers to match actual batch_size, avoiding
+-  // computation on padded rows. The underlying memory is unchanged.
+-  for (auto& buffer : buffer_) {
+-    auto shape_vec = buffer.sizes().vec();
+-    if (shape_vec.size() != 2) continue;
+-    int64_t row = buffer.size(0);
+-    int64_t col = buffer.size(1);
+-    auto dtype = buffer.dtype();
+-
+-    if (row == kMaxTokens) {
+-      buffer.set_data(torch::from_blob(
+-          buffer.data_ptr(), {batch_size, col}, DoNothingDeleter<void>{},
+-          torch::TensorOptions().dtype(dtype).device(
+-              CUDA_DEVICE(at::cuda::current_device()))));
++  auto resize_buffers = [&](int64_t rows) {
++    for (auto& buffer : buffer_) {
++      auto shape_vec = buffer.sizes().vec();
++      if (shape_vec.size() != 2) continue;
++      int64_t col = buffer.size(1);
++      auto dtype = buffer.dtype();
++      if (buffer.size(0) != rows) {
++        // Every buffer owns storage for kMaxTokens rows. Only its logical view
++        // changes between chunks; no allocation or data movement occurs here.
++        TORCH_CHECK(rows <= kMaxTokens,
++                    "expert buffer view exceeds allocated row capacity");
++        buffer.set_data(torch::from_blob(
++            buffer.data_ptr(), {rows, col}, DoNothingDeleter<void>{},
++            torch::TensorOptions().dtype(dtype).device(
++                CUDA_DEVICE(at::cuda::current_device()))));
++      }
+     }
++  };
++
++  // Some prefill routes contain more than kMaxTokens rows for one expert.
++  // Keep the fixed reusable workspace, execute consecutive row chunks with
++  // the already resident/dequantized expert weights, and restore the original
++  // order in a full-sized output tensor.
++  auto hidden_contiguous = hidden_states.contiguous();
++  auto output = torch::empty_like(hidden_contiguous);
++  for (int64_t row_begin = 0; row_begin < batch_size;
++       row_begin += kMaxTokens) {
++    int64_t chunk_rows = std::min(kMaxTokens, batch_size - row_begin);
++    resize_buffers(chunk_rows);
++
++    auto input_chunk = hidden_contiguous.narrow(0, row_begin, chunk_rows);
++    cudaMemcpyAsync(input_.data_ptr(), input_chunk.data_ptr(),
++                    input_chunk.numel() * input_chunk.element_size(),
++                    cudaMemcpyDeviceToDevice, stream);
++    cudaStreamSynchronize(stream);
++
++    ForwardHelper(stream);
++    output.narrow(0, row_begin, chunk_rows).copy_(output_);
+   }
+-  cudaStreamSynchronize(stream);
+ 
+-  ForwardHelper(stream);
+   param_set_ = false;
+   cudaStreamSynchronize(stream);
+ 
+-  auto output = output_.clone();
+-
+-  // Restore buffers to kMaxTokens shape for next invocation
+-  for (auto& buffer : buffer_) {
+-    auto shape_vec = buffer.sizes().vec();
+-    if (shape_vec.size() != 2) continue;
+-    int64_t row = buffer.size(0);
+-    int64_t col = buffer.size(1);
+-    auto dtype = buffer.dtype();
+-
+-    if (row == batch_size && batch_size != kMaxTokens) {
+-      buffer.set_data(torch::from_blob(
+-          buffer.data_ptr(), {kMaxTokens, col}, DoNothingDeleter<void>{},
+-          torch::TensorOptions().dtype(dtype).device(
+-              CUDA_DEVICE(at::cuda::current_device()))));
+-    }
+-  }
++  // Restore reusable buffers to their allocation-capacity shape.
++  resize_buffers(kMaxTokens);
+ 
+   return output;
+ }

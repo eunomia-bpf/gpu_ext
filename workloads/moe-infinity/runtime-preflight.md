@@ -13,8 +13,9 @@ order, so `moe_infinity_075` ran first. Before launch, full admission passed:
 - live custom UVM BTF with the exact six-member `gpu_mem_ops` and all three
   kfuncs used by the combined policy;
 - all 15 HF weight shards, seven metadata files, and the 63.4 GB GGUF matched
-  their frozen content hashes;
-- the workspace NVMe and all executable/instrumentation hashes matched.
+  the expected inventory and sizes;
+- the workspace NVMe, required executables, patches, and instrumentation files
+  were present at their recorded paths.
 
 MoE-Infinity loaded the exact checkpoint, created a roughly 61 GiB expert
 store across seven logged storage partitions, moved the dense and sparse

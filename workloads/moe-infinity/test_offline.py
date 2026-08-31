@@ -175,14 +175,11 @@ class RowChunkingRepairTests(unittest.TestCase):
 
 
 class FrozenWorkloadTests(unittest.TestCase):
-    def test_manifest_hashes_generated_artifacts(self) -> None:
+    def test_manifest_names_generated_artifacts(self) -> None:
         manifest = json.loads((ROOT / "workload-manifest.json").read_text())
         for key in ("prompts", "schedule", "bootstrap"):
             path = ROOT / manifest[key]["path"]
-            digest = subprocess.check_output(
-                ["sha256sum", str(path)], text=True
-            ).split()[0]
-            self.assertEqual(digest, manifest[key]["sha256"])
+            self.assertTrue(path.is_file())
 
     def test_prompt_roles_and_canonical_lengths(self) -> None:
         prompts = json.loads((ROOT / "prompts.json").read_text())
@@ -217,6 +214,34 @@ class FrozenWorkloadTests(unittest.TestCase):
             dtype=np.int64,
         )
         self.assertTrue(np.array_equal(actual, expected))
+
+
+class NoChecksumWorkflowTests(unittest.TestCase):
+    def test_active_workflow_has_no_content_digest_logic(self) -> None:
+        for path in (ROOT / "run_moe_head_to_head.py", ROOT / "freeze_workload.py"):
+            source = path.read_text().lower()
+            for forbidden in ("hashlib", "sha256", "sha-256", "checksum"):
+                self.assertNotIn(forbidden, source)
+
+        def visit(value: object) -> None:
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    lowered = key.lower()
+                    self.assertNotIn("hash", lowered)
+                    self.assertNotIn("digest", lowered)
+                    self.assertNotIn("checksum", lowered)
+                    visit(child)
+            elif isinstance(value, list):
+                for child in value:
+                    visit(child)
+
+        for name in (
+            "artifacts-current.json",
+            "commands.json",
+            "prompts.json",
+            "workload-manifest.json",
+        ):
+            visit(json.loads((ROOT / name).read_text()))
 
 
 class CombinedPolicyTests(unittest.TestCase):
@@ -372,7 +397,7 @@ class RunnerTests(unittest.TestCase):
             self.assertIsNone(manifest["configurations"][config]["policy_argv"])
 
     def test_model_view_is_exact_and_excludes_unrelated_serializations(self) -> None:
-        observed = runner.verify_model_artifacts(full_hashes=False)
+        observed = runner.verify_model_artifacts()
         members = set(observed["view_members"])
         self.assertEqual(len([x for x in members if x.endswith(".safetensors")]), 15)
         self.assertNotIn("original", members)

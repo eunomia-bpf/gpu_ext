@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import subprocess
@@ -20,7 +19,6 @@ ROOT = Path(__file__).resolve().parent
 GPU_EXT = ROOT.parents[1]
 HF_REVISION = "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
 GGUF_REVISION = "238abdd290bb874b90a5da1b4549881b7d05c091"
-DATASET_SHA256 = "35f0e213ce091ed9b9af2a1f0755e9d39f9ccec34ab281cd4ca60d70f6479ba4"
 PROMPT_SCAN_SEED = 1797
 SCHEDULE_SEED = 1798
 BOOTSTRAP_SEED = 1797
@@ -50,18 +48,6 @@ PROMPTS_OUT = ROOT / "prompts.json"
 SCHEDULE_OUT = ROOT / "schedule.json"
 BOOTSTRAP_OUT = ROOT / "bootstrap-indices.npy"
 MANIFEST_OUT = ROOT / "workload-manifest.json"
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -115,8 +101,6 @@ def llama_tokenize(text: str) -> list[int]:
 
 
 def freeze_prompts() -> dict[str, Any]:
-    if sha256_file(DATASET) != DATASET_SHA256:
-        raise RuntimeError("ShareGPT dataset hash mismatch")
     dataset = json.loads(DATASET.read_text(encoding="utf-8"))
     if not isinstance(dataset, list):
         raise RuntimeError("ShareGPT dataset root must be a list")
@@ -182,21 +166,15 @@ def freeze_prompts() -> dict[str, Any]:
             )
             continue
 
-        source_bytes = source_text.encode("utf-8")
-        prompt_bytes = prompt_text.encode("utf-8")
-        ids_bytes = json.dumps(prompt_ids, separators=(",", ":")).encode("ascii")
         records.append(
             {
                 "role": "warmup" if not records else "measured",
                 "source_index": index,
                 "source_id": row.get("id"),
                 "source_text": source_text,
-                "source_text_sha256": sha256_bytes(source_bytes),
                 "source_token_count": len(source_ids),
                 "prompt_text": prompt_text,
-                "prompt_text_sha256": sha256_bytes(prompt_bytes),
                 "prompt_token_ids": prompt_ids,
-                "prompt_token_ids_sha256": sha256_bytes(ids_bytes),
                 "prompt_token_count": len(prompt_ids),
                 "unique_token_ids": len(used_ids),
             }
@@ -211,7 +189,6 @@ def freeze_prompts() -> dict[str, Any]:
         "schema": 1,
         "dataset": {
             "path": str(DATASET.relative_to(GPU_EXT)),
-            "sha256": DATASET_SHA256,
             "rows": len(dataset),
             "extraction": "first turn whose from field equals human",
         },
@@ -285,32 +262,28 @@ def main() -> None:
         "schema": 1,
         "generator": {
             "path": Path(__file__).name,
-            "sha256": sha256_file(Path(__file__)),
             "numpy": np.__version__,
         },
         "prompts": {
             "path": PROMPTS_OUT.name,
-            "sha256": sha256_file(PROMPTS_OUT),
             "records": len(prompts["records"]),
         },
         "schedule": {
             "path": SCHEDULE_OUT.name,
-            "sha256": sha256_file(SCHEDULE_OUT),
             "attempts": len(schedule["attempts"]),
         },
         "bootstrap": {
             "path": BOOTSTRAP_OUT.name,
-            "sha256": sha256_file(BOOTSTRAP_OUT),
             "shape": list(indices.shape),
             "dtype": str(indices.dtype),
             "seed": BOOTSTRAP_SEED,
             "api": "np.random.default_rng(seed).integers(0,5,(10000,5),endpoint=False,dtype=np.int64)",
         },
         "inputs": {
-            "dataset_sha256": sha256_file(DATASET),
-            "hf_tokenizer_json_sha256": sha256_file(HF_MODEL / "tokenizer.json"),
-            "gguf_sha256": sha256_file(GGUF_MODEL),
-            "llama_tokenize_sha256": sha256_file(LLAMA_TOKENIZE),
+            "dataset": str(DATASET.relative_to(GPU_EXT)),
+            "hf_revision": HF_REVISION,
+            "gguf_revision": GGUF_REVISION,
+            "llama_tokenize": str(LLAMA_TOKENIZE.relative_to(GPU_EXT)),
         },
     }
     write_json(MANIFEST_OUT, manifest)

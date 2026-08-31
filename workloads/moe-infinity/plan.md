@@ -48,20 +48,17 @@ MoE-Infinity:
 llama.cpp:
 
 - source commit `26836b27ae1ec9d6e94c6b56306cca75c7e86814`;
-- `llama-server` SHA-256
-  `d4fb5910a4c6f037f12d4e3b8dd4da66d7486ba22f4b136cf7af4007aae072e7`;
+- `llama-server` built from that checkout;
 - `ggml-org/gpt-oss-120b-GGUF` revision
   `238abdd290bb874b90a5da1b4549881b7d05c091`, exact file
-  `gpt-oss-120b-MXFP4.gguf`, 63,387,346,208 bytes, SHA-256
-  `582bd40f6886200101f4c4ed9f25f3fe80cc14c86e9e2b37746cd8904a0c622d`;
-  its pinned `.src_sha` records primary source revision
+  `gpt-oss-120b-MXFP4.gguf`, 63,387,346,208 bytes, whose source metadata records primary revision
   `b5c939de8f754692c1647ca79fbf85e8c1e70f8a`.
 
-`artifacts-current.json` binds these commits, module hashes, model identities,
-and build products. Before GPU preflight it is extended with every model shard
-hash, tokenizer/config hash, GGUF provenance metadata, combined-policy source
-and object hashes, runner/probe hashes, and exact resolved paths. The runner
-rejects a missing, extra, size-mismatched, or hash-mismatched artifact.
+`artifacts-current.json` records these commits, model identities, build flags,
+expected filenames and sizes, module versions, and exact source paths. The
+runner rejects missing or extra model files, size mismatches, wrong source
+commits, wrong module versions, absent patch application, and missing runtime
+artifacts. Content checksums are deliberately not part of the workflow.
 
 ## 3. Frozen configurations and commands
 
@@ -115,7 +112,7 @@ Proposal 2 permits one measurement-only native patch: add
 `cache_access_count_` and `cache_hit_count_` through two relaxed atomic loads,
 and expose it as `get_cache_counts` in pybind. It adds no writes, resets,
 topology traversal, synchronization, or calls from the dispatch path. The
-minimal measurement-only change, rebuilt module, source diff, and hashes are frozen
+minimal measurement-only change, rebuilt module, and source diff are fixed
 and disclosed; a source audit and CPU unit test must prove repeated reads leave
 both totals unchanged. The mutating Archer `get_hit_rate()` and
 `GetNodeVisitCounts()` are forbidden.
@@ -127,8 +124,8 @@ sequence exactly: call `parse_args`; set `_max_waiting_requests` and `_max_n`;
 call `_configure_auth`; set the three ContextPilot globals while holding
 `_contextpilot_state_lock`; assign `_startup_args`; then call `uvicorn.run` on
 the official `app`, host, port, info log level, and `TIMEOUT_KEEP_ALIVE`. The
-wrapper source, this copied entry sequence, and the import graph are
-hash-frozen. The JSON schema has monotonic totals
+wrapper source, this copied entry sequence, and the import graph are fixed in
+the tracked experiment checkout. The JSON schema has monotonic totals
 `engine_generated_tokens`, `engine_steps`, `expert_cache_accesses`,
 `expert_cache_hits`, `expert_cache_misses` (accesses minus hits), and
 `exposed_fetch_seconds_total`; the only gauge is `kv_cache_num_blocks`. The
@@ -144,9 +141,9 @@ back to those 128 KV blocks (about 2,048-token capacity).
 
 ## 4. Frozen workload and tokenizer equivalence
 
-Source data is
-`workloads/vllm/datasets/ShareGPT_V3_unfiltered_cleaned_split.json`, SHA-256
-`35f0e213ce091ed9b9af2a1f0755e9d39f9ccec34ab281cd4ca60d70f6479ba4`.
+Source data is the tracked
+`workloads/vllm/datasets/ShareGPT_V3_unfiltered_cleaned_split.json` file with
+94,145 rows.
 Nine source rows (one distinct warm-up and eight measured prompts) are selected
 before execution by `np.random.default_rng(1797).permutation(94145)` with no
 performance observation; the first nine eligible rows occur after 138 scanned
@@ -163,11 +160,11 @@ GGUF tokenizer (`llama-tokenize --no-bos --no-parse-special`) encode
 also requires identical ID-to-token pieces for every ID present in the nine
 prompts and matching BOS/EOS IDs; llama's `/detokenize` endpoint must reproduce
 `prompt_text` during correctness preflight. The artifact retains source
-row/index, `source_text`, `prompt_text`, IDs, all byte/ID hashes, tokenizer
+row/index, `source_text`, `prompt_text`, IDs, tokenizer
 commands/options, skipped candidates and reasons. Actual requests pass
 `prompt_token_ids` directly; no server re-tokenizes request text. The selection
-script, tokenizer/config files, prompt artifact, and fixed seed are hash-bound
-to every attempt.
+script, tokenizer revisions, prompt artifact, and fixed seed are recorded for
+every attempt.
 
 The exact common `/v1/completions` keys are: `model="gpt-oss-120b"`;
 `prompt` equal to the numeric 512-element `prompt_token_ids` array;
@@ -180,15 +177,15 @@ checks enforce determinism. Requests are sequential. Both servers have prefix
 caching and speculative decoding disabled. A precomputed seed fixes eight
 four-configuration block orders and the eight prompt orders within each
 configuration. The schedule uses `np.random.default_rng(1798)` and is frozen in
-`schedule.json`; prompts, schedule, bootstrap indices, and their input hashes
-are bound by `workload-manifest.json` before preflight.
+`schedule.json`; prompt, schedule, and bootstrap filenames plus their source
+revisions are recorded by `workload-manifest.json` before preflight.
 
 ## 5. Correctness smoke
 
 Each configuration starts in isolation. The distinct fixed warm-up prompt is
 sent once with the non-streaming payload and is excluded. The eight measured
 prompts are then sent non-streaming in two complete passes. The smoke records
-raw JSON, usage, finish reason, UTF-8 output bytes, and output hashes. Both
+raw JSON, usage, finish reason, and UTF-8 output bytes. Both
 passes must report 512 prompt tokens, 64 completion tokens,
 `finish_reason=length`, valid UTF-8, and identical output bytes per prompt; the
 common result becomes that configuration's smoke golden. The three llama
@@ -219,7 +216,7 @@ For every streamed request, the client records `CLOCK_MONOTONIC_RAW` at request
 start, receipt of every raw SSE frame, first frame containing non-empty visible
 output text, terminal frame with `finish_reason=length`, `[DONE]`, and stream
 EOF. Raw SSE bytes are retained. Decoded `choices[0].text` fragments are
-concatenated in order; their UTF-8 bytes and hash must exactly match that
+concatenated in order; their UTF-8 bytes must exactly match that
 configuration/prompt's smoke golden. These are client-visible output-event
 times, not claimed model-token timestamps.
 
@@ -236,8 +233,7 @@ configuration/block, measured duration starts immediately before sending the
 first request and ends at the eighth stream EOF. Aggregate output-token
 throughput is the 512 verified output tokens divided by that duration. This is
 the definition in vLLM `vllm/benchmarks/serve.py` commit
-`3ec7b051563670b3af9cf5c10bc8ba3295ec125f`, file SHA-256
-`5dcfbc9cb735450d9399cc65d7a7fecad8e9b841c5f7ea0fad90f0eb0b768d97`.
+`3ec7b051563670b3af9cf5c10bc8ba3295ec125f`.
 The experiment does not report goodput, TPOT, or “decode throughput.”
 
 Server/model loading, expert-store construction, attachment, warm-up, cooldown,
@@ -284,12 +280,14 @@ used; they do not turn `/proc` byte counts into a cross-runtime traffic claim.
 Admission acquires an exclusive filesystem lease for GPU 0 and a separate
 struct_ops lease. It inventories GPU compute PIDs, GPU memory, open device
 handles, existing `gpu_mem_ops` registrations/links, driver version, module
-hashes, mount identity/free space, thermal state, and all artifact hashes.
+versions and vermagic, mount identity/free space, thermal state, source
+revisions, required files, and model inventory.
 Admission rejects any pre-existing GPU process, more than 256 MiB residual GPU
 memory, or any pre-existing/ambiguous struct_ops registration. It never clears,
 detaches, signals, or adopts unknown state.
 
-For `gpubpf_host_stride_lfu`, the runner launches exactly one hash-bound loader,
+For `gpubpf_host_stride_lfu`, the runner launches exactly one loader from the
+recorded tracked source/object path,
 records its PID plus link/map/program IDs, and confirms those IDs are the sole
 registration before starting the owned server. Warm-up counters are snapshotted
 and measured deltas retained. Shutdown order is: stop and reap the owned server
@@ -328,7 +326,7 @@ throughput divided by MoE-Infinity throughput in paired block `b`. The point
 estimator is `exp(mean(log(r_b)))`, the geometric mean of all five paired
 ratios. Bootstrap indices are generated exactly once with
 `np.random.default_rng(1797).integers(0, 5, size=(10000, 5), endpoint=False,
-dtype=np.int64)`, saved as a hash-bound `.npy` artifact, and reused for every
+dtype=np.int64)`, saved as the tracked `.npy` artifact, and reused for every
 comparison. Each row samples five complete block pairs with replacement and
 recomputes that exact geometric-mean estimator. The 95% interval is the 2.5th
 and 97.5th quantiles using NumPy's `quantile(method="linear")`. Baseline/MoE
@@ -382,17 +380,17 @@ fail-closed no-launch admission are implemented. The combined policy and both
 userspace probes compile cleanly; 28 CPU-only tests pass. A full content audit
 passed for all 15 HF shards, seven HF metadata files, and the public GGUF.
 Full admission subsequently succeeded, but the correctness preflight failed as
-recorded below and no timed attempt is authorized. The four custom 610.43.02
-module hashes and 7.1.12 vermagic are
-recorded in `artifacts-current.json`; a build check is not a runtime result.
+recorded below and no timed attempt is authorized. The four custom modules'
+610.43.02 versions and 7.1.12 vermagic are recorded in
+`artifacts-current.json`; a build check is not a runtime result.
 The compile-only `test_uvm_tools_abi.c` check passes against the pinned 610
 headers (23 assertions for ioctl values, V2 record sizes, and field offsets).
 The monitor's wire layout needs no change; event delivery remains a real
 preflight obligation, not a consequence of ABI compatibility.
 
-Preflight admission repair (2026-08-31): artifact hashes alone did not prove
-that the running UVM module was the custom port rather than the installed stock
-610 module. Admission now requires live module version 610.43.02 and module BTF
+Preflight admission repair (2026-08-31): file identity alone did not prove that
+the running UVM module was the custom port rather than the installed stock 610
+module. Admission now requires live module version 610.43.02 and module BTF
 containing the exact six-member `gpu_mem_ops` ABI plus the three kfuncs used by
 the combined policy. The stock UVM currently fails this gate because it has no
 live module BTF or gpubpf interface. This strengthens execution identity without

@@ -19,14 +19,14 @@ quotes in PyBind ABI macros, and fails to propagate the compiler exit code.
 Selecting the real `/usr/bin/g++` fixed the build without an upstream source
 change.
 
-## Built artifact hashes
+## Built artifacts
 
-- `_store`: `8e15796eab10dd97d38e09a601a8d438e9f29b52d2af412e673d729017895248`
-- `_engine`: `85c8f18f14b7cf9284da7e5dedb0b17e19d72ac83a7c4a8ca654be07fcdd368c`
-- `_kv_cache`: `bf2df3f667ba0cb97cbae658c296878d66c7250fb17044e997d1f48a3e82a30a`
-- `_paged_attn`: `bc1980e4e94e30582e7a6b01b5c68316cf04d8af5c4df366be6743cd5a7fbdfe`
-- `_v4_fp4`: `3a60955c40b32e9b7691f942a54488edab3c7482bd4d7123e6cda4862ef193cc`
-- `_marlin`: `66e0659342340e786a69137707c186a9941b2b54301716cd6f7f0dda91f85d23`
+- `_store`
+- `_engine`
+- `_kv_cache`
+- `_paged_attn`
+- `_v4_fp4`
+- `_marlin`
 
 This is a compile/architecture smoke only. It does not establish runtime
 correctness or performance, and it did not launch a GPU workload.

@@ -45,8 +45,7 @@ The source base remains EfficientMoE/MoE-Infinity commit
 
 1. `instrumentation.patch`, the already approved load-only cache-counter and
    stats-route patch; and
-2. `row-chunking.patch`, SHA-256
-   `ce2366d27ebfe41f0572124dd7dc16002dd6cb56925a10d2714e750f2b94a224`.
+2. the tracked `row-chunking.patch` file.
 
 The new patch changes only `core/parallel/expert_module.cpp`.
 `MoEMLP::forward()` retains the existing reusable 256-row workspace. Calls of
@@ -76,7 +75,8 @@ following must pass:
 4. all offline workload/runner/ownership tests;
 5. CUDA 12.9 rebuild with `MOE_ENABLE_SM120=1`, `MOE_ENABLE_SM90=0`,
    `NVTX_DISABLE=1`, and the frozen CUTLASS checkout;
-6. `_store` contains sm_120 device code and matches its frozen manifest hash;
+6. `_store` contains sm_120 device code and was built from the admitted source
+   tree with the frozen build flags;
 7. read-only admission accepts the exact model, binaries, custom loaded-UVM
    BTF interface, idle GPU, NVMe filesystem, and empty struct_ops inventory.
 
@@ -117,10 +117,10 @@ preflight passes. After that gate, the runner follows the already frozen eight
 attempt orders and stops at exactly five valid complete blocks. The proposal-2
 analysis code and persisted 10,000-by-5 bootstrap matrix are reused unchanged.
 
-The repaired MoE build must match the same hash in preflight and all timed
-blocks. Failed or partial blocks are retained. The final result bundle requires
-a fresh independent result review before any number is promoted to revision
-evidence.
+The repaired MoE build used for preflight must remain in place for every timed
+block: no rebuild or binary replacement is permitted between those stages.
+Failed or partial blocks are retained. The final result bundle requires a fresh
+independent result review before any number is promoted to revision evidence.
 
 ## 7. Required interpretation
 

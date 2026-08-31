@@ -19,9 +19,9 @@ paper-facing environment is now isolated under ignored `.venv/`: Python
 `sglang-kernel` 0.4.6.post1+cu129 wheel.  MoE-Infinity was rebuilt and
 installed from the pinned source with CUDA 12.9; all six extensions import
 with CUDA hidden, `uv pip check` accepts all 108 packages, and the CUDA
-objects contain the expected sm_120/sm_120a cubins.  Exact dependency and
-module hashes are frozen in `current-requirements.txt` and
-`artifacts-current.json`.
+objects contain the expected sm_120/sm_120a cubins. Exact dependencies, source
+revisions, build flags, filenames, sizes, and module versions are recorded in
+`current-requirements.txt` and `artifacts-current.json` without checksum gates.
 
 The exact `openai/gpt-oss-120b` MXFP4 snapshot and matching public GGUF are now
 fully staged on workspace NVMe. A complete content audit verified all 15 HF
@@ -46,8 +46,8 @@ cc -std=c11 -Wall -Wextra -Werror -fsyntax-only \
   -I../../../gpu_ext-kernel-610/kernel-open/nvidia-uvm \
   -I../../../gpu_ext-kernel-610/kernel-open/common/inc test_uvm_tools_abi.c
 .venv/bin/python -m unittest -v test_offline.py
-.venv/bin/python run_moe_head_to_head.py admit --full-hashes \
-  --output raw/admission-full-hashes.json
+.venv/bin/python run_moe_head_to_head.py admit \
+  --output raw/admission.json
 ```
 
 The compile-only ABI check passes against the pinned 610 headers: event 14,
@@ -88,6 +88,6 @@ At the author's direction, a new protocol now carries a disclosed repair in
 `row-chunking.patch`. It keeps the same model, prompt, routing, and 256-row
 workspace, but executes a large per-expert route in stable consecutive chunks
 and concatenates the outputs in original row order. The repaired `_store`
-builds for sm_120 and 31 offline tests cover the patch identity and 1/256/257/
+builds for sm_120 and 32 offline tests cover the patch identity and 1/256/257/
 353-row boundaries. These are BUILD-gate results only: the new protocol still
 requires independent review before any GPU preflight or timing is accepted.

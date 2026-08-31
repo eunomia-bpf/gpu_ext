@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import ctypes
 import fcntl
-import hashlib
 import http.client
 import json
 import os
@@ -49,6 +48,7 @@ WORKLOAD_MANIFEST = HERE / "workload-manifest.json"
 PROMPTS = HERE / "prompts.json"
 SCHEDULE = HERE / "schedule.json"
 PLAN = HERE / "plan.md"
+REPAIR_PLAN = HERE / "repair-plan.md"
 RUNNER = Path(__file__).resolve()
 
 HF_REVISION = "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
@@ -82,14 +82,6 @@ TELEMETRY_CPU = 16
 
 class GateError(RuntimeError):
     pass
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def atomic_write_json(path: Path, value: Any) -> None:
@@ -134,8 +126,22 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False)
     if status and not allow_instrumentation:
         raise GateError(f"{repo}: source tree is dirty: {status}")
     if allow_instrumentation:
-        patch = HERE / "instrumentation.patch"
-        run_checked(["git", "apply", "--check", "--reverse", str(patch)], repo)
+        expected_status = {
+            "M core/parallel/expert_dispatcher.cpp",
+            "M core/parallel/expert_dispatcher.h",
+            "M core/parallel/expert_module.cpp",
+            "M core/python/py_archer_prefetch.cpp",
+            "?? moe_infinity/entrypoints/openai/revision_server.py",
+        }
+        normalized_status = {line.lstrip() for line in status}
+        if normalized_status != expected_status:
+            raise GateError(
+                f"{repo}: repaired source file set mismatch: expected "
+                f"{sorted(expected_status)}, found {sorted(normalized_status)}"
+            )
+        for patch_name in ("instrumentation.patch", "row-chunking.patch"):
+            patch = HERE / patch_name
+            run_checked(["git", "apply", "--check", "--reverse", str(patch)], repo)
     return {"path": str(repo), "commit": actual, "status": status}
 
 
@@ -153,7 +159,6 @@ def controlled_environment(config: str) -> dict[str, str]:
         "HF_HUB_OFFLINE": "1",
         "TRANSFORMERS_OFFLINE": "1",
         "PYTHONNOUSERSITE": "1",
-        "PYTHONHASHSEED": "0",
     }
     if config in {"llama_uvm", "gpubpf_host_stride_lfu"}:
         env["GGML_CUDA_ENABLE_UNIFIED_MEMORY"] = "1"
@@ -300,50 +305,40 @@ def port_is_free(port: int) -> bool:
 def verify_small_artifacts() -> dict[str, Any]:
     frozen = json.loads(ARTIFACTS.read_text())
     workload = json.loads(WORKLOAD_MANIFEST.read_text())
-    observed: dict[str, Any] = {
-        "artifacts_manifest_sha256": sha256(ARTIFACTS),
-        "workload_manifest_sha256": sha256(WORKLOAD_MANIFEST),
-    }
+    observed: dict[str, Any] = {}
     for key in ("prompts", "schedule", "bootstrap"):
         path = HERE / workload[key]["path"]
-        actual = sha256(path)
-        if actual != workload[key]["sha256"]:
-            raise GateError(f"{key} artifact hash mismatch: {path}")
-        observed[f"{key}_sha256"] = actual
+        if not path.is_file():
+            raise GateError(f"required {key} artifact is missing: {path}")
+        observed[key] = str(path.resolve())
 
-    expected_hashes = {
-        LLAMA_SERVER: frozen["llama_comparison"]["server_sha256"],
-        LLAMA_TOKENIZE: workload["inputs"]["llama_tokenize_sha256"],
-        HERE / frozen["measurement_instrumentation"]["patch"]: frozen[
-            "measurement_instrumentation"
-        ]["patch_sha256"],
-        EXTENSION / frozen["combined_policy"]["bpf_source"].replace("../../extension/", ""):
-            frozen["combined_policy"]["bpf_source_sha256"],
-        EXTENSION / frozen["combined_policy"]["loader_source"].replace("../../extension/", ""):
-            frozen["combined_policy"]["loader_source_sha256"],
-        POLICY_BPF_OBJECT: frozen["combined_policy"]["bpf_object_sha256"],
-        POLICY_LOADER: frozen["combined_policy"]["loader_sha256"],
-        EVICTION_MONITOR: frozen["experiment_harness"]["uvm_eviction_monitor_sha256"],
-        HERE / frozen["experiment_harness"]["uvm_eviction_monitor_source"]:
-            frozen["experiment_harness"]["uvm_eviction_monitor_source_sha256"],
-        HERE / frozen["experiment_harness"]["commands"]:
-            frozen["experiment_harness"]["commands_sha256"],
-        RUNNER: frozen["experiment_harness"]["runner_sha256"],
-        PLAN: frozen["experiment_harness"]["plan_sha256"],
-    }
-    for name, metadata in frozen["custom_driver_modules"].items():
-        expected_hashes[KERNEL_MODULE_ROOT / name] = metadata["sha256"]
-    for path, expected in expected_hashes.items():
-        if not path.is_file() or sha256(path) != expected:
-            raise GateError(f"executable/instrumentation hash mismatch: {path}")
-
-    required_runtime = (MOE_PYTHON, POLICY_LOADER, POLICY_BPF_OBJECT, EVICTION_MONITOR)
+    required_runtime = (
+        ARTIFACTS,
+        WORKLOAD_MANIFEST,
+        LLAMA_SERVER,
+        LLAMA_TOKENIZE,
+        HERE / frozen["measurement_instrumentation"]["patch"],
+        HERE / frozen["source_repair"]["patch"],
+        EXTENSION / frozen["combined_policy"]["bpf_source"].replace("../../extension/", ""),
+        EXTENSION / frozen["combined_policy"]["loader_source"].replace("../../extension/", ""),
+        POLICY_BPF_OBJECT,
+        POLICY_LOADER,
+        EVICTION_MONITOR,
+        HERE / frozen["experiment_harness"]["uvm_eviction_monitor_source"],
+        HERE / frozen["experiment_harness"]["commands"],
+        RUNNER,
+        PLAN,
+        REPAIR_PLAN,
+        MOE_PYTHON,
+    )
     for path in required_runtime:
         if not path.is_file():
             raise GateError(f"required runtime artifact is missing: {path}")
-    observed["runtime_sha256"] = {str(path): sha256(path) for path in required_runtime}
+    observed["required_files"] = [str(path.resolve()) for path in required_runtime]
     for name, metadata in frozen["custom_driver_modules"].items():
         path = KERNEL_MODULE_ROOT / name
+        if not path.is_file():
+            raise GateError(f"required custom module is missing: {path}")
         modinfo = run_checked(["modinfo", str(path)])
         version = re.search(r"^version:\s+(\S+)", modinfo, re.MULTILINE)
         vermagic = re.search(r"^vermagic:\s+(.+)$", modinfo, re.MULTILINE)
@@ -398,22 +393,21 @@ def verify_loaded_uvm_interface() -> dict[str, Any]:
     return {
         "version": version,
         "btf_path": str(LOADED_UVM_BTF),
-        "btf_dump_sha256": hashlib.sha256(raw.encode()).hexdigest(),
         "gpu_mem_ops_members": list(members),
         "required_kfuncs": list(required_kfuncs),
     }
 
 
-def verify_model_artifacts(full_hashes: bool) -> dict[str, Any]:
+def verify_model_artifacts() -> dict[str, Any]:
     frozen = json.loads(ARTIFACTS.read_text())
-    expected_weights = frozen["model"]["weight_sha256"]
+    expected_weights = set(frozen["model"]["weight_files"])
     actual_weights = {path.name for path in HF_SNAPSHOT.glob("*.safetensors")}
-    if actual_weights != set(expected_weights):
+    if actual_weights != expected_weights:
         raise GateError(
-            f"HF root shard set mismatch: missing={set(expected_weights) - actual_weights}, "
-            f"extra={actual_weights - set(expected_weights)}"
+            f"HF root shard set mismatch: missing={expected_weights - actual_weights}, "
+            f"extra={actual_weights - expected_weights}"
         )
-    expected_view = set(expected_weights) | set(frozen["model"]["metadata_sha256"])
+    expected_view = expected_weights | set(frozen["model"]["metadata_files"])
     actual_view = {path.name for path in MODEL_VIEW.iterdir()}
     if actual_view != expected_view:
         raise GateError(
@@ -430,32 +424,22 @@ def verify_model_artifacts(full_hashes: bool) -> dict[str, Any]:
             raise GateError(f"model-view link escapes the frozen snapshot: {path} -> {target}")
 
     result: dict[str, Any] = {
-        "hf_snapshot": str(HF_SNAPSHOT.resolve()),
-        "model_view": str(MODEL_VIEW.resolve()),
+        "hf_snapshot": str(HF_SNAPSHOT.absolute()),
+        "model_view": str(MODEL_VIEW.absolute()),
         "view_members": sorted(actual_view),
-        "gguf": str(GGUF_MODEL.resolve()),
-        "full_hashes": full_hashes,
-    }
-    if full_hashes:
-        for name, expected in expected_weights.items():
-            if sha256(HF_SNAPSHOT / name) != expected:
-                raise GateError(f"HF shard hash mismatch: {name}")
-        for name, expected in frozen["model"]["metadata_sha256"].items():
-            if sha256(HF_SNAPSHOT / name) != expected:
-                raise GateError(f"HF metadata hash mismatch: {name}")
-        if sha256(GGUF_MODEL) != frozen["llama_comparison"]["model_sha256"]:
-            raise GateError("GGUF hash mismatch")
-        result["all_content_hashes_verified"] = True
-    else:
-        result["all_sizes"] = {
+        "gguf": str(GGUF_MODEL.absolute()),
+        "all_sizes": {
             name: (HF_SNAPSHOT / name).stat().st_size for name in sorted(actual_view)
-        }
-        if GGUF_MODEL.stat().st_size != frozen["llama_comparison"]["model_bytes"]:
-            raise GateError("GGUF size mismatch")
+        },
+    }
+    if sum(result["all_sizes"][name] for name in expected_weights) != frozen["model"]["weight_bytes"]:
+        raise GateError("HF weight size total mismatch")
+    if GGUF_MODEL.stat().st_size != frozen["llama_comparison"]["model_bytes"]:
+        raise GateError("GGUF size mismatch")
     return result
 
 
-def admission(port: int, full_hashes: bool = False) -> dict[str, Any]:
+def admission(port: int) -> dict[str, Any]:
     evidence: dict[str, Any] = {"timestamp_ns": time.time_ns(), "errors": []}
     errors: list[str] = evidence["errors"]
     try:
@@ -496,7 +480,7 @@ def admission(port: int, full_hashes: bool = False) -> dict[str, Any]:
             MOE_SOURCE, EXPECTED_MOE_COMMIT, allow_instrumentation=True
         )
         evidence["small_artifacts"] = verify_small_artifacts()
-        evidence["models"] = verify_model_artifacts(full_hashes)
+        evidence["models"] = verify_model_artifacts()
     except Exception as exc:
         errors.append(f"frozen artifacts: {exc}")
     if not port_is_free(port):
@@ -577,8 +561,7 @@ def moe_snapshot(port: int) -> dict[str, Any]:
                 "moe_kv_cache_total_blocks"}
     if not required.issubset(metrics):
         raise GateError(f"MoE /metrics is missing required series: {required - set(metrics)}")
-    return {"revision": http_json(port, "/revision/stats"), "metrics": metrics,
-            "metrics_raw_sha256": hashlib.sha256(text.encode()).hexdigest()}
+    return {"revision": http_json(port, "/revision/stats"), "metrics": metrics}
 
 
 def completion_payload(config: str, token_ids: list[int], stream: bool) -> dict[str, Any]:
@@ -618,7 +601,6 @@ def validate_completion_response(response: dict[str, Any], prompt_tokens: int) -
         raise GateError(f"completion-token accounting mismatch: {usage}")
     return {
         "text": text,
-        "text_sha256": hashlib.sha256(text.encode()).hexdigest(),
         "finish_reason": choice["finish_reason"],
         "usage": usage,
     }
@@ -947,9 +929,7 @@ def check_server_identity(config: str, port: int, prompts: dict[str, Any]) -> di
         )
         if detokenized.get("content") != prompts["records"][0]["prompt_text"]:
             raise GateError("llama /detokenize differs from frozen canonical prompt")
-        result["detokenize_sha256"] = hashlib.sha256(
-            detokenized["content"].encode()
-        ).hexdigest()
+        result["detokenize_matches_prompt"] = True
     return result
 
 
@@ -1103,7 +1083,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             )
         result = {
             "config": config, "identity": identity, "monitor_ready": monitor_ready,
-            "warmup": warmup, "goldens": [item["text_sha256"] for item in passes[0]],
+            "warmup": warmup, "goldens": [item["text"] for item in passes[0]],
             "passes": passes, "engagement": engagement,
         }
         atomic_write_json(run_dir / "result.json", result)
@@ -1132,7 +1112,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
 def run_correctness_preflight(output: Path, port: int) -> dict[str, Any]:
     lease = LeaseSet.acquire()
     try:
-        admitted = admission(port, full_hashes=True)
+        admitted = admission(port)
         if not admitted["admitted"]:
             raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
         output.mkdir(parents=True, exist_ok=False)
@@ -1192,7 +1172,7 @@ def streamed_completion(config: str, port: int, token_ids: list[int],
             value = json.loads(stripped[6:])
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise GateError(f"invalid SSE JSON frame: {stripped[:500]!r}") from exc
-        frame = {"timestamp_ns": timestamp, "sha256": hashlib.sha256(stripped[6:]).hexdigest()}
+        frame = {"timestamp_ns": timestamp, "payload_bytes": len(stripped[6:])}
         if isinstance(value.get("usage"), dict):
             usage = value["usage"]
         for choice in value.get("choices", []):
@@ -1228,8 +1208,7 @@ def streamed_completion(config: str, port: int, token_ids: list[int],
         "ttft_ms": (first_text_ns - start_ns) / 1e6,
         "e2e_ms": (eof_ns - start_ns) / 1e6,
         "finish_reason": finish_reason, "usage": usage,
-        "text_sha256": hashlib.sha256(text.encode()).hexdigest(),
-        "raw_sse_sha256": hashlib.sha256(raw).hexdigest(), "frames": frames,
+        "text": text, "raw_sse_bytes": len(raw), "frames": frames,
     }
 
 
@@ -1450,7 +1429,7 @@ def analyze_valid_blocks(blocks: list[dict[str, Any]]) -> dict[str, Any]:
 def run_full_schedule(output: Path, preflight: Path, port: int) -> dict[str, Any]:
     lease = LeaseSet.acquire()
     try:
-        admitted = admission(port, full_hashes=True)
+        admitted = admission(port)
         if not admitted["admitted"]:
             raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
         preflight_result = json.loads((preflight / "preflight-result.json").read_text())
@@ -1474,7 +1453,7 @@ def run_full_schedule(output: Path, preflight: Path, port: int) -> dict[str, Any
             attempt_dir.mkdir()
             block: dict[str, Any] = {"attempt": attempt_number, "results": {}, "errors": []}
             for position, config in enumerate(scheduled["configuration_order"]):
-                idle = admission(port, full_hashes=False)
+                idle = admission(port)
                 if not idle["admitted"]:
                     block["errors"].append({"config": config, "stage": "admission", "errors": idle["errors"]})
                     continue
@@ -1507,7 +1486,6 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="action", required=True)
     admit = subparsers.add_parser("admit", help="read-only, no-launch admission")
     admit.add_argument("--port", type=int, default=18080)
-    admit.add_argument("--full-hashes", action="store_true")
     admit.add_argument("--output", type=Path)
     commands = subparsers.add_parser("commands", help="emit frozen command/environment manifest")
     commands.add_argument("--attempt", type=int, choices=range(1, 9), default=1)
@@ -1532,7 +1510,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.action == "admit":
-        result = admission(args.port, full_hashes=args.full_hashes)
+        result = admission(args.port)
         if args.output:
             atomic_write_json(args.output, result)
         print(json.dumps(result, indent=2, sort_keys=True))

@@ -776,7 +776,11 @@ def stop_owned_process_group(process: subprocess.Popen[Any], timeout: float = 60
         process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         os.killpg(pgid, signal.SIGTERM)
-        process.wait(timeout=20)
+        try:
+            process.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            os.killpg(pgid, signal.SIGKILL)
+            process.wait(timeout=20)
 
 
 def stop_exact_process(process: subprocess.Popen[Any], timeout: float = 20) -> None:

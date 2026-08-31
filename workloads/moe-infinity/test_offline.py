@@ -390,6 +390,7 @@ class RunnerTests(unittest.TestCase):
         for forbidden in ("pkill", "killall", "cleanup_old_struct_ops"):
             self.assertNotIn(forbidden, source)
         self.assertIn("os.kill(process.pid, signal.SIGINT)", source)
+        self.assertIn("os.killpg(pgid, signal.SIGKILL)", source)
         self.assertIn("ready[\"struct_link_id\"]", source)
 
     def test_frozen_block_bootstrap_estimator(self) -> None:

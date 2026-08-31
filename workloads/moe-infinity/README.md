@@ -71,10 +71,16 @@ geometric-mean interval and the block-paired TTFT interval.
 The recorded pre-run deviation in `plan.md` moves all four cells to the same
 610.43.02 stack and identifies the workspace NVMe by filesystem UUID. Build
 the pinned port in the sibling `gpu_ext-kernel-610` checkout; the existing
-575 source checkout is not modified. The custom 610 modules are not loaded.
-The unrelated SGLang processes later exited without intervention. Admission
-now also refuses the stock UVM module: it requires live BTF proof of the exact
-custom `gpu_mem_ops` ABI and policy kfuncs. The harness never signals foreign
-processes or clears unknown struct_ops state. No GPU correctness or performance
-run is accepted until the idle UVM module is temporarily replaced and real
-preflight succeeds.
+575 source checkout is not modified. The unrelated SGLang processes later
+exited without intervention. Only the idle UVM module was replaced temporarily;
+GDM continues to use the matching official core. Admission refuses stock UVM
+because it requires live BTF proof of the exact custom `gpu_mem_ops` ABI and
+policy kfuncs. The harness never signals foreign processes or clears unknown
+struct_ops state.
+
+Runtime update: full admission subsequently passed with the custom UVM, but
+the first real preflight failed on MoE-Infinity's fixed 256-row expert buffer
+when the frozen 512-token warm-up routed 353 rows to one expert. No request or
+timing completed. The protocol is closed rather than modifying its frozen
+source/workload; see `runtime-preflight.md`. Revision work proceeds with the
+named MoE fallback systems.

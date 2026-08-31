@@ -1,7 +1,10 @@
 # MoE-Infinity head-to-head experiment plan — proposal 2
 
-Status: proposal 2 revision 3, independently approved. Offline implementation
-is authorized; GPU execution still requires admission.
+Status: proposal 2 revision 3 was independently approved; runtime protocol
+closed after the first real preflight exposed a deterministic upstream
+256-token expert-buffer limit on the frozen 512-token workload. No correctness
+or performance result exists. See `runtime-preflight.md`; the revision-level
+MoE axis is routed to a named fallback rather than changing this protocol.
 
 ## 1. Question, hypothesis, and claim boundary
 
@@ -361,16 +364,16 @@ Linux 7.1.12-070112-generic instead of 575.57.08 on 6.15.11. The custom modules
 come from `gpu_ext-kernel-modules` branch `port/nvidia-610.43.02`, commit
 `74a036fe7b7c8701914f0703d802eb17269a730f`, built in the sibling
 `gpu_ext-kernel-610` checkout. The model, CUDA runtime, commands, correctness
-checks, repetitions, and analysis are unchanged. No GPU preflight or timed
-block has run; no 575 samples will be pooled with this comparison. The
+checks, repetitions, and analysis are unchanged. No timed block has run; no
+575 samples will be pooled with this comparison. The
 separate NVBit experiment retains its supported 575 stack requirement.
 The workspace NVMe enumerated as `/dev/nvme1n1p1` before the reboot and now
 as `/dev/nvme0n1p1`; admission uses its ext4 UUID instead of a device number.
 
 The unrelated SGLang processes later exited without intervention and the GPU
-became idle. The custom 610 modules are built but not loaded. Real preflight
-must still validate policy attachment, native eviction events, correctness,
-and runtime isolation.
+became idle. Only the custom 610 UVM module was loaded temporarily; GDM retains
+the matching official core. The failed preflight did not reach policy attach,
+native eviction events, or correctness.
 
 Offline implementation status (2026-08-31): the frozen workload, observational
 MoE instrumentation, combined one-object policy, ownership-safe loader, UVM
@@ -378,8 +381,9 @@ Tools V2 completed-eviction monitor, exact command/environment manifest, and
 fail-closed no-launch admission are implemented. The combined policy and both
 userspace probes compile cleanly; 28 CPU-only tests pass. A full content audit
 passed for all 15 HF shards, seven HF metadata files, and the public GGUF.
-GPU correctness preflight and timed attempts remain prohibited until admission
-succeeds. The four custom 610.43.02 module hashes and 7.1.12 vermagic are
+Full admission subsequently succeeded, but the correctness preflight failed as
+recorded below and no timed attempt is authorized. The four custom 610.43.02
+module hashes and 7.1.12 vermagic are
 recorded in `artifacts-current.json`; a build check is not a runtime result.
 The compile-only `test_uvm_tools_abi.c` check passes against the pinned 610
 headers (23 assertions for ioctl values, V2 record sizes, and field offsets).
@@ -395,3 +399,13 @@ live module BTF or gpubpf interface. This strengthens execution identity without
 changing a configuration, workload, metric, or stopping rule. Before the first
 real preflight, only idle `nvidia_uvm` may be temporarily replaced; the official
 610 core retained by GDM is not part of the replacement.
+
+Runtime disposition (2026-08-31): full admission passed with the custom UVM,
+and MoE-Infinity built the 61 GiB expert store. Its first excluded warm-up then
+hit the pinned native `kMaxTokens=256` guard with 353 routed prefill rows from
+the frozen 512-token prompt. No request completed. Because the approved plan
+freezes both upstream source and workload and permits only the observational
+counter getter, changing buffer capacity, implementing chunked prefill, or
+shortening prompts is outside this protocol. The remaining preflight allowance
+is not spent repeating a deterministic failure; execution returns to the
+revision plan's DeepSpeed ZeRO-Inference/PowerInfer fallback route.

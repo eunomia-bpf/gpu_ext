@@ -62,3 +62,45 @@ APPROVE WITH REPAIRS
 
 GPU execution remains unauthorized until all three mandatory repairs are
 implemented and independently re-reviewed.
+
+## Revision 2 repair disposition
+
+All three mandatory repairs have now been implemented for re-review:
+
+1. the repaired `_store` exposes a standalone numerical comparison that runs
+   `MoEMLP::forward()` for 1, 256, 257, and 353 BF16 rows, explicitly
+   synchronizes the actual and reference paths, and applies `rtol=1e-2`,
+   `atol=1e-2`;
+2. admission records resolved runtime filenames plus size, device/inode, and
+   modification/change timestamps, and the timed runner requires an exact
+   match before the schedule and every MoE launch; the active repaired build is
+   recorded in `build-smoke.md`; and
+3. preflight uses only the fixed `raw/repaired-preflight/attempt-01` through
+   `attempt-03` namespace, preserves results, refuses overwrite/nonsequential
+   attempts, and refuses unchanged retry after a deterministic failure.
+
+The standalone numerical comparison passed all four sizes on the RTX 5090,
+all 36 offline tests passed, both source patches reverse-apply to the admitted
+worktree, `_store` contains sm_120 device code, and read-only admission passed.
+This disposition records implementation evidence; it does not change the
+independent verdict. The 120B preflight remains unauthorized pending re-review.
+
+## Follow-up review
+
+The first follow-up review blocked timing because `run_full_schedule()` checked
+only the preflight directory's parent. A directory with an arbitrary basename
+could therefore sit under `raw/repaired-preflight` without consuming one of the
+three fixed attempt names.
+
+The repair now accepts only the resolved `attempt-01`, `attempt-02`, or
+`attempt-03` path, requires the result's attempt number to match the directory,
+and requires the same directory's admitted runtime inventory to match the
+result. A new offline test covers the accepted path, an arbitrary basename,
+and a mismatched attempt number. All 36 offline tests and read-only admission
+then passed.
+
+Final follow-up verdict: **APPROVE**.
+
+The repaired-protocol 120B preflight is authorized. Timing remains unauthorized
+until a complete repaired preflight passes every correctness and engagement
+gate.

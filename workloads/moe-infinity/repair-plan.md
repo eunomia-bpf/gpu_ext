@@ -1,6 +1,7 @@
-# MoE-Infinity oversized-route repair experiment — proposal 3 revision 1
+# MoE-Infinity oversized-route repair experiment — proposal 3 revision 2
 
-Status: **awaiting independent review; GPU execution is not authorized**.
+Status: **independently approved; repaired-protocol GPU preflight is
+authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -47,7 +48,11 @@ The source base remains EfficientMoE/MoE-Infinity commit
    stats-route patch; and
 2. the tracked `row-chunking.patch` file.
 
-The new patch changes only `core/parallel/expert_module.cpp`.
+The row repair changes `core/parallel/expert_module.cpp` and its declaration in
+`core/parallel/expert_module.h`. The repair-specific numerical test is exposed
+through the existing `_store` Python binding in
+`core/python/py_archer_prefetch.cpp`; that binding is carried by
+`instrumentation.patch`.
 `MoEMLP::forward()` retains the existing reusable 256-row workspace. Calls of
 1 through 256 rows retain the upstream copy, compute, synchronize, clone, and
 return fast path. Calls above 256 rows reuse the same resident and already
@@ -67,7 +72,9 @@ not the unmodified public artifact.
 Before independent review, and again after any repair edit, all of the
 following must pass:
 
-1. `git apply --check --reverse row-chunking.patch` against the staged source;
+1. `git apply --unidiff-zero --check --reverse row-chunking.patch` against the
+   staged source; the zero-context form avoids embedding Git blob identifiers
+   in the patch artifact;
 2. source checks proving the old `batch_size > kMaxTokens` fatal is absent,
    the `<=256` fast path and `>256` stable-row chunk path are both present, and
    the full output is restored in original row order;
@@ -77,11 +84,16 @@ following must pass:
    `NVTX_DISABLE=1`, and the frozen CUTLASS checkout;
 6. `_store` contains sm_120 device code and was built from the admitted source
    tree with the frozen build flags;
-7. read-only admission accepts the exact model, binaries, custom loaded-UVM
+7. the standalone GPU numerical gate executes `MoEMLP::forward()` for 1, 256,
+   257, and 353 rows against the same-parameter reference evaluated in stable
+   chunks of at most 256 rows, explicitly synchronizes both paths, and requires
+   `rtol=1e-2` and `atol=1e-2`;
+8. read-only admission accepts the exact model, binaries, custom loaded-UVM
    BTF interface, idle GPU, NVMe filesystem, and empty struct_ops inventory.
 
-These checks establish build identity and control-flow boundaries, not GPU
-numerical correctness or performance.
+Together these checks establish build identity, control-flow boundaries, and
+the declared standalone GPU numerical comparison. They do not establish
+full-model completion or performance.
 
 ## 5. Repaired-protocol correctness preflight
 
@@ -102,7 +114,11 @@ event. A request failure, missing engagement, mismatched output, throttle,
 foreign process, residual owned state, or timeout invalidates the attempt and
 cannot become a timing sample.
 
-This genuinely revised protocol has at most three real preflight attempts. The
+This genuinely revised protocol has at most three real preflight attempts under
+the fixed `raw/repaired-preflight/attempt-01` through `attempt-03` namespace.
+The runner creates the next directory before the first GPU action, retains a
+failed result, refuses overwrite or attempt four, and refuses an unchanged
+retry after a deterministic `GateError`. The
 old proposal-2 attempt remains permanently recorded but does not consume this
 new budget because it ran a different, independently closed source protocol.
 This is not a reset by renaming: the only admitted change directly repairs its
@@ -119,6 +135,9 @@ analysis code and persisted 10,000-by-5 bootstrap matrix are reused unchanged.
 
 The repaired MoE build used for preflight must remain in place for every timed
 block: no rebuild or binary replacement is permitted between those stages.
+Preflight records resolved runtime filenames, sizes, device/inode identity,
+and modification/change timestamps; the runner requires exact equality before
+the timed schedule and before every measured configuration launch.
 Failed or partial blocks are retained. The final result bundle requires a fresh
 independent result review before any number is promoted to revision evidence.
 
@@ -141,8 +160,10 @@ are visible.
 
 ## 8. Auto-research gate state
 
-- BUILD: implementation complete locally; review evidence pending.
-- EXPERIMENT: closed until this proposal is independently approved.
+- BUILD: implementation, rebuild, offline checks, standalone GPU numerical
+  comparison, read-only admission, and independent re-review complete.
+- EXPERIMENT: repaired-protocol preflight attempt 1 is the next authorized
+  action.
 - WRITE: closed by user instruction until experiments are complete.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.

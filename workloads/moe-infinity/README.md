@@ -57,10 +57,9 @@ field offsets match the monitor. This does not establish runtime delivery.
 After admission is green, the two authorized execution stages are:
 
 ```bash
-.venv/bin/python run_moe_head_to_head.py preflight \
-  --output raw/correctness-preflight
+.venv/bin/python run_moe_head_to_head.py preflight --attempt 1
 .venv/bin/python run_moe_head_to_head.py run \
-  --preflight raw/correctness-preflight --output raw/full-run
+  --preflight raw/repaired-preflight/attempt-01 --output raw/full-run
 ```
 
 `run` follows the frozen eight-attempt schedule, atomically retains invalid
@@ -87,7 +86,13 @@ timing completed, and that original protocol remains closed; see
 At the author's direction, a new protocol now carries a disclosed repair in
 `row-chunking.patch`. It keeps the same model, prompt, routing, and 256-row
 workspace, but executes a large per-expert route in stable consecutive chunks
-and concatenates the outputs in original row order. The repaired `_store`
-builds for sm_120 and 32 offline tests cover the patch identity and 1/256/257/
-353-row boundaries. These are BUILD-gate results only: the new protocol still
-requires independent review before any GPU preflight or timing is accepted.
+and concatenates the outputs in original row order. The active Python 3.12
+repaired `_store` builds for sm_120, 36 offline tests pass, and the standalone
+GPU numerical gate executes the actual repaired `MoEMLP::forward()` at
+1/256/257/353 rows against a same-parameter reference. All four comparisons
+passed at `rtol=1e-2`, `atol=1e-2`, with zero observed maximum absolute and
+relative error. Independent re-review approved the repaired protocol after the
+runner was tightened to accept only the three fixed, internally consistent
+preflight attempt directories. The 120B preflight is now authorized; timing
+remains unauthorized until one complete preflight passes every correctness and
+engagement gate.

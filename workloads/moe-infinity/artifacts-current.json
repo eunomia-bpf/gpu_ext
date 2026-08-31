@@ -83,24 +83,34 @@
   },
   "extensions": {
     "_engine": {
+      "filename": "_engine.cpython-312-x86_64-linux-gnu.so",
+      "size": 356864,
       "device_code": [
         "sm_120"
       ]
     },
     "_kv_cache": {
+      "filename": "_kv_cache.cpython-312-x86_64-linux-gnu.so",
+      "size": 17253632,
       "device_code": []
     },
     "_marlin": {
+      "filename": "_marlin.cpython-312-x86_64-linux-gnu.so",
+      "size": 11950088,
       "device_code": [
         "sm_120"
       ]
     },
     "_paged_attn": {
+      "filename": "_paged_attn.cpython-312-x86_64-linux-gnu.so",
+      "size": 590640,
       "device_code": [
         "sm_120"
       ]
     },
     "_store": {
+      "filename": "_store.cpython-312-x86_64-linux-gnu.so",
+      "size": 71782016,
       "measurement_instrumented": true,
       "row_chunking_repair": true,
       "device_code": [
@@ -108,6 +118,8 @@
       ]
     },
     "_v4_fp4": {
+      "filename": "_v4_fp4.cpython-312-x86_64-linux-gnu.so",
+      "size": 11132056,
       "device_code": [
         "sm_120a"
       ]
@@ -126,7 +138,7 @@
   "measurement_instrumentation": {
     "patch": "instrumentation.patch",
     "semantics": "load-only ExpertDispatcher cache counters plus stats route",
-    "offline_tests": 32
+    "offline_tests": 36
   },
   "source_repair": {
     "patch": "row-chunking.patch",
@@ -138,7 +150,22 @@
       257,
       353
     ],
-    "performance_status": "build verified only; no repaired-protocol GPU preflight or timing yet"
+    "numerical_gate": {
+      "device": "NVIDIA GeForce RTX 5090",
+      "dtype": "bfloat16",
+      "rows": [
+        1,
+        256,
+        257,
+        353
+      ],
+      "rtol": 0.01,
+      "atol": 0.01,
+      "max_absolute_error": 0.0,
+      "max_relative_error": 0.0,
+      "status": "passed"
+    },
+    "performance_status": "build and standalone numerical gate verified; no repaired-protocol 120B preflight or timing yet"
   },
   "frozen_workload": {
     "manifest": "workload-manifest.json",
@@ -176,11 +203,18 @@
   "experiment_harness": {
     "runner": "run_moe_head_to_head.py",
     "plan": "plan.md",
+    "repair_plan": "repair-plan.md",
+    "repair_plan_review": "repair-plan-review.md",
+    "numerical_check": "numerical_row_chunking_check.py",
+    "protocol": "proposal-3-revision-2",
+    "plan_review": "approved",
+    "repaired_preflight_attempts": 3,
+    "repaired_preflight_root": "raw/repaired-preflight",
     "commands": "commands.json",
     "uvm_eviction_monitor_source": "uvm_eviction_monitor.c",
     "uvm_eviction_monitor": "uvm_eviction_monitor",
     "uvm_event_type": "UvmEventTypeEviction (14)",
     "uvm_event_abi": "V2, 72-byte queue entries",
-    "offline_tests": 32
+    "offline_tests": 36
   }
 }

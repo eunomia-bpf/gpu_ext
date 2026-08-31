@@ -29,7 +29,14 @@ RUNNER_SPEC.loader.exec_module(runner)
 class InstrumentationTests(unittest.TestCase):
     def test_patch_exactly_matches_worktree(self) -> None:
         subprocess.run(
-            ["git", "apply", "--check", "--reverse", str(ROOT / "instrumentation.patch")],
+            [
+                "git",
+                "apply",
+                "--unidiff-zero",
+                "--check",
+                "--reverse",
+                str(ROOT / "instrumentation.patch"),
+            ],
             cwd=UPSTREAM,
             check=True,
         )
@@ -132,6 +139,7 @@ class RowChunkingRepairTests(unittest.TestCase):
             [
                 "git",
                 "apply",
+                "--unidiff-zero",
                 "--check",
                 "--reverse",
                 str(ROOT / "row-chunking.patch"),
@@ -172,6 +180,22 @@ class RowChunkingRepairTests(unittest.TestCase):
         self.assertEqual(chunks(256), [(0, 256)])
         self.assertEqual(chunks(257), [(0, 256), (256, 1)])
         self.assertEqual(chunks(353), [(0, 256), (256, 97)])
+
+    def test_gpu_numerical_gate_executes_repaired_moe_mlp(self) -> None:
+        header = (UPSTREAM / "core/parallel/expert_module.h").read_text()
+        source = (UPSTREAM / "core/parallel/expert_module.cpp").read_text()
+        binding = (UPSTREAM / "core/python/py_archer_prefetch.cpp").read_text()
+        script = (ROOT / "numerical_row_chunking_check.py").read_text()
+        runner_source = RUNNER_PATH.read_text()
+        self.assertIn("NumericalRowChunkingCheck", header)
+        self.assertIn("module.forward(hidden, stream)", source)
+        self.assertIn("row_begin += kMaxTokens", source)
+        self.assertIn("torch::allclose(actual, reference, rtol, atol)", source)
+        self.assertIn("row_chunking_numerical_check", binding)
+        self.assertIn("ROWS = (1, 256, 257, 353)", script)
+        self.assertIn("RTOL = 1.0e-2", script)
+        self.assertIn("ATOL = 1.0e-2", script)
+        self.assertIn("run_row_chunking_numerical_gate()", runner_source)
 
 
 class FrozenWorkloadTests(unittest.TestCase):
@@ -306,6 +330,74 @@ class CombinedPolicyTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    def test_runtime_continuity_rejects_replacement(self) -> None:
+        expected = {"_store": {"path": "/tmp/store.so", "size": 1, "inode": 2}}
+        runner.require_runtime_continuity(expected, expected.copy())
+        changed = {"_store": {"path": "/tmp/store.so", "size": 2, "inode": 2}}
+        with self.assertRaisesRegex(runner.GateError, "runtime files changed"):
+            runner.require_runtime_continuity(expected, changed)
+
+    def test_repaired_preflight_attempt_budget_is_fail_closed(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with mock.patch.object(runner, "REPAIRED_PREFLIGHT_ROOT", root):
+                self.assertEqual(
+                    runner.authorize_repaired_preflight_attempt(1),
+                    root / "attempt-01",
+                )
+                first = root / "attempt-01"
+                first.mkdir()
+                (first / "preflight-result.json").write_text(
+                    json.dumps({"status": "failed", "retry_allowed": False})
+                )
+                with self.assertRaisesRegex(runner.GateError, "deterministic"):
+                    runner.authorize_repaired_preflight_attempt(2)
+                (first / "preflight-result.json").write_text(
+                    json.dumps({"status": "failed", "retry_allowed": True})
+                )
+                self.assertEqual(
+                    runner.authorize_repaired_preflight_attempt(2),
+                    root / "attempt-02",
+                )
+                with self.assertRaisesRegex(runner.GateError, "must be 1, 2, or 3"):
+                    runner.authorize_repaired_preflight_attempt(4)
+
+    def test_timing_accepts_only_matching_fixed_preflight_attempt(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = {"moe_store": {"path": "/tmp/store.so", "size": 1}}
+            with mock.patch.object(runner, "REPAIRED_PREFLIGHT_ROOT", root):
+                valid = root / "attempt-02"
+                valid.mkdir()
+                (valid / "admission.json").write_text(
+                    json.dumps({"admitted": True, "runtime_files": runtime})
+                )
+                result = {
+                    "protocol": runner.PROTOCOL_ID,
+                    "attempt": 2,
+                    "status": "passed",
+                    "row_chunking_numerical_gate": {"status": "passed"},
+                    "runtime_files": runtime,
+                }
+                (valid / "preflight-result.json").write_text(json.dumps(result))
+                loaded, expected = runner.load_repaired_preflight(valid)
+                self.assertEqual(loaded["attempt"], 2)
+                self.assertEqual(expected, runtime)
+
+                foreign = root / "foo"
+                foreign.mkdir()
+                (foreign / "admission.json").write_text(
+                    json.dumps({"admitted": True, "runtime_files": runtime})
+                )
+                (foreign / "preflight-result.json").write_text(json.dumps(result))
+                with self.assertRaisesRegex(runner.GateError, "exactly attempt-01"):
+                    runner.load_repaired_preflight(foreign)
+
+                result["attempt"] = 3
+                (valid / "preflight-result.json").write_text(json.dumps(result))
+                with self.assertRaisesRegex(runner.GateError, "inconsistent"):
+                    runner.load_repaired_preflight(valid)
+
     def test_loaded_uvm_gate_accepts_exact_port_interface(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:
             root = Path(temporary)

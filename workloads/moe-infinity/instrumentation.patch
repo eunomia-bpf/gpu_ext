@@ -1,11 +1,7 @@
 diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatcher.cpp
-index f3b525a..317a6bb 100644
 --- a/core/parallel/expert_dispatcher.cpp
 +++ b/core/parallel/expert_dispatcher.cpp
-@@ -333,6 +333,14 @@ double ExpertDispatcher::GetCacheHitRate() const {
-   return static_cast<double>(hits) / static_cast<double>(access);
- }
- 
+@@ -335,0 +336,8 @@ double ExpertDispatcher::GetCacheHitRate() const {
 +std::tuple<std::uint64_t, std::uint64_t>
 +ExpertDispatcher::GetCacheCounts() const {
 +  return {
@@ -14,36 +10,22 @@ index f3b525a..317a6bb 100644
 +  };
 +}
 +
- // void ExpertDispatcher::GPUThreadFunc(int gpu_id) {
- //   while (!main_thread_stop_flag_.load()) {
- //   }
 diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher.h
-index 47d3b69..a554146 100644
 --- a/core/parallel/expert_dispatcher.h
 +++ b/core/parallel/expert_dispatcher.h
-@@ -110,6 +110,7 @@ class ExpertDispatcher : public base::noncopyable {
-   void ClearExpertCacheCounts();
-   // Read-only observability accessors; neither alters routing/dispatch.
-   std::int64_t GetCacheOccupancyBytes();
+@@ -112,0 +113 @@ class ExpertDispatcher : public base::noncopyable {
 +  std::tuple<std::uint64_t, std::uint64_t> GetCacheCounts() const;
-   double GetCacheHitRate() const;
-   void SetExpectedQueue(int expected_pending = 0) {
-     pending_.store(expected_pending);
 diff --git a/core/python/py_archer_prefetch.cpp b/core/python/py_archer_prefetch.cpp
-index 18591ce..dd02b6c 100644
 --- a/core/python/py_archer_prefetch.cpp
 +++ b/core/python/py_archer_prefetch.cpp
-@@ -118,6 +118,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-            &ExpertDispatcher::ClearExpertCacheCounts)
-       .def("get_cache_occupancy_bytes",
-            &ExpertDispatcher::GetCacheOccupancyBytes)
+@@ -107,0 +108,3 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
++  m.def("row_chunking_numerical_check", &MoEMLP::NumericalRowChunkingCheck,
++        py::arg("rows"), py::arg("rtol"), py::arg("atol"),
++        "Run the repaired MoEMLP row path against a chunked GPU reference.");
+@@ -120,0 +124 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 +      .def("get_cache_counts", &ExpertDispatcher::GetCacheCounts)
-       .def("get_cache_hit_rate", &ExpertDispatcher::GetCacheHitRate)
-       .def("set_scales", &ExpertDispatcher::SetScales,
-            "Store fp8 block scales for dequant-on-copy (fp8-in-store path)");
 diff --git a/moe_infinity/entrypoints/openai/revision_server.py b/moe_infinity/entrypoints/openai/revision_server.py
 new file mode 100644
-index 0000000..669248f
 --- /dev/null
 +++ b/moe_infinity/entrypoints/openai/revision_server.py
 @@ -0,0 +1,88 @@

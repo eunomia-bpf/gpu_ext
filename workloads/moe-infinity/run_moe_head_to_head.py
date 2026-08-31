@@ -36,10 +36,12 @@ LLAMA_SOURCE = LLAMA_ROOT / "llama.cpp"
 LLAMA_SERVER = LLAMA_ROOT / "build/bin/llama-server"
 LLAMA_TOKENIZE = LLAMA_ROOT / "build/bin/llama-tokenize"
 MOE_SOURCE = HERE / "deps/MoE-Infinity"
+MOE_PACKAGE = MOE_SOURCE / "moe_infinity"
 MOE_PYTHON = HERE / ".venv/bin/python"
 POLICY_LOADER = EXTENSION / "prefetch_stride_lfu"
 POLICY_BPF_OBJECT = EXTENSION / ".output/prefetch_stride_lfu.bpf.o"
 EVICTION_MONITOR = HERE / "uvm_eviction_monitor"
+NUMERICAL_CHECK = HERE / "numerical_row_chunking_check.py"
 KERNEL_MODULE_ROOT = GPU_EXT.parent / "gpu_ext-kernel-610/kernel-open"
 LOADED_UVM_VERSION = Path("/sys/module/nvidia_uvm/version")
 LOADED_UVM_BTF = Path("/sys/kernel/btf/nvidia_uvm")
@@ -50,6 +52,8 @@ SCHEDULE = HERE / "schedule.json"
 PLAN = HERE / "plan.md"
 REPAIR_PLAN = HERE / "repair-plan.md"
 RUNNER = Path(__file__).resolve()
+REPAIRED_PREFLIGHT_ROOT = HERE / "raw/repaired-preflight"
+PROTOCOL_ID = "proposal-3-revision-2"
 
 HF_REVISION = "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
 GGUF_REVISION = "238abdd290bb874b90a5da1b4549881b7d05c091"
@@ -78,6 +82,14 @@ CONFIGS = (
     "moe_infinity_075",
 )
 TELEMETRY_CPU = 16
+MOE_EXTENSION_STEMS = (
+    "_engine",
+    "_kv_cache",
+    "_marlin",
+    "_paged_attn",
+    "_store",
+    "_v4_fp4",
+)
 
 
 class GateError(RuntimeError):
@@ -130,6 +142,7 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False)
             "M core/parallel/expert_dispatcher.cpp",
             "M core/parallel/expert_dispatcher.h",
             "M core/parallel/expert_module.cpp",
+            "M core/parallel/expert_module.h",
             "M core/python/py_archer_prefetch.cpp",
             "?? moe_infinity/entrypoints/openai/revision_server.py",
         }
@@ -141,7 +154,17 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False)
             )
         for patch_name in ("instrumentation.patch", "row-chunking.patch"):
             patch = HERE / patch_name
-            run_checked(["git", "apply", "--check", "--reverse", str(patch)], repo)
+            run_checked(
+                [
+                    "git",
+                    "apply",
+                    "--unidiff-zero",
+                    "--check",
+                    "--reverse",
+                    str(patch),
+                ],
+                repo,
+            )
     return {"path": str(repo), "commit": actual, "status": status}
 
 
@@ -302,6 +325,155 @@ def port_is_free(port: int) -> bool:
         return sock.connect_ex(("127.0.0.1", port)) != 0
 
 
+def file_metadata(path: Path) -> dict[str, Any]:
+    stat = path.stat()
+    return {
+        "path": str(path.resolve()),
+        "size": stat.st_size,
+        "device": stat.st_dev,
+        "inode": stat.st_ino,
+        "mtime_ns": stat.st_mtime_ns,
+        "ctime_ns": stat.st_ctime_ns,
+    }
+
+
+def runtime_file_inventory() -> dict[str, dict[str, Any]]:
+    paths: dict[str, Path] = {
+        "python": MOE_PYTHON,
+        "llama_server": LLAMA_SERVER,
+        "llama_tokenize": LLAMA_TOKENIZE,
+        "policy_loader": POLICY_LOADER,
+        "policy_object": POLICY_BPF_OBJECT,
+        "eviction_monitor": EVICTION_MONITOR,
+        "revision_server": MOE_PACKAGE / "entrypoints/openai/revision_server.py",
+        "numerical_check": NUMERICAL_CHECK,
+        "sgl_common_ops": HERE / (
+            ".venv/lib/python3.12/site-packages/sgl_kernel/sm100/common_ops.abi3.so"
+        ),
+    }
+    for stem in MOE_EXTENSION_STEMS:
+        matches = sorted(MOE_PACKAGE.glob(f"{stem}.cpython-312-*.so"))
+        if len(matches) != 1:
+            raise GateError(
+                f"expected one active Python 3.12 {stem} extension, found {matches}"
+            )
+        paths[f"moe{stem}"] = matches[0]
+    missing = [str(path) for path in paths.values() if not path.is_file()]
+    if missing:
+        raise GateError(f"runtime file inventory is incomplete: {missing}")
+    return {name: file_metadata(path) for name, path in sorted(paths.items())}
+
+
+def require_runtime_continuity(
+    expected: dict[str, dict[str, Any]], observed: dict[str, dict[str, Any]]
+) -> None:
+    if observed != expected:
+        raise GateError(
+            "runtime files changed after the repaired correctness preflight: "
+            f"expected={expected}, observed={observed}"
+        )
+
+
+def repaired_preflight_output(attempt: int) -> Path:
+    return REPAIRED_PREFLIGHT_ROOT / f"attempt-{attempt:02d}"
+
+
+def authorize_repaired_preflight_attempt(attempt: int) -> Path:
+    if attempt not in (1, 2, 3):
+        raise GateError("repaired preflight attempt must be 1, 2, or 3")
+    output = repaired_preflight_output(attempt)
+    if output.exists():
+        raise GateError(f"repaired preflight attempt already exists: {output}")
+    for previous in range(1, attempt):
+        result_path = repaired_preflight_output(previous) / "preflight-result.json"
+        if not result_path.is_file():
+            raise GateError(f"previous repaired preflight result is missing: {result_path}")
+        result = json.loads(result_path.read_text())
+        if result.get("status") == "passed":
+            raise GateError(f"repaired preflight attempt {previous} already passed")
+        if not result.get("retry_allowed", False):
+            raise GateError(
+                f"attempt {previous} recorded a deterministic failure; "
+                "an unchanged protocol may not repeat it"
+            )
+    for later in range(attempt + 1, 4):
+        if repaired_preflight_output(later).exists():
+            raise GateError("repaired preflight attempt namespace is not sequential")
+    return output
+
+
+def load_repaired_preflight(preflight: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    resolved = preflight.resolve()
+    matching_attempts = [
+        attempt
+        for attempt in (1, 2, 3)
+        if resolved == repaired_preflight_output(attempt).resolve()
+    ]
+    if len(matching_attempts) != 1:
+        raise GateError(
+            "preflight must be exactly attempt-01, attempt-02, or attempt-03 "
+            f"under {REPAIRED_PREFLIGHT_ROOT.resolve()}"
+        )
+    attempt = matching_attempts[0]
+    result = json.loads((resolved / "preflight-result.json").read_text())
+    if (
+        result.get("protocol") != PROTOCOL_ID
+        or result.get("attempt") != attempt
+        or result.get("status") != "passed"
+        or not result.get("row_chunking_numerical_gate")
+    ):
+        raise GateError("repaired correctness/numerical preflight is missing or inconsistent")
+    expected_runtime = result.get("runtime_files")
+    if not isinstance(expected_runtime, dict):
+        raise GateError("repaired preflight has no runtime file inventory")
+    admitted = json.loads((resolved / "admission.json").read_text())
+    if admitted.get("admitted") is not True or admitted.get("runtime_files") != expected_runtime:
+        raise GateError("repaired preflight admission is missing or inconsistent")
+    return result, expected_runtime
+
+
+def run_row_chunking_numerical_gate() -> dict[str, Any]:
+    result = subprocess.run(
+        ["taskset", "-c", "0-7", str(MOE_PYTHON), str(NUMERICAL_CHECK)],
+        cwd=HERE,
+        env=controlled_environment("moe_infinity_075"),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise GateError(
+            "MoEMLP GPU numerical gate failed:\n"
+            f"{result.stdout[-2000:]}\n{result.stderr[-4000:]}"
+        )
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    if not lines:
+        raise GateError("MoEMLP GPU numerical gate produced no result")
+    try:
+        observed = json.loads(lines[-1])
+    except json.JSONDecodeError as exc:
+        raise GateError(
+            f"MoEMLP GPU numerical gate returned invalid JSON: {lines[-1]}"
+        ) from exc
+    rows = [item.get("rows") for item in observed.get("results", [])]
+    if rows != [1, 256, 257, 353] or not all(
+        item.get("within_tolerance") for item in observed.get("results", [])
+    ):
+        raise GateError(f"MoEMLP GPU numerical gate is incomplete: {observed}")
+
+    deadline = time.monotonic() + 30
+    while True:
+        gpu = gpu_state()
+        if not gpu["compute_apps"] and gpu["memory_used_mib"] <= 256:
+            break
+        if time.monotonic() >= deadline:
+            raise GateError(
+                f"GPU did not return to idle after numerical gate: {gpu}"
+            )
+        time.sleep(1)
+    return observed
+
+
 def verify_small_artifacts() -> dict[str, Any]:
     frozen = json.loads(ARTIFACTS.read_text())
     workload = json.loads(WORKLOAD_MANIFEST.read_text())
@@ -329,6 +501,8 @@ def verify_small_artifacts() -> dict[str, Any]:
         RUNNER,
         PLAN,
         REPAIR_PLAN,
+        HERE / "repair-plan-review.md",
+        NUMERICAL_CHECK,
         MOE_PYTHON,
     )
     for path in required_runtime:
@@ -480,6 +654,7 @@ def admission(port: int) -> dict[str, Any]:
             MOE_SOURCE, EXPECTED_MOE_COMMIT, allow_instrumentation=True
         )
         evidence["small_artifacts"] = verify_small_artifacts()
+        evidence["runtime_files"] = runtime_file_inventory()
         evidence["models"] = verify_model_artifacts()
     except Exception as exc:
         errors.append(f"frozen artifacts: {exc}")
@@ -1109,14 +1284,26 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
                 raise GateError(f"owned policy did not detach cleanly: {inventory}")
 
 
-def run_correctness_preflight(output: Path, port: int) -> dict[str, Any]:
+def run_correctness_preflight(attempt: int, port: int) -> dict[str, Any]:
     lease = LeaseSet.acquire()
+    output: Path | None = None
     try:
+        output = authorize_repaired_preflight_attempt(attempt)
         admitted = admission(port)
         if not admitted["admitted"]:
             raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
         output.mkdir(parents=True, exist_ok=False)
         atomic_write_json(output / "admission.json", admitted)
+        atomic_write_json(
+            output / "preflight-result.json",
+            {
+                "protocol": PROTOCOL_ID,
+                "attempt": attempt,
+                "status": "running",
+                "retry_allowed": False,
+            },
+        )
+        numerical = run_row_chunking_numerical_gate()
         prompts = json.loads(PROMPTS.read_text())
         order = json.loads(SCHEDULE.read_text())["attempts"][0]["configuration_order"]
         results = {}
@@ -1127,9 +1314,32 @@ def run_correctness_preflight(output: Path, port: int) -> dict[str, Any]:
         )]
         if not all(value == llama_goldens[0] for value in llama_goldens[1:]):
             raise GateError("the three llama configurations have different smoke goldens")
-        result = {"status": "passed", "configuration_order": order, "results": results}
+        result = {
+            "protocol": PROTOCOL_ID,
+            "attempt": attempt,
+            "status": "passed",
+            "retry_allowed": False,
+            "runtime_files": admitted["runtime_files"],
+            "row_chunking_numerical_gate": numerical,
+            "configuration_order": order,
+            "results": results,
+        }
         atomic_write_json(output / "preflight-result.json", result)
         return result
+    except Exception as exc:
+        if output is not None and output.is_dir():
+            atomic_write_json(
+                output / "preflight-result.json",
+                {
+                    "protocol": PROTOCOL_ID,
+                    "attempt": attempt,
+                    "status": "failed",
+                    "retry_allowed": not isinstance(exc, GateError),
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                },
+            )
+        raise
     finally:
         lease.close()
 
@@ -1432,9 +1642,8 @@ def run_full_schedule(output: Path, preflight: Path, port: int) -> dict[str, Any
         admitted = admission(port)
         if not admitted["admitted"]:
             raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
-        preflight_result = json.loads((preflight / "preflight-result.json").read_text())
-        if preflight_result.get("status") != "passed":
-            raise GateError("correctness preflight is missing or not passed")
+        preflight_result, expected_runtime = load_repaired_preflight(preflight)
+        require_runtime_continuity(expected_runtime, admitted["runtime_files"])
         output.mkdir(parents=True, exist_ok=False)
         atomic_write_json(output / "admission.json", admitted)
         prompts = json.loads(PROMPTS.read_text())
@@ -1456,6 +1665,13 @@ def run_full_schedule(output: Path, preflight: Path, port: int) -> dict[str, Any
                 idle = admission(port)
                 if not idle["admitted"]:
                     block["errors"].append({"config": config, "stage": "admission", "errors": idle["errors"]})
+                    continue
+                try:
+                    require_runtime_continuity(expected_runtime, idle["runtime_files"])
+                except GateError as exc:
+                    block["errors"].append(
+                        {"config": config, "stage": "runtime_continuity", "error": str(exc)}
+                    )
                     continue
                 try:
                     block["results"][config] = run_measured_config(
@@ -1496,10 +1712,7 @@ def parse_args() -> argparse.Namespace:
         "preflight", help="admitted four-configuration correctness/engagement smoke"
     )
     preflight.add_argument("--port", type=int, default=18080)
-    preflight.add_argument(
-        "--output", type=Path,
-        default=HERE / "raw" / "correctness-preflight",
-    )
+    preflight.add_argument("--attempt", type=int, choices=(1, 2, 3), required=True)
     run = subparsers.add_parser("run", help="execute the admitted frozen eight-attempt schedule")
     run.add_argument("--port", type=int, default=18080)
     run.add_argument("--preflight", type=Path, required=True)
@@ -1523,7 +1736,7 @@ def main() -> int:
         return 0
     if args.action == "preflight":
         try:
-            result = run_correctness_preflight(args.output.resolve(), args.port)
+            result = run_correctness_preflight(args.attempt, args.port)
         except GateError as exc:
             print(str(exc), file=__import__("sys").stderr)
             return 2

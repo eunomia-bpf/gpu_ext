@@ -1,29 +1,16 @@
 diff --git a/core/parallel/expert_module.cpp b/core/parallel/expert_module.cpp
-index c92a1c9..6ad5828 100644
 --- a/core/parallel/expert_module.cpp
 +++ b/core/parallel/expert_module.cpp
-@@ -3,6 +3,8 @@
- 
- // EfficientMoE Team
- 
+@@ -5,0 +6,2 @@
 +#include <algorithm>
 +
- #include "expert_module.h"
- #include "utils/cuda_utils.h"
- #include "utils/logger.h"
-@@ -191,58 +193,75 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
-   auto& output_ = buffer_[1];
- 
-   int64_t batch_size = hidden_states.size(0);
+@@ -194,4 +196 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
 -  int64_t hdim = hidden_states.size(1);
 -
 -  DLOG_FATAL_IF(batch_size > kMaxTokens || batch_size <= 0,
 -                "batch_size should be (0,", kMaxTokens, "] , but got",
 +  DLOG_FATAL_IF(batch_size <= 0, "batch_size should be positive, but got",
-                 batch_size);
-   TORCH_CHECK(hidden_states.scalar_type() == input_.scalar_type(),
-               "hidden_states dtype must match expert input dtype");
- 
+@@ -202,19 +201,16 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
 -  // Use async copy with the provided execution stream
 -  cudaMemcpyAsync(input_.data_ptr(), hidden_states.data_ptr(),
 -                  hidden_states.numel() * hidden_states.element_size(),
@@ -59,7 +46,7 @@ index c92a1c9..6ad5828 100644
 +            torch::TensorOptions().dtype(dtype).device(
 +                CUDA_DEVICE(at::cuda::current_device()))));
 +      }
-     }
+@@ -221,0 +218,40 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
 +  };
 +
 +  // Preserve the original single-workspace path for every previously
@@ -100,13 +87,11 @@ index c92a1c9..6ad5828 100644
 +
 +    ForwardHelper(stream);
 +    output.narrow(0, row_begin, chunk_rows).copy_(output_);
-   }
+@@ -223 +258,0 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
 -  cudaStreamSynchronize(stream);
- 
+@@ -225 +259,0 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
 -  ForwardHelper(stream);
-   param_set_ = false;
-   cudaStreamSynchronize(stream);
- 
+@@ -229,17 +263,2 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
 -  auto output = output_.clone();
 -
 -  // Restore buffers to kMaxTokens shape for next invocation
@@ -126,6 +111,74 @@ index c92a1c9..6ad5828 100644
 -  }
 +  // Restore reusable buffers to their allocation-capacity shape.
 +  resize_buffers(kMaxTokens);
- 
-   return output;
- }
+@@ -249,0 +269,63 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
++std::vector<double> MoEMLP::NumericalRowChunkingCheck(int64_t rows,
++                                                       double rtol,
++                                                       double atol) {
++  TORCH_CHECK(rows == 1 || rows == 256 || rows == 257 || rows == 353,
++              "unsupported row-chunking self-test size");
++  TORCH_CHECK(rtol >= 0.0 && atol >= 0.0,
++              "row-chunking self-test tolerances must be non-negative");
++
++  constexpr int64_t hdim = 64;
++  constexpr int64_t idim = 96;
++  auto float_options = torch::TensorOptions()
++                           .dtype(torch::kFloat32)
++                           .device(CUDA_DEVICE(at::cuda::current_device()));
++  auto bf16_options = float_options.dtype(torch::kBFloat16);
++  auto stream = at::cuda::getCurrentCUDAStream().stream();
++
++  auto hidden = (torch::sin(torch::arange(rows * hdim, float_options) * 0.013)
++                     .reshape({rows, hdim}) *
++                 0.125)
++                    .to(torch::kBFloat16);
++  auto first_weight =
++      (torch::cos(torch::arange(idim * hdim, float_options) * 0.017)
++           .reshape({idim, hdim}) *
++       0.0625)
++          .to(torch::kBFloat16);
++  auto second_weight =
++      (torch::sin(torch::arange(hdim * idim, float_options) * 0.019)
++           .reshape({hdim, idim}) *
++       0.0625)
++          .to(torch::kBFloat16);
++
++  MoEMLP module(DTYPE_BFLOAT16, NLLB_MOE_DENSE_ACT_DENSE);
++  module.buffer_[0] = torch::empty({kMaxTokens, hdim}, bf16_options);
++  module.buffer_[1] = torch::empty({kMaxTokens, hdim}, bf16_options);
++  module.param_[0] = first_weight;
++  module.param_[1] = second_weight;
++  module.param_init_ = true;
++  module.param_set_ = true;
++
++  auto actual = module.forward(hidden, stream);
++  cudaStreamSynchronize(stream);
++
++  auto reference = torch::empty_like(hidden);
++  for (int64_t row_begin = 0; row_begin < rows;
++       row_begin += kMaxTokens) {
++    int64_t chunk_rows = std::min(kMaxTokens, rows - row_begin);
++    auto input_chunk = hidden.narrow(0, row_begin, chunk_rows);
++    auto reference_chunk = torch::matmul(
++        torch::relu(torch::matmul(input_chunk, first_weight.transpose(0, 1))),
++        second_weight.transpose(0, 1));
++    reference.narrow(0, row_begin, chunk_rows).copy_(reference_chunk);
++  }
++  cudaStreamSynchronize(stream);
++
++  auto absolute = (actual.to(torch::kFloat32) - reference.to(torch::kFloat32))
++                      .abs();
++  double max_abs = absolute.max().item<double>();
++  auto denominator = reference.to(torch::kFloat32).abs().clamp_min(1.0e-6);
++  double max_rel = (absolute / denominator).max().item<double>();
++  bool close = torch::allclose(actual, reference, rtol, atol);
++  return {max_abs, max_rel, close ? 1.0 : 0.0};
++}
++
+diff --git a/core/parallel/expert_module.h b/core/parallel/expert_module.h
+--- a/core/parallel/expert_module.h
++++ b/core/parallel/expert_module.h
+@@ -197,0 +198,3 @@ struct MoEMLP : public torch::nn::Module {
++  static std::vector<double> NumericalRowChunkingCheck(int64_t rows,
++                                                        double rtol,
++                                                        double atol);

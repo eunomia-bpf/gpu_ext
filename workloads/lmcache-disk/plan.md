@@ -40,7 +40,8 @@ throughput before measurement.
   `d206ba732169f29bb77fbf80fc2c4b81d4d30782`.
 - checked-in ShareGPT dataset, `prompts.json`, `schedule.json`, wheel hashes,
   imported-module paths/hashes, and complete environment freeze.
-- cache directory on `/dev/nvme1n1p1` (ext4, non-rotational Samsung 9100 PRO).
+- cache directory on ext4 UUID `864c5664-999e-43c2-9967-4edaeee79d57`
+  (non-rotational Samsung 9100 PRO, currently `/dev/nvme0n1p1`).
 
 Admission fails closed on any version, source commit, imported path/hash,
 dataset/prompt/schedule hash, model snapshot, driver, GPU occupancy, residual
@@ -139,7 +140,7 @@ and resumed attempts cannot cross a harness or protocol edit.
 
 Each preflight, smoke, and full-run admission resolves its requested output
 path (or nearest existing ancestor) and requires that actual target to be on
-`/dev/nvme1n1p1` with ext4 and at least 100 GiB free.  The server starts from
+the frozen ext4 UUID with at least 100 GiB free. The server starts from
 a fixed allow-listed environment with `CUDA_VISIBLE_DEVICES=0`; caller
 `PYTHONPATH`, `LD_PRELOAD`, and arbitrary `VLLM_*`, `LMCACHE_*`, or CUDA
 overrides are not inherited.
@@ -187,6 +188,10 @@ checks, repetitions, and analysis remain unchanged. This storage experiment
 does not require custom gpubpf modules. The first real preflight must qualify
 the retained CUDA 12.9 runtime on this driver; its results cannot be pooled
 with submitted 575 measurements or used for the separate NVBit comparison.
+The reboot also changed NVMe enumeration: the workspace's Samsung 9100 PRO
+is now `/dev/nvme0n1p1`, while `/dev/nvme1n1p1` is the other SSD's EFI
+partition. Admission now identifies the workspace filesystem by its UUID,
+not the boot-dependent device number; storage and capacity requirements remain.
 
 The current host is not admitted because an unrelated SGLang service owns
 about 31 GiB. Those processes are outside this task's authority. No GPU launch

@@ -43,6 +43,7 @@ PLAN = HERE / "plan.md"
 RUNNER = Path(__file__).resolve()
 
 EXPECTED_DRIVER = "610.43.02"
+EXPECTED_MOUNT_SOURCE = "/dev/disk/by-uuid/864c5664-999e-43c2-9967-4edaeee79d57"
 EXPECTED_VLLM_VERSION = "0.27.1+cu129"
 EXPECTED_LMCACHE_VERSION = "0.5.4"
 LMCACHE_COMMIT = "3e11b8ed191631e6f098b8038235823f1a410b24"
@@ -350,8 +351,8 @@ def admission(port: int, require_model: bool = True, storage_path: Path = HERE /
         storage = storage_metadata(storage_path)
         manifest["storage"] = storage
         entry = storage["mount"]["filesystems"][0]
-        if entry.get("source") != "/dev/nvme1n1p1" or entry.get("fstype") != "ext4":
-            errors.append(f"requested output/cache path is not /dev/nvme1n1p1 ext4: {entry}")
+        if Path(entry.get("source", "")).resolve() != Path(EXPECTED_MOUNT_SOURCE).resolve() or entry.get("fstype") != "ext4":
+            errors.append(f"requested output/cache path is not {EXPECTED_MOUNT_SOURCE} ext4: {entry}")
         if storage["free_bytes"] < 100 * 1024**3:
             errors.append(f"less than 100 GiB free on cache filesystem: {storage['free_bytes']}")
     except Exception as exc:

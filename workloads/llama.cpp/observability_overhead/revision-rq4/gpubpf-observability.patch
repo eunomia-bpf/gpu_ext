@@ -1,0 +1,380 @@
+diff --git a/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c b/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c
+index 88281f4..e473991 100644
+--- a/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c
++++ b/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c
+@@ -24,7 +24,8 @@ static const u64 (*bpf_get_block_dim)(u64 *x, u64 *y, u64 *z) = (void *)504;
+ static const u64 (*bpf_get_thread_idx)(u64 *x, u64 *y, u64 *z) = (void *)505;
+ 
+ struct data {
+-	u64 x, y, z;
++	u64 block_x, block_y, block_z;
++	u64 thread_x, thread_y, thread_z;
+ 	u64 timestamp;
+ };
+ 
+@@ -33,7 +34,8 @@ int cuda__retprobe()
+ {
+ 	struct data data;
+ 
+-	bpf_get_thread_idx(&data.x, &data.y, &data.z);
++	bpf_get_block_idx(&data.block_x, &data.block_y, &data.block_z);
++	bpf_get_thread_idx(&data.thread_x, &data.thread_y, &data.thread_z);
+ 	data.timestamp = bpf_get_globaltimer();
+ 	bpf_perf_event_output(NULL, &rb, 0, &data, sizeof(struct data));
+ 	return 0;
+diff --git a/example/gpu/kernelretsnoop/kernelretsnoop.c b/example/gpu/kernelretsnoop/kernelretsnoop.c
+index a848249..3eda37e 100644
+--- a/example/gpu/kernelretsnoop/kernelretsnoop.c
++++ b/example/gpu/kernelretsnoop/kernelretsnoop.c
+@@ -29,28 +29,22 @@ static void sig_handler(int sig)
+ 	exiting = true;
+ }
+ struct data {
+-	uint64_t x, y, z;
++	uint64_t block_x, block_y, block_z;
++	uint64_t thread_x, thread_y, thread_z;
+ 	uint64_t timestamp;
+ };
+ 
+ struct state {
+ 	uint64_t count;
++	uint64_t nonzero_timestamps;
+ };
+ 
+ static void poll_callback(const void *data, uint64_t size, void *ctx)
+ {
+ 	struct state *state = (struct state *)ctx;
+ 	const struct data *event = data;
+-	printf("Thread (%lu, %lu, %lu) timestamp: %lu\n",
+-	       event->x, event->y, event->z, event->timestamp);
+ 	state->count += 1;
+-}
+-
+-static uint64_t get_timestamp()
+-{
+-	struct timespec ts;
+-	clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
+-	return ts.tv_sec * (uint64_t)1000000000 + ts.tv_nsec;
++	state->nonzero_timestamps += event->timestamp != 0;
+ }
+ 
+ int main(int argc, char **argv)
+@@ -101,6 +95,7 @@ int main(int argc, char **argv)
+ 		}
+ 		if (state.count > 0) {
+ 			printf("Total events collected: %lu\n", state.count);
++			printf("Nonzero timestamps: %lu\n", state.nonzero_timestamps);
+ 		}
+ 	}
+ cleanup:
+diff --git a/example/gpu/launchlate/launchlate.bpf.c b/example/gpu/launchlate/launchlate.bpf.c
+index 2f14eb2..c771973 100644
+--- a/example/gpu/launchlate/launchlate.bpf.c
++++ b/example/gpu/launchlate/launchlate.bpf.c
+@@ -11,9 +11,8 @@ static const u64 (*bpf_get_block_idx)(u64 *x, u64 *y, u64 *z) = (void *)503;
+ static const u64 (*bpf_get_block_dim)(u64 *x, u64 *y, u64 *z) = (void *)504;
+ static const u64 (*bpf_get_thread_idx)(u64 *x, u64 *y, u64 *z) = (void *)505;
+ 
+-// Define histogram bins for time distribution
+-// Bins: 0-100ns, 100-1000ns, 1-10us, 10-100us, 100us-1ms, 1-10ms, 10-100ms, 100ms-1s, >1s
+ #define HIST_BINS 10
++#define LAUNCH_QUEUE_SIZE 4096
+ 
+ // Array map to store time distribution histogram
+ // Each element represents count for a time range
+@@ -24,13 +23,21 @@ struct {
+ 	__type(value, u64);
+ } time_histogram SEC(".maps");
+ 
+-// Map to store the last uprobe timestamp for calculating latency
+ struct {
+ 	__uint(type, BPF_MAP_TYPE_ARRAY);
+-	__uint(max_entries, 32);
++	__uint(max_entries, LAUNCH_QUEUE_SIZE);
++	__type(key, u32);
++	__type(value, u64);
++} launch_times SEC(".maps");
++
++// queue_state[0] = host writes, queue_state[1] = device reads,
++// queue_state[2] = underflow, queue_state[3] = overflow.
++struct {
++	__uint(type, BPF_MAP_TYPE_ARRAY);
++	__uint(max_entries, 4);
+ 	__type(key, u32);
+ 	__type(value, u64);
+-} last_uprobe_time SEC(".maps");
++} queue_state SEC(".maps");
+ 
+ // Map to store clock calibration offset
+ // Index 0: realtime_ns - monotonic_ns offset
+@@ -41,27 +48,35 @@ struct {
+ 	__type(value, s64);
+ } clock_offset SEC(".maps");
+ 
+-// Uprobe on cudaLaunchKernel - tracks when kernels are launched from CPU
+-// Note: actual uprobe target is configured at runtime via bpf_program__attach_uprobe()
++// The userspace loader attaches this uprobe to the exact host launch stub for
++// the selected CUDA kernel, not to the generic cuLaunchKernel API.
+ SEC("uprobe")
+-int BPF_KPROBE(uprobe_cuda_launch, const void *func, u64 gridDim, u64 blockDim)
++int BPF_KPROBE(uprobe_cuda_launch)
+ {
+ 	u64 ts_mono = bpf_ktime_get_ns();
+-	u32 pid = bpf_get_current_pid_tgid() >> 32;
+ 	u32 key = 0;
+ 	s64 *offset_ptr;
+ 	u64 ts_calibrated = ts_mono;
+ 
+-	bpf_printk("CPU: cudaLaunchKernel called at ts=%lu ns (calibrated=%lu), pid=%u\n",
+-		   ts_mono, ts_calibrated, pid);
+-
+-	// Apply clock offset to convert monotonic time to approximate realtime
+ 	offset_ptr = bpf_map_lookup_elem(&clock_offset, &key);
+-	if (offset_ptr) {
++	if (offset_ptr)
+ 		ts_calibrated = ts_mono + *offset_ptr;
++
++	u64 *write_seq = bpf_map_lookup_elem(&queue_state, &key);
++	if (!write_seq)
++		return 0;
++	u64 seq = __sync_fetch_and_add(write_seq, 1);
++	u32 read_key = 1;
++	u64 *read_seq = bpf_map_lookup_elem(&queue_state, &read_key);
++	if (read_seq && seq >= *read_seq + LAUNCH_QUEUE_SIZE) {
++		u32 overflow_key = 3;
++		u64 *overflow = bpf_map_lookup_elem(&queue_state, &overflow_key);
++		if (overflow)
++			__sync_fetch_and_add(overflow, 1);
++		return 0;
+ 	}
+-	// Store the timestamp for latency calculation
+-	bpf_map_update_elem(&last_uprobe_time, &key, &ts_calibrated, BPF_ANY);
++	u32 slot = seq & (LAUNCH_QUEUE_SIZE - 1);
++	bpf_map_update_elem(&launch_times, &slot, &ts_calibrated, BPF_ANY);
+ 
+ 	return 0;
+ }
+@@ -82,41 +97,43 @@ static __always_inline u32 get_hist_bin(u64 delta_ns)
+ 	return 9;  // >10s
+ }
+ 
+-// GPU-side probe - tracks when kernel actually executes on GPU
++// GPU-side probe: one sample per selected kernel launch. The exact host-stub
++// timestamps are consumed FIFO, which prevents unrelated or later launches
++// from overwriting the timestamp for this kernel.
+ SEC("kprobe/_Z9vectorAddPKfS0_Pf")
+ int cuda__probe()
+ {
+-	u64 gpu_ts = bpf_get_globaltimer();
+-	u32 key = 0;
+-	u64 *uprobe_ts;
+-	u64 delta_ns = 0;
+-
+-	// Get the last uprobe timestamp
+-	uprobe_ts = bpf_map_lookup_elem(&last_uprobe_time, &key);
+-	if (uprobe_ts && *uprobe_ts > 0) {
+-		// Calculate time difference between uprobe and GPU execution
+-		if (gpu_ts > *uprobe_ts) {
+-			delta_ns = gpu_ts - *uprobe_ts;
+-		}
+-
+-		// Determine which histogram bin this latency falls into
+-		u32 bin = get_hist_bin(delta_ns);
+-
+-		// Update the histogram count for this bin
+-		u64 *count = bpf_map_lookup_elem(&time_histogram, &bin);
+-		if (count) {
+-			*count += 1;
+-		} else {
+-			u64 one = 1;
+-			bpf_map_update_elem(&time_histogram, &bin, &one, BPF_NOEXIST);
+-		}
+-
+-		bpf_printk("GPU: Kernel executing, latency=%lu ns (bin=%u), gpu_ts=%lu\n",
+-			   delta_ns, bin, gpu_ts);
+-	} else {
+-		bpf_printk("GPU: Kernel executing but no uprobe timestamp found, gpu_ts=%lu\n", gpu_ts);
++	u64 block_x, block_y, block_z;
++	u64 thread_x, thread_y, thread_z;
++	bpf_get_block_idx(&block_x, &block_y, &block_z);
++	bpf_get_thread_idx(&thread_x, &thread_y, &thread_z);
++	if (block_x || block_y || block_z || thread_x || thread_y || thread_z)
++		return 0;
++
++	u32 write_key = 0;
++	u32 read_key = 1;
++	u64 *write_seq = bpf_map_lookup_elem(&queue_state, &write_key);
++	u64 *read_seq = bpf_map_lookup_elem(&queue_state, &read_key);
++	if (!write_seq || !read_seq || *read_seq >= *write_seq) {
++		u32 underflow_key = 2;
++		u64 *underflow = bpf_map_lookup_elem(&queue_state, &underflow_key);
++		if (underflow)
++			__sync_fetch_and_add(underflow, 1);
++		return 0;
+ 	}
+ 
++	u64 seq = __sync_fetch_and_add(read_seq, 1);
++	u32 slot = seq & (LAUNCH_QUEUE_SIZE - 1);
++	u64 *launch_ts = bpf_map_lookup_elem(&launch_times, &slot);
++	if (!launch_ts || *launch_ts == 0)
++		return 0;
++	u64 gpu_ts = bpf_get_globaltimer();
++	u64 delta_ns = gpu_ts > *launch_ts ? gpu_ts - *launch_ts : 0;
++	u32 bin = get_hist_bin(delta_ns);
++	u64 *count = bpf_map_lookup_elem(&time_histogram, &bin);
++	if (count)
++		__sync_fetch_and_add(count, 1);
++
+ 	return 0;
+ }
+ 
+diff --git a/example/gpu/launchlate/launchlate.c b/example/gpu/launchlate/launchlate.c
+index 2efbf82..3a9824d 100644
+--- a/example/gpu/launchlate/launchlate.c
++++ b/example/gpu/launchlate/launchlate.c
+@@ -17,7 +17,7 @@
+ #include <inttypes.h>
+ #define warn(...) fprintf(stderr, __VA_ARGS__)
+ 
+-#define DEFAULT_UPROBE_SYMBOL_HINT "cudaLaunchKernel"
++#define DEFAULT_UPROBE_SYMBOL_HINT "_Z9vectorAddPKfS0_Pf"
+ 
+ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
+ 			   va_list args)
+@@ -74,7 +74,7 @@ static void close_elf(Elf *e, int fd_close)
+ 		close(fd_close);
+ }
+ 
+-static char *find_defined_symbol_containing(const char *path, const char *needle)
++static char *find_defined_symbol_matching(const char *path, const char *needle)
+ {
+ 	Elf *e = NULL;
+ 	Elf_Scn *scn = NULL;
+@@ -108,7 +108,7 @@ static char *find_defined_symbol_containing(const char *path, const char *needle
+ 				name = elf_strptr(e, shdr.sh_link, sym.st_name);
+ 				if (!name)
+ 					continue;
+-				if (!strstr(name, needle))
++				if (strcmp(name, needle) != 0)
+ 					continue;
+ 
+ 				name = strdup(name);
+@@ -191,6 +191,19 @@ static int print_histogram(struct launchlate_bpf *obj)
+ 	}
+ 
+ 	printf("Total samples: %" PRIu64 "\n", total);
++	int queue_fd = bpf_map__fd(obj->maps.queue_state);
++	uint64_t queue_values[4] = {0};
++	for (i = 0; i < 4; i++) {
++		uint32_t queue_key = i;
++		if (bpf_map_lookup_elem(queue_fd, &queue_key, &queue_values[i]) != 0) {
++			warn("queue_state lookup failed: %s\n", strerror(errno));
++			return -1;
++		}
++	}
++	printf("Host launches: %" PRIu64 "\n", queue_values[0]);
++	printf("Device entries: %" PRIu64 "\n", queue_values[1]);
++	printf("Queue underflows: %" PRIu64 "\n", queue_values[2]);
++	printf("Queue overflows: %" PRIu64 "\n", queue_values[3]);
+ 	fflush(stdout);
+ 	return 0;
+ }
+@@ -203,17 +216,19 @@ int main(int argc, char **argv)
+ 	int64_t offset_ns;
+ 	uint32_t key = 0;
+ 	const char *binary_path = "./vec_add";
++	const char *symbol_hint = DEFAULT_UPROBE_SYMBOL_HINT;
+ 	char *func_name = NULL;
+ 
+ 	if (argc > 1)
+ 		binary_path = argv[1];
++	if (argc > 2)
++		symbol_hint = argv[2];
+ 
+-	func_name = find_defined_symbol_containing(binary_path,
+-						   DEFAULT_UPROBE_SYMBOL_HINT);
++	func_name = find_defined_symbol_matching(binary_path, symbol_hint);
+ 	if (!func_name) {
+ 		fprintf(stderr,
+-			"Failed to find a defined symbol containing '%s' in %s\n",
+-			DEFAULT_UPROBE_SYMBOL_HINT, binary_path);
++			"Failed to find a defined symbol exactly matching '%s' in %s\n",
++			symbol_hint, binary_path);
+ 		return 1;
+ 	}
+ 
+@@ -292,10 +307,9 @@ int main(int argc, char **argv)
+ 	printf("\nMonitoring CUDA kernel launch latency (uprobe: %s:%s)... Hit Ctrl-C to end.\n",
+ 	       binary_path, func_name);
+ 
+-	while (!exiting) {
+-		sleep(2);  // Update every 2 seconds
+-		print_histogram(skel);
+-	}
++	while (!exiting)
++		sleep(1);
++	print_histogram(skel);
+ 
+ cleanup:
+ 	free(func_name);
+diff --git a/example/gpu/threadhist/threadhist.c b/example/gpu/threadhist/threadhist.c
+index ad71ee2..6eed4ea 100644
+--- a/example/gpu/threadhist/threadhist.c
++++ b/example/gpu/threadhist/threadhist.c
+@@ -9,6 +9,7 @@
+ #include <bpf/bpf.h>
+ #include <unistd.h>
+ #include <stdlib.h>
++#include <errno.h>
+ #include "./.output/threadhist.skel.h"
+ #include <inttypes.h>
+ #define warn(...) fprintf(stderr, __VA_ARGS__)
+@@ -39,14 +40,26 @@ static int print_stat(struct threadhist_bpf *obj, uint64_t thread_count)
+ 	tm = localtime(&t);
+ 	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+ 
+-	printf("%-9s\n", ts);
++	printf("%-9s Final thread-exit histogram\n", ts);
+ 
+ 	key = 0;
+ 	static uint64_t value[1024 * 1024];
+-	bpf_map_lookup_elem(fd, &key, &value);
++	err = bpf_map_lookup_elem(fd, &key, &value);
++	if (err) {
++		warn("bpf_map_lookup_elem failed: %d\n", errno);
++		return err;
++	}
++	uint64_t nonzero_threads = 0;
++	uint64_t total_exit_probes = 0;
+ 	for (uint64_t i = 0; i < thread_count; i++) {
++		if (value[i] == 0)
++			continue;
+ 		printf("Thread %lu: %lu\n", i, value[i]);
++		nonzero_threads++;
++		total_exit_probes += value[i];
+ 	}
++	printf("Nonzero threads: %lu\n", nonzero_threads);
++	printf("Total exit probes: %lu\n", total_exit_probes);
+ 
+ 	fflush(stdout);
+ 	return err;
+@@ -82,10 +95,16 @@ int main(int argc, char **argv)
+ 		fprintf(stderr, "Failed to attach BPF skeleton\n");
+ 		goto cleanup;
+ 	}
+-	while (!exiting) {
+-		sleep(1);
+-		print_stat(skel, 7);
++	const char *thread_count_env = getenv("BPFTIME_MAP_GPU_THREAD_COUNT");
++	uint64_t thread_count = thread_count_env ? strtoull(thread_count_env, NULL, 10) : 1024;
++	if (thread_count > 1024 * 1024) {
++		fprintf(stderr, "BPFTIME_MAP_GPU_THREAD_COUNT exceeds tool capacity\n");
++		err = -1;
++		goto cleanup;
+ 	}
++	while (!exiting)
++		sleep(1);
++	print_stat(skel, thread_count);
+ cleanup:
+ 	/* Clean up */
+ 	threadhist_bpf__destroy(skel);

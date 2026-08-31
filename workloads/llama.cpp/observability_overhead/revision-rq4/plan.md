@@ -72,6 +72,11 @@ installed 575.x driver before execution.
 - Target paper figure or table: Table 1 / `tab:obs-overhead`.
 
 ## Reproducibility Notes
+- The exact five-file gpubpf example diff is preserved in
+  `gpubpf-observability.patch`, against bpftime commit
+  `d6316fa73edaac4fdfe21b89d4470da6cd9b8ae8`. Reverse-apply checking verifies
+  that it matches the local experiment worktree. This artifact does not imply
+  an upstream bpftime PR, runtime approval, or a completed experiment.
 - Software and data versions: Record git commits, NVBit release and artifact hash, supported 575.x driver, CUDA toolkit, llama.cpp build metadata, model SHA-256 `9fecc3b3cd76bba89d504f29b616eedf7da85b96540e490ca5824d3f7d2776a0`, and GPU state in raw results.
 - Config and seed notes: Preserve exact environment variables, target symbols, commands, repetition order, sample counts, and timeout status.
 - Known deviations: The current host driver is 610.43.02, whereas NVBit's official README states driver `<=575.xx`. Implementation work and diagnostics may proceed, but the paper-facing full run is blocked until the same RTX 5090 is booted with an officially supported 575.x stack.

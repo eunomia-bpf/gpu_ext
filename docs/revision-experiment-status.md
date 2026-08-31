@@ -47,3 +47,7 @@ Publication now happens after each validated scoped change, as requested.
 Dependencies, virtual environments, compiled modules, and old July diagnostic
 logs remain outside source commits. Unrelated paper-submodule, FAISS, and
 PyTorch worktree changes are preserved and were not staged.
+The five bpftime observability-example changes are preserved as an exact
+[patch artifact](../workloads/llama.cpp/observability_overhead/revision-rq4/gpubpf-observability.patch)
+instead of modifying the unrelated active bpftime PR branch. This is a remote
+recovery copy, not an upstream-reviewed bpftime change.

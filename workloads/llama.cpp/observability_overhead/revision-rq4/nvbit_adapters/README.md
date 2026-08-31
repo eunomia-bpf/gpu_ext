@@ -7,9 +7,9 @@ NVBit 1.8 core. They deliberately instrument only the exact mangled kernel in
 - `kernelretsnoop`: inject before every `EXIT`, emit one record per logical
   thread through NVBit's device-to-host channel, and count records with nonzero
   `%globaltimer` timestamps on the host.
-- `threadhist`: inject before every `EXIT`, atomically update the full
+- `threadhist`: inject before every `EXIT`, increment the full
   configured logical-thread array, and report its nonzero entries and total at
-  context termination.
+  context termination. Per-thread increments match gpubpf's non-atomic semantics.
 - `launchlate`: pass the host CUDA launch-callback timestamp through NVBit's
   per-launch argument and inject one device-entry sample for block/thread zero.
   This is the closest native NVBit counterpart to gpubpf's exact host-stub

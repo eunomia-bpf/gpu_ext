@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "source": {
+    "lmcache_commit": "3e11b8ed191631e6f098b8038235823f1a410b24",
+    "lmcache_tag": "v0.5.4",
+    "vllm_distribution": "0.27.1+cu129",
+    "vllm_index": "https://wheels.vllm.ai/0.27.1/cu129"
+  },
+  "build": {
+    "python": "3.12.3",
+    "torch": "2.13.0+cu129",
+    "torch_cuda": "12.9",
+    "cxx11_abi": true,
+    "cuda_home": "/usr/local/cuda-12.9",
+    "torch_cuda_arch_list": "12.0",
+    "cc": "/usr/bin/gcc",
+    "cxx": "/usr/bin/g++",
+    "sm_120_cubins": 7
+  },
+  "lmcache_wheel": {
+    "relative_path": "dist-current-py312/lmcache-0.5.4-cp312-cp312-linux_x86_64.whl",
+    "sha256": "9429740adfd73a554ac4bf1e46b169fadbdbbfe8a10bf5acc62522fcbae02fb5"
+  },
+  "vllm_wheel": {
+    "relative_path": "dist-vllm/vllm-0.27.1+cu129-cp38-abi3-manylinux_2_28_x86_64.whl",
+    "sha256": "bf0d52faa2a51e7a01c6856a7a8a2d1307fd0ff711415d34168a67ffac0fa47b"
+  },
+  "environment_freeze": {
+    "relative_path": "current-requirements.txt",
+    "sha256": "aad2fbf3e7ae84487e206d68888b5b290ceb4c3b6de221ef07542f9a0f1e9d9b",
+    "dependency_check": "uv pip check: all installed packages are compatible"
+  },
+  "runtime_imports": {
+    "lmcache_version": "0.5.4",
+    "vllm_version": "0.27.1+cu129",
+    "modules": {
+      "lmcache": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/__init__.py",
+        "sha256": "381ba80225a6110a1b9d6d9dd8118e105b28e11bf0c4fafeb7569544dd495dea"
+      },
+      "lmcache.cuda_ops": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/cuda_ops.cpython-312-x86_64-linux-gnu.so",
+        "sha256": "eaf7614961785a44b4f3a1ecbb67e902a03eee43b8be5f8ef98ac268117b122f"
+      },
+      "lmcache.integration.vllm.lmcache_connector_v1": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/integration/vllm/lmcache_connector_v1.py",
+        "sha256": "160073c03e9a33a0cb59b2cdc40092cd54a45dc6dd6b2736a26a5bbcff49f8bd"
+      },
+      "lmcache.integration.vllm.vllm_v1_adapter": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/integration/vllm/vllm_v1_adapter.py",
+        "sha256": "5d579ad663b5a8887e4302a7584ebc5153e6c9c4033402b0ae015bb00c7cee3c"
+      },
+      "lmcache.lmcache_native": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/lmcache_native.cpython-312-x86_64-linux-gnu.so",
+        "sha256": "14283895e15a0628da0638b1d8ce7d02cd6e8a7417ca8f995b446036ff052517"
+      },
+      "lmcache.v1.storage_backend.local_disk_backend": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/v1/storage_backend/local_disk_backend.py",
+        "sha256": "29de6011b8db3de94ac33b02fa26c5b7da24990f2e5d395b2fb675403f0a6f82"
+      },
+      "vllm": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/__init__.py",
+        "sha256": "fd3708e5a13abe98c566afd79a6b1987cef70c0548bb19c1218ff6a7f9d43346"
+      },
+      "vllm.distributed.kv_transfer.kv_connector.factory": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/distributed/kv_transfer/kv_connector/factory.py",
+        "sha256": "00dfbc3e6c9472bbeab63ba3a9d93d5b1d49e66a306a189d3d0996a935b6532a"
+      },
+      "vllm.distributed.kv_transfer.kv_connector.v1.lmcache_connector": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py",
+        "sha256": "ae9fa2de201a5df9329e2cf8900ebf3e4bee1f4ba8d6658b69c785bae86b339d"
+      }
+    }
+  }
+}

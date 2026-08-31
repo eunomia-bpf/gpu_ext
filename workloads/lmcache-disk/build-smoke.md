@@ -96,3 +96,11 @@ Before attempt 3, every comparison cell disables DeepGEMM with the upstream
 eight CPU tests pass. See the official
 [environment switch](https://docs.vllm.ai/en/latest/configuration/env_vars/)
 and [memory-budget definition](https://docs.vllm.ai/en/stable/cli/bench/throughput/).
+
+Attempt 3 (`raw/preflight-610-20260831-03`) failed before model loading. The
+admission manifest had no compute applications and reported 15 MiB GPU memory
+used. vLLM then measured 30.89/31.4 GiB free and rejected the 0.99 request for
+31.08 GiB. Raising the budget to 0.99 was therefore an experiment-side startup
+error. No request or cache I/O occurred, and this attempt did not test the
+DeepGEMM-off fallback. The three-attempt real-preflight allowance is exhausted;
+the protocol is closed without O_DIRECT, correctness, or performance evidence.

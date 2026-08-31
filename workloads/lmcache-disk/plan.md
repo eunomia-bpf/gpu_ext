@@ -1,8 +1,10 @@
 # Revision experiment plan: LMCache local-NVMe KV-cache tier
 
-Status: **approved after round 3; runtime admission and GPU preflight remain
-incomplete**. See `plan-review.md`; approval does not waive the frozen stack
-or exclusive-GPU requirements below.
+Status: **approved after round 3; runtime preflight closed without a valid
+result after three failed real attempts**. See `plan-review.md`; approval did
+not waive the frozen stack or exclusive-GPU requirements below. The current
+protocol is preserved for failure provenance and must not be resumed under a
+new output name. A later LMCache experiment requires a newly reviewed protocol.
 
 ## 1. Revision requirement and claim boundary
 
@@ -210,3 +212,18 @@ is a capacity correction inferred before KV allocation, not a measured OOM.
 No timed sample exists under either old setting. Model identity, prompt token
 arrays, cache capacities, O_DIRECT, correctness checks, and analysis are
 unchanged. These operational deviations do not count as successful preflight.
+
+Preflight 3 failed before checkpoint loading. Its admission manifest recorded
+no compute applications and 15 MiB used according to `nvidia-smi`, while vLLM's
+CUDA initialization snapshot reported 30.89/31.4 GiB free. The uniform 0.99
+setting requested 31.08 GiB and was rejected by vLLM. This was an invalid
+experiment-side budget choice, not evidence of external GPU interference or
+of an LMCache limitation. It also did not reach backend selection, so the
+DeepGEMM-off path remains unqualified. Across all three attempts, no request,
+cache I/O, O_DIRECT check, correctness smoke, or timing sample completed.
+
+The experiment-design limit of three real preflight attempts is exhausted.
+Attempts `raw/preflight-610-20260831-{01,02,03}` remain locally preserved and
+must not be counted as paper evidence. The current route returns to the
+revision-level experiment queue; changing 0.99 to another value and launching
+a fourth attempt is outside this reviewed protocol.

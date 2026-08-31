@@ -11,7 +11,7 @@ The driver port and CPU tests are dependencies, not research results.
 | --- | --- |
 | NVIDIA 610 port | [port branch](https://github.com/eunomia-bpf/gpu_ext-kernel-modules/tree/port/nvidia-610.43.02), including [build and runtime notes](https://github.com/eunomia-bpf/gpu_ext-kernel-modules/blob/port/nvidia-610.43.02/GPUBPF-PORT.md). All five modules build for 6.15.11 and 7.1.12; BTF verifies both struct_ops and all nine kfuncs. No runtime replacement/attach test yet. |
 | MoE-Infinity | [Plan](../workloads/moe-infinity/plan.md) and [review](../workloads/moe-infinity/plan-review.md) approved; host stride/LFU policy, native read-only counters, UVM eviction monitor, workload, and runner persisted. All 26 offline tests pass. Real preflight and five complete valid blocks remain pending. |
-| LMCache NVMe | [Plan](../workloads/lmcache-disk/plan.md) and [review](../workloads/lmcache-disk/plan-review.md) approved. All six CPU tests pass. O_DIRECT preflight, correctness smoke, and complete comparison remain pending. |
+| LMCache NVMe | [Plan](../workloads/lmcache-disk/plan.md) and [review](../workloads/lmcache-disk/plan-review.md) approved. All eight CPU tests pass. Three real preflight attempts failed before any request: trace-path launch error, DeepGEMM FP8 scale-layout failure after loading the checkpoint, then an invalid 0.99 vLLM startup-memory budget. The reviewed protocol is closed without O_DIRECT, correctness, or performance evidence; a fourth attempt needs a newly reviewed protocol. |
 | Agent-study artifacts (R7) | [Public entry-point index](eval/agent/README.md) links historical analyses and benchmark sources. The metric extractor now accepts explicit corpus/output paths. Original study sessions are absent from the old local directory; prompts/logs remain unreleased pending archive recovery and privacy review. |
 | XSched | [Review](../workloads/xsched/plan-review.md) closed the first proposal after three rounds. The CUPTI/globaltimer epoch proof and interpretation categories require repair in a new proposal. The CUDA workload builds; no GPU result. |
 | RTX 5090/NVBit | [Review](../workloads/llama.cpp/observability_overhead/revision-rq4/plan-review.md) closed the first proposal. Final runner defects were repaired but not independently approved. The frozen NVBit comparison requires a supported 575.x stack; a 610 diagnostic cannot satisfy R6. |
@@ -26,11 +26,11 @@ warnings remain documented in the port notes. Its BTF was generated with the
 7.1 native script and the running kernel's base BTF, without editing system
 headers or installed modules.
 
-The GPU was briefly free, but the final module-switch check found unrelated
-SGLang processes and a nonzero UVM reference count. No process was killed and
-no module was unloaded. GDM/Xorg also holds the core NVIDIA module. A request
-for permission to temporarily stop GDM for full scheduling-module validation
-has not been answered; that would not by itself authorize stopping SGLang.
+The unrelated SGLang processes later exited without intervention, leaving no
+compute process on the GPU. No process was killed and no module was unloaded.
+GDM/Xorg still holds the core NVIDIA module. A request for permission to
+temporarily stop GDM for full scheduling-module validation has not been
+answered; display ownership is therefore unchanged.
 
 After compute users release the GPU, memory-hook validation may replace only
 the unused `nvidia_uvm` module while retaining the matching official 610 core.
@@ -43,15 +43,20 @@ stack per comparison, preserving the reviewed workloads, correctness checks,
 and analysis. MoE pins the four custom 7.1.12 modules from port commit
 `74a036fe7b7c8701914f0703d802eb17269a730f`; LMCache uses the installed official
 610 stack and needs no custom hooks. The MoE monitor's wire layout passes
-23 compile-only assertions against the 610 headers. The 26 MoE and six LMCache
-CPU tests pass; no runtime attach/event-delivery result is implied.
+23 compile-only assertions against the 610 headers. The 26 MoE and eight
+LMCache CPU tests pass; no runtime attach/event-delivery result is implied.
 
 The reboot also renumbered the workspace Samsung 9100 PRO from `nvme1n1p1`
 to `nvme0n1p1`. Both runners now identify its ext4 filesystem by UUID, not by
 the unstable device number. Their fresh read-only admissions pass artifact,
-driver-version, and storage checks but refuse the foreign GPU processes and
-residual memory. GPU preflight remains pending; do not pool samples across
-stacks. The NVBit 575 requirement is separate and cannot be waived by this port.
+driver-version, and storage checks. LMCache admission subsequently passed on
+the idle GPU, but its three preserved preflights produced no usable result. The
+third failure was caused by the experiment's own 0.99 memory budget, not a
+foreign process. In accordance with the preflight stopping rule, LMCache is
+routed out of execution until a new protocol is reviewed. The next admitted
+experiment is MoE-Infinity, whose approved protocol has consumed zero real
+preflight attempts. Do not pool samples across stacks. The NVBit 575
+requirement is separate and cannot be waived by this port.
 
 Publication now happens after each validated scoped change, as requested.
 Dependencies, virtual environments, compiled modules, and old July diagnostic

@@ -17,11 +17,13 @@ Tracked reproducibility artifacts:
 - `current-requirements.txt`: full primary Python environment freeze;
 - `build-smoke.md`: current and historical build evidence.
 
-The runner never signals a process it did not start.  GPU execution remains
-disabled while the host driver differs from `610.43.02`, foreign SGLang
-processes occupy the RTX 5090, or final independent plan approval is absent.
-The current admission check therefore exits with an explicit blocker report;
-offline validation continues without touching the GPU.
+The runner never signals a process it did not start. It refuses a mismatched
+driver, foreign GPU process, residual GPU memory, or missing final plan
+approval. Admission later passed on an idle RTX 5090, but all three allowed
+real preflight attempts failed before serving a request. The preserved failures
+and exact causes are recorded in `plan.md` and `build-smoke.md`; none is a
+performance result, and this protocol must not be relaunched under a new output
+name.
 
 The pre-run driver deviation is recorded in `plan.md`: all three cells use
 the same 610.43.02 stack, with the reviewed workload and analysis unchanged.

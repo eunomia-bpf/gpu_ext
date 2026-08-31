@@ -42,10 +42,17 @@ offline implementation now includes:
 Run the CPU-only checks and read-only admission with:
 
 ```bash
+cc -std=c11 -Wall -Wextra -Werror -fsyntax-only \
+  -I../../../gpu_ext-kernel-610/kernel-open/nvidia-uvm \
+  -I../../../gpu_ext-kernel-610/kernel-open/common/inc test_uvm_tools_abi.c
 .venv/bin/python -m unittest -v test_offline.py
 .venv/bin/python run_moe_head_to_head.py admit --full-hashes \
   --output raw/admission-full-hashes.json
 ```
+
+The compile-only ABI check passes against the pinned 610 headers: event 14,
+72-byte V2 queue entries, 528-byte control area, ioctl layouts, and eviction
+field offsets match the monitor. This does not establish runtime delivery.
 
 After admission is green, the two authorized execution stages are:
 
@@ -61,8 +68,10 @@ attempts, and stops immediately after exactly five valid complete blocks. It
 then reuses the frozen 10,000-by-5 index matrix for the preregistered paired
 geometric-mean interval and the block-paired TTFT interval.
 
-The current machine is intentionally refused: it runs driver 610.43.02 rather
-than the required custom 575.57.08 driver, and unrelated SGLang processes own
-about 31 GiB on GPU 0. The harness never signals those processes or clears
-unknown struct_ops state. No GPU correctness or performance run is accepted
-until the external state passes admission.
+The recorded pre-run deviation in `plan.md` moves all four cells to the same
+610.43.02 stack and identifies the workspace NVMe by filesystem UUID. Build
+the pinned port in the sibling `gpu_ext-kernel-610` checkout; the existing
+575 source checkout is not modified. The custom 610 modules are not loaded.
+Unrelated SGLang processes still own about 31 GiB on GPU 0. The harness never
+signals them or clears unknown struct_ops state. No GPU correctness or
+performance run is accepted until isolation and real preflight succeed.

@@ -25,7 +25,8 @@ the full submitted policy by itself.
 ## 2. Frozen artifacts
 
 The host is one RTX 5090 (32 GiB), Intel Core Ultra 9 285K, 125 GiB DRAM, and
-Samsung 9100 PRO NVMe `/dev/nvme1n1p1` (ext4). No multi-GPU, MIG, remote
+Samsung 9100 PRO NVMe (ext4 UUID `864c5664-999e-43c2-9967-4edaeee79d57`,
+currently `/dev/nvme0n1p1`). No multi-GPU, MIG, remote
 storage, speculative decoding, request batching, or prefix caching is used.
 
 MoE-Infinity:
@@ -354,10 +355,22 @@ preflight, and only then the full schedule. Resume markers bind plan, runner,
 commands/environments, artifact manifest, prompt/schedule, counters, and raw
 evidence schema.
 
-The host is currently not admitted: driver 610.43.02 differs from the required
-gpubpf/NVBit driver 575.57.08, and two unrelated SGLang processes own about 31
-GiB of GPU memory. They are outside this task's authority. Offline construction
-and tests may continue, but no GPU launch is valid until both conditions clear.
+Recorded pre-run deviation (2026-08-31): following the requested driver port,
+all four configurations will use NVIDIA Open Kernel Modules 610.43.02 on
+Linux 7.1.12-070112-generic instead of 575.57.08 on 6.15.11. The custom modules
+come from `gpu_ext-kernel-modules` branch `port/nvidia-610.43.02`, commit
+`74a036fe7b7c8701914f0703d802eb17269a730f`, built in the sibling
+`gpu_ext-kernel-610` checkout. The model, CUDA runtime, commands, correctness
+checks, repetitions, and analysis are unchanged. No GPU preflight or timed
+block has run; no 575 samples will be pooled with this comparison. The
+separate NVBit experiment retains its supported 575 stack requirement.
+The workspace NVMe enumerated as `/dev/nvme1n1p1` before the reboot and now
+as `/dev/nvme0n1p1`; admission uses its ext4 UUID instead of a device number.
+
+The host is currently not admitted because unrelated SGLang processes own
+about 31 GiB of GPU memory. They are outside this task's authority. The custom
+610 modules are built but not loaded. Real preflight must still validate
+policy attachment, native eviction events, correctness, and runtime isolation.
 
 Offline implementation status (2026-08-31): the frozen workload, observational
 MoE instrumentation, combined one-object policy, ownership-safe loader, UVM
@@ -365,10 +378,10 @@ Tools V2 completed-eviction monitor, exact command/environment manifest, and
 fail-closed no-launch admission are implemented. The combined policy and both
 userspace probes compile cleanly; 26 CPU-only tests pass. A full content audit
 passed for all 15 HF shards, seven HF metadata files, and the public GGUF.
-Admission records only the three external blockers above; artifact, source,
-storage, port, and empty-struct_ops gates pass. GPU correctness preflight and
-timed attempts remain prohibited until admission succeeds.
-The required four custom 575.57.08 modules are already built for the running
-6.15.11-061511-generic kernel; their exact hashes and vermagic are admission
-gates. They have not been loaded or substituted while foreign GPU processes
-remain active.
+GPU correctness preflight and timed attempts remain prohibited until admission
+succeeds. The four custom 610.43.02 module hashes and 7.1.12 vermagic are
+recorded in `artifacts-current.json`; a build check is not a runtime result.
+The compile-only `test_uvm_tools_abi.c` check passes against the pinned 610
+headers (23 assertions for ioctl values, V2 record sizes, and field offsets).
+The monitor's wire layout needs no change; event delivery remains a real
+preflight obligation, not a consequence of ABI compatibility.

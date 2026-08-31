@@ -41,7 +41,7 @@ MOE_PYTHON = HERE / ".venv/bin/python"
 POLICY_LOADER = EXTENSION / "prefetch_stride_lfu"
 POLICY_BPF_OBJECT = EXTENSION / ".output/prefetch_stride_lfu.bpf.o"
 EVICTION_MONITOR = HERE / "uvm_eviction_monitor"
-KERNEL_MODULE_ROOT = GPU_EXT / "kernel-module/nvidia-module/kernel-open"
+KERNEL_MODULE_ROOT = GPU_EXT.parent / "gpu_ext-kernel-610/kernel-open"
 ARTIFACTS = HERE / "artifacts-current.json"
 WORKLOAD_MANIFEST = HERE / "workload-manifest.json"
 PROMPTS = HERE / "prompts.json"
@@ -63,11 +63,11 @@ GGUF_MODEL = (
     / "gpt-oss-120b-MXFP4.gguf"
 )
 
-EXPECTED_DRIVER = "575.57.08"
+EXPECTED_DRIVER = "610.43.02"
 EXPECTED_GPU = "NVIDIA GeForce RTX 5090"
 EXPECTED_LLAMA_COMMIT = "26836b27ae1ec9d6e94c6b56306cca75c7e86814"
 EXPECTED_MOE_COMMIT = "b766f8f1f6379fac6cd23594713ba6f4c7650ad9"
-EXPECTED_MOUNT_SOURCE = "/dev/nvme1n1p1"
+EXPECTED_MOUNT_SOURCE = "/dev/disk/by-uuid/864c5664-999e-43c2-9967-4edaeee79d57"
 EXPECTED_MOUNT_FSTYPE = "ext4"
 CONFIGS = (
     "llama_ncmoe32",
@@ -428,7 +428,7 @@ def admission(port: int, full_hashes: bool = False) -> dict[str, Any]:
     try:
         evidence["mount"] = mount_state(HERE)
         mount = evidence["mount"]
-        if mount["source"] != EXPECTED_MOUNT_SOURCE or mount["fstype"] != EXPECTED_MOUNT_FSTYPE:
+        if Path(mount["source"]).resolve() != Path(EXPECTED_MOUNT_SOURCE).resolve() or mount["fstype"] != EXPECTED_MOUNT_FSTYPE:
             errors.append(f"storage is not {EXPECTED_MOUNT_SOURCE} {EXPECTED_MOUNT_FSTYPE}: {mount}")
         if mount["free_bytes"] < 200 * 1024**3:
             errors.append(f"less than 200 GiB storage free: {mount['free_bytes']}")

@@ -176,7 +176,7 @@
       "exact": true,
       "status": "passed"
     },
-    "performance_status": "attempt 2 exposed upstream stream-handoff and shared-accumulation races; revision 4 repairs both, rebuilt successfully, passed the row and deterministic-reduction GPU gates exactly, and received follow-up approval for the final preflight; no timing yet"
+    "performance_status": "attempt 3 completed the 512+64 warm-up and all 16 smoke requests with exact two-pass equality for all eight prompts, but the preflight failed closed because the O_DIRECT gate classified ordinary archer_index metadata writes as expert-partition I/O; the fixed three-attempt budget is exhausted and no timing is authorized"
   },
   "frozen_workload": {
     "manifest": "workload-manifest.json",
@@ -218,7 +218,7 @@
     "repair_plan_review": "repair-plan-review.md",
     "numerical_check": "numerical_row_chunking_check.py",
     "protocol": "proposal-3-revision-4",
-    "plan_review": "follow-up approved",
+    "plan_review": "follow-up approved; final preflight failed the storage-open classification gate",
     "repaired_preflight_attempts": 3,
     "repaired_preflight_root": "raw/repaired-preflight",
     "commands": "commands.json",

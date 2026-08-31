@@ -1,7 +1,8 @@
 # MoE-Infinity oversized-route repair experiment — proposal 3 revision 4
 
-Status: **stream-handoff and deterministic-accumulation repairs rebuilt,
-GPU-validated, and follow-up approved; fixed attempt 3 is authorized**.
+Status: **attempt 3 passed exact model execution but failed the O_DIRECT
+metadata-classification gate; all three attempts are exhausted; timing is not
+authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -211,7 +212,11 @@ are visible.
   completed both eight-prompt smoke passes but exposed nondeterministic
   cross-stream expert accumulation in the upstream dispatcher. Revision 4
   implements the bounded stream-handoff and deterministic-accumulation repair;
-  follow-up review authorizes the final fixed-namespace attempt.
+  follow-up review authorized the final fixed-namespace attempt. Attempt 3
+  completed the warm-up and all 16 smoke requests with exact equality for all
+  eight output pairs, then failed because the all-files O_DIRECT gate rejected
+  ordinary `archer_index` metadata writes. No full MoE timing run is authorized
+  after the fixed three-attempt budget.
 - WRITE: closed by user instruction until experiments are complete.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.

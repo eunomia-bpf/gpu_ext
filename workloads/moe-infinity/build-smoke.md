@@ -53,6 +53,11 @@ code; the 1/256/257/353-row comparisons and all four deterministic-reduction
 arrival orders again passed exactly. Follow-up review approved the repaired
 build for attempt 3.
 
+Attempt 3 subsequently used this exact admitted build. It completed the
+512+64-token warm-up and all 16 smoke requests with exact two-pass equality,
+then failed the separate all-files O_DIRECT classification gate on
+`archer_index` metadata writes. No timing run followed.
+
 The superseded compile-only build used Python 3.10.19 and PyTorch 2.8.0+cu128.
 Its first attempt selected `/usr/bin/c++`, a Python wrapper on this host that
 lost PyBind macro quoting. Selecting the real `/usr/bin/g++` fixed that

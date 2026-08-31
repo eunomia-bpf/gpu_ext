@@ -123,3 +123,12 @@ checked for completion before publication, worker errors propagate instead of
 returning partial results, and the caller reduces successful outputs in
 expert-index order. The fresh build and both GPU gates pass, and follow-up
 review authorizes the fixed final attempt 3.
+
+Attempt 3 then completed the 512+64 warm-up and all 16 smoke requests. All
+eight two-pass output pairs matched exactly, so both the original 256-row
+failure and attempt-2 nondeterminism were repaired. The preflight still failed
+closed because its O_DIRECT gate classified ordinary `archer_index` metadata
+writes as expert-partition I/O. Seven expert partitions did open successfully
+with O_DIRECT, but the all-files rule rejected the metadata opens. The three
+attempts are exhausted, so no MoE timing result is authorized; see
+`runtime-preflight.md`.

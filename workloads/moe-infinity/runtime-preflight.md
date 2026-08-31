@@ -118,3 +118,40 @@ unchanged attempt 3 is prohibited. Any final attempt requires a disclosed
 deterministic accumulation repair, a GPU numerical/determinism gate, rebuild,
 read-only admission, and independent review while preserving both earlier
 attempts and every scientific setting.
+
+## Repaired protocol attempt 3: deterministic execution passed, I/O gate rejected metadata
+
+The follow-up-approved deterministic repair ran at
+`raw/repaired-preflight/attempt-03`. It preserved four expert compute threads
+while binding each worker's mask/input and forward path to its external CUDA
+stream, checking output completion, propagating worker failures, and reducing
+completed outputs in expert-index order.
+
+The exact GPT-OSS-120B model again reached its healthy API. The excluded
+512+64-token warm-up completed, followed by both complete eight-prompt smoke
+passes. All 16 requests returned HTTP 200 with exactly 512 prompt tokens and
+64 completion tokens. Every prompt's two greedy output strings matched
+exactly. The server log contains no 256-row fatal, worker failure, CUDA error,
+or traceback. Because execution reached the final storage-open check, the
+preceding gates also accepted CPU affinity, 1,024 generated smoke tokens,
+engine steps, expert-cache activity, 128 KV-cache blocks, and positive process
+read bytes.
+
+The preflight nevertheless failed closed in `validate_moe_odirect()`. The
+tracer recorded seven successful `O_DIRECT` opens for the seven
+`archer_param_*` expert-store partitions, but the gate required every open
+under the offload root to use `O_DIRECT`. It therefore rejected 28,119 ordinary
+metadata opens of `archer_index`, as well as initial metadata/partition creation
+opens. The first reported error was:
+
+```text
+expert-store open without successful O_DIRECT: .../archer_index ... O_WRONLY|O_CREAT|O_TRUNC
+```
+
+This is a harness classification defect: `archer_index` is metadata rather
+than an expert tensor partition. It does not invalidate the observed exact
+model execution, but the approved protocol required every gate to pass, so the
+attempt remains `status=failed`, `retry_allowed=false` and is not promoted to a
+complete preflight. The fixed three-attempt budget is exhausted; no fourth
+attempt or MoE timing run is authorized. Cleanup returned the GPU and
+struct_ops state to idle/empty. The raw directory is preserved unchanged.

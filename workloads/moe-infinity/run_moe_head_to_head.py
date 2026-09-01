@@ -54,6 +54,17 @@ REPAIR_PLAN = HERE / "repair-plan.md"
 RUNNER = Path(__file__).resolve()
 REPAIRED_PREFLIGHT_ROOT = HERE / "raw/repaired-preflight"
 PROTOCOL_ID = "proposal-3-revision-4"
+REVALIDATION_PROTOCOL_ID = "proposal-3-revision-5"
+REVALIDATION_ATTEMPT = REPAIRED_PREFLIGHT_ROOT / "attempt-03"
+REVALIDATION_RESULT = REVALIDATION_ATTEMPT / "revalidation-result.json"
+PREFLIGHT_COMPLETION = REPAIRED_PREFLIGHT_ROOT / "completion-after-attempt-03"
+COMBINED_PREFLIGHT_RESULT = PREFLIGHT_COMPLETION / "combined-preflight-result.json"
+FROZEN_CORRECTNESS_ORDER = (
+    "moe_infinity_075",
+    "gpubpf_host_stride_lfu",
+    "llama_uvm",
+    "llama_ncmoe32",
+)
 REVIEWED_PREDECESSOR_PROTOCOLS = {
     "proposal-3-revision-2",
     "proposal-3-revision-3",
@@ -94,6 +105,18 @@ MOE_EXTENSION_STEMS = (
     "_store",
     "_v4_fp4",
 )
+MOE_REVALIDATION_RUNTIME_KEYS = {
+    "python",
+    "moe_engine",
+    "moe_kv_cache",
+    "moe_marlin",
+    "moe_paged_attn",
+    "moe_store",
+    "moe_v4_fp4",
+    "revision_server",
+    "numerical_check",
+    "sgl_common_ops",
+}
 
 
 class GateError(RuntimeError):
@@ -382,6 +405,14 @@ def require_runtime_continuity(
         )
 
 
+def select_runtime_files(
+    inventory: dict[str, dict[str, Any]], keys: set[str]
+) -> dict[str, dict[str, Any]]:
+    if set(inventory).issuperset(keys):
+        return {key: inventory[key] for key in sorted(keys)}
+    raise GateError(f"runtime inventory lacks required entries: {sorted(keys - set(inventory))}")
+
+
 def repaired_preflight_output(attempt: int) -> Path:
     return REPAIRED_PREFLIGHT_ROOT / f"attempt-{attempt:02d}"
 
@@ -416,25 +447,20 @@ def authorize_repaired_preflight_attempt(attempt: int) -> Path:
 
 def load_repaired_preflight(preflight: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     resolved = preflight.resolve()
-    matching_attempts = [
-        attempt
-        for attempt in (1, 2, 3)
-        if resolved == repaired_preflight_output(attempt).resolve()
-    ]
-    if len(matching_attempts) != 1:
+    if resolved != PREFLIGHT_COMPLETION.resolve():
         raise GateError(
-            "preflight must be exactly attempt-01, attempt-02, or attempt-03 "
-            f"under {REPAIRED_PREFLIGHT_ROOT.resolve()}"
+            "preflight must be exactly the reviewed completion-after-attempt-03 "
+            f"directory under {REPAIRED_PREFLIGHT_ROOT.resolve()}"
         )
-    attempt = matching_attempts[0]
-    result = json.loads((resolved / "preflight-result.json").read_text())
+    result = json.loads((resolved / "combined-preflight-result.json").read_text())
     if (
-        result.get("protocol") != PROTOCOL_ID
-        or result.get("attempt") != attempt
+        result.get("protocol") != REVALIDATION_PROTOCOL_ID
         or result.get("status") != "passed"
         or not result.get("row_chunking_numerical_gate")
+        or list(result.get("configuration_order", ())) != list(FROZEN_CORRECTNESS_ORDER)
+        or set(result.get("results", {})) != set(CONFIGS)
     ):
-        raise GateError("repaired correctness/numerical preflight is missing or inconsistent")
+        raise GateError("combined repaired correctness preflight is missing or inconsistent")
     expected_runtime = result.get("runtime_files")
     if not isinstance(expected_runtime, dict):
         raise GateError("repaired preflight has no runtime file inventory")
@@ -1130,6 +1156,241 @@ def validate_moe_odirect(trace_dir: Path, offload_dir: Path) -> dict[str, Any]:
             "paths": sorted({item["path"] for item in records})}
 
 
+def classify_moe_store_opens(trace_dir: Path, offload_dir: Path) -> dict[str, Any]:
+    records = []
+    root = offload_dir.resolve()
+    for trace in sorted(trace_dir.glob("open.trace*")):
+        for line_number, line in enumerate(trace.read_text(errors="replace").splitlines(), 1):
+            match = re.search(
+                r'open(?:at|at2)?\([^\n]*?"([^"]+)"([^\n]*)\)\s+=\s+(-?\d+)',
+                line,
+            )
+            if not match:
+                continue
+            path = Path(match.group(1))
+            resolved = (
+                path.resolve(strict=False)
+                if path.is_absolute()
+                else (MODEL_VIEW_PARENT / path).resolve(strict=False)
+            )
+            if not resolved.is_relative_to(root):
+                continue
+            records.append({
+                "trace": trace.name,
+                "line": line_number,
+                "basename": resolved.name,
+                "flags": sorted(set(re.findall(r"O_[A-Z0-9_]+", match.group(2)))),
+                "result_fd": int(match.group(3)),
+            })
+    if not records:
+        raise GateError("strace observed no opens under the admitted MoE store")
+
+    partitions: dict[int, list[dict[str, Any]]] = {}
+    metadata = {"archer_index": 0, "name_id_map.json": 0, "tmpztlei0uk.tmp": 0}
+    unknown = []
+    for record in records:
+        partition = re.fullmatch(r"archer_param_([0-9]+)", record["basename"])
+        if partition:
+            partitions.setdefault(int(partition.group(1)), []).append(record)
+        elif record["basename"] in metadata:
+            metadata[record["basename"]] += 1
+        else:
+            unknown.append(record)
+    if unknown:
+        raise GateError(f"unclassified MoE-store open records: {unknown[:8]}")
+    if set(partitions) != set(range(7)):
+        raise GateError(f"MoE-store partition set mismatch: {sorted(partitions)}")
+
+    partition_summary = {}
+    construction_flags = {"O_RDWR", "O_CREAT", "O_DIRECT"}
+    hydration_flags = {"O_RDONLY"}
+    for partition_id in range(7):
+        opened = partitions[partition_id]
+        construction = [
+            item for item in opened
+            if set(item["flags"]) == construction_flags and item["result_fd"] >= 0
+        ]
+        hydration = [
+            item for item in opened
+            if set(item["flags"]) == hydration_flags and item["result_fd"] >= 0
+        ]
+        if len(opened) != 2 or len(construction) != 1 or len(hydration) != 1:
+            raise GateError(
+                f"partition {partition_id} construction/hydration mismatch: {opened}"
+            )
+        partition_summary[str(partition_id)] = {
+            "successful_direct_capable_construction_opens": 1,
+            "successful_buffered_read_only_hydration_opens": 1,
+        }
+    if metadata["archer_index"] <= 0:
+        raise GateError("MoE-store trace has no archer_index metadata opens")
+    if metadata["name_id_map.json"] != 1 or metadata["tmpztlei0uk.tmp"] != 1:
+        raise GateError(f"MoE-store metadata open counts mismatch: {metadata}")
+    return {
+        "deployment": "buffered NVMe hydration followed by CPU expert offload/cache",
+        "steady_state_direct_read_claim": False,
+        "partitions": partition_summary,
+        "metadata_open_counts": metadata,
+        "total_open_records": len(records),
+    }
+
+
+def validate_saved_completion(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        raise GateError(f"saved completion is missing: {path}")
+    return validate_completion_response(json.loads(path.read_text()), 512)
+
+
+def revalidate_attempt_three() -> dict[str, Any]:
+    attempt = REVALIDATION_ATTEMPT.resolve()
+    if REVALIDATION_RESULT.exists():
+        raise GateError(f"attempt-03 revalidation result already exists: {REVALIDATION_RESULT}")
+    original_path = attempt / "preflight-result.json"
+    admission_path = attempt / "admission.json"
+    original = json.loads(original_path.read_text())
+    expected_error = "expert-store open without successful O_DIRECT:"
+    if (
+        original.get("protocol") != PROTOCOL_ID
+        or original.get("attempt") != 3
+        or original.get("status") != "failed"
+        or original.get("error_type") != "GateError"
+        or not str(original.get("error", "")).startswith(expected_error)
+    ):
+        raise GateError("attempt-03 is not the reviewed final classification failure")
+    admitted = json.loads(admission_path.read_text())
+    expected_runtime = admitted.get("runtime_files")
+    if admitted.get("admitted") is not True or not isinstance(expected_runtime, dict):
+        raise GateError("attempt-03 admission/runtime inventory is missing")
+    expected_moe_runtime = select_runtime_files(
+        expected_runtime, MOE_REVALIDATION_RUNTIME_KEYS
+    )
+    observed_moe_runtime = select_runtime_files(
+        runtime_file_inventory(), MOE_REVALIDATION_RUNTIME_KEYS
+    )
+    require_runtime_continuity(expected_moe_runtime, observed_moe_runtime)
+
+    run_dir = attempt / "moe_infinity_075"
+    warmup = validate_saved_completion(run_dir / "warmup.json")
+    passes = []
+    for pass_number in (1, 2):
+        current = []
+        for prompt_number in range(1, 9):
+            current.append(validate_saved_completion(
+                run_dir / f"smoke-pass{pass_number}-prompt{prompt_number}.json"
+            ))
+        passes.append(current)
+    for prompt_number, (first, second) in enumerate(zip(*passes), start=1):
+        if first["text"] != second["text"]:
+            raise GateError(f"attempt-03 saved output differs for prompt {prompt_number}")
+    validate_log(run_dir / "server.log")
+    storage = classify_moe_store_opens(run_dir / "strace", run_dir / "moe-offload")
+    result = {
+        "protocol": REVALIDATION_PROTOCOL_ID,
+        "source_protocol": PROTOCOL_ID,
+        "source_attempt": 3,
+        "status": "passed",
+        "original_preflight_status": "failed",
+        "original_result_preserved": True,
+        "attempt03_runtime_files": expected_runtime,
+        "moe_runtime_files": expected_moe_runtime,
+        "row_chunking_numerical_gate": {
+            "status": "passed",
+            "evidence": "original control flow reached the final storage-open gate",
+        },
+        "control_flow_predecessor_gates": [
+            "row-chunking and deterministic-accumulation GPU checks",
+            "owned-process CPU affinity",
+            "1024 generated smoke tokens and positive engine steps",
+            "positive internally consistent expert-cache activity",
+            "128 KV-cache blocks and positive process read bytes",
+            "nonempty expert offload store",
+        ],
+        "control_flow_provenance_only": True,
+        "storage_classification": storage,
+        "result": {
+            "config": "moe_infinity_075",
+            "warmup": warmup,
+            "goldens": [item["text"] for item in passes[0]],
+            "passes": passes,
+            "engagement": {
+                "classification": storage,
+                "predecessor_gates": "control-flow provenance only",
+            },
+        },
+    }
+    atomic_write_json(REVALIDATION_RESULT, result)
+    return result
+
+
+def complete_repaired_preflight(port: int) -> dict[str, Any]:
+    lease = LeaseSet.acquire()
+    try:
+        if PREFLIGHT_COMPLETION.exists():
+            raise GateError(f"preflight continuation already exists: {PREFLIGHT_COMPLETION}")
+        revalidated = json.loads(REVALIDATION_RESULT.read_text())
+        if (
+            revalidated.get("protocol") != REVALIDATION_PROTOCOL_ID
+            or revalidated.get("status") != "passed"
+            or revalidated.get("source_attempt") != 3
+        ):
+            raise GateError("attempt-03 read-only revalidation is missing or inconsistent")
+        admitted = admission(port)
+        if not admitted["admitted"]:
+            raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
+        current_moe_runtime = select_runtime_files(
+            admitted["runtime_files"], MOE_REVALIDATION_RUNTIME_KEYS
+        )
+        require_runtime_continuity(
+            revalidated["moe_runtime_files"], current_moe_runtime
+        )
+        schedule_order = tuple(
+            json.loads(SCHEDULE.read_text())["attempts"][0]["configuration_order"]
+        )
+        if schedule_order != FROZEN_CORRECTNESS_ORDER:
+            raise GateError(f"frozen correctness order changed: {schedule_order}")
+        continuation_order = schedule_order[1:]
+        if continuation_order != (
+            "gpubpf_host_stride_lfu", "llama_uvm", "llama_ncmoe32"
+        ):
+            raise GateError(f"invalid continuation order: {continuation_order}")
+
+        PREFLIGHT_COMPLETION.mkdir(parents=True, exist_ok=False)
+        atomic_write_json(PREFLIGHT_COMPLETION / "admission.json", admitted)
+        prompts = json.loads(PROMPTS.read_text())
+        results = {"moe_infinity_075": revalidated["result"]}
+        for config in continuation_order:
+            results[config] = run_correctness_config(
+                config, PREFLIGHT_COMPLETION / config, port, prompts
+            )
+        llama_goldens = [results[name]["goldens"] for name in continuation_order]
+        if not all(value == llama_goldens[0] for value in llama_goldens[1:]):
+            raise GateError("the three llama configurations have different smoke goldens")
+        result = {
+            "protocol": REVALIDATION_PROTOCOL_ID,
+            "status": "passed",
+            "configuration_order": list(FROZEN_CORRECTNESS_ORDER),
+            "continuation_order": list(continuation_order),
+            "source_attempt": 3,
+            "moe_server_relaunched": False,
+            "runtime_files": admitted["runtime_files"],
+            "row_chunking_numerical_gate": revalidated["row_chunking_numerical_gate"],
+            "results": results,
+        }
+        atomic_write_json(COMBINED_PREFLIGHT_RESULT, result)
+        return result
+    except Exception as exc:
+        if PREFLIGHT_COMPLETION.is_dir() and not COMBINED_PREFLIGHT_RESULT.exists():
+            atomic_write_json(PREFLIGHT_COMPLETION / "failure.json", {
+                "protocol": REVALIDATION_PROTOCOL_ID,
+                "status": "failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            })
+        raise
+    finally:
+        lease.close()
+
+
 def check_server_identity(config: str, port: int, prompts: dict[str, Any]) -> dict[str, Any]:
     models = http_json(port, "/v1/models")
     ids = {item.get("id") for item in models.get("data", []) if isinstance(item, dict)}
@@ -1749,6 +2010,13 @@ def parse_args() -> argparse.Namespace:
     )
     preflight.add_argument("--port", type=int, default=18080)
     preflight.add_argument("--attempt", type=int, choices=(1, 2, 3), required=True)
+    subparsers.add_parser(
+        "revalidate-attempt3", help="read-only revision-5 validation of saved attempt 3"
+    )
+    completion = subparsers.add_parser(
+        "complete-preflight", help="run only the three missing llama correctness cells"
+    )
+    completion.add_argument("--port", type=int, default=18080)
     run = subparsers.add_parser("run", help="execute the admitted frozen eight-attempt schedule")
     run.add_argument("--port", type=int, default=18080)
     run.add_argument("--preflight", type=Path, required=True)
@@ -1773,6 +2041,22 @@ def main() -> int:
     if args.action == "preflight":
         try:
             result = run_correctness_preflight(args.attempt, args.port)
+        except GateError as exc:
+            print(str(exc), file=__import__("sys").stderr)
+            return 2
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.action == "revalidate-attempt3":
+        try:
+            result = revalidate_attempt_three()
+        except GateError as exc:
+            print(str(exc), file=__import__("sys").stderr)
+            return 2
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.action == "complete-preflight":
+        try:
+            result = complete_repaired_preflight(args.port)
         except GateError as exc:
             print(str(exc), file=__import__("sys").stderr)
             return 2

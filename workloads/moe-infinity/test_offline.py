@@ -373,6 +373,23 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(runner.GateError, "runtime files changed"):
             runner.require_runtime_continuity(expected, changed)
 
+    def test_moe_revalidation_runtime_subset_excludes_unexecuted_cells(self) -> None:
+        self.assertEqual(
+            runner.MOE_REVALIDATION_RUNTIME_KEYS,
+            {
+                "python", "moe_engine", "moe_kv_cache", "moe_marlin",
+                "moe_paged_attn", "moe_store", "moe_v4_fp4",
+                "revision_server", "numerical_check", "sgl_common_ops",
+            },
+        )
+        inventory = {key: {"path": key} for key in runner.MOE_REVALIDATION_RUNTIME_KEYS}
+        inventory["llama_server"] = {"path": "new-llama"}
+        selected = runner.select_runtime_files(
+            inventory, runner.MOE_REVALIDATION_RUNTIME_KEYS
+        )
+        self.assertNotIn("llama_server", selected)
+        self.assertEqual(set(selected), runner.MOE_REVALIDATION_RUNTIME_KEYS)
+
     def test_repaired_preflight_attempt_budget_is_fail_closed(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -444,41 +461,81 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(runner.GateError, "frozen CPU"):
             runner.traced_moe_argv(argv[3:], Path("/trace"))
 
-    def test_timing_accepts_only_matching_fixed_preflight_attempt(self) -> None:
+    def test_timing_accepts_only_combined_revision5_preflight(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:
             root = Path(temporary)
             runtime = {"moe_store": {"path": "/tmp/store.so", "size": 1}}
-            with mock.patch.object(runner, "REPAIRED_PREFLIGHT_ROOT", root):
-                valid = root / "attempt-02"
+            valid = root / "completion-after-attempt-03"
+            with mock.patch.object(runner, "PREFLIGHT_COMPLETION", valid):
                 valid.mkdir()
                 (valid / "admission.json").write_text(
                     json.dumps({"admitted": True, "runtime_files": runtime})
                 )
                 result = {
-                    "protocol": runner.PROTOCOL_ID,
-                    "attempt": 2,
+                    "protocol": runner.REVALIDATION_PROTOCOL_ID,
                     "status": "passed",
                     "row_chunking_numerical_gate": {"status": "passed"},
                     "runtime_files": runtime,
+                    "configuration_order": list(runner.FROZEN_CORRECTNESS_ORDER),
+                    "results": {name: {} for name in runner.CONFIGS},
                 }
-                (valid / "preflight-result.json").write_text(json.dumps(result))
+                (valid / "combined-preflight-result.json").write_text(json.dumps(result))
                 loaded, expected = runner.load_repaired_preflight(valid)
-                self.assertEqual(loaded["attempt"], 2)
+                self.assertEqual(loaded["protocol"], runner.REVALIDATION_PROTOCOL_ID)
                 self.assertEqual(expected, runtime)
 
                 foreign = root / "foo"
                 foreign.mkdir()
-                (foreign / "admission.json").write_text(
-                    json.dumps({"admitted": True, "runtime_files": runtime})
-                )
-                (foreign / "preflight-result.json").write_text(json.dumps(result))
-                with self.assertRaisesRegex(runner.GateError, "exactly attempt-01"):
+                with self.assertRaisesRegex(runner.GateError, "exactly the reviewed"):
                     runner.load_repaired_preflight(foreign)
 
-                result["attempt"] = 3
-                (valid / "preflight-result.json").write_text(json.dumps(result))
-                with self.assertRaisesRegex(runner.GateError, "inconsistent"):
+                result["configuration_order"] = list(reversed(runner.FROZEN_CORRECTNESS_ORDER))
+                (valid / "combined-preflight-result.json").write_text(json.dumps(result))
+                with self.assertRaisesRegex(runner.GateError, "missing or inconsistent"):
                     runner.load_repaired_preflight(valid)
+
+    def test_revision5_continuation_order_is_exact(self) -> None:
+        schedule = json.loads(runner.SCHEDULE.read_text())
+        self.assertEqual(
+            tuple(schedule["attempts"][0]["configuration_order"]),
+            runner.FROZEN_CORRECTNESS_ORDER,
+        )
+        self.assertEqual(
+            runner.FROZEN_CORRECTNESS_ORDER[1:],
+            ("gpubpf_host_stride_lfu", "llama_uvm", "llama_ncmoe32"),
+        )
+
+    def test_store_trace_classifies_construction_and_buffered_hydration(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            trace_dir = root / "trace"
+            offload = root / "offload"
+            trace_dir.mkdir()
+            offload.mkdir()
+            lines = []
+            for partition in range(7):
+                path = offload / f"archer_param_{partition}"
+                lines.extend((
+                    f'openat(AT_FDCWD, "{path}", O_RDWR|O_CREAT|O_DIRECT, 0660) = 10',
+                    f'openat(AT_FDCWD, "{path}", O_RDONLY) = 11',
+                ))
+            lines.extend((
+                f'openat(AT_FDCWD, "{offload / "archer_index"}", O_WRONLY|O_CREAT|O_TRUNC, 0666) = 12',
+                f'openat(AT_FDCWD, "{offload / "name_id_map.json"}", O_WRONLY|O_CREAT|O_TRUNC, 0666) = 13',
+                f'openat(AT_FDCWD, "{offload / "tmpztlei0uk.tmp"}", O_RDWR|O_CREAT|O_EXCL, 0600) = 14',
+            ))
+            (trace_dir / "open.trace.1").write_text("\n".join(lines) + "\n")
+            observed = runner.classify_moe_store_opens(trace_dir, offload)
+            self.assertFalse(observed["steady_state_direct_read_claim"])
+            self.assertEqual(set(observed["partitions"]), set(map(str, range(7))))
+            self.assertEqual(observed["metadata_open_counts"]["name_id_map.json"], 1)
+
+            with (trace_dir / "open.trace.1").open("a") as stream:
+                stream.write(
+                    f'openat(AT_FDCWD, "{offload / "unknown.bin"}", O_RDONLY) = 15\n'
+                )
+            with self.assertRaisesRegex(runner.GateError, "unclassified"):
+                runner.classify_moe_store_opens(trace_dir, offload)
 
     def test_loaded_uvm_gate_accepts_exact_port_interface(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:

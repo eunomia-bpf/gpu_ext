@@ -53,6 +53,29 @@ preemption engagement, tail latency, throughput, or a gpubpf comparison. The
 closed paper experiment remains closed, and the currently loaded driver still
 lacks the gpubpf scheduling hooks required for a three-way run.
 
+The next minimal multi-client smoke used the same finite harness with two LC
+and four BE processes, four streams per process, and only two tasks per stream.
+All six processes completed. Each process validated 696,320 output values, for
+4,177,920 checked values in total. The clock probe's selected bracket had
+2,515 ns uncertainty. All 48 task samples satisfied
+`submission <= device entry <= device exit`, and LC release followed the last
+reported active BE task by 5,000,207 ns.
+
+The audit established 24 unique Level-1 XQueues: four per process. All 16 BE
+queues used priority 0, threshold 4, and batch size 2; all eight LC queues used
+priority 1, threshold 16, and batch size 8. Every BE queue recorded one
+successful suspend and one successful resume, for 16 of each transition. The
+HPF server and all six workers exited, and the GPU returned to 15 MiB and zero
+utilization. The server emitted one IPC warning while handling its final
+SIGINT, after all 24 queues were destroyed and all six clients had closed.
+
+This establishes multi-client Level-1 suspend/resume path engagement and
+semantic completion on this RTX 5090. It does not establish GPU hardware
+preemption. It remains a deliberately short code smoke, not a performance
+comparison: the task duration was not frozen through the reviewed calibration,
+there was one execution rather than randomized repeated blocks, and neither
+native nor gpubpf comparison cells ran.
+
 ## Supported-driver preparation
 
 The gpubpf-enabled 575.57.08 open-kernel source now builds all five modules for

@@ -17,9 +17,9 @@ record rather than vendored into gpu_ext.
 - The official CUDA platform builds successfully on this host.
 - A finite native smoke and a finite XSched Level-1 shim/HPF smoke now complete
   with exact recurrence checks; see `build-smoke.md`.
-- The XSched smoke establishes interception, XQueue creation, and priority
-  assignment only. Multi-client suspend/resume engagement and paper-scale
-  preemption behavior have not yet been established.
+- A six-process smoke additionally establishes 24 unique XQueues and successful
+  suspend/resume engagement for all 16 BE queues. It is not a repeated or
+  paper-scale performance comparison.
 - GPU runs must not overlap external services.
 - A paper-facing comparison requires a separately reviewed workload, metric,
   correctness check, and interleaved repetition plan.

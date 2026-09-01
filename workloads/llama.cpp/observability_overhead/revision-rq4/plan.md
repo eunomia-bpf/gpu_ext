@@ -27,7 +27,7 @@ installed 575.x driver before execution.
 
 ## Published Precedent And Real Assets
 - Closest published protocol: NVBit MICRO'19 evaluates application slowdown under dynamic SASS instrumentation; the paper's submitted Table 1 measures llama.cpp prefill token/s degradation for three observability tasks.
-- Official system/model/data/benchmark/tool and version: gpubpf/bpftime at the checked-out commits; llama.cpp build 7101; TinyLlama 1.1B Q4_K_M; official NVlabs NVBit v1.8 (latest as of 2026-08-31), artifact SHA-256 `72a2b827f9531dcb86b6be13844f267640fb440929d92944177029da6da2b9e1`.
+- Official system/model/data/benchmark/tool and version: gpubpf/bpftime at the checked-out commits; llama.cpp build 7101; TinyLlama 1.1B Q4_K_M; official NVlabs NVBit v1.8 (latest as of 2026-08-31), identified by its release path and ordinary artifact metadata.
 - What is reused: `run_observability_overhead.py`, the PTX-enabled llama-bench build, the real model, bpftime example tools, and official NVBit release examples/APIs.
 - Necessary deviations or custom glue: Add three matched custom adapters using the official NVBit release and runner support; repair the current bpftime-agent build/path and the three gpubpf tool semantics below. No new experiment-control schema or result gate will be introduced.
 

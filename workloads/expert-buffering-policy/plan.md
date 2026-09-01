@@ -2,9 +2,9 @@
 
 Status: proposal 6, independently approved after the framework context trace confirmed that
 `--n-cpu-moe 32` exposes selected-expert streaming routes for exactly layers
-0--31 while layers 32--35 remain device-resident. The three primary UVM cells
-passed the proposal-5 correctness run and remain preserved; the completed
-context evidence may be finalized under the repaired gate.
+0--31 while layers 32--35 remain device-resident. The four-cell correctness
+gate passed, and an independent result-readiness review authorized the five
+paired timing blocks.
 
 Proposal 5 was independently approved after the four-cell runner
 established that the plain-UVM baseline is not byte-deterministic over 64

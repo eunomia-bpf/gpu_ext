@@ -2,9 +2,8 @@
 
 Date: 2026-08-31
 
-Status: the proposal-5 runner repair is approved; a complete four-cell run is
-still pending. None of the attempts below is a correctness or performance
-result.
+Status: **PASS**. Attempt 5 completed the four-cell correctness and engagement
+gate under independently approved proposal 6. It is not a performance result.
 
 ## Preserved runner attempts
 
@@ -33,6 +32,34 @@ The policy detached cleanly and the distribution UVM module was restored.
 
 Raw attempt directories remain local under `raw/correctness/` and are not
 overwritten or reused.
+
+## Completed attempt 5
+
+All four configurations completed one 512+64 warm-up and two passes over the
+eight frozen 512+64 prompts. Every response passed API status, token accounting,
+length termination, UTF-8, and server/CUDA-error gates. Repeated text matched
+for 3/8 prompts in each UVM configuration and 5/8 in `llama_ncmoe32`; the first
+pass of both gpubpf configurations matched plain UVM for 8/8 prompts. These are
+recorded observations, not a bitwise-equivalence claim.
+
+The observation-only cell classified 604,571 activations and 3,762,053 accesses
+with zero reorder requests and zero setter failures. Its 3,234 complete hot-
+block snapshots yielded 163,919,691,776 repeated hot-activation bytes. The
+protection cell completed with 81,394 hot-tail activations, 518,143 cold-native
+activations, 470,659 hot-access refreshes, zero cold-head requests, and zero
+setter failures. Its repeated hot-activation value was 163,913,400,320 bytes,
+only 6,291,456 bytes (three 2 MiB blocks, 0.00384%) below observation-only.
+This near-null setup result is not promoted to a performance conclusion.
+
+The framework context recorded 216 layouts, 641,958 route events, and 1,105
+graphs with zero drops. Exactly the 32 CPU-streamed layers were covered; every
+one appeared in all 1,105 graphs with zero incomplete graphs. The UVM Tools
+tracker reported zero completed events and zero drops in every cell; it remains
+diagnostic only.
+
+The tracked semantic result is `correctness-result.json`. All owned processes
+and struct_ops state were removed, the distribution `nvidia_uvm` was restored,
+and the GPU returned to 15 MiB used memory and 0% utilization.
 
 No file/content hashes, checksums, digests, or fingerprints were generated or
 used.

@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "date": "2026-09-01",
+  "status": "passed",
+  "source_attempt": 5,
+  "configuration_order": [
+    "plain_uvm",
+    "gpubpf_observe",
+    "gpubpf_profile_protect",
+    "llama_ncmoe32"
+  ],
+  "prompt_order": [8, 7, 5, 1, 6, 4, 2, 3],
+  "requests_per_configuration": {
+    "warmup": 1,
+    "correctness_passes": 2,
+    "prompts_per_pass": 8,
+    "prompt_tokens_per_request": 512,
+    "completion_tokens_per_request": 64
+  },
+  "repeated_matching_prompts_of_8": {
+    "plain_uvm": 3,
+    "gpubpf_observe": 3,
+    "gpubpf_profile_protect": 3,
+    "llama_ncmoe32": 5
+  },
+  "first_pass_matching_plain_prompts_of_8": {
+    "plain_uvm": 8,
+    "gpubpf_observe": 8,
+    "gpubpf_profile_protect": 8,
+    "llama_ncmoe32": 5
+  },
+  "observe": {
+    "mapped_activations": 604571,
+    "classified_accesses": 3762053,
+    "reorder_requests": 0,
+    "setter_failures": 0,
+    "hot_blocks": 3234,
+    "full_hot_activation_bytes": 170701881344,
+    "repeated_hot_activation_bytes": 163919691776
+  },
+  "protect": {
+    "mapped_activations": 604535,
+    "hot_tail_activations": 81394,
+    "cold_native_activations": 518143,
+    "shared_tail_activations": 4998,
+    "hot_access_tail": 470659,
+    "shared_access_tail": 23226,
+    "cold_head": 0,
+    "setter_failures": 0,
+    "hot_blocks": 3234,
+    "full_hot_activation_bytes": 170695589888,
+    "repeated_hot_activation_bytes": 163913400320
+  },
+  "protect_minus_observe_repeated_hot_activation_bytes": -6291456,
+  "protect_over_observe_repeated_hot_activation_ratio": 0.9999616186686796,
+  "framework_route": {
+    "source_layouts": 216,
+    "route_layers": 32,
+    "graphs": 1105,
+    "layer_graphs_min": 1105,
+    "layer_graphs_max": 1105,
+    "incomplete_graphs": 0,
+    "route_events": 641958,
+    "dropped_events": 0
+  },
+  "uvm_tools_diagnostic": {
+    "completed_evictions": 0,
+    "dropped_events": 0,
+    "interpretation": "diagnostic only; not evidence that no PMM replacement occurred"
+  },
+  "claim_boundary": "Correctness and engagement gate only; not a performance sample and not a full Expert Buffering reproduction.",
+  "hash_evidence_used": false
+}

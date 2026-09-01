@@ -842,7 +842,7 @@ def completion_payload(config: str, token_ids: list[int], stream: bool) -> dict[
     if config == "moe_infinity_075":
         payload.update(n=1, best_of=1, echo=False)
     else:
-        payload.update(cache_prompt=False, return_tokens=True)
+        payload.update(cache_prompt=False, return_tokens=True, ignore_eos=True)
     return payload
 
 
@@ -1515,7 +1515,8 @@ def validate_sampled_lfu_delta(delta: dict[str, int]) -> None:
 
 def xid_records() -> list[str]:
     return [
-        line for line in run_checked(["sudo", "-n", "dmesg", "--color=never"]).splitlines()
+        line.split("NVRM: Xid", 1)[1]
+        for line in run_checked(["sudo", "-n", "dmesg", "--color=never"]).splitlines()
         if "NVRM: Xid" in line
     ]
 

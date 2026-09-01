@@ -635,17 +635,17 @@ def request_log_values(log: str, response_id: str) -> dict[str, Any]:
     )))
     request_totals: list[int] = []
     hits: list[int | None] = []
-    stores: list[tuple[int, int]] = []
-    retrieved: list[tuple[int, int, int]] = []
+    stores: list[list[int]] = []
+    retrieved: list[list[int]] = []
     for runtime_id in runtime_ids:
         q = re.escape(runtime_id)
         request_totals.extend(int(value) for value in re.findall(
             rf"Reqid:\s*{q},\s*Total tokens\s+(\d+)", log))
         hits.extend(None if value == "None" else int(value) for value in re.findall(
             rf"Reqid:\s*{q},[^\n]*LMCache hit tokens:\s*(None|\d+)", log))
-        stores.extend((int(a), int(b)) for a, b in re.findall(
+        stores.extend([int(a), int(b)] for a, b in re.findall(
             rf"\[req_id={q}\] Stored\s+(\d+) out of total\s+(\d+) tokens", log))
-        retrieved.extend((int(a), int(b), int(c)) for a, b, c in re.findall(
+        retrieved.extend([int(a), int(b), int(c)] for a, b, c in re.findall(
             rf"\[req_id={q}\] Retrieved\s+(\d+) out of\s+(\d+) required tokens"
             rf"\s*\(from\s+(\d+) total tokens\)", log))
     return {"runtime_ids": runtime_ids, "request_totals": request_totals, "hits": hits,
@@ -712,7 +712,7 @@ def wait_for_cold_store(config: str, log_path: Path, cache_dir: Path, engine_req
         values = request_log_values(log, engine_request_id)
         if (len(values["runtime_ids"]) == 1
                 and values["request_totals"] == [prompt_tokens]
-                and values["stores"] == [(expected_store_tokens, expected_store_tokens)]):
+                and values["stores"] == [[expected_store_tokens, expected_store_tokens]]):
             break
         time.sleep(1)
     else:
@@ -803,7 +803,7 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
                 raise GateError(f"cold hit gate failed for {cold_id}: {cold}")
             if (len(cold["runtime_ids"]) != 1
                     or cold["request_totals"] != [cold_total]
-                    or cold["stores"] != [(expected, expected)]):
+                    or cold["stores"] != [[expected, expected]]):
                 raise GateError(
                     f"exact cold store gate failed for {cold_id}: "
                     f"expected request total {cold_total} and store {(expected, expected)}, "
@@ -813,7 +813,7 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
             if (len(warm["runtime_ids"]) != 1
                     or warm["request_totals"] != [warm_total]
                     or warm["hits"] != [expected]
-                    or warm["retrieved"] != [(expected, expected, expected)]):
+                    or warm["retrieved"] != [[expected, expected, expected]]):
                 raise GateError(f"exact warm hit/retrieval gate failed for {warm_id}: expected {expected}, got {warm}")
             request_evidence[warm_id] = warm
         if config == "lmcache_disk":

@@ -81,7 +81,7 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(
             runner.request_log_values(log, request_id),
             {"runtime_ids": [runtime_id], "request_totals": [1550], "hits": [1536],
-             "stores": [(1536, 1550)], "retrieved": [(1536, 1536, 1550)]},
+             "stores": [[1536, 1550]], "retrieved": [[1536, 1536, 1550]]},
         )
 
     def test_retrieval_parser_preserves_denominators(self):
@@ -94,7 +94,7 @@ class HarnessTests(unittest.TestCase):
         )
         values = runner.request_log_values(log, request_id)
         self.assertEqual(values["request_totals"], [1549])
-        self.assertEqual(values["retrieved"], [(1536, 512, 1549)])
+        self.assertEqual(values["retrieved"], [[1536, 512, 1549]])
 
     def test_odirect_requires_every_pt_open(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -234,7 +234,7 @@ class HarnessTests(unittest.TestCase):
             "runtime_ids": ["cmpl-lmc-p0-cold-0-a1b2c3d4"],
             "request_totals": [1540],
             "hits": [0],
-            "stores": [(1536, 1536)],
+            "stores": [[1536, 1536]],
             "retrieved": [],
         }
         self.assertEqual(

@@ -1,6 +1,6 @@
 # MoE-Infinity oversized-route repair experiment — proposal 3 revision 4
 
-Status: **revision 5 metadata-classification repair is pending independent
+Status: **revision 5 CPU-offload reclassification is pending independent
 review; all three GPU correctness attempts remain exhausted; no fourth GPU
 correctness attempt is proposed and timing is not yet authorized**.
 
@@ -221,23 +221,36 @@ are visible.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.
 
-## 9. Revision 5: read-only metadata-classification repair
+## 9. Revision 5: read-only CPU-offload reclassification
 
-Attempt 3's only reported failure came from treating every file below the
-offload root as an expert tensor partition. The trace itself distinguishes the
-storage roles: `archer_param_0` through `archer_param_6` contain expert tensor
-data, while `archer_index`, `name_id_map.json`, and the single temporary file
-are metadata used to construct or describe that store. Requiring metadata
-writes to use `O_DIRECT` does not test the research baseline's tensor-offload
-path.
+Attempt 3's final failure exposed a deeper mismatch between the original
+O_DIRECT gate and the public artifact's actual GPT-OSS execution. Source and
+trace inspection show two distinct tensor-data opens for each of
+`archer_param_0` through `archer_param_6`: a successful direct-capable
+`O_RDWR|O_CREAT|O_DIRECT` store-construction open, followed by a successful
+plain `O_RDONLY` open. The latter is not metadata. The public
+`InitializeTopology()` implementation sequentially reads each complete
+partition through that plain descriptor into CPU memory, then serves expert
+placement from the CPU-resident copy.
 
-Revision 5 changes only this harness classifier. A tensor-data record is an
-open whose basename exactly matches `archer_param_` followed by a decimal
-partition number. The gate requires exactly partitions 0 through 6; at least
-one successful direct-I/O read and write for every partition; and no failed or
-non-direct tensor-data open. The three named metadata classes are counted and
-reported separately without a direct-I/O requirement. Any other file basename
-below the admitted offload root is rejected as unclassified.
+Revision 5 therefore does not claim that attempt 3 exercised steady-state
+NVMe direct reads. It reclassifies the runnable baseline as MoE-Infinity's
+activation-aware CPU expert offload/cache deployment after one-time buffered
+NVMe hydration. This is still a research-artifact comparison for the revision's
+MoE axis, but it is not the LMCache local-disk/storage-tier result and cannot be
+used as evidence for direct-I/O performance. The O_DIRECT engagement
+requirement inherited from `plan.md` is removed only for this MoE-Infinity
+cell; all other correctness, cache, ownership, schedule, and measurement gates
+remain unchanged.
+
+The read-only trace classifier records rather than hides this boundary. It
+requires exactly partitions 0 through 6, with exactly one successful
+direct-capable construction open and exactly one successful plain read-only
+hydration open for every partition. It reports `archer_index` and
+`name_id_map.json` as metadata. For the preserved attempt-03 trace it admits
+exactly one temporary metadata basename, `tmpztlei0uk.tmp`; any other basename
+below the admitted offload root is rejected as unclassified. No direct-read
+count is derived from an `O_RDWR` flag.
 
 No fourth GPU correctness attempt is allowed. Instead, a read-only action
 revalidates the preserved `attempt-03` directory and writes a separate result
@@ -250,8 +263,8 @@ without modifying its original failed `preflight-result.json`. It requires:
    between passes for every prompt;
 3. no fatal, fallback, worker, CUDA, or traceback pattern in the preserved
    server log;
-4. the repaired tensor/metadata classification and per-partition direct-I/O
-   gate above;
+4. the exact per-partition construction/hydration classification above,
+   including the explicit buffered-read disclosure and unknown-file rejection;
 5. the admitted runtime inventory and source/build state to remain unchanged
    under the existing non-hash identity checks; and
 6. an explicit record that the original control flow reached the final
@@ -266,4 +279,5 @@ independent review approves this revision and the revalidation itself passes.
 The original failed attempt remains failed and preserved. All model, source,
 request, policy, schedule, timing, telemetry, and interpretation settings stay
 unchanged. This repair neither adds a baseline optimization nor changes the
-scientific workload.
+scientific workload; it narrows the deployment claim to the path the public
+artifact actually executed.

@@ -385,7 +385,9 @@ def start_eviction_monitors(server_pid: int, class_table: Path,
 
 
 def start_policy(mode: str, class_table: Path,
-                 run_dir: Path) -> tuple[subprocess.Popen[Any], Any, Path]:
+                 run_dir: Path) -> tuple[
+                     subprocess.Popen[Any], Any, Path, dict[str, Any]
+                 ]:
     path = run_dir / "policy.jsonl"
     log = path.open("x", buffering=1)
     process = subprocess.Popen(
@@ -393,8 +395,8 @@ def start_policy(mode: str, class_table: Path,
         stdout=log, stderr=subprocess.STDOUT, text=True, start_new_session=True,
     )
     try:
-        wait_event(process, path, "policy_ready")
-        return process, log, path
+        ready = wait_event(process, path, "policy_ready")
+        return process, log, path, ready
     except Exception:
         stop_group(process)
         log.close()
@@ -408,6 +410,51 @@ def compile_layout(trace_path: Path, class_table: Path, report: Path) -> None:
         "--strict", "--expected-layouts", "216",
     ])
     report.write_text(output + "\n", encoding="utf-8")
+
+
+def hot_block_indices(class_table: Path) -> set[int]:
+    result = set()
+    lines = class_table.read_text().splitlines()
+    for line in lines[1:]:
+        fields = line.split()
+        if len(fields) == 2 and int(fields[1]) == 2:
+            result.add(int(fields[0]))
+    if not result:
+        raise GateError("class table has no hot blocks")
+    return result
+
+
+def request_block_snapshot(ready: dict[str, Any], path: Path,
+                           expected_indices: set[int], ordinal: int) -> dict[int, int]:
+    run_checked(["sudo", "-n", "kill", "-USR1", str(int(ready["pid"]))])
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        events = json_events(path)
+        end = next((event for event in reversed(events)
+                    if event.get("event") == "block_snapshot_end" and
+                    int(event.get("ordinal", -1)) == ordinal), None)
+        if end is not None:
+            begin = next((event for event in reversed(events)
+                          if event.get("event") == "block_snapshot_begin" and
+                          int(event.get("ordinal", -1)) == ordinal), None)
+            if (begin is None or int(begin.get("base", -1)) != int(ready["layout_base"]) or
+                    int(begin.get("blocks", -1)) != int(ready["layout_blocks"])):
+                raise GateError(f"snapshot layout metadata mismatch: {begin}, {ready}")
+            values = {
+                int(event["index"]): int(event["count"])
+                for event in events
+                if event.get("event") == "hot_block_activation" and
+                int(event.get("ordinal", -1)) == ordinal and
+                int(event.get("class", -1)) == 2
+            }
+            if int(end["records"]) != len(values) or set(values) != expected_indices:
+                raise GateError(
+                    f"incomplete block snapshot {ordinal}: end={end}, "
+                    f"expected={len(expected_indices)}, observed={len(values)}"
+                )
+            return values
+        time.sleep(0.1)
+    raise GateError(f"timed out waiting for block snapshot {ordinal}")
 
 
 def validate_server_log(path: Path) -> None:
@@ -458,11 +505,16 @@ def run_cell(config: str, run_dir: Path, port: int,
             trace_log.close()
             trace_log = None
         if config == "gpubpf_observe":
-            policy, policy_log, policy_path = start_policy("observe", class_table, run_dir)
+            policy, policy_log, policy_path, policy_ready = start_policy(
+                "observe", class_table, run_dir
+            )
         elif config == "gpubpf_profile_protect":
-            policy, policy_log, policy_path = start_policy("protect", class_table, run_dir)
+            policy, policy_log, policy_path, policy_ready = start_policy(
+                "protect", class_table, run_dir
+            )
         else:
             policy_path = None
+            policy_ready = None
         candidate_monitors = start_eviction_monitors(server.pid, class_table, run_dir)
 
         warmup = completion(port, prompts["records"][0]["prompt_token_ids"],
@@ -493,6 +545,11 @@ def run_cell(config: str, run_dir: Path, port: int,
             item[1].close()
         candidate_monitors = []
         policy_before = latest_event(policy_path, "policy_stats") if policy_path else None
+        hot_indices = hot_block_indices(class_table)
+        block_before = (
+            request_block_snapshot(policy_ready, policy_path, hot_indices, 1)
+            if policy_ready is not None else None
+        )
         eviction_before = latest_event(eviction_path, "eviction_stats")
         passes = []
         for pass_number in (1, 2):
@@ -503,20 +560,37 @@ def run_cell(config: str, run_dir: Path, port: int,
                     run_dir / f"pass-{pass_number}-request-{sequence:02d}-prompt-{prompt_number}.json",
                 ))
             passes.append(current)
-        for sequence, (first, second) in enumerate(zip(*passes), start=1):
-            if first["text"] != second["text"]:
-                raise GateError(f"non-deterministic output at sequence {sequence}")
+        repeated_output_agreement = [
+            first["text"] == second["text"] for first, second in zip(*passes)
+        ]
         time.sleep(1.1)
         eviction_after = latest_event(eviction_path, "eviction_stats")
         eviction_delta = counter_delta(eviction_before, eviction_after, EVICTION_KEYS)
-        if eviction_delta["evictions"] <= 0 or eviction_delta["evicted_bytes"] <= 0:
-            raise GateError(f"no completed UVM evictions: {eviction_delta}")
         if eviction_delta["dropped_evictions"] != 0:
             raise GateError(f"dropped UVM eviction events: {eviction_delta}")
         policy_delta = None
+        hot_activation_metric = None
         if policy_path:
             policy_after = latest_event(policy_path, "policy_stats")
             policy_delta = counter_delta(policy_before, policy_after, POLICY_STAT_KEYS)
+            block_after = request_block_snapshot(
+                policy_ready, policy_path, hot_indices, 2
+            )
+            block_delta = {}
+            for index in sorted(hot_indices):
+                if block_after[index] < block_before[index]:
+                    raise GateError(f"hot block counter regressed at index {index}")
+                block_delta[index] = block_after[index] - block_before[index]
+            hot_activation_metric = {
+                "block_bytes": 2 * 1024 * 1024,
+                "hot_blocks": len(hot_indices),
+                "full_activation_bytes": (2 * 1024 * 1024) * sum(block_delta.values()),
+                "repeated_activation_bytes": (2 * 1024 * 1024) * sum(
+                    max(0, value - 1) for value in block_delta.values()
+                ),
+                "counts_before": {str(key): value for key, value in block_before.items()},
+                "counts_after": {str(key): value for key, value in block_after.items()},
+            }
             if config == "gpubpf_observe":
                 if policy_delta["observe_activate"] <= 0 or policy_delta["observe_access"] <= 0:
                     raise GateError(f"observe engagement failed: {policy_delta}")
@@ -558,9 +632,12 @@ def run_cell(config: str, run_dir: Path, port: int,
         result = {
             "config": config, "warmup": warmup,
             "outputs": [[item["text"] for item in current] for current in passes],
+            "repeated_output_agreement": repeated_output_agreement,
+            "repeated_matching_prompts": sum(repeated_output_agreement),
             "requests": passes, "policy_delta": policy_delta,
             "eviction_delta": eviction_delta, "route_diagnostic": route_diagnostic,
             "monitor_ready": monitor_ready,
+            "hot_activation_metric": hot_activation_metric,
         }
         atomic_write_json(run_dir / "result.json", result)
         return result
@@ -638,12 +715,17 @@ def run_correctness(attempt: int, port: int) -> dict[str, Any]:
         for config in CONFIGS:
             results.append(run_cell(config, output / config, port, prompts, prompt_order))
         reference = results[0]["outputs"][0]
-        for result in results:
-            if result["outputs"][0] != reference or result["outputs"][1] != reference:
-                raise GateError(f"cross-configuration output mismatch: {result['config']}")
+        cross_configuration_agreement = {
+            result["config"]: sum(
+                observed == expected
+                for observed, expected in zip(result["outputs"][0], reference)
+            )
+            for result in results
+        }
         final = {
             "status": "passed", "attempt": attempt, "prompt_order": prompt_order,
             "configuration_order": list(CONFIGS),
+            "cross_configuration_matching_prompts": cross_configuration_agreement,
             "completed_ns": time.time_ns(),
             "cells": [str((output / config / "result.json").resolve()) for config in CONFIGS],
         }

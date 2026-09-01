@@ -1,5 +1,26 @@
 # Independent Plan Review
 
+## Proposal 5 observability repair review
+
+Date: 2026-08-31
+
+Initial verdict: **BLOCK**. The reviewer required an implemented per-layout-
+block activation map and complete semantic snapshots, synchronization of the
+runner with the revised nondeterminism and zero-event gates, and removal of
+unobservable transfer/eviction/residency measurement promises.
+
+Final verdict after repair: **APPROVE**.
+
+The approved repair uses a global atomic `u64` activation counter for every
+admitted layout index. On request, the loader emits snapshot metadata and all
+hot indices including zero values; the runner validates base, block count,
+class, index completeness, and monotonicity before computing full and repeated
+activation bytes. The runner records output disagreement without claiming
+bitwise equivalence, retains zero UVM Tools events only as diagnostics, and no
+longer requires a positive completed-eviction count. The plan limits measured
+claims to the page-activation proxy and throughput. Build, parser tests, and a
+live zero-value snapshot smoke passed. No hash-based evidence is used.
+
 ## Proposal 4 repair review
 
 Date: 2026-08-31

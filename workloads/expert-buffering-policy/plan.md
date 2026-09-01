@@ -1,8 +1,10 @@
 # Experiment Plan: Profile-guided hot-expert residency analogue
 
-Status: proposal 4, independently approved after the exact-model preflight
-exposed unsafe application behavior from aggressive cold-head pressure. The
-four-cell correctness run is authorized; full timing remains gated on it.
+Status: proposal 5, independently approved after the four-cell runner
+established that the plain-UVM baseline is not byte-deterministic over 64
+generated tokens and the UVM Tools tracker reports no completed-eviction events
+for this path. The repaired correctness run is authorized; timing remains
+gated on it.
 
 ## Research Question And Hypothesis
 
@@ -12,8 +14,8 @@ four-cell correctness run is authorized; full timing remains gated on it.
 - Specific question: on the exact GPT-OSS-120B MXFP4 workload, does a fixed,
   independently calibrated expert-hot set plus safe page-ordering reduce
   repeated HBM activations of hot-expert pages relative to matched native UVM
-  ordering on the same gpubpf mechanism, and what throughput, transfer,
-  eviction, and residency trade-offs result?
+  ordering on the same gpubpf mechanism, and what throughput and repeated-page-
+  activation trade-offs result?
 - Preregistered hypothesis: expert-semantic ordering lowers post-warm-up
   repeated activation bytes for calibration-hot expert pages relative to the
   attached observation-only control. Throughput direction is not preregistered because 2 MiB
@@ -155,31 +157,35 @@ modules stay loaded. Distribution UVM is restored afterward.
 
 - Each cell runs one excluded warm-up and two untimed complete passes over all
   eight evaluation prompts. Every request must report 512 prompt tokens, 64
-  completion tokens, length termination, valid UTF-8, and byte-identical output
-  across passes and configurations.
+  completion tokens, length termination, valid UTF-8, and no server/CUDA error.
+  The plain-UVM baseline itself diverged late in a repeated greedy 64-token
+  response, so byte identity is recorded but is not a correctness gate. No
+  policy result may be described as bitwise deterministic or output-equivalent.
 - Layout admission requires exactly 108 weight and 108 bias registrations, 36
   layers, 128 experts per layer, positive mapped weight and mixed-expert block
   counts, and no inconsistent overlapping registration. Shared/boundary cases
   are counted separately and are not mislabeled conflicts.
 - The protection policy requires positive mapped activates, hot-tail,
   cold-native, and hot-access-tail decisions after warm-up, zero cold-head
-  decisions, zero typed-setter failures, and positive completed UVM evictions.
+  decisions, and zero typed-setter failures.
   The observation control requires positive mapped activation and access
-  classification, zero reorder requests, and positive completed evictions.
-  Plain UVM requires completed migration and eviction events. Framework context
-  requires positive existing selected-expert copy bytes and complete route
-  observations.
+  classification and zero reorder requests. Framework context requires
+  positive existing selected-expert copy bytes and complete route observations.
+  The UVM Tools tracker output is retained as diagnostic evidence, including
+  zero-event outcomes, but is not treated as proof that no PMM replacement
+  occurred and has no positive gate.
 - Immediately after the excluded warm-up reaches idle, the runner takes one
-  policy/event snapshot before the first measured request. For each frozen-hot
+  policy snapshot before the first measured request and another after the last.
+  A dedicated BPF array records activation counts by admitted layout-block
+  index; the loader emits an explicitly requested semantic snapshot. For each frozen-hot
   registered 2 MiB block `x`, let `N_x` be its activate-count delta after that
   snapshot. The primary compulsory-allocation-excluding quantity is exactly
   `2 MiB * sum_x max(0, N_x - 1)`: the first post-snapshot allocation of each
   block is excluded and every later allocation contributes one block. Full
   post-snapshot hot activation bytes, `2 MiB * sum_x N_x`, are retained as a
-  secondary metric. These are HBM allocations, not router misses. Completed
-  UVM Tools eviction records retain address and size and are joined to the
-  frozen layout. Dropped events, ambiguous timestamps, or inconsistent address
-  classification invalidate the cell. No-transfer cases are not called hits.
+  secondary metric. These are HBM allocations, not router misses. Snapshot
+  counter regression, a missing hot-block record, or inconsistent address
+  classification invalidates the cell. Activation absence is not called a hit.
 - The loader owns exactly one struct_ops link, records its map/program IDs, and
   refuses foreign or ambiguous registrations. Shutdown detaches only that link.
 
@@ -192,7 +198,7 @@ modules stay loaded. Distribution UVM is restored afterward.
   output tokens divided by the interval from first measured request start to
   eighth completion.
 - Secondary metrics: repeated activation events for hot and cold strata;
-  completed eviction bytes by hot/cold/shared stratum; total migration bytes;
+  diagnostic UVM Tools event counts when available;
   per-request TTFT and latency; GPU peak memory; process-tree CPU time and
   storage reads; head/tail decisions; mixed-block fraction; and protected-byte
   amplification relative to the ten-expert slice bytes.
@@ -216,7 +222,8 @@ modules stay loaded. Distribution UVM is restored afterward.
 - The route/layout calibration passed. The original hot-LIFO exact-model
   attempt failed and its matched plain control passed. One repaired
   protection-mode retry then passed the same 512+1 request. After proposal 4 is
-  independently re-approved, one four-cell 512+64 correctness/lifecycle run is
+  independently re-approved, one repaired four-cell 512+64
+  correctness/lifecycle run is
   the only remaining pre-timing execution; it is implemented through the same
   runner used for timing, not a separate preflight harness. Failure closes the
   protocol with no timing until the cause is understood and the plan reviewed.
@@ -238,7 +245,7 @@ modules stay loaded. Distribution UVM is restored afterward.
   improvement to profile-guided expert classification; mechanism value is safe
   deployment and replacement.
 - If activations fall without throughput improvement, quantify mixed-block
-  amplification and ordering/transfer costs. If results match or regress,
+  amplification and ordering costs. If results match or regress,
   report that safe expressibility did not produce an advantage.
 - Always report the unsupported parts of Huang et al.: current-batch router
   visibility, resident-selection refresh, expert-atomic capacity, and overlapped

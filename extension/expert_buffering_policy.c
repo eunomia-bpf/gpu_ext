@@ -57,11 +57,14 @@ struct expert_layout_control {
 };
 
 static volatile sig_atomic_t exiting;
+static volatile sig_atomic_t snapshot_requested;
 
 static void handle_signal(int signo)
 {
-	(void)signo;
-	exiting = 1;
+	if (signo == SIGUSR1)
+		snapshot_requested = 1;
+	else
+		exiting = 1;
 }
 
 static int libbpf_print_fn(enum libbpf_print_level level,
@@ -268,6 +271,35 @@ static void print_stats(int stats_fd)
 	free(percpu);
 }
 
+static void print_activation_snapshot(int counts_fd,
+				      const uint8_t *classes,
+				      uint64_t base,
+				      uint32_t blocks,
+				      uint32_t ordinal)
+{
+	uint32_t index;
+	uint32_t records = 0;
+
+	printf("{\"event\":\"block_snapshot_begin\",\"ordinal\":%u,"
+	       "\"base\":%llu,\"blocks\":%u}\n", ordinal,
+	       (unsigned long long)base, blocks);
+	for (index = 0; index < blocks; ++index) {
+		uint64_t count = 0;
+
+		if (classes[index] != EXPERT_BLOCK_HOT)
+			continue;
+		if (bpf_map_lookup_elem(counts_fd, &index, &count) != 0)
+			continue;
+		printf("{\"event\":\"hot_block_activation\",\"ordinal\":%u,"
+		       "\"index\":%u,\"class\":%u,\"count\":%llu}\n",
+		       ordinal, index, classes[index], (unsigned long long)count);
+		records++;
+	}
+	printf("{\"event\":\"block_snapshot_end\",\"ordinal\":%u,"
+	       "\"records\":%u}\n", ordinal, records);
+	fflush(stdout);
+}
+
 int main(int argc, char **argv)
 {
 	struct expert_buffering_policy_bpf *skel = NULL;
@@ -279,10 +311,13 @@ int main(int argc, char **argv)
 	uint32_t zero = 0;
 	uint32_t map_id = 0;
 	uint32_t program_id = 0;
+	uint32_t counts_map_id = 0;
+	uint32_t snapshot_ordinal = 0;
 	uint32_t index;
 	int classes_fd;
 	int control_fd;
 	int stats_fd;
+	int counts_fd;
 	int err;
 
 	if (argc != 3) {
@@ -307,6 +342,7 @@ int main(int argc, char **argv)
 
 	signal(SIGINT, handle_signal);
 	signal(SIGTERM, handle_signal);
+	signal(SIGUSR1, handle_signal);
 	libbpf_set_print(libbpf_print_fn);
 	skel = expert_buffering_policy_bpf__open_and_load();
 	if (!skel) {
@@ -318,6 +354,7 @@ int main(int argc, char **argv)
 	classes_fd = bpf_map__fd(skel->maps.block_classes);
 	control_fd = bpf_map__fd(skel->maps.layout_control);
 	stats_fd = bpf_map__fd(skel->maps.policy_stats);
+	counts_fd = bpf_map__fd(skel->maps.activation_counts);
 	for (index = 0; index < control.blocks; ++index) {
 		if (!classes[index])
 			continue;
@@ -344,18 +381,27 @@ int main(int argc, char **argv)
 		goto out;
 	}
 	map_identity(bpf_map__fd(skel->maps.uvm_ops_expert_buffering), &map_id);
+	map_identity(counts_fd, &counts_map_id);
 	program_identity(bpf_program__fd(skel->progs.gpu_block_activate), &program_id);
 	printf("{\"event\":\"policy_ready\",\"mode\":\"%s\","
 	       "\"layout_base\":%llu,\"layout_blocks\":%u,"
 	       "\"classified_blocks\":%u,\"hot_bytes\":%llu,"
-	       "\"struct_ops_map_id\":%u,\"activate_program_id\":%u}\n",
+	       "\"struct_ops_map_id\":%u,\"activate_program_id\":%u,"
+	       "\"activation_counts_map_id\":%u,\"pid\":%ld}\n",
 	       mode_name(control.mode),
 	       (unsigned long long)control.base, control.blocks, nondefault,
-	       (unsigned long long)hot_bytes, map_id, program_id);
+	       (unsigned long long)hot_bytes, map_id, program_id,
+	       counts_map_id, (long)getpid());
 	fflush(stdout);
 
 	while (!exiting) {
 		sleep(1);
+		if (snapshot_requested) {
+			snapshot_requested = 0;
+			print_activation_snapshot(counts_fd, classes, control.base,
+						  control.blocks,
+						  ++snapshot_ordinal);
+		}
 		print_stats(stats_fd);
 	}
 	print_stats(stats_fd);

@@ -61,6 +61,13 @@ struct {
 
 struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, EXPERT_MAX_LAYOUT_BLOCKS);
+	__type(key, u32);
+	__type(value, u64);
+} activation_counts SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, u32);
 	__type(value, struct expert_layout_control);
@@ -150,6 +157,13 @@ int BPF_PROG(gpu_block_activate,
 		return 0;
 	}
 	count_stat(EXPERT_STAT_MAPPED);
+	{
+		u64 *activation_count;
+
+		activation_count = bpf_map_lookup_elem(&activation_counts, &index);
+		if (activation_count)
+			__sync_fetch_and_add(activation_count, 1);
+	}
 	if (control->mode == EXPERT_POLICY_OBSERVE) {
 		count_stat(EXPERT_STAT_OBSERVE_ACTIVATE);
 		return 0;

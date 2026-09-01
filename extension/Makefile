@@ -45,7 +45,7 @@ DEFERRED_VA_SPACE_APPS = prefetch_cross_block_v2 prefetch_proactive_layer \
 # design provides owned lookup, invalidation, and teardown synchronization.
 BPF_APPS = $(filter-out $(DEFERRED_VA_SPACE_APPS),$(BPF_APPS_ALL))
 SCX_APPS = sched_gpu_baseline sched_gpu_minimal sched_gpu_serving sched_gpu_xcoord sched_gpu_xcoord_noad sched_gpu_coord # sched_ext apps (need scx headers)
-TOOL_APPS = cleanup_struct_ops_tool # Pure userspace tools
+TOOL_APPS = cleanup_struct_ops_tool revision_pmm_ioctl # Pure userspace tools
 
 # Apps that need NVML
 NVML_APPS = prefetch_adaptive_tree_iter prefetch_adaptive_sequential

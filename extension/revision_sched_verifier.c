@@ -33,6 +33,7 @@ enum {
 };
 
 static bool verbose;
+static bool pmm_only;
 
 static int libbpf_log(enum libbpf_print_level level,
                       const char *format,
@@ -46,7 +47,7 @@ static int libbpf_log(enum libbpf_print_level level,
 
 static void usage(const char *program)
 {
-    fprintf(stderr, "Usage: %s [-v] [-d OBJECT_DIR] [-l LOG_DIR]\n", program);
+    fprintf(stderr, "Usage: %s [-m] [-v] [-d OBJECT_DIR] [-l LOG_DIR]\n", program);
 }
 
 static int save_verifier_log(const char *log_dir,
@@ -116,16 +117,24 @@ int main(int argc, char **argv)
     size_t rejected = 0;
     size_t passed = 0;
     bool positive_controls_admitted = false;
+    size_t positive_fixture_count;
+    size_t expected_attempted;
+    size_t expected_admitted;
+    size_t expected_rejected;
+    size_t positive_seen = 0;
     size_t i;
     int option;
 
-    while ((option = getopt(argc, argv, "d:hl:v")) != -1) {
+    while ((option = getopt(argc, argv, "d:hl:mv")) != -1) {
         switch (option) {
         case 'd':
             object_dir = optarg;
             break;
         case 'l':
             log_dir = optarg;
+            break;
+        case 'm':
+            pmm_only = true;
             break;
         case 'v':
             verbose = true;
@@ -144,7 +153,7 @@ int main(int argc, char **argv)
         return 2;
     }
 
-    if (access("/sys/kernel/btf/nvidia", R_OK) != 0) {
+    if (!pmm_only && access("/sys/kernel/btf/nvidia", R_OK) != 0) {
         fprintf(stderr,
                 "precondition failed: running nvidia module has no exported BTF\n");
         return 2;
@@ -174,6 +183,11 @@ int main(int argc, char **argv)
 
     libbpf_set_print(libbpf_log);
 
+    positive_fixture_count = pmm_only ? 1 : POSITIVE_FIXTURE_COUNT;
+    expected_attempted = pmm_only ? 2 : 7;
+    expected_admitted = pmm_only ? 1 : 4;
+    expected_rejected = pmm_only ? 1 : 3;
+
     for (i = 0; i < sizeof(fixtures) / sizeof(fixtures[0]); ++i) {
         struct bpf_object *object;
         struct bpf_program *program;
@@ -183,6 +197,9 @@ int main(int argc, char **argv)
         int load_error;
         int setup_error = 0;
         size_t program_count = 0;
+
+        if (pmm_only && strncmp(fixtures[i].name, "pmm-", 4) != 0)
+            continue;
 
         if (snprintf(path, sizeof(path), "%s/%s", object_dir,
                      fixtures[i].object_name) >= (int)sizeof(path)) {
@@ -257,7 +274,7 @@ int main(int argc, char **argv)
                    load_error);
         }
 
-        if (i < POSITIVE_FIXTURE_COUNT && load_error != 0) {
+        if (fixtures[i].expect_load && load_error != 0) {
             fprintf(stderr,
                     "ABORT positive control failed; negative fixtures were not run\n");
             free(verifier_log);
@@ -265,20 +282,33 @@ int main(int argc, char **argv)
             break;
         }
 
-        if (i + 1 == POSITIVE_FIXTURE_COUNT) {
+        if (fixtures[i].expect_load)
+            ++positive_seen;
+
+        if (positive_seen == positive_fixture_count && !positive_controls_admitted) {
             positive_controls_admitted = true;
-            printf("GUARD positive_controls_admitted=4; running negatives\n");
+            printf("GUARD positive_controls_admitted=%zu; running negatives\n",
+                   positive_fixture_count);
         }
 
         free(verifier_log);
         bpf_object__close(object);
     }
 
-    printf("SUMMARY attempted=%zu expected=7 admitted=%zu expected_admitted=4 "
-           "rejected=%zu expected_rejected=3 passed=%zu\n",
-           attempted, admitted, rejected, passed);
+    printf("SUMMARY attempted=%zu expected=%zu admitted=%zu expected_admitted=%zu "
+           "rejected=%zu expected_rejected=%zu passed=%zu\n",
+           attempted,
+           expected_attempted,
+           admitted,
+           expected_admitted,
+           rejected,
+           expected_rejected,
+           passed);
 
-    return (attempted == 7 && admitted == 4 && rejected == 3 && passed == 7)
+    return (attempted == expected_attempted &&
+            admitted == expected_admitted &&
+            rejected == expected_rejected &&
+            passed == expected_attempted)
                ? 0
                : 1;
 }

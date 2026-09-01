@@ -271,7 +271,7 @@ def completion(port: int, token_ids: list[int], output: Path) -> dict[str, Any]:
     payload = {
         "model": "gpt-oss-120b", "prompt": token_ids, "max_tokens": 64,
         "temperature": 0.0, "top_p": 1.0, "stop": [], "stream": False,
-        "cache_prompt": False, "return_tokens": True,
+        "cache_prompt": False, "return_tokens": True, "ignore_eos": True,
     }
     request = urllib.request.Request(
         f"http://127.0.0.1:{port}/v1/completions",

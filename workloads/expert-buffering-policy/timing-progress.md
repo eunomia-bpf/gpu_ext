@@ -20,3 +20,7 @@ The repeated-hot-activation proxy was 79,496,740,864 bytes for O and 79,515,615,
 The F route diagnostic covered all 1,105 graphs in each of the expected 32 routed layers, with zero incomplete graphs and zero dropped trace events. After the block, the stock UVM module was restored with no UVM BTF entry, module refcount zero, 15 MiB GPU memory use, and 0% GPU utilization.
 
 Raw request, trace, policy, snapshot, and telemetry records remain under the ignored `raw/timing/block-01/` directory. They are retained for audit but are not committed.
+
+## Block 2 attempt 1
+
+The observe cell reached the sixth untimed request before prompt 3 emitted EOS immediately. The API returned HTTP success with one completion token, so the fixed 64-token workload gate correctly rejected the cell. The failed attempt is retained as `raw/timing/block-02-failed-attempt-01/`. Subsequent attempts set the llama.cpp `ignore_eos` request option so every accepted request executes the same fixed 64-token generation workload.

@@ -1,8 +1,8 @@
 # Experiment Plan: same no-prefetch policy on a real UVM fault stream
 
-**Status: approved, preflight 1 passed, and all 15 paired blocks completed;
-independent result review pending.** See `plan-review.md`,
-`results/preflight-1.md`, and `results/analysis.md`.
+**Status: complete; plan approved, preflight 1 passed, all 15 paired blocks
+completed, and independent result review passed.** See `plan-review.md`,
+`results/preflight-1.md`, `results/analysis.md`, and `result-review.md`.
 
 ## Research Question
 

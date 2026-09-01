@@ -1,6 +1,6 @@
 # Provisional analysis: same-policy UVM mechanism cost
 
-Status: all planned rows complete; independent result review pending.
+Status: all planned rows complete; independent result review passed.
 
 ## Admission
 

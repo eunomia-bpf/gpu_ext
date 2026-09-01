@@ -27,6 +27,7 @@ enum expert_block_class {
 enum expert_policy_mode {
 	EXPERT_POLICY_PAGE_LIFO = 1,
 	EXPERT_POLICY_HOT_LIFO = 2,
+	EXPERT_POLICY_PROTECT = 3,
 };
 
 enum expert_policy_stat {
@@ -38,6 +39,9 @@ enum expert_policy_stat {
 	EXPERT_STAT_DEFAULT,
 	EXPERT_STAT_SETTER_FAILURE,
 	EXPERT_STAT_ACCESS,
+	EXPERT_STAT_COLD_NATIVE,
+	EXPERT_STAT_HOT_ACCESS_TAIL,
+	EXPERT_STAT_SHARED_ACCESS_TAIL,
 	EXPERT_STAT_MAX,
 };
 
@@ -105,7 +109,20 @@ static int parse_mode(const char *arg, uint32_t *mode)
 		*mode = EXPERT_POLICY_HOT_LIFO;
 		return 0;
 	}
+	if (!strcmp(arg, "protect")) {
+		*mode = EXPERT_POLICY_PROTECT;
+		return 0;
+	}
 	return -EINVAL;
+}
+
+static const char *mode_name(uint32_t mode)
+{
+	if (mode == EXPERT_POLICY_PAGE_LIFO)
+		return "page";
+	if (mode == EXPERT_POLICY_HOT_LIFO)
+		return "hot";
+	return "protect";
 }
 
 static int read_class_table(const char *path,
@@ -221,7 +238,9 @@ static void print_stats(int stats_fd)
 	printf("{\"event\":\"policy_stats\",\"activate\":%llu,"
 	       "\"mapped\":%llu,\"hot_tail\":%llu,\"cold_head\":%llu,"
 	       "\"shared_tail\":%llu,\"default\":%llu,"
-	       "\"setter_failure\":%llu,\"access\":%llu}\n",
+	       "\"setter_failure\":%llu,\"access\":%llu,"
+	       "\"cold_native\":%llu,\"hot_access_tail\":%llu,"
+	       "\"shared_access_tail\":%llu}\n",
 	       (unsigned long long)totals[EXPERT_STAT_ACTIVATE],
 	       (unsigned long long)totals[EXPERT_STAT_MAPPED],
 	       (unsigned long long)totals[EXPERT_STAT_HOT_TAIL],
@@ -229,7 +248,10 @@ static void print_stats(int stats_fd)
 	       (unsigned long long)totals[EXPERT_STAT_SHARED_TAIL],
 	       (unsigned long long)totals[EXPERT_STAT_DEFAULT],
 	       (unsigned long long)totals[EXPERT_STAT_SETTER_FAILURE],
-	       (unsigned long long)totals[EXPERT_STAT_ACCESS]);
+	       (unsigned long long)totals[EXPERT_STAT_ACCESS],
+	       (unsigned long long)totals[EXPERT_STAT_COLD_NATIVE],
+	       (unsigned long long)totals[EXPERT_STAT_HOT_ACCESS_TAIL],
+	       (unsigned long long)totals[EXPERT_STAT_SHARED_ACCESS_TAIL]);
 	fflush(stdout);
 	free(percpu);
 }
@@ -252,7 +274,7 @@ int main(int argc, char **argv)
 	int err;
 
 	if (argc != 3) {
-		fprintf(stderr, "usage: %s {page|hot} CLASS_TABLE\n", argv[0]);
+		fprintf(stderr, "usage: %s {page|hot|protect} CLASS_TABLE\n", argv[0]);
 		return 2;
 	}
 	if (parse_mode(argv[1], &control.mode)) {
@@ -313,7 +335,7 @@ int main(int argc, char **argv)
 	       "\"layout_base\":%llu,\"layout_blocks\":%u,"
 	       "\"classified_blocks\":%u,\"hot_bytes\":%llu,"
 	       "\"struct_ops_map_id\":%u,\"activate_program_id\":%u}\n",
-	       control.mode == EXPERT_POLICY_HOT_LIFO ? "hot" : "page",
+	       mode_name(control.mode),
 	       (unsigned long long)control.base, control.blocks, nondefault,
 	       (unsigned long long)hot_bytes, map_id, program_id);
 	fflush(stdout);

@@ -23,6 +23,7 @@ enum expert_block_class {
 enum expert_policy_mode {
 	EXPERT_POLICY_PAGE_LIFO = 1,
 	EXPERT_POLICY_HOT_LIFO = 2,
+	EXPERT_POLICY_PROTECT = 3,
 };
 
 enum expert_policy_stat {
@@ -34,6 +35,9 @@ enum expert_policy_stat {
 	EXPERT_STAT_DEFAULT,
 	EXPERT_STAT_SETTER_FAILURE,
 	EXPERT_STAT_ACCESS,
+	EXPERT_STAT_COLD_NATIVE,
+	EXPERT_STAT_HOT_ACCESS_TAIL,
+	EXPERT_STAT_SHARED_ACCESS_TAIL,
 	EXPERT_STAT_MAX,
 };
 
@@ -144,11 +148,17 @@ int BPF_PROG(gpu_block_activate,
 	}
 	count_stat(EXPERT_STAT_MAPPED);
 
+	if (*class == EXPERT_BLOCK_COLD &&
+	    control->mode == EXPERT_POLICY_PROTECT) {
+		count_stat(EXPERT_STAT_COLD_NATIVE);
+		return 0;
+	}
+
 	if (*class == EXPERT_BLOCK_SHARED) {
 		position = NV_GPU_PMM_POSITION_TAIL;
 		stat = EXPERT_STAT_SHARED_TAIL;
 	} else if (*class == EXPERT_BLOCK_HOT &&
-		   control->mode == EXPERT_POLICY_HOT_LIFO) {
+		   control->mode != EXPERT_POLICY_PAGE_LIFO) {
 		position = NV_GPU_PMM_POSITION_TAIL;
 		stat = EXPERT_STAT_HOT_TAIL;
 	} else {
@@ -172,10 +182,51 @@ int BPF_PROG(gpu_block_access,
 	     uvm_gpu_chunk_t *chunk,
 	     uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
+	u32 zero = 0;
+	struct expert_layout_control *control;
+	uvm_va_block_t *va_block;
+	u64 block_start;
+	u64 offset;
+	u32 index;
+	u8 *class;
+	u32 stat;
+	int ret;
+
 	(void)pmm;
-	(void)chunk;
-	(void)decision_ctx;
 	count_stat(EXPERT_STAT_ACCESS);
+	control = bpf_map_lookup_elem(&layout_control, &zero);
+	if (!control || control->mode != EXPERT_POLICY_PROTECT ||
+	    !control->ready || !control->blocks)
+		return 0;
+
+	va_block = BPF_CORE_READ(chunk, va_block);
+	if (!va_block)
+		return 0;
+	block_start = BPF_CORE_READ(va_block, start);
+	if (block_start < control->base)
+		return 0;
+	offset = block_start - control->base;
+	index = offset / EXPERT_BLOCK_BYTES;
+	if (index >= control->blocks)
+		return 0;
+
+	class = bpf_map_lookup_elem(&block_classes, &index);
+	if (!class)
+		return 0;
+	if (*class == EXPERT_BLOCK_HOT)
+		stat = EXPERT_STAT_HOT_ACCESS_TAIL;
+	else if (*class == EXPERT_BLOCK_SHARED)
+		stat = EXPERT_STAT_SHARED_ACCESS_TAIL;
+	else
+		return 0;
+
+	ret = bpf_gpu_request_reorder(decision_ctx,
+				      NV_GPU_PMM_DESTINATION_USED,
+				      NV_GPU_PMM_POSITION_TAIL);
+	if (ret)
+		count_stat(EXPERT_STAT_SETTER_FAILURE);
+	else
+		count_stat(stat);
 	return 0;
 }
 

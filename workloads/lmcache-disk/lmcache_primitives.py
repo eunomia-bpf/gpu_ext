@@ -64,7 +64,7 @@ CONFIGS = ("recompute", "lmcache_cpu", "lmcache_disk")
 FATAL_LOG_PATTERNS = (
     r"Traceback",
     r"CUDA error",
-    r"File not found",
+    r"(?<!Config )File not found",
     r"Cannot use O_DIRECT",
     r"Disk space under pressure",
     r"No eviction candidates",
@@ -808,7 +808,7 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
             if (len(warm["runtime_ids"]) != 1
                     or warm["request_totals"] != [warm_total]
                     or warm["hits"] != [expected]
-                    or warm["retrieved"] != [(expected, expected, warm_total)]):
+                    or warm["retrieved"] != [(expected, expected, expected)]):
                 raise GateError(f"exact warm hit/retrieval gate failed for {warm_id}: expected {expected}, got {warm}")
             request_evidence[warm_id] = warm
         if config == "lmcache_disk":

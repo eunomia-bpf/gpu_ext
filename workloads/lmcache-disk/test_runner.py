@@ -176,6 +176,12 @@ class HarnessTests(unittest.TestCase):
         ):
             self.assertTrue(any(runner.legacy.re.search(pattern, log, runner.legacy.re.I)
                                 for pattern in runner.legacy.FATAL_LOG_PATTERNS))
+        optional_tuning = "Using default MoE config. Config file not found at optional.json"
+        self.assertFalse(any(runner.legacy.re.search(pattern, optional_tuning, runner.legacy.re.I)
+                             for pattern in runner.legacy.FATAL_LOG_PATTERNS))
+        fatal_missing = "Required model File not found"
+        self.assertTrue(any(runner.legacy.re.search(pattern, fatal_missing, runner.legacy.re.I)
+                            for pattern in runner.legacy.FATAL_LOG_PATTERNS))
 
     def test_schedule_semantics_are_exact(self):
         schedule = json.loads(runner.SCHEDULE.read_text())

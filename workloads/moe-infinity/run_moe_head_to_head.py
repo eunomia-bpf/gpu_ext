@@ -621,8 +621,7 @@ def verify_loaded_uvm_interface() -> dict[str, Any]:
     if members != expected_members:
         raise GateError(f"loaded gpu_mem_ops member mismatch: {members}")
     required_kfuncs = (
-        "bpf_gpu_block_move_head",
-        "bpf_gpu_block_move_tail",
+        "bpf_gpu_request_reorder",
         "bpf_gpu_set_prefetch_region",
     )
     missing_kfuncs = [name for name in required_kfuncs if f"FUNC '{name}'" not in raw]

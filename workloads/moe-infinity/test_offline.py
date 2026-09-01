@@ -555,7 +555,7 @@ class RunnerTests(unittest.TestCase):
             dump = "[1] STRUCT 'gpu_mem_ops' size=48 vlen=6\n" + members + "".join(
                 f"[2] FUNC '{name}' type_id=1 linkage=static\n"
                 for name in (
-                    "bpf_gpu_block_move_head", "bpf_gpu_block_move_tail",
+                    "bpf_gpu_request_reorder",
                     "bpf_gpu_set_prefetch_region",
                 )
             )
@@ -565,7 +565,7 @@ class RunnerTests(unittest.TestCase):
                 observed = runner.verify_loaded_uvm_interface()
         self.assertEqual(observed["version"], runner.EXPECTED_DRIVER)
         self.assertEqual(len(observed["gpu_mem_ops_members"]), 6)
-        self.assertEqual(len(observed["required_kfuncs"]), 3)
+        self.assertEqual(len(observed["required_kfuncs"]), 2)
 
     def test_loaded_uvm_gate_rejects_stock_or_incomplete_module(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:

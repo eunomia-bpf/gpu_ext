@@ -346,12 +346,13 @@ def duplicate_fd(pid: int, target_fd: int) -> int:
         os.close(pidfd)
 
 
-def start_eviction_monitor(server_pid: int, class_table: Path,
-                           run_dir: Path) -> tuple[
-                               subprocess.Popen[Any], Any, Path, dict[str, Any]
-                           ]:
+def start_eviction_monitors(server_pid: int, class_table: Path,
+                            run_dir: Path) -> list[
+                                tuple[subprocess.Popen[Any], Any, Path, dict[str, Any]]
+                            ]:
     candidates = find_uvm_fds(server_pid)
     failures = []
+    admitted = []
     for pid, target_fd in candidates:
         path = run_dir / f"evictions-fd-{target_fd}.jsonl"
         log = path.open("x", buffering=1)
@@ -370,7 +371,7 @@ def start_eviction_monitor(server_pid: int, class_table: Path,
             ready = wait_event(process, path, "ready", 5)
             ready.update(source_pid=pid, source_fd=target_fd,
                          candidate_fds=[list(item) for item in candidates])
-            return process, log, path, ready
+            admitted.append((process, log, path, ready))
         except Exception as exc:
             failures.append({"pid": pid, "fd": target_fd, "error": str(exc)})
             stop_group(process)
@@ -378,7 +379,9 @@ def start_eviction_monitor(server_pid: int, class_table: Path,
         finally:
             if inherited_fd >= 0:
                 os.close(inherited_fd)
-    raise GateError(f"no owned UVM fd admitted the eviction monitor: {failures}")
+    if not admitted:
+        raise GateError(f"no owned UVM fd admitted the eviction monitor: {failures}")
+    return admitted
 
 
 def start_policy(mode: str, class_table: Path,
@@ -420,6 +423,7 @@ def run_cell(config: str, run_dir: Path, port: int,
              prompts: dict[str, Any], prompt_order: list[int]) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
     trace = server = policy = monitor = None
+    candidate_monitors = []
     trace_log = server_log = policy_log = monitor_log = None
     trace_path = run_dir / "trace.jsonl"
     server_path = run_dir / "server.log"
@@ -459,13 +463,32 @@ def run_cell(config: str, run_dir: Path, port: int,
             policy, policy_log, policy_path = start_policy("protect", class_table, run_dir)
         else:
             policy_path = None
-        monitor, monitor_log, eviction_path, monitor_ready = start_eviction_monitor(
-            server.pid, class_table, run_dir
-        )
+        candidate_monitors = start_eviction_monitors(server.pid, class_table, run_dir)
 
         warmup = completion(port, prompts["records"][0]["prompt_token_ids"],
                             run_dir / "warmup.json")
         time.sleep(1.1)
+        active_monitors = []
+        for item in candidate_monitors:
+            stats = latest_event(item[2], "eviction_stats")
+            if int(stats["evictions"]) > 0:
+                active_monitors.append(item)
+        if len(active_monitors) != 1:
+            observed = [
+                {"ready": item[3], "stats": latest_event(item[2], "eviction_stats")}
+                for item in candidate_monitors
+            ]
+            raise GateError(
+                f"expected one event-producing UVM fd after warm-up, found "
+                f"{len(active_monitors)}: {observed}"
+            )
+        monitor, monitor_log, eviction_path, monitor_ready = active_monitors[0]
+        for item in candidate_monitors:
+            if item is active_monitors[0]:
+                continue
+            stop_group(item[0])
+            item[1].close()
+        candidate_monitors = []
         policy_before = latest_event(policy_path, "policy_stats") if policy_path else None
         eviction_before = latest_event(eviction_path, "eviction_stats")
         passes = []
@@ -541,11 +564,15 @@ def run_cell(config: str, run_dir: Path, port: int,
     finally:
         stop_group(policy)
         stop_group(monitor)
+        for candidate in candidate_monitors:
+            stop_group(candidate[0])
         stop_group(trace)
         stop_group(server, 120)
         for stream in (policy_log, monitor_log, trace_log, server_log):
             if stream is not None:
                 stream.close()
+        for candidate in candidate_monitors:
+            candidate[1].close()
         if server_path.exists():
             validate_server_log(server_path)
         if struct_ops_maps():
@@ -619,7 +646,7 @@ def run_correctness(attempt: int, port: int) -> dict[str, Any]:
         }
         atomic_write_json(output / "status.json", final)
         return final
-    except Exception as exc:
+    except BaseException as exc:
         atomic_write_json(output / "status.json", {
             "status": "failed", "attempt": attempt, "error_type": type(exc).__name__,
             "error": str(exc), "completed_ns": time.time_ns(),
@@ -643,7 +670,7 @@ def main() -> int:
             else:
                 print(json.dumps(run_correctness(args.attempt, args.port), sort_keys=True))
         return 0
-    except Exception as exc:
+    except BaseException as exc:
         print(json.dumps({"status": "failed", "error_type": type(exc).__name__,
                           "error": str(exc)}, sort_keys=True))
         return 1

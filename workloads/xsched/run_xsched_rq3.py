@@ -222,6 +222,8 @@ def base_env() -> dict[str, str]:
     for key in list(env):
         if key.startswith("XSCHED_"):
             env.pop(key)
+    for key in ("LD_PRELOAD", "LD_LIBRARY_PATH"):
+        env.pop(key, None)
     return env
 
 
@@ -266,6 +268,31 @@ def workload_env(config: str, role: str) -> dict[str, str]:
     return env
 
 
+def clock_calibration() -> dict[str, int]:
+    completed = subprocess.run(
+        [str(HERE / "build" / "priority_workload"), "--clock-probe"],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=base_env(),
+    )
+    lines = [line for line in completed.stdout.splitlines() if line.strip()]
+    if len(lines) != 1:
+        raise RuntimeError(f"clock probe emitted unexpected output: {completed.stdout!r}")
+    record = json.loads(lines[0])
+    if record.get("event") != "clock_probe":
+        raise RuntimeError(f"clock probe emitted the wrong event: {record}")
+    required = ("offset_ns", "offset_low_ns", "offset_high_ns", "uncertainty_ns")
+    if any(not isinstance(record.get(name), int) for name in required):
+        raise RuntimeError(f"clock probe fields are invalid: {record}")
+    if not record["offset_low_ns"] <= record["offset_ns"] <= record["offset_high_ns"]:
+        raise RuntimeError(f"clock probe offset is outside its bracket: {record}")
+    if record["uncertainty_ns"] > 1_000_000:
+        raise RuntimeError(f"clock probe uncertainty exceeds 1 ms: {record}")
+    return record
+
+
 def write_process_log(path: Path, process: ManagedProcess) -> None:
     path.write_text(json.dumps({
         "name": process.name, "command": process.proc.args, "returncode": process.proc.returncode,
@@ -277,6 +304,7 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
                   threads: int, timeout: float) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
     cpus = allowed_cpus(10)
+    clock = clock_calibration()
     policies = start_policy(config, cpus, run_dir)
     workers: list[ManagedProcess] = []
     try:
@@ -284,7 +312,8 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
         for index, (role, process_id) in enumerate(shapes):
             binary = HERE / "build" / ("bench_lc" if role == "lc" else "bench_be")
             command = [str(binary), role, str(process_id), "4", str(tasks), str(reps),
-                       str(blocks), str(threads), "1" if role == "be" else "0"]
+                       str(blocks), str(threads), "1" if role == "be" else "0",
+                       str(clock["offset_ns"])]
             workers.append(ManagedProcess(f"{role}{process_id}", command,
                                           workload_env(config, role), cpus[2:]))
         for worker in workers:
@@ -391,6 +420,7 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
         "lc_completion_p99_us": percentile(lc_completion, 0.99),
         "be_throughput_kernels_s": be_count / ((be_end_ns - be_release_ns) / 1e9),
         "outputs_validated_per_process": expected_values,
+        "clock_calibration": clock,
         "engagement": engagement,
     }
     (run_dir / "result.json").write_text(json.dumps(result, indent=2) + "\n")
@@ -404,11 +434,12 @@ def calibrate_reps(root: Path, initial_reps: int, blocks: int, threads: int,
     reps = initial_reps
     attempts = []
     cpu = allowed_cpus(1)[0]
+    clock = clock_calibration()
     for attempt in range(5):
         worker = ManagedProcess(
             f"calibration-{attempt}",
             [str(HERE / "build" / "priority_workload"), "lc", "1", "1", "1",
-             str(reps), str(blocks), str(threads), "0"],
+             str(reps), str(blocks), str(threads), "0", str(clock["offset_ns"])],
             base_env(), cpu,
         )
         try:
@@ -432,6 +463,7 @@ def calibrate_reps(root: Path, initial_reps: int, blocks: int, threads: int,
     if not 76.0 <= attempts[-1]["duration_ms"] <= 84.0:
         raise RuntimeError(f"could not tune a kernel to 80 ms: {attempts}")
     record = {"target_ms": 80.0, "tolerance_ms": 4.0, "frozen_reps": reps,
+              "clock_calibration": clock,
               "blocks": blocks, "threads": threads, "attempts": attempts}
     (root / "calibration.json").write_text(json.dumps(record, indent=2) + "\n")
     return record
@@ -441,9 +473,11 @@ def execute_isolated(role: str, run_dir: Path, reps: int, tasks: int, blocks: in
                      threads: int, timeout: float) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
     binary = HERE / "build" / ("bench_lc" if role == "lc" else "bench_be")
+    clock = clock_calibration()
     worker = ManagedProcess(
         f"isolated-{role}",
-        [str(binary), role, "1", "4", str(tasks), str(reps), str(blocks), str(threads), "0"],
+        [str(binary), role, "1", "4", str(tasks), str(reps), str(blocks), str(threads),
+         "0", str(clock["offset_ns"])],
         base_env(), allowed_cpus(1)[0],
     )
     try:
@@ -462,6 +496,7 @@ def execute_isolated(role: str, run_dir: Path, reps: int, tasks: int, blocks: in
         "control": f"isolated-{role}", "samples": len(latencies),
         "outputs_validated": result["outputs_validated"],
         "completion_host_ns": result["completion_host_ns"],
+        "clock_calibration": clock,
         "throughput_kernels_s": len(latencies) / ((result["completion_host_ns"] - release_ns) / 1e9),
         "p99_us": percentile(latencies, 0.99),
     }

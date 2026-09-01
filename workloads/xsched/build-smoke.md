@@ -25,6 +25,34 @@
 This is a build-only smoke test, not evidence that interception, suspension,
 or a paper workload works on the RTX 5090.
 
+## Finite runtime smoke
+
+On 2026-09-01, a minimal finite run exposed the clock-domain defect already
+identified in the closed experiment review: a CUPTI timestamp taken before a
+launch was about 287 ms ahead of the kernel's `%globaltimer` timestamp. The
+kernel itself completed and all 32 computed values passed the host recurrence
+check, but the old direct subtraction correctly rejected the timestamp.
+
+The harness now runs a 16-sample clock probe in a separate CUDA process and
+selects the narrowest host-before/device/host-after bracket. The runner invokes
+this probe before starting XSched or a gpubpf policy, then supplies the measured
+CUPTI-to-`%globaltimer` offset to every workload process. The first repaired
+native smoke bounded the selected offset to within 2,557 ns and completed one
+kernel with all 32 outputs validated. Its mapped submission preceded device
+entry by 85,491 ns.
+
+A second finite smoke exercised XSched's official CUDA shim and global HPF
+server with one high-priority process. Two kernels completed, all 64 outputs
+passed the recurrence check, and the process audit reported one Level-1 XQueue
+with priority 1, threshold 16, and batch size 8. The server independently
+logged creation, priority assignment, and destruction of that queue. No
+suspend or resume was expected with only one client, and none was observed.
+
+These are code-path and interception smokes only. They do not establish
+preemption engagement, tail latency, throughput, or a gpubpf comparison. The
+closed paper experiment remains closed, and the currently loaded driver still
+lacks the gpubpf scheduling hooks required for a three-way run.
+
 ## Supported-driver preparation
 
 The gpubpf-enabled 575.57.08 open-kernel source now builds all five modules for

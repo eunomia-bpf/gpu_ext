@@ -59,6 +59,14 @@ __global__ void compute_task(TaskStamp *stamps, float *sink, int task,
     }
 }
 
+__global__ void capture_globaltimer(unsigned long long *value)
+{
+    if (blockIdx.x == 0 && threadIdx.x == 0) {
+        *value = globaltimer_ns();
+        __threadfence_system();
+    }
+}
+
 [[noreturn]] void fail(const char *what, const char *detail)
 {
     std::fprintf(stderr, "fatal: %s: %s\n", what, detail);
@@ -94,6 +102,86 @@ unsigned long long parse_u64(const char *text, const char *name)
     return value;
 }
 
+int parse_positive_int(const char *text, const char *name)
+{
+    const unsigned long long value = parse_u64(text, name);
+    if (value > static_cast<unsigned long long>(std::numeric_limits<int>::max()))
+        fail(name, "value exceeds INT_MAX");
+    return static_cast<int>(value);
+}
+
+size_t checked_multiply(size_t left, size_t right, const char *name)
+{
+    if (right != 0 && left > std::numeric_limits<size_t>::max() / right)
+        fail(name, "size multiplication overflow");
+    return left * right;
+}
+
+long long parse_i64(const char *text, const char *name)
+{
+    char *end = nullptr;
+    errno = 0;
+    long long value = std::strtoll(text, &end, 10);
+    if (errno || end == text || *end != '\0') fail(name, "expected an integer");
+    return value;
+}
+
+uint64_t apply_clock_offset(uint64_t timestamp, long long offset)
+{
+    if (offset < 0) {
+        const uint64_t magnitude = static_cast<uint64_t>(-(offset + 1)) + 1;
+        if (magnitude > timestamp) fail("clock offset", "negative offset underflow");
+        return timestamp - magnitude;
+    }
+    const uint64_t magnitude = static_cast<uint64_t>(offset);
+    if (timestamp > std::numeric_limits<uint64_t>::max() - magnitude)
+        fail("clock offset", "positive offset overflow");
+    return timestamp + magnitude;
+}
+
+int run_clock_probe()
+{
+    check_cuda(cudaSetDeviceFlags(cudaDeviceMapHost), "cudaSetDeviceFlags");
+    check_cuda(cudaSetDevice(0), "cudaSetDevice");
+    unsigned long long *host_value = nullptr;
+    unsigned long long *device_value = nullptr;
+    check_cuda(cudaHostAlloc(&host_value, sizeof(*host_value), cudaHostAllocMapped),
+               "cudaHostAlloc clock probe");
+    check_cuda(cudaHostGetDevicePointer(&device_value, host_value, 0),
+               "cudaHostGetDevicePointer clock probe");
+    check_cuda(cudaFree(nullptr), "CUDA context initialization");
+
+    long long best_low = 0;
+    long long best_high = 0;
+    uint64_t best_width = std::numeric_limits<uint64_t>::max();
+    for (int sample = 0; sample < 16; ++sample) {
+        *host_value = 0;
+        uint64_t before = 0;
+        uint64_t after = 0;
+        check_cupti(cuptiGetTimestamp(&before), "cuptiGetTimestamp before probe");
+        capture_globaltimer<<<1, 1>>>(device_value);
+        check_cuda(cudaPeekAtLastError(), "capture_globaltimer launch");
+        check_cuda(cudaDeviceSynchronize(), "capture_globaltimer synchronize");
+        check_cupti(cuptiGetTimestamp(&after), "cuptiGetTimestamp after probe");
+        if (*host_value == 0 || after < before) fail("clock probe", "invalid timestamps");
+        const long long low = static_cast<long long>(*host_value) - static_cast<long long>(after);
+        const long long high = static_cast<long long>(*host_value) - static_cast<long long>(before);
+        const uint64_t width = static_cast<uint64_t>(high - low);
+        if (width < best_width) {
+            best_low = low;
+            best_high = high;
+            best_width = width;
+        }
+    }
+    const long long offset = best_low + (best_high - best_low) / 2;
+    std::cout << "{\"event\":\"clock_probe\",\"offset_ns\":" << offset
+              << ",\"offset_low_ns\":" << best_low
+              << ",\"offset_high_ns\":" << best_high
+              << ",\"uncertainty_ns\":" << (best_width + 1) / 2 << "}" << std::endl;
+    check_cuda(cudaFreeHost(host_value), "cudaFreeHost clock probe");
+    return 0;
+}
+
 std::string read_command()
 {
     std::string command;
@@ -105,22 +193,25 @@ std::string read_command()
 
 int main(int argc, char **argv)
 {
-    if (argc != 9) {
+    if (argc == 2 && std::strcmp(argv[1], "--clock-probe") == 0) return run_clock_probe();
+    if (argc != 10) {
         std::fprintf(stderr,
-            "usage: %s ROLE PROCESS_ID STREAMS TASKS REPS BLOCKS THREADS WAIT_FOR_START\n", argv[0]);
+            "usage: %s ROLE PROCESS_ID STREAMS TASKS REPS BLOCKS THREADS "
+            "WAIT_FOR_START CLOCK_OFFSET_NS\n", argv[0]);
         return 2;
     }
     const std::string role = argv[1];
     if (role != "lc" && role != "be") fail("ROLE", "must be lc or be");
-    const int process_id = static_cast<int>(parse_u64(argv[2], "PROCESS_ID"));
-    const int stream_count = static_cast<int>(parse_u64(argv[3], "STREAMS"));
-    const int tasks_per_stream = static_cast<int>(parse_u64(argv[4], "TASKS"));
+    const int process_id = parse_positive_int(argv[2], "PROCESS_ID");
+    const int stream_count = parse_positive_int(argv[3], "STREAMS");
+    const int tasks_per_stream = parse_positive_int(argv[4], "TASKS");
     const unsigned long long reps = parse_u64(argv[5], "REPS");
-    const int grid_blocks = static_cast<int>(parse_u64(argv[6], "BLOCKS"));
-    const int threads = static_cast<int>(parse_u64(argv[7], "THREADS"));
+    const int grid_blocks = parse_positive_int(argv[6], "BLOCKS");
+    const int threads = parse_positive_int(argv[7], "THREADS");
     if (std::strcmp(argv[8], "0") != 0 && std::strcmp(argv[8], "1") != 0)
         fail("WAIT_FOR_START", "must be 0 or 1");
     const bool wait_for_start = std::strcmp(argv[8], "1") == 0;
+    const long long clock_offset_ns = parse_i64(argv[9], "CLOCK_OFFSET_NS");
     if (stream_count > 16 || tasks_per_stream > 1000 || threads > 1024) fail("shape", "out of range");
 
     check_cuda(cudaSetDeviceFlags(cudaDeviceMapHost), "cudaSetDeviceFlags");
@@ -137,7 +228,10 @@ int main(int argc, char **argv)
     for (int i = 0; i < total_tasks; ++i) host_stamps[i] = {~0ULL, 0, 0, 0};
     check_cuda(cudaHostGetDevicePointer(&device_stamps, host_stamps, 0), "cudaHostGetDevicePointer");
 
-    const size_t sink_count = static_cast<size_t>(total_tasks) * grid_blocks * threads;
+    const size_t sink_count = checked_multiply(
+        checked_multiply(static_cast<size_t>(total_tasks), static_cast<size_t>(grid_blocks),
+                         "sink"),
+        static_cast<size_t>(threads), "sink");
     if (sink_count > (1ULL << 29)) fail("sink", "allocation would exceed safety cap");
     float *device_sink = nullptr;
     check_cuda(cudaMalloc(&device_sink, sink_count * sizeof(float)), "cudaMalloc sink");
@@ -201,26 +295,41 @@ int main(int argc, char **argv)
 
     uint64_t min_queue_ns = std::numeric_limits<uint64_t>::max();
     uint64_t max_queue_ns = 0;
+    std::vector<uint64_t> submit_gpu_ns(total_tasks);
+    for (int i = 0; i < total_tasks; ++i) {
+        const auto &stamp = host_stamps[i];
+        submit_gpu_ns[i] = apply_clock_offset(submit_ns[i], clock_offset_ns);
+        if (stamp.started != 1 || stamp.blocks_done != static_cast<unsigned int>(grid_blocks)
+            || stamp.entry_ns < submit_gpu_ns[i] || stamp.exit_ns < stamp.entry_ns) {
+            std::fprintf(stderr,
+                "fatal: timestamp/correctness: task=%d submit_cupti_ns=%llu "
+                "submit_gpu_ns=%llu entry_ns=%llu exit_ns=%llu started=%u "
+                "blocks_done=%u expected_blocks=%d clock_offset_ns=%lld\n",
+                i, static_cast<unsigned long long>(submit_ns[i]),
+                static_cast<unsigned long long>(submit_gpu_ns[i]), stamp.entry_ns,
+                stamp.exit_ns, stamp.started, stamp.blocks_done, grid_blocks,
+                clock_offset_ns);
+            return 2;
+        }
+    }
     std::cout << "{\"event\":\"result\",\"role\":\"" << role
               << "\",\"process_id\":" << process_id
               << ",\"completion_host_ns\":" << completion_host_ns
               << ",\"outputs_validated\":" << host_sink.size() << ",\"samples\":[";
     for (int i = 0; i < total_tasks; ++i) {
         const auto &stamp = host_stamps[i];
-        if (stamp.started != 1 || stamp.blocks_done != static_cast<unsigned int>(grid_blocks)
-            || stamp.entry_ns < submit_ns[i] || stamp.exit_ns < stamp.entry_ns) {
-            fail("timestamp/correctness", "invalid task stamp");
-        }
-        const uint64_t queue_ns = stamp.entry_ns - submit_ns[i];
+        const uint64_t queue_ns = stamp.entry_ns - submit_gpu_ns[i];
         min_queue_ns = std::min(min_queue_ns, queue_ns);
         max_queue_ns = std::max(max_queue_ns, queue_ns);
         if (i) std::cout << ',';
-        std::cout << "{\"submit_ns\":" << submit_ns[i]
+        std::cout << "{\"submit_ns\":" << submit_gpu_ns[i]
+                  << ",\"submit_cupti_ns\":" << submit_ns[i]
                   << ",\"entry_ns\":" << stamp.entry_ns
                   << ",\"exit_ns\":" << stamp.exit_ns << '}';
     }
     std::cout << "],\"min_queue_ns\":" << min_queue_ns
-              << ",\"max_queue_ns\":" << max_queue_ns << "}" << std::endl;
+              << ",\"max_queue_ns\":" << max_queue_ns
+              << ",\"clock_offset_ns\":" << clock_offset_ns << "}" << std::endl;
 
     for (auto stream : streams) check_cuda(cudaStreamDestroy(stream), "cudaStreamDestroy");
     check_cuda(cudaFree(device_sink), "cudaFree");

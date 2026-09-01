@@ -17,6 +17,22 @@ SPEC.loader.exec_module(runner)
 
 
 class HarnessTests(unittest.TestCase):
+    def test_prefix_limited_cell_slices_only_after_full_prompt_load(self):
+        prompts = {"prefixes": [{"index": index} for index in range(runner.PREFIXES)]}
+        with (
+            patch.object(runner, "inspect_environment", return_value={"model_path": "/model"}),
+            patch.object(runner, "load_prompts", return_value=prompts) as load,
+            patch.object(runner.legacy, "run_config", return_value={"status": "ok"}) as run,
+        ):
+            self.assertEqual(
+                runner.run_cell("lmcache_disk", Path("/output"), 18080, False, 1),
+                {"status": "ok"},
+            )
+        load.assert_called_once_with(runner.PROMPTS)
+        self.assertEqual(len(run.call_args.args[2]["prefixes"]), 1)
+        with self.assertRaises(runner.GateError):
+            runner.run_cell("lmcache_disk", Path("/output"), 18080, False, 0)
+
     def test_all_cells_share_runtime_repair(self):
         for config in runner.CONFIGS:
             env = runner.server_environment(config, Path("/cache"))
@@ -47,17 +63,19 @@ class HarnessTests(unittest.TestCase):
         )
         self.assertEqual(
             runner.request_log_values(log, request_id),
-            {"hits": [1536], "stores": [(1536, 1550)], "retrieved": [(1536, 1536, 1550)]},
+            {"request_totals": [1550], "hits": [1536],
+             "stores": [(1536, 1550)], "retrieved": [(1536, 1536, 1550)]},
         )
 
     def test_retrieval_parser_preserves_denominators(self):
         request_id = "cmpl-lmc-p0-warm-0"
         log = (
-            f"Reqid: {request_id}, LMCache hit tokens: 1536\n"
+            f"Reqid: {request_id}, Total tokens 1549, LMCache hit tokens: 1536\n"
             f"[req_id={request_id}] Retrieved 1536 out of 512 required tokens "
             "(from 1549 total tokens)."
         )
         values = runner.request_log_values(log, request_id)
+        self.assertEqual(values["request_totals"], [1549])
         self.assertEqual(values["retrieved"], [(1536, 512, 1549)])
 
     def test_odirect_requires_every_pt_open(self):
@@ -173,8 +191,9 @@ class HarnessTests(unittest.TestCase):
 
     def test_store_state_is_recomputed_for_each_prefix(self):
         request_evidence = {
+            "request_totals": [1540],
             "hits": [0],
-            "stores": [(1536, 1540)],
+            "stores": [(1536, 1536)],
             "retrieved": [],
         }
         self.assertEqual(

@@ -62,12 +62,16 @@ def inspect_environment(port: int, storage_root: Path) -> dict[str, Any]:
     return legacy.admission(port, require_model=True, storage_path=storage_root)
 
 
-def run_cell(config: str, output: Path, port: int, trace: bool) -> dict[str, Any]:
+def run_cell(config: str, output: Path, port: int, trace: bool,
+             prefix_limit: int = PREFIXES) -> dict[str, Any]:
     """Run one cell through the official vLLM serve path and retain raw output."""
     if config not in CONFIGS:
         raise GateError(f"unknown configuration: {config}")
+    if not 1 <= prefix_limit <= PREFIXES:
+        raise GateError(f"prefix limit must be between 1 and {PREFIXES}")
     observations = inspect_environment(port, output)
     prompts = load_prompts(PROMPTS)
+    prompts = {**prompts, "prefixes": prompts["prefixes"][:prefix_limit]}
     result = legacy.run_config(
         config,
         output,
@@ -211,9 +215,13 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     prompts = load_prompts(PROMPTS)
     log = log_path.read_text(errors="replace")
     observations = result.get("observations")
-    if not isinstance(observations, list) or len(observations) != PREFIXES:
-        raise GateError(f"expected {PREFIXES} observations under {run_dir}")
-    for item, observation in zip(prompts["prefixes"], observations, strict=True):
+    prefix_count = result.get("prefix_count", PREFIXES)
+    if (not isinstance(prefix_count, int) or isinstance(prefix_count, bool)
+            or not 1 <= prefix_count <= PREFIXES):
+        raise GateError(f"invalid prefix_count under {run_dir}: {prefix_count}")
+    if not isinstance(observations, list) or len(observations) != prefix_count:
+        raise GateError(f"expected {prefix_count} observations under {run_dir}")
+    for item, observation in zip(prompts["prefixes"][:prefix_count], observations, strict=True):
         index = item["index"]
         if (
             observation.get("prefix_index") != index
@@ -245,7 +253,9 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
         raise GateError(f"saved and recomputed engagement differ under {run_dir}")
     footprint = result.get("cache_footprint", {})
     if config == "lmcache_disk":
-        if footprint != {"files": 48, "bytes": EXPECTED_DISK_BYTES}:
+        expected_files = prefix_count * CHUNKS_PER_PREFIX
+        expected_bytes = expected_files * KV_CHUNK_BYTES
+        if footprint != {"files": expected_files, "bytes": expected_bytes}:
             raise GateError(f"disk footprint mismatch under {run_dir}: {footprint}")
     elif footprint != {"files": 0, "bytes": 0}:
         raise GateError(f"non-disk cell wrote disk chunks under {run_dir}: {footprint}")
@@ -255,9 +265,9 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     if require_trace:
         if config != "lmcache_disk" or not trace_dir.is_dir():
             raise GateError("trace validation requires a traced lmcache_disk cell")
-        trace = validate_odirect(trace_dir, cache_dir)
+        trace = validate_odirect(trace_dir, cache_dir, prefix_count)
     elif trace_dir.exists():
-        trace = validate_odirect(trace_dir, cache_dir)
+        trace = validate_odirect(trace_dir, cache_dir, prefix_count)
     if result.get("odirect") != trace:
         raise GateError(f"saved and recomputed trace semantics differ under {run_dir}")
     launch = result.get("launch_command")
@@ -275,16 +285,16 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     elapsed = warm_phase.get("elapsed_s")
     if (
         warm_phase.get("sequential") is not True
-        or warm_phase.get("requests") != PREFIXES
-        or warm_phase.get("output_tokens") != PREFIXES * OUTPUT_TOKENS
+        or warm_phase.get("requests") != prefix_count
+        or warm_phase.get("output_tokens") != prefix_count * OUTPUT_TOKENS
         or warm_phase.get("excludes")
         != ["server startup", "cold population", "persistence barriers", "shutdown"]
         or not isinstance(elapsed, (int, float))
         or not math.isfinite(elapsed)
         or elapsed <= 0
-        or not math.isclose(warm_phase.get("requests_per_s", -1), PREFIXES / elapsed, rel_tol=1e-12)
+        or not math.isclose(warm_phase.get("requests_per_s", -1), prefix_count / elapsed, rel_tol=1e-12)
         or not math.isclose(
-            warm_phase.get("output_tokens_per_s", -1), PREFIXES * OUTPUT_TOKENS / elapsed,
+            warm_phase.get("output_tokens_per_s", -1), prefix_count * OUTPUT_TOKENS / elapsed,
             rel_tol=1e-12,
         )
     ):
@@ -507,6 +517,7 @@ def main() -> int:
     cell.add_argument("--output", type=Path, required=True)
     cell.add_argument("--port", type=int, default=18080)
     cell.add_argument("--trace", action="store_true")
+    cell.add_argument("--prefix-limit", type=int, default=PREFIXES)
     validate = sub.add_parser("validate-cell")
     validate.add_argument("run_dir", type=Path)
     validate.add_argument("--require-trace", action="store_true")
@@ -521,7 +532,7 @@ def main() -> int:
         elif args.command == "prepare-prompts":
             value = prepare_prompts(args.output)
         elif args.command == "run-cell":
-            value = run_cell(args.config, args.output, args.port, args.trace)
+            value = run_cell(args.config, args.output, args.port, args.trace, args.prefix_limit)
         elif args.command == "validate-cell":
             value = validate_cell(args.run_dir, args.require_trace)
         elif args.command == "compare-outputs":

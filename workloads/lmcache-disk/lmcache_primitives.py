@@ -621,6 +621,8 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
 
 def request_log_values(log: str, request_id: str) -> dict[str, Any]:
     q = re.escape(request_id)
+    request_totals = [int(value) for value in re.findall(
+        rf"Reqid:\s*{q},\s*Total tokens\s+(\d+)", log)]
     hits = [None if value == "None" else int(value) for value in re.findall(
         rf"Reqid:\s*{q},[^\n]*LMCache hit tokens:\s*(None|\d+)", log)]
     stores = [(int(a), int(b)) for a, b in re.findall(
@@ -628,7 +630,8 @@ def request_log_values(log: str, request_id: str) -> dict[str, Any]:
     retrieved = [(int(a), int(b), int(c)) for a, b, c in re.findall(
         rf"\[req_id={q}\] Retrieved\s+(\d+) out of\s+(\d+) required tokens"
         rf"\s*\(from\s+(\d+) total tokens\)", log)]
-    return {"hits": hits, "stores": stores, "retrieved": retrieved}
+    return {"request_totals": request_totals, "hits": hits,
+            "stores": stores, "retrieved": retrieved}
 
 
 def disk_files(cache_dir: Path) -> list[Path]:
@@ -689,7 +692,8 @@ def wait_for_cold_store(config: str, log_path: Path, cache_dir: Path, engine_req
     while time.monotonic() < deadline:
         log = log_path.read_text(errors="replace")
         values = request_log_values(log, engine_request_id)
-        if values["stores"] == [(expected_store_tokens, prompt_tokens)]:
+        if (values["request_totals"] == [prompt_tokens]
+                and values["stores"] == [(expected_store_tokens, expected_store_tokens)]):
             break
         time.sleep(1)
     else:
@@ -703,7 +707,8 @@ def wait_for_cold_store(config: str, log_path: Path, cache_dir: Path, engine_req
     return {**state, "request_log": values}
 
 
-def validate_odirect(trace_dir: Path, cache_dir: Path) -> dict[str, Any]:
+def validate_odirect(trace_dir: Path, cache_dir: Path,
+                     prefix_count: int = PREFIXES) -> dict[str, Any]:
     relevant = []
     for path in sorted(trace_dir.glob("open.trace*")):
         for line_no, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
@@ -726,7 +731,9 @@ def validate_odirect(trace_dir: Path, cache_dir: Path) -> dict[str, Any]:
         raise GateError(f"O_DIRECT .pt path escaped current cache directory {cache_root}: {escaped[:8]}")
     writes = [x for x in relevant if "O_WRONLY" in x["text"] or "O_RDWR" in x["text"]]
     reads = [x for x in relevant if "O_RDONLY" in x["text"] or "O_RDWR" in x["text"]]
-    expected = PREFIXES * CHUNKS_PER_PREFIX
+    if not 1 <= prefix_count <= PREFIXES:
+        raise GateError(f"invalid O_DIRECT prefix count: {prefix_count}")
+    expected = prefix_count * CHUNKS_PER_PREFIX
     write_paths = {str(Path(x["cache_path"]).resolve(strict=False)) for x in writes}
     read_paths = {str(Path(x["cache_path"]).resolve(strict=False)) for x in reads}
     if len(write_paths) != expected or len(read_paths) != expected or write_paths != read_paths:
@@ -770,13 +777,16 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
             cold_total = int(item["cold"]["usage"]["prompt_tokens"])
             if len(cold["hits"]) != 1 or cold["hits"][0] not in (0, None):
                 raise GateError(f"cold hit gate failed for {cold_id}: {cold}")
-            if cold["stores"] != [(expected, cold_total)]:
+            if (cold["request_totals"] != [cold_total]
+                    or cold["stores"] != [(expected, expected)]):
                 raise GateError(
                     f"exact cold store gate failed for {cold_id}: "
-                    f"expected {(expected, cold_total)}, got {cold['stores']}"
+                    f"expected request total {cold_total} and store {(expected, expected)}, "
+                    f"got {cold}"
                 )
             warm_total = int(item["warm"]["usage"]["prompt_tokens"])
-            if (warm["hits"] != [expected]
+            if (warm["request_totals"] != [warm_total]
+                    or warm["hits"] != [expected]
                     or warm["retrieved"] != [(expected, expected, warm_total)]):
                 raise GateError(f"exact warm hit/retrieval gate failed for {warm_id}: expected {expected}, got {warm}")
             request_evidence[warm_id] = warm
@@ -786,8 +796,9 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
                     raise GateError(f"disk engagement evidence missing: {needle}")
             if re.search(r"['\"]local_cpu['\"]\s*:\s*True", log):
                 raise GateError("disk-only mode unexpectedly enabled local CPU retention")
-            final = sync_and_verify_disk(cache_dir, PREFIXES * CHUNKS_PER_PREFIX)
-            if final["bytes"] != EXPECTED_DISK_BYTES:
+            expected_bytes = len(observations) * CHUNKS_PER_PREFIX * KV_CHUNK_BYTES
+            final = sync_and_verify_disk(cache_dir, len(observations) * CHUNKS_PER_PREFIX)
+            if final["bytes"] != expected_bytes:
                 raise GateError(f"disk footprint mismatch: {final}")
     return {"request_evidence": request_evidence, "native_prefix_rates": prefix_rate}
 
@@ -795,6 +806,9 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
 def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
                model_path: Path, trace: bool = False,
                recorded_environment: dict[str, Any] | None = None) -> dict[str, Any]:
+    prefix_count = len(prompts.get("prefixes", []))
+    if not 1 <= prefix_count <= PREFIXES:
+        raise GateError(f"run requires between 1 and {PREFIXES} prefixes")
     run_dir.mkdir(parents=True, exist_ok=False)
     if recorded_environment is not None:
         atomic_write_json(run_dir / "environment.json", recorded_environment)
@@ -826,14 +840,15 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
             wait_gpu_idle()
     log = log_path.read_text(errors="replace")
     engagement = validate_log(config, log, observations, cache_dir)
-    odirect = validate_odirect(trace_dir, cache_dir) if trace_dir is not None else None
+    odirect = validate_odirect(trace_dir, cache_dir, prefix_count) if trace_dir is not None else None
     warm_elapsed_s = (warm_end - warm_start) / 1e9
     warm_tokens = sum(int(x["warm"]["usage"]["completion_tokens"]) for x in observations)
     result = {
-        "schema": 2, "config": config, "command": argv, "launch_command": launch,
+        "schema": 2, "config": config, "prefix_count": prefix_count,
+        "command": argv, "launch_command": launch,
         "environment": server_environment(config, cache_dir),
-        "warm_phase": {"sequential": True, "requests": PREFIXES, "output_tokens": warm_tokens,
-                       "elapsed_s": warm_elapsed_s, "requests_per_s": PREFIXES / warm_elapsed_s,
+        "warm_phase": {"sequential": True, "requests": prefix_count, "output_tokens": warm_tokens,
+                       "elapsed_s": warm_elapsed_s, "requests_per_s": prefix_count / warm_elapsed_s,
                        "output_tokens_per_s": warm_tokens / warm_elapsed_s,
                        "excludes": ["server startup", "cold population", "persistence barriers", "shutdown"]},
         "observations": observations, "engagement": engagement, "odirect": odirect,

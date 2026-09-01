@@ -2,10 +2,11 @@
 
 Date: 2026-08-31
 
-Disposition: `PASS` for offline production integration, kernel-native test
-construction, BPF fixture construction, and builds. Phase B remains `PARTIAL`
-because neither the kernel-native ioctl nor the seven verifier fixtures has
-run against a safely loaded custom module.
+Disposition: `PASS` for PMM production integration and its first live
+preflight. The kernel-native ioctl passed, the PMM setter fixture was admitted,
+and the hidden-write fixture was rejected with `-EACCES`. Phase B remains
+`PARTIAL` because the five scheduler fixtures still require the display-owned
+core module to be replaced with its BTF-enabled build.
 
 Independent review: [phase-b-pmm-review.md](phase-b-pmm-review.md).
 
@@ -57,8 +58,8 @@ foreign PMM/root identity; `FREE`, `EVICTION`, `NONE`, and `LAZY_FREE`; and
 post-native activate behavior. The 610 version additionally exercises
 `DISCARDED` as a rejected source.
 
-This is not a host mock, but it has only been compiled into the modules. The
-ioctl has not run on a loaded custom stack, so no runtime pass is claimed.
+This is not a host mock. It passed once through the registered ioctl on the
+safely loaded custom 610 UVM module with built-in tests enabled.
 
 ## BPF verifier-load fixtures
 
@@ -80,10 +81,39 @@ controls have loaded, preserves one raw verifier log per attempted fixture,
 and requires exactly seven attempts, four admissions, three rejections, and
 seven matching outcomes.
 
-The local runner exits at its root precondition, and the running official
-module does not export `/sys/kernel/btf/nvidia`. The display-owned module stack
-was not replaced. Therefore the seven expected outcomes remain executable but
-unobserved, and the live portion is `PARTIAL`.
+The default seven-fixture run still exits before loading because the running
+display-owned core `nvidia` module has no exported BTF. The PMM-only selector
+requires only `nvidia_uvm` BTF and ran against the temporary custom UVM module.
+It admitted `pmm-reorder-setter`, rejected `pmm-hidden-write` with exactly
+`-EACCES`, and reported exactly two attempts, one admission, one rejection, and
+two matching outcomes. The raw logs are retained in
+[phase-b-pmm-live-1-logs](phase-b-pmm-live-1-logs/).
+
+## Live preflight 1
+
+The GPU had no compute process, 15 MiB reported memory use, zero utilization,
+and `nvidia_uvm` module refcount zero. The matching 610.43.02 custom UVM module
+was generated with the running Linux 7.1.12 base BTF and loaded with
+`uvm_enable_builtin_tests=1`; core `nvidia`, modeset, and DRM modules remained
+loaded throughout.
+
+The live observations were:
+
+- module BTF exposed `uvm_bpf_pmm_decision_ctx` at 72 bytes, the typed reorder
+  kfunc, and the 610-only `DISCARDED` state;
+- `revision_pmm_ioctl` reported
+  `PASS UVM_TEST_PMM_BPF_TRANSITION rm_status=0`;
+- the typed setter fixture loaded successfully;
+- the hidden direct store at decision offset 56 was rejected with `-EACCES`;
+  and
+- the PMM-only fixture summary was `attempted=2`, `admitted=1`, `rejected=1`,
+  `passed=2`.
+
+The custom UVM module was then unloaded and the distribution module restored.
+After recovery, built-in tests reported 0, UVM refcount was zero, and the core
+display modules retained their prior references. This satisfies the frozen
+combined PMM ioctl/verifier preflight; it does not satisfy the five scheduler
+fixture outcomes.
 
 ## Offline evidence
 

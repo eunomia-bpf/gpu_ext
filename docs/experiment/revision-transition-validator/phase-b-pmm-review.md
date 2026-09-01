@@ -2,9 +2,9 @@
 
 Date: 2026-08-31
 
-Verdict: `PASS` for the offline 575 and 610 production integration,
-kernel-native test implementation, extension ABI migration, and focused BPF
-fixture construction. This is not approval of a live verifier or ioctl result.
+Verdict: `PASS` for the 575 and 610 production integration, kernel-native test,
+extension ABI migration, and the PMM live preflight. This is not approval of
+the five unexecuted scheduler fixture outcomes.
 
 Independent review confirmed that the 575 production path uses one
 lock-asserting helper for every root-capable list mutation, advances generation
@@ -36,7 +36,15 @@ uses the typed kfunc. The loader places four positives before three negatives,
 counts only `-EACCES` as a verifier denial, never attaches, and enforces the
 frozen 7/4/3/7 totals.
 
-The remaining limitation is environmental, not converted into a pass: the
-custom module was not loaded, the ioctl was not invoked, and the BPF fixtures
-did not reach the running verifier. Phase B therefore remains `PARTIAL` until
-a safe custom-module window supplies those live observations.
+Fresh result review additionally checked the live PMM evidence: the loaded
+custom module exposed the expected BTF, the registered kernel-native ioctl
+returned success, the setter fixture loaded, and the direct hidden-state store
+was rejected at offset 56 with `-EACCES`. The runner reported the frozen PMM
+subset totals 2/1/1/2, and its two raw verifier logs agree with the console
+result. Recovery restored the distribution UVM module with built-in tests off
+and did not unload the display-owned core modules.
+
+Phase B remains `PARTIAL` only for the default seven-fixture run and scheduler
+runtime path: the five scheduler objects require a BTF-enabled core `nvidia`
+module, which cannot replace the display-owned module without a maintenance
+window.

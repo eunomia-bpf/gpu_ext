@@ -1,0 +1,17 @@
+preflight_gpu=RTX 5090, driver 610.43.02, memory.used 15 MiB, utilization 0%, no compute process
+preflight_nvidia_uvm_refcount=0
+loaded_custom_module=nvidia-uvm.ko 610.43.02 for Linux 7.1.12
+loaded_test_parameter=1
+btf_uvm_bpf_pmm_decision_ctx_size=72
+btf_typed_kfunc=bpf_gpu_request_reorder
+btf_discarded_state=UVM_PMM_ROOT_LIST_VA_BLOCK_DISCARDED
+PASS UVM_TEST_PMM_BPF_TRANSITION rm_status=0
+PASS pmm-reorder-setter expected=admit observed=admit
+GUARD positive_controls_admitted=1; running negatives
+PASS pmm-hidden-write expected=reject observed=reject
+SUMMARY attempted=2 expected=2 admitted=1 expected_admitted=1 rejected=1 expected_rejected=1 passed=2
+ioctl_status=0 fixture_status=0
+restored_module=distribution nvidia_uvm 610.43.02
+restored_test_parameter=0
+restored_nvidia_uvm_refcount=0
+core_modules_preserved=nvidia,nvidia_modeset,nvidia_drm

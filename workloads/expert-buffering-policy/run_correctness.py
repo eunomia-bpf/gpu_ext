@@ -468,20 +468,23 @@ def run_cell(config: str, run_dir: Path, port: int,
         warmup = completion(port, prompts["records"][0]["prompt_token_ids"],
                             run_dir / "warmup.json")
         time.sleep(1.1)
-        active_monitors = []
-        for item in candidate_monitors:
-            stats = latest_event(item[2], "eviction_stats")
-            if int(stats["evictions"]) > 0:
-                active_monitors.append(item)
-        if len(active_monitors) != 1:
-            observed = [
-                {"ready": item[3], "stats": latest_event(item[2], "eviction_stats")}
-                for item in candidate_monitors
+        if len(candidate_monitors) == 1:
+            active_monitors = candidate_monitors
+        else:
+            active_monitors = [
+                item for item in candidate_monitors
+                if int(latest_event(item[2], "eviction_stats")["evictions"]) > 0
             ]
-            raise GateError(
-                f"expected one event-producing UVM fd after warm-up, found "
-                f"{len(active_monitors)}: {observed}"
-            )
+            if len(active_monitors) != 1:
+                observed = [
+                    {"ready": item[3],
+                     "stats": latest_event(item[2], "eviction_stats")}
+                    for item in candidate_monitors
+                ]
+                raise GateError(
+                    f"multiple admitted UVM fds remained ambiguous after warm-up: "
+                    f"{observed}"
+                )
         monitor, monitor_log, eviction_path, monitor_ready = active_monitors[0]
         for item in candidate_monitors:
             if item is active_monitors[0]:

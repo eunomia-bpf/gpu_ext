@@ -24,6 +24,7 @@ enum expert_policy_mode {
 	EXPERT_POLICY_PAGE_LIFO = 1,
 	EXPERT_POLICY_HOT_LIFO = 2,
 	EXPERT_POLICY_PROTECT = 3,
+	EXPERT_POLICY_OBSERVE = 4,
 };
 
 enum expert_policy_stat {
@@ -38,6 +39,8 @@ enum expert_policy_stat {
 	EXPERT_STAT_COLD_NATIVE,
 	EXPERT_STAT_HOT_ACCESS_TAIL,
 	EXPERT_STAT_SHARED_ACCESS_TAIL,
+	EXPERT_STAT_OBSERVE_ACTIVATE,
+	EXPERT_STAT_OBSERVE_ACCESS,
 	EXPERT_STAT_MAX,
 };
 
@@ -147,6 +150,10 @@ int BPF_PROG(gpu_block_activate,
 		return 0;
 	}
 	count_stat(EXPERT_STAT_MAPPED);
+	if (control->mode == EXPERT_POLICY_OBSERVE) {
+		count_stat(EXPERT_STAT_OBSERVE_ACTIVATE);
+		return 0;
+	}
 
 	if (*class == EXPERT_BLOCK_COLD &&
 	    control->mode == EXPERT_POLICY_PROTECT) {
@@ -195,8 +202,9 @@ int BPF_PROG(gpu_block_access,
 	(void)pmm;
 	count_stat(EXPERT_STAT_ACCESS);
 	control = bpf_map_lookup_elem(&layout_control, &zero);
-	if (!control || control->mode != EXPERT_POLICY_PROTECT ||
-	    !control->ready || !control->blocks)
+	if (!control || !control->ready || !control->blocks ||
+	    (control->mode != EXPERT_POLICY_PROTECT &&
+	     control->mode != EXPERT_POLICY_OBSERVE))
 		return 0;
 
 	va_block = BPF_CORE_READ(chunk, va_block);
@@ -211,8 +219,12 @@ int BPF_PROG(gpu_block_access,
 		return 0;
 
 	class = bpf_map_lookup_elem(&block_classes, &index);
-	if (!class)
+	if (!class || *class == EXPERT_BLOCK_DEFAULT)
 		return 0;
+	if (control->mode == EXPERT_POLICY_OBSERVE) {
+		count_stat(EXPERT_STAT_OBSERVE_ACCESS);
+		return 0;
+	}
 	if (*class == EXPERT_BLOCK_HOT)
 		stat = EXPERT_STAT_HOT_ACCESS_TAIL;
 	else if (*class == EXPERT_BLOCK_SHARED)

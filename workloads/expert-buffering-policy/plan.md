@@ -1,8 +1,8 @@
 # Experiment Plan: Profile-guided hot-expert residency analogue
 
-Status: proposal 3, independently approved after three review rounds.
-Implementation and bounded preflight are authorized; full timing remains
-gated on offline tests and successful preflight.
+Status: proposal 4, independently approved after the exact-model preflight
+exposed unsafe application behavior from aggressive cold-head pressure. The
+four-cell correctness run is authorized; full timing remains gated on it.
 
 ## Research Question And Hypothesis
 
@@ -11,12 +11,12 @@ gated on offline tests and successful preflight.
   oversubscribed single-tenant workloads?**
 - Specific question: on the exact GPT-OSS-120B MXFP4 workload, does a fixed,
   independently calibrated expert-hot set plus safe page-ordering reduce
-  repeated HBM activations of hot-expert pages relative to matched page-only
-  LIFO, and what throughput, transfer, eviction, and residency trade-offs
-  result?
+  repeated HBM activations of hot-expert pages relative to matched native UVM
+  ordering on the same gpubpf mechanism, and what throughput, transfer,
+  eviction, and residency trade-offs result?
 - Preregistered hypothesis: expert-semantic ordering lowers post-warm-up
-  repeated activation bytes for calibration-hot expert pages relative to
-  page-only LIFO. Throughput direction is not preregistered because 2 MiB
+  repeated activation bytes for calibration-hot expert pages relative to the
+  attached observation-only control. Throughput direction is not preregistered because 2 MiB
   mixed-expert blocks can amplify conservative protection.
 
 ## Paper-Value Admission
@@ -25,8 +25,8 @@ gated on offline tests and successful preflight.
   Buffering's hot-expert residency idea and for the Shepherd's existing-policy
   expressibility question; **supporting** for RQ1 performance.
 - The strongest credible story is narrower than proposal 1: gpubpf can express
-  profile-guided hot-expert protection and cold LIFO insertion using safe PMM
-  ordering, but the current hooks cannot implement Huang et al.'s complete
+  profile-guided hot-expert protection using safe PMM ordering, but the current
+  hooks cannot implement Huang et al.'s complete
   current-batch, expert-atomic cache. The experiment measures the analogue and
   exposes that mechanism boundary rather than hiding it.
 - The result may be positive, null, or negative. A null or negative outcome
@@ -50,11 +50,12 @@ gated on offline tests and successful preflight.
   and says release approval is pending:
   <https://github.com/hyhuang00/moe_inference>. No original-implementation
   timing is possible, and the paper's reported numbers are context only.
-- Production source and prior traces establish two hard limits. On this UVM
-  path, router IDs stay device-resident, and `gpu_block_access` does not fire
-  for resident reuse: the resident-bit transition reaches the wrapper while
-  the root chunk is temporarily pinned, then unpin emits only
-  `gpu_block_activate`. The safe typed reorder request is callback-local.
+- Production source and live traces establish two hard limits. On this UVM
+  path, router IDs stay device-resident, and PMM callbacks do not expose the
+  current selected expert. `gpu_block_access` does fire on observed access
+  paths and can refresh classified hot/shared pages, but it is not a complete
+  resident-selection stream and missing callbacks are never interpreted as
+  hits. The safe typed reorder request is callback-local.
 - Therefore this experiment implements only a **profile-guided, page-granular
   hot-residency eviction-order analogue**. It does not claim current-batch
   inactive-first selection, an expert-atomic cache, transfer overlap, a cache
@@ -109,32 +110,38 @@ gated on offline tests and successful preflight.
   conservatively shared/protected. The exact union of hot-set blocks is
   recorded as the fixed page-level protection budget; it must be at most 8 GiB
   or the plan closes before timing.
-- Only `gpu_block_activate` requests reordering through the typed PMM setter.
-  `gpu_block_access` is a counted no-op and has no positive engagement gate.
-  The action table is frozen:
+- The exact-model `hot` preflight requested `USED/HEAD` on 528,597 cold
+  activations and then failed with `cudaErrorIllegalAddress`; the matched plain
+  custom-UVM control passed. The repaired `protect` mode passed the same
+  shortest request by removing all cold-head requests. `page` and `hot` remain
+  available as diagnostic modes, but neither is a measured configuration.
+- `protect` requests reordering only through the typed PMM setter. The repaired
+  action table is frozen:
 
-| Activated block class | Request | Meaning |
+| Callback and block class | Request | Meaning |
 |---|---:|---|
-| shared, bias, or registration-boundary | `USED/TAIL` | conservative non-expert protection |
-| overlaps at least one frozen hot expert | `USED/TAIL` | hot-set residency priority |
-| mapped only to cold experts | `USED/HEAD` | cold LIFO insertion/eviction pressure |
-| outside registered model expert ranges | none/default | preserve native behavior and count |
+| activate, shared/bias/boundary | `USED/TAIL` | conservative non-expert protection |
+| activate, overlaps a frozen hot expert | `USED/TAIL` | hot-set residency priority |
+| activate, mapped only to cold experts | none/default | preserve native UVM ordering |
+| access, hot or shared | `USED/TAIL` | refresh protection when this callback is emitted |
+| access, cold or outside registered ranges | none/default | preserve native UVM ordering |
 
-- Inserting every cold block at the list head makes the most recently activated
-  cold block the next cold victim, realizing LIFO at safe page granularity.
-  Hot pages move to the tail when activated and are not refreshed on resident
-  selection. This is why the claim is an eviction-order analogue rather than
-  the full published cache.
+- The observation-only control executes the same callbacks, layout lookups,
+  class lookups, and counters but never calls the typed setter. It isolates the
+  cost of the general attached mechanism from the effect of the hot-protection
+  policy. This remains an eviction-order analogue rather than the full
+  published cache.
 
 ## Configurations And Fairness
 
 1. `plain_uvm`: exact UVM llama command, no struct_ops policy.
-2. `gpubpf_page_lifo`: same UVM command and layout observations; shared/bias/
-   boundary blocks request tail and every mapped expert-only block requests
-   head. Its decision path cannot read expert IDs or the calibrated hot set.
-3. `gpubpf_profile_hot_lifo`: byte-identical UVM command; only blocks touching
-   the frozen hot set change from head to tail. This versus configuration 2 is
-   the primary matched policy-semantics contrast on the same mechanism.
+2. `gpubpf_observe`: same UVM command, attached policy object, layout and class
+   lookups, and engagement counters as the policy cell, but no reorder request.
+   This versus configuration 1 measures mechanism overhead.
+3. `gpubpf_profile_protect`: byte-identical UVM command; hot/shared blocks
+   request tail and cold blocks preserve native ordering. This versus
+   configuration 2 is the primary matched policy-semantics contrast on the
+   same mechanism.
 4. `llama_ncmoe32`: exact framework selected-expert streaming command with
    `--n-cpu-moe 32`, no UVM override and no struct_ops policy. It is deployment
    context and supplies the separate calibration trace, not the original
@@ -154,13 +161,14 @@ modules stay loaded. Distribution UVM is restored afterward.
   layers, 128 experts per layer, positive mapped weight and mixed-expert block
   counts, and no inconsistent overlapping registration. Shared/boundary cases
   are counted separately and are not mislabeled conflicts.
-- The expert policy requires positive mapped activates, hot-tail and cold-head
-  decisions after warm-up, zero typed-setter failures, and positive completed
-  UVM evictions. Page LIFO requires mapped activates, cold-head decisions, and
-  completed evictions. Plain UVM requires completed migration and eviction
-  events. Framework context requires positive existing selected-expert copy
-  bytes and complete route observations. No configuration requires
-  `gpu_block_access`.
+- The protection policy requires positive mapped activates, hot-tail,
+  cold-native, and hot-access-tail decisions after warm-up, zero cold-head
+  decisions, zero typed-setter failures, and positive completed UVM evictions.
+  The observation control requires positive mapped activation and access
+  classification, zero reorder requests, and positive completed evictions.
+  Plain UVM requires completed migration and eviction events. Framework context
+  requires positive existing selected-expert copy bytes and complete route
+  observations.
 - Immediately after the excluded warm-up reaches idle, the runner takes one
   policy/event snapshot before the first measured request. For each frozen-hot
   registered 2 MiB block `x`, let `N_x` be its activate-count delta after that
@@ -179,7 +187,7 @@ modules stay loaded. Distribution UVM is restored afterward.
 
 - Primary policy metric: the frozen post-warm snapshot formula
   `2 MiB * sum_x max(0, N_x - 1)` for frozen-hot blocks,
-  `gpubpf_profile_hot_lifo` versus `gpubpf_page_lifo`.
+  `gpubpf_profile_protect` versus `gpubpf_observe`.
 - Primary application metric: aggregate verified output-token throughput, 512
   output tokens divided by the interval from first measured request start to
   eighth completion.
@@ -189,9 +197,9 @@ modules stay loaded. Distribution UVM is restored afterward.
   storage reads; head/tail decisions; mixed-block fraction; and protected-byte
   amplification relative to the ten-expert slice bytes.
 - Five valid complete paired blocks are collected from at most eight attempts.
-  With `U=plain_uvm`, `P=gpubpf_page_lifo`, `E=gpubpf_profile_hot_lifo`, and
-  `F=llama_ncmoe32`, fixed orders are `U,P,E,F`; `P,E,F,U`; `E,F,U,P`;
-  `F,U,P,E`; and `F,E,P,U`. An invalid attempt retries the same slot/order.
+  With `U=plain_uvm`, `O=gpubpf_observe`, `E=gpubpf_profile_protect`, and
+  `F=llama_ncmoe32`, fixed orders are `U,O,E,F`; `O,E,F,U`; `E,F,U,O`;
+  `F,U,O,E`; and `F,E,O,U`. An invalid attempt retries the same slot/order.
   Prompt orders are frozen from seed 1798 before the first run.
 - Report the geometric mean of paired throughput ratios and paired differences
   in repeated hot activation bytes with block-bootstrap 95% intervals from one
@@ -205,13 +213,13 @@ modules stay loaded. Distribution UVM is restored afterward.
   tests for hot/cold/mixed/shared/default classes and LIFO order; verifier
   admission; BTF ABI checks; and ownership-safe loader tests. These are setup
   evidence, not paper results.
-- At most three real preflight attempts use the exact 120B model. Attempt 1
-  validates framework route calibration and layout registration. Attempt 2 is
-  the sole repaired retry or, if attempt 1 passes, validates expert-policy
-  activate/decision/eviction engagement with one 512+64 request. Attempt 3,
-  only after those pass, checks four-cell correctness and lifecycle with two
-  requests. A repeated failure at the same gate closes the protocol with no
-  timing.
+- The route/layout calibration passed. The original hot-LIFO exact-model
+  attempt failed and its matched plain control passed. One repaired
+  protection-mode retry then passed the same 512+1 request. After proposal 4 is
+  independently re-approved, one four-cell 512+64 correctness/lifecycle run is
+  the only remaining pre-timing execution; it is implemented through the same
+  runner used for timing, not a separate preflight harness. Failure closes the
+  protocol with no timing until the cause is understood and the plan reviewed.
 - Startup timeout is 1,800 seconds, request timeout 600 seconds, and owned
   shutdown timeout 120 seconds. Admission requires an idle GPU, at most 256 MiB
   residual HBM, zero compute processes, UVM reference count zero before module
@@ -223,6 +231,9 @@ modules stay loaded. Distribution UVM is restored afterward.
 
 ## Interpretation And Deliverables
 
+- Report `gpubpf_observe` versus `plain_uvm` separately as the measured cost of
+  the attached general mechanism. Do not attribute this delta to the expert
+  policy.
 - If hot repeated activations fall and throughput improves, attribute the
   improvement to profile-guided expert classification; mechanism value is safe
   deployment and replacement.

@@ -28,6 +28,7 @@ enum expert_policy_mode {
 	EXPERT_POLICY_PAGE_LIFO = 1,
 	EXPERT_POLICY_HOT_LIFO = 2,
 	EXPERT_POLICY_PROTECT = 3,
+	EXPERT_POLICY_OBSERVE = 4,
 };
 
 enum expert_policy_stat {
@@ -42,6 +43,8 @@ enum expert_policy_stat {
 	EXPERT_STAT_COLD_NATIVE,
 	EXPERT_STAT_HOT_ACCESS_TAIL,
 	EXPERT_STAT_SHARED_ACCESS_TAIL,
+	EXPERT_STAT_OBSERVE_ACTIVATE,
+	EXPERT_STAT_OBSERVE_ACCESS,
 	EXPERT_STAT_MAX,
 };
 
@@ -113,6 +116,10 @@ static int parse_mode(const char *arg, uint32_t *mode)
 		*mode = EXPERT_POLICY_PROTECT;
 		return 0;
 	}
+	if (!strcmp(arg, "observe")) {
+		*mode = EXPERT_POLICY_OBSERVE;
+		return 0;
+	}
 	return -EINVAL;
 }
 
@@ -122,7 +129,9 @@ static const char *mode_name(uint32_t mode)
 		return "page";
 	if (mode == EXPERT_POLICY_HOT_LIFO)
 		return "hot";
-	return "protect";
+	if (mode == EXPERT_POLICY_PROTECT)
+		return "protect";
+	return "observe";
 }
 
 static int read_class_table(const char *path,
@@ -240,7 +249,8 @@ static void print_stats(int stats_fd)
 	       "\"shared_tail\":%llu,\"default\":%llu,"
 	       "\"setter_failure\":%llu,\"access\":%llu,"
 	       "\"cold_native\":%llu,\"hot_access_tail\":%llu,"
-	       "\"shared_access_tail\":%llu}\n",
+	       "\"shared_access_tail\":%llu,\"observe_activate\":%llu,"
+	       "\"observe_access\":%llu}\n",
 	       (unsigned long long)totals[EXPERT_STAT_ACTIVATE],
 	       (unsigned long long)totals[EXPERT_STAT_MAPPED],
 	       (unsigned long long)totals[EXPERT_STAT_HOT_TAIL],
@@ -251,7 +261,9 @@ static void print_stats(int stats_fd)
 	       (unsigned long long)totals[EXPERT_STAT_ACCESS],
 	       (unsigned long long)totals[EXPERT_STAT_COLD_NATIVE],
 	       (unsigned long long)totals[EXPERT_STAT_HOT_ACCESS_TAIL],
-	       (unsigned long long)totals[EXPERT_STAT_SHARED_ACCESS_TAIL]);
+	       (unsigned long long)totals[EXPERT_STAT_SHARED_ACCESS_TAIL],
+	       (unsigned long long)totals[EXPERT_STAT_OBSERVE_ACTIVATE],
+	       (unsigned long long)totals[EXPERT_STAT_OBSERVE_ACCESS]);
 	fflush(stdout);
 	free(percpu);
 }
@@ -274,7 +286,9 @@ int main(int argc, char **argv)
 	int err;
 
 	if (argc != 3) {
-		fprintf(stderr, "usage: %s {page|hot|protect} CLASS_TABLE\n", argv[0]);
+		fprintf(stderr,
+			"usage: %s {page|hot|protect|observe} CLASS_TABLE\n",
+			argv[0]);
 		return 2;
 	}
 	if (parse_mode(argv[1], &control.mode)) {

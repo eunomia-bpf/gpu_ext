@@ -1,5 +1,22 @@
 # Independent Plan Review
 
+## Proposal 4 repair review
+
+Date: 2026-08-31
+
+Verdict: **APPROVE**.
+
+The narrow independent re-review covered the repaired plan after the exact
+120B cold-head failure and the successful `protect` smoke. It approved
+`gpubpf_observe` versus `plain_uvm` as the mechanism-overhead contrast and
+`gpubpf_profile_protect` versus `gpubpf_observe` as the policy-effect contrast.
+It found the correctness and engagement gates falsifiable, the claim boundary
+appropriately limited to a page-granular Expert Buffering analogue, no
+unsupported safety or performance claim, and no hash-based evidence gate.
+
+The approval authorizes the four-cell correctness/lifecycle run and leaves full
+timing gated on that result.
+
 ## Round 1 — Proposal 1
 
 Verdict: **BLOCK**

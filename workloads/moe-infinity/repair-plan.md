@@ -265,8 +265,9 @@ without modifying its original failed `preflight-result.json`. It requires:
    server log;
 4. the exact per-partition construction/hydration classification above,
    including the explicit buffered-read disclosure and unknown-file rejection;
-5. the admitted runtime inventory and source/build state to remain unchanged
-   under the existing non-hash identity checks; and
+5. the attempt-03 admission metadata for the runtime files actually used by
+   the MoE cell to remain unchanged: Python, the six MoE extensions, the
+   revision server, the numerical gate, and the SGL common-ops extension; and
 6. an explicit record that the original control flow reached the final
    storage-open validation only after accepting affinity, token/step counts,
    cache activity, KV-cache blocks, positive process read bytes, and nonempty
@@ -285,6 +286,16 @@ not launch MoE-Infinity and is not a fourth MoE correctness attempt. The action
 retains the original commands, 512+64 requests, two smoke passes, three-llama
 golden equality, policy/eviction engagement, ownership, telemetry, and cleanup
 gates, and refuses an existing output directory.
+
+The attempt-03 inventory also names llama and policy executables that were not
+executed before that attempt stopped. Those files were subsequently rebuilt by
+the separately tracked Expert Buffering work, so whole-inventory equality is
+neither true nor evidence about the saved MoE cell. The revalidation rejects
+any change in the MoE-used subset above. The continuation performs a fresh
+admission for the three cells it actually runs, records their current complete
+runtime inventory, and the combined result binds that complete inventory to
+every later timing launch. No changed file is silently accepted as the binary
+that produced an earlier cell.
 
 Only a separate combined result containing the revalidated MoE cell and all
 three completed llama cells may satisfy the timing gate. The timing runner may

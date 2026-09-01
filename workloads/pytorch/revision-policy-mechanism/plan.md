@@ -71,11 +71,15 @@ Revision 2 replaces the proposed LRU comparison after review found that
   `uvm_perf_prefetch_enable`, the benchmark's seeded random graph,
   managed-memory allocator, synchronized epoch timing, training accuracy, and
   atomic `configs/gnn.py` command.
-- Necessary deviations or custom glue: one minimal no-print BPF policy sets an
+- Necessary deviations or custom glue: `extension/prefetch_none_revision.bpf.c`
+  is a minimal no-print BPF policy that sets an
   empty region with `bpf_gpu_set_prefetch_region(result_region, 0, 0)` and
-  returns `BYPASS`. Its ownership-safe loader attaches, reports ordinary
-  program/map/link identifiers, waits, and detaches. No experiment controller,
-  content fingerprint, or per-fault logging is added.
+  returns `BYPASS`. `extension/prefetch_none_revision.c` is its ownership-safe
+  loader: it reports ordinary program/map/link identifiers, waits, and detaches.
+  The timed policy contains no statistics map or per-fault logging.
+  `uvm_migration_monitor.c` is an untimed semantic monitor over NVIDIA's UVM
+  tools migration-event ABI. No experiment controller or content fingerprint
+  is added.
 
 ## Comparison
 
@@ -87,10 +91,15 @@ Revision 2 replaces the proposed LRU comparison after review found that
 - Why the main baseline needs a matched run instead of citation alone: no
   publication reports the cost of this callback/kfunc path on this RTX 5090,
   driver, kernel, and workload.
-- Controls or ablations, labeled separately: one untimed engagement preflight
-  traces `uvm_bpf_call_gpu_page_prefetch` and requires the policy's own final
-  callback count to be nonzero. Native parameter state and BPF attach absence
-  are checked before each native run. These are not performance cells.
+- Controls or ablations, labeled separately: one untimed two-cell semantic
+  preflight monitors NVIDIA UVM migration events for the exact process. Both
+  native and BPF cells must report zero migrations and zero bytes whose cause is
+  `UvmEventMigrationCausePrefetch`, with zero dropped migration events. The BPF
+  cell additionally traces `uvm_bpf_call_gpu_page_prefetch` and
+  `bpf_gpu_set_prefetch_region` and requires nonzero counts. This covers the
+  preferred-location first-touch branch, which can create prefetch migrations
+  without calling the policy hook. Native parameter state and BPF attach
+  absence are checked before every native run. These are not performance cells.
 - Conclusion if the main baseline matches or wins: a match bounds mechanism
   cost; a native win quantifies the generality tax and must be disclosed.
 - Information, tuning, and compute fairness: both cells use the same custom
@@ -129,14 +138,21 @@ Revision 2 replaces the proposed LRU comparison after review found that
 |---|---|---|---|---:|---|
 | paired main | baseline | PyTorch GCN 8M UVM | native `uvm_perf_prefetch_enable=0`, no BPF | 10 | Original-policy runtime |
 | paired main | proposed | PyTorch GCN 8M UVM | native prefetch enabled plus gpubpf empty-region `BYPASS` | 10 | Same-policy mechanism cost |
-| preflight | engagement control | same GCN 8M, one measured epoch | gpubpf no-prefetch plus temporary external tracing | 1 | Prove live callback/helper execution; timing is excluded |
+| preflight | semantic control | same GCN 8M, one measured epoch | native no-prefetch plus UVM migration monitoring | 1 | Prove the native cell emits no prefetch migrations; timing is excluded |
+| preflight | semantic and engagement control | same GCN 8M, one measured epoch | gpubpf no-prefetch plus UVM migration monitoring and temporary external tracing | 1 | Prove the BPF cell emits no prefetch migrations while executing the callback/helper; timing is excluded |
 
 ## Execution
 
-- Policy build: add `prefetch_none_revision` to `extension/Makefile`, then run
-  `make -C extension prefetch_none_revision`. Build success, source inspection,
-  and BPF object inspection must show exactly one prefetch callback, one
-  engagement map, no per-fault print, and the empty-region kfunc call.
+- Policy build: `prefetch_none_revision` is listed in `extension/Makefile`; run
+  `make -C extension prefetch_none_revision`. Build success and source/object
+  inspection must show exactly one prefetch callback, no BPF statistics map, no
+  per-fault print, and the empty-region kfunc call. The loader build disables
+  linker build IDs because the project forbids hash artifacts in experiment
+  workflow paths.
+- Semantic-monitor build: run
+  `cc -O2 -Wall -Wextra -Werror -std=gnu11 -Wl,--build-id=none
+  uvm_migration_monitor.c -o uvm_migration_monitor`. Its compile-time ABI
+  assertions fix the 610 V2 queue-control and 72-byte migration-event layouts.
 - Module workflow for each native cell: after proving zero compute clients and
   `nvidia_uvm` use count zero, run `sudo rmmod nvidia_uvm`, then
   `sudo insmod /home/yunwei37/workspace/gpu/gpu_ext-kernel-610/kernel-open/nvidia-uvm.ko uvm_perf_prefetch_enable=0`.
@@ -149,11 +165,22 @@ Revision 2 replaces the proposed LRU comparison after review found that
 - Authoritative benchmark command: from `workloads/pytorch`, run
   `uv run python configs/gnn.py --nodes 8000000 --uvm --epochs 3 --warmup 1
   --no-cleanup -o <raw-path>` after the cell-specific admission above.
-- Real preflight case: use the final BPF binary and BPF module workflow, start
-  `bpftrace` kprobes on `uvm_bpf_call_gpu_page_prefetch` and
-  `bpf_gpu_set_prefetch_region`, run the same 8M command with one warmup and one
-  measured epoch, then require nonzero wrapper/helper/policy counts, zero exit,
-  finite accuracy, and clean detach. Trace timing is excluded.
+- Real preflight case: run one native and one BPF semantic cell using the final
+  binaries and the same 8M command with one warmup and one measured epoch. Start
+  `benchmark_gnn_uvm.py` directly with `--wait-for-monitor`; this initializes
+  CUDA after selecting the UVM allocator, then pauses before the first benchmark
+  allocation. Find its single owned `/dev/nvidia-uvm` fd, attach
+  `uvm_migration_monitor --pid PID --target-fd FD`, and only then release the
+  benchmark. The exact underlying command is
+  `CUDA_MANAGED_FORCE_DEVICE_ALLOC=1 uv run python benchmark_gnn_uvm.py
+  --dataset random --nodes 8000000 --edges_per_node 10 --features 128 --hidden
+  256 --epochs 1 --warmup 1 --prop chunked --use_uvm --wait-for-monitor
+  --report_json <raw-path>`. Require both monitors to finish with
+  `prefetch_migrations=0`, `prefetch_bytes=0`, and `dropped_migrations=0`. In the
+  BPF cell, temporary `bpftrace` kprobes on
+  `uvm_bpf_call_gpu_page_prefetch` and `bpf_gpu_set_prefetch_region` must also
+  report nonzero calls. Both workloads must exit zero with identical finite
+  accuracy and clean detach. All trace/monitor timing is excluded.
 - Full completion rule: all 20 planned processes terminate successfully; every
   pair passes correctness/state checks; policy detach and UVM unload/load are
   clean; no foreign compute process overlaps a run. A row exceeding 15 minutes

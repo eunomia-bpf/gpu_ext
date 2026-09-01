@@ -550,6 +550,9 @@ def main():
                         help='Path to save JSON report')
     parser.add_argument('--wait-for-bpf', action='store_true',
                         help='Print PID and wait for user confirmation before running')
+    parser.add_argument('--wait-for-monitor', action='store_true',
+                        help=('Initialize CUDA, print PID, and wait before the '
+                              'first benchmark allocation'))
 
     args = parser.parse_args()
 
@@ -582,6 +585,11 @@ def main():
         print("=" * 70)
         gpu_lib = enable_gpu_allocator()
         print("[GPU] Custom allocator enabled\n")
+
+    if args.wait_for_monitor:
+        torch.cuda.init()
+        print(f"MONITOR_PID: {os.getpid()}")
+        input("Press Enter to continue after attaching the UVM monitor...")
 
     # =============================================================================
     # Step 1: Setup for Reproducibility

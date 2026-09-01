@@ -1,6 +1,6 @@
 # R5 production transition-validator implementation plan
 
-Status: revision 5 for independent review; do not execute until approved.
+Status: revision 5 approved for implementation; live preflights remain gated.
 
 ## Revision question
 

@@ -155,3 +155,21 @@ No implementation started after this review.
 
 Revision 5 remains blocked from implementation until the independent reviewer
 approves these semantics.
+
+## Round 5: PASS
+
+Independent review confirmed that revision 5 closes the final rejected-attempt
+hole:
+
+- raw destination/position values remain `u64` through the callback-local
+  record;
+- every setter call latches an attempt before interpretation;
+- invalid-only, identical-invalid, valid→invalid, and invalid→valid cannot
+  become absence or commit;
+- DEFAULT and BYPASS both suppress native movement after rejection/conflict;
+  and
+- the kernel-native matrix covers every sequence under both actions.
+
+No further scientific or execution blocker was found. The PASS approves the
+implementation plan only. Any live preflight still requires a safely loadable
+stack and remains within the plan's three-run ceiling.

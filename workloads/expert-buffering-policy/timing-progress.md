@@ -1,6 +1,6 @@
 # Expert-buffering paired timing progress
 
-Status: in progress (1/5 paired blocks passed)
+Status: in progress (2/5 paired blocks passed)
 
 ## Block 1
 
@@ -24,3 +24,11 @@ Raw request, trace, policy, snapshot, and telemetry records remain under the ign
 ## Block 2 attempt 1
 
 The observe cell reached the sixth untimed request before prompt 3 emitted EOS immediately. The API returned HTTP success with one completion token, so the fixed 64-token workload gate correctly rejected the cell. The failed attempt is retained as `raw/timing/block-02-failed-attempt-01/`. Subsequent attempts set the llama.cpp `ignore_eos` request option so every accepted request executes the same fixed 64-token generation workload.
+
+## Block 2
+
+The repaired attempt completed in frozen order `O -> E -> F -> U` with prompt order `8, 2, 6, 5, 4, 3, 7, 1`. Throughput was 5.8240 output tok/s for U, 5.8252 for O, 5.8230 for E, and 6.7903 for F. The paired O/U effect was +0.020%, while E/O was -0.039%. Neither is evidence of a material effect from this single block.
+
+O recorded 312,584 mapped activations and 1,982,609 observed accesses. E recorded 43,004 hot-tail activations, 266,927 cold-native activations, 2,646 shared-tail activations, 257,659 hot-tail accesses, and 11,849 shared-tail accesses. Both cells had zero setter failures; E also had zero cold-head placements. Repeated-hot-activation bytes were 83,504,398,336 for O and 83,552,632,832 for E, again slightly higher under E.
+
+F covered all 1,105 graphs in every expected routed layer, with zero incomplete graphs and zero dropped events. No cell experienced thermal or power-brake throttling. Stock UVM restoration again ended with no UVM BTF entry, module refcount zero, 15 MiB GPU memory use, and 0% GPU utilization.

@@ -1,6 +1,7 @@
 # LMCache local-NVMe experiment protocol — revision 2
 
-Status: **pending independent review; no GPU execution authorized yet**.
+Status: **blocked after independent review; no further GPU launch is
+authorized because revision 1 exhausted the three-attempt preflight cap**.
 
 This protocol addresses the explicit revision commitment to extend the LMCache
 comparison to its local-disk backend. It characterizes the public LMCache
@@ -13,6 +14,14 @@ For eight reusable 1,536-token prefixes from the paper's Qwen-30B workload,
 what warm TTFT and sequential warm-request rate result when KV is (1)
 recomputed, (2) retained in LMCache CPU DRAM, or (3) retrieved from LMCache's
 local-NVMe backend?
+
+Hypothesis: local-NVMe retrieval lowers warm TTFT relative to recomputation but
+is slower than CPU-resident retrieval. The primary competing explanation is
+that software and storage overhead erase the saved recomputation, making disk
+neutral or slower; a second is that disk improves TTFT but reduces sequential
+request rate by more than 5%. A valid negative or inconclusive result still
+answers the revision's baseline question and will narrow, not inflate, the
+paper's policy-versus-mechanism claim.
 
 All cells use LMCache v0.5.4 at source revision
 `3e11b8ed191631e6f098b8038235823f1a410b24`, official vLLM
@@ -43,14 +52,16 @@ The cells are:
 `prompts.json` schema 3 stores exact prefix/cold/warm token arrays derived from
 frozen ShareGPT row starts `[0,173,509,997,1499,2203,3109,4211]`. Admission
 parses and validates the dataset, prompt structure, token-array lengths and
-common prefixes, and all 15 entries of the fixed schedule. It validates exact
+common prefixes, and all 15 entries of the fixed, position-balanced schedule.
+The checked-in prompt artifact must exactly equal a fresh derivation from the
+pinned dataset rows and tokenizer. The adapter validates exact
 versions, import paths, dependency lines, source revisions, model filenames
 and sizes, GPU exclusivity, driver, filesystem UUID, free space, and port.
 
 No file or content fingerprints, checksums, or digests may be generated,
 refreshed, compared, or recorded. Small structured artifacts are checked by
 their parsed semantics. Responses are compared as exact text. Evidence-file
-sets use resolved path, byte size, device, inode, and modification/change
+sets use logical absolute path, byte size, device, inode, and modification/change
 times. Git commit IDs and upstream source revisions are used only for ordinary
 version bookkeeping.
 
@@ -69,31 +80,36 @@ The first real action is a disk-only preflight under
 48 read paths must open successfully with `O_DIRECT`, remain under the run's
 cache directory, and have no buffered `.pt` open. Raw traces are retained.
 
-After preflight, an isolated three-cell smoke requires exact response-text
-equality across all cells. Only then may the randomized full run start.
-`schedule.json` fixes 15 cell orders with seed 2709. Collection stops at ten
-valid complete blocks or 15 attempts. Technical failures are preserved and
-classified without consulting performance. A complete block exists only when
-all three cells pass engagement and exact-output gates.
+If higher-level authorization ever permits another launch, the real path is a
+single traced `lmcache_disk` cell followed by ordinary revalidation of its raw
+server log and strace. A later three-cell correctness check compares exact
+response text. `schedule.json` contains five randomized three-order Latin
+cycles: each configuration occurs exactly five times in every position over
+15 attempts, and position counts differ by at most one in the first ten.
 
-Revision 2 permits at most three named real preflight attempts. An attempt is
-consumed whenever the real model server is launched. A repair must target a
-specific observed experiment-side defect, be tested offline, and be reviewed
-before another attempt. Repetition of the same root cause is terminal. No
-timing is analyzed before preflight and smoke both pass.
+There are no pass markers, completion schemas, approval parser, promotion
+gate, or custom resume protocol. Each invocation runs one official `vllm
+serve` cell and preserves its raw output. Analysis reparses every cell's result,
+server log, request usage and engagement, and any trace; it also regenerates
+the prompt and schedule semantics. Technical failures remain ordinary named
+directories and are not included as completed attempts.
 
 ## Metrics and interpretation
 
-Primary: within-block median warm TTFT over eight prefixes. Secondary: warm
-P95/max TTFT, sequential warm requests/s, and output tokens/s. The timed phase
+Primary: within-attempt median warm TTFT over eight prefixes, measured at the
+client from request send to the first SSE choice carrying a generated token
+(requested through vLLM completion logprobs). Secondary: warm P95/max TTFT,
+sequential warm requests/s, and output tokens/s, all from client timestamps and
+server usage counters. The timed phase
 contains only eight contiguous warm requests and excludes startup, cold
 population, persistence barriers, and shutdown.
 
-For disk minus recompute and disk minus CPU, report paired block differences
+For disk minus recompute and disk minus CPU, report paired attempt differences
 and fixed-seed percentile-bootstrap 95% intervals over ten complete blocks.
 For disk versus recompute, classify mutually exclusively as beneficial,
 latency-throughput tradeoff, not beneficial, or inconclusive using the runner's
-predeclared TTFT and -5% rate rules. The claim is scoped to this model, prefix
+predeclared TTFT and -5% rate rules. A tradeoff requires the rate interval's
+upper bound below -5%; an interval crossing -5% is inconclusive. The claim is scoped to this model, prefix
 set, runtime, GPU, and SSD. Any engagement failure is invalid/blocked, never a
 performance result.
 
@@ -102,5 +118,26 @@ performance result.
 The three attempts under `raw/preflight-610-20260831-{01,02,03}` belong to the
 closed revision-1 protocol. They served no request and produced no timing or
 cache-I/O evidence. They remain failure provenance and cannot be relabeled as
-revision-2 attempts. Revision 2 uses a new fixed namespace and requires a new
-independent final approval before its first launch.
+revision-2 attempts. Neither a new namespace nor a new review resets the
+three-attempt cap. The repaired adapter is therefore offline-only unless the
+user explicitly grants a higher-level exception.
+
+## Fixed commands (offline only while blocked)
+
+From `workloads/lmcache-disk`, the ordinary commands are:
+
+```text
+./current-venv/bin/python run_lmcache_disk.py inspect --storage-root raw
+./current-venv/bin/python run_lmcache_disk.py run-cell \
+  --config lmcache_disk --output raw/revision2-preflight/attempt-00/position-2-lmcache_disk --trace
+./current-venv/bin/python run_lmcache_disk.py validate-cell \
+  raw/revision2-preflight/attempt-00/position-2-lmcache_disk --require-trace
+./current-venv/bin/python run_lmcache_disk.py compare-outputs CELL_DIR CELL_DIR CELL_DIR
+./current-venv/bin/python run_lmcache_disk.py analyze raw/revision2-full
+```
+
+The `run-cell` line is documented for reproducibility but must not be executed
+under the current blocked status. If execution is authorized, each attempt's
+three `position-N-CONFIG` paths must follow the exact order in `schedule.json`.
+The analysis is paper-valuable only with ten fully revalidated attempts; setup,
+inspection, and failed launches are not paper evidence.

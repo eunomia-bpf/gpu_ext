@@ -113,5 +113,17 @@ failure cases, request-scoped log parsing, uniform runtime settings, and a
 source guard against reintroducing fingerprint logic. Read-only admission
 passes on an idle RTX 5090 with 15 MiB reported used, the exact 610.43.02
 driver, required model files, runtime imports, dependencies, and the workspace
-NVMe mount. No revision-2 model server or CUDA workload has been launched;
-independent approval remains mandatory.
+NVMe mount. No revision-2 model server or CUDA workload has been launched.
+
+Round-1 independent review blocked the custom control layer and another real
+preflight. The active runner is now a thin one-cell adapter plus recomputable
+analysis: it has no approval parser, promotion/pass markers, completion schema,
+resume protocol, or attempt-budget controller. Prompt admission exactly
+regenerates the pinned dataset/tokenizer derivation; the schedule consists of
+five randomized Latin cycles; log parsing preserves store/retrieve denominators;
+TTFT starts at the first SSE event carrying a generated token; analysis
+re-parses logs/traces/usage, compares exact text, reports both rate metrics
+against both baselines, and requires an interval upper bound below -5% before
+calling a throughput regression. Twelve CPU-only tests pass. The archived
+control layer was removed, leaving only inactive low-level primitives. The
+three-attempt cap remains exhausted, so this is offline repair evidence only.

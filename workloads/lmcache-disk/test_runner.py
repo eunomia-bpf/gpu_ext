@@ -2,6 +2,7 @@
 """CPU-only structural tests for the LMCache revision harness."""
 
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -27,7 +28,7 @@ class HarnessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=".") as tmp:
             root = Path(tmp).resolve().relative_to(Path.cwd())
             self.assertFalse(root.is_absolute())
-            with patch.object(runner.subprocess, "Popen"):
+            with patch.object(runner.legacy.subprocess, "Popen"):
                 _, log, _, launch = runner.start_server(
                     "lmcache_disk", Path("/model"), root.resolve() / "cache",
                     18080, root / "server.log", root / "strace")
@@ -46,8 +47,18 @@ class HarnessTests(unittest.TestCase):
         )
         self.assertEqual(
             runner.request_log_values(log, request_id),
-            {"hits": [1536], "stores": [(1536, 1550)], "retrieved": [1536]},
+            {"hits": [1536], "stores": [(1536, 1550)], "retrieved": [(1536, 1536, 1550)]},
         )
+
+    def test_retrieval_parser_preserves_denominators(self):
+        request_id = "cmpl-lmc-p0-warm-0"
+        log = (
+            f"Reqid: {request_id}, LMCache hit tokens: 1536\n"
+            f"[req_id={request_id}] Retrieved 1536 out of 512 required tokens "
+            "(from 1549 total tokens)."
+        )
+        values = runner.request_log_values(log, request_id)
+        self.assertEqual(values["retrieved"], [(1536, 512, 1549)])
 
     def test_odirect_requires_every_pt_open(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -116,13 +127,29 @@ class HarnessTests(unittest.TestCase):
         source = MODULE_PATH.read_text()
         forbidden = ("hashlib", "sha256", "checksum", "digest", "output_hash")
         self.assertFalse(any(term in source.lower() for term in forbidden))
+        for forbidden_control in ("PREFLIGHT-PASS", "SMOKE-PASS", "RUN-COMPLETE", "--resume", "--approval"):
+            self.assertNotIn(forbidden_control, source)
 
     def test_schedule_semantics_are_exact(self):
-        schedule = runner.json.loads(runner.SCHEDULE.read_text())
+        schedule = json.loads(runner.SCHEDULE.read_text())
         runner.validate_schedule(schedule)
+        first_ten = schedule["attempts"][:10]
+        for config in runner.CONFIGS:
+            counts = [sum(item["order"][position] == config for item in first_ten)
+                      for position in range(3)]
+            self.assertLessEqual(max(counts) - min(counts), 1)
         schedule["attempts"][0]["order"] = ["recompute"]
         with self.assertRaises(runner.GateError):
             runner.validate_schedule(schedule)
+
+    def test_effect_classification_requires_established_rate_regression(self):
+        self.assertEqual(runner.classify_effect([-8.0, -2.0], [-0.04, 0.01]), "beneficial")
+        self.assertEqual(
+            runner.classify_effect([-8.0, -2.0], [-0.12, -0.06]),
+            "latency-throughput tradeoff",
+        )
+        self.assertEqual(runner.classify_effect([-8.0, -2.0], [-0.12, -0.02]), "inconclusive")
+        self.assertEqual(runner.classify_effect([1.0, 5.0], [-0.02, 0.01]), "not beneficial")
 
     def test_disk_environment_disables_hot_cpu_tier(self):
         with tempfile.TemporaryDirectory() as tmp:

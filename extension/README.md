@@ -86,11 +86,13 @@ page fault 时决定预取范围。只能在当前 VA block (2MB) 内操作。
 ```c
 int gpu_page_prefetch(uvm_page_index_t page_index,
     uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
-    uvm_va_block_region_t *max_prefetch_region,  // 永远是 [0, 512)
-    uvm_va_block_region_t *result_region);       // [OUT]
+    uvm_va_block_region_t *max_prefetch_region,
+    uvm_bpf_prefetch_decision_t *decision_ctx);
 ```
 
-返回值: 0 (DEFAULT), 1 (BYPASS，使用 result_region), 2 (ENTER_LOOP，逐区域迭代)
+通过 `bpf_gpu_set_prefetch_region(decision_ctx, first, outer)` 请求绝对
+`[first, outer)` 区间。返回值: 0 (DEFAULT), 1 (BYPASS，验证并使用请求),
+2 (ENTER_LOOP，逐区域迭代)。直接写 context 会被 verifier 拒绝。
 
 #### `gpu_page_prefetch_iter`
 
@@ -101,7 +103,7 @@ int gpu_page_prefetch_iter(uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
     uvm_va_block_region_t *max_prefetch_region,
     uvm_va_block_region_t *current_region,
     unsigned int counter,
-    uvm_va_block_region_t *prefetch_region);  // [OUT]
+    uvm_bpf_prefetch_decision_t *decision_ctx);
 ```
 
 #### `gpu_test_trigger`
@@ -110,11 +112,11 @@ int gpu_page_prefetch_iter(uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
 
 ### 跨 VA Block Prefetch
 
-Prefetch hook 只能在当前 VA block (2MB) 内操作，这是 NVIDIA UVM 架构限制。通过以下方式实现跨 block 预取:
-
-1. 添加 `bpf_gpu_migrate_range()` kfunc 到自定义内核模块
-2. BPF 用 kprobe 捕获 va_block/va_space 上下文
-3. 通过 `bpf_wq` 异步调度相邻 VA block 的迁移
+Prefetch hook 只能在当前 VA block (2MB) 内操作。原型曾把整数
+`va_space` handle 转回内核指针并通过 `bpf_gpu_migrate_range()` 跨 block
+迁移，但该接口没有原生对象生命周期保证，现已从注册 kfunc 集移除。
+依赖它的策略保留为源码参考，并从默认验证构建中排除；恢复这些策略
+需要另行评审带所有权、代际、失效与 teardown 同步的原生 lookup 设计。
 
 ---
 
@@ -162,6 +164,9 @@ Prefetch hook 只能在当前 VA block (2MB) 内操作，这是 NVIDIA UVM 架�
 | `prefetch_always_max_xcoord.bpf.c` | always_max + xCoord | always_max + cycle_moe + GPU 共享状态 map，multi-tenant 场景 |
 
 ### 跨 VA Block 预取
+
+下列策略当前为 `UNAVAILABLE`，原因是其 raw VA-space handle 迁移接口已
+按安全评审移除；它们不在默认 `BPF_APPS` 验证构建中。
 
 | 文件 | 策略 | 实现 |
 |------|------|------|

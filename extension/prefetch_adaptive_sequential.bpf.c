@@ -103,7 +103,7 @@ int BPF_PROG(gpu_page_prefetch,
              uvm_page_index_t page_index,
              uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
              uvm_va_block_region_t *max_prefetch_region,
-             uvm_va_block_region_t *result_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     u32 pct = get_prefetch_percentage();
     u32 direction = get_prefetch_direction();
@@ -117,7 +117,7 @@ int BPF_PROG(gpu_page_prefetch,
     /* Handle edge cases */
     if (pct == 0 || total_pages == 0) {
         /* No prefetch */
-        bpf_gpu_set_prefetch_region(result_region, 0, 0);
+        bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
         return 1; /* UVM_BPF_ACTION_BYPASS */
     }
 
@@ -142,7 +142,7 @@ int BPF_PROG(gpu_page_prefetch,
         /* Prefetch pages BEFORE page_index (lower addresses) */
         /* If page_index <= max_first, there's nothing to prefetch backward */
         if (page_index <= max_first) {
-            bpf_gpu_set_prefetch_region(result_region, 0, 0);
+            bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
             return 1; /* UVM_BPF_ACTION_BYPASS */
         }
 
@@ -181,7 +181,7 @@ int BPF_PROG(gpu_page_prefetch,
 
         /* If page_index+1 >= max_outer, there's nothing to prefetch forward */
         if (new_first >= max_outer) {
-            bpf_gpu_set_prefetch_region(result_region, 0, 0);
+            bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
             return 1; /* UVM_BPF_ACTION_BYPASS */
         }
 
@@ -199,7 +199,7 @@ int BPF_PROG(gpu_page_prefetch,
         //            page_index, prefetch_pages, new_first, new_outer);
     }
 
-    bpf_gpu_set_prefetch_region(result_region, new_first, new_outer);
+    bpf_gpu_set_prefetch_region(decision_ctx, new_first, new_outer);
 
     return 1; /* UVM_BPF_ACTION_BYPASS */
 }
@@ -211,7 +211,7 @@ int BPF_PROG(gpu_page_prefetch_iter,
              uvm_va_block_region_t *max_prefetch_region,
              uvm_va_block_region_t *current_region,
              unsigned int counter,
-             uvm_va_block_region_t *prefetch_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     /* Not used - we return BYPASS in before_compute */
     return 0;

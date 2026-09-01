@@ -153,7 +153,7 @@ int BPF_KPROBE(trace_before_compute,
                u32 page_index,
                uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
                uvm_va_block_region_t *max_prefetch_region,
-               uvm_va_block_region_t *result_region)
+               void *decision_ctx)
 {
     struct prefetch_event *e;
     u32 key = 0;

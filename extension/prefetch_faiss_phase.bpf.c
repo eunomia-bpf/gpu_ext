@@ -238,14 +238,14 @@ int BPF_PROG(gpu_page_prefetch,
              uvm_page_index_t page_index,
              uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
              uvm_va_block_region_t *max_prefetch_region,
-             uvm_va_block_region_t *result_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
 	stat_inc(STAT_PREFETCH);
 
 	/* 1) Intra-block: always_max -- prefetch entire VA block */
 	uvm_page_index_t max_first = BPF_CORE_READ(max_prefetch_region, first);
 	uvm_page_index_t max_outer = BPF_CORE_READ(max_prefetch_region, outer);
-	bpf_gpu_set_prefetch_region(result_region, max_first, max_outer);
+	bpf_gpu_set_prefetch_region(decision_ctx, max_first, max_outer);
 
 	/* 2) Phase-adaptive cross-block prefetch
 	 *
@@ -367,7 +367,7 @@ int BPF_PROG(gpu_page_prefetch_iter,
              uvm_va_block_region_t *max_prefetch_region,
              uvm_va_block_region_t *current_region,
              unsigned int counter,
-             uvm_va_block_region_t *prefetch_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
 	return 0;
 }

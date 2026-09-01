@@ -34,7 +34,16 @@ HAVE_SCX := $(if $(SCX_INCLUDE_DIR),$(if $(wildcard $(SCX_HEADER)),$(if $(wildca
 HAVE_NVML := $(if $(wildcard $(CUDA_INCLUDE_DIR)/nvml.h),$(if $(firstword $(wildcard $(CUDA_STUB_DIR)/libnvidia-ml.so $(CUDA_STUB_DIR)/libnvidia-ml.so.*)),1,0),0)
 HAVE_CUDA := $(if $(wildcard $(CUDA_INCLUDE_DIR)/cuda.h),$(if $(firstword $(wildcard $(CUDA_STUB_DIR)/libcuda.so $(CUDA_STUB_DIR)/libcuda.so.*)),1,0),0)
 
-BPF_APPS = struct_ops prefetch_always_max prefetch_none prefetch_none_revision prefetch_adaptive_tree_iter prefetch_adaptive_sequential prefetch_pid_tree prefetch_eviction_pid prefetch_stride prefetch_stride_lfu eviction_fifo eviction_lfu eviction_mru eviction_pid_quota eviction_freq_pid_decay eviction_fifo_chance eviction_cycle_moe chunk_trace prefetch_trace gpu_sched_trace gpu_preempt_ctrl gpu_sched_set_timeslices eviction_lfu_xcoord prefetch_always_max_cycle_moe prefetch_max_mru_expert prefetch_max_passive_mru prefetch_cross_block_v2 prefetch_template_belady prefetch_proactive_layer prefetch_always_max_xcoord prefetch_always_max_qos test_preempt_kfunc test_preempt_demo test_preempt_multi test_uprobe_preempt uprobe_preempt_multi prefetch_faiss_phase prefetch_serving_adaptive test_uprobe_prefetch prefetch_faiss_uprobe prefetch_stride_multiblock prefetch_llama_phase prefetch_vllm_phase prefetch_vllm_phase_transparent prefetch_cooperative prefetch_reuse_dist prefetch_throttled_xb prefetch_gnn_proactive prefetch_moe_expert # BPF apps that need skeletons
+BPF_APPS_ALL = struct_ops prefetch_always_max prefetch_none prefetch_none_revision prefetch_adaptive_tree_iter prefetch_adaptive_sequential prefetch_pid_tree prefetch_eviction_pid prefetch_stride prefetch_stride_lfu eviction_fifo eviction_lfu eviction_mru eviction_pid_quota eviction_freq_pid_decay eviction_fifo_chance eviction_cycle_moe chunk_trace prefetch_trace gpu_sched_trace gpu_preempt_ctrl gpu_sched_set_timeslices eviction_lfu_xcoord prefetch_always_max_cycle_moe prefetch_max_mru_expert prefetch_max_passive_mru prefetch_cross_block_v2 prefetch_template_belady prefetch_proactive_layer prefetch_always_max_xcoord prefetch_always_max_qos test_preempt_kfunc test_preempt_demo test_preempt_multi test_uprobe_preempt uprobe_preempt_multi prefetch_faiss_phase prefetch_serving_adaptive test_uprobe_prefetch prefetch_faiss_uprobe prefetch_stride_multiblock prefetch_llama_phase prefetch_vllm_phase prefetch_vllm_phase_transparent prefetch_cooperative prefetch_reuse_dist prefetch_throttled_xb prefetch_gnn_proactive prefetch_moe_expert # BPF apps that need skeletons
+DEFERRED_VA_SPACE_APPS = prefetch_cross_block_v2 prefetch_proactive_layer \
+	prefetch_faiss_phase test_uprobe_prefetch prefetch_faiss_uprobe \
+	prefetch_stride_multiblock prefetch_llama_phase prefetch_vllm_phase \
+	prefetch_vllm_phase_transparent prefetch_cooperative prefetch_reuse_dist \
+	prefetch_throttled_xb prefetch_gnn_proactive prefetch_moe_expert
+# These policies pass an integer VA-space handle to the removed migration
+# kfunc. They remain source artifacts but are excluded until a native lifetime
+# design provides owned lookup, invalidation, and teardown synchronization.
+BPF_APPS = $(filter-out $(DEFERRED_VA_SPACE_APPS),$(BPF_APPS_ALL))
 SCX_APPS = sched_gpu_baseline sched_gpu_minimal sched_gpu_serving sched_gpu_xcoord sched_gpu_xcoord_noad sched_gpu_coord # sched_ext apps (need scx headers)
 TOOL_APPS = cleanup_struct_ops_tool # Pure userspace tools
 
@@ -52,7 +61,7 @@ ENABLED_NVML_APPS = $(if $(filter 1,$(HAVE_NVML)),$(NVML_APPS),)
 ENABLED_CUDA_APPS = $(if $(filter 1,$(HAVE_CUDA)),$(CUDA_APPS),)
 ENABLED_SCX_APPS = $(if $(filter 1,$(HAVE_SCX)),$(SCX_APPS),)
 APPS = $(CORE_BPF_APPS) $(ENABLED_NVML_APPS) $(PTHREAD_APPS) $(ENABLED_CUDA_APPS) $(ENABLED_SCX_APPS) $(TOOL_APPS) # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
-ALL_APPS = $(BPF_APPS) $(SCX_APPS) $(TOOL_APPS)
+ALL_APPS = $(BPF_APPS_ALL) $(SCX_APPS) $(TOOL_APPS)
 
 REVISION_SCHED_FIXTURE_OBJECTS = \
 	$(OUTPUT)/revision_sched_input_write.bpf.o \

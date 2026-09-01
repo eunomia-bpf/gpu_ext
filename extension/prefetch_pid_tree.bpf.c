@@ -139,7 +139,7 @@ int BPF_PROG(gpu_page_prefetch,
              uvm_page_index_t page_index,
              uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
              uvm_va_block_region_t *max_prefetch_region,
-             uvm_va_block_region_t *result_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     u32 owner_tgid = get_cached_owner_pid();
     u32 threshold = get_threshold_for_pid(owner_tgid);
@@ -148,7 +148,7 @@ int BPF_PROG(gpu_page_prefetch,
                owner_tgid, page_index, threshold);
 
     /* Initialize result_region to empty */
-    bpf_gpu_set_prefetch_region(result_region, 0, 0);
+    bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
 
     /* Return ENTER_LOOP to let driver iterate tree and call on_tree_iter */
     return 2; // UVM_BPF_ACTION_ENTER_LOOP
@@ -160,7 +160,7 @@ int BPF_PROG(gpu_page_prefetch_iter,
              uvm_va_block_region_t *max_prefetch_region,
              uvm_va_block_region_t *current_region,
              unsigned int counter,
-             uvm_va_block_region_t *prefetch_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     u32 owner_tgid = get_cached_owner_pid();
     u32 threshold = get_threshold_for_pid(owner_tgid);
@@ -183,7 +183,7 @@ int BPF_PROG(gpu_page_prefetch_iter,
     }
 
     if (allowed) {
-        bpf_gpu_set_prefetch_region(prefetch_region, first, outer);
+        bpf_gpu_set_prefetch_region(decision_ctx, first, outer);
         return 1; // Selected this region
     }
 

@@ -5552,10 +5552,17 @@ struct bpf_struct_ops_common_value {
 	long: 64;
 };
 
+typedef struct uvm_bpf_prefetch_decision {
+	NvU8 attempted;
+	NvU8 conflict;
+	NvU64 first;
+	NvU64 outer;
+} uvm_bpf_prefetch_decision_t;
+
 struct gpu_mem_ops {
 	int (*gpu_test_trigger)(const char *, int);
-	int (*gpu_page_prefetch)(uvm_page_index_t, uvm_perf_prefetch_bitmap_tree_t *, uvm_va_block_region_t *, uvm_va_block_region_t *);
-	int (*gpu_page_prefetch_iter)(uvm_page_index_t, uvm_perf_prefetch_bitmap_tree_t *, uvm_va_block_region_t *, uvm_va_block_region_t *, unsigned int, unsigned int);
+	int (*gpu_page_prefetch)(uvm_page_index_t, uvm_perf_prefetch_bitmap_tree_t *, uvm_va_block_region_t *, uvm_bpf_prefetch_decision_t *);
+	int (*gpu_page_prefetch_iter)(uvm_perf_prefetch_bitmap_tree_t *, uvm_va_block_region_t *, uvm_va_block_region_t *, unsigned int, uvm_bpf_prefetch_decision_t *);
 };
 
 struct bpf_struct_ops_gpu_mem_ops {
@@ -10576,7 +10583,7 @@ typedef bool (*uvm_va_policy_is_split_needed_t)(const uvm_va_policy_t *, void *)
 
 /* BPF kfuncs */
 #ifndef BPF_NO_KFUNC_PROTOTYPES
-extern void bpf_gpu_set_prefetch_region(uvm_va_block_region_t *region, uvm_page_index_t first, uvm_page_index_t outer) __weak __ksym;
+extern int bpf_gpu_set_prefetch_region(uvm_bpf_prefetch_decision_t *decision_ctx, NvU64 first, NvU64 outer) __weak __ksym;
 extern int bpf_gpu_strstr(const char *str, u32 str__sz, const char *substr, u32 substr__sz) __weak __ksym;
 #endif
 

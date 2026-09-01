@@ -177,13 +177,13 @@ int BPF_PROG(gpu_page_prefetch,
              uvm_page_index_t page_index,
              uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
              uvm_va_block_region_t *max_prefetch_region,
-             uvm_va_block_region_t *result_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     struct engagement_stats *stats = get_engagement();
     if (stats)
         __sync_fetch_and_add(&stats->page_fault_calls, 1);
 
-    bpf_gpu_set_prefetch_region(result_region, 0, 0);
+    bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
     u64 va_block_ptr = get_cached_va_block();
     if (!va_block_ptr)
         return 1;
@@ -258,7 +258,7 @@ int BPF_PROG(gpu_page_prefetch,
     if (first >= outer)
         return 1;
 
-    bpf_gpu_set_prefetch_region(result_region,
+    bpf_gpu_set_prefetch_region(decision_ctx,
                                 (uvm_page_index_t)first,
                                 (uvm_page_index_t)outer);
     __sync_fetch_and_add(&state->prefetch_count, 1);
@@ -273,7 +273,7 @@ int BPF_PROG(gpu_page_prefetch_iter,
              uvm_va_block_region_t *max_prefetch_region,
              uvm_va_block_region_t *current_region,
              unsigned int counter,
-             uvm_va_block_region_t *prefetch_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     return 0;
 }

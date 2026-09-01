@@ -15,13 +15,13 @@ int BPF_PROG(gpu_page_prefetch,
              uvm_page_index_t page_index,
              uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
              uvm_va_block_region_t *max_prefetch_region,
-             uvm_va_block_region_t *result_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     (void)page_index;
     (void)bitmap_tree;
     (void)max_prefetch_region;
 
-    bpf_gpu_set_prefetch_region(result_region, 0, 0);
+    bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
     return 1; /* UVM_BPF_ACTION_BYPASS */
 }
 

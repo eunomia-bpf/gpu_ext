@@ -137,7 +137,7 @@ int BPF_PROG(gpu_page_prefetch,
              uvm_page_index_t page_index,
              uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
              uvm_va_block_region_t *max_prefetch_region,
-             uvm_va_block_region_t *result_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     u64 va_block_ptr = get_cached_va_block();
     s32 confidence_threshold = (s32)get_config(CONFIG_CONFIDENCE_THRESHOLD, 2);
@@ -149,7 +149,7 @@ int BPF_PROG(gpu_page_prefetch,
     uvm_page_index_t max_outer = BPF_CORE_READ(max_prefetch_region, outer);
 
     /* Default: no prefetch */
-    bpf_gpu_set_prefetch_region(result_region, 0, 0);
+    bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
 
     if (va_block_ptr == 0) {
         update_stats(false);
@@ -247,7 +247,7 @@ int BPF_PROG(gpu_page_prefetch,
 
         /* Only prefetch if we have a valid region */
         if (pf_first < pf_outer) {
-            bpf_gpu_set_prefetch_region(result_region,
+            bpf_gpu_set_prefetch_region(decision_ctx,
                                         (uvm_page_index_t)pf_first,
                                         (uvm_page_index_t)pf_outer);
             __sync_fetch_and_add(&state->prefetch_count, 1);
@@ -271,7 +271,7 @@ int BPF_PROG(gpu_page_prefetch_iter,
              uvm_va_block_region_t *max_prefetch_region,
              uvm_va_block_region_t *current_region,
              unsigned int counter,
-             uvm_va_block_region_t *prefetch_region)
+             uvm_bpf_prefetch_decision_t *decision_ctx)
 {
     return 0;
 }

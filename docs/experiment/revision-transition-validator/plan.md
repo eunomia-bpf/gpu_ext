@@ -1,6 +1,6 @@
 # R5 production transition-validator implementation plan
 
-Status: revision 2 for independent review; do not execute until approved.
+Status: revision 3 for independent review; do not execute until approved.
 
 ## Revision question
 
@@ -162,10 +162,18 @@ max.first <= first < outer <= max.outer
 ```
 
 `(0, 0)` is the sole empty-region encoding and is legal regardless of
-`max.first`. Other zero-length regions are rejected. Endpoints and every
-intermediate are widened to `NvU64`; addition is checked before execution,
-subtraction requires `lhs >= rhs`, the widened value must fit both
-`PAGES_PER_UVM_VA_BLOCK` and `uvm_page_index_t`, and narrowing occurs last.
+`max.first`. Other zero-length regions are rejected.
+
+Replace the narrow callback output pointer with a callback-local
+`uvm_bpf_prefetch_decision_t`. Its requested endpoints and the corresponding
+`bpf_gpu_set_prefetch_region()` parameters are `u64`; presence/conflict fields
+are hidden from direct BPF writes. Thus the driver retains the BPF program's
+original values rather than truncating them at the kfunc boundary.
+
+The shared validator checks those original `u64` endpoints against the empty,
+ordering, maximum-region, VA-block, and `uvm_page_index_t` constraints before
+any narrowing. Every intermediate is `NvU64`; addition is checked before
+execution, subtraction requires `lhs >= rhs`, and narrowing occurs last.
 Clamping is not validation.
 
 The native bitmap-tree traversal remains internally relative. Before an
@@ -185,8 +193,8 @@ result. A translation failure yields the empty region and records
 
 ### Initial callback actions
 
-The driver gives the callback a fresh empty candidate and validates the raw
-integer action before interpreting it:
+The driver gives the callback a fresh wide decision candidate and validates the
+raw integer action before interpreting it:
 
 - `DEFAULT`: discard the candidate and execute the native traversal;
 - `BYPASS`: validate the candidate as absolute, then accept it and skip native
@@ -202,8 +210,8 @@ native fallback.
 
 ### Iterator callback actions
 
-Each traversal step passes an absolute, validated `current_region` and a new
-empty candidate. The callback return is no longer ignored:
+Each traversal step passes an absolute, validated narrow `current_region` input
+and a new wide decision candidate. The callback return is no longer ignored:
 
 - `DEFAULT`: ignore its candidate and continue;
 - `BYPASS`: validate and commit its absolute candidate, then continue; the last
@@ -225,10 +233,8 @@ Add a driver-owned `uvm_pmm_root_list_state_t` field to each
 NONE, FREE, VA_BLOCK_USED, VA_BLOCK_UNUSED, EVICTION, LAZY_FREE
 ```
 
-The same root metadata also records a native-transition generation and the
-last policy reorder's generation, destination, and position. Native cross-list
-or ownership transitions advance the generation and invalidate the previous
-policy record; same-list head/tail reorders do not advance it.
+The same root metadata records a membership generation. Every native ownership
+or cross-list transition advances it; same-list head/tail reorder does not.
 
 The state is protected by `pmm->list_lock` and is updated in the same critical
 section as every native root-list operation. The required audited transition
@@ -243,35 +249,55 @@ sites are:
 - `process_lazy_free_entry()`: `NONE` before native free processing; and
 - root-chunk initialization/deinitialization assertions.
 
-The audit is source-complete only when every `root_chunk->chunk.list` operation
-in `uvm_pmm_gpu.c` either uses the state-updating helper or contains an explicit
-state update/assertion under `list_lock`. `list_empty()` is not accepted as
-membership evidence.
+The audit is source-complete only when every list mutation in
+`uvm_pmm_gpu.c` that can alias a root chunk uses one unified helper. The audit
+must classify every `chunk`, `result`, `root_chunk`, and `subchunk` alias, not
+just textual `root_chunk->chunk.list` matches. It explicitly includes
+`free_next_available_root_chunk()` (`result` is a root),
+`pin_free_chunks_func()`, `find_free_chunk_locked()`, lazy-free enqueue/drain,
+and root initialization in addition to the named paths above. The helper
+updates state and generation in the same lock section for root targets and
+leaves root membership unchanged for proven subchunk-only targets.
+`list_empty()` is not accepted as membership evidence.
 
-Replace the raw-list kfuncs with a typed request:
+Replace the raw-list kfuncs with a callback-local typed request:
 
 ```text
-bpf_gpu_block_reorder(pmm, chunk, expected_source, destination, position)
+bpf_gpu_request_reorder(decision_ctx, destination, position)
 ```
 
-`expected_source` and `destination` are only `VA_BLOCK_USED` or
-`VA_BLOCK_UNUSED`; `position` is `HEAD` or `TAIL`. Under the already-held
-`pmm->list_lock`, the production helper verifies:
+Immediately before each `gpu_block_activate` or `gpu_block_access` callback,
+the driver creates a hidden `uvm_bpf_pmm_decision_ctx` containing the owning
+PMM, root chunk, observed source state, observed generation, and an empty
+request record. `destination` is only `VA_BLOCK_USED` or `VA_BLOCK_UNUSED`;
+`position` is `HEAD` or `TAIL`. The kfunc records a request but never mutates a
+list. Within this one callback invocation an identical second setter returns
+`NOOP_REPEAT`; a different second setter marks the local decision conflicted
+and returns `NOOP_CONFLICT`.
+
+After the callback, while still under the same `pmm->list_lock`, the production
+commit helper verifies:
 
 1. `pmm` is the chunk's owning PMM;
-2. the root chunk's recorded state equals `expected_source`;
+2. the root chunk's current state and generation still equal the callback's
+   observed source and generation;
 3. the destination enum resolves to the corresponding list head in that same
    PMM; and
 4. the root is not `NONE`, `FREE`, `EVICTION`, or `LAZY_FREE`.
 
-Before mutation it compares the request with the last-policy record at the
-current native generation. An identical same-list request is `NOOP_REPEAT`; a
-different head/tail request at that generation is `NOOP_CONFLICT`. Otherwise it
-performs exactly one `list_move()`/`list_move_tail()`, updates the recorded
-state, and records the request. A wrong source, foreign PMM, or
-post-eviction/lazy request is `NOOP_STALE`/`REJECT_IDENTITY`. In-tree policies
-are mechanically ported from raw list pointers to the typed kfunc. BPF never
-traverses a list or supplies a destination pointer.
+If the local record is conflicted, nothing commits. Otherwise the helper
+performs at most one `list_move()`/`list_move_tail()`. A cross-list commit
+updates source state and advances membership generation in that same critical
+section; a same-list reorder preserves membership generation. A wrong source,
+foreign PMM, or post-eviction/lazy request is
+`NOOP_STALE`/`REJECT_IDENTITY`.
+
+No policy request record persists across callbacks. A later hook therefore
+re-evaluates real-time source membership and may legally request HEAD after an
+earlier TAIL (or vice versa); movement of other nodes cannot turn the later
+request into a false repeat. In-tree policies are mechanically ported from raw
+list pointers to the invocation-local request kfunc. The request kfunc never
+traverses a list or accepts a destination pointer.
 
 ## Deferred VA-space lifetime disposition
 
@@ -298,9 +324,10 @@ insufficient.
 | Initial action | negative and above ENTER_LOOP with empty candidate | DEFAULT, BYPASS, ENTER_LOOP | invalid falls back to native DEFAULT; legal routes exactly |
 | Initial region | reversed, noncanonical empty, below/above max | empty, one-page, full-max absolute regions | invalid falls back to native; controls accepted exactly |
 | Iterator action | ENTER_LOOP and out-of-range value | DEFAULT and BYPASS | invalid candidate ignored; last legal BYPASS wins |
-| Region translation | underflow and widened-add overflow | largest legal translated endpoint | reject before arithmetic; boundary control accepted |
+| Raw endpoint width | one above `uvm_page_index_t`, one above block outer, and maximum `u64` | largest legal narrow endpoint | original wide invalid values reject before narrowing; boundary control accepted |
+| Region translation | subtraction underflow and widened-add overflow | largest legal translated endpoint | reject before arithmetic; boundary control accepted |
 | PMM source state | wrong expected list, foreign PMM, eviction/lazy state | member of expected used/unused list | invalid/stale no-op; valid move exactly once |
-| PMM repeat/conflict | same move twice; second request with old source | one legal move | repeat no-op; stale source cannot commit |
+| PMM repeat/conflict | same setter twice and different setter in one callback | one request; later callback reverses HEAD/TAIL | local repeat/conflict no-op; cross-callback control is re-evaluated and applies |
 | Raw VA-space handle | any nonzero integer handle | none until native lifetime design exists | kfunc is absent from registered BTF surface |
 
 ## Execution protocol
@@ -326,19 +353,26 @@ insufficient.
 2. Add `uvm_test_pmm_bpf_transition()` to the existing
    `kernel-open/nvidia-uvm/uvm_pmm_test.c` test-ioctl path. It exercises the
    exact production PMM helper with real `list_lock`, list heads, root metadata,
-   wrong-source, foreign-PMM, repeat, eviction, and lazy-state controls. A
-   host-only mock cannot satisfy the PMM row.
-3. Add scheduler verifier-access assertions to a kernel-native selftest entry
-   compiled with `nv-gpu-sched-hooks.c`, proving every direct context write is
-   rejected while immutable input reads and setter kfuncs remain admitted.
+   every root-list alias helper, wrong-source, foreign-PMM, callback-local
+   repeat/conflict, cross-callback reversal, eviction, and lazy-state controls.
+   A host-only mock cannot satisfy the PMM row.
+3. Add five actual BPF load fixtures and a loader that calls
+   `bpf_object__load()` without attaching struct_ops:
+   `sched-input-write` (load-fail), `sched-hidden-write` (load-fail),
+   `sched-immutable-read` (load-pass), `sched-timeslice-setter` (load-pass), and
+   `sched-interleave-low-setter` (load-pass). The focused selector must report
+   exactly five attempted fixtures, two expected verifier rejections, and three
+   admissions. A compiled C selftest or direct call to
+   `nv_gpu_sched_ops_is_valid_access()` does not satisfy this row.
 4. Build all five open modules for the primary supported configuration, then
    port the same semantics to 610.43.02 and build all five modules for Linux
    7.1.12. Inspect diagnostics, touched BTF types/kfuncs, and the absence of the
    raw migration kfunc from BTF registration. Build success alone is not a
    runtime claim.
-5. A kernel-native PMM/verifier test run requires a safely loadable test stack
-   and counts as one live preflight. If the display-owned running stack cannot
-   be left untouched, do not run it and report the affected rows `PARTIAL`.
+5. The kernel-native PMM test and real BPF verifier-load fixtures require a
+   safely loadable test stack and together count as one live preflight. If the
+   display-owned running stack cannot be left untouched, do not run them and
+   report the affected rows `PARTIAL`.
 
 ### Phase C: optional live admission preflights
 
@@ -348,8 +382,9 @@ live preflights be used, including the kernel-native test from Phase B:
 1. kernel-native PMM/verifier integration test on an idle, safely replaceable
    stack;
 2. accepted scheduler decision; and
-3. rejected scheduler action using an out-of-range action integer paired only
-   with the legal empty `(0, 0)` region, proving native fallback remains active.
+3. rejected UVM prefetch action using an out-of-range action integer paired
+   only with the legal empty `(0, 0)` region, proving native fallback remains
+   active.
 
 No stale pointer, foreign list node, conflicting list mutation, invalid region,
 range underflow, or overflow is sent to a live driver. Those cases remain

@@ -55,3 +55,42 @@ Revision 2 makes the following binding changes:
 
 Revision 2 remains blocked from implementation until the independent reviewer
 approves these semantics.
+
+## Round 2: BLOCK
+
+Independent review accepted the scheduler relocation, LOW=0 presence,
+two-snapshot comparison, coordinate/action semantics, deferred-lifetime
+`PARTIAL`, and live-preflight ceiling, but found four remaining defects:
+
+1. Persisting the last policy reorder across callbacks would reject later legal
+   adaptive HEAD/TAIL changes and could misclassify a request after other nodes
+   moved.
+2. Searching only `root_chunk->chunk.list` missed root aliases such as
+   `free_next_available_root_chunk()`'s `result`.
+3. The existing narrow region-setter parameters would truncate an invalid BPF
+   endpoint before the proposed validator could inspect it.
+4. A C selftest compiled with the verifier source would not prove actual BPF
+   load admission; the plan also mislabeled the live invalid action as a
+   scheduler action.
+
+No implementation started after this review.
+
+## Revision 3 response
+
+- PMM decisions are now callback-local: setters only populate a hidden local
+  record, repeats/conflicts are scoped to one invocation, and the driver commits
+  at most once under the still-held lock. Only source membership/generation is
+  persistent, and later callbacks always re-evaluate live state.
+- Every list mutation that can alias a root must use one state/generation-aware
+  helper. The plan explicitly names `chunk`/`result` aliases and
+  `free_next_available_root_chunk()`.
+- Prefetch requested endpoints and setter arguments are `u64`; validation sees
+  original values and narrows only after checks. The matrix adds above-type,
+  above-block, and maximum-integer cases.
+- Five real BPF load fixtures provide exactly two expected verifier rejections
+  and three admissions without attach. Their run shares one safely loadable
+  stack preflight with the kernel-native PMM test.
+- The live invalid action is correctly labeled UVM prefetch action.
+
+Revision 3 remains blocked from implementation until the independent reviewer
+approves these semantics.

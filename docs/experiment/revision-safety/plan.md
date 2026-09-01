@@ -1,6 +1,6 @@
 # R5 verifier and transition-safety evidence plan
 
-Status: draft for independent review; do not execute until approved.
+Status: revision 2 after a blocked review; do not execute until approved.
 
 ## Revision question
 
@@ -72,13 +72,46 @@ behaviors.
 1. Create a sibling bpftime worktree from `codex/gpu-simt-verifier-clean`.
 2. Add the workspace no-hash rule to that worktree if it is not inherited from
    the parent directory.
-3. Configure and build only `bpftime_verifier_tests`, disabling linker build
+3. Add one test source,
+   `bpftime-verifier/test/gpu_revision_safety_test.cpp`, to the existing
+   `bpftime_verifier_tests` target.  It must contain these exact Catch2 test
+   names, all tagged `[gpu][revision-safety]`:
+   - `revision base verifier bounds pair`
+   - `revision base verifier loop pair`
+   - `revision SIMT branch pair`
+   - `revision SIMT map side-effect pairs`
+   - `revision SIMT atomic and helper pairs`
+4. Every unsafe section and every control section must call the public
+   `verify_gpu_program` entry point.  Direct calls to `analyze_uniformity` or
+   `check_simt_safety` may support lower-level unit tests but do not satisfy
+   this matrix.  Each pair asserts:
+   - unsafe: a non-empty rejection plus the expected base-verifier or named
+     SIMT diagnostic;
+   - control: an empty optional (accepted); and
+   - unsafe/control differ in only the property being tested.
+5. The exact required sections are:
+   - bounds: out-of-bounds stack access rejected; same-width in-bounds stack
+     access accepted;
+   - loop: data-dependent backward loop with no proven bound rejected;
+     constant-bounded backward loop accepted;
+   - branch: `thread_idx` predicate rejected with
+     `Warp-Uniform Branch Conditions`; block-ID predicate accepted;
+   - map side effects: lane-derived key rejected with
+     `Map Helper Key Uniformity`, lane-derived shared-map value rejected with
+     `Shared Map Value Uniformity`, and a warp-uniform key/value control for
+     each is accepted;
+   - atomic/helper: lane-varying atomic target rejected with
+     `Atomic Operations on Uniform Addresses`, the same operation on a
+     uniform target accepted, prohibited helper 506 rejected with
+     `Prohibited Helpers`, and an otherwise equivalent allowed-helper control
+     accepted.
+6. Configure and build only `bpftime_verifier_tests`, disabling linker build
    IDs for newly linked experiment binaries.
-4. Run the full verifier test binary once.  Then run named/tagged tests for the
-   negative cases and matched controls, preserving stdout/stderr and exit
-   status as plain text.
-5. Inspect the test listing and source names so that a zero-test invocation is
-   a failure.
+7. Before running results, invoke Catch2 listing with the exact selector
+   `[gpu][revision-safety]` and require the five names above exactly once.  Run
+   the targeted group with the same selector and verbose assertions, then run
+   the full verifier binary once.  Preserve stdout/stderr and exit status as
+   plain text.  A missing test name or zero-test invocation is a failure.
 
 No GPU or driver mutation is needed for Phase A.
 
@@ -110,9 +143,10 @@ No GPU or driver mutation is needed for Phase A.
 ## Acceptance and falsification rules
 
 - `PASS` requires every executable unsafe/control pair to produce the planned
-  opposite outcomes, non-empty targeted test selection, the full verifier
-  suite passing, and production-shared transition validation for numeric,
-  stale, and conflicting requests.
+  opposite outcomes through `verify_gpu_program`, the five exact targeted test
+  names appearing once, the full verifier suite passing, and
+  production-shared transition validation for numeric, stale, and conflicting
+  requests.
 - `PARTIAL` is required if verifier cases pass but any transition class lacks a
   production-shared validation seam, or any historical event lacks direct
   source evidence.

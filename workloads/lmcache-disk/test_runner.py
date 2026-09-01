@@ -20,7 +20,7 @@ class HarnessTests(unittest.TestCase):
     def test_response_gate_requires_captured_vllm_request_id(self):
         response = {
             "request_header": "lmc-p0-cold",
-            "engine_request_id": "cmpl-lmc-p0-cold-0-a1b2c3d4",
+            "engine_request_id": "cmpl-lmc-p0-cold",
             "status": 200,
             "input_tokens": 1549,
             "usage": {"prompt_tokens": 1549, "completion_tokens": runner.OUTPUT_TOKENS},
@@ -29,7 +29,7 @@ class HarnessTests(unittest.TestCase):
             "e2e_ms": 2.0,
         }
         runner._validate_response(response, 1549, "lmc-p0-cold")
-        response["engine_request_id"] = "cmpl-lmc-p0-cold-0"
+        response["engine_request_id"] = "cmpl-lmc-p0-cold-0-a1b2c3d4"
         with self.assertRaises(runner.GateError):
             runner._validate_response(response, 1549, "lmc-p0-cold")
 
@@ -69,25 +69,27 @@ class HarnessTests(unittest.TestCase):
             self.assertEqual(trace_output, root.resolve() / "strace/open.trace")
 
     def test_request_scoped_log_parser(self):
-        request_id = "cmpl-lmc-p3-warm-0"
+        request_id = "cmpl-lmc-p3-warm"
+        runtime_id = request_id + "-0-a1b2c3d4"
         log = "\n".join(
             [
-                f"Reqid: {request_id}, Total tokens 1550, Inference Engine computed tokens: 0, LMCache hit tokens: 1536, need to load: 1536",
-                f"[req_id={request_id}] Retrieved 1536 out of 1536 required tokens (from 1550 total tokens).",
-                f"[req_id={request_id}] Stored 1536 out of total 1550 tokens.",
+                f"Reqid: {runtime_id}, Total tokens 1550, Inference Engine computed tokens: 0, LMCache hit tokens: 1536, need to load: 1536",
+                f"[req_id={runtime_id}] Retrieved 1536 out of 1536 required tokens (from 1550 total tokens).",
+                f"[req_id={runtime_id}] Stored 1536 out of total 1550 tokens.",
             ]
         )
         self.assertEqual(
             runner.request_log_values(log, request_id),
-            {"request_totals": [1550], "hits": [1536],
+            {"runtime_ids": [runtime_id], "request_totals": [1550], "hits": [1536],
              "stores": [(1536, 1550)], "retrieved": [(1536, 1536, 1550)]},
         )
 
     def test_retrieval_parser_preserves_denominators(self):
-        request_id = "cmpl-lmc-p0-warm-0"
+        request_id = "cmpl-lmc-p0-warm"
+        runtime_id = request_id + "-0-a1b2c3d4"
         log = (
-            f"Reqid: {request_id}, Total tokens 1549, LMCache hit tokens: 1536\n"
-            f"[req_id={request_id}] Retrieved 1536 out of 512 required tokens "
+            f"Reqid: {runtime_id}, Total tokens 1549, LMCache hit tokens: 1536\n"
+            f"[req_id={runtime_id}] Retrieved 1536 out of 512 required tokens "
             "(from 1549 total tokens)."
         )
         values = runner.request_log_values(log, request_id)
@@ -132,16 +134,18 @@ class HarnessTests(unittest.TestCase):
                 runner.validate_odirect(Path(tmp), cache)
 
     def test_warm_gate_rejects_contradictory_partial_evidence(self):
-        cold_id = "cmpl-lmc-p0-cold-0"
-        warm_id = "cmpl-lmc-p0-warm-0"
+        cold_id = "cmpl-lmc-p0-cold"
+        warm_id = "cmpl-lmc-p0-warm"
+        cold_runtime_id = cold_id + "-0-a1b2c3d4"
+        warm_runtime_id = warm_id + "-0-a1b2c3d4"
         log = "\n".join(
             [
                 "LMCache initialized with version 0.5.4, vllm version 0.27.1+cu129",
-                f"Reqid: {cold_id}, LMCache hit tokens: 0",
-                f"Reqid: {warm_id}, LMCache hit tokens: 512",
-                f"Reqid: {warm_id}, LMCache hit tokens: 1536",
-                f"[req_id={warm_id}] Retrieved 512 out of 1536 required tokens",
-                f"[req_id={warm_id}] Retrieved 1536 out of 1536 required tokens",
+                f"Reqid: {cold_runtime_id}, Total tokens 1549, LMCache hit tokens: 0",
+                f"Reqid: {warm_runtime_id}, Total tokens 1549, LMCache hit tokens: 512",
+                f"Reqid: {warm_runtime_id}, Total tokens 1549, LMCache hit tokens: 1536",
+                f"[req_id={warm_runtime_id}] Retrieved 512 out of 1536 required tokens",
+                f"[req_id={warm_runtime_id}] Retrieved 1536 out of 1536 required tokens",
             ]
         )
         observations = [{"expected_hit_tokens": 1536,
@@ -207,6 +211,7 @@ class HarnessTests(unittest.TestCase):
 
     def test_store_state_is_recomputed_for_each_prefix(self):
         request_evidence = {
+            "runtime_ids": ["cmpl-lmc-p0-cold-0-a1b2c3d4"],
             "request_totals": [1540],
             "hits": [0],
             "stores": [(1536, 1536)],

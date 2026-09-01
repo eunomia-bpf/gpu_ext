@@ -620,7 +620,7 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
     if len(engine_request_ids) != 1:
         raise GateError(f"response did not carry one stable engine request ID: {engine_request_ids}")
     engine_request_id = engine_request_ids.pop()
-    if re.fullmatch(rf"cmpl-{re.escape(request_id)}-0-[A-Za-z0-9_-]+", engine_request_id) is None:
+    if engine_request_id != f"cmpl-{request_id}":
         raise GateError(f"engine request ID does not match request header {request_id}: {engine_request_id}")
     return {"request_header": request_id, "engine_request_id": engine_request_id,
             "input_tokens": len(token_ids),
@@ -628,18 +628,27 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
             "usage": usage, "text": output}
 
 
-def request_log_values(log: str, request_id: str) -> dict[str, Any]:
-    q = re.escape(request_id)
-    request_totals = [int(value) for value in re.findall(
-        rf"Reqid:\s*{q},\s*Total tokens\s+(\d+)", log)]
-    hits = [None if value == "None" else int(value) for value in re.findall(
-        rf"Reqid:\s*{q},[^\n]*LMCache hit tokens:\s*(None|\d+)", log)]
-    stores = [(int(a), int(b)) for a, b in re.findall(
-        rf"\[req_id={q}\] Stored\s+(\d+) out of total\s+(\d+) tokens", log)]
-    retrieved = [(int(a), int(b), int(c)) for a, b, c in re.findall(
-        rf"\[req_id={q}\] Retrieved\s+(\d+) out of\s+(\d+) required tokens"
-        rf"\s*\(from\s+(\d+) total tokens\)", log)]
-    return {"request_totals": request_totals, "hits": hits,
+def request_log_values(log: str, response_id: str) -> dict[str, Any]:
+    response_pattern = re.escape(response_id)
+    runtime_ids = sorted(set(re.findall(
+        rf"Reqid:\s*({response_pattern}-0-[A-Za-z0-9_-]+),", log
+    )))
+    request_totals: list[int] = []
+    hits: list[int | None] = []
+    stores: list[tuple[int, int]] = []
+    retrieved: list[tuple[int, int, int]] = []
+    for runtime_id in runtime_ids:
+        q = re.escape(runtime_id)
+        request_totals.extend(int(value) for value in re.findall(
+            rf"Reqid:\s*{q},\s*Total tokens\s+(\d+)", log))
+        hits.extend(None if value == "None" else int(value) for value in re.findall(
+            rf"Reqid:\s*{q},[^\n]*LMCache hit tokens:\s*(None|\d+)", log))
+        stores.extend((int(a), int(b)) for a, b in re.findall(
+            rf"\[req_id={q}\] Stored\s+(\d+) out of total\s+(\d+) tokens", log))
+        retrieved.extend((int(a), int(b), int(c)) for a, b, c in re.findall(
+            rf"\[req_id={q}\] Retrieved\s+(\d+) out of\s+(\d+) required tokens"
+            rf"\s*\(from\s+(\d+) total tokens\)", log))
+    return {"runtime_ids": runtime_ids, "request_totals": request_totals, "hits": hits,
             "stores": stores, "retrieved": retrieved}
 
 
@@ -701,7 +710,8 @@ def wait_for_cold_store(config: str, log_path: Path, cache_dir: Path, engine_req
     while time.monotonic() < deadline:
         log = log_path.read_text(errors="replace")
         values = request_log_values(log, engine_request_id)
-        if (values["request_totals"] == [prompt_tokens]
+        if (len(values["runtime_ids"]) == 1
+                and values["request_totals"] == [prompt_tokens]
                 and values["stores"] == [(expected_store_tokens, expected_store_tokens)]):
             break
         time.sleep(1)
@@ -786,7 +796,8 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
             cold_total = int(item["cold"]["usage"]["prompt_tokens"])
             if len(cold["hits"]) != 1 or cold["hits"][0] not in (0, None):
                 raise GateError(f"cold hit gate failed for {cold_id}: {cold}")
-            if (cold["request_totals"] != [cold_total]
+            if (len(cold["runtime_ids"]) != 1
+                    or cold["request_totals"] != [cold_total]
                     or cold["stores"] != [(expected, expected)]):
                 raise GateError(
                     f"exact cold store gate failed for {cold_id}: "
@@ -794,7 +805,8 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
                     f"got {cold}"
                 )
             warm_total = int(item["warm"]["usage"]["prompt_tokens"])
-            if (warm["request_totals"] != [warm_total]
+            if (len(warm["runtime_ids"]) != 1
+                    or warm["request_totals"] != [warm_total]
                     or warm["hits"] != [expected]
                     or warm["retrieved"] != [(expected, expected, warm_total)]):
                 raise GateError(f"exact warm hit/retrieval gate failed for {warm_id}: expected {expected}, got {warm}")

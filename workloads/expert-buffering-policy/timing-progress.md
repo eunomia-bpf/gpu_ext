@@ -1,6 +1,6 @@
 # Expert-buffering paired timing progress
 
-Status: in progress (2/5 paired blocks passed)
+Status: in progress (3/5 paired blocks passed)
 
 ## Block 1
 
@@ -32,3 +32,11 @@ The repaired attempt completed in frozen order `O -> E -> F -> U` with prompt or
 O recorded 312,584 mapped activations and 1,982,609 observed accesses. E recorded 43,004 hot-tail activations, 266,927 cold-native activations, 2,646 shared-tail activations, 257,659 hot-tail accesses, and 11,849 shared-tail accesses. Both cells had zero setter failures; E also had zero cold-head placements. Repeated-hot-activation bytes were 83,504,398,336 for O and 83,552,632,832 for E, again slightly higher under E.
 
 F covered all 1,105 graphs in every expected routed layer, with zero incomplete graphs and zero dropped events. No cell experienced thermal or power-brake throttling. Stock UVM restoration again ended with no UVM BTF entry, module refcount zero, 15 MiB GPU memory use, and 0% GPU utilization.
+
+## Block 3
+
+The frozen `E -> F -> U -> O` order and prompt order `8, 1, 5, 7, 3, 6, 4, 2` passed. Throughput was 6.1429 output tok/s for U, 6.1454 for O, 6.1421 for E, and 6.7961 for F. O/U was +0.040% and E/O was -0.054%, again near zero in this block.
+
+O recorded 288,523 mapped activations and 1,774,138 observed accesses. E recorded 38,760 hot-tail activations, 248,803 cold-native activations, 2,409 shared-tail activations, 217,793 hot-tail accesses, and 11,418 shared-tail accesses. Setter failures and cold-head placements remained zero. Repeated-hot-activation bytes were 74,551,656,448 for O and 74,503,421,952 for E, a small decrease under E in this block.
+
+F again covered all 1,105 graphs in every expected routed layer, with zero incomplete graphs and zero dropped events. No thermal or power-brake throttling occurred. Stock UVM was restored cleanly with the same idle state as prior blocks.

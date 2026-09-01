@@ -1,7 +1,7 @@
 {
   "experiment": "expert-buffering-policy-paired-timing",
   "status": "in_progress",
-  "completed_blocks": 2,
+  "completed_blocks": 3,
   "planned_blocks": 5,
   "measurement": {
     "output_tokens_per_cell": 512,
@@ -128,7 +128,67 @@
         "gpu_memory_mib": 15,
         "gpu_utilization_percent": 0
       }
+    },
+    {
+      "block": 3,
+      "status": "passed",
+      "configuration_order": [
+        "gpubpf_profile_protect",
+        "llama_ncmoe32",
+        "plain_uvm",
+        "gpubpf_observe"
+      ],
+      "prompt_order": [8, 1, 5, 7, 3, 6, 4, 2],
+      "throughput_tokens_per_s": {
+        "plain_uvm": 6.142937013229919,
+        "gpubpf_observe": 6.145392072476363,
+        "gpubpf_profile_protect": 6.142085778036415,
+        "llama_ncmoe32": 6.79612629097467
+      },
+      "paired_effect_percent": {
+        "observe_over_plain": 0.039965561117694115,
+        "protect_over_observe": -0.053801196098723914,
+        "llama_ncmoe32_over_plain": 10.633175569568598
+      },
+      "gpubpf_observe": {
+        "mapped": 288523,
+        "observe_activate": 288523,
+        "observe_access": 1774138,
+        "setter_failure": 0,
+        "hot_blocks": 3234,
+        "full_hot_activation_bytes": 81333846016,
+        "repeated_hot_activation_bytes": 74551656448
+      },
+      "gpubpf_profile_protect": {
+        "mapped": 289972,
+        "hot_tail": 38760,
+        "cold_native": 248803,
+        "shared_tail": 2409,
+        "hot_access_tail": 217793,
+        "shared_access_tail": 11418,
+        "cold_head": 0,
+        "setter_failure": 0,
+        "hot_blocks": 3234,
+        "full_hot_activation_bytes": 81285611520,
+        "repeated_hot_activation_bytes": 74503421952
+      },
+      "llama_ncmoe32_route_coverage": {
+        "layers": 32,
+        "graphs": 1105,
+        "layer_graphs_min": 1105,
+        "layer_graphs_max": 1105,
+        "incomplete_graphs": 0,
+        "route_events": 641943,
+        "dropped_events": 0
+      },
+      "thermal_or_power_brake_throttled": false,
+      "post_block_stock_uvm": {
+        "btf_present": false,
+        "module_refcount": 0,
+        "gpu_memory_mib": 15,
+        "gpu_utilization_percent": 0
+      }
     }
   ],
-  "interpretation": "Two blocks are valid but insufficient for the planned aggregate claim. Observe versus plain and protect versus observe remain close to zero in both blocks. The protect policy's repeated-hot-activation proxy is slightly higher, not lower, than observe in both blocks. The llama.cpp n-cpu-moe32 context configuration is faster but changes GPU residency and is not a mechanism-overhead comparison."
+  "interpretation": "Three blocks are valid but the frozen five-block run is not complete. Observe versus plain and protect versus observe remain close to zero in all three blocks. The protect policy's repeated-hot-activation proxy was slightly higher than observe in blocks 1 and 2 and slightly lower in block 3. The llama.cpp n-cpu-moe32 context configuration is faster but changes GPU residency and is not a mechanism-overhead comparison."
 }

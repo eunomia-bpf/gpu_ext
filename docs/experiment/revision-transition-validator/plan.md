@@ -1,6 +1,6 @@
 # R5 production transition-validator implementation plan
 
-Status: revision 4 for independent review; do not execute until approved.
+Status: revision 5 for independent review; do not execute until approved.
 
 ## Revision question
 
@@ -265,7 +265,7 @@ leaves root membership unchanged for proven subchunk-only targets.
 Replace the raw-list kfuncs with a callback-local typed request:
 
 ```text
-bpf_gpu_request_reorder(decision_ctx, destination, position)
+bpf_gpu_request_reorder(decision_ctx, destination_raw_u64, position_raw_u64)
 ```
 
 Change the struct_ops ABI in the production `gpu_mem_ops`, CFI stubs, wrapper
@@ -286,11 +286,21 @@ destination/position, and conflict bits are driver-owned.
 Immediately before each `gpu_block_activate` or `gpu_block_access` callback,
 the driver creates a hidden `uvm_bpf_pmm_decision_ctx` containing the owning
 PMM, root chunk, observed source state, observed generation, and an empty
-request record. `destination` is only `VA_BLOCK_USED` or `VA_BLOCK_UNUSED`;
-`position` is `HEAD` or `TAIL`. The kfunc records a request but never mutates a
-list. Within this one callback invocation an identical second setter returns
-`NOOP_REPEAT`; a different second setter marks the local decision conflicted
-and returns `NOOP_CONFLICT`.
+request record. The kfunc arguments and stored first attempt are `u64`, so an
+out-of-range raw value cannot disappear through enum narrowing.
+
+On every setter call the kfunc latches `attempted=true` before doing anything
+else and stores the first raw destination/position pair. It never discards an
+invalid attempt and never mutates a list. An identical later raw pair returns
+`NOOP_REPEAT`; any different later pair latches `conflict=true` and returns
+`NOOP_CONFLICT`. Destination is accepted only when the post-callback validator
+finds exactly `VA_BLOCK_USED` or `VA_BLOCK_UNUSED`; position is accepted only
+when it finds exactly `HEAD` or `TAIL`.
+
+The combination order is frozen: invalid-only reaches post-validation and is
+rejected; valid→invalid and invalid→valid both latch conflict; an identical
+invalid repeat remains an attempted invalid request. None may become the
+no-attempt state or commit a reorder, regardless of callback action.
 
 After the callback, while still under the same `pmm->list_lock`, the production
 commit helper verifies:
@@ -372,6 +382,7 @@ insufficient.
 | Region translation | subtraction underflow and widened-add overflow | largest legal translated endpoint | reject before arithmetic; boundary control accepted |
 | PMM source state | wrong expected list, foreign PMM, eviction/lazy state | member of expected used/unused list | invalid/stale no-op; valid move exactly once |
 | PMM repeat/conflict | same setter twice and different setter in one callback | one request; later callback reverses HEAD/TAIL | local repeat/conflict no-op; cross-callback control is re-evaluated and applies |
+| PMM rejected-attempt latch | invalid-only, valid→invalid, invalid→valid, identical invalid repeat | no setter; one legal setter | every attempted-invalid/conflict row preserves entry state and suppresses native; only true absence can select native DEFAULT |
 | PMM action coupling | invalid action; request+DEFAULT; conflict+BYPASS | no-request+DEFAULT; no-request+BYPASS; request+BYPASS | exact truth table: native only for no-request+DEFAULT, one request commits once, all invalid/conflict rows preserve entry state |
 | Raw VA-space handle | any nonzero integer handle | none until native lifetime design exists | kfunc is absent from registered BTF surface |
 
@@ -399,8 +410,11 @@ insufficient.
    `kernel-open/nvidia-uvm/uvm_pmm_test.c` test-ioctl path. It exercises the
    exact production PMM helper with real `list_lock`, list heads, root metadata,
    every root-list alias helper, wrong-source, foreign-PMM, callback-local
-   repeat/conflict, cross-callback reversal, eviction, and lazy-state controls.
-   A host-only mock cannot satisfy the PMM row.
+   repeat/conflict, invalid-only, valid→invalid, invalid→valid, identical
+   invalid repeat, cross-callback reversal, eviction, and lazy-state controls.
+   Each attempted-invalid sequence is paired with both DEFAULT and BYPASS and
+   must preserve callback-entry state. A host-only mock cannot satisfy the PMM
+   row.
 3. Add seven actual BPF load fixtures and a loader that calls
    `bpf_object__load()` without attaching struct_ops:
    `sched-input-write` (load-fail), `sched-hidden-write` (load-fail),

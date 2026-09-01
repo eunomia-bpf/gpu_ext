@@ -129,3 +129,29 @@ No implementation started after this review.
 
 Revision 4 remains blocked from implementation until the independent reviewer
 approves these semantics.
+
+## Round 4: BLOCK
+
+Independent review accepted the action×request tables, activate ordering, ABI
+changes, and real-load fixtures, then identified one state-encoding hole: an
+invalid reorder setter could return rejection without leaving a request record.
+The post-callback caller would then misclassify it as no-request+DEFAULT and
+execute native LRU, violating the rejection row.
+
+No implementation started after this review.
+
+## Revision 5 response
+
+- The reorder kfunc now takes and stores raw `u64` destination/position values
+  and latches `attempted` before any interpretation; an invalid attempt cannot
+  disappear through narrowing or early return.
+- Validation of those raw values is unified after the callback. Only exact
+  used/unused and head/tail values are accepted.
+- Invalid-only and identical-invalid-repeat remain rejected attempts;
+  valid→invalid and invalid→valid latch conflict. All suppress native movement
+  and preserve callback-entry state for both DEFAULT and BYPASS.
+- The PMM kernel-native matrix includes all four sequences paired with both
+  actions, in addition to a true no-setter control.
+
+Revision 5 remains blocked from implementation until the independent reviewer
+approves these semantics.

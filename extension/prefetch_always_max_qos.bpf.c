@@ -313,7 +313,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     stat_inc(STAT_ACTIVATE);
 
@@ -340,11 +340,11 @@ int BPF_PROG(gpu_block_activate,
     if (eviction_bias > 0 && owner_pid) {
         if (is_lc_process(owner_pid)) {
             stat_inc(STAT_LC_PROTECTED);
-            bpf_gpu_block_move_tail(chunk, list);
+            bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
             return 1; /* BYPASS: LC at MRU tail */
         } else {
             stat_inc(STAT_BE_DEMOTED);
-            bpf_gpu_block_move_head(chunk, list);
+            bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_HEAD);
             return 1; /* BYPASS: BE at LRU head → evict first */
         }
     }
@@ -359,7 +359,7 @@ int BPF_PROG(gpu_block_activate,
 
         if (c + 1 >= T1_FREQ_THRESHOLD) {
             stat_inc(STAT_T1_PROTECTED);
-            bpf_gpu_block_move_tail(chunk, list);
+            bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
             return 1; /* BYPASS: T1 protected */
         }
     }
@@ -371,7 +371,7 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     return 0;
 }

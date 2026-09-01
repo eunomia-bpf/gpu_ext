@@ -3,9 +3,9 @@
 Date: 2026-08-31
 
 Disposition: `PASS` for the offline UVM prefetch integration subset and
-`PARTIAL` for Phase B overall. PMM membership/commit integration, its two BPF
-load fixtures, kernel-native PMM execution, and live prefetch fallback remain
-open.
+`PARTIAL` for Phase B overall. PMM integration and its executable tests are now
+reported separately in [phase-b-pmm-results.md](phase-b-pmm-results.md); live
+verifier/ioctl execution and live prefetch fallback remain open.
 
 Independent review: [phase-b-prefetch-review.md](phase-b-prefetch-review.md).
 

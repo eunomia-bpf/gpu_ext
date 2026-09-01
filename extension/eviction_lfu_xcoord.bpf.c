@@ -152,7 +152,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
 	     uvm_pmm_gpu_t *pmm,
 	     uvm_gpu_chunk_t *chunk,
-	     struct list_head *list)
+	     uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
 	u32 owner_pid;
 	struct pid_chunk_stats *stats;
@@ -193,7 +193,7 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
 	     uvm_pmm_gpu_t *pmm,
 	     uvm_gpu_chunk_t *chunk,
-	     struct list_head *list)
+	     uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
 	u32 owner_pid;
 	u64 priority_pid;
@@ -244,7 +244,7 @@ int BPF_PROG(gpu_block_access,
 
 	/* Move tail only when access count reaches decay threshold */
 	if (count % decay_factor == 0) {
-		bpf_gpu_block_move_tail(chunk, list);
+		bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
 		if (pid_stats) {
 			__sync_fetch_and_add(&pid_stats->policy_allow, 1);
 		}

@@ -84,7 +84,9 @@ static __always_inline void clean_old_freq_bucket(u64 chunk_addr, u32 old_freq)
 }
 
 /* 增加 chunk 的频率（对应经典 LFU 的 _increase_freq）*/
-static __always_inline void increase_freq(u64 chunk_addr, uvm_gpu_chunk_t *chunk, struct list_head *list)
+static __always_inline void increase_freq(u64 chunk_addr,
+                                          uvm_gpu_chunk_t *chunk,
+                                          uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     u32 *freq = bpf_map_lookup_elem(&chunk_freq, &chunk_addr);
     if (!freq)
@@ -129,7 +131,7 @@ static __always_inline void increase_freq(u64 chunk_addr, uvm_gpu_chunk_t *chunk
 
     if (new_freq > old_freq) {
         // 频率增加了，移到 TAIL（让更高频的有机会在前面）
-        bpf_gpu_block_move_tail(chunk, list);
+        bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
     }
     // 频率没变 -> 不移动（保持原位）
 }
@@ -138,7 +140,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     u64 addr = (u64)chunk;
     u32 freq = 1;
@@ -154,7 +156,7 @@ int BPF_PROG(gpu_block_activate,
     }
 
     // 新 chunk 是最低频，放在 HEAD（容易被 evict）
-    bpf_gpu_block_move_head(chunk, list);
+    bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_HEAD);
 
     return 1; // BYPASS
 }
@@ -163,12 +165,12 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     u64 addr = (u64)chunk;
 
     // 对应经典 LFU 的 get() 或 put() 已存在的 key：调用 _increase_freq
-    increase_freq(addr, chunk, list);
+    increase_freq(addr, chunk, decision_ctx);
 
     return 1; // BYPASS
 }

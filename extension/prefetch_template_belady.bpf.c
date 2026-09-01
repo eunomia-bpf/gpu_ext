@@ -175,7 +175,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     /* Update runtime state: track fault VA for layer detection. */
     uvm_va_block_t *va_block = BPF_CORE_READ(chunk, va_block);
@@ -218,7 +218,7 @@ int BPF_PROG(gpu_block_activate,
 
     if (c + 1 >= T1_FREQ_THRESHOLD) {
         /* T1 chunk: always protect */
-        bpf_gpu_block_move_tail(chunk, list);
+        bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
         return 1; /* BYPASS */
     }
 
@@ -238,10 +238,10 @@ int BPF_PROG(gpu_block_activate,
 
     if (distance <= protect_dist) {
         /* Coming soon → protect */
-        bpf_gpu_block_move_tail(chunk, list);
+        bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
     } else if (distance > cfg->num_layers / 2) {
         /* Far away → prioritize for eviction */
-        bpf_gpu_block_move_head(chunk, list);
+        bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_HEAD);
     }
     /* Middle distance: no move (passive ordering) */
 
@@ -252,7 +252,7 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     return 0;
 }

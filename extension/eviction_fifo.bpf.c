@@ -20,7 +20,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     /* For FIFO, we use default behavior when a chunk becomes evictable */
     bpf_printk("BPF FIFO: chunk_activate (using default behavior)\n");
@@ -31,7 +31,7 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     /* FIFO policy: skip this step
      */

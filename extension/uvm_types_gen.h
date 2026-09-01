@@ -5559,10 +5559,36 @@ typedef struct uvm_bpf_prefetch_decision {
 	NvU64 outer;
 } uvm_bpf_prefetch_decision_t;
 
+typedef struct {
+	NvU64 owner_id;
+	NvU64 root_id;
+	NvU64 generation;
+	NvU32 source;
+} nv_gpu_pmm_snapshot_t;
+
+typedef struct {
+	NvU8 attempted;
+	NvU8 conflict;
+	NvU64 destination;
+	NvU64 position;
+} nv_gpu_pmm_request_t;
+
+struct uvm_gpu_root_chunk_struct;
+
+typedef struct uvm_bpf_pmm_decision_ctx {
+	uvm_pmm_gpu_t *pmm;
+	struct uvm_gpu_root_chunk_struct *root_chunk;
+	nv_gpu_pmm_snapshot_t observed;
+	nv_gpu_pmm_request_t request;
+} uvm_bpf_pmm_decision_ctx_t;
+
 struct gpu_mem_ops {
 	int (*gpu_test_trigger)(const char *, int);
 	int (*gpu_page_prefetch)(uvm_page_index_t, uvm_perf_prefetch_bitmap_tree_t *, uvm_va_block_region_t *, uvm_bpf_prefetch_decision_t *);
 	int (*gpu_page_prefetch_iter)(uvm_perf_prefetch_bitmap_tree_t *, uvm_va_block_region_t *, uvm_va_block_region_t *, unsigned int, uvm_bpf_prefetch_decision_t *);
+	int (*gpu_block_activate)(uvm_pmm_gpu_t *, uvm_gpu_chunk_t *, uvm_bpf_pmm_decision_ctx_t *);
+	int (*gpu_block_access)(uvm_pmm_gpu_t *, uvm_gpu_chunk_t *, uvm_bpf_pmm_decision_ctx_t *);
+	int (*gpu_evict_prepare)(uvm_pmm_gpu_t *, struct list_head *, struct list_head *);
 };
 
 struct bpf_struct_ops_gpu_mem_ops {
@@ -10584,6 +10610,9 @@ typedef bool (*uvm_va_policy_is_split_needed_t)(const uvm_va_policy_t *, void *)
 /* BPF kfuncs */
 #ifndef BPF_NO_KFUNC_PROTOTYPES
 extern int bpf_gpu_set_prefetch_region(uvm_bpf_prefetch_decision_t *decision_ctx, NvU64 first, NvU64 outer) __weak __ksym;
+extern int bpf_gpu_request_reorder(uvm_bpf_pmm_decision_ctx_t *decision_ctx,
+				   NvU64 destination,
+				   NvU64 position) __weak __ksym;
 extern int bpf_gpu_strstr(const char *str, u32 str__sz, const char *substr, u32 substr__sz) __weak __ksym;
 #endif
 

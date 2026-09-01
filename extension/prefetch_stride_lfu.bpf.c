@@ -134,7 +134,7 @@ static __always_inline void clean_old_freq_bucket(u64 address, u32 old_freq)
 
 static __always_inline void increase_freq(u64 address,
                                           uvm_gpu_chunk_t *chunk,
-                                          struct list_head *list)
+                                          uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     u32 *frequency = bpf_map_lookup_elem(&chunk_freq, &address);
     if (!frequency)
@@ -153,7 +153,7 @@ static __always_inline void increase_freq(u64 address,
             state->min_freq = new_freq;
     }
     if (new_freq > old_freq)
-        bpf_gpu_block_move_tail(chunk, list);
+        bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
 }
 
 SEC("kprobe/uvm_perf_prefetch_get_hint_va_block")
@@ -282,7 +282,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     struct engagement_stats *stats = get_engagement();
     if (stats)
@@ -297,7 +297,7 @@ int BPF_PROG(gpu_block_activate,
         state->min_freq = 1;
         state->total_chunks++;
     }
-    bpf_gpu_block_move_head(chunk, list);
+    bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_HEAD);
     return 1;
 }
 
@@ -305,12 +305,12 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     struct engagement_stats *stats = get_engagement();
     if (stats)
         __sync_fetch_and_add(&stats->lfu_accesses, 1);
-    increase_freq((u64)chunk, chunk, list);
+    increase_freq((u64)chunk, chunk, decision_ctx);
     return 1;
 }
 

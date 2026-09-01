@@ -410,7 +410,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
 	/* cycle_moe: T1 protect + DEFAULT for non-T1 */
 	u32 idx = chunk_hash(chunk);
@@ -423,7 +423,7 @@ int BPF_PROG(gpu_block_activate,
 		*count = c + 1;
 
 	if (c + 1 >= T1_FREQ_THRESHOLD) {
-		bpf_gpu_block_move_tail(chunk, list);
+		bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
 		return 1; /* BYPASS */
 	}
 
@@ -434,7 +434,7 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
 	return 0;
 }

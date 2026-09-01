@@ -85,7 +85,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     u64 chunk_ptr = (u64)chunk;
     u32 owner_pid;
@@ -129,7 +129,7 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     u64 chunk_ptr = (u64)chunk;
     struct chunk_state *state;
@@ -152,7 +152,7 @@ int BPF_PROG(gpu_block_access,
         /* Chunk was "warned" by evict_prepare (chance decremented).
          * This access saves it — move to tail (second chance!) */
         state->chance_count = state->initial_chance;
-        bpf_gpu_block_move_tail(chunk, list);
+        bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
 
         if (stats)
             __sync_fetch_and_add(&stats->policy_allow, 1);
@@ -184,7 +184,7 @@ int BPF_PROG(gpu_evict_prepare,
      *   will see reduced chance and move it to tail (second chance save).
      * - If chance == 0: allow eviction, clean up tracking.
      *
-     * We cannot call bpf_gpu_block_move_tail here because the chunk pointer
+     * We cannot request a reorder here because the chunk pointer
      * derived from container_of is not a trusted pointer for the verifier.
      * The actual move happens in gpu_block_access instead.
      */

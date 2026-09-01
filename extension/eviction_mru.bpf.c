@@ -32,10 +32,10 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     /* 新 chunk 加到 TAIL，给它一点时间被使用 */
-    bpf_gpu_block_move_tail(chunk, list);
+    bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
     bpf_printk("BPF MRU: chunk_activate, moved to tail\n");
     return 1; /* BYPASS */
 }
@@ -44,10 +44,10 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     /* MRU 核心：访问后移到 HEAD，让它优先被 evict */
-    bpf_gpu_block_move_head(chunk, list);
+    bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_HEAD);
     return 1; /* BYPASS */
 }
 

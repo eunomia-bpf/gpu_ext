@@ -290,7 +290,7 @@ SEC("struct_ops/gpu_block_activate")
 int BPF_PROG(gpu_block_activate,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
 	u32 h = chunk_hash(chunk);
 	u64 now = bpf_ktime_get_ns();
@@ -315,7 +315,7 @@ int BPF_PROG(gpu_block_activate,
 	u64 cur_rd = *rd;
 	if (cur_rd > 0 && cur_rd < short_reuse_ns) {
 		stat_inc(STAT_RD_PROTECT);
-		bpf_gpu_block_move_tail(chunk, list);
+		bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
 		return 1; /* BYPASS: protect */
 	}
 
@@ -327,7 +327,7 @@ SEC("struct_ops/gpu_block_access")
 int BPF_PROG(gpu_block_access,
              uvm_pmm_gpu_t *pmm,
              uvm_gpu_chunk_t *chunk,
-             struct list_head *list)
+             uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
 	return 0;
 }

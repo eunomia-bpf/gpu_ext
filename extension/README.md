@@ -52,22 +52,28 @@ NVIDIA UVM 提供 6 个 BPF struct_ops hook 点：
 chunk 被分配给 VA block 后，unpin 进入 evictable 状态时触发。
 
 ```c
-int gpu_block_activate(uvm_pmm_gpu_t *pmm, uvm_gpu_chunk_t *chunk, struct list_head *list);
+int gpu_block_activate(uvm_pmm_gpu_t *pmm,
+                       uvm_gpu_chunk_t *chunk,
+                       uvm_bpf_pmm_decision_ctx_t *decision_ctx);
 ```
 
-**重要**: 这是 eviction policy 的主要 hook。所有访问计数、频率统计、list 位置调整都应在此实现。可通过 `bpf_gpu_block_move_head/tail` 调整 chunk 在 eviction list 中的位置，返回 1 bypass 默认行为。
+**重要**: 这是 eviction policy 的主要 hook。所有访问计数、频率统计、list 位置调整都应在此实现。策略只能通过 `bpf_gpu_request_reorder(decision_ctx, destination, position)` 提交 callback-local 请求；kfunc 不接受 list 指针且不直接修改链表。driver 在 callback 后验证 PMM/root 身份、source state、generation、destination 和 position，再至多提交一次移动。
 
-**已知问题**: 必须使用 `move_tail`（保护），不能用 `move_head`（会导致 Xid 31 FAULT_PDE，新 chunk 在 page table 建立前被 evict）。
+activate 在原生移动到 used list 后执行。无请求会保留该位置；合法 HEAD/TAIL 请求只在 callback 返回后由 driver 提交。callback 返回 action 不控制 activate 的原生路由。
 
 #### `gpu_block_access`
 
 chunk 被访问时触发。
 
 ```c
-int gpu_block_access(uvm_pmm_gpu_t *pmm, uvm_gpu_chunk_t *chunk, struct list_head *list);
+int gpu_block_access(uvm_pmm_gpu_t *pmm,
+                     uvm_gpu_chunk_t *chunk,
+                     uvm_bpf_pmm_decision_ctx_t *decision_ctx);
 ```
 
-**已知 Bug**: 此回调实际上**从未被调用**。`block_mark_memory_used()` 在 chunk 为 TEMP_PINNED 状态时执行，而 `root_chunk_update_eviction_list()` 跳过 pinned chunks。所有 eviction 逻辑必须放在 `gpu_block_activate` 中。所有 policy 文件的 `gpu_block_access` 实现为空函数 `return 0`。
+无请求且返回 DEFAULT 时保留原生 LRU tail move；无请求且返回 BYPASS 时保持 callback-entry 位置。一个合法请求配合 DEFAULT 或 BYPASS 时由 driver 提交一次并抑制原生移动；invalid/conflict/stale 请求及非法 action 均保持 callback-entry 位置。
+
+该回调在原生 access tail move 之前执行。需要 access-time 更新的策略可在这里记录 callback-local reorder；不需要覆盖原生 LRU 的策略应返回 DEFAULT 且不提交请求。
 
 #### `gpu_evict_prepare`
 
@@ -275,7 +281,7 @@ sudo ./cleanup_struct_ops_tool
 ### 必须遵守
 
 1. **eviction 逻辑放在 `gpu_block_activate`，不是 `gpu_block_access`**。后者从未被调用。
-2. **activate 中只能 `move_tail`（保护）**，不能 `move_head`（导致 Xid 31）。
+2. **只能用 callback 收到的 `decision_ctx` 请求 reorder**。不要保存该指针，也不能把裸 list 指针传给策略接口。
 3. **使用 PERCPU_ARRAY 而非 HASH map** 做频率计数。HASH map 在高 eviction 压力下超时导致 Xid 31。
 4. **pointer 不能做算术运算**。BPF verifier 禁止。用 `bpf_probe_read_kernel(&scalar, sizeof(scalar), &ptr)` 转换为标量。
 5. **struct_ops/kprobe 在 UVM 内核线程上下文运行**，`bpf_get_current_pid_tgid()` 不返回应用 PID。不能在 struct_ops 中用 PID 过滤。

@@ -21,12 +21,14 @@ static const struct fixture fixtures[] = {
     { "sched-immutable-read", "revision_sched_immutable_read.bpf.o", true, 0 },
     { "sched-timeslice-setter", "revision_sched_timeslice_setter.bpf.o", true, 0 },
     { "sched-interleave-low-setter", "revision_sched_interleave_low_setter.bpf.o", true, 0 },
+    { "pmm-reorder-setter", "revision_pmm_reorder_setter.bpf.o", true, 0 },
     { "sched-input-write", "revision_sched_input_write.bpf.o", false, 16 },
     { "sched-hidden-write", "revision_sched_hidden_write.bpf.o", false, 32 },
+    { "pmm-hidden-write", "revision_pmm_hidden_write.bpf.o", false, 56 },
 };
 
 enum {
-    POSITIVE_FIXTURE_COUNT = 3,
+    POSITIVE_FIXTURE_COUNT = 4,
     VERIFIER_LOG_SIZE = 1024 * 1024,
 };
 
@@ -96,9 +98,9 @@ static bool is_expected_write_denial(const struct fixture *fixture,
     /*
      * These stores target the PTR_TO_BTF_ID callback argument. The driver's
      * btf_struct_access callback returns -EACCES without adding a stable log
-     * string. First admitting all three controls rules out missing struct_ops,
+     * string. First admitting all four controls rules out missing struct_ops,
      * kfunc, BTF, and general load support; only then is -EACCES accepted for
-     * the two minimal direct-write fixtures. The raw verifier log is retained
+     * the three minimal direct-write fixtures. The raw verifier log is retained
      * independently and the built instructions establish the attempted offset.
      */
     return positive_controls_admitted && load_error == -EACCES;
@@ -145,6 +147,12 @@ int main(int argc, char **argv)
     if (access("/sys/kernel/btf/nvidia", R_OK) != 0) {
         fprintf(stderr,
                 "precondition failed: running nvidia module has no exported BTF\n");
+        return 2;
+    }
+
+    if (access("/sys/kernel/btf/nvidia_uvm", R_OK) != 0) {
+        fprintf(stderr,
+                "precondition failed: running nvidia_uvm module has no exported BTF\n");
         return 2;
     }
 
@@ -259,18 +267,18 @@ int main(int argc, char **argv)
 
         if (i + 1 == POSITIVE_FIXTURE_COUNT) {
             positive_controls_admitted = true;
-            printf("GUARD positive_controls_admitted=3; running negatives\n");
+            printf("GUARD positive_controls_admitted=4; running negatives\n");
         }
 
         free(verifier_log);
         bpf_object__close(object);
     }
 
-    printf("SUMMARY attempted=%zu expected=5 admitted=%zu expected_admitted=3 "
-           "rejected=%zu expected_rejected=2 passed=%zu\n",
+    printf("SUMMARY attempted=%zu expected=7 admitted=%zu expected_admitted=4 "
+           "rejected=%zu expected_rejected=3 passed=%zu\n",
            attempted, admitted, rejected, passed);
 
-    return (attempted == 5 && admitted == 3 && rejected == 2 && passed == 5)
+    return (attempted == 7 && admitted == 4 && rejected == 3 && passed == 7)
                ? 0
                : 1;
 }

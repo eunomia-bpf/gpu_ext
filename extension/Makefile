@@ -68,8 +68,11 @@ REVISION_SCHED_FIXTURE_OBJECTS = \
 	$(OUTPUT)/revision_sched_hidden_write.bpf.o \
 	$(OUTPUT)/revision_sched_immutable_read.bpf.o \
 	$(OUTPUT)/revision_sched_timeslice_setter.bpf.o \
-	$(OUTPUT)/revision_sched_interleave_low_setter.bpf.o
+	$(OUTPUT)/revision_sched_interleave_low_setter.bpf.o \
+	$(OUTPUT)/revision_pmm_hidden_write.bpf.o \
+	$(OUTPUT)/revision_pmm_reorder_setter.bpf.o
 $(REVISION_SCHED_FIXTURE_OBJECTS): revision_sched_fixture.bpf.h
+$(OUTPUT)/revision_pmm_hidden_write.bpf.o $(OUTPUT)/revision_pmm_reorder_setter.bpf.o: revision_pmm_fixture.bpf.h
 ALL_APPS += revision_sched_verifier
 
 CARGO ?= $(shell which cargo)

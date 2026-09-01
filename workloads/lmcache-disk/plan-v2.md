@@ -104,6 +104,14 @@ server usage counters. The timed phase
 contains only eight contiguous warm requests and excludes startup, cold
 population, persistence barriers, and shutdown.
 
+These names and measurement points follow the official
+[vLLM benchmark definitions](https://docs.vllm.ai/en/stable/benchmarking/cli/):
+TTFT runs from sending a request to its first streamed output; request
+throughput is successful requests divided by the timed duration; output-token
+throughput is generated tokens divided by that duration. This experiment uses
+the first streamed event that actually carries a generated token and records
+the exact formulas in every cell result.
+
 For disk minus recompute and disk minus CPU, report paired attempt differences
 and fixed-seed percentile-bootstrap 95% intervals over ten complete blocks.
 For disk versus recompute, classify mutually exclusively as beneficial,

@@ -75,6 +75,7 @@ FATAL_LOG_PATTERNS = (
     r"\bevict(?:ion|ed|ing)?\b",
     r"failed to allocate",
     r"allocation failure",
+    r"memory allocation failed",
     r"out of memory",
 )
 

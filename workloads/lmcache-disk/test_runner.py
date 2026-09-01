@@ -124,11 +124,16 @@ class HarnessTests(unittest.TestCase):
         self.assertTrue(all(x["expected_hit_tokens"] == 1536 for x in prompts["prefixes"]))
 
     def test_runner_uses_semantic_evidence_without_content_fingerprints(self):
-        source = MODULE_PATH.read_text()
+        source = MODULE_PATH.read_text() + runner.LEGACY_PATH.read_text()
         forbidden = ("hashlib", "sha256", "checksum", "digest", "output_hash")
         self.assertFalse(any(term in source.lower() for term in forbidden))
         for forbidden_control in ("PREFLIGHT-PASS", "SMOKE-PASS", "RUN-COMPLETE", "--resume", "--approval"):
             self.assertNotIn(forbidden_control, source)
+
+    def test_fatal_patterns_cover_lmcache_allocation_wording(self):
+        log = "Memory allocation failed while staging a disk chunk"
+        self.assertTrue(any(runner.legacy.re.search(pattern, log, runner.legacy.re.I)
+                            for pattern in runner.legacy.FATAL_LOG_PATTERNS))
 
     def test_schedule_semantics_are_exact(self):
         schedule = json.loads(runner.SCHEDULE.read_text())

@@ -20,8 +20,9 @@ Tracked reproducibility artifacts:
 - `build-smoke.md`: current and historical build evidence.
 
 The runner never signals a process it did not start. It refuses a mismatched
-driver, foreign GPU process, residual GPU memory, or missing final plan
-approval. Admission later passed on an idle RTX 5090, but all three allowed
+driver, foreign GPU process, or residual GPU memory. It deliberately has no
+approval parser or promotion marker. Inspection later passed on an idle RTX
+5090, but all three allowed
 real preflight attempts failed before serving a request. The preserved failures
 and exact causes are recorded in `plan.md` and `build-smoke.md`; none is a
 performance result, and this protocol must not be relaunched under a new output

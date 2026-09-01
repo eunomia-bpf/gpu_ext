@@ -169,13 +169,17 @@ Revision 2 replaces the proposed LRU comparison after review found that
   binaries and the same 8M command with one warmup and one measured epoch. Start
   `benchmark_gnn_uvm.py` directly with `--wait-for-monitor`; this initializes
   CUDA after selecting the UVM allocator, then pauses before the first benchmark
-  allocation. Find its single owned `/dev/nvidia-uvm` fd, attach
+  allocation. Enumerate its owned `/dev/nvidia-uvm` fds in ascending numeric
+  order. CUDA 610 may hold both a primary VA-space fd and an auxiliary MM fd;
+  try candidates one at a time with
   `sudo -n ./revision-policy-mechanism/uvm_migration_monitor --pid PID
-  --target-fd FD`, and require its `ready` record before releasing the
-  benchmark. Root privilege is required because this host has Yama
+  --target-fd FD`. Select only the candidate that emits `ready`; an ioctl
+  rejection marks that candidate ineligible, while zero or multiple ready
+  candidates stop the preflight. Release the benchmark only after exactly one
+  ready monitor exists. Root privilege is required because this host has Yama
   `ptrace_scope=1` and the monitor and benchmark are sibling processes; failure
-  to duplicate the target fd or emit `ready` stops the preflight. The exact
-  underlying command is
+  to duplicate every candidate or obtain exactly one `ready` monitor stops the
+  preflight. The exact underlying command is
   `CUDA_MANAGED_FORCE_DEVICE_ALLOC=1 uv run python benchmark_gnn_uvm.py
   --dataset random --nodes 8000000 --edges_per_node 10 --features 128 --hidden
   256 --epochs 1 --warmup 1 --prop chunked --use_uvm --wait-for-monitor

@@ -24,3 +24,9 @@ matched control path must call `verify_gpu_program`, assert the expected
 accept/reject result and diagnostic, and differ only in the tested property.
 The test listing must contain all five names exactly once before either the
 targeted group or full suite can count.
+
+## Round 2 — APPROVE
+
+The independent reviewer approved revision 2 without further blocking items.
+Execution may proceed under the frozen cases, selectors, transition-gap rules,
+and safety stops in the plan.

@@ -1,6 +1,6 @@
 # R5 verifier and transition-safety evidence plan
 
-Status: revision 2 after a blocked review; do not execute until approved.
+Status: revision 2 approved for execution after two review rounds.
 
 ## Revision question
 

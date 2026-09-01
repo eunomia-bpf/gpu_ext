@@ -337,3 +337,25 @@ fails, the sampling ratio is not tuned and the gpubpf cell remains infeasible.
 The `llama_uvm` and `llama_ncmoe32` control correctness cells may still be
 completed and reported, but neither they nor a canary authorize timing; only a
 complete four-cell correctness result can do that.
+
+## 11. Control continuation fixed-output repair
+
+The first control-only continuation is preserved under the unique directory
+`raw/repaired-preflight/controls-eos-harness-failure-01`; it is never
+overwritten or promoted. `llama_uvm` completed the 512+64-token warm-up and the
+first six pass-1 requests with exactly 512 prompt and 64 completion tokens. The
+seventh request encountered EOS immediately, returned one completion token
+with `finish_reason=stop`, and failed the unchanged fixed-length gate. No new
+Xid appeared. N-CMoE did not start.
+
+The repair adds `ignore_eos=true` only to llama-family completion payloads;
+MoE-Infinity's payload is unchanged. This makes the existing `max_tokens=64`
+correctness oracle enforceable across UVM, N-CMoE, and the llama-backed gpubpf
+cell, matching the already completed Expert Buffering protocol. Xid history
+comparison now removes only the display prefix before the literal
+`NVRM: Xid`; the Xid body and its line order remain exact.
+
+Both controls restart from the beginning in the original relative order
+`llama_uvm -> llama_ncmoe32`; neither the warm-up nor the six completed
+requests are reused. This one harness-only rerun cannot authorize a complete
+preflight or timing, even if both controls pass.

@@ -366,6 +366,26 @@ class CombinedPolicyTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    def test_policy_ownership_accepts_kernel_without_link_enumeration(self) -> None:
+        ready = {"pid": 42, "struct_map_id": 7, "struct_link_id": 7}
+        inventory = {
+            "maps": [{"id": 7, "type": "struct_ops", "pids": [{"pid": 42}]}],
+            "links": [],
+        }
+        observed = runner.validate_policy_ownership(ready, inventory)
+        self.assertEqual(observed["struct_map_id"], 7)
+        self.assertEqual(observed["owner_pid"], 42)
+        self.assertFalse(observed["link_enumerated"])
+
+    def test_policy_ownership_rejects_wrong_map_owner(self) -> None:
+        ready = {"pid": 42, "struct_map_id": 7, "struct_link_id": 7}
+        inventory = {
+            "maps": [{"id": 7, "type": "struct_ops", "pids": [{"pid": 99}]}],
+            "links": [],
+        }
+        with self.assertRaisesRegex(runner.GateError, "PID ownership mismatch"):
+            runner.validate_policy_ownership(ready, inventory)
+
     def test_runtime_continuity_rejects_replacement(self) -> None:
         expected = {"_store": {"path": "/tmp/store.so", "size": 1, "inode": 2}}
         runner.require_runtime_continuity(expected, expected.copy())

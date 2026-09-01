@@ -337,6 +337,31 @@ def struct_ops_inventory() -> dict[str, Any]:
     }
 
 
+def validate_policy_ownership(
+    ready: dict[str, Any], inventory: dict[str, Any]
+) -> dict[str, Any]:
+    map_ids = {int(item["id"]) for item in inventory["maps"]}
+    if map_ids != {int(ready["struct_map_id"])}:
+        raise GateError(f"policy map ownership mismatch: ready={ready}, inventory={inventory}")
+
+    owner_pids = {
+        int(owner["pid"])
+        for item in inventory["maps"]
+        for owner in item.get("pids", ())
+    }
+    if owner_pids != {int(ready["pid"])}:
+        raise GateError(f"policy map PID ownership mismatch: ready={ready}, inventory={inventory}")
+
+    link_ids = {int(item["id"]) for item in inventory["links"]}
+    if link_ids and link_ids != {int(ready["struct_link_id"])}:
+        raise GateError(f"policy link ownership mismatch: ready={ready}, inventory={inventory}")
+    return {
+        "struct_map_id": int(ready["struct_map_id"]),
+        "owner_pid": int(ready["pid"]),
+        "link_enumerated": bool(link_ids),
+    }
+
+
 def mount_state(path: Path) -> dict[str, Any]:
     data = json.loads(
         run_checked(["findmnt", "-J", "-T", str(path), "-o", "SOURCE,FSTYPE,TARGET"])
@@ -1080,12 +1105,7 @@ def start_policy(run_dir: Path) -> tuple[subprocess.Popen[Any], Any, dict[str, A
     try:
         ready = wait_event(process, log_path, "ready", 30)
         inventory = struct_ops_inventory()
-        link_ids = {int(item["id"]) for item in inventory["links"]}
-        map_ids = {int(item["id"]) for item in inventory["maps"]}
-        if link_ids != {int(ready["struct_link_id"])}:
-            raise GateError(f"policy link ownership mismatch: ready={ready}, inventory={inventory}")
-        if map_ids != {int(ready["struct_map_id"])}:
-            raise GateError(f"policy map ownership mismatch: ready={ready}, inventory={inventory}")
+        ready["ownership"] = validate_policy_ownership(ready, inventory)
         return process, log, ready
     except Exception:
         stop_exact_process(process)

@@ -1,8 +1,8 @@
 # MoE-Infinity oversized-route repair experiment — proposal 3 revision 4
 
-Status: **attempt 3 passed exact model execution but failed the O_DIRECT
-metadata-classification gate; all three attempts are exhausted; timing is not
-authorized**.
+Status: **revision 5 metadata-classification repair is pending independent
+review; all three GPU correctness attempts remain exhausted; no fourth GPU
+correctness attempt is proposed and timing is not yet authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -220,3 +220,50 @@ are visible.
 - WRITE: closed by user instruction until experiments are complete.
 - REVIEW: a fresh result review is required only after a complete result bundle
   exists.
+
+## 9. Revision 5: read-only metadata-classification repair
+
+Attempt 3's only reported failure came from treating every file below the
+offload root as an expert tensor partition. The trace itself distinguishes the
+storage roles: `archer_param_0` through `archer_param_6` contain expert tensor
+data, while `archer_index`, `name_id_map.json`, and the single temporary file
+are metadata used to construct or describe that store. Requiring metadata
+writes to use `O_DIRECT` does not test the research baseline's tensor-offload
+path.
+
+Revision 5 changes only this harness classifier. A tensor-data record is an
+open whose basename exactly matches `archer_param_` followed by a decimal
+partition number. The gate requires exactly partitions 0 through 6; at least
+one successful direct-I/O read and write for every partition; and no failed or
+non-direct tensor-data open. The three named metadata classes are counted and
+reported separately without a direct-I/O requirement. Any other file basename
+below the admitted offload root is rejected as unclassified.
+
+No fourth GPU correctness attempt is allowed. Instead, a read-only action
+revalidates the preserved `attempt-03` directory and writes a separate result
+without modifying its original failed `preflight-result.json`. It requires:
+
+1. the original result to identify proposal-3 revision 4, attempt 3, and the
+   exact final O_DIRECT classification failure;
+2. one saved warm-up plus both complete eight-prompt smoke passes, each with
+   512 prompt and 64 completion tokens, strict UTF-8 text, and exact equality
+   between passes for every prompt;
+3. no fatal, fallback, worker, CUDA, or traceback pattern in the preserved
+   server log;
+4. the repaired tensor/metadata classification and per-partition direct-I/O
+   gate above;
+5. the admitted runtime inventory and source/build state to remain unchanged
+   under the existing non-hash identity checks; and
+6. an explicit record that the original control flow reached the final
+   storage-open validation only after accepting affinity, token/step counts,
+   cache activity, KV-cache blocks, positive process read bytes, and nonempty
+   offload storage. These predecessor gates are not recomputed from missing
+   snapshots and are labeled as control-flow provenance rather than newly
+   measured values.
+
+The timing runner may accept the separate revalidation result only after an
+independent review approves this revision and the revalidation itself passes.
+The original failed attempt remains failed and preserved. All model, source,
+request, policy, schedule, timing, telemetry, and interpretation settings stay
+unchanged. This repair neither adds a baseline optimization nor changes the
+scientific workload.

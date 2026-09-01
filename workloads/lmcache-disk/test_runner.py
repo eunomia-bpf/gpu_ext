@@ -142,6 +142,7 @@ class HarnessTests(unittest.TestCase):
             [
                 "LMCache initialized with version 0.5.4, vllm version 0.27.1+cu129",
                 f"Reqid: {cold_runtime_id}, Total tokens 1549, LMCache hit tokens: 0",
+                f"[req_id={cold_runtime_id}] Stored 1536 out of total 1536 tokens",
                 f"Reqid: {warm_runtime_id}, Total tokens 1549, LMCache hit tokens: 512",
                 f"Reqid: {warm_runtime_id}, Total tokens 1549, LMCache hit tokens: 1536",
                 f"[req_id={warm_runtime_id}] Retrieved 512 out of 1536 required tokens",
@@ -149,8 +150,10 @@ class HarnessTests(unittest.TestCase):
             ]
         )
         observations = [{"expected_hit_tokens": 1536,
-                         "cold": {"engine_request_id": cold_id},
-                         "warm": {"engine_request_id": warm_id}}]
+                         "cold": {"engine_request_id": cold_id,
+                                  "usage": {"prompt_tokens": 1549}},
+                         "warm": {"engine_request_id": warm_id,
+                                  "usage": {"prompt_tokens": 1549}}}]
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(runner.GateError):
                 runner.validate_log("lmcache_cpu", log, observations, Path(tmp))
@@ -214,6 +217,17 @@ class HarnessTests(unittest.TestCase):
         self.assertNotIn("LD_PRELOAD", env)
         self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "0")
         self.assertEqual(env["VLLM_WORKER_MULTIPROC_METHOD"], "spawn")
+
+    def test_runtime_log_accepts_public_base_versions(self):
+        runtime_line = (
+            "LMCache initialized for role worker with version 0.5.4-gsource, "
+            "vllm version 0.27.1, lmcache cache_engine metadata: None"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(runner.legacy, "sync_and_verify_disk",
+                              return_value={"files": 0, "bytes": 0}):
+                value = runner.validate_log("lmcache_cpu", runtime_line, [], Path(tmp))
+        self.assertEqual(value["request_evidence"], {})
 
     def test_store_state_is_recomputed_for_each_prefix(self):
         request_evidence = {

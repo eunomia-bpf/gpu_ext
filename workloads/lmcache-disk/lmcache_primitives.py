@@ -785,7 +785,12 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
             raise GateError("recompute control unexpectedly engaged LMCache")
     else:
         init = re.findall(r"LMCache initialized[^\n]*version\s+([^, ]+), vllm version\s+([^, ]+)", log)
-        if not init or any(a != EXPECTED_LMCACHE_VERSION or b != EXPECTED_VLLM_VERSION for a, b in init):
+        expected_vllm_base = EXPECTED_VLLM_VERSION.split("+", 1)[0]
+        if not init or any(
+            lmcache_version.split("-", 1)[0] != EXPECTED_LMCACHE_VERSION
+            or vllm_version.split("+", 1)[0] != expected_vllm_base
+            for lmcache_version, vllm_version in init
+        ):
             raise GateError(f"LMCache/vLLM initialization evidence mismatch: {init}")
         for item in observations:
             expected = item["expected_hit_tokens"]

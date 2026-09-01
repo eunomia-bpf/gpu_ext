@@ -158,8 +158,11 @@ def _validate_recorded_environment(value: dict[str, Any]) -> None:
 def _validate_response(response: dict[str, Any], expected_tokens: int, request_id: str) -> None:
     if response.get("request_header") != request_id:
         raise GateError(f"request ID mismatch: expected {request_id}, got {response.get('request_header')}")
-    if response.get("engine_request_id") != f"cmpl-{request_id}-0":
-        raise GateError(f"engine request ID mismatch for {request_id}")
+    engine_request_id = response.get("engine_request_id")
+    if (not isinstance(engine_request_id, str)
+            or re.fullmatch(rf"cmpl-{re.escape(request_id)}-0-[A-Za-z0-9_-]+",
+                            engine_request_id) is None):
+        raise GateError(f"engine request ID mismatch for {request_id}: {engine_request_id}")
     usage = response.get("usage", {})
     if (
         response.get("status") != 200

@@ -17,6 +17,22 @@ SPEC.loader.exec_module(runner)
 
 
 class HarnessTests(unittest.TestCase):
+    def test_response_gate_requires_captured_vllm_request_id(self):
+        response = {
+            "request_header": "lmc-p0-cold",
+            "engine_request_id": "cmpl-lmc-p0-cold-0-a1b2c3d4",
+            "status": 200,
+            "input_tokens": 1549,
+            "usage": {"prompt_tokens": 1549, "completion_tokens": runner.OUTPUT_TOKENS},
+            "text": "ok",
+            "ttft_ms": 1.0,
+            "e2e_ms": 2.0,
+        }
+        runner._validate_response(response, 1549, "lmc-p0-cold")
+        response["engine_request_id"] = "cmpl-lmc-p0-cold-0"
+        with self.assertRaises(runner.GateError):
+            runner._validate_response(response, 1549, "lmc-p0-cold")
+
     def test_prefix_limited_cell_slices_only_after_full_prompt_load(self):
         prompts = {"prefixes": [{"index": index} for index in range(runner.PREFIXES)]}
         with (

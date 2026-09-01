@@ -585,6 +585,7 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
     start = time.perf_counter_ns()
     first = None
     text_parts: list[str] = []
+    engine_request_ids: set[str] = set()
     usage: dict[str, Any] = {}
     status = None
     try:
@@ -595,6 +596,9 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
                 if not line.startswith("data: ") or line == "data: [DONE]":
                     continue
                 obj = json.loads(line[6:])
+                engine_request_id = obj.get("id")
+                if isinstance(engine_request_id, str) and engine_request_id:
+                    engine_request_ids.add(engine_request_id)
                 if obj.get("usage"):
                     usage = obj["usage"]
                 for choice in obj.get("choices", []):
@@ -613,7 +617,12 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
         raise GateError(f"expected {OUTPUT_TOKENS} output tokens, got {usage}")
     if int(usage.get("prompt_tokens", -1)) != len(token_ids):
         raise GateError(f"server prompt-token count differs from frozen token array: {usage}")
-    return {"request_header": request_id, "engine_request_id": f"cmpl-{request_id}-0",
+    if len(engine_request_ids) != 1:
+        raise GateError(f"response did not carry one stable engine request ID: {engine_request_ids}")
+    engine_request_id = engine_request_ids.pop()
+    if re.fullmatch(rf"cmpl-{re.escape(request_id)}-0-[A-Za-z0-9_-]+", engine_request_id) is None:
+        raise GateError(f"engine request ID does not match request header {request_id}: {engine_request_id}")
+    return {"request_header": request_id, "engine_request_id": engine_request_id,
             "input_tokens": len(token_ids),
             "status": status, "ttft_ms": (first - start) / 1e6, "e2e_ms": (end - start) / 1e6,
             "usage": usage, "text": output}

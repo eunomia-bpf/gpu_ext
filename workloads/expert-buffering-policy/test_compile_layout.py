@@ -11,6 +11,7 @@ from compile_layout import (
     CLASS_SHARED,
     Registration,
     compile_layout,
+    load_registrations,
     load_hot_set,
     write_layout,
 )
@@ -101,6 +102,24 @@ class CompileLayoutTests(unittest.TestCase):
             lines = output.read_text(encoding="utf-8").splitlines()
         self.assertTrue(lines[0].startswith("base "))
         self.assertEqual(lines[1], "0 2")
+
+    def test_runtime_copy_layout_is_ignored(self) -> None:
+        records = (
+            '{"event":"layout","tgid":17,'
+            '"name":"CUDA0#blk.0.ffn_gate_exps.weight#0",'
+            '"base":1048576,"total_bytes":4096,"per_expert_bytes":1024,'
+            '"n_experts":4,"is_bias":0}\n'
+            '{"event":"layout","tgid":17,'
+            '"name":"blk.0.ffn_gate_exps.weight",'
+            '"base":2097152,"total_bytes":4096,"per_expert_bytes":1024,'
+            '"n_experts":4,"is_bias":0}\n'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trace.jsonl"
+            path.write_text(records, encoding="utf-8")
+            loaded = load_registrations(path, None)
+        self.assertEqual(len(loaded), 1)
+        self.assertEqual(loaded[0].name, "blk.0.ffn_gate_exps.weight")
 
 
 if __name__ == "__main__":

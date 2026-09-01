@@ -95,6 +95,8 @@ def load_registrations(path: Path, requested_tgid: int | None) -> list[Registrat
                 raise ValueError(f"invalid JSON at input line {line_number}: {error}") from error
             if record.get("event") != "layout":
                 continue
+            if not str(record.get("name", "")).startswith("blk."):
+                continue
             registration = parse_registration(record)
             seen_tgids.add(registration.tgid)
             if requested_tgid is not None and registration.tgid != requested_tgid:

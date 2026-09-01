@@ -60,6 +60,7 @@ REVALIDATION_RESULT = REVALIDATION_ATTEMPT / "revalidation-result.json"
 PREFLIGHT_COMPLETION = REPAIRED_PREFLIGHT_ROOT / "completion-after-attempt-03"
 COMBINED_PREFLIGHT_RESULT = PREFLIGHT_COMPLETION / "combined-preflight-result.json"
 SAMPLED_LFU_CANARY = REPAIRED_PREFLIGHT_ROOT / "sampled-lfu-canary-01"
+CONTROL_CONTINUATION = REPAIRED_PREFLIGHT_ROOT / "controls-after-gpubpf-failure"
 FROZEN_CORRECTNESS_ORDER = (
     "moe_infinity_075",
     "gpubpf_host_stride_lfu",
@@ -1829,6 +1830,91 @@ def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
         lease.close()
 
 
+def complete_control_correctness(port: int) -> dict[str, Any]:
+    lease = LeaseSet.acquire()
+    result_path = CONTROL_CONTINUATION / "control-result.json"
+    try:
+        if CONTROL_CONTINUATION.exists():
+            raise GateError(f"control continuation already exists: {CONTROL_CONTINUATION}")
+        exact_failure = json.loads((PREFLIGHT_COMPLETION / "failure.json").read_text())
+        sampled_failure = json.loads((SAMPLED_LFU_CANARY / "failure.json").read_text())
+        if (
+            exact_failure.get("protocol") != REVALIDATION_PROTOCOL_ID
+            or exact_failure.get("status") != "failed"
+            or sampled_failure.get("protocol") != "proposal-3-revision-6"
+            or sampled_failure.get("status") != "failed"
+            or sampled_failure.get("full_correctness_authorized") is not False
+        ):
+            raise GateError("reviewed exact/sampled gpubpf failures are missing")
+        admitted = admission(port)
+        if not admitted["admitted"]:
+            raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
+        CONTROL_CONTINUATION.mkdir(parents=True, exist_ok=False)
+        atomic_write_json(CONTROL_CONTINUATION / "admission.json", admitted)
+        prompts = json.loads(PROMPTS.read_text())
+        order = ("llama_uvm", "llama_ncmoe32")
+        results = {}
+        goldens = []
+        for config in order:
+            before_xids = xid_records()
+            try:
+                cell = run_correctness_config(
+                    config, CONTROL_CONTINUATION / config, port, prompts
+                )
+                xid_gate = require_no_new_xids(before_xids)
+                cell["xid_gate"] = xid_gate
+                results[config] = {"status": "passed", "result": cell}
+                goldens.append(cell["goldens"])
+            except Exception as exc:
+                after_xids = xid_records()
+                continuity = after_xids[:len(before_xids)] == before_xids
+                new_xids = after_xids[len(before_xids):] if continuity else []
+                results[config] = {
+                    "status": "failed",
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                    "xid_history_continuity": continuity,
+                    "new_xids": new_xids,
+                }
+                if not continuity or new_xids:
+                    break
+        controls_passed = set(results) == set(order) and all(
+            item["status"] == "passed" for item in results.values()
+        )
+        if controls_passed and goldens[0] != goldens[1]:
+            controls_passed = False
+            results["golden_comparison"] = {
+                "status": "failed",
+                "error": "UVM and N-CMoE correctness outputs differ",
+            }
+        result = {
+            "protocol": "proposal-3-revision-6-controls",
+            "status": "passed" if controls_passed else "failed",
+            "configuration_order": list(order),
+            "results": results,
+            "gpubpf_status": "infeasible after exact and sampled canaries",
+            "complete_preflight": False,
+            "timing_authorized": False,
+        }
+        atomic_write_json(result_path, result)
+        return result
+    except Exception as exc:
+        if CONTROL_CONTINUATION.is_dir() and not result_path.exists():
+            atomic_write_json(CONTROL_CONTINUATION / "failure.json", {
+                "protocol": "proposal-3-revision-6-controls",
+                "status": "failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "complete_preflight": False,
+                "timing_authorized": False,
+            })
+        if isinstance(exc, GateError):
+            raise
+        raise GateError(str(exc)) from exc
+    finally:
+        lease.close()
+
+
 def run_correctness_preflight(attempt: int, port: int) -> dict[str, Any]:
     lease = LeaseSet.acquire()
     output: Path | None = None
@@ -2281,6 +2367,10 @@ def parse_args() -> argparse.Namespace:
         "sampled-lfu-canary", help="run the one reviewed 1/256 sampled-LFU warm-up"
     )
     canary.add_argument("--port", type=int, default=18080)
+    controls = subparsers.add_parser(
+        "complete-controls", help="collect UVM and N-CMoE controls after gpubpf failure"
+    )
+    controls.add_argument("--port", type=int, default=18080)
     run = subparsers.add_parser("run", help="execute the admitted frozen eight-attempt schedule")
     run.add_argument("--port", type=int, default=18080)
     run.add_argument("--preflight", type=Path, required=True)
@@ -2334,6 +2424,14 @@ def main() -> int:
             return 2
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
+    if args.action == "complete-controls":
+        try:
+            result = complete_control_correctness(args.port)
+        except GateError as exc:
+            print(str(exc), file=__import__("sys").stderr)
+            return 2
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "passed" else 2
     if args.action == "run":
         try:
             result = run_full_schedule(

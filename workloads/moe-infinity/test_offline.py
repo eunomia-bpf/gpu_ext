@@ -386,6 +386,14 @@ class CombinedPolicyTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    def test_control_continuation_never_authorizes_timing(self) -> None:
+        source = __import__("inspect").getsource(runner.complete_control_correctness)
+        self.assertIn('order = ("llama_uvm", "llama_ncmoe32")', source)
+        self.assertNotIn("gpubpf_host_stride_lfu", source)
+        self.assertNotIn("moe_infinity_075", source)
+        self.assertIn('"complete_preflight": False', source)
+        self.assertIn('"timing_authorized": False', source)
+
     def test_canary_writes_passed_result_only_after_cleanup_gates(self) -> None:
         source = __import__("inspect").getsource(runner.run_sampled_lfu_canary)
         passed_write = source.index("atomic_write_json(result_path, result)")

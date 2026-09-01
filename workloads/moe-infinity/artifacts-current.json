@@ -185,7 +185,10 @@
     "bootstrap_seed": 1797
   },
   "combined_policy": {
-    "semantics": "one revision-only host stride-prefetch plus LFU-eviction struct_ops object; not the submitted device-observed policy",
+    "semantics": "one revision-only host stride-prefetch plus deterministic 1/256 sampled approximate-LFU eviction struct_ops object; not the submitted device-observed policy",
+    "policy_revision": "sampled-lfu-v1",
+    "lfu_access_sampling": "one expensive frequency-map update per 256 callbacks on each CPU",
+    "predecessor_disposition": "the exact unsampled LFU warm-up failed with Xid 109 context-switch timeout followed by Xid 31 MMU fault and produced no accepted sample",
     "bpf_source": "../../extension/prefetch_stride_lfu.bpf.c",
     "loader_source": "../../extension/prefetch_stride_lfu.c",
     "bpf_object": "../../extension/.output/prefetch_stride_lfu.bpf.o",

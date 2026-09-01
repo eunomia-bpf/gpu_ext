@@ -14,6 +14,7 @@ char _license[] SEC("license") = "GPL";
 #define CONFIG_PREFETCH_PAGES 1
 #define CONFIG_MAX_STRIDE 2
 #define MAX_FREQ 255
+#define LFU_ACCESS_SAMPLE_MASK 255
 
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -77,15 +78,24 @@ struct engagement_stats {
     u64 prefetches_issued;
     u64 lfu_activations;
     u64 lfu_accesses;
+    u64 lfu_sampled_updates;
+    u64 lfu_reorder_requests;
     u64 eviction_prepares;
 };
 
 struct {
-    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
     __uint(max_entries, 1);
     __type(key, u32);
     __type(value, struct engagement_stats);
 } engagement SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, u32);
+    __type(value, u64);
+} lfu_access_clock SEC(".maps");
 
 static __always_inline struct engagement_stats *get_engagement(void)
 {
@@ -132,13 +142,12 @@ static __always_inline void clean_old_freq_bucket(u64 address, u32 old_freq)
     }
 }
 
-static __always_inline void increase_freq(u64 address,
-                                          uvm_gpu_chunk_t *chunk,
+static __always_inline bool increase_freq(u64 address,
                                           uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
     u32 *frequency = bpf_map_lookup_elem(&chunk_freq, &address);
     if (!frequency)
-        return;
+        return false;
 
     u32 old_freq = *frequency;
     u32 new_freq = old_freq < MAX_FREQ ? old_freq + 1 : MAX_FREQ;
@@ -154,6 +163,7 @@ static __always_inline void increase_freq(u64 address,
     }
     if (new_freq > old_freq)
         bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
+    return new_freq > old_freq;
 }
 
 SEC("kprobe/uvm_perf_prefetch_get_hint_va_block")
@@ -181,7 +191,7 @@ int BPF_PROG(gpu_page_prefetch,
 {
     struct engagement_stats *stats = get_engagement();
     if (stats)
-        __sync_fetch_and_add(&stats->page_fault_calls, 1);
+        stats->page_fault_calls++;
 
     bpf_gpu_set_prefetch_region(decision_ctx, 0, 0);
     u64 va_block_ptr = get_cached_va_block();
@@ -224,7 +234,7 @@ int BPF_PROG(gpu_page_prefetch,
         state->confidence++;
         __sync_fetch_and_add(&state->stride_hits, 1);
         if (stats)
-            __sync_fetch_and_add(&stats->stride_detections, 1);
+            stats->stride_detections++;
     } else {
         if (state->confidence > 0)
             state->confidence--;
@@ -263,7 +273,7 @@ int BPF_PROG(gpu_page_prefetch,
                                 (uvm_page_index_t)outer);
     __sync_fetch_and_add(&state->prefetch_count, 1);
     if (stats)
-        __sync_fetch_and_add(&stats->prefetches_issued, 1);
+        stats->prefetches_issued++;
     return 1;
 }
 
@@ -286,7 +296,7 @@ int BPF_PROG(gpu_block_activate,
 {
     struct engagement_stats *stats = get_engagement();
     if (stats)
-        __sync_fetch_and_add(&stats->lfu_activations, 1);
+        stats->lfu_activations++;
 
     u64 address = (u64)chunk;
     u32 frequency = 1;
@@ -309,8 +319,18 @@ int BPF_PROG(gpu_block_access,
 {
     struct engagement_stats *stats = get_engagement();
     if (stats)
-        __sync_fetch_and_add(&stats->lfu_accesses, 1);
-    increase_freq((u64)chunk, chunk, decision_ctx);
+        stats->lfu_accesses++;
+    u32 key = 0;
+    u64 *clock = bpf_map_lookup_elem(&lfu_access_clock, &key);
+    if (!clock)
+        return 1;
+    (*clock)++;
+    if ((*clock & LFU_ACCESS_SAMPLE_MASK) != 0)
+        return 1;
+    if (stats)
+        stats->lfu_sampled_updates++;
+    if (increase_freq((u64)chunk, decision_ctx) && stats)
+        stats->lfu_reorder_requests++;
     return 1;
 }
 
@@ -322,7 +342,7 @@ int BPF_PROG(gpu_evict_prepare,
 {
     struct engagement_stats *stats = get_engagement();
     if (stats)
-        __sync_fetch_and_add(&stats->eviction_prepares, 1);
+        stats->eviction_prepares++;
     return 0;
 }
 

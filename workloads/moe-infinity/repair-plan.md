@@ -305,3 +305,35 @@ model, source, request, policy, schedule, timing, telemetry, and interpretation
 settings stay unchanged. This repair neither adds a baseline optimization nor
 changes the scientific workload; it narrows the deployment claim to the path
 the public artifact actually executed.
+
+## 10. Revision 6: one bounded sampled-LFU feasibility repair
+
+The first real revision 5 gpubpf warm-up loaded the model and processed all 512
+prompt tokens, but returned no response. The kernel recorded Xid 109 context
+switch timeout before Xid 31 MMU fault. The policy had executed 1,993,700 LFU
+access callbacks, each performing repeated shared frequency-map operations and
+requesting list reorders while the PMM lock was held. This exact unsampled
+policy result is permanently retained as a mechanism/policy feasibility
+failure; it is not a correctness or performance sample, and the later MMU
+fault alone is not labeled as the root cause.
+
+Revision 6 freezes exactly one repair before observing another GPU result. The
+host-stride policy remains unchanged. The approximate LFU path counts every
+access callback but performs its expensive frequency-map update and possible
+tail reorder only once per 256 callbacks on each CPU, selected by the low eight
+bits of a per-CPU monotonic counter. Engagement accounting is also per-CPU to
+avoid adding a shared counter hotspot. The loader aggregates those counters and
+reports raw callbacks, sampled updates, and sampled reorder requests. A valid
+delta requires all three to be positive, reorders not to exceed sampled
+updates, and the aggregate sample count to satisfy the exact per-CPU 1/256
+rounding bound. This policy is named deterministic sampled/approximate LFU; it
+must not be presented as the failed exact LFU implementation.
+
+After rebuild, offline tests, admission, and independent review, exactly one
+bounded canary may run the unchanged 512+64-token warm-up with the sampled
+policy. It must complete, satisfy response and sampling gates, leave no new Xid
+record, and clean up all owned state before full correctness can resume. If it
+fails, the sampling ratio is not tuned and the gpubpf cell remains infeasible.
+The `llama_uvm` and `llama_ncmoe32` control correctness cells may still be
+completed and reported, but neither they nor a canary authorize timing; only a
+complete four-cell correctness result can do that.

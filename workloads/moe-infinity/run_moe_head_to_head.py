@@ -59,6 +59,7 @@ REVALIDATION_ATTEMPT = REPAIRED_PREFLIGHT_ROOT / "attempt-03"
 REVALIDATION_RESULT = REVALIDATION_ATTEMPT / "revalidation-result.json"
 PREFLIGHT_COMPLETION = REPAIRED_PREFLIGHT_ROOT / "completion-after-attempt-03"
 COMBINED_PREFLIGHT_RESULT = PREFLIGHT_COMPLETION / "combined-preflight-result.json"
+SAMPLED_LFU_CANARY = REPAIRED_PREFLIGHT_ROOT / "sampled-lfu-canary-01"
 FROZEN_CORRECTNESS_ORDER = (
     "moe_infinity_075",
     "gpubpf_host_stride_lfu",
@@ -1498,6 +1499,35 @@ def counter_delta(before: dict[str, Any], after: dict[str, Any], keys: tuple[str
     return result
 
 
+def validate_sampled_lfu_delta(delta: dict[str, int]) -> None:
+    callbacks = delta["lfu_accesses"]
+    sampled = delta["lfu_sampled_updates"]
+    reorders = delta["lfu_reorder_requests"]
+    possible_cpus = os.cpu_count() or 1
+    if callbacks <= 0 or sampled <= 0 or reorders <= 0:
+        raise GateError(f"sampled LFU did not engage: {delta}")
+    if abs(sampled * 256 - callbacks) > 255 * possible_cpus:
+        raise GateError(f"sampled LFU violates frozen 1/256 per-CPU rule: {delta}")
+    if reorders > sampled:
+        raise GateError(f"sampled LFU reorder count exceeds sampled updates: {delta}")
+
+
+def xid_records() -> list[str]:
+    return [
+        line for line in run_checked(["sudo", "-n", "dmesg", "--color=never"]).splitlines()
+        if "NVRM: Xid" in line
+    ]
+
+
+def require_no_new_xids(before: list[str]) -> dict[str, int]:
+    after = xid_records()
+    if len(after) < len(before) or after[:len(before)] != before:
+        raise GateError("kernel Xid history continuity changed during canary")
+    if after[len(before):]:
+        raise GateError(f"new GPU Xid during canary: {after[len(before):]}")
+    return {"before": len(before), "after": len(after), "new": 0}
+
+
 def run_correctness_config(config: str, run_dir: Path, port: int,
                            prompts: dict[str, Any]) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -1623,7 +1653,8 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             policy_delta = counter_delta(
                 policy_before, policy_after,
                 ("page_fault_calls", "stride_detections", "prefetches_issued",
-                 "lfu_activations", "lfu_accesses", "eviction_prepares"),
+                 "lfu_activations", "lfu_accesses", "lfu_sampled_updates",
+                 "lfu_reorder_requests", "eviction_prepares"),
             )
             eviction_delta = counter_delta(
                 eviction_before, eviction_after,
@@ -1631,6 +1662,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             )
             if any(policy_delta[key] <= 0 for key in policy_delta):
                 raise GateError(f"combined-policy smoke engagement gate failed: {policy_delta}")
+            validate_sampled_lfu_delta(policy_delta)
             if eviction_delta["evictions"] <= 0 or eviction_delta["evicted_bytes"] <= 0:
                 raise GateError(f"completed UVM eviction gate failed: {eviction_delta}")
             if eviction_delta["dropped_evictions"] != 0:
@@ -1669,6 +1701,118 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             inventory = struct_ops_inventory()
             if inventory["maps"] or inventory["links"]:
                 raise GateError(f"owned policy did not detach cleanly: {inventory}")
+
+
+def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
+    lease = LeaseSet.acquire()
+    policy = monitor = server = None
+    policy_log = monitor_log = server_log = None
+    candidate_monitors = []
+    log_path = SAMPLED_LFU_CANARY / "server.log"
+    result_path = SAMPLED_LFU_CANARY / "result.json"
+    try:
+        if SAMPLED_LFU_CANARY.exists():
+            raise GateError(f"sampled-LFU canary already exists: {SAMPLED_LFU_CANARY}")
+        admitted = admission(port)
+        if not admitted["admitted"]:
+            raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
+        SAMPLED_LFU_CANARY.mkdir(parents=True, exist_ok=False)
+        atomic_write_json(SAMPLED_LFU_CANARY / "admission.json", admitted)
+        before_xids = xid_records()
+        prompts = json.loads(PROMPTS.read_text())
+        policy, policy_log, policy_ready = start_policy(SAMPLED_LFU_CANARY)
+        argv, cwd = server_command("gpubpf_host_stride_lfu", port, SAMPLED_LFU_CANARY)
+        atomic_write_json(SAMPLED_LFU_CANARY / "launch.json", {
+            "argv": argv,
+            "cwd": str(cwd),
+            "environment": controlled_environment("gpubpf_host_stride_lfu"),
+            "policy_ready": policy_ready,
+            "canary": "one unchanged 512+64-token warm-up",
+            "lfu_access_sampling": "deterministic per-CPU 1/256",
+        })
+        server_log = log_path.open("x", buffering=1)
+        server = subprocess.Popen(
+            argv, cwd=cwd, env=controlled_environment("gpubpf_host_stride_lfu"),
+            stdout=server_log, stderr=subprocess.STDOUT, text=True,
+            start_new_session=True,
+        )
+        wait_ready(server, port, log_path, 900)
+        identity = check_server_identity("gpubpf_host_stride_lfu", port, prompts)
+        candidate_monitors = start_eviction_monitors(server.pid, SAMPLED_LFU_CANARY)
+        warmup = nonstream_completion(
+            "gpubpf_host_stride_lfu", port,
+            prompts["records"][0]["prompt_token_ids"],
+            SAMPLED_LFU_CANARY / "warmup.json",
+        )
+        time.sleep(1.1)
+        monitor, monitor_log, eviction_path, monitor_ready = select_eviction_monitor(
+            candidate_monitors
+        )
+        candidate_monitors = []
+        policy_totals = latest_counter_event(
+            SAMPLED_LFU_CANARY / "policy.jsonl", "engagement"
+        )
+        policy_delta = {
+            key: int(policy_totals[key]) for key in (
+                "page_fault_calls", "stride_detections", "prefetches_issued",
+                "lfu_activations", "lfu_accesses", "lfu_sampled_updates",
+                "lfu_reorder_requests", "eviction_prepares",
+            )
+        }
+        if any(value <= 0 for value in policy_delta.values()):
+            raise GateError(f"sampled-LFU canary engagement failed: {policy_delta}")
+        validate_sampled_lfu_delta(policy_delta)
+        eviction = latest_counter_event(eviction_path, "eviction_stats")
+        if int(eviction["evictions"]) <= 0 or int(eviction["evicted_bytes"]) <= 0:
+            raise GateError(f"sampled-LFU canary observed no completed eviction: {eviction}")
+        if int(eviction["dropped_evictions"]) != 0:
+            raise GateError(f"sampled-LFU canary dropped eviction events: {eviction}")
+        xid_gate = require_no_new_xids(before_xids)
+        result = {
+            "protocol": "proposal-3-revision-6",
+            "status": "passed",
+            "policy": "host stride plus deterministic 1/256 sampled approximate LFU",
+            "identity": identity,
+            "warmup": warmup,
+            "policy_totals": policy_delta,
+            "eviction": eviction,
+            "monitor_ready": monitor_ready,
+            "xid_gate": xid_gate,
+            "full_correctness_authorized": False,
+        }
+        atomic_write_json(result_path, result)
+        return result
+    except Exception as exc:
+        if SAMPLED_LFU_CANARY.is_dir() and not result_path.exists():
+            atomic_write_json(SAMPLED_LFU_CANARY / "failure.json", {
+                "protocol": "proposal-3-revision-6",
+                "status": "failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "full_correctness_authorized": False,
+            })
+        if isinstance(exc, GateError):
+            raise
+        raise GateError(str(exc)) from exc
+    finally:
+        if server is not None:
+            stop_owned_process_group(server)
+        if server_log is not None:
+            server_log.close()
+        if monitor is not None:
+            stop_exact_process(monitor)
+        if monitor_log is not None:
+            monitor_log.close()
+        for candidate in candidate_monitors:
+            stop_exact_process(candidate[0])
+            candidate[1].close()
+        if policy is not None:
+            stop_exact_process(policy)
+        if policy_log is not None:
+            policy_log.close()
+        if log_path.exists():
+            validate_log(log_path)
+        lease.close()
 
 
 def run_correctness_preflight(attempt: int, port: int) -> dict[str, Any]:
@@ -1859,7 +2003,8 @@ def validate_measured_engagement(config: str, before: dict[str, Any],
         policy_delta = counter_delta(
             before["policy"], after["policy"],
             ("page_fault_calls", "stride_detections", "prefetches_issued",
-             "lfu_activations", "lfu_accesses", "eviction_prepares"),
+             "lfu_activations", "lfu_accesses", "lfu_sampled_updates",
+             "lfu_reorder_requests", "eviction_prepares"),
         )
         eviction_delta = counter_delta(
             before["evictions"], after["evictions"],
@@ -1867,6 +2012,7 @@ def validate_measured_engagement(config: str, before: dict[str, Any],
         )
         if any(value <= 0 for value in policy_delta.values()):
             raise GateError(f"gpubpf measured hook gate failed: {policy_delta}")
+        validate_sampled_lfu_delta(policy_delta)
         if eviction_delta["evictions"] <= 0 or eviction_delta["evicted_bytes"] <= 0:
             raise GateError(f"gpubpf completed-eviction gate failed: {eviction_delta}")
         if eviction_delta["dropped_evictions"] != 0:
@@ -2117,6 +2263,10 @@ def parse_args() -> argparse.Namespace:
         "complete-preflight", help="run only the three missing llama correctness cells"
     )
     completion.add_argument("--port", type=int, default=18080)
+    canary = subparsers.add_parser(
+        "sampled-lfu-canary", help="run the one reviewed 1/256 sampled-LFU warm-up"
+    )
+    canary.add_argument("--port", type=int, default=18080)
     run = subparsers.add_parser("run", help="execute the admitted frozen eight-attempt schedule")
     run.add_argument("--port", type=int, default=18080)
     run.add_argument("--preflight", type=Path, required=True)
@@ -2157,6 +2307,14 @@ def main() -> int:
     if args.action == "complete-preflight":
         try:
             result = complete_repaired_preflight(args.port)
+        except GateError as exc:
+            print(str(exc), file=__import__("sys").stderr)
+            return 2
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.action == "sampled-lfu-canary":
+        try:
+            result = run_sampled_lfu_canary(args.port)
         except GateError as exc:
             print(str(exc), file=__import__("sys").stderr)
             return 2

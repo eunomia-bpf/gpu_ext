@@ -326,9 +326,29 @@ class CombinedPolicyTests(unittest.TestCase):
             "prefetches_issued",
             "lfu_activations",
             "lfu_accesses",
+            "lfu_sampled_updates",
+            "lfu_reorder_requests",
             "eviction_prepares",
         ):
-            self.assertIn(f"&stats->{counter}", source)
+            self.assertIn(f"stats->{counter}", source)
+
+    def test_lfu_access_updates_use_frozen_per_cpu_sampling(self) -> None:
+        source = (EXTENSION / "prefetch_stride_lfu.bpf.c").read_text()
+        self.assertIn("#define LFU_ACCESS_SAMPLE_MASK 255", source)
+        self.assertIn("lfu_access_clock SEC", source)
+        self.assertIn("BPF_MAP_TYPE_PERCPU_ARRAY", source)
+        self.assertIn("(*clock & LFU_ACCESS_SAMPLE_MASK) != 0", source)
+
+    def test_sampled_lfu_delta_gate(self) -> None:
+        valid = {
+            "lfu_accesses": 25600,
+            "lfu_sampled_updates": 100,
+            "lfu_reorder_requests": 90,
+        }
+        runner.validate_sampled_lfu_delta(valid)
+        invalid = dict(valid, lfu_sampled_updates=500)
+        with self.assertRaisesRegex(runner.GateError, "1/256"):
+            runner.validate_sampled_lfu_delta(invalid)
 
     def test_loader_never_cleans_or_signals_unknown_state(self) -> None:
         source = (EXTENSION / "prefetch_stride_lfu.c").read_text()

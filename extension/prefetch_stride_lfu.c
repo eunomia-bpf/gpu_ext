@@ -24,6 +24,8 @@ struct engagement_stats {
     __u64 prefetches_issued;
     __u64 lfu_activations;
     __u64 lfu_accesses;
+    __u64 lfu_sampled_updates;
+    __u64 lfu_reorder_requests;
     __u64 eviction_prepares;
 };
 
@@ -90,25 +92,48 @@ static int emit_stats(struct prefetch_stride_lfu_bpf *skel,
                       const char *event)
 {
     struct engagement_stats stats = {};
+    struct engagement_stats *per_cpu = NULL;
     __u32 key = 0;
     int fd = bpf_map__fd(skel->maps.engagement);
+    int cpu_count = libbpf_num_possible_cpus();
+    int cpu;
 
-    if (bpf_map_lookup_elem(fd, &key, &stats)) {
+    if (cpu_count <= 0)
+        return cpu_count ? cpu_count : -EINVAL;
+    per_cpu = calloc((size_t)cpu_count, sizeof(*per_cpu));
+    if (!per_cpu)
+        return -ENOMEM;
+    if (bpf_map_lookup_elem(fd, &key, per_cpu)) {
         fprintf(stderr, "failed to read engagement map: %s\n",
                 strerror(errno));
+        free(per_cpu);
         return -errno;
     }
+    for (cpu = 0; cpu < cpu_count; ++cpu) {
+        stats.page_fault_calls += per_cpu[cpu].page_fault_calls;
+        stats.stride_detections += per_cpu[cpu].stride_detections;
+        stats.prefetches_issued += per_cpu[cpu].prefetches_issued;
+        stats.lfu_activations += per_cpu[cpu].lfu_activations;
+        stats.lfu_accesses += per_cpu[cpu].lfu_accesses;
+        stats.lfu_sampled_updates += per_cpu[cpu].lfu_sampled_updates;
+        stats.lfu_reorder_requests += per_cpu[cpu].lfu_reorder_requests;
+        stats.eviction_prepares += per_cpu[cpu].eviction_prepares;
+    }
+    free(per_cpu);
 
     printf("{\"event\":\"%s\",\"pid\":%ld,"
            "\"page_fault_calls\":%llu,\"stride_detections\":%llu,"
            "\"prefetches_issued\":%llu,\"lfu_activations\":%llu,"
-           "\"lfu_accesses\":%llu,\"eviction_prepares\":%llu}\n",
+           "\"lfu_accesses\":%llu,\"lfu_sampled_updates\":%llu,"
+           "\"lfu_reorder_requests\":%llu,\"eviction_prepares\":%llu}\n",
            event, (long)getpid(),
            (unsigned long long)stats.page_fault_calls,
            (unsigned long long)stats.stride_detections,
            (unsigned long long)stats.prefetches_issued,
            (unsigned long long)stats.lfu_activations,
            (unsigned long long)stats.lfu_accesses,
+           (unsigned long long)stats.lfu_sampled_updates,
+           (unsigned long long)stats.lfu_reorder_requests,
            (unsigned long long)stats.eviction_prepares);
     fflush(stdout);
     return 0;

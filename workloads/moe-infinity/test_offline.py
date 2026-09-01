@@ -389,7 +389,9 @@ class RunnerTests(unittest.TestCase):
     def test_llama_payload_ignores_eos_to_fix_output_length(self) -> None:
         payload = runner.completion_payload("llama_uvm", [1, 2], False)
         self.assertIs(payload["ignore_eos"], True)
+        self.assertEqual(payload["seed"], 42)
         self.assertNotIn("ignore_eos", runner.completion_payload("moe_infinity_075", [1, 2], False))
+        self.assertNotIn("seed", runner.completion_payload("moe_infinity_075", [1, 2], False))
 
     def test_xid_records_discard_rendered_time_prefix(self) -> None:
         rendered = "[1.0] NVRM: Xid first\n[2.0] unrelated\n[3.0] NVRM: Xid second\n"

@@ -359,3 +359,25 @@ Both controls restart from the beginning in the original relative order
 `llama_uvm -> llama_ncmoe32`; neither the warm-up nor the six completed
 requests are reused. This one harness-only rerun cannot authorize a complete
 preflight or timing, even if both controls pass.
+
+## 12. Control continuation fixed-seed repair
+
+The fixed-output rerun is preserved under
+`raw/repaired-preflight/controls-random-seed-failure-01`. Both controls
+completed the warm-up and all 16 correctness requests with 512 prompt and 64
+completion tokens, and neither produced a new Xid. Exact two-pass comparison
+nevertheless diverged for UVM prompts 1 and 5 and N-CMoE prompts 5 and 8.
+
+The llama server defaults an omitted request seed to a random seed. Its own
+temperature-zero consistency test explicitly supplies `seed=42`, so
+temperature zero alone is not the artifact's complete repeatability contract.
+The final harness repair therefore adds the same fixed `seed=42` only to all
+llama-family requests; MoE-Infinity remains unchanged. It retains
+`temperature=0`, `ignore_eos=true`, every prompt, output length, order, and
+exact text oracle.
+
+Both controls restart from the beginning once more in the same order; no saved
+response is reused. If fixed-seed outputs still diverge, the result is reported
+as runtime/numerical nondeterminism and the oracle is not weakened. Passing
+controls still cannot authorize a complete preflight or timing because both
+gpubpf policy revisions remain infeasible.

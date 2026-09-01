@@ -842,7 +842,7 @@ def completion_payload(config: str, token_ids: list[int], stream: bool) -> dict[
     if config == "moe_infinity_075":
         payload.update(n=1, best_of=1, echo=False)
     else:
-        payload.update(cache_prompt=False, return_tokens=True, ignore_eos=True)
+        payload.update(cache_prompt=False, return_tokens=True, ignore_eos=True, seed=42)
     return payload
 
 

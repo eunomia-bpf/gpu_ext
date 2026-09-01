@@ -54,6 +54,15 @@ ENABLED_SCX_APPS = $(if $(filter 1,$(HAVE_SCX)),$(SCX_APPS),)
 APPS = $(CORE_BPF_APPS) $(ENABLED_NVML_APPS) $(PTHREAD_APPS) $(ENABLED_CUDA_APPS) $(ENABLED_SCX_APPS) $(TOOL_APPS) # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
 ALL_APPS = $(BPF_APPS) $(SCX_APPS) $(TOOL_APPS)
 
+REVISION_SCHED_FIXTURE_OBJECTS = \
+	$(OUTPUT)/revision_sched_input_write.bpf.o \
+	$(OUTPUT)/revision_sched_hidden_write.bpf.o \
+	$(OUTPUT)/revision_sched_immutable_read.bpf.o \
+	$(OUTPUT)/revision_sched_timeslice_setter.bpf.o \
+	$(OUTPUT)/revision_sched_interleave_low_setter.bpf.o
+$(REVISION_SCHED_FIXTURE_OBJECTS): revision_sched_fixture.bpf.h
+ALL_APPS += revision_sched_verifier
+
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
 BZS_APPS :=
@@ -195,6 +204,14 @@ $(BZS_APPS): $(LIBBLAZESYM_OBJ)
 $(filter-out $(NVML_APPS) $(PTHREAD_APPS) $(CUDA_APPS),$(APPS)): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
+
+.PHONY: revision_sched_verifier_fixtures
+revision_sched_verifier_fixtures: revision_sched_verifier $(REVISION_SCHED_FIXTURE_OBJECTS)
+
+revision_sched_verifier: $(OUTPUT)/revision_sched_verifier.o $(LIBBPF_OBJ) | $(OUTPUT) $(REVISION_SCHED_FIXTURE_OBJECTS)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $(OUTPUT)/revision_sched_verifier.o $(LIBBPF_OBJ) \
+		$(ALL_LDFLAGS) -lelf -lz -o $@
 
 # Special rule for apps with NVML
 $(NVML_APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)

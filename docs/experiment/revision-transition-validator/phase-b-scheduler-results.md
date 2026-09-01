@@ -3,8 +3,11 @@
 Date: 2026-08-31
 
 Disposition: `PARTIAL`. The scheduler production path, both driver lines, and
-the public BPF ABI are integrated and build. Actual verifier-load fixtures and
+the public BPF ABI are integrated and build. The five verifier-load fixtures
+are implemented and independently reviewed, but their kernel load outcomes and
 runtime scheduler validation remain open, so this is not Phase B `PASS`.
+
+Independent fixture review: [phase-b-scheduler-review.md](phase-b-scheduler-review.md).
 
 ## Implemented path
 
@@ -49,16 +52,33 @@ the fresh `nvidia.ko` contains a `.BTF` section. A BTF dump contains:
 
 No module was loaded and the live-preflight count remains zero.
 
+Five focused scheduler verifier fixtures now build through the extension's
+normal BPF toolchain. All five expose the exact 32-byte public callback context.
+The two negative objects emit direct stores to public input offset 16 and the
+driver-private decision wrapper offset 32. The three positive objects perform
+immutable input reads, request a 100-us timeslice through its kfunc, and request
+explicit `LOW=0` interleave through its kfunc.
+
+The userspace fixture runner calls `bpf_object__load()` but never attaches. It
+must admit all three positive controls before attempting either negative; only
+then does `-EACCES` count as the expected direct-write denial. It preserves a
+separate raw verifier log for every attempted object and requires exactly five
+attempts, three admissions, two rejections, and five matching outcomes. Fresh
+independent review passed the fixture ABI, emitted instructions, load ordering,
+rejection classification, log preservation, no-attach boundary, and build
+dependencies.
+
+The runner's local precondition check exits before any load because this shell
+is not root. More importantly, the running official NVIDIA module does not
+export `/sys/kernel/btf/nvidia`; replacing that in-use display module was not
+attempted. Therefore these are implemented and reviewed load fixtures, not
+actual verifier admission/rejection results, and the live-preflight count
+remains zero.
+
 ## Independent review and remaining blocker
 
-Fresh review accepted the relocation, separate expected/observed snapshots,
-input/private-state separation, presence and conflict semantics, independent
-native commits, error routing, and extension ABI. It returned `BLOCK` for a
-Phase B pass because the required actual verifier fixtures do not yet exist.
-
-The next focused result must call `bpf_object__load()` without attaching and
-attempt exactly the five scheduler fixtures frozen in the plan: two expected
-write rejections and three expected admissions for immutable read, timeslice
-setter, and explicit `LOW=0` setter. Module-BTF presence removes the earlier
-575 artifact blocker but does not substitute for those verifier outcomes.
-
+Fresh review accepted the production integration and the load-fixture harness.
+Phase B remains blocked on executing those fixtures against a running custom
+module, then exercising the scheduler callback and native commit path. The
+fresh module-BTF artifact proves that the 610 build carries the required types
+and kfuncs; it does not substitute for the five verifier outcomes.

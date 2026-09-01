@@ -1,6 +1,6 @@
 # R5 production transition-validator implementation plan
 
-Status: revision 3 for independent review; do not execute until approved.
+Status: revision 4 for independent review; do not execute until approved.
 
 ## Revision question
 
@@ -75,9 +75,11 @@ REJECT_RANGE
 REJECT_IDENTITY
 ```
 
-Every consumer switches over all results. Rejection and no-op paths leave the
-pre-call live state unchanged. This enum is an implementation return value, not
-a research-workflow schema.
+Every consumer switches over all results. A rejection/no-op result performs no
+policy mutation. The sole PMM access row that subsequently performs the
+pre-existing native move is explicitly the no-request plus DEFAULT row below;
+it is native policy execution, not a rejected policy transition. This enum is
+an implementation return value, not a research-workflow schema.
 
 ## Frozen scheduler contract
 
@@ -266,6 +268,21 @@ Replace the raw-list kfuncs with a callback-local typed request:
 bpf_gpu_request_reorder(decision_ctx, destination, position)
 ```
 
+Change the struct_ops ABI in the production `gpu_mem_ops`, CFI stubs, wrapper
+declarations/definitions, BTF-visible/public BPF headers, and every in-tree BPF
+callback to:
+
+```text
+gpu_block_activate(pmm, chunk, decision_ctx)
+gpu_block_access(pmm, chunk, decision_ctx)
+```
+
+This removes the raw destination-list pointer from both callbacks and gives BPF
+the invocation-local context needed by `bpf_gpu_request_reorder()`. Direct BPF
+writes to every context field are rejected; the pointer may only be passed to
+the typed kfunc. The PMM, chunk, observed source/generation, presence, requested
+destination/position, and conflict bits are driver-owned.
+
 Immediately before each `gpu_block_activate` or `gpu_block_access` callback,
 the driver creates a hidden `uvm_bpf_pmm_decision_ctx` containing the owning
 PMM, root chunk, observed source state, observed generation, and an empty
@@ -299,6 +316,33 @@ request into a false repeat. In-tree policies are mechanically ported from raw
 list pointers to the invocation-local request kfunc. The request kfunc never
 traverses a list or accepts a destination pointer.
 
+### PMM callback action × request semantics
+
+`gpu_block_access` runs before the old native `list_move_tail()`. Its complete
+post-callback table is:
+
+| Request result | Raw callback action | Policy commit | Old native move | Final guarantee |
+| --- | --- | --- | --- | --- |
+| none | DEFAULT | none | execute once | native LRU behavior |
+| none | BYPASS | none | suppress | preserve callback-entry position |
+| none | other | none (`REJECT_ACTION`) | suppress | preserve callback-entry position |
+| one legal request, including identical repeat | DEFAULT or BYPASS | commit first request once | suppress | requested HEAD/TAIL position |
+| one legal request | other | none (`REJECT_ACTION`) | suppress | preserve callback-entry position |
+| conflict | any | none (`NOOP_CONFLICT`) | suppress | preserve callback-entry position |
+| stale/identity/range rejection | any | none | suppress | preserve callback-entry position |
+
+Thus a committed request cannot be overwritten by the old native tail move.
+An identical setter repeat retains the first request and commits at most once;
+a conflict or rejection never falls through into an unrelated native mutation.
+
+`gpu_block_activate` is called only after `chunk_update_lists_locked()` has
+performed its native move to `VA_BLOCK_USED`. Its raw callback return is ignored
+for routing, matching the existing void wrapper. With no request it preserves
+that post-native callback-entry position. A legal request commits once relative
+to that state. Repeat commits the first request once; conflict, stale, identity,
+or range rejection commits nothing and preserves the post-native position.
+There is no second native move after this callback.
+
 ## Deferred VA-space lifetime disposition
 
 Delete `bpf_gpu_migrate_range(u64 va_space_handle, ...)` from
@@ -328,6 +372,7 @@ insufficient.
 | Region translation | subtraction underflow and widened-add overflow | largest legal translated endpoint | reject before arithmetic; boundary control accepted |
 | PMM source state | wrong expected list, foreign PMM, eviction/lazy state | member of expected used/unused list | invalid/stale no-op; valid move exactly once |
 | PMM repeat/conflict | same setter twice and different setter in one callback | one request; later callback reverses HEAD/TAIL | local repeat/conflict no-op; cross-callback control is re-evaluated and applies |
+| PMM action coupling | invalid action; request+DEFAULT; conflict+BYPASS | no-request+DEFAULT; no-request+BYPASS; request+BYPASS | exact truth table: native only for no-request+DEFAULT, one request commits once, all invalid/conflict rows preserve entry state |
 | Raw VA-space handle | any nonzero integer handle | none until native lifetime design exists | kfunc is absent from registered BTF surface |
 
 ## Execution protocol
@@ -356,13 +401,16 @@ insufficient.
    every root-list alias helper, wrong-source, foreign-PMM, callback-local
    repeat/conflict, cross-callback reversal, eviction, and lazy-state controls.
    A host-only mock cannot satisfy the PMM row.
-3. Add five actual BPF load fixtures and a loader that calls
+3. Add seven actual BPF load fixtures and a loader that calls
    `bpf_object__load()` without attaching struct_ops:
    `sched-input-write` (load-fail), `sched-hidden-write` (load-fail),
    `sched-immutable-read` (load-pass), `sched-timeslice-setter` (load-pass), and
-   `sched-interleave-low-setter` (load-pass). The focused selector must report
-   exactly five attempted fixtures, two expected verifier rejections, and three
-   admissions. A compiled C selftest or direct call to
+   `sched-interleave-low-setter` (load-pass), plus `pmm-hidden-write`
+   (load-fail) and `pmm-reorder-setter` (load-pass). The focused selector must
+   report exactly seven attempted fixtures, three expected verifier rejections,
+   and four admissions. The PMM pass fixture uses the new callback ABI and
+   passes its received `decision_ctx` to `bpf_gpu_request_reorder()`. A compiled
+   C selftest or direct call to
    `nv_gpu_sched_ops_is_valid_access()` does not satisfy this row.
 4. Build all five open modules for the primary supported configuration, then
    port the same semantics to 610.43.02 and build all five modules for Linux

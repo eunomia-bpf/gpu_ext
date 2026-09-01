@@ -94,3 +94,38 @@ No implementation started after this review.
 
 Revision 3 remains blocked from implementation until the independent reviewer
 approves these semantics.
+
+## Round 3: BLOCK
+
+Independent review confirmed every Round 2 item was closed, then found two
+remaining PMM execution gaps:
+
+1. The plan did not define how `gpu_block_access`'s raw action interacts with a
+   recorded reorder request. The existing caller can perform a native tail move
+   after the callback, which could overwrite an applied policy request. The
+   passive BYPASS row and invalid/conflict/stale fallbacks were also undefined.
+2. The kfunc required a `decision_ctx`, but the plan had not explicitly changed
+   the struct_ops callback ABI to pass that context to BPF or tested that ABI
+   with the real verifier.
+
+No implementation started after this review.
+
+## Revision 4 response
+
+- `gpu_block_access` now has a complete action×request table. Native LRU runs
+  only for no-request+DEFAULT; no-request+BYPASS is passive; a legal request
+  commits once and suppresses native movement; invalid, conflict, and stale
+  rows commit nothing and preserve callback-entry position.
+- `gpu_block_activate` is specified separately because the native used-list
+  move precedes its callback. The raw action remains routing-irrelevant, a
+  request may reorder once, and every rejection preserves the post-native
+  callback-entry state.
+- Both callback signatures now carry a protected invocation-local
+  `decision_ctx`; production callbacks, wrappers, CFI/BTF declarations, public
+  headers, and in-tree policies must change together.
+- The real-load matrix now has seven fixtures: the new PMM hidden-write fixture
+  must fail and a PMM reorder-setter using the new ABI must pass, for exact
+  totals of three rejections and four admissions.
+
+Revision 4 remains blocked from implementation until the independent reviewer
+approves these semantics.

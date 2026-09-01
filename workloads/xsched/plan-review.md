@@ -62,3 +62,15 @@ The research-experiment-design protocol permits at most three review rounds.
 Therefore this proposal is closed and `run` is not authorized. Any future
 clock-domain calibration and mutually exclusive interpretation logic are
 preparation for a distinct proposal, not retroactive approval of this one.
+
+## Offline no-fingerprint repair — 2026-08-31
+
+The repository-wide no-fingerprint rule supersedes the earlier review requests
+for file fingerprints and aggregate output checks. The inactive experiment was
+repaired offline without reopening its scientific review or authorizing a GPU
+run: admission now compares the exact small reviewed XSched diff and records
+ordinary file metadata; the CUDA harness recomputes the 32 lane-specific
+floating-point recurrences on the host and checks every copied output value.
+The Python adapter compiles, the sm_120 harness rebuilds, and read-only admission
+correctly remains blocked by the loaded 610.43.02 driver and missing core NVIDIA
+BTF hooks. The two round-3 scientific blockers remain unchanged.

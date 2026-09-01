@@ -15,10 +15,9 @@
   `examples/Linux/1_transparent_sched` also succeeds with nvcc 12.9. The
   example has not been executed because the GPU is occupied.
 - The reviewed passive engagement patch applies and reverses cleanly against
-  the pinned commit. A clean CUDA rebuild with the patch succeeds. Runtime
-  hashes at this build are `4175e91a...` (`libpreempt.so`), `008a5f0e...`
-  (`libhalcuda.so`), and `07fb11f6...` (`libshimcuda.so`); the runner records
-  their complete hashes in every admission record.
+  the pinned commit. A clean CUDA rebuild with the patch succeeds. Admission
+  compares the exact small source diff and records ordinary path, size, inode,
+  and modification/change-time metadata for required runtime files.
 - Architecture scope verified from upstream `platforms/cuda/hal/src/arch/arch.cpp`:
   sm_120 takes `CudaQueueLv1`; `Guardian::Instance` and
   `TarpHandler::Instance` return null for sm_120.

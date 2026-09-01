@@ -2,5 +2,5 @@
   or digests for this workload, and never use them as experiment gates or
   evidence. Compare exact small outputs and structured semantics instead.
   Git commit IDs and upstream source revisions remain normal bookkeeping.
-- The current legacy runner contains prohibited fingerprint logic and must not
-  be executed until that logic has been replaced and independently reviewed.
+- The active runner uses exact small-diff comparison, semantic output checks,
+  and ordinary file metadata; do not reintroduce content fingerprint logic.

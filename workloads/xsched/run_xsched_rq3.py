@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -36,12 +35,21 @@ def run(command: list[str], *, check: bool = True, text: bool = True) -> subproc
     return subprocess.run(command, check=check, text=text, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def file_metadata(path: Path) -> dict[str, Any]:
+    """Record ordinary identity metadata without reading file contents."""
+    logical = path.absolute()
+    if not logical.is_file():
+        return {"path": str(logical), "exists": False}
+    stat = logical.stat()
+    return {
+        "path": str(logical),
+        "exists": True,
+        "bytes": stat.st_size,
+        "device": stat.st_dev,
+        "inode": stat.st_ino,
+        "mtime_ns": stat.st_mtime_ns,
+        "ctime_ns": stat.st_ctime_ns,
+    }
 
 
 def percentile(values: list[float], fraction: float) -> float:
@@ -94,13 +102,17 @@ def admission(require_runtime: bool) -> dict[str, Any]:
         "xsched_commit": run(["git", "-C", str(XSCHED), "rev-parse", "HEAD"]).stdout.strip(),
         "xsched_diff": actual_xsched_diff,
         "xsched_diff_matches_reviewed_patch": actual_xsched_diff == expected_xsched_diff,
-        "workload_sha256": sha256(workload) if workload.exists() else None,
-        "xsched_patch_sha256": sha256(HERE / "xsched-engagement.patch"),
-        "uprobe_sha256": sha256(EXTENSION / "uprobe_preempt_multi") if (EXTENSION / "uprobe_preempt_multi").exists() else None,
-        "timeslice_sha256": sha256(EXTENSION / "gpu_sched_set_timeslices") if (EXTENSION / "gpu_sched_set_timeslices").exists() else None,
-        "gpubpf_source_sha256": {str(path.relative_to(GPU_EXT)): sha256(path) for path in source_paths},
-        "xsched_runtime_sha256": {
-            name: sha256(XSCHED_OUTPUT / "lib" / name) if (XSCHED_OUTPUT / "lib" / name).exists() else None
+        "workload_file": file_metadata(workload),
+        "reviewed_patch_file": file_metadata(HERE / "xsched-engagement.patch"),
+        "gpubpf_binaries": {
+            "uprobe_preempt_multi": file_metadata(EXTENSION / "uprobe_preempt_multi"),
+            "gpu_sched_set_timeslices": file_metadata(EXTENSION / "gpu_sched_set_timeslices"),
+        },
+        "gpubpf_source_files": {
+            str(path.relative_to(GPU_EXT)): file_metadata(path) for path in source_paths
+        },
+        "xsched_runtime_files": {
+            name: file_metadata(XSCHED_OUTPUT / "lib" / name)
             for name in ("libpreempt.so", "libhalcuda.so", "libshimcuda.so")
         },
     }
@@ -306,11 +318,11 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
         for process in workers + policies:
             write_process_log(run_dir / f"{process.name}.json", process)
 
-    checksums = {result["role"]: set() for result in results}
-    for result in results:
-        checksums[result["role"]].add(result["checksum"])
-    if any(len(values) != 1 for values in checksums.values()):
-        raise RuntimeError(f"checksum disagreement within role: {checksums}")
+    expected_values = 4 * tasks * blocks * threads
+    if any(result.get("outputs_validated") != expected_values for result in results):
+        raise RuntimeError(
+            f"workload did not semantically validate all {expected_values} output values per process"
+        )
 
     lc_samples = [
         (sample["entry_ns"] - sample["submit_ns"]) / 1000.0
@@ -378,7 +390,7 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
         "lc_p99_us": percentile(lc_samples, 0.99),
         "lc_completion_p99_us": percentile(lc_completion, 0.99),
         "be_throughput_kernels_s": be_count / ((be_end_ns - be_release_ns) / 1e9),
-        "checksums": {role: list(values)[0] for role, values in checksums.items()},
+        "outputs_validated_per_process": expected_values,
         "engagement": engagement,
     }
     (run_dir / "result.json").write_text(json.dumps(result, indent=2) + "\n")
@@ -447,7 +459,8 @@ def execute_isolated(role: str, run_dir: Path, reps: int, tasks: int, blocks: in
         write_process_log(run_dir / f"isolated-{role}.json", worker)
     latencies = [(item["exit_ns"] - item["submit_ns"]) / 1000.0 for item in result["samples"]]
     record = {
-        "control": f"isolated-{role}", "samples": len(latencies), "checksum": result["checksum"],
+        "control": f"isolated-{role}", "samples": len(latencies),
+        "outputs_validated": result["outputs_validated"],
         "completion_host_ns": result["completion_host_ns"],
         "throughput_kernels_s": len(latencies) / ((result["completion_host_ns"] - release_ns) / 1e9),
         "p99_us": percentile(latencies, 0.99),
@@ -577,19 +590,12 @@ def main() -> int:
             result["block"] = 0
             (root / config / "result.json").write_text(json.dumps(result, indent=2) + "\n")
             results.append(result)
-        if len({json.dumps(result["checksums"], sort_keys=True) for result in results}) != 1:
-            raise RuntimeError("cross-configuration checksum gate failed")
     else:
         rng = random.Random(SEED)
-        reference_checksums = None
-        control_checksums: dict[str, int] = {}
         for role in ("lc", "be"):
             for repetition in range(3):
-                control = execute_isolated(role, root / f"control-{role}-{repetition}", args.reps,
-                                           args.tasks, args.blocks, args.threads, args.timeout)
-                if role in control_checksums and control_checksums[role] != control["checksum"]:
-                    raise RuntimeError(f"isolated reference checksum changed for {role}")
-                control_checksums[role] = control["checksum"]
+                execute_isolated(role, root / f"control-{role}-{repetition}", args.reps,
+                                 args.tasks, args.blocks, args.threads, args.timeout)
         for block in range(10):
             order = list(CONFIGS)
             rng.shuffle(order)
@@ -599,12 +605,6 @@ def main() -> int:
                 result.update({"block": block, "order_index": order_index})
                 result_path = root / f"block-{block:02d}-{order_index}-{config}" / "result.json"
                 result_path.write_text(json.dumps(result, indent=2) + "\n")
-                if result["checksums"] != control_checksums:
-                    raise RuntimeError("full run checksum differs from frozen isolated reference")
-                if reference_checksums is None:
-                    reference_checksums = result["checksums"]
-                elif result["checksums"] != reference_checksums:
-                    raise RuntimeError("cross-configuration checksum gate failed")
         print(json.dumps(analyze(root), indent=2))
     return 0
 

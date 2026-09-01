@@ -101,16 +101,6 @@ std::string read_command()
     return command;
 }
 
-uint64_t fnv1a(const void *data, size_t size, uint64_t hash)
-{
-    const auto *bytes = static_cast<const unsigned char *>(data);
-    for (size_t i = 0; i < size; ++i) {
-        hash ^= bytes[i];
-        hash *= 1099511628211ULL;
-    }
-    return hash;
-}
-
 }  // namespace
 
 int main(int argc, char **argv)
@@ -192,10 +182,21 @@ int main(int argc, char **argv)
     std::vector<float> host_sink(sink_count);
     check_cuda(cudaMemcpy(host_sink.data(), device_sink, sink_count * sizeof(float), cudaMemcpyDeviceToHost),
                "cudaMemcpy sink");
-    uint64_t checksum = 1469598103934665603ULL;
-    for (float value : host_sink) {
-        if (!std::isfinite(value) || value <= 0.0f) fail("correctness", "non-finite/non-positive output");
-        checksum = fnv1a(&value, sizeof(value), checksum);
+    std::vector<float> expected_by_lane(32);
+    for (size_t lane = 0; lane < expected_by_lane.size(); ++lane) {
+        float value = 1.0f + static_cast<float>(lane) * 0.001f;
+        for (unsigned long long i = 0; i < reps; ++i) {
+            value = std::fmaf(value, 1.00000011920928955078125f, 0.00000095367431640625f);
+        }
+        expected_by_lane[lane] = value;
+    }
+    for (size_t index = 0; index < host_sink.size(); ++index) {
+        const float value = host_sink[index];
+        const size_t local_index = index % (static_cast<size_t>(grid_blocks) * threads);
+        if (!std::isfinite(value) || value <= 0.0f
+            || value != expected_by_lane[local_index & 31U]) {
+            fail("correctness", "output differs from the per-lane recurrence");
+        }
     }
 
     uint64_t min_queue_ns = std::numeric_limits<uint64_t>::max();
@@ -203,7 +204,7 @@ int main(int argc, char **argv)
     std::cout << "{\"event\":\"result\",\"role\":\"" << role
               << "\",\"process_id\":" << process_id
               << ",\"completion_host_ns\":" << completion_host_ns
-              << ",\"checksum\":" << checksum << ",\"samples\":[";
+              << ",\"outputs_validated\":" << host_sink.size() << ",\"samples\":[";
     for (int i = 0; i < total_tasks; ++i) {
         const auto &stamp = host_stamps[i];
         if (stamp.started != 1 || stamp.blocks_done != static_cast<unsigned int>(grid_blocks)

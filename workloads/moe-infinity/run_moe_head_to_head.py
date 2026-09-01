@@ -982,7 +982,7 @@ def process_tree_io(root_pid: int) -> dict[str, Any]:
             "cpu_time_s": cpu_ticks / os.sysconf("SC_CLK_TCK")}
 
 
-def find_uvm_fd(root_pid: int) -> tuple[int, int]:
+def find_uvm_fds(root_pid: int) -> list[tuple[int, int]]:
     matches = []
     for pid in descendants(root_pid):
         for fd_path in (Path("/proc") / str(pid) / "fd").glob("[0-9]*"):
@@ -992,9 +992,9 @@ def find_uvm_fd(root_pid: int) -> tuple[int, int]:
                 continue
             if target == "/dev/nvidia-uvm":
                 matches.append((pid, int(fd_path.name)))
-    if len(matches) != 1:
-        raise GateError(f"expected one owned /dev/nvidia-uvm fd, found {matches}")
-    return matches[0]
+    if not matches:
+        raise GateError("owned server tree has no /dev/nvidia-uvm fd")
+    return sorted(matches)
 
 
 def duplicate_child_fd(pid: int, target_fd: int) -> int:
@@ -1113,27 +1113,69 @@ def start_policy(run_dir: Path) -> tuple[subprocess.Popen[Any], Any, dict[str, A
         raise
 
 
-def start_eviction_monitor(server_pid: int, run_dir: Path) -> tuple[subprocess.Popen[Any], Any, dict[str, Any]]:
-    pid, target_fd = find_uvm_fd(server_pid)
-    inherited_fd = duplicate_child_fd(pid, target_fd)
-    log_path = run_dir / "uvm-evictions.jsonl"
-    log = log_path.open("x", buffering=1)
-    try:
-        process = subprocess.Popen(
-            [str(EVICTION_MONITOR), "--uvm-fd", str(inherited_fd)],
-            stdout=log, stderr=subprocess.STDOUT, text=True,
-            pass_fds=(inherited_fd,), start_new_session=True,
-        )
-    finally:
-        os.close(inherited_fd)
-    try:
-        ready = wait_event(process, log_path, "ready", 30)
-        ready.update(target_pid=pid, target_fd=target_fd)
-        return process, log, ready
-    except Exception:
-        stop_exact_process(process)
-        log.close()
-        raise
+def start_eviction_monitors(
+    server_pid: int, run_dir: Path
+) -> list[tuple[subprocess.Popen[Any], Any, Path, dict[str, Any]]]:
+    candidates = find_uvm_fds(server_pid)
+    admitted = []
+    failures = []
+    for pid, target_fd in candidates:
+        inherited_fd = -1
+        process = None
+        log_path = run_dir / f"uvm-evictions-fd-{target_fd}.jsonl"
+        log = log_path.open("x", buffering=1)
+        try:
+            inherited_fd = duplicate_child_fd(pid, target_fd)
+            process = subprocess.Popen(
+                [str(EVICTION_MONITOR), "--uvm-fd", str(inherited_fd)],
+                stdout=log, stderr=subprocess.STDOUT, text=True,
+                pass_fds=(inherited_fd,), start_new_session=True,
+            )
+            os.close(inherited_fd)
+            inherited_fd = -1
+            ready = wait_event(process, log_path, "ready", 30)
+            ready.update(
+                target_pid=pid,
+                target_fd=target_fd,
+                candidate_fds=[list(item) for item in candidates],
+            )
+            admitted.append((process, log, log_path, ready))
+        except Exception as exc:
+            failures.append({"pid": pid, "fd": target_fd, "error": str(exc)})
+            if process is not None:
+                stop_exact_process(process)
+            log.close()
+        finally:
+            if inherited_fd >= 0:
+                os.close(inherited_fd)
+    if not admitted:
+        raise GateError(f"no owned UVM fd admitted the eviction monitor: {failures}")
+    return admitted
+
+
+def select_eviction_monitor(
+    candidates: list[tuple[subprocess.Popen[Any], Any, Path, dict[str, Any]]]
+) -> tuple[subprocess.Popen[Any], Any, Path, dict[str, Any]]:
+    if len(candidates) == 1:
+        return candidates[0]
+    active = [
+        item for item in candidates
+        if int(latest_counter_event(item[2], "eviction_stats")["evictions"]) > 0
+    ]
+    if len(active) != 1:
+        observed = [
+            {"ready": item[3],
+             "stats": latest_counter_event(item[2], "eviction_stats")}
+            for item in candidates
+        ]
+        raise GateError(f"multiple owned UVM fds remained ambiguous after warm-up: {observed}")
+    selected = active[0]
+    for item in candidates:
+        if item is selected:
+            continue
+        stop_exact_process(item[0])
+        item[1].close()
+    return selected
 
 
 def validate_log(log_path: Path) -> None:
@@ -1445,6 +1487,8 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
     policy_ready = None
     monitor = None
     monitor_log = None
+    candidate_monitors = []
+    eviction_path = None
     server = None
     server_log = None
     log_path = run_dir / "server.log"
@@ -1472,7 +1516,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
         wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 900)
         identity = check_server_identity(config, port, prompts)
         if config == "gpubpf_host_stride_lfu":
-            monitor, monitor_log, monitor_ready = start_eviction_monitor(server.pid, run_dir)
+            candidate_monitors = start_eviction_monitors(server.pid, run_dir)
         else:
             monitor_ready = None
 
@@ -1480,6 +1524,11 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json"
         )
         time.sleep(1.1)
+        if config == "gpubpf_host_stride_lfu":
+            monitor, monitor_log, eviction_path, monitor_ready = select_eviction_monitor(
+                candidate_monitors
+            )
+            candidate_monitors = []
         io_before = process_tree_io(server.pid)
         if any(item["affinity"] != list(range(8)) for item in io_before["members"]):
             raise GateError(f"owned process tree escaped CPU 0-7: {io_before['members']}")
@@ -1489,7 +1538,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             if config == "gpubpf_host_stride_lfu" else None
         )
         eviction_before = (
-            latest_counter_event(run_dir / "uvm-evictions.jsonl", "eviction_stats")
+            latest_counter_event(eviction_path, "eviction_stats")
             if config == "gpubpf_host_stride_lfu" else None
         )
 
@@ -1550,7 +1599,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
         elif config == "gpubpf_host_stride_lfu":
             policy_after = latest_counter_event(run_dir / "policy.jsonl", "engagement")
             eviction_after = latest_counter_event(
-                run_dir / "uvm-evictions.jsonl", "eviction_stats"
+                eviction_path, "eviction_stats"
             )
             policy_delta = counter_delta(
                 policy_before, policy_after,
@@ -1588,6 +1637,9 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             stop_exact_process(monitor)
         if monitor_log is not None:
             monitor_log.close()
+        for candidate in candidate_monitors:
+            stop_exact_process(candidate[0])
+            candidate[1].close()
         if policy is not None:
             stop_exact_process(policy)
         if policy_log is not None:
@@ -1739,15 +1791,15 @@ def streamed_completion(config: str, port: int, token_ids: list[int],
 
 
 def engagement_snapshot(config: str, port: int, run_dir: Path,
-                        server_pid: int) -> dict[str, Any]:
+                        server_pid: int, eviction_path: Path | None = None) -> dict[str, Any]:
     result: dict[str, Any] = {"process_io": process_tree_io(server_pid)}
     if config == "moe_infinity_075":
         result["moe"] = moe_snapshot(port)
     elif config == "gpubpf_host_stride_lfu":
+        if eviction_path is None:
+            raise GateError("gpubpf engagement snapshot lacks selected eviction monitor")
         result["policy"] = latest_counter_event(run_dir / "policy.jsonl", "engagement")
-        result["evictions"] = latest_counter_event(
-            run_dir / "uvm-evictions.jsonl", "eviction_stats"
-        )
+        result["evictions"] = latest_counter_event(eviction_path, "eviction_stats")
     return result
 
 
@@ -1809,6 +1861,8 @@ def run_measured_config(config: str, run_dir: Path, port: int,
                         goldens: list[str]) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
     policy = monitor = server = None
+    candidate_monitors = []
+    eviction_path = None
     telemetry = None
     policy_log = monitor_log = server_log = None
     telemetry_log = None
@@ -1831,14 +1885,19 @@ def run_measured_config(config: str, run_dir: Path, port: int,
         wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 900)
         identity = check_server_identity(config, port, prompts)
         if config == "gpubpf_host_stride_lfu":
-            monitor, monitor_log, monitor_ready = start_eviction_monitor(server.pid, run_dir)
+            candidate_monitors = start_eviction_monitors(server.pid, run_dir)
         else:
             monitor_ready = None
         warmup = nonstream_completion(
             config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json"
         )
         time.sleep(1.1)
-        before = engagement_snapshot(config, port, run_dir, server.pid)
+        if config == "gpubpf_host_stride_lfu":
+            monitor, monitor_log, eviction_path, monitor_ready = select_eviction_monitor(
+                candidate_monitors
+            )
+            candidate_monitors = []
+        before = engagement_snapshot(config, port, run_dir, server.pid, eviction_path)
         if any(item["affinity"] != list(range(8)) for item in before["process_io"]["members"]):
             raise GateError("owned measured process tree escaped CPU 0-7")
         telemetry, telemetry_log, telemetry_path = start_gpu_telemetry(run_dir)
@@ -1852,7 +1911,7 @@ def run_measured_config(config: str, run_dir: Path, port: int,
             ))
         block_end_ns = requests[-1]["eof_ns"]
         time.sleep(1.1)
-        after = engagement_snapshot(config, port, run_dir, server.pid)
+        after = engagement_snapshot(config, port, run_dir, server.pid, eviction_path)
         stop_exact_process(telemetry)
         telemetry_log.close()
         telemetry = None
@@ -1890,6 +1949,9 @@ def run_measured_config(config: str, run_dir: Path, port: int,
             stop_exact_process(monitor)
         if monitor_log is not None:
             monitor_log.close()
+        for candidate in candidate_monitors:
+            stop_exact_process(candidate[0])
+            candidate[1].close()
         if telemetry is not None:
             stop_exact_process(telemetry)
         if telemetry_log is not None:

@@ -192,3 +192,28 @@ This is a real policy/mechanism feasibility failure rather than another
 preflight classifier defect: no correctness or timing sample was accepted, and
 an unchanged retry is not justified. The owned server, monitors, and policy
 were stopped; the GPU returned to idle and no struct_ops state remained.
+
+## Revision 6 sampled-LFU canary: failed, no further tuning
+
+The independently approved, single allowed sampled-LFU canary ran after a clean
+custom-UVM reload. It retained the host-stride policy and counted every LFU
+access, but performed the expensive LFU frequency update and tail-reorder
+request only once per 256 callbacks on each CPU. The emitted final counters
+prove the intended reduction: 1,994,365 LFU access callbacks produced 7,789
+sampled updates and 7,789 reorder requests. The policy also observed 17,017,111
+page-fault callbacks, 855,287 activations, and 839,464 eviction prepares.
+
+Despite reducing the access-path frequency work by roughly 256x, the exact
+512-token warm-up again reached `prompt done` and then returned no response.
+CUDA synchronization reported an illegal memory access. The kernel again
+recorded Xid 109 context-switch timeout first and Xid 31 MMU fault second. No
+warm-up response, correctness sample, or performance sample was accepted. The
+failure result explicitly keeps `full_correctness_authorized=false`.
+
+The pre-registered stopping rule now applies: the sampling ratio will not be
+tuned, full gpubpf correctness and timing remain unauthorized, and the exact
+and sampled failures are both retained. Cleanup succeeded: GPU memory returned
+to 15 MiB, utilization to zero, the UVM refcount to zero, and the struct_ops
+inventory to empty. The remaining UVM and N-CMoE control correctness cells may
+still be collected, but cannot promote this experiment to a complete
+four-configuration result.

@@ -189,6 +189,7 @@
     "policy_revision": "sampled-lfu-v1",
     "lfu_access_sampling": "one expensive frequency-map update per 256 callbacks on each CPU",
     "predecessor_disposition": "the exact unsampled LFU warm-up failed with Xid 109 context-switch timeout followed by Xid 31 MMU fault and produced no accepted sample",
+    "sampled_canary_disposition": "failed at the same post-prompt CUDA synchronization point after 7789 sampled updates from 1994365 LFU access callbacks; no response or accepted sample; no further sampling-ratio tuning authorized",
     "bpf_source": "../../extension/prefetch_stride_lfu.bpf.c",
     "loader_source": "../../extension/prefetch_stride_lfu.c",
     "bpf_object": "../../extension/.output/prefetch_stride_lfu.bpf.o",

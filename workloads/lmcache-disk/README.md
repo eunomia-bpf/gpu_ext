@@ -27,8 +27,9 @@ real preflight attempts failed before serving a request. The preserved failures
 and exact causes are recorded in `plan.md` and `build-smoke.md`; none is a
 performance result, and this protocol must not be relaunched under a new output
 name. Revision 2 uses the proposed 0.98 startup budget and semantic evidence;
-it does not generate or compare content fingerprints. Independent review
-blocked another launch because the three-attempt cap is already exhausted.
+it does not generate or compare content fingerprints. Final independent review
+passed the offline repair and blocked another launch because the three-attempt
+cap is already exhausted.
 
 The pre-run driver deviation is recorded in `plan.md`: all three cells use
 the same 610.43.02 stack, with the reviewed workload and analysis unchanged.

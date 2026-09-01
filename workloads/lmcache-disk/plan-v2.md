@@ -1,7 +1,7 @@
 # LMCache local-NVMe experiment protocol — revision 2
 
-Status: **blocked after independent review; no further GPU launch is
-authorized because revision 1 exhausted the three-attempt preflight cap**.
+Status: **offline repair passed final independent review; no further GPU launch
+is authorized because revision 1 exhausted the three-attempt preflight cap**.
 
 This protocol addresses the explicit revision commitment to extend the LMCache
 comparison to its local-disk backend. It characterizes the public LMCache

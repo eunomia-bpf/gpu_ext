@@ -128,3 +128,5 @@ calling a throughput regression. Fifteen CPU-only tests pass. The custom
 control layer was removed, leaving only active low-level primitives behind the
 thin adapter. The
 three-attempt cap remains exhausted, so this is offline repair evidence only.
+Final independent review passed all offline repairs and separately blocked a
+GPU launch because no higher-level exception to that cap exists.

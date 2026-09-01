@@ -10,7 +10,7 @@
  * - nv_gpu_sched_task_destroy: TSG destruction
  *
  * These hooks are implemented in kernel-open/nvidia/nv-gpu-sched-hooks.c
- * and called from src/nvidia/src/kernel/gpu/fifo/*.c
+ * and called from the FIFO sources under src/nvidia/src/kernel/gpu/fifo/.
  */
 
 #include "vmlinux.h"
@@ -31,8 +31,6 @@ struct nv_gpu_task_init_ctx {
     u64 default_timeslice;
     u32 default_interleave;
     u32 runlist_id;
-    u64 timeslice;
-    u32 interleave_level;
 };
 
 struct nv_gpu_bind_ctx {

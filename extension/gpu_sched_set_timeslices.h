@@ -16,9 +16,16 @@ struct nv_gpu_task_init_ctx {
     __u64 default_timeslice;
     __u32 default_interleave;
     __u32 runlist_id;
-    __u64 timeslice;
-    __u32 interleave_level;
 };
+
+_Static_assert(__builtin_offsetof(struct nv_gpu_task_init_ctx, engine_type) == 8,
+               "task-init engine_type ABI");
+_Static_assert(__builtin_offsetof(struct nv_gpu_task_init_ctx, default_timeslice) == 16,
+               "task-init default_timeslice ABI");
+_Static_assert(__builtin_offsetof(struct nv_gpu_task_init_ctx, runlist_id) == 28,
+               "task-init runlist_id ABI");
+_Static_assert(sizeof(struct nv_gpu_task_init_ctx) == 32,
+               "task-init input ABI size");
 
 struct nv_gpu_bind_ctx {
     __u64 tsg_id;
@@ -48,9 +55,9 @@ struct nv_gpu_sched_ops {
 #define NV_ENGINE_TYPE_NVJPEG      4
 
 /* Interleave levels */
-#define NV_INTERLEAVE_LEVEL_LOW    1
-#define NV_INTERLEAVE_LEVEL_MEDIUM 2
-#define NV_INTERLEAVE_LEVEL_HIGH   3
+#define NV_INTERLEAVE_LEVEL_LOW    0
+#define NV_INTERLEAVE_LEVEL_MEDIUM 1
+#define NV_INTERLEAVE_LEVEL_HIGH   2
 
 /* kfunc declarations */
 #ifndef BPF_NO_KFUNC_PROTOTYPES
@@ -62,12 +69,12 @@ struct nv_gpu_sched_ops {
 #endif
 
 /* Set timeslice for a TSG during task_init */
-extern void bpf_nv_gpu_set_timeslice(struct nv_gpu_task_init_ctx *ctx,
-                                     __u64 timeslice_us) __weak __ksym;
+extern int bpf_nv_gpu_set_timeslice(struct nv_gpu_task_init_ctx *ctx,
+                                    __u64 timeslice_us) __weak __ksym;
 
 /* Set interleave level for a TSG during task_init */
-extern void bpf_nv_gpu_set_interleave(struct nv_gpu_task_init_ctx *ctx,
-                                      __u32 interleave_level) __weak __ksym;
+extern int bpf_nv_gpu_set_interleave(struct nv_gpu_task_init_ctx *ctx,
+                                     __u32 interleave_level) __weak __ksym;
 
 /* Reject binding for a TSG during on_bind */
 extern void bpf_nv_gpu_reject_bind(struct nv_gpu_bind_ctx *ctx) __weak __ksym;

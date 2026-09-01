@@ -274,10 +274,23 @@ without modifying its original failed `preflight-result.json`. It requires:
    snapshots and are labeled as control-flow provenance rather than newly
    measured values.
 
-The timing runner may accept the separate revalidation result only after an
-independent review approves this revision and the revalidation itself passes.
-The original failed attempt remains failed and preserved. All model, source,
-request, policy, schedule, timing, telemetry, and interpretation settings stay
-unchanged. This repair neither adds a baseline optimization nor changes the
-scientific workload; it narrows the deployment claim to the path the public
-artifact actually executed.
+Attempt 3 stopped at the MoE cell's final storage-open gate, before the three
+llama correctness cells in the frozen order. The read-only revalidation can
+therefore pass only the MoE cell; it cannot promote the incomplete four-cell
+preflight. After that revalidation passes, one fixed continuation action runs
+exactly the three previously unexecuted cells (`llama_ncmoe32`, `llama_uvm`,
+and `gpubpf_host_stride_lfu`) in their original frozen relative order and
+stores them under `raw/repaired-preflight/completion-after-attempt-03`. It does
+not launch MoE-Infinity and is not a fourth MoE correctness attempt. The action
+retains the original commands, 512+64 requests, two smoke passes, three-llama
+golden equality, policy/eviction engagement, ownership, telemetry, and cleanup
+gates, and refuses an existing output directory.
+
+Only a separate combined result containing the revalidated MoE cell and all
+three completed llama cells may satisfy the timing gate. The timing runner may
+accept it only after an independent review approves this revision and both
+stages pass. The original failed attempt remains failed and preserved. All
+model, source, request, policy, schedule, timing, telemetry, and interpretation
+settings stay unchanged. This repair neither adds a baseline optimization nor
+changes the scientific workload; it narrows the deployment claim to the path
+the public artifact actually executed.

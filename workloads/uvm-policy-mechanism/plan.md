@@ -1,5 +1,8 @@
 # Experiment Plan: same no-prefetch policy on a real UVM fault stream
 
+**Status: approved and preflight 1 passed; paired timing pending.** See
+`plan-review.md` and `results/preflight-1.md`.
+
 ## Research Question
 
 - Paper RQ: **RQ4 (Overhead): What is the overhead of gpubpf's core mechanisms

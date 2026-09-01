@@ -87,11 +87,12 @@
 - Both preflight cells must finish with nonzero total migrations and migrated
   bytes, zero prefetch migrations and bytes, zero dropped migration events,
   zero mismatches, and clean exit. The gpubpf cell additionally runs temporary
-  external kprobes and requires exactly 131,072 calls each to
-  `uvm_bpf_call_gpu_page_prefetch` and `bpf_gpu_set_prefetch_region`: one for
-  every unique 64 KiB fault region. The driver computes one callback per faulted
-  page on this non-first-touch path; any bypass, duplicate, or missing coverage
-  invalidates the workload instead of being normalized away.
+  external kprobes, started only after the workload is paused and its migration
+  monitor is ready, so CPU initialization is excluded. Require
+  `wrapper_calls == helper_calls` and both counts at least 131,072 for
+  `uvm_bpf_call_gpu_page_prefetch` and `bpf_gpu_set_prefetch_region`, covering
+  all unique demanded regions. Record the actual counts; extra calls from
+  speculative hardware faults or VA-block retries do not invalidate the row.
 - After every gpubpf process, send SIGINT only to the owned loader, require its
   detaching record and zero exit, confirm no memory struct_ops remains attached,
   and require `nvidia_uvm` refcount zero before the next AB/BA module reload.

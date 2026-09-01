@@ -386,6 +386,52 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(runner.GateError, "PID ownership mismatch"):
             runner.validate_policy_ownership(ready, inventory)
 
+    def test_single_zero_event_eviction_monitor_is_rejected(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            path = Path(temporary) / "evictions.jsonl"
+            path.write_text(json.dumps({"event": "eviction_stats", "evictions": 0}) + "\n")
+            candidate = (mock.Mock(), mock.Mock(), path, {"target_pid": 1, "target_fd": 9})
+            with self.assertRaisesRegex(runner.GateError, "remained ambiguous"):
+                runner.select_eviction_monitor([candidate])
+
+    def test_eviction_monitor_paths_include_pid_and_fd(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            processes = [mock.Mock(), mock.Mock()]
+            with (
+                mock.patch.object(runner, "find_uvm_fds", return_value=[(11, 9), (22, 9)]),
+                mock.patch.object(runner, "duplicate_child_fd", side_effect=[101, 102]),
+                mock.patch.object(runner.subprocess, "Popen", side_effect=processes),
+                mock.patch.object(runner, "wait_event", return_value={"event": "ready"}),
+                mock.patch.object(runner.os, "close"),
+            ):
+                admitted = runner.start_eviction_monitors(1, Path(temporary))
+            try:
+                self.assertEqual(
+                    [item[2].name for item in admitted],
+                    ["uvm-evictions-pid-11-fd-9.jsonl", "uvm-evictions-pid-22-fd-9.jsonl"],
+                )
+            finally:
+                for _, log, _, _ in admitted:
+                    log.close()
+
+    def test_any_eviction_monitor_admission_failure_rejects_all(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            processes = [mock.Mock(), mock.Mock()]
+            with (
+                mock.patch.object(runner, "find_uvm_fds", return_value=[(11, 9), (22, 10)]),
+                mock.patch.object(runner, "duplicate_child_fd", side_effect=[101, 102]),
+                mock.patch.object(runner.subprocess, "Popen", side_effect=processes),
+                mock.patch.object(
+                    runner, "wait_event",
+                    side_effect=[{"event": "ready"}, runner.GateError("not ready")],
+                ),
+                mock.patch.object(runner.os, "close"),
+                mock.patch.object(runner, "stop_exact_process") as stop,
+            ):
+                with self.assertRaisesRegex(runner.GateError, "admission failed"):
+                    runner.start_eviction_monitors(1, Path(temporary))
+            self.assertEqual(stop.call_count, 2)
+
     def test_runtime_continuity_rejects_replacement(self) -> None:
         expected = {"_store": {"path": "/tmp/store.so", "size": 1, "inode": 2}}
         runner.require_runtime_continuity(expected, expected.copy())

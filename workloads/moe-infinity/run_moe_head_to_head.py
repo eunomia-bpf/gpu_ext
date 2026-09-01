@@ -1122,7 +1122,7 @@ def start_eviction_monitors(
     for pid, target_fd in candidates:
         inherited_fd = -1
         process = None
-        log_path = run_dir / f"uvm-evictions-fd-{target_fd}.jsonl"
+        log_path = run_dir / f"uvm-evictions-pid-{pid}-fd-{target_fd}.jsonl"
         log = log_path.open("x", buffering=1)
         try:
             inherited_fd = duplicate_child_fd(pid, target_fd)
@@ -1148,6 +1148,11 @@ def start_eviction_monitors(
         finally:
             if inherited_fd >= 0:
                 os.close(inherited_fd)
+    if failures:
+        for process, log, _, _ in admitted:
+            stop_exact_process(process)
+            log.close()
+        raise GateError(f"owned UVM fd monitor admission failed: {failures}")
     if not admitted:
         raise GateError(f"no owned UVM fd admitted the eviction monitor: {failures}")
     return admitted
@@ -1156,8 +1161,6 @@ def start_eviction_monitors(
 def select_eviction_monitor(
     candidates: list[tuple[subprocess.Popen[Any], Any, Path, dict[str, Any]]]
 ) -> tuple[subprocess.Popen[Any], Any, Path, dict[str, Any]]:
-    if len(candidates) == 1:
-        return candidates[0]
     active = [
         item for item in candidates
         if int(latest_counter_event(item[2], "eviction_stats")["evictions"]) > 0

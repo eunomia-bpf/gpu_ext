@@ -155,3 +155,40 @@ attempt remains `status=failed`, `retry_allowed=false` and is not promoted to a
 complete preflight. The fixed three-attempt budget is exhausted; no fourth
 attempt or MoE timing run is authorized. Cleanup returned the GPU and
 struct_ops state to idle/empty. The raw directory is preserved unchanged.
+
+## Revision 5 continuation: MoE revalidated, gpubpf warm-up exposed overload
+
+The reviewed read-only revision 5 classifier revalidated the preserved attempt
+3 without launching MoE-Infinity again. The separate
+`revalidation-result.json` passed all 17 saved response gates (one warm-up and
+two eight-prompt passes), exact pairwise output equality, MoE-used runtime
+continuity, server-log validation, and the exact seven-partition storage-open
+grammar. The original revision 4 `preflight-result.json` remains failed and
+unchanged. The observed deployment is one-time buffered NVMe hydration followed
+by an activation-aware CPU expert offload/cache; it is not steady-state direct
+NVMe I/O.
+
+The fixed continuation then attempted only the three missing cells in their
+original relative order. Three setup failures occurred before any warm-up or
+request and are preserved separately: the admission checker named superseded
+direct-list kfuncs, Linux 7.1 did not enumerate the otherwise map/PID-owned
+struct_ops link, and llama-server exposed two owned UVM descriptors while the
+old monitor path required exactly one. The corrected runner checks the safe
+`bpf_gpu_request_reorder` transition API, proves map/PID ownership when the
+kernel does not enumerate a link, and probes every owned UVM descriptor. It
+records a descriptor as non-trackable only when the started monitor receives
+the exact driver response `NV_STATUS 22`; all other monitor setup failures
+remain fail-closed. Fifty offline tests and independent review accept these
+repairs.
+
+The next launch crossed all setup gates and reached the real 512-token gpubpf
+warm-up. The exact GPT-OSS-120B model loaded, processed all 512 prompt tokens,
+and then failed at CUDA synchronization before returning a response. The
+server recorded `illegal memory access`; the kernel recorded Xid 109 context
+switch timeout followed by Xid 31 MMU fault. During the warm-up, the combined
+host-stride/LFU policy accumulated 14,871,351 page-fault callbacks, 1,993,700
+LFU access callbacks, 685,225 activations, and 669,400 eviction-prepare calls.
+This is a real policy/mechanism feasibility failure rather than another
+preflight classifier defect: no correctness or timing sample was accepted, and
+an unchanged retry is not justified. The owned server, monitors, and policy
+were stopped; the GPU returned to idle and no struct_ops state remained.

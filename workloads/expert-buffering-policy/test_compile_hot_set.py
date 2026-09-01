@@ -45,6 +45,7 @@ class CompileHotSetTests(unittest.TestCase):
             self.complete_events(), expected_layers=2, expected_experts=8, top_k=2
         )
         self.assertEqual(compiled.graphs, 1)
+        self.assertEqual(compiled.incomplete_graphs, 0)
         self.assertEqual(compiled.route_events, 18)
         self.assertEqual(compiled.selections[0], (0, (1, 3)))
         self.assertEqual(compiled.counts[0][1][1], 1)
@@ -79,6 +80,18 @@ class CompileHotSetTests(unittest.TestCase):
         events.append(route(9999, 1))
         with self.assertRaisesRegex(ValueError, "no source layout"):
             compile_hot_set(events, expected_layers=2, expected_experts=8, top_k=2)
+
+    def test_layer_specific_graphs_are_counted_without_fabrication(self) -> None:
+        events = self.complete_events()
+        for event in events:
+            if event.get("event") == "route" and event["tensor_base"] >= 1100:
+                event["graph"] = 2
+        compiled = compile_hot_set(
+            events, expected_layers=2, expected_experts=8, top_k=2
+        )
+        self.assertEqual(compiled.graphs, 2)
+        self.assertEqual(compiled.incomplete_graphs, 2)
+        self.assertEqual(compiled.layer_graphs, (1, 1))
 
 
 if __name__ == "__main__":

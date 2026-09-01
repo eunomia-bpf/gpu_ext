@@ -28,9 +28,11 @@ class WeightLayout:
 @dataclass(frozen=True)
 class HotSet:
     graphs: int
+    incomplete_graphs: int
     route_events: int
     selections: tuple[tuple[int, tuple[int, ...]], ...]
     counts: tuple[tuple[int, tuple[int, ...]], ...]
+    layer_graphs: tuple[int, ...]
 
 
 def load_events(paths: list[Path]) -> list[dict]:
@@ -114,13 +116,18 @@ def compile_hot_set(
         per_operation[(tgid, graph, layout.layer, layout.kind)].add(expert)
 
     selection_counts = [defaultdict(int) for _ in range(expected_layers)]
+    layer_graphs = [0] * expected_layers
+    incomplete_graphs = 0
     for tgid, graph in sorted(graphs):
+        graph_layers = 0
         for layer in range(expected_layers):
             by_kind = {
                 kind: per_operation.get((tgid, graph, layer, kind), set())
                 for kind in EXPECTED_KINDS
             }
             present = {kind for kind, selected in by_kind.items() if selected}
+            if not present:
+                continue
             if present != EXPECTED_KINDS:
                 raise ValueError(
                     f"TGID {tgid} graph {graph} layer {layer} has route kinds {sorted(present)}"
@@ -130,8 +137,14 @@ def compile_hot_set(
                 raise ValueError(
                     f"TGID {tgid} graph {graph} layer {layer} disagrees across weight kinds"
                 )
+            graph_layers += 1
+            layer_graphs[layer] += 1
             for expert in selected_sets[0]:
                 selection_counts[layer][expert] += 1
+        if graph_layers == 0:
+            raise ValueError(f"TGID {tgid} graph {graph} has no classified routes")
+        if graph_layers != expected_layers:
+            incomplete_graphs += 1
 
     selections: list[tuple[int, tuple[int, ...]]] = []
     dense_counts: list[tuple[int, tuple[int, ...]]] = []
@@ -148,9 +161,11 @@ def compile_hot_set(
 
     return HotSet(
         graphs=len(graphs),
+        incomplete_graphs=incomplete_graphs,
         route_events=len(routes),
         selections=tuple(selections),
         counts=tuple(dense_counts),
+        layer_graphs=tuple(layer_graphs),
     )
 
 
@@ -161,7 +176,8 @@ def write_hot_set(path: Path, hot_set: HotSet) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as output:
             output.write(
-                f"# graphs {hot_set.graphs} route_events {hot_set.route_events}\n"
+                f"# graphs {hot_set.graphs} incomplete_graphs {hot_set.incomplete_graphs} "
+                f"route_events {hot_set.route_events}\n"
             )
             for layer, experts in hot_set.selections:
                 for expert in experts:
@@ -175,10 +191,48 @@ def write_hot_set(path: Path, hot_set: HotSet) -> None:
         raise
 
 
+def write_report(path: Path, hot_set: HotSet) -> None:
+    selected = dict(hot_set.selections)
+    report = {
+        "schema": 1,
+        "graphs": hot_set.graphs,
+        "incomplete_graphs": hot_set.incomplete_graphs,
+        "route_events": hot_set.route_events,
+        "layers": [
+            {
+                "layer": layer,
+                "observed_graphs": hot_set.layer_graphs[layer],
+                "top_experts": list(selected[layer]),
+                "selection_counts": [
+                    {"expert": expert, "graphs": count}
+                    for expert, count in enumerate(counts)
+                    if count
+                ],
+            }
+            for layer, counts in hot_set.counts
+        ],
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    directory = path.parent if path.parent != Path("") else Path(".")
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=directory, text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(report, output, indent=2, sort_keys=True)
+            output.write("\n")
+        os.replace(temporary_name, path)
+    except BaseException:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, action="append", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--report", type=Path)
     parser.add_argument("--expected-layers", type=int, default=36)
     parser.add_argument("--expected-experts", type=int, default=128)
     parser.add_argument("--top-k", type=int, default=10)
@@ -196,11 +250,16 @@ def main() -> int:
         top_k=args.top_k,
     )
     write_hot_set(args.output, hot_set)
+    if args.report is not None:
+        write_report(args.report, hot_set)
     summary = {
         "event": "hot_set_compiled",
         "graphs": hot_set.graphs,
+        "incomplete_graphs": hot_set.incomplete_graphs,
         "route_events": hot_set.route_events,
         "layers": len(hot_set.selections),
+        "layer_graphs_min": min(hot_set.layer_graphs),
+        "layer_graphs_max": max(hot_set.layer_graphs),
         "top_k": args.top_k,
         "output": str(args.output),
     }

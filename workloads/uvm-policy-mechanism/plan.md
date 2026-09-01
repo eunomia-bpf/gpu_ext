@@ -20,6 +20,11 @@
   kernel that reads exactly those words. This generates real UVM GPU faults but
   avoids the event-monitor amplification that made the full GCN semantic
   preflight exceed its bound.
+- Scope: the CPU initialization touches every expected GPU fault region before
+  the pause and timed kernel. Every UVM VA block therefore has CPU residency;
+  the claim is explicitly limited to the CPU-resident, non-first-touch fault
+  path. It does not claim equivalence for the driver's preferred-location
+  first-touch branch, which executes before the gpubpf callback.
 - Correctness: the GPU writes one observed value per region. After timing, the
   host compares all 131,072 values with their exact expected values and requires
   zero mismatches. This is numerical validation, not a file/content fingerprint.
@@ -39,7 +44,7 @@
 - Mechanism difference: the native cell exits through the built-in switch; the
   gpubpf cell runs prefetch analysis, the struct_ops callback, verifier-approved
   BPF instructions, and `bpf_gpu_set_prefetch_region`, then returns the same
-  no-prefetch decision.
+  no-prefetch decision on the scoped non-first-touch path.
 
 ## Metrics And Runs
 
@@ -82,8 +87,14 @@
 - Both preflight cells must finish with nonzero total migrations and migrated
   bytes, zero prefetch migrations and bytes, zero dropped migration events,
   zero mismatches, and clean exit. The gpubpf cell additionally runs temporary
-  external kprobes and requires nonzero calls to
-  `uvm_bpf_call_gpu_page_prefetch` and `bpf_gpu_set_prefetch_region`.
+  external kprobes and requires exactly 131,072 calls each to
+  `uvm_bpf_call_gpu_page_prefetch` and `bpf_gpu_set_prefetch_region`: one for
+  every unique 64 KiB fault region. The driver computes one callback per faulted
+  page on this non-first-touch path; any bypass, duplicate, or missing coverage
+  invalidates the workload instead of being normalized away.
+- After every gpubpf process, send SIGINT only to the owned loader, require its
+  detaching record and zero exit, confirm no memory struct_ops remains attached,
+  and require `nvidia_uvm` refcount zero before the next AB/BA module reload.
 - Recovery: stop only owned monitor/tracer/loader processes; reload the custom
   UVM module with prefetch 1; leave no BPF policy attached; verify a small CUDA
   allocation after the experiment.

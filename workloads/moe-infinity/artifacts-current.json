@@ -197,6 +197,35 @@
     "struct_ops_objects": 1,
     "ownership": "loader destroys only its held link and skeleton; no generic cleanup"
   },
+  "control_continuation": {
+    "protocol": "proposal-3-revision-6-controls",
+    "status": "failed",
+    "llama_uvm": {
+      "warmup_completed": true,
+      "responses_completed": 16,
+      "completion_tokens_per_response": 64,
+      "request_seed": 42,
+      "exact_two_pass_prompts": [
+        2,
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      "nondeterministic_prompts": [
+        1,
+        5
+      ],
+      "disposition": "fixed request seed did not remove output nondeterminism; cause not isolated"
+    },
+    "llama_ncmoe32": "not launched after the fail-closed UVM correctness gate",
+    "xid_gate": "failed: Xid history continuity could not be established, so an empty new_xids field is not accepted as evidence of no new event",
+    "cleanup": "GPU 15 MiB and zero utilization, UVM refcount zero, struct_ops inventory empty",
+    "complete_preflight": false,
+    "timing_authorized": false,
+    "stopping_rule": "no further seed, sampling, oracle, or harness tuning"
+  },
   "custom_driver_modules": {
     "nvidia.ko": {
       "version": "610.43.02",
@@ -230,6 +259,6 @@
     "uvm_eviction_monitor": "uvm_eviction_monitor",
     "uvm_event_type": "UvmEventTypeEviction (14)",
     "uvm_event_abi": "V2, 72-byte queue entries",
-    "offline_tests": 40
+    "offline_tests": 56
   }
 }

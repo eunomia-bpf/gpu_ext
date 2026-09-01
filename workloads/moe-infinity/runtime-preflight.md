@@ -217,3 +217,29 @@ to 15 MiB, utilization to zero, the UVM refcount to zero, and the struct_ops
 inventory to empty. The remaining UVM and N-CMoE control correctness cells may
 still be collected, but cannot promote this experiment to a complete
 four-configuration result.
+
+## Revision 6 control continuation: fixed seed remained nondeterministic
+
+The frozen control-only continuation next launched `llama_uvm` with one server
+slot, greedy decoding, `seed=42`, and EOS ignored so every response had the
+required 64 completion tokens. The warm-up and both complete eight-prompt
+passes finished, yielding all 16 requested responses. Exact two-pass equality
+held for prompts 2, 3, 4, 6, 7, and 8, but failed for prompts 1 and 5. For
+prompt 1, the first differing words were `issue` and `problem`; prompt 5
+diverged from its first character. Thus fixing the request seed did not remove
+the control-path output nondeterminism under the frozen runtime settings. The
+evidence does not isolate whether the cause is a GPU numerical effect or
+another llama.cpp runtime effect, so it is recorded only as observed output
+nondeterminism.
+
+The exact-output gate rejected `llama_uvm`, and the fail-closed protocol did
+not launch `llama_ncmoe32`. The runner also could not establish continuity of
+the Xid history; an empty `new_xids` field is therefore not evidence that no
+new event occurred, and this gate remains failed. Cleanup returned GPU memory
+to 15 MiB and utilization to zero, the UVM reference count to zero, and the
+struct_ops inventory to empty.
+
+No further seed, sampling, oracle, or harness tuning is authorized. The
+control continuation is a negative correctness result, not a performance
+sample: N-CMoE was not run, gpubpf remains infeasible, the four-configuration
+preflight is incomplete, and timing remains unauthorized.

@@ -1767,6 +1767,22 @@ def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
             raise GateError(f"sampled-LFU canary observed no completed eviction: {eviction}")
         if int(eviction["dropped_evictions"]) != 0:
             raise GateError(f"sampled-LFU canary dropped eviction events: {eviction}")
+        stop_owned_process_group(server)
+        server = None
+        server_log.close()
+        server_log = None
+        stop_exact_process(monitor)
+        monitor = None
+        monitor_log.close()
+        monitor_log = None
+        stop_exact_process(policy)
+        policy = None
+        policy_log.close()
+        policy_log = None
+        validate_log(log_path)
+        inventory = struct_ops_inventory()
+        if inventory["maps"] or inventory["links"]:
+            raise GateError(f"sampled-LFU canary left struct_ops state: {inventory}")
         xid_gate = require_no_new_xids(before_xids)
         result = {
             "protocol": "proposal-3-revision-6",
@@ -1810,8 +1826,6 @@ def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
             stop_exact_process(policy)
         if policy_log is not None:
             policy_log.close()
-        if log_path.exists():
-            validate_log(log_path)
         lease.close()
 
 

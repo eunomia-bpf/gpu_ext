@@ -386,6 +386,19 @@ class CombinedPolicyTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    def test_canary_writes_passed_result_only_after_cleanup_gates(self) -> None:
+        source = __import__("inspect").getsource(runner.run_sampled_lfu_canary)
+        passed_write = source.index("atomic_write_json(result_path, result)")
+        for required in (
+            "stop_owned_process_group(server)",
+            "stop_exact_process(monitor)",
+            "stop_exact_process(policy)",
+            "validate_log(log_path)",
+            "inventory = struct_ops_inventory()",
+            "xid_gate = require_no_new_xids(before_xids)",
+        ):
+            self.assertLess(source.index(required), passed_write)
+
     def test_policy_ownership_accepts_kernel_without_link_enumeration(self) -> None:
         ready = {"pid": 42, "struct_map_id": 7, "struct_link_id": 7}
         inventory = {

@@ -1,9 +1,9 @@
 # ASPLOS 2027 revision experiment handoff — 2026-08-31
 
 The active work is implementation and evaluation against
-[the revision plan](paper/asplos-27-rebuttal/revision-plan.md). No new complete
-GPU experiment or paper-facing performance result is claimed by this handoff.
-The driver port and CPU tests are dependencies, not research results.
+[the revision plan](paper/asplos-27-rebuttal/revision-plan.md). One new complete,
+independently reviewed GPU experiment now quantifies same-policy mechanism cost;
+other build and CPU-test milestones remain dependencies rather than results.
 
 The [verbatim author response and shepherd follow-up](revision-shepherd-comment.md)
 are first-class revision requirements. In particular, completion requires more
@@ -24,6 +24,7 @@ typographic issues.
 | Agent-study artifacts (R7) | [Public entry-point index](eval/agent/README.md) links historical analyses and benchmark sources. The metric extractor now accepts explicit corpus/output paths. Original study sessions are absent from the old local directory; prompts/logs remain unreleased pending archive recovery and privacy review. |
 | XSched | [Review](../workloads/xsched/plan-review.md) closed the first proposal after three rounds. The CUPTI/globaltimer epoch proof and interpretation categories require repair in a new proposal. The CUDA workload builds; no GPU result. |
 | RTX 5090/NVBit | [Review](../workloads/llama.cpp/observability_overhead/revision-rq4/plan-review.md) closed the first proposal. Final runner defects were repaired but not independently approved. The frozen NVBit comparison requires a supported 575.x stack; a 610 diagnostic cannot satisfy R6. |
+| Same-policy mechanism cost | [Approved plan](../workloads/uvm-policy-mechanism/plan.md), [semantic preflight](../workloads/uvm-policy-mechanism/results/preflight-1.md), 15 paired raw blocks, [analysis](../workloads/uvm-policy-mechanism/results/analysis.md), and [independent review](../workloads/uvm-policy-mechanism/result-review.md) are complete. On the scoped CPU-resident, non-first-touch UVM fault path, gpubpf adds 3.219% overhead versus the built-in no-prefetch switch (paired bootstrap 95% CI 2.247--4.202%). This is mechanism-cost evidence, not a policy improvement or application result. |
 
 ## Complete revision requirement matrix
 
@@ -38,13 +39,13 @@ cannot be mistaken for a completed experiment.
 | R1: storage-tier KV baseline | LMCache local-NVMe backend versus CPU retention and recomputation. | Exact cache hits, O_DIRECT proof, deterministic outputs, and valid paired blocks; no failed preflight may become a performance sample. | First protocol closed after three failed real preflights and no served request. A new reviewed protocol or an explicitly documented fallback is required. |
 | R1: existing GPREEMPT-equivalent evidence | Re-establish the foreground launch-latency and best-effort throughput claims on a matched, interleaved schedule. | Measure the intended host-submit-to-kernel-entry event, prove timeslice and preemption engagement per run, and report robust run-level effects rather than an outlier-driven mean. | Historical evidence audit found that the submitted 96% aggregation is driven by one native run and that the launcher does not establish preemption engagement. Fresh evidence is required before retaining the strong numeric claim. |
 | R3: expert-management granularity | Quantify page-granular partial-expert reuse and compute/transfer overlap against an expert-atomic design. | Treat the MoE-Infinity deployment comparison separately from any causal granularity comparison; report unsupported cases as unavailable, not reproduced. | No dedicated accepted protocol yet. MoE-Infinity can provide system-level context but cannot alone identify the granularity effect. |
-| R4: mechanism versus policy | Re-run the memory-policy and scheduling-policy comparison underlying Fig. 13. | Matched repeated blocks, successful attach and live-hit evidence, correct concurrent completion-time estimand, and separately reported memory/scheduling effects. | Historical audit found one round per memory pair, missing scheduling engagement evidence, and invalid sequential wait timing. The 55--92% and under-1% claims are not yet fresh revision evidence. |
+| R4: mechanism versus policy | Re-run the memory-policy and scheduling-policy comparison underlying Fig. 13. | Matched repeated blocks, successful attach and live-hit evidence, correct concurrent completion-time estimand, and separately reported memory/scheduling effects. | A new 15-pair same-policy page-fault study passed independent review and measures a 3.219% general-mechanism cost (95% CI 2.247--4.202%) for one scoped memory path. This answers one Shepherd question but does not repair the historical Fig. 13 policy-benefit or scheduling evidence; the 55--92% and under-1% claims remain unsupported by fresh revision runs. |
 | R5: safety and design depth | Executable verifier/transition rejection cases plus a source-backed re-count of the 50 agent safety events. | Demonstrate lane-varying, loop/bounds, overflow, stale, and conflicting-transition handling without claiming full-stack formal verification. | Writing exists in the submitted paper, but the revision-grade rejection bundle and raw-event reconciliation remain pending. |
 | R6: current-hardware overhead | RTX 5090 Table 1 comparison including NVBit, plus the gpubpf device-side tools. | Same benchmark and measurement boundary, supported NVBit stack, exact tool/source identities, correctness before timing, repeated runs. | Hard rebuttal commitment. Current 610 driver is outside NVBit's frozen supported stack; the first proposal is closed and a new 575 execution protocol is required. |
-| R7: study artifacts | Publish prompts, interaction logs, metric extraction, and benchmark harnesses. | Redact secrets/private data, retain raw provenance and public hashes, and make every reported aggregate reproducible. | Hard artifact commitment. Public index and path-parameterized extractor are pushed; the original study sessions are still absent from the local archive. |
+| R7: study artifacts | Publish prompts, interaction logs, metric extraction, and benchmark harnesses. | Redact secrets/private data, retain raw provenance and explicit public inventories, and make every reported aggregate reproducible without file/content hash gates. | Hard artifact commitment. Public index and path-parameterized extractor are pushed; the original study sessions are still absent from the local archive. |
 | R8: portability/deployment evidence | Audit the SASS patching prototype, the reported 273 ms one-time ptrace attach, the LD_PRELOAD route, and the approximately 100-LOC open-module patch boundary. | Bind each statement to runnable code or retained raw evidence; otherwise narrow it to design discussion. | The 610 Open Kernel Modules port is built and pushed, but that port is not a substitute for the promised SASS/attach/deployment evidence. |
 | R2, R9, and LOC corrections | Expressibility table, design/discussion text, and corrected policy LOC arithmetic. | Cite concrete in-tree programs and distinguish measured, inferred, and out-of-scope claims. No fabricated experiment. | Pending paper work. CXL/GDS implementation, multi-vendor campaigns, LithOS-scale experiments, and upstream GPREEMPT binary reproduction remain explicitly out of scope. |
-| Shepherd: policy versus mechanism | For each existing policy, establish whether gpubpf implements it and, when the original artifact is runnable, compare against the original ad-hoc/unsafe/monolithic implementation. Audit headline claims in the abstract and introduction for policy/mechanism attribution and disclose any general-mechanism cost. | Matching SOTA remains a valid outcome; no result may imply that a policy improvement was caused by the mechanism. Novel-policy claims require concrete code and evidence, especially for agent-discovered policies. | Highest-priority cross-cutting requirement. The current historical Fig. 12/Fig. 13 evidence is insufficient; fresh matched evidence and a paper-wide claim audit remain pending. |
+| Shepherd: policy versus mechanism | For each existing policy, establish whether gpubpf implements it and, when the original artifact is runnable, compare against the original ad-hoc/unsafe/monolithic implementation. Audit headline claims in the abstract and introduction for policy/mechanism attribution and disclose any general-mechanism cost. | Matching SOTA remains a valid outcome; no result may imply that a policy improvement was caused by the mechanism. Novel-policy claims require concrete code and evidence, especially for agent-discovered policies. | The first fresh matched result is complete: the same no-prefetch outcome through gpubpf costs 3.219% on a scoped real UVM fault path, with independent review and explicit limitation. Existing-policy coverage, application/SOTA comparisons, novel-policy evidence, and the paper-wide claim audit remain pending. |
 | Shepherd: exposition and typography | Regroup scattered safety and SOTA-reimplementation answers under common labeled headings; fix Section 5.3 paragraph headings with two trailing periods and audit bibliography curly-brace escaping. | Preserve technical meaning and bibliography semantics; compile the paper and inspect the affected output. | Pending after experiment evidence stabilizes; the verbatim source comment is retained in the repository. |
 
 The two author-response commitments that cannot be dropped are R6's RTX 5090
@@ -64,9 +65,10 @@ warnings remain documented in the port notes. Its BTF was generated with the
 7.1 native script and the running kernel's base BTF, without editing system
 headers or installed modules.
 
-The unrelated SGLang processes later exited without intervention, leaving no
-compute process on the GPU. No process was killed and no module was unloaded.
-GDM/Xorg still holds the core NVIDIA module. A request for permission to
+The GPU is idle. The mechanism-cost study safely reloaded only the unused custom
+610 `nvidia_uvm` module between cells; it never unloaded display-owned core
+NVIDIA modules. The final state is prefetch enabled, UVM refcount zero, and no
+attached policy. GDM/Xorg still holds the core NVIDIA module. A request for permission to
 temporarily stop GDM for full scheduling-module validation has not been
 answered; display ownership is therefore unchanged.
 
@@ -91,9 +93,11 @@ driver-version, and storage checks. LMCache admission subsequently passed on
 the idle GPU, but its three preserved preflights produced no usable result. The
 third failure was caused by the experiment's own 0.99 memory budget, not a
 foreign process. In accordance with the preflight stopping rule, LMCache is
-routed out of execution until a new protocol is reviewed. The next admitted
-experiment is MoE-Infinity, whose approved protocol has consumed zero real
-preflight attempts. Do not pool samples across stacks. The NVBit 575
+routed out of execution until a new protocol is reviewed. MoE-Infinity likewise
+exhausted its three repaired preflights without a paper timing sample. Both are
+closed until newly reviewed protocols; do not pool samples across stacks. The
+next no-maintenance candidate is the R5 verifier/transition rejection bundle.
+The NVBit 575
 requirement is separate and cannot be waived by this port.
 
 Publication now happens after each validated scoped change, as requested.

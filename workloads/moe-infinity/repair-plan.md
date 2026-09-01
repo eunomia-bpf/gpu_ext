@@ -278,8 +278,8 @@ Attempt 3 stopped at the MoE cell's final storage-open gate, before the three
 llama correctness cells in the frozen order. The read-only revalidation can
 therefore pass only the MoE cell; it cannot promote the incomplete four-cell
 preflight. After that revalidation passes, one fixed continuation action runs
-exactly the three previously unexecuted cells (`llama_ncmoe32`, `llama_uvm`,
-and `gpubpf_host_stride_lfu`) in their original frozen relative order and
+exactly the three previously unexecuted cells (`gpubpf_host_stride_lfu`,
+`llama_uvm`, and `llama_ncmoe32`) in that exact original frozen relative order and
 stores them under `raw/repaired-preflight/completion-after-attempt-03`. It does
 not launch MoE-Infinity and is not a fourth MoE correctness attempt. The action
 retains the original commands, 512+64 requests, two smoke passes, three-llama

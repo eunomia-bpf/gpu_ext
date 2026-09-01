@@ -319,7 +319,7 @@ def descendants(root_pid: int) -> list[int]:
     return sorted(found)
 
 
-def find_uvm_fd(root_pid: int) -> tuple[int, int]:
+def find_uvm_fds(root_pid: int) -> list[tuple[int, int]]:
     matches = []
     for pid in descendants(root_pid):
         for fd_path in (Path("/proc") / str(pid) / "fd").glob("[0-9]*"):
@@ -328,9 +328,9 @@ def find_uvm_fd(root_pid: int) -> tuple[int, int]:
                     matches.append((pid, int(fd_path.name)))
             except OSError:
                 pass
-    if len(matches) != 1:
-        raise GateError(f"expected one owned UVM fd, found {matches}")
-    return matches[0]
+    if not matches:
+        raise GateError("owned server tree has no /dev/nvidia-uvm fd")
+    return sorted(matches)
 
 
 def duplicate_fd(pid: int, target_fd: int) -> int:
@@ -347,26 +347,38 @@ def duplicate_fd(pid: int, target_fd: int) -> int:
 
 
 def start_eviction_monitor(server_pid: int, class_table: Path,
-                           run_dir: Path) -> tuple[subprocess.Popen[Any], Any, Path]:
-    pid, target_fd = find_uvm_fd(server_pid)
-    inherited_fd = duplicate_fd(pid, target_fd)
-    path = run_dir / "evictions.jsonl"
-    log = path.open("x", buffering=1)
-    try:
-        process = subprocess.Popen(
-            [str(EVICTION_MONITOR), "--uvm-fd", str(inherited_fd), str(class_table)],
-            stdout=log, stderr=subprocess.STDOUT, text=True,
-            pass_fds=(inherited_fd,), start_new_session=True,
-        )
-    finally:
-        os.close(inherited_fd)
-    try:
-        wait_event(process, path, "ready")
-        return process, log, path
-    except Exception:
-        stop_group(process)
-        log.close()
-        raise
+                           run_dir: Path) -> tuple[
+                               subprocess.Popen[Any], Any, Path, dict[str, Any]
+                           ]:
+    candidates = find_uvm_fds(server_pid)
+    failures = []
+    for pid, target_fd in candidates:
+        path = run_dir / f"evictions-fd-{target_fd}.jsonl"
+        log = path.open("x", buffering=1)
+        process = None
+        inherited_fd = -1
+        try:
+            inherited_fd = duplicate_fd(pid, target_fd)
+            process = subprocess.Popen(
+                [str(EVICTION_MONITOR), "--uvm-fd", str(inherited_fd),
+                 str(class_table)],
+                stdout=log, stderr=subprocess.STDOUT, text=True,
+                pass_fds=(inherited_fd,), start_new_session=True,
+            )
+            os.close(inherited_fd)
+            inherited_fd = -1
+            ready = wait_event(process, path, "ready", 5)
+            ready.update(source_pid=pid, source_fd=target_fd,
+                         candidate_fds=[list(item) for item in candidates])
+            return process, log, path, ready
+        except Exception as exc:
+            failures.append({"pid": pid, "fd": target_fd, "error": str(exc)})
+            stop_group(process)
+            log.close()
+        finally:
+            if inherited_fd >= 0:
+                os.close(inherited_fd)
+    raise GateError(f"no owned UVM fd admitted the eviction monitor: {failures}")
 
 
 def start_policy(mode: str, class_table: Path,
@@ -447,7 +459,7 @@ def run_cell(config: str, run_dir: Path, port: int,
             policy, policy_log, policy_path = start_policy("protect", class_table, run_dir)
         else:
             policy_path = None
-        monitor, monitor_log, eviction_path = start_eviction_monitor(
+        monitor, monitor_log, eviction_path, monitor_ready = start_eviction_monitor(
             server.pid, class_table, run_dir
         )
 
@@ -522,6 +534,7 @@ def run_cell(config: str, run_dir: Path, port: int,
             "outputs": [[item["text"] for item in current] for current in passes],
             "requests": passes, "policy_delta": policy_delta,
             "eviction_delta": eviction_delta, "route_diagnostic": route_diagnostic,
+            "monitor_ready": monitor_ready,
         }
         atomic_write_json(run_dir / "result.json", result)
         return result

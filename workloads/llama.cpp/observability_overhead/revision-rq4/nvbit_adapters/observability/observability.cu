@@ -36,6 +36,8 @@ static pthread_mutex_t state_mutex;
 static pthread_mutex_t callback_mutex;
 static std::unordered_map<CUcontext, context_state_t*> contexts;
 static std::unordered_set<CUfunction> instrumented;
+static std::unordered_set<std::string> reported_target_family;
+static std::unordered_set<std::string> reported_launches;
 static std::atomic<uint64_t> exit_records{0};
 static std::atomic<uint64_t> nonzero_timestamps{0};
 static std::atomic<uint64_t> selected_launches{0};
@@ -48,6 +50,8 @@ static uint64_t* thread_counters = nullptr;
 static uint64_t* launch_histogram = nullptr;
 static uint64_t* launch_samples = nullptr;
 static uint64_t* launch_clock_errors = nullptr;
+static bool trace_target_family = false;
+static bool trace_launches = false;
 
 static uint64_t realtime_ns() {
     struct timespec ts;
@@ -76,6 +80,15 @@ static CUfunction launch_function(nvbit_api_cuda_t cbid, void* params) {
 
 static bool selected(CUcontext ctx, CUfunction func) {
     const char* name = nvbit_get_func_name(ctx, func, true);
+    if (trace_launches && name != nullptr && reported_launches.size() < 256 &&
+        reported_launches.insert(name).second) {
+        fprintf(stderr, "NVBIT_OBS launched_symbol=%s\n", name);
+    }
+    if (trace_target_family && name != nullptr &&
+        strstr(name, "rope_norm") != nullptr &&
+        reported_target_family.insert(name).second) {
+        fprintf(stderr, "NVBIT_OBS launched_target_family=%s\n", name);
+    }
     return name != nullptr && target_symbol == name;
 }
 
@@ -169,6 +182,8 @@ void nvbit_at_init() {
     if (const char* count_env = getenv("OBS_GPU_THREAD_COUNT")) {
         thread_count = static_cast<uint32_t>(strtoul(count_env, nullptr, 10));
     }
+    trace_target_family = getenv("OBS_TRACE_TARGET_FAMILY") != nullptr;
+    trace_launches = getenv("OBS_TRACE_LAUNCHES") != nullptr;
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -177,6 +192,11 @@ void nvbit_at_init() {
     pthread_mutex_init(&callback_mutex, &attr);
     fprintf(stderr, "NVBIT_OBS mode=%u target=%s thread_count=%u\n", mode,
             target_symbol.c_str(), thread_count);
+}
+
+void nvbit_at_term() {
+    fprintf(stderr, "NVBIT_OBS process_selected_launches=%llu\n",
+            static_cast<unsigned long long>(selected_launches.load()));
 }
 
 void nvbit_at_ctx_init(CUcontext ctx) {

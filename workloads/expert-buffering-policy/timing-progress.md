@@ -1,6 +1,6 @@
 # Expert-buffering paired timing progress
 
-Status: in progress (4/5 paired blocks passed)
+Status: passed (5/5 paired blocks passed)
 
 ## Block 1
 
@@ -48,3 +48,17 @@ The frozen `F -> U -> O -> E` order and prompt order `8, 3, 5, 7, 6, 4, 2, 1` pa
 O recorded 313,662 mapped activations and 1,985,234 observed accesses. E recorded 42,187 hot-tail activations, 268,784 cold-native activations, 2,620 shared-tail activations, 247,128 hot-tail accesses, and 12,115 shared-tail accesses. Setter failures and cold-head placements remained zero. Repeated-hot-activation bytes were 81,874,911,232 for O and 81,893,785,600 for E, slightly higher under E.
 
 F route coverage and all thermal, policy safety, and stock-UVM restoration gates passed.
+
+## Block 5
+
+The frozen `F -> E -> O -> U` order and prompt order `8, 4, 7, 6, 5, 3, 1, 2` passed. Throughput was 6.3635 output tok/s for U, 6.3597 for O, 6.3527 for E, and 8.8982 for F. O/U was -0.059% and E/O was -0.111%. O recorded 286,631 mapped activations and 1,739,167 observed accesses. E retained zero setter failures and zero cold-head placements. Its repeated-hot-activation proxy was 74,450,993,152 bytes versus 74,438,410,240 for O, a +0.017% difference. All route, thermal, safety, and restoration gates passed.
+
+## Five-block paired result
+
+The geometric-mean O/U ratio is 1.00539: a +0.539% point estimate with a paired-bootstrap 95% interval from -0.068% to +1.686%. The interval crosses zero, so this run does not resolve either mechanism overhead or a mechanism speedup. It does bound the observed effect to a small range for this workload.
+
+The geometric-mean E/O ratio is 0.99927, or -0.073%, with a 95% interval from -0.113% to -0.035%. Every block has the same slightly negative direction, but the magnitude is negligible. The pre-registered repeated-hot-activation paired difference, E minus O, averages +10,066,329.6 bytes with a 95% interval from -21,390,950.4 to +35,232,153.6 bytes. The secondary geometric-mean E/O ratio is 1.00011, or +0.011%, with an interval crossing zero. The protect policy therefore did not improve its intended proxy or throughput in this experiment.
+
+F/U is 1.25579, or +25.58%, with a 95% interval from +14.20% to +39.68%. This result is context only: F uses roughly 9.5 GiB of GPU memory while U/O/E use roughly 32.1 GiB, so the difference cannot be attributed to gpubpf mechanism overhead or the protect policy.
+
+The experiment supports the narrower claim that a profile-guided, page-granular hot-residency eviction-order analogue can be expressed through the mechanism with low observed overhead. It does not reproduce the current-batch, expert-atomic buffer of Expert Buffering, and it does not support claiming that this analogue improves GPT-OSS-120B performance.

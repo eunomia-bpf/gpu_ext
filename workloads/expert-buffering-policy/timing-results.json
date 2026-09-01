@@ -1,7 +1,7 @@
 {
   "experiment": "expert-buffering-policy-paired-timing",
-  "status": "in_progress",
-  "completed_blocks": 4,
+  "status": "passed",
+  "completed_blocks": 5,
   "planned_blocks": 5,
   "measurement": {
     "output_tokens_per_cell": 512,
@@ -248,7 +248,94 @@
         "gpu_memory_mib": 15,
         "gpu_utilization_percent": 0
       }
+    },
+    {
+      "block": 5,
+      "status": "passed",
+      "configuration_order": [
+        "llama_ncmoe32",
+        "gpubpf_profile_protect",
+        "gpubpf_observe",
+        "plain_uvm"
+      ],
+      "prompt_order": [8, 4, 7, 6, 5, 3, 1, 2],
+      "throughput_tokens_per_s": {
+        "plain_uvm": 6.36346593597423,
+        "gpubpf_observe": 6.359724929817283,
+        "gpubpf_profile_protect": 6.35269624401036,
+        "llama_ncmoe32": 8.898246715680473
+      },
+      "paired_effect_percent": {
+        "observe_over_plain": -0.05878881406119474,
+        "protect_over_observe": -0.11051870771908723,
+        "llama_ncmoe32_over_plain": 39.83333619146929
+      },
+      "gpubpf_observe": {
+        "mapped": 286631,
+        "observe_activate": 286631,
+        "observe_access": 1739167,
+        "setter_failure": 0,
+        "hot_blocks": 3234,
+        "full_hot_activation_bytes": 81220599808,
+        "repeated_hot_activation_bytes": 74438410240
+      },
+      "gpubpf_profile_protect": {
+        "mapped": 286392,
+        "hot_tail": 38710,
+        "cold_native": 245290,
+        "shared_tail": 2392,
+        "hot_access_tail": 217986,
+        "shared_access_tail": 10983,
+        "cold_head": 0,
+        "setter_failure": 0,
+        "hot_blocks": 3234,
+        "full_hot_activation_bytes": 81233182720,
+        "repeated_hot_activation_bytes": 74450993152
+      },
+      "llama_ncmoe32_route_coverage": {
+        "layers": 32,
+        "graphs": 1105,
+        "layer_graphs_min": 1105,
+        "layer_graphs_max": 1105,
+        "incomplete_graphs": 0,
+        "route_events": 642036,
+        "dropped_events": 0
+      },
+      "thermal_or_power_brake_throttled": false,
+      "post_block_stock_uvm": {
+        "btf_present": false,
+        "module_refcount": 0,
+        "gpu_memory_mib": 15,
+        "gpu_utilization_percent": 0
+      }
     }
   ],
-  "interpretation": "Four blocks are valid but the frozen five-block run is not complete. Protect versus observe remains close to zero and slightly negative in every block. Observe versus plain is close to zero in blocks 1 through 3 and positive by 2.83% in block 4, so the final paired aggregate must account for block variation. The protect policy's repeated-hot-activation proxy is mixed and shows no consistent reduction. The llama.cpp n-cpu-moe32 context configuration is faster but changes GPU residency and is not a mechanism-overhead comparison."
+  "aggregate": {
+    "mechanism_observe_over_plain": {
+      "geometric_mean_ratio": 1.0053899877318573,
+      "effect_percent": 0.5389987731857282,
+      "ci95_effect_percent": [-0.06760379619493717, 1.685822869837783]
+    },
+    "policy_protect_over_observe": {
+      "geometric_mean_ratio": 0.9992704558597061,
+      "effect_percent": -0.0729544140293914,
+      "ci95_effect_percent": [-0.11297055910240994, -0.03549784533116718]
+    },
+    "repeated_hot_activation_protect_over_observe": {
+      "geometric_mean_ratio": 1.0001134417687547,
+      "effect_percent": 0.011344176875471845,
+      "ci95_effect_percent": [-0.02960782427001707, 0.042647256523564714]
+    },
+    "repeated_hot_activation_protect_minus_observe": {
+      "mean_difference_bytes": 10066329.6,
+      "ci95_difference_bytes": [-21390950.4, 35232153.6]
+    },
+    "context_llama_ncmoe32_over_plain": {
+      "geometric_mean_ratio": 1.2557862253360923,
+      "effect_percent": 25.57862253360923,
+      "ci95_effect_percent": [14.202102254761616, 39.68241440136673]
+    },
+    "method": "geometric mean of five within-block ratios with an exact-enumeration paired bootstrap 95% percentile interval"
+  },
+  "interpretation": "The gpubpf observe mechanism matches plain custom UVM within this experiment's resolution: the +0.539% point estimate has a 95% interval spanning -0.068% to +1.686%. The profile+protect policy is consistently but negligibly slower than observe, with a -0.073% point estimate. It does not reduce the repeated-hot-activation proxy: the mean E-minus-O difference is +10,066,329.6 bytes with a 95% interval spanning -21,390,950.4 to +35,232,153.6 bytes. The llama.cpp n-cpu-moe32 context configuration is 25.58% faster, but it changes GPU residency and is not a mechanism-overhead comparison. This experiment supports feasibility and low overhead for the page-granular eviction-order analogue, not a performance benefit from it or equivalence to a current-batch expert-atomic buffer."
 }

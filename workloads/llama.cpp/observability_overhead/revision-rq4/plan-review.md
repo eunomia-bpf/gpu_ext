@@ -87,3 +87,9 @@ CPU-only tests cover metadata, normalization, exact-output selection, and a
 source guard against reintroducing content-fingerprint logic. The proposal
 remains runtime-blocked on driver 610 and remains scientifically closed after
 round 3.
+
+The gpubpf-enabled NVIDIA 575.57.08 source subsequently built all five modules
+with split BTF for the installed Linux 6.14.0-37 kernel. Structured inspection
+confirmed the scheduling and UVM struct_ops types and kfuncs. This removes the
+source/build uncertainty but does not authorize installing a matching 575
+userspace stack, rebooting, or reopening the closed experiment review.

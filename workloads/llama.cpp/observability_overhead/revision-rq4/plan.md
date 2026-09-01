@@ -77,6 +77,6 @@ installed 575.x driver before execution.
   `d6316fa73edaac4fdfe21b89d4470da6cd9b8ae8`. Reverse-apply checking verifies
   that it matches the local experiment worktree. This artifact does not imply
   an upstream bpftime PR, runtime approval, or a completed experiment.
-- Software and data versions: Record git commits, NVBit release and artifact hash, supported 575.x driver, CUDA toolkit, llama.cpp build metadata, model SHA-256 `9fecc3b3cd76bba89d504f29b616eedf7da85b96540e490ca5824d3f7d2776a0`, and GPU state in raw results.
+- Software and data versions: Record Git commits, NVBit release, supported 575.x driver, CUDA toolkit, llama.cpp build metadata, ordinary path/size/time metadata for required model and binaries, and GPU state in raw results.
 - Config and seed notes: Preserve exact environment variables, target symbols, commands, repetition order, sample counts, and timeout status.
-- Known deviations: The current host driver is 610.43.02, whereas NVBit's official README states driver `<=575.xx`. Implementation work and diagnostics may proceed, but the paper-facing full run is blocked until the same RTX 5090 is booted with an officially supported 575.x stack.
+- Known deviations: The current host driver is 610.43.02, whereas NVBit's official README states driver `<=575.xx`. The gpubpf-enabled 575.57.08 open modules now build with BTF for the installed Linux 6.14.0-37 kernel, providing a concrete supported-stack path, but matching 575 userspace and a reboot have not been authorized. Implementation work and diagnostics may proceed, while paper-facing execution remains blocked until the same RTX 5090 is booted with that supported stack.

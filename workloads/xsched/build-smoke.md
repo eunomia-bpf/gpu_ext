@@ -24,3 +24,17 @@
 
 This is a build-only smoke test, not evidence that interception, suspension,
 or a paper workload works on the RTX 5090.
+
+## Supported-driver preparation
+
+The gpubpf-enabled 575.57.08 open-kernel source now builds all five modules for
+the installed Linux 6.14.0-37 kernel using GCC 13. Relinking against that
+kernel's extracted base BTF produces split BTF that exposes
+`struct nv_gpu_sched_ops`, `bpf_nv_gpu_preempt_tsg`, and the UVM
+`struct gpu_mem_ops` interface. The driver preparation is recorded at
+`kernel-module/nvidia-module/GPUBPF-RUNTIME-575.md`.
+
+No module was installed or loaded. The machine still runs Linux 7.1.12 and
+driver 610.43.02; activating the prepared stack requires matching 575.57.08
+userspace, installing the modules for 6.14.0-37, and a reboot in an explicitly
+authorized maintenance window.

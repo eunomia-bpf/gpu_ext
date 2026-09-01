@@ -1142,7 +1142,18 @@ def start_eviction_monitors(
             )
             admitted.append((process, log, log_path, ready))
         except Exception as exc:
-            failures.append({"pid": pid, "fd": target_fd, "error": str(exc)})
+            error = str(exc)
+            non_trackable = (
+                process is not None
+                and "init event tracker v2 returned NV_STATUS 22" in error
+            )
+            failures.append({
+                "pid": pid,
+                "fd": target_fd,
+                "stage": "event_tracker_init" if non_trackable else "candidate_admission",
+                "error": error,
+                "non_trackable": non_trackable,
+            })
             if process is not None:
                 stop_exact_process(process)
             if log is not None:
@@ -1150,13 +1161,16 @@ def start_eviction_monitors(
         finally:
             if inherited_fd >= 0:
                 os.close(inherited_fd)
-    if failures:
+    fatal_failures = [item for item in failures if not item["non_trackable"]]
+    if fatal_failures:
         for process, log, _, _ in admitted:
             stop_exact_process(process)
             log.close()
-        raise GateError(f"owned UVM fd monitor admission failed: {failures}")
+        raise GateError(f"owned UVM fd monitor admission failed: {fatal_failures}")
     if not admitted:
         raise GateError(f"no owned UVM fd admitted the eviction monitor: {failures}")
+    for _, _, _, ready in admitted:
+        ready["rejected_non_trackable_fds"] = failures
     return admitted
 
 

@@ -432,6 +432,37 @@ class RunnerTests(unittest.TestCase):
                     runner.start_eviction_monitors(1, Path(temporary))
             self.assertEqual(stop.call_count, 2)
 
+    def test_driver_rejected_non_trackable_fd_is_recorded(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            processes = [mock.Mock(), mock.Mock()]
+            with (
+                mock.patch.object(runner, "find_uvm_fds", return_value=[(11, 9), (11, 10)]),
+                mock.patch.object(runner, "duplicate_child_fd", side_effect=[101, 102]),
+                mock.patch.object(runner.subprocess, "Popen", side_effect=processes),
+                mock.patch.object(
+                    runner, "wait_event",
+                    side_effect=[
+                        {"event": "ready"},
+                        runner.GateError(
+                            "probe exited 5 before ready: "
+                            "init event tracker v2 returned NV_STATUS 22"
+                        ),
+                    ],
+                ),
+                mock.patch.object(runner.os, "close"),
+                mock.patch.object(runner, "stop_exact_process") as stop,
+            ):
+                admitted = runner.start_eviction_monitors(1, Path(temporary))
+            try:
+                self.assertEqual(len(admitted), 1)
+                rejected = admitted[0][3]["rejected_non_trackable_fds"]
+                self.assertEqual([(item["pid"], item["fd"]) for item in rejected], [(11, 10)])
+                self.assertEqual(rejected[0]["stage"], "event_tracker_init")
+                self.assertTrue(rejected[0]["non_trackable"])
+                stop.assert_called_once_with(processes[1])
+            finally:
+                admitted[0][1].close()
+
     def test_eviction_monitor_log_creation_failure_cleans_admitted(self) -> None:
         with __import__("tempfile").TemporaryDirectory() as temporary:
             process = mock.Mock()

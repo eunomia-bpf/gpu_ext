@@ -27,6 +27,35 @@
     "relative_path": "current-requirements.txt",
     "dependency_check": "uv pip check: all installed packages are compatible"
   },
+  "bounded_code_smoke": {
+    "status": "passed",
+    "scope": "single-prefix lmcache_disk dependency smoke; not a paper experiment attempt",
+    "prefix_count": 1,
+    "gpu_memory_utilization": 0.98,
+    "cold": {
+      "prompt_tokens": 1549,
+      "completion_tokens": 16,
+      "external_hit_tokens": 0,
+      "stored_cache_tokens": 1536
+    },
+    "disk": {
+      "files": 6,
+      "bytes_per_file": 25165824,
+      "total_bytes": 150994944,
+      "durability": "fsync each file and directory"
+    },
+    "warm": {
+      "prompt_tokens": 1550,
+      "completion_tokens": 16,
+      "external_hit_tokens": 1536,
+      "retrieved_cache_tokens": 1536
+    },
+    "direct_io_configured": true,
+    "syscall_level_direct_io_proven": false,
+    "offline_revalidation": "passed",
+    "performance_evidence": false,
+    "offline_tests": 18
+  },
   "runtime_import_paths": {
     "lmcache": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/__init__.py",
     "lmcache.cuda_ops": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/cuda_ops.cpython-312-x86_64-linux-gnu.so",

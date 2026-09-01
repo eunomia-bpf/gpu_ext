@@ -31,6 +31,14 @@ it does not generate or compare content fingerprints. Final independent review
 passed the offline repair and blocked another launch because the three-attempt
 cap is already exhausted.
 
+After the user separately requested a fast code-first check, one bounded,
+single-prefix `lmcache_disk` dependency smoke completed under the unchanged
+0.98 memory budget. It proves server startup, one exact cold store, six durable
+local-disk chunks, and one exact warm retrieval. It had no trace and supplies
+no syscall-level O_DIRECT or performance evidence. This smoke does not reset
+the closed experiment or authorize the three-cell comparison; see
+`build-smoke.md`.
+
 The pre-run driver deviation is recorded in `plan.md`: all three cells use
 the same 610.43.02 stack, with the reviewed workload and analysis unchanged.
 No custom module replacement is needed for this storage-only comparison.

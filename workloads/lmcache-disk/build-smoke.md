@@ -130,3 +130,30 @@ thin adapter. The
 three-attempt cap remains exhausted, so this is offline repair evidence only.
 Final independent review passed all offline repairs and separately blocked a
 GPU launch because no higher-level exception to that cap exists.
+
+## Bounded local-disk dependency smoke — 2026-09-01
+
+The user separately authorized a fast code-path check rather than another
+paper experiment attempt. The adapter gained an explicit `--prefix-limit`;
+its default remains eight. It still regenerates and validates all prompts
+before selecting the leading subset. Per-run request, disk, optional trace,
+and replay counts derive from `prefix_count`. All 18 offline tests pass.
+
+The final single-prefix disk smoke used the unchanged 0.98 memory budget and
+no trace. The exact seven-shard model loaded, the API became healthy, and both
+requests returned HTTP 200 with 16 generated tokens. The cold request had
+1,549 total tokens, zero hits, and stored all 1,536 cache-eligible tokens. It
+created six fully allocated 24 MiB files (144 MiB total), synchronizing each
+file and the directory. The warm request had 1,550 total tokens, hit and
+retrieved all 1,536 cache-eligible tokens, and did not engage vLLM's native
+prefix cache.
+
+The configuration and runtime log confirm LocalDiskBackend engagement and
+report O_DIRECT enabled. There was no syscall trace, so this does not prove
+syscall-level O_DIRECT. Online validation exited successfully, offline
+`validate-cell` passes, and cleanup left no compute process or port-18080
+listener and only 15 MiB reported GPU memory.
+
+This is dependency and code-path evidence only. Recorded timings and rates
+are not results. The attempt cap remains exhausted; no recompute, CPU,
+repeated, or gpubpf comparison cell was run.

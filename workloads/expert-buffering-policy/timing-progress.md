@@ -1,6 +1,6 @@
 # Expert-buffering paired timing progress
 
-Status: in progress (3/5 paired blocks passed)
+Status: in progress (4/5 paired blocks passed)
 
 ## Block 1
 
@@ -40,3 +40,11 @@ The frozen `E -> F -> U -> O` order and prompt order `8, 1, 5, 7, 3, 6, 4, 2` pa
 O recorded 288,523 mapped activations and 1,774,138 observed accesses. E recorded 38,760 hot-tail activations, 248,803 cold-native activations, 2,409 shared-tail activations, 217,793 hot-tail accesses, and 11,418 shared-tail accesses. Setter failures and cold-head placements remained zero. Repeated-hot-activation bytes were 74,551,656,448 for O and 74,503,421,952 for E, a small decrease under E in this block.
 
 F again covered all 1,105 graphs in every expected routed layer, with zero incomplete graphs and zero dropped events. No thermal or power-brake throttling occurred. Stock UVM was restored cleanly with the same idle state as prior blocks.
+
+## Block 4
+
+The frozen `F -> U -> O -> E` order and prompt order `8, 3, 5, 7, 6, 4, 2, 1` passed. Throughput was 5.7817 output tok/s for U, 5.9455 for O, 5.9441 for E, and 6.7505 for F. O/U was +2.832%, unlike the near-zero first three blocks, while E/O remained near zero at -0.023%. The O/U difference is retained as observed and will be interpreted only in the paired five-block aggregate.
+
+O recorded 313,662 mapped activations and 1,985,234 observed accesses. E recorded 42,187 hot-tail activations, 268,784 cold-native activations, 2,620 shared-tail activations, 247,128 hot-tail accesses, and 12,115 shared-tail accesses. Setter failures and cold-head placements remained zero. Repeated-hot-activation bytes were 81,874,911,232 for O and 81,893,785,600 for E, slightly higher under E.
+
+F route coverage and all thermal, policy safety, and stock-UVM restoration gates passed.

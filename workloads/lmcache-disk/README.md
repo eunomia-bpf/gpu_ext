@@ -11,7 +11,7 @@ Tracked reproducibility artifacts:
 - `plan-review-v2.md`: independent revision-2 review and launch decision;
 - `plan.md` and `plan-review.md`: closed revision-1 failure provenance;
 - `run_lmcache_disk.py`: thin one-cell vLLM adapter and recomputable analysis;
-- `historical_runner_v1.py`: inactive closed-protocol control-layer provenance;
+- `lmcache_primitives.py`: active low-level launch/request/validation helpers;
 - `test_runner.py`: CPU-only structural gate tests;
 - `prompts.json`: public exact token arrays and expected aligned hits;
 - `schedule.json`: all 15 precomputed attempts for ten valid blocks;

@@ -124,6 +124,7 @@ five randomized Latin cycles; log parsing preserves store/retrieve denominators;
 TTFT starts at the first SSE event carrying a generated token; analysis
 re-parses logs/traces/usage, compares exact text, reports both rate metrics
 against both baselines, and requires an interval upper bound below -5% before
-calling a throughput regression. Twelve CPU-only tests pass. The archived
-control layer was removed, leaving only inactive low-level primitives. The
+calling a throughput regression. Fifteen CPU-only tests pass. The custom
+control layer was removed, leaving only active low-level primitives behind the
+thin adapter. The
 three-attempt cap remains exhausted, so this is offline repair evidence only.

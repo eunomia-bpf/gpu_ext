@@ -21,10 +21,10 @@ from typing import Any
 
 
 HERE = Path(__file__).resolve().parent
-LEGACY_PATH = HERE / "historical_runner_v1.py"
-SPEC = importlib.util.spec_from_file_location("lmcache_adapter_primitives", LEGACY_PATH)
+PRIMITIVES_PATH = HERE / "lmcache_primitives.py"
+SPEC = importlib.util.spec_from_file_location("lmcache_adapter_primitives", PRIMITIVES_PATH)
 if SPEC is None or SPEC.loader is None:
-    raise RuntimeError(f"cannot load LMCache adapter primitives from {LEGACY_PATH}")
+    raise RuntimeError(f"cannot load LMCache adapter primitives from {PRIMITIVES_PATH}")
 legacy = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(legacy)
 
@@ -36,6 +36,8 @@ PREFIXES = legacy.PREFIXES
 PREFIX_TOKENS = legacy.PREFIX_TOKENS
 OUTPUT_TOKENS = legacy.OUTPUT_TOKENS
 EXPECTED_DISK_BYTES = legacy.EXPECTED_DISK_BYTES
+KV_CHUNK_BYTES = legacy.KV_CHUNK_BYTES
+CHUNKS_PER_PREFIX = legacy.CHUNKS_PER_PREFIX
 TARGET_BLOCKS = legacy.TARGET_BLOCKS
 BOOTSTRAP_SEED = legacy.BOOTSTRAP_SEED
 MODEL_REVISION = legacy.MODEL_REVISION
@@ -73,9 +75,80 @@ def run_cell(config: str, output: Path, port: int, trace: bool) -> dict[str, Any
         port,
         Path(observations["model_path"]),
         trace=trace,
+        recorded_environment=observations,
     )
-    legacy.atomic_write_json(output / "environment.json", observations)
     return result
+
+
+def _validate_recorded_environment(value: dict[str, Any]) -> None:
+    gpu = value.get("gpu", {})
+    runtime = value.get("runtime_imports", {})
+    source = value.get("lmcache_source", {})
+    if (
+        gpu.get("driver") != EXPECTED_DRIVER
+        or gpu.get("compute_apps") != []
+        or not isinstance(gpu.get("memory_used_mib"), int)
+        or gpu["memory_used_mib"] > 256
+        or source.get("commit") != legacy.LMCACHE_COMMIT
+        or Path(source.get("path", "")) != legacy.LMCACHE_REPO
+        or runtime.get("lmcache_version") != EXPECTED_LMCACHE_VERSION
+        or runtime.get("vllm_version") != EXPECTED_VLLM_VERSION
+    ):
+        raise GateError("recorded source/runtime/GPU semantics differ from the fixed experiment")
+
+    frozen = legacy.load_artifacts()
+    modules = runtime.get("modules", {})
+    paths = {name: item.get("path") for name, item in modules.items()}
+    if paths != frozen.get("runtime_import_paths"):
+        raise GateError("recorded runtime import paths differ from the fixed environment")
+    if any(not isinstance(item.get("bytes"), int) or item["bytes"] <= 0 for item in modules.values()):
+        raise GateError("recorded runtime import inventory has an invalid file size")
+    dependency_lines = runtime.get("dependency_lines")
+    expected_dependencies = (HERE / frozen["environment_freeze"]["relative_path"]).read_text().splitlines()
+    if dependency_lines != expected_dependencies:
+        raise GateError("recorded dependency set differs from the fixed environment")
+
+    storage = value.get("storage", {})
+    filesystems = storage.get("mount", {}).get("filesystems", [])
+    if len(filesystems) != 1:
+        raise GateError("recorded storage mount is missing or ambiguous")
+    mount = filesystems[0]
+    if (
+        Path(mount.get("source", "")).resolve() != Path(legacy.EXPECTED_MOUNT_SOURCE).resolve()
+        or mount.get("fstype") != "ext4"
+        or storage.get("free_bytes", 0) < 100 * 1024**3
+    ):
+        raise GateError("recorded storage semantics differ from the fixed NVMe filesystem")
+
+    model_path = Path(value.get("model_path", ""))
+    if value.get("model_revision") != MODEL_REVISION or model_path.name != MODEL_REVISION:
+        raise GateError("recorded model revision differs from the fixed model")
+    model_files = value.get("model_artifacts", [])
+    by_name = {item.get("name"): item for item in model_files}
+    required = {"config.json", "model.safetensors.index.json"} | {
+        f"model-{index:05d}-of-00007.safetensors" for index in range(1, 8)
+    }
+    if not required.issubset(by_name):
+        raise GateError("recorded model inventory is incomplete")
+    for name, item in by_name.items():
+        if (
+            not isinstance(name, str)
+            or not isinstance(item.get("bytes"), int)
+            or item["bytes"] <= 0
+            or Path(item.get("path", "")).parent != model_path
+        ):
+            raise GateError("recorded model filename/size inventory is invalid")
+
+    workload = value.get("workload_artifacts", {})
+    expected_paths = {
+        "dataset": legacy.DATASET.absolute(),
+        "prompts": PROMPTS.absolute(),
+        "schedule": SCHEDULE.absolute(),
+    }
+    if {
+        name: Path(item.get("path", "")) for name, item in workload.items()
+    } != expected_paths:
+        raise GateError("recorded workload artifact paths differ from the fixed inputs")
 
 
 def _validate_response(response: dict[str, Any], expected_tokens: int, request_id: str) -> None:
@@ -99,6 +172,29 @@ def _validate_response(response: dict[str, Any], expected_tokens: int, request_i
             raise GateError(f"invalid {field} for {request_id}: {value}")
 
 
+def _expected_store_state(
+    config: str,
+    prefix_index: int,
+    request_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    if config == "recompute":
+        return {"files": 0, "bytes": 0, "durability": "not applicable"}
+    if config == "lmcache_cpu":
+        return {
+            "files": 0,
+            "bytes": 0,
+            "durability": "synchronous LocalCPUBackend insertion",
+            "request_log": request_evidence,
+        }
+    return {
+        "files": (prefix_index + 1) * CHUNKS_PER_PREFIX,
+        "bytes": (prefix_index + 1) * CHUNKS_PER_PREFIX * KV_CHUNK_BYTES,
+        "per_file_bytes": [KV_CHUNK_BYTES],
+        "durability": "fsync(each file) + fsync(directory)",
+        "request_log": request_evidence,
+    }
+
+
 def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     """Reparse one cell's result, server log, and optional raw trace."""
     result_path = run_dir / "result.json"
@@ -108,20 +204,12 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
         raise GateError(f"missing raw cell output under {run_dir}")
     result = json.loads(result_path.read_text())
     recorded_environment = json.loads(environment_path.read_text())
-    if (
-        recorded_environment.get("gpu", {}).get("driver") != EXPECTED_DRIVER
-        or recorded_environment.get("gpu", {}).get("compute_apps") != []
-        or recorded_environment.get("model_revision") != MODEL_REVISION
-        or recorded_environment.get("runtime_imports", {}).get("lmcache_version")
-        != EXPECTED_LMCACHE_VERSION
-        or recorded_environment.get("runtime_imports", {}).get("vllm_version")
-        != EXPECTED_VLLM_VERSION
-    ):
-        raise GateError(f"recorded launch environment mismatch under {run_dir}")
+    _validate_recorded_environment(recorded_environment)
     config = result.get("config")
     if result.get("schema") != 2 or config not in CONFIGS:
         raise GateError(f"invalid result schema/config under {run_dir}")
     prompts = load_prompts(PROMPTS)
+    log = log_path.read_text(errors="replace")
     observations = result.get("observations")
     if not isinstance(observations, list) or len(observations) != PREFIXES:
         raise GateError(f"expected {PREFIXES} observations under {run_dir}")
@@ -134,6 +222,11 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
             raise GateError(f"prompt/observation mismatch for prefix {index}")
         _validate_response(observation["cold"], len(item["cold_token_ids"]), f"lmc-p{index}-cold")
         _validate_response(observation["warm"], len(item["warm_token_ids"]), f"lmc-p{index}-warm")
+        cold_id = observation["cold"]["engine_request_id"]
+        request_evidence = request_log_values(log, cold_id)
+        expected_store_state = _expected_store_state(config, index, request_evidence)
+        if observation.get("store_state") != expected_store_state:
+            raise GateError(f"incremental persistence evidence mismatch for prefix {index}")
 
     command = result.get("command")
     if not isinstance(command, list) or len(command) < 4 or "--port" not in command:
@@ -147,7 +240,6 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     if result.get("environment") != server_environment(config, cache_dir):
         raise GateError(f"server environment differs from fixed cell configuration: {run_dir}")
 
-    log = log_path.read_text(errors="replace")
     engagement = validate_log(config, log, observations, cache_dir)
     if result.get("engagement") != engagement:
         raise GateError(f"saved and recomputed engagement differ under {run_dir}")
@@ -182,8 +274,11 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     warm_phase = result.get("warm_phase", {})
     elapsed = warm_phase.get("elapsed_s")
     if (
-        warm_phase.get("requests") != PREFIXES
+        warm_phase.get("sequential") is not True
+        or warm_phase.get("requests") != PREFIXES
         or warm_phase.get("output_tokens") != PREFIXES * OUTPUT_TOKENS
+        or warm_phase.get("excludes")
+        != ["server startup", "cold population", "persistence barriers", "shutdown"]
         or not isinstance(elapsed, (int, float))
         or not math.isfinite(elapsed)
         or elapsed <= 0
@@ -258,12 +353,66 @@ def _attempt_cells(root: Path) -> dict[int, dict[str, tuple[int, Path]]]:
     return groups
 
 
+def _validate_execution_sequence(
+    root: Path,
+    groups: dict[int, dict[str, tuple[int, Path]]],
+) -> tuple[list[int], list[tuple[int, int, int]]]:
+    attempt_dirs: dict[int, Path] = {}
+    for path in sorted(root.glob("attempt-*")):
+        match = re.fullmatch(r"attempt-(\d{2})", path.name)
+        if not match or not path.is_dir():
+            raise GateError(f"malformed attempt path: {path}")
+        attempt_dirs[int(match.group(1))] = path
+    if not attempt_dirs:
+        raise GateError("analysis found no attempt directories")
+    observed_attempts = sorted(attempt_dirs)
+    if observed_attempts != list(range(observed_attempts[-1] + 1)):
+        raise GateError(f"attempt history has a gap: {observed_attempts}")
+    if observed_attempts[-1] >= legacy.MAX_ATTEMPTS:
+        raise GateError(f"attempt history exceeds the fixed schedule: {observed_attempts[-1]}")
+
+    timeline: list[tuple[int, int, int]] = []
+    for attempt, attempt_dir in attempt_dirs.items():
+        position_dirs = sorted(attempt_dir.glob("position-*"))
+        timestamps = []
+        for path in position_dirs:
+            match = re.fullmatch(r"position-([0-2])-(recompute|lmcache_cpu|lmcache_disk)", path.name)
+            if not match or not path.is_dir():
+                raise GateError(f"malformed cell path: {path}")
+            environment_path = path / "environment.json"
+            if not environment_path.is_file():
+                raise GateError(f"attempted cell lacks preserved environment observations: {path}")
+            timestamp = json.loads(environment_path.read_text()).get("timestamp_ns")
+            if not isinstance(timestamp, int) or timestamp <= 0:
+                raise GateError(f"cell lacks a valid launch-observation timestamp: {path}")
+            position = int(match.group(1))
+            timeline.append((attempt, position, timestamp))
+            timestamps.append((position, timestamp))
+        if not timestamps:
+            raise GateError(f"attempt directory has no preserved cell evidence: {attempt_dir}")
+        if [position for position, _ in timestamps] != list(range(len(timestamps))):
+            raise GateError(f"attempt {attempt} did not execute a position prefix in order")
+        if any(left[1] >= right[1] for left, right in zip(timestamps, timestamps[1:])):
+            raise GateError(f"attempt {attempt} timestamps contradict position order")
+        if set(groups.get(attempt, {})) != set(CONFIGS):
+            failure = attempt_dir / "failure.md"
+            if not failure.is_file() or not failure.read_text(errors="replace").strip():
+                raise GateError(f"incomplete attempt lacks an ordinary failure record: {attempt_dir}")
+
+    by_time = [(attempt, position) for attempt, position, _ in sorted(timeline, key=lambda item: item[2])]
+    by_schedule = [(attempt, position) for attempt, position, _ in timeline]
+    if by_time != by_schedule:
+        raise GateError("recorded timestamps contradict global attempt/position execution order")
+    return observed_attempts, timeline
+
+
 def analyze(root: Path) -> dict[str, Any]:
     """Revalidate raw cells, enforce the fixed schedule, and compute paired effects."""
     schedule = json.loads(SCHEDULE.read_text())
     validate_schedule(schedule)
     scheduled = {item["attempt"]: item["order"] for item in schedule["attempts"]}
     groups = _attempt_cells(root)
+    observed_attempts, _ = _validate_execution_sequence(root, groups)
     complete = []
     reference_outputs = None
     for attempt in sorted(groups):
@@ -286,6 +435,16 @@ def analyze(root: Path) -> dict[str, Any]:
         complete.append((attempt, validated))
     if len(complete) != TARGET_BLOCKS:
         raise GateError(f"analysis requires {TARGET_BLOCKS} complete attempts, found {len(complete)}")
+    if complete[-1][0] != observed_attempts[-1]:
+        raise GateError("attempts continued after the tenth complete attempt")
+
+    position_counts = {
+        config: [sum(groups[attempt][config][0] == position for attempt, _ in complete)
+                 for position in range(len(CONFIGS))]
+        for config in CONFIGS
+    }
+    if any(max(counts) - min(counts) > 1 for counts in position_counts.values()):
+        raise GateError(f"actual complete attempts are position-imbalanced: {position_counts}")
 
     rows = []
     for attempt, cells in complete:
@@ -324,6 +483,8 @@ def analyze(root: Path) -> dict[str, Any]:
     decision = classify_effect(latency_ci, rate_ci)
     result = {
         "complete_attempts": [attempt for attempt, _ in complete],
+        "observed_attempts": observed_attempts,
+        "actual_position_counts": position_counts,
         "rows": rows,
         "paired_percentile_bootstrap": {"draws": 10000, **effects},
         "decision": decision,

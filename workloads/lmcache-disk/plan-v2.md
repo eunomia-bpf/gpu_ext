@@ -8,6 +8,14 @@ comparison to its local-disk backend. It characterizes the public LMCache
 filesystem backend on one RTX 5090 and the workspace's local Samsung 9100 PRO
 NVMe. It is standalone baseline evidence and is not a gpubpf storage result.
 
+Planned role: **supporting**. A citation-only comparison cannot answer the
+revision question because published LMCache results use different models,
+hardware, and storage paths, while the submitted paper already measures the
+CPU backend on this workload. The matched local-disk run would directly bound
+that existing comparison and therefore has more decision value than citing an
+unmatched published number; it does not independently establish the paper's
+central mechanism claim.
+
 ## Question and configurations
 
 For eight reusable 1,536-token prefixes from the paper's Qwen-30B workload,
@@ -91,8 +99,12 @@ There are no pass markers, completion schemas, approval parser, promotion
 gate, or custom resume protocol. Each invocation runs one official `vllm
 serve` cell and preserves its raw output. Analysis reparses every cell's result,
 server log, request usage and engagement, and any trace; it also regenerates
-the prompt and schedule semantics. Technical failures remain ordinary named
-directories and are not included as completed attempts.
+the prompt and schedule semantics. It requires contiguous attempt numbers,
+position-prefix execution, strictly increasing launch-observation timestamps,
+an ordinary nonempty `failure.md` for every incomplete attempt, no attempts
+after the tenth complete block, and balanced positions in the cells that
+actually completed. Technical failures remain ordinary named directories and
+are not included as completed attempts.
 
 ## Metrics and interpretation
 
@@ -140,7 +152,9 @@ From `workloads/lmcache-disk`, the ordinary commands are:
   --config lmcache_disk --output raw/revision2-preflight/attempt-00/position-2-lmcache_disk --trace
 ./current-venv/bin/python run_lmcache_disk.py validate-cell \
   raw/revision2-preflight/attempt-00/position-2-lmcache_disk --require-trace
-./current-venv/bin/python run_lmcache_disk.py compare-outputs CELL_DIR CELL_DIR CELL_DIR
+./current-venv/bin/python run_lmcache_disk.py compare-outputs \
+  raw/revision2-smoke/recompute raw/revision2-smoke/lmcache_cpu \
+  raw/revision2-smoke/lmcache_disk
 ./current-venv/bin/python run_lmcache_disk.py analyze raw/revision2-full
 ```
 

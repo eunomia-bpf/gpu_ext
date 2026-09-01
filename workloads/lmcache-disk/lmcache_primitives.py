@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Inactive revision-1 LMCache control-layer provenance.
+"""Active low-level primitives for the thin LMCache experiment adapter.
 
-The active adapter imports only low-level launch, request, validation, and
-analysis primitives from this module. The historical control interface is
-retained for failure provenance and must not be executed directly.
+The adapter imports launch, request, semantic-validation, and raw-output
+helpers from this module. It intentionally exposes no standalone control
+interface.
 """
 
 from __future__ import annotations
@@ -72,10 +72,11 @@ FATAL_LOG_PATTERNS = (
     r"fall(?:ing)? back[^\n]*(?:buffered|disk|I/O)",
     r"partial write",
     r"failed for key",
-    r"\bevict(?:ion|ed|ing)?\b",
+    r"\bevict(?:ion|ions|ed|ing)?\b",
     r"failed to allocate",
     r"allocation failure",
     r"memory allocation failed",
+    r"allocation failed",
     r"out of memory",
 )
 
@@ -263,6 +264,7 @@ print(json.dumps({"lmcache_version":importlib.metadata.version("lmcache"),
     if actual_lines != freeze.read_text().splitlines():
         raise GateError("installed dependency set differs from current-requirements.txt")
     run_checked([str(UV), "pip", "check", "--python", str(PYTHON)], env=env)
+    observed["dependency_lines"] = actual_lines
     return observed
 
 
@@ -791,8 +793,11 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
 
 
 def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
-               model_path: Path, trace: bool = False) -> dict[str, Any]:
+               model_path: Path, trace: bool = False,
+               recorded_environment: dict[str, Any] | None = None) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
+    if recorded_environment is not None:
+        atomic_write_json(run_dir / "environment.json", recorded_environment)
     cache_dir = (run_dir / "cache").resolve()
     cache_dir.mkdir()
     log_path = run_dir / "server.log"
@@ -869,5 +874,5 @@ def expected_schedule() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    print("ERROR: archived primitives module; use run_lmcache_disk.py", file=sys.stderr)
+    print("ERROR: primitives module; use run_lmcache_disk.py", file=sys.stderr)
     raise SystemExit(2)

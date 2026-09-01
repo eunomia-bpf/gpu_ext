@@ -124,16 +124,20 @@ class HarnessTests(unittest.TestCase):
         self.assertTrue(all(x["expected_hit_tokens"] == 1536 for x in prompts["prefixes"]))
 
     def test_runner_uses_semantic_evidence_without_content_fingerprints(self):
-        source = MODULE_PATH.read_text() + runner.LEGACY_PATH.read_text()
+        source = MODULE_PATH.read_text() + runner.PRIMITIVES_PATH.read_text()
         forbidden = ("hashlib", "sha256", "checksum", "digest", "output_hash")
         self.assertFalse(any(term in source.lower() for term in forbidden))
         for forbidden_control in ("PREFLIGHT-PASS", "SMOKE-PASS", "RUN-COMPLETE", "--resume", "--approval"):
             self.assertNotIn(forbidden_control, source)
 
     def test_fatal_patterns_cover_lmcache_allocation_wording(self):
-        log = "Memory allocation failed while staging a disk chunk"
-        self.assertTrue(any(runner.legacy.re.search(pattern, log, runner.legacy.re.I)
-                            for pattern in runner.legacy.FATAL_LOG_PATTERNS))
+        for log in (
+            "Memory allocation failed while staging a disk chunk",
+            "allocation failed for local CPU staging",
+            "3 evictions occurred",
+        ):
+            self.assertTrue(any(runner.legacy.re.search(pattern, log, runner.legacy.re.I)
+                                for pattern in runner.legacy.FATAL_LOG_PATTERNS))
 
     def test_schedule_semantics_are_exact(self):
         schedule = json.loads(runner.SCHEDULE.read_text())
@@ -166,6 +170,73 @@ class HarnessTests(unittest.TestCase):
         self.assertNotIn("LD_PRELOAD", env)
         self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "0")
         self.assertEqual(env["VLLM_WORKER_MULTIPROC_METHOD"], "spawn")
+
+    def test_store_state_is_recomputed_for_each_prefix(self):
+        request_evidence = {
+            "hits": [0],
+            "stores": [(1536, 1540)],
+            "retrieved": [],
+        }
+        self.assertEqual(
+            runner._expected_store_state("recompute", 3, request_evidence),
+            {"files": 0, "bytes": 0, "durability": "not applicable"},
+        )
+        self.assertEqual(
+            runner._expected_store_state("lmcache_cpu", 3, request_evidence)["request_log"],
+            request_evidence,
+        )
+        first = runner._expected_store_state("lmcache_disk", 0, request_evidence)
+        last = runner._expected_store_state("lmcache_disk", 7, request_evidence)
+        self.assertEqual(first["files"], runner.CHUNKS_PER_PREFIX)
+        self.assertEqual(first["bytes"], runner.CHUNKS_PER_PREFIX * runner.KV_CHUNK_BYTES)
+        self.assertEqual(last["files"], 8 * runner.CHUNKS_PER_PREFIX)
+        self.assertEqual(last["bytes"], 8 * runner.CHUNKS_PER_PREFIX * runner.KV_CHUNK_BYTES)
+        self.assertEqual(last["per_file_bytes"], [runner.KV_CHUNK_BYTES])
+        self.assertEqual(last["request_log"], request_evidence)
+
+    def test_execution_sequence_requires_contiguous_timestamped_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            attempt = root / "attempt-00"
+            cell = attempt / "position-0-recompute"
+            cell.mkdir(parents=True)
+            (cell / "environment.json").write_text('{"timestamp_ns": 100}\n')
+            (attempt / "failure.md").write_text("server failed before result\n")
+            observed, timeline = runner._validate_execution_sequence(root, {})
+            self.assertEqual(observed, [0])
+            self.assertEqual(timeline, [(0, 0, 100)])
+            (attempt / "failure.md").unlink()
+            with self.assertRaises(runner.GateError):
+                runner._validate_execution_sequence(root, {})
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for attempt_number in (0, 2):
+                attempt = root / f"attempt-{attempt_number:02d}"
+                cell = attempt / "position-0-recompute"
+                cell.mkdir(parents=True)
+                (cell / "environment.json").write_text(
+                    json.dumps({"timestamp_ns": 100 + attempt_number}) + "\n"
+                )
+                (attempt / "failure.md").write_text("recorded failure\n")
+            with self.assertRaises(runner.GateError):
+                runner._validate_execution_sequence(root, {})
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            attempt = root / "attempt-00"
+            for position, config, timestamp in (
+                (0, "recompute", 200),
+                (1, "lmcache_cpu", 100),
+            ):
+                cell = attempt / f"position-{position}-{config}"
+                cell.mkdir(parents=True)
+                (cell / "environment.json").write_text(
+                    json.dumps({"timestamp_ns": timestamp}) + "\n"
+                )
+            (attempt / "failure.md").write_text("recorded failure\n")
+            with self.assertRaises(runner.GateError):
+                runner._validate_execution_sequence(root, {})
 
 
 if __name__ == "__main__":

@@ -21,12 +21,13 @@
   custom 610 UVM module was reloaded with prefetch enabled, refcount zero, and
   no attached struct_ops policy.
 
-Decision: close this plan without using the third preflight allowance. A single
-warm-up already takes about 7.5 minutes, so the planned 20 processes with three
-measured epochs cannot meet the plan's 15-minute row bound or 20--40 minute cost
-estimate. Increasing the timeout would turn the study into an unreviewed,
-roughly multi-hour protocol. A new plan must use a shorter real page-fault
-workload while preserving the same native-versus-gpubpf policy comparison.
+Decision: close this plan without using the third preflight allowance. The
+required event-instrumented full-size semantic preflight cannot complete its
+warm-up plus measured epoch inside the declared 15-minute row bound. Because
+event tracking itself may add substantial cost, this attempt does not establish
+the runtime of an uninstrumented 8M GCN cell and must not be used to estimate or
+report that runtime. A new plan must use a shorter real page-fault workload while
+preserving the same native-versus-gpubpf policy comparison.
 
 No file/content hashes, checksums, or digests were generated, refreshed,
 compared, or recorded for this attempt.

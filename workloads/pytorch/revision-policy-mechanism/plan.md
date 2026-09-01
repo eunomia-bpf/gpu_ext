@@ -1,10 +1,11 @@
 # Experiment Plan: RQ4 native no-prefetch versus gpubpf no-prefetch
 
 **Status: closed after preflight 2; no performance rows were admitted.** The
-8M-node native cell exceeded its declared 15-minute limit before completing one
-measured epoch. See `results/preflight-2.md`. The third preflight allowance was
-not used because the full 20-process protocol was already infeasible under its
-declared bounds.
+8M-node event-instrumented native preflight cell exceeded its declared 15-minute
+limit before completing one measured epoch. See `results/preflight-2.md`. The
+third preflight allowance was not used because the reviewed semantic gate was
+infeasible under its declared bounds; this does not estimate uninstrumented GCN
+runtime.
 
 Revision 2 replaces the proposed LRU comparison after review found that
 `gpu_block_access` does not fire on the target workload. No LRU timing was run.

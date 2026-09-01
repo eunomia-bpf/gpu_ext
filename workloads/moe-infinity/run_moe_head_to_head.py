@@ -1122,9 +1122,10 @@ def start_eviction_monitors(
     for pid, target_fd in candidates:
         inherited_fd = -1
         process = None
+        log = None
         log_path = run_dir / f"uvm-evictions-pid-{pid}-fd-{target_fd}.jsonl"
-        log = log_path.open("x", buffering=1)
         try:
+            log = log_path.open("x", buffering=1)
             inherited_fd = duplicate_child_fd(pid, target_fd)
             process = subprocess.Popen(
                 [str(EVICTION_MONITOR), "--uvm-fd", str(inherited_fd)],
@@ -1144,7 +1145,8 @@ def start_eviction_monitors(
             failures.append({"pid": pid, "fd": target_fd, "error": str(exc)})
             if process is not None:
                 stop_exact_process(process)
-            log.close()
+            if log is not None:
+                log.close()
         finally:
             if inherited_fd >= 0:
                 os.close(inherited_fd)

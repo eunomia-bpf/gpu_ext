@@ -432,6 +432,29 @@ class RunnerTests(unittest.TestCase):
                     runner.start_eviction_monitors(1, Path(temporary))
             self.assertEqual(stop.call_count, 2)
 
+    def test_eviction_monitor_log_creation_failure_cleans_admitted(self) -> None:
+        with __import__("tempfile").TemporaryDirectory() as temporary:
+            process = mock.Mock()
+            real_open = Path.open
+
+            def controlled_open(path: Path, *args: object, **kwargs: object) -> object:
+                if "pid-22" in path.name:
+                    raise OSError("injected log creation failure")
+                return real_open(path, *args, **kwargs)
+
+            with (
+                mock.patch.object(runner, "find_uvm_fds", return_value=[(11, 9), (22, 10)]),
+                mock.patch.object(runner, "duplicate_child_fd", return_value=101),
+                mock.patch.object(runner.subprocess, "Popen", return_value=process),
+                mock.patch.object(runner, "wait_event", return_value={"event": "ready"}),
+                mock.patch.object(runner.os, "close"),
+                mock.patch.object(Path, "open", new=controlled_open),
+                mock.patch.object(runner, "stop_exact_process") as stop,
+            ):
+                with self.assertRaisesRegex(runner.GateError, "admission failed"):
+                    runner.start_eviction_monitors(1, Path(temporary))
+            stop.assert_called_once_with(process)
+
     def test_runtime_continuity_rejects_replacement(self) -> None:
         expected = {"_store": {"path": "/tmp/store.so", "size": 1, "inode": 2}}
         runner.require_runtime_continuity(expected, expected.copy())

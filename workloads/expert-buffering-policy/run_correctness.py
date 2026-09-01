@@ -301,6 +301,21 @@ def completion(port: int, token_ids: list[int], output: Path) -> dict[str, Any]:
             "e2e_ms": (end_ns - start_ns) / 1e6}
 
 
+def validate_saved_completion(path: Path) -> str:
+    value = json.loads(path.read_text())
+    choices = value.get("choices")
+    usage = value.get("usage")
+    if not isinstance(choices, list) or len(choices) != 1 or not isinstance(usage, dict):
+        raise GateError(f"malformed saved completion: {path}")
+    text = choices[0].get("text")
+    if (choices[0].get("finish_reason") != "length" or not isinstance(text, str) or
+            int(usage.get("prompt_tokens", -1)) != 512 or
+            int(usage.get("completion_tokens", -1)) != 64):
+        raise GateError(f"saved completion correctness gate failed: {path}")
+    text.encode("utf-8", errors="strict")
+    return text
+
+
 def descendants(root_pid: int) -> list[int]:
     found = {root_pid}
     changed = True
@@ -466,6 +481,13 @@ def validate_server_log(path: Path) -> None:
         raise GateError(f"fatal patterns in server log: {found}")
 
 
+def validate_context_route_summary(summary: dict[str, Any]) -> None:
+    if (int(summary["layers"]) != 32 or int(summary["incomplete_graphs"]) != 0 or
+            int(summary["layer_graphs_min"]) != int(summary["graphs"]) or
+            int(summary["layer_graphs_max"]) != int(summary["graphs"])):
+        raise GateError(f"framework layer coverage failed: {summary}")
+
+
 def run_cell(config: str, run_dir: Path, port: int,
              prompts: dict[str, Any], prompt_order: list[int]) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -623,11 +645,11 @@ def run_cell(config: str, run_dir: Path, port: int,
                 "--output", str(run_dir / "route-diagnostic-hot-set.txt"),
                 "--report", str(run_dir / "route-diagnostic-report.json"),
                 "--expected-layers", "36", "--expected-experts", "128",
+                "--expected-route-layers", "32",
                 "--top-k", "10",
             ])
             route_diagnostic = json.loads(summary_text)
-            if int(route_diagnostic["layers"]) != 36:
-                raise GateError(f"framework layer coverage failed: {route_diagnostic}")
+            validate_context_route_summary(route_diagnostic)
 
         result = {
             "config": config, "warmup": warmup,
@@ -742,9 +764,88 @@ def run_correctness(attempt: int, port: int) -> dict[str, Any]:
             restore_stock_uvm()
 
 
+def finalize_completed_context(attempt: int) -> dict[str, Any]:
+    output = RAW / f"attempt-{attempt:02d}"
+    context = output / "llama_ncmoe32"
+    status_path = output / "status.json"
+    if not status_path.is_file() or not context.is_dir():
+        raise GateError(f"attempt {attempt} has no context evidence to finalize")
+    prior = json.loads(status_path.read_text())
+    if prior.get("status") != "failed" or "compile_hot_set.py" not in prior.get("error", ""):
+        raise GateError(f"attempt did not stop solely at the old route gate: {prior}")
+    schedule = json.loads(SCHEDULE.read_text())
+    prompt_order = [int(value) for value in schedule["prompt_order"]]
+    validate_saved_completion(context / "warmup.json")
+    outputs = []
+    for pass_number in (1, 2):
+        current = []
+        for sequence, prompt_number in enumerate(prompt_order, start=1):
+            current.append(validate_saved_completion(
+                context / f"pass-{pass_number}-request-{sequence:02d}-prompt-{prompt_number}.json"
+            ))
+        outputs.append(current)
+    validate_server_log(context / "server.log")
+    trace_path = context / "trace.jsonl"
+    final_trace = latest_event(trace_path, "final")
+    if (int(final_trace["layouts"]) != 216 or int(final_trace["routes"]) <= 0 or
+            int(final_trace["dropped"]) != 0):
+        raise GateError(f"saved framework route trace gate failed: {final_trace}")
+    summary_text = run_checked([
+        "python3", str(COMPILE_HOT_SET), "--input", str(trace_path),
+        "--output", str(context / "route-diagnostic-hot-set.txt"),
+        "--report", str(context / "route-diagnostic-report.json"),
+        "--expected-layers", "36", "--expected-experts", "128",
+        "--expected-route-layers", "32", "--top-k", "10",
+    ])
+    route_diagnostic = json.loads(summary_text)
+    validate_context_route_summary(route_diagnostic)
+    admitted_event_logs = [
+        path for path in sorted(context.glob("evictions-fd-*.jsonl"))
+        if any(event.get("event") == "ready" for event in json_events(path))
+    ]
+    if len(admitted_event_logs) != 1:
+        raise GateError(f"expected one admitted saved event log: {admitted_event_logs}")
+    eviction_events = json_events(admitted_event_logs[0])
+    eviction_final = next((event for event in reversed(eviction_events)
+                           if event.get("event") == "final_eviction_stats"), None)
+    if eviction_final is None or int(eviction_final["dropped_evictions"]) != 0:
+        raise GateError(f"saved eviction diagnostic is incomplete: {eviction_final}")
+    monitor_ready = next((event for event in eviction_events
+                          if event.get("event") == "ready"), None)
+    context_result = {
+        "config": "llama_ncmoe32", "recovered_from_completed_attempt": True,
+        "outputs": outputs,
+        "repeated_output_agreement": [a == b for a, b in zip(*outputs)],
+        "repeated_matching_prompts": sum(a == b for a, b in zip(*outputs)),
+        "route_diagnostic": route_diagnostic, "trace_final": final_trace,
+        "eviction_final": eviction_final, "monitor_ready": monitor_ready,
+    }
+    atomic_write_json(context / "result.json", context_result)
+
+    results = [
+        json.loads((output / config / "result.json").read_text())
+        for config in CONFIGS
+    ]
+    reference = results[0]["outputs"][0]
+    agreement = {
+        result["config"]: sum(observed == expected for observed, expected in
+                              zip(result["outputs"][0], reference))
+        for result in results
+    }
+    final = {
+        "status": "passed", "attempt": attempt, "recovered_context": True,
+        "prompt_order": prompt_order, "configuration_order": list(CONFIGS),
+        "cross_configuration_matching_prompts": agreement,
+        "completed_ns": time.time_ns(),
+        "cells": [str((output / config / "result.json").resolve()) for config in CONFIGS],
+    }
+    atomic_write_json(status_path, final)
+    return final
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("admit", "correctness"))
+    parser.add_argument("action", choices=("admit", "correctness", "finalize-context"))
     parser.add_argument("--attempt", type=int, default=1)
     parser.add_argument("--port", type=int, default=18082)
     args = parser.parse_args()
@@ -752,6 +853,8 @@ def main() -> int:
         with Lease():
             if args.action == "admit":
                 print(json.dumps(require_idle(), sort_keys=True))
+            elif args.action == "finalize-context":
+                print(json.dumps(finalize_completed_context(args.attempt), sort_keys=True))
             else:
                 print(json.dumps(run_correctness(args.attempt, args.port), sort_keys=True))
         return 0

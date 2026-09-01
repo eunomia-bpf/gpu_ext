@@ -54,8 +54,12 @@ def load_events(paths: list[Path]) -> list[dict]:
 
 
 def compile_hot_set(
-    events: list[dict], *, expected_layers: int, expected_experts: int, top_k: int
+    events: list[dict], *, expected_layers: int, expected_experts: int, top_k: int,
+    expected_route_layers: int | None = None,
 ) -> HotSet:
+    route_layers = expected_layers if expected_route_layers is None else expected_route_layers
+    if route_layers <= 0 or route_layers > expected_layers:
+        raise ValueError("expected route layers must be within the source layout")
     layouts: dict[tuple[int, int], WeightLayout] = {}
     routes: list[dict] = []
 
@@ -110,17 +114,21 @@ def compile_hot_set(
         layout = layouts.get((tgid, base))
         if layout is None:
             raise ValueError(f"route base {base} for TGID {tgid} has no source layout")
+        if layout.layer >= route_layers:
+            raise ValueError(
+                f"route unexpectedly covers layer {layout.layer}, outside 0..{route_layers - 1}"
+            )
         if expert < 0 or expert >= layout.n_experts:
             raise ValueError(f"route expert {expert} is out of range")
         graphs.add((tgid, graph))
         per_operation[(tgid, graph, layout.layer, layout.kind)].add(expert)
 
-    selection_counts = [defaultdict(int) for _ in range(expected_layers)]
-    layer_graphs = [0] * expected_layers
+    selection_counts = [defaultdict(int) for _ in range(route_layers)]
+    layer_graphs = [0] * route_layers
     incomplete_graphs = 0
     for tgid, graph in sorted(graphs):
         graph_layers = 0
-        for layer in range(expected_layers):
+        for layer in range(route_layers):
             by_kind = {
                 kind: per_operation.get((tgid, graph, layer, kind), set())
                 for kind in EXPECTED_KINDS
@@ -143,7 +151,7 @@ def compile_hot_set(
                 selection_counts[layer][expert] += 1
         if graph_layers == 0:
             raise ValueError(f"TGID {tgid} graph {graph} has no classified routes")
-        if graph_layers != expected_layers:
+        if graph_layers != route_layers:
             incomplete_graphs += 1
 
     selections: list[tuple[int, tuple[int, ...]]] = []
@@ -235,6 +243,7 @@ def main() -> int:
     parser.add_argument("--report", type=Path)
     parser.add_argument("--expected-layers", type=int, default=36)
     parser.add_argument("--expected-experts", type=int, default=128)
+    parser.add_argument("--expected-route-layers", type=int)
     parser.add_argument("--top-k", type=int, default=10)
     args = parser.parse_args()
 
@@ -248,6 +257,7 @@ def main() -> int:
         expected_layers=args.expected_layers,
         expected_experts=args.expected_experts,
         top_k=args.top_k,
+        expected_route_layers=args.expected_route_layers,
     )
     write_hot_set(args.output, hot_set)
     if args.report is not None:

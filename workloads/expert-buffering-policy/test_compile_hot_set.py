@@ -93,6 +93,25 @@ class CompileHotSetTests(unittest.TestCase):
         self.assertEqual(compiled.incomplete_graphs, 2)
         self.assertEqual(compiled.layer_graphs, (1, 1))
 
+    def test_route_coverage_can_be_narrower_than_source_layout(self) -> None:
+        events = [
+            event for event in self.complete_events()
+            if event.get("event") != "route" or event["tensor_base"] < 1100
+        ]
+        compiled = compile_hot_set(
+            events, expected_layers=2, expected_experts=8, top_k=2,
+            expected_route_layers=1,
+        )
+        self.assertEqual(len(compiled.selections), 1)
+        self.assertEqual(compiled.selections[0], (0, (1, 3)))
+
+    def test_route_outside_narrow_coverage_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "outside 0..0"):
+            compile_hot_set(
+                self.complete_events(), expected_layers=2, expected_experts=8,
+                top_k=2, expected_route_layers=1,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

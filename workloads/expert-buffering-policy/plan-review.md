@@ -1,5 +1,22 @@
 # Independent Plan Review
 
+## Proposal 6 framework-route review
+
+Date: 2026-09-01
+
+Initial verdict: **BLOCK**. Although the context gate required 32 routed
+layers, it did not reject partial per-graph coverage.
+
+Final verdict after repair: **APPROVE**.
+
+The shared runner validator now requires exactly 32 routed layers, zero
+incomplete graphs, and identical per-layer and total graph counts. The saved
+`--n-cpu-moe 32` trace passes with 216 source layouts, 641,958 routes, 1,105
+graphs, 1,105 graphs for every routed layer, and zero dropped events. Layers
+0--31 are the CPU-streamed layers; layers 32--35 remain device-resident and are
+not claimed to emit the streaming marker. The separate `--n-cpu-moe 36`
+calibration retains all-layer coverage.
+
 ## Proposal 5 observability repair review
 
 Date: 2026-08-31

@@ -1,10 +1,15 @@
 # Experiment Plan: Profile-guided hot-expert residency analogue
 
-Status: proposal 5, independently approved after the four-cell runner
+Status: proposal 6, independently approved after the framework context trace confirmed that
+`--n-cpu-moe 32` exposes selected-expert streaming routes for exactly layers
+0--31 while layers 32--35 remain device-resident. The three primary UVM cells
+passed the proposal-5 correctness run and remain preserved; the completed
+context evidence may be finalized under the repaired gate.
+
+Proposal 5 was independently approved after the four-cell runner
 established that the plain-UVM baseline is not byte-deterministic over 64
 generated tokens and the UVM Tools tracker reports no completed-eviction events
-for this path. The repaired correctness run is authorized; timing remains
-gated on it.
+for this path.
 
 ## Research Question And Hypothesis
 
@@ -170,7 +175,11 @@ modules stay loaded. Distribution UVM is restored afterward.
   decisions, and zero typed-setter failures.
   The observation control requires positive mapped activation and access
   classification and zero reorder requests. Framework context requires
-  positive existing selected-expert copy bytes and complete route observations.
+  positive existing selected-expert copy bytes and complete route observations
+  for exactly the 32 CPU-streamed layers. Layers 32--35 remain device-resident
+  in this configuration and are not falsely required to emit the selected-
+  expert streaming marker; the separate calibration already proved all 36
+  layers with `--n-cpu-moe 36`.
   The UVM Tools tracker output is retained as diagnostic evidence, including
   zero-event outcomes, but is not treated as proof that no PMM replacement
   occurred and has no positive gate.

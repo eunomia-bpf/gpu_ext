@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import math
 import os
@@ -42,15 +41,23 @@ SCHEDULE_SEED = 1797
 BOOTSTRAP_SAMPLES = 10000
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def file_metadata(path: Path) -> dict[str, Any]:
+    logical = path.absolute()
+    if not logical.is_file():
+        return {"path": str(logical), "exists": False}
+    stat = logical.stat()
+    return {
+        "path": str(logical),
+        "exists": True,
+        "bytes": stat.st_size,
+        "device": stat.st_dev,
+        "inode": stat.st_ino,
+        "mtime_ns": stat.st_mtime_ns,
+        "ctime_ns": stat.st_ctime_ns,
+    }
 
 
-def source_manifest(args: argparse.Namespace) -> dict[str, str]:
+def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
     paths = [
         Path(__file__).resolve(),
         OBS_ROOT / "run_observability_overhead.py",
@@ -69,7 +76,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, str]:
                 args.bpftime_root / spec.example_dir / spec.user_file,
             ]
         )
-    return {str(path): sha256(path) for path in paths}
+    return {str(path): file_metadata(path) for path in paths}
 
 
 def defining_params(args: argparse.Namespace) -> dict[str, Any]:
@@ -350,7 +357,7 @@ def run_correctness_cell(
     result: dict[str, Any] = {
         "attempt": attempt,
         "returncode": completed.returncode,
-        "stdout_sha256": hashlib.sha256(output.encode()).hexdigest(),
+        "normalized_stdout": output,
         "stdout_bytes": len(output.encode()),
         "log": str((run_dir / "llama_cli.log").relative_to(output_dir)),
         "valid": completed.returncode == 0 and bool(output),
@@ -412,9 +419,9 @@ def valid_correctness(state: dict[str, Any], config: str) -> dict[str, Any] | No
     )
     if baseline is None:
         return None
-    expected = baseline["stdout_sha256"]
+    expected = baseline["normalized_stdout"]
     for attempt in reversed(state["correctness"][config]["attempts"]):
-        if attempt.get("valid") and attempt.get("stdout_sha256") == expected:
+        if attempt.get("valid") and attempt.get("normalized_stdout") == expected:
             return attempt
     return None
 
@@ -540,18 +547,18 @@ def new_state(args: argparse.Namespace, timestamp: str, snapshot: dict[str, Any]
             "driver": parse_driver(snapshot),
             "nvbit_driver_supported": nvbit_driver_supported(parse_driver(snapshot)),
             "cuda_ptx": core.cuda_ptx_snapshot(args.llama_bench),
-            "model_sha256": sha256(args.model),
-            "llama_bench_sha256": sha256(args.llama_bench),
-            "llama_cli_sha256": sha256(args.llama_cli),
-            "libggml_cuda_sha256": sha256(args.llama_bench.parent / "libggml-cuda.so"),
-            "bpftime_agent_sha256": sha256(
+            "model_file": file_metadata(args.model),
+            "llama_bench_file": file_metadata(args.llama_bench),
+            "llama_cli_file": file_metadata(args.llama_cli),
+            "libggml_cuda_file": file_metadata(args.llama_bench.parent / "libggml-cuda.so"),
+            "bpftime_agent_file": file_metadata(
                 args.bpftime_build_dir / "runtime/agent/libbpftime-agent.so"
             ),
-            "bpftime_syscall_server_sha256": sha256(
+            "bpftime_syscall_server_file": file_metadata(
                 args.bpftime_build_dir
                 / "runtime/syscall-server/libbpftime-syscall-server.so"
             ),
-            "nvbit_artifact_sha256": sha256(artifact),
+            "nvbit_artifact_file": file_metadata(artifact),
             "source_manifest": source_manifest(args),
         },
         "schedule": schedules,
@@ -568,7 +575,7 @@ def record_artifacts(
     for tool, directory in tool_dirs.items():
         paths[f"gpubpf_{tool}"] = directory / tool
     state["artifacts"] = {
-        name: {"path": str(path), "sha256": sha256(path)}
+        name: file_metadata(path)
         for name, path in paths.items()
     }
 
@@ -582,14 +589,14 @@ def verify_resume(
         raise RuntimeError("resume driver differs from the recorded experiment")
     checks = {
         "bpftime_git": core.git_rev(args.bpftime_root),
-        "model_sha256": sha256(args.model),
-        "llama_bench_sha256": sha256(args.llama_bench),
-        "llama_cli_sha256": sha256(args.llama_cli),
-        "libggml_cuda_sha256": sha256(args.llama_bench.parent / "libggml-cuda.so"),
-        "bpftime_agent_sha256": sha256(
+        "model_file": file_metadata(args.model),
+        "llama_bench_file": file_metadata(args.llama_bench),
+        "llama_cli_file": file_metadata(args.llama_cli),
+        "libggml_cuda_file": file_metadata(args.llama_bench.parent / "libggml-cuda.so"),
+        "bpftime_agent_file": file_metadata(
             args.bpftime_build_dir / "runtime/agent/libbpftime-agent.so"
         ),
-        "bpftime_syscall_server_sha256": sha256(
+        "bpftime_syscall_server_file": file_metadata(
             args.bpftime_build_dir
             / "runtime/syscall-server/libbpftime-syscall-server.so"
         ),
@@ -603,7 +610,7 @@ def verify_resume(
     tool_dirs: dict[str, Path] = {}
     for name, artifact in state.get("artifacts", {}).items():
         path = Path(artifact["path"])
-        if not path.exists() or sha256(path) != artifact["sha256"]:
+        if file_metadata(path) != artifact:
             raise RuntimeError(f"resume artifact mismatch: {name}")
         if name == "nvbit_tool":
             args.nvbit_tool = path
@@ -751,7 +758,7 @@ def main() -> int:
             baseline = valid_correctness(state, "baseline")
             check["matches_baseline"] = bool(
                 baseline
-                and check.get("stdout_sha256") == baseline.get("stdout_sha256")
+                and check.get("normalized_stdout") == baseline.get("normalized_stdout")
             )
             check["valid"] = bool(check.get("valid")) and check["matches_baseline"]
         state["correctness"][config]["attempts"].append(check)

@@ -74,3 +74,16 @@ have not been independently approved because the workflow permits no further
 follow-up for this proposal. The proposal is therefore closed as rejected; its
 implementation and raw admission evidence are retained for a future newly
 reviewed experiment after a supported driver is installed.
+
+## Offline no-fingerprint repair
+
+The repository-wide no-fingerprint rule supersedes the earlier requests for
+file fingerprints and normalized-output checksums. Without reopening the
+closed scientific review or starting a GPU process, the adapter now preserves
+the short normalized deterministic output verbatim and compares it exactly.
+Source, model, runtime, and built-tool observations use ordinary path, size,
+device, inode, and modification/change-time metadata plus Git revisions. Four
+CPU-only tests cover metadata, normalization, exact-output selection, and a
+source guard against reintroducing content-fingerprint logic. The proposal
+remains runtime-blocked on driver 610 and remains scientifically closed after
+round 3.

@@ -13,8 +13,9 @@ char _license[] SEC("license") = "GPL";
 #define CONFIG_CONFIDENCE_THRESHOLD 0
 #define CONFIG_PREFETCH_PAGES 1
 #define CONFIG_MAX_STRIDE 2
-#define MAX_FREQ 255
 #define LFU_ACCESS_SAMPLE_MASK 255
+#define LFU_COUNTER_SLOTS 16384
+#define LFU_COUNTER_MASK (LFU_COUNTER_SLOTS - 1)
 
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -47,30 +48,11 @@ struct {
 } va_block_cache SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 100000);
-    __type(key, u64);
-    __type(value, u32);
-} chunk_freq SEC(".maps");
-
-struct {
-    __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, MAX_FREQ + 1);
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(max_entries, LFU_COUNTER_SLOTS);
     __type(key, u32);
-    __type(value, u64);
-} freq_to_chunk SEC(".maps");
-
-struct lfu_state {
-    u32 min_freq;
-    u32 total_chunks;
-};
-
-struct {
-    __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 1);
-    __type(key, u32);
-    __type(value, struct lfu_state);
-} lfu_global SEC(".maps");
+    __type(value, u8);
+} lfu_counts SEC(".maps");
 
 struct engagement_stats {
     u64 page_fault_calls;
@@ -121,49 +103,30 @@ static __always_inline u64 get_cached_va_block(void)
     return cached ? *cached : 0;
 }
 
-static __always_inline struct lfu_state *get_lfu_state(void)
+static __always_inline u32 lfu_chunk_index(uvm_gpu_chunk_t *chunk)
 {
-    u32 key = 0;
-    struct lfu_state *state = bpf_map_lookup_elem(&lfu_global, &key);
-    if (!state) {
-        struct lfu_state initial = { .min_freq = 1, .total_chunks = 0 };
-        bpf_map_update_elem(&lfu_global, &key, &initial, BPF_ANY);
-        state = bpf_map_lookup_elem(&lfu_global, &key);
-    }
-    return state;
+    u64 pointer = 0;
+
+    bpf_probe_read_kernel(&pointer, sizeof(pointer), &chunk);
+    return (u32)((pointer >> 6) ^ (pointer >> 18)) & LFU_COUNTER_MASK;
 }
 
-static __always_inline void clean_old_freq_bucket(u64 address, u32 old_freq)
+static __always_inline bool increase_sampled_freq(
+    uvm_gpu_chunk_t *chunk,
+    uvm_bpf_pmm_decision_ctx_t *decision_ctx)
 {
-    u64 *representative = bpf_map_lookup_elem(&freq_to_chunk, &old_freq);
-    if (representative && *representative == address) {
-        u64 zero = 0;
-        bpf_map_update_elem(&freq_to_chunk, &old_freq, &zero, BPF_ANY);
-    }
-}
+    u32 index = lfu_chunk_index(chunk);
+    u8 *frequency = bpf_map_lookup_elem(&lfu_counts, &index);
 
-static __always_inline bool increase_freq(u64 address,
-                                          uvm_bpf_pmm_decision_ctx_t *decision_ctx)
-{
-    u32 *frequency = bpf_map_lookup_elem(&chunk_freq, &address);
     if (!frequency)
         return false;
-
-    u32 old_freq = *frequency;
-    u32 new_freq = old_freq < MAX_FREQ ? old_freq + 1 : MAX_FREQ;
-    clean_old_freq_bucket(address, old_freq);
-    bpf_map_update_elem(&chunk_freq, &address, &new_freq, BPF_ANY);
-    bpf_map_update_elem(&freq_to_chunk, &new_freq, &address, BPF_ANY);
-
-    struct lfu_state *state = get_lfu_state();
-    if (state && old_freq == state->min_freq) {
-        u64 *old_bucket = bpf_map_lookup_elem(&freq_to_chunk, &old_freq);
-        if (!old_bucket || *old_bucket == 0)
-            state->min_freq = new_freq;
-    }
-    if (new_freq > old_freq)
-        bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_TAIL);
-    return new_freq > old_freq;
+    if (*frequency == 255)
+        return false;
+    (*frequency)++;
+    bpf_gpu_request_reorder(decision_ctx,
+                            NV_GPU_PMM_DESTINATION_USED,
+                            NV_GPU_PMM_POSITION_TAIL);
+    return true;
 }
 
 SEC("kprobe/uvm_perf_prefetch_get_hint_va_block")
@@ -298,17 +261,7 @@ int BPF_PROG(gpu_block_activate,
     if (stats)
         stats->lfu_activations++;
 
-    u64 address = (u64)chunk;
-    u32 frequency = 1;
-    bpf_map_update_elem(&chunk_freq, &address, &frequency, BPF_ANY);
-    bpf_map_update_elem(&freq_to_chunk, &frequency, &address, BPF_ANY);
-    struct lfu_state *state = get_lfu_state();
-    if (state) {
-        state->min_freq = 1;
-        state->total_chunks++;
-    }
-    bpf_gpu_request_reorder(decision_ctx, NV_GPU_PMM_DESTINATION_USED, NV_GPU_PMM_POSITION_HEAD);
-    return 1;
+    return 0;
 }
 
 SEC("struct_ops/gpu_block_access")
@@ -329,7 +282,7 @@ int BPF_PROG(gpu_block_access,
         return 1;
     if (stats)
         stats->lfu_sampled_updates++;
-    if (increase_freq((u64)chunk, decision_ctx) && stats)
+    if (increase_sampled_freq(chunk, decision_ctx) && stats)
         stats->lfu_reorder_requests++;
     return 1;
 }

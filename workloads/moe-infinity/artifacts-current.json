@@ -186,10 +186,12 @@
   },
   "combined_policy": {
     "semantics": "one revision-only host stride-prefetch plus deterministic 1/256 sampled approximate-LFU eviction struct_ops object; not the submitted device-observed policy",
-    "policy_revision": "sampled-lfu-v1",
-    "lfu_access_sampling": "one expensive frequency-map update per 256 callbacks on each CPU",
+    "policy_revision": "sampled-lfu-percpu-v2",
+    "lfu_access_sampling": "one bounded per-CPU approximate-counter update and tail-reorder request per 256 access callbacks on each CPU",
+    "lfu_activation_behavior": "observation-only; no shared map update, no reorder, DEFAULT return",
     "predecessor_disposition": "the exact unsampled LFU warm-up failed with Xid 109 context-switch timeout followed by Xid 31 MMU fault and produced no accepted sample",
-    "sampled_canary_disposition": "failed at the same post-prompt CUDA synchronization point after 7789 sampled updates from 1994365 LFU access callbacks; no response or accepted sample; no further sampling-ratio tuning authorized",
+    "sampled_canary_disposition": "revision-7 canary passed: 512+64 response in 45.026 seconds, 20307 sampled updates from 5198943 LFU access callbacks, 34533 eviction-prepare callbacks, and no new Xid or kernel abnormality",
+    "sampled_canary_result": "raw/repaired-preflight/sampled-lfu-percpu-canary-06/result.json",
     "bpf_source": "../../extension/prefetch_stride_lfu.bpf.c",
     "loader_source": "../../extension/prefetch_stride_lfu.c",
     "bpf_object": "../../extension/.output/prefetch_stride_lfu.bpf.o",
@@ -198,50 +200,53 @@
     "ownership": "loader destroys only its held link and skeleton; no generic cleanup"
   },
   "control_continuation": {
-    "protocol": "proposal-3-revision-6-controls",
-    "status": "failed",
+    "protocol": "proposal-3-revision-7",
+    "status": "passed",
     "llama_uvm": {
       "warmup_completed": true,
       "responses_completed": 16,
       "completion_tokens_per_response": 64,
       "request_seed": 42,
-      "exact_two_pass_prompts": [
-        2,
-        3,
-        4,
-        6,
-        7,
-        8
-      ],
-      "nondeterministic_prompts": [
-        1,
-        5
-      ],
-      "disposition": "fixed request seed did not remove output nondeterminism; cause not isolated"
+      "total_slots": 1,
+      "exact_two_pass_prompts": [1, 2, 3, 4, 5, 6, 7, 8],
+      "nondeterministic_prompts": [],
+      "disposition": "all eight prompts reproduced exactly across two passes"
     },
-    "llama_ncmoe32": "not launched after the fail-closed UVM correctness gate",
-    "xid_gate": "failed: Xid history continuity could not be established, so an empty new_xids field is not accepted as evidence of no new event",
-    "cleanup": "GPU 15 MiB and zero utilization, UVM refcount zero, struct_ops inventory empty",
+    "llama_ncmoe32": {
+      "warmup_completed": true,
+      "responses_completed": 16,
+      "completion_tokens_per_response": 64,
+      "total_slots": 1,
+      "exact_two_pass_prompts": [1, 2, 3, 4, 5, 6, 7, 8],
+      "nondeterministic_prompts": [],
+      "disposition": "all eight prompts reproduced exactly across two passes"
+    },
+    "cross_configuration_text_equal": false,
+    "cross_configuration_disposition": "diagnostic only because CUDA-UVM and CPU-MoE use different floating-point execution paths",
+    "xid_gate": "passed for both serial control servers; no current-boot Xid or kernel abnormality",
+    "cleanup": "both per-server gates returned GPU memory to 15 MiB with zero utilization, UVM refcount zero, and struct_ops inventory empty",
+    "predecessor_result": "raw/repaired-preflight/controls-single-slot-03/control-result.json",
+    "result": "raw/repaired-preflight/controls-single-slot-04/control-result.json",
     "complete_preflight": false,
     "timing_authorized": false,
-    "stopping_rule": "no further seed, sampling, oracle, or harness tuning"
+    "stopping_rule": "requested control repair passed; no timing authorized"
   },
   "custom_driver_modules": {
     "nvidia.ko": {
       "version": "610.43.02",
-      "vermagic": "7.1.12-070112-generic SMP preempt mod_unload modversions "
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions "
     },
     "nvidia-modeset.ko": {
       "version": "610.43.02",
-      "vermagic": "7.1.12-070112-generic SMP preempt mod_unload modversions "
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions "
     },
     "nvidia-drm.ko": {
       "version": "610.43.02",
-      "vermagic": "7.1.12-070112-generic SMP preempt mod_unload modversions "
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions "
     },
     "nvidia-uvm.ko": {
       "version": "610.43.02",
-      "vermagic": "7.1.12-070112-generic SMP preempt mod_unload modversions "
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions "
     }
   },
   "experiment_harness": {
@@ -250,8 +255,8 @@
     "repair_plan": "repair-plan.md",
     "repair_plan_review": "repair-plan-review.md",
     "numerical_check": "numerical_row_chunking_check.py",
-    "protocol": "proposal-3-revision-4",
-    "plan_review": "follow-up approved; final preflight failed the storage-open classification gate",
+    "protocol": "proposal-3-revision-7",
+    "plan_review": "revision-7 execution approved; independent final result review passed with no blocking defect",
     "repaired_preflight_attempts": 3,
     "repaired_preflight_root": "raw/repaired-preflight",
     "commands": "commands.json",
@@ -259,6 +264,6 @@
     "uvm_eviction_monitor": "uvm_eviction_monitor",
     "uvm_event_type": "UvmEventTypeEviction (14)",
     "uvm_event_abi": "V2, 72-byte queue entries",
-    "offline_tests": 56
+    "offline_tests": 68
   }
 }

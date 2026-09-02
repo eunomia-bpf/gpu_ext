@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import inspect
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -339,6 +341,19 @@ class CombinedPolicyTests(unittest.TestCase):
         self.assertIn("BPF_MAP_TYPE_PERCPU_ARRAY", source)
         self.assertIn("(*clock & LFU_ACCESS_SAMPLE_MASK) != 0", source)
 
+    def test_lfu_frequency_state_is_bounded_per_cpu_and_activation_is_native(self) -> None:
+        source = (EXTENSION / "prefetch_stride_lfu.bpf.c").read_text()
+        self.assertIn("#define LFU_COUNTER_SLOTS 16384", source)
+        self.assertIn("lfu_counts SEC", source)
+        self.assertNotIn("chunk_freq SEC", source)
+        self.assertNotIn("freq_to_chunk SEC", source)
+        activation = source[
+            source.index('SEC("struct_ops/gpu_block_activate")'):
+            source.index('SEC("struct_ops/gpu_block_access")')
+        ]
+        self.assertNotIn("bpf_gpu_request_reorder", activation)
+        self.assertIn("return 0;", activation)
+
     def test_sampled_lfu_delta_gate(self) -> None:
         valid = {
             "lfu_accesses": 25600,
@@ -393,6 +408,105 @@ class RunnerTests(unittest.TestCase):
         self.assertNotIn("ignore_eos", runner.completion_payload("moe_infinity_075", [1, 2], False))
         self.assertNotIn("seed", runner.completion_payload("moe_infinity_075", [1, 2], False))
 
+    def test_llama_command_pins_one_slot_and_sixty_second_timeout(self) -> None:
+        argv, _ = runner.server_command("llama_uvm", 18080, ROOT / "raw/test")
+        self.assertEqual(argv[argv.index("--parallel") + 1], "1")
+        self.assertIn("--kv-unified", argv)
+        self.assertEqual(argv[argv.index("--timeout") + 1], "60")
+
+    def test_revision7_uses_unique_preserved_output_directories(self) -> None:
+        self.assertNotEqual(runner.REPAIRED_LFU_CANARY, runner.SAMPLED_LFU_CANARY)
+        self.assertNotEqual(
+            runner.REPAIRED_CONTROL_CONTINUATION, runner.CONTROL_CONTINUATION
+        )
+        self.assertEqual(runner.REPAIR_PROTOCOL_ID, "proposal-3-revision-7")
+
+    def test_llama_cuda_identity_rejects_cpu_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory) / "server.log"
+            log.write_text(
+                "warning: no usable GPU found\n"
+                "warning: llama.cpp was compiled without GPU support\n"
+            )
+            with self.assertRaisesRegex(runner.GateError, "CUDA backend identity"):
+                runner.validate_llama_cuda_backend(log)
+
+    def test_llama_cuda_identity_accepts_expected_device(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory) / "server.log"
+            log.write_text(
+                "ggml_cuda_init: found 1 CUDA devices:\n"
+                "llama_model_load_from_file_impl: using device CUDA0 "
+                "(NVIDIA GeForce RTX 5090) (0000:02:00.0)\n"
+            )
+            runner.validate_llama_cuda_backend(log)
+
+    def test_repaired_canary_uses_direct_eviction_prepare_evidence(self) -> None:
+        source = inspect.getsource(runner.run_sampled_lfu_canary)
+        self.assertIn('"gpu_evict_prepare struct_ops callback"', source)
+        self.assertNotIn("start_eviction_monitors(server.pid", source)
+
+    def test_post_server_safety_wait_is_bounded(self) -> None:
+        source = inspect.getsource(runner.wait_for_post_server_safety)
+        self.assertIn("timeout: float = 60", source)
+        self.assertIn("GPU did not settle", source)
+
+    def test_kernel_abnormal_filter_ignores_boot_panic_option(self) -> None:
+        text = (
+            "Kernel command line: quiet panic=10\n"
+            "NVRM: Xid (PCI:0000:02:00): 31, pid=1\n"
+            "NVRM: fatal channel test\n"
+            "nvidia-uvm: fatal test event\n"
+        )
+        self.assertEqual(
+            runner.filtered_kernel_records(text),
+            [
+                "NVRM: Xid (PCI:0000:02:00): 31, pid=1",
+                "NVRM: fatal channel test",
+                "nvidia-uvm: fatal test event",
+            ],
+        )
+
+    def test_run_checked_has_bounded_timeout(self) -> None:
+        with mock.patch.object(
+            runner.subprocess, "run", side_effect=subprocess.TimeoutExpired(["x"], 60)
+        ):
+            with self.assertRaisesRegex(runner.GateError, "exceeded 60 seconds"):
+                runner.run_checked(["x"])
+
+    def test_owned_group_cleanup_uses_one_sixty_second_deadline(self) -> None:
+        process = mock.Mock(pid=42)
+        process.poll.return_value = None
+        process.wait.side_effect = [
+            subprocess.TimeoutExpired(["server"], 30),
+            subprocess.TimeoutExpired(["server"], 20),
+            0,
+        ]
+        with (
+            mock.patch.object(runner.os, "getpgid", return_value=42),
+            mock.patch.object(runner.os, "killpg"),
+            mock.patch.object(runner.time, "monotonic", side_effect=[0, 1, 31, 51]),
+        ):
+            runner.stop_owned_process_group(process)
+        waits = [call.kwargs["timeout"] for call in process.wait.call_args_list]
+        self.assertLessEqual(sum(waits), 60)
+
+    def test_post_server_safety_rejects_new_journal_record(self) -> None:
+        base = {
+            "power_limit_service": "active",
+            "power_limit_w": 400.0,
+            "gpu": {
+                "compute_apps": [], "memory_used_mib": 15,
+                "utilization_gpu_percent": 0,
+            },
+            "uvm_refcount": 0,
+            "struct_ops": {"maps": [], "links": []},
+            "dmesg_abnormal": [], "journal_abnormal": [], "xids": [],
+        }
+        after = dict(base, journal_abnormal=["NVRM: Xid 31"], xids=["NVRM: Xid 31"])
+        with self.assertRaisesRegex(runner.GateError, "current boot"):
+            runner.validate_post_server_safety(base, after)
+
     def test_xid_records_discard_rendered_time_prefix(self) -> None:
         rendered = "[1.0] NVRM: Xid first\n[2.0] unrelated\n[3.0] NVRM: Xid second\n"
         with mock.patch.object(runner, "run_checked", return_value=rendered):
@@ -406,16 +520,21 @@ class RunnerTests(unittest.TestCase):
         self.assertIn('"complete_preflight": False', source)
         self.assertIn('"timing_authorized": False', source)
 
+    def test_control_cross_configuration_text_is_diagnostic(self) -> None:
+        source = inspect.getsource(runner.complete_control_correctness)
+        self.assertIn('"cross_configuration_text_equal"', source)
+        self.assertNotIn('results["golden_comparison"]', source)
+
     def test_canary_writes_passed_result_only_after_cleanup_gates(self) -> None:
         source = __import__("inspect").getsource(runner.run_sampled_lfu_canary)
         passed_write = source.index("atomic_write_json(result_path, result)")
         for required in (
             "stop_owned_process_group(server)",
-            "stop_exact_process(monitor)",
             "stop_exact_process(policy)",
             "validate_log(log_path)",
             "inventory = struct_ops_inventory()",
             "xid_gate = require_no_new_xids(before_xids)",
+            "wait_for_post_server_safety(before_safety)",
         ):
             self.assertLess(source.index(required), passed_write)
 

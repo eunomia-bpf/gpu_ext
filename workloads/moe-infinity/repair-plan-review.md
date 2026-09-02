@@ -170,3 +170,48 @@ Follow-up verdict: **APPROVE**.
 
 The fixed-namespace attempt 3 is authorized. Timing remains unauthorized until
 that complete real preflight passes every correctness and engagement gate.
+## Revision 7 independent review
+
+The reviewer found both causal diagnoses technically plausible and the
+single-slot llama repair strongly supported by the saved server log and pinned
+llama source, but withheld execution approval pending three changes: apply the
+complete safety gate between the two control servers rather than only around
+the combined action; make the no-reorder activation hook return DEFAULT; and
+implement the new protocol/directory, 60-second stage/request timeouts,
+explicit unified-KV command, journal/Xid checks, and power-limit gate in the
+runner with offline tests. The reviewer also required the LFU explanation to
+remain a causal hypothesis until the canary passes.
+
+Revision 7 incorporates all three blockers. Each server now has its own
+pre/post safety snapshot and no following server can launch unless cleanup and
+the journal, Xid, GPU, UVM, struct_ops, and 400 W gates pass. The LFU activation
+hook is specified to return DEFAULT when it makes no request. The old failure
+directories remain immutable, and the new authorization, paths, timeouts, and
+claim boundary are explicit. With these changes, no reviewed blocking defect
+remains before code/build validation; GPU execution remains conditional on the
+implemented offline tests and live pre-run safety gate.
+
+## Revision 7 execution disposition
+
+The approved per-CPU sampled-LFU canary passed at
+`sampled-lfu-percpu-canary-06`: the 512+64 response completed, every required
+policy counter engaged with the 1/256 relation, cleanup completed, and the
+journal/Xid gates recorded no new abnormality. The serial single-slot control
+rerun also completed both configurations and both eight-prompt passes. Each
+configuration reproduced all eight texts exactly across passes, and both
+per-server safety gates passed. Independent result review nevertheless rejected
+the post-result attempt to reclassify cross-configuration text differences.
+That `controls-single-slot-03` aggregate remains failed. The revised criterion
+is now declared before a fresh `controls-single-slot-04` rerun: exact two-pass
+repeatability is required within each configuration, while text differences
+between the distinct CPU-MoE and CUDA-UVM floating-point implementations are
+reported diagnostically.
+
+The fresh `controls-single-slot-04` run passed that predeclared gate directly.
+Both configurations used slot 0 only, completed warm-up plus two eight-prompt
+passes, and reproduced all eight texts exactly within each configuration. The
+UVM and N-CMoE mechanisms both engaged, and all four safety snapshots remained
+clean. Prompts 5, 7, and 8 differed across configurations and are retained as
+the declared diagnostic. Final independent result-review verdict: **PASS**, no
+blocking defect. The sampled-LFU canary and repaired controls are valid; full
+preflight and timing remain unauthorized.

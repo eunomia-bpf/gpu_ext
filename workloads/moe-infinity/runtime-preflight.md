@@ -243,3 +243,51 @@ No further seed, sampling, oracle, or harness tuning is authorized. The
 control continuation is a negative correctness result, not a performance
 sample: N-CMoE was not run, gpubpf remains infeasible, the four-configuration
 preflight is incomplete, and timing remains unauthorized.
+
+## Revision 7 repair: sampled-LFU canary and controls passed
+
+The sampled-LFU failure had two independent causes. First, every activation
+updated a shared frequency HASH map and unconditionally requested a list-head
+reorder; sampling only the access hook therefore left the activation hot path
+under severe contention. The repaired policy uses a bounded 16,384-entry
+per-CPU approximate counter array, makes activation observation-only with a
+DEFAULT return, and retains deterministic 1/256 access sampling with sampled
+tail reorder. Second, an intervening llama build had `GGML_CUDA=OFF`; the
+CUDA/no-VMM server was rebuilt and the runner now requires its log to identify
+the RTX 5090 as CUDA0 before inference.
+
+The final canary is preserved at
+`raw/repaired-preflight/sampled-lfu-percpu-canary-06`. Its unchanged 512+64
+request completed in 45.026 seconds. The policy observed 5,198,943 LFU access
+callbacks, 20,307 sampled updates, 20,307 sampled reorder requests, 50,342
+activations, and 34,533 eviction-prepare callbacks. The sample count satisfies
+the per-CPU 1/256 rounding gate. The response, single-slot identity, CUDA
+identity, policy cleanup, UVM refcount, struct_ops inventory, 400 W service,
+journal, and Xid gates all passed; no new Xid was recorded.
+
+The event-monitor check exposed a separate evidence-source mismatch rather
+than a policy failure. The only event-trackable owned descriptor reported zero
+type-14 events, as it did in preserved earlier runs, while the other descriptor
+returned the already classified `NV_STATUS 22`. The canary now uses the direct
+in-kernel `gpu_evict_prepare` callback counter for feasibility engagement. The
+full timing protocol's completed-eviction requirement is unchanged and remains
+out of scope.
+
+The final repaired controls passed under
+`raw/repaired-preflight/controls-single-slot-04`. Explicit `--kv-unified`
+prevents llama-server build 7102 from rewriting `--parallel 1` to four slots.
+The final run observed one slot for both `llama_uvm` and `llama_ncmoe32`;
+each completed its warm-up and two full eight-prompt passes and reproduced all
+eight outputs exactly between passes. Both per-server pre/post safety gates
+passed with no Xid or kernel abnormality. Prompts 5, 7, and 8 differed across
+configurations and are recorded diagnostically under the predeclared rule.
+
+The predecessor `controls-single-slot-03` run had likewise observed one slot for both
+`llama_uvm` and `llama_ncmoe32`; each completed its warm-up and two full
+eight-prompt passes and reproduced every output exactly between passes. Its
+separate pre/post safety gates passed with no Xid or kernel abnormality. Three
+prompts differed across configurations despite greedy decoding. That directory
+remains failed because the criterion was clarified only after observing it.
+
+Both requested repairs are complete. Neither result creates a complete
+four-configuration preflight or authorizes performance timing.

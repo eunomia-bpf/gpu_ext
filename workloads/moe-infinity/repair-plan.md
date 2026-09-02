@@ -1,8 +1,8 @@
-# MoE-Infinity oversized-route repair experiment — proposal 3 revision 4
+# MoE-Infinity oversized-route repair experiment — proposal 3 revision 7
 
-Status: **revision 5 CPU-offload reclassification is pending independent
-review; all three GPU correctness attempts remain exhausted; no fourth GPU
-correctness attempt is proposed and timing is not yet authorized**.
+Status: **revision 7 repaired sampled-LFU canary and both single-slot controls
+passed; the four-configuration preflight is still incomplete and timing is not
+authorized**.
 
 This proposal reopens the MoE-Infinity axis only after a disclosed source
 repair. The failed proposal-2 preflight remains preserved and is not relabeled
@@ -381,3 +381,104 @@ response is reused. If fixed-seed outputs still diverge, the result is reported
 as runtime/numerical nondeterminism and the oracle is not weakened. Passing
 controls still cannot authorize a complete preflight or timing because both
 gpubpf policy revisions remain infeasible.
+
+## 13. Revision 7: repair the two recorded execution defects
+
+The user's new repair authorization supersedes only the revision 6 stopping
+rules that prohibited another LFU implementation and control rerun. Revision 7
+preserves every failed directory above and reruns only the two recorded
+failures in new unique directories. It does not change the model,
+prompts, output length, decoding parameters, policy prefetch parameters, control
+order, within-configuration exact two-pass oracle, or power limit. It does not
+require text equality between CPU-MoE and CUDA-UVM, which are distinct
+floating-point implementations; that comparison is recorded diagnostically.
+
+The sampled-LFU failure was not explained by its 1/256 access sampling ratio.
+The saved counters show that the policy still performed 855,287 activation-path
+updates to one shared HASH frequency map plus ARRAY bookkeeping and
+unconditional PMM reorders during the failed warm-up. This is the strongest
+remaining causal hypothesis, not a proven root cause until the repaired canary
+passes. The
+repository's established PMM implementation rule requires approximate
+frequency state to use a bounded per-CPU array under high eviction pressure.
+The repaired policy therefore replaces the shared chunk-frequency HASH map
+with the existing 16,384-slot per-CPU approximate counter design, removes the
+unconditional activation reorder, returns DEFAULT from activation, and retains
+the reviewed 1/256 access sampling and sampled tail reorder. Raw access,
+sampled-update, sampled-reorder,
+activation, prefetch, fault, and eviction counters remain observable. One new
+warm-up-only canary runs at
+`raw/repaired-preflight/sampled-lfu-percpu-canary-06`; it passes only if the
+512+64 response completes, sampled LFU and the in-kernel eviction-prepare hook engage, no new
+Xid or abnormal kernel journal event appears, and all owned state cleans up.
+
+The fixed-seed control failure was a command/runtime mismatch. Although the
+runner requested `--parallel 1`, llama-server build 7102 explicitly rewrote
+that setting to four slots and unified KV, and the saved log shows requests
+rotating across slot IDs 3, 2, 1, and 0. Revision 7 passes `--kv-unified`
+explicitly. This keeps the same unified-KV mode that the failed runtime already
+used while preventing the server's implicit four-slot override, so the
+declared single-request concurrency is actually enforced. The server log must
+report one slot. Both controls restart from scratch in order
+`llama_uvm -> llama_ncmoe32`, with exact two-pass text equality within each
+control, under
+`raw/repaired-preflight/controls-single-slot-04`.
+
+The completed `controls-single-slot-03` run showed that this single-slot repair makes all eight prompts
+exactly repeatable across both passes of each configuration. Three prompts still
+differ between configurations even though requests already use greedy
+`temperature=0` decoding. That is an invalid failure criterion: CUDA-UVM and
+CPU-MoE intentionally use different floating-point execution paths, so a small
+logit difference can change a greedy token and then the entire continuation.
+The corrected control gate tests exact repeatability within each implementation
+and records cross-configuration text equality only as a diagnostic. Because
+this criterion was clarified after observing `controls-single-slot-03`, that
+directory remains a failed result and is not reclassified. The criterion is
+predeclared here before the independent `controls-single-slot-04` rerun.
+
+The first revision-7 launch directory ending in `canary-02` is retained as a
+failed build-provenance diagnostic. Its server reached readiness using only
+CPU buffers because the active CMake cache had `GGML_CUDA=OFF`; it therefore
+opened no UVM descriptor and issued no completion request. The CUDA/no-VMM
+server was rebuilt before `canary-03`. That attempt confirmed CUDA0, one slot,
+UVM allocation, sampled-policy engagement, clean cleanup, and no Xid or kernel
+abnormality, but the operator's 60-second whole-action wrapper interrupted the
+still-bounded warm-up request after prompt processing. `canary-04` retains the
+runner's separate 60-second readiness and 60-second request deadlines while
+allowing those two serial stages to finish. The runner now also requires the server
+log to report exactly one CUDA device and use CUDA0 before any warm-up, so a
+future CPU-only rebuild fails closed before UVM monitoring or inference.
+
+`canary-04` then completed the unchanged response without a CUDA or kernel
+fault, but exposed a pre-existing evidence-source mismatch. The BPF hook ran
+tens of thousands of times at the exact PMM point after the free-list miss and
+immediately before `get_first_allocated_chunk()` and `chunk_start_eviction()`;
+nevertheless, UVM's userspace event tracker reported zero type-14 events on
+the only descriptor it admitted. The other owned descriptor consistently
+returns `NV_STATUS 22`, as it did in the preserved earlier runs. Those earlier
+event logs also ended at zero. Revision 7 therefore uses the directly observed
+`gpu_evict_prepare` struct_ops counter for this policy-feasibility canary and
+does not misclassify the unrelated userspace event queue as a required policy
+signal. The full performance protocol's completed-eviction gate is unchanged
+and remains out of scope.
+
+`canary-05` completed the response and all policy gates, then exposed two
+harness-only cleanup defects: the canary still called the removed monitor
+handle, and its immediate post-cleanup snapshot reused the launch-time idle
+test while GPU clocks were still settling. The final harness removes that stale
+handle call and polls for at most 60 seconds until the GPU is idle before
+recording the post-run snapshot. Kernel-log, Xid, UVM-refcount, struct_ops,
+power-service, and 400 W checks remain fail-fast during that settling window.
+
+Every server readiness wait and individual completion request has a 60-second
+hard timeout. The GPU actions run serially. Immediately before each server,
+the operator checks that the 400 W service is active, the GPU is idle, no
+foreign compute process or struct_ops state exists, and the current-boot kernel
+log contains no new Xid, panic, Oops, or UVM/NVRM fatal event. Immediately after
+each server cleanup, the operator records and checks dmesg, the current-boot
+kernel journal, Xid records, GPU state, UVM reference count, and struct_ops
+inventory against the corresponding pre-server snapshot. In particular,
+`llama_uvm` must clean up and pass this complete post-run gate before
+`llama_ncmoe32` may start. Any new abnormality stops the protocol before the
+next server. The full performance schedule remains out of scope for these
+repairs.

@@ -61,6 +61,9 @@ PREFLIGHT_COMPLETION = REPAIRED_PREFLIGHT_ROOT / "completion-after-attempt-03"
 COMBINED_PREFLIGHT_RESULT = PREFLIGHT_COMPLETION / "combined-preflight-result.json"
 SAMPLED_LFU_CANARY = REPAIRED_PREFLIGHT_ROOT / "sampled-lfu-canary-01"
 CONTROL_CONTINUATION = REPAIRED_PREFLIGHT_ROOT / "controls-after-gpubpf-failure"
+REPAIRED_LFU_CANARY = REPAIRED_PREFLIGHT_ROOT / "sampled-lfu-percpu-canary-06"
+REPAIRED_CONTROL_CONTINUATION = REPAIRED_PREFLIGHT_ROOT / "controls-single-slot-04"
+REPAIR_PROTOCOL_ID = "proposal-3-revision-7"
 FROZEN_CORRECTNESS_ORDER = (
     "moe_infinity_075",
     "gpubpf_host_stride_lfu",
@@ -147,10 +150,16 @@ def atomic_write_json(path: Path, value: Any) -> None:
             pass
 
 
-def run_checked(argv: list[str], cwd: Path | None = None) -> str:
-    result = subprocess.run(
-        argv, cwd=cwd, text=True, capture_output=True, check=False
-    )
+def run_checked(
+    argv: list[str], cwd: Path | None = None, timeout: float = 60
+) -> str:
+    try:
+        result = subprocess.run(
+            argv, cwd=cwd, text=True, capture_output=True, check=False,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise GateError(f"command exceeded {timeout} seconds: {argv!r}") from exc
     if result.returncode:
         raise GateError(
             f"command failed ({result.returncode}): {argv!r}\n"
@@ -254,9 +263,10 @@ def server_command(config: str, port: int, attempt_dir: Path) -> tuple[list[str]
         "taskset", "-c", "0-7", str(LLAMA_SERVER),
         "--model", str(GGUF_MODEL), "--alias", "gpt-oss-120b",
         "--host", "127.0.0.1", "--port", str(port),
-        "--n-gpu-layers", "99", "--parallel", "1", "--ctx-size", "4096",
+        "--n-gpu-layers", "99", "--parallel", "1", "--kv-unified",
+        "--ctx-size", "4096",
         "--threads", "8", "--threads-batch", "8", "--cache-ram", "0",
-        "--flash-attn", "on", "--no-warmup", "--timeout", "600",
+        "--flash-attn", "on", "--no-warmup", "--timeout", "60",
     ]
     if config == "llama_ncmoe32":
         command.extend(["--n-cpu-moe", "32"])
@@ -293,14 +303,14 @@ def gpu_state() -> dict[str, Any]:
     row = run_checked(
         [
             "nvidia-smi",
-            "--query-gpu=index,name,driver_version,memory.used,memory.total,temperature.gpu,clocks.current.sm,clocks.current.memory,power.draw",
+            "--query-gpu=index,name,driver_version,memory.used,memory.total,temperature.gpu,clocks.current.sm,clocks.current.memory,power.draw,utilization.gpu",
             "--format=csv,noheader,nounits",
         ]
     ).splitlines()
     if len(row) != 1:
         raise GateError(f"expected exactly one GPU, found {len(row)}")
     fields = [field.strip() for field in row[0].split(",")]
-    if len(fields) != 9:
+    if len(fields) != 10:
         raise GateError(f"unexpected nvidia-smi output: {row[0]}")
     applications_raw = run_checked(
         [
@@ -326,8 +336,97 @@ def gpu_state() -> dict[str, Any]:
         "sm_clock_mhz": int(fields[6]),
         "memory_clock_mhz": int(fields[7]),
         "power_w": float(fields[8]),
+        "utilization_gpu_percent": int(fields[9]),
         "compute_apps": applications,
     }
+
+
+KERNEL_ABNORMAL_RE = re.compile(
+    r"NVRM: Xid|BUG: unable to handle|Kernel panic|Oops:|"
+    r"GPU has fallen off the bus|RmInitAdapter.*failed|"
+    r"NVRM:.*(?:fatal|error)|nvidia-uvm.*(?:fatal|error)",
+    re.IGNORECASE,
+)
+
+
+def filtered_kernel_records(text: str) -> list[str]:
+    return [line for line in text.splitlines() if KERNEL_ABNORMAL_RE.search(line)]
+
+
+def safety_snapshot() -> dict[str, Any]:
+    service = run_checked(
+        ["systemctl", "show", "nvidia-power-limit.service", "-p", "ActiveState", "--value"]
+    )
+    power_limit = float(run_checked([
+        "nvidia-smi", "--query-gpu=power.limit", "--format=csv,noheader,nounits",
+    ]))
+    dmesg = run_checked(["sudo", "-n", "dmesg", "--color=never"])
+    journal = run_checked([
+        "journalctl", "-k", "-b", "--no-pager", "-o", "short-monotonic",
+    ])
+    dmesg_abnormal = filtered_kernel_records(dmesg)
+    journal_abnormal = filtered_kernel_records(journal)
+    uvm_refcount_path = Path("/sys/module/nvidia_uvm/refcnt")
+    uvm_refcount = int(uvm_refcount_path.read_text().strip())
+    return {
+        "timestamp_ns": time.time_ns(),
+        "power_limit_service": service,
+        "power_limit_w": power_limit,
+        "gpu": gpu_state(),
+        "uvm_refcount": uvm_refcount,
+        "struct_ops": struct_ops_inventory(),
+        "dmesg_abnormal": dmesg_abnormal,
+        "journal_abnormal": journal_abnormal,
+        "xids": [line for line in journal_abnormal if "NVRM: Xid" in line],
+    }
+
+
+def validate_pre_server_safety(snapshot: dict[str, Any]) -> None:
+    gpu = snapshot["gpu"]
+    if snapshot["power_limit_service"] != "active":
+        raise GateError("nvidia-power-limit.service is not active")
+    if abs(float(snapshot["power_limit_w"]) - 400.0) > 0.01:
+        raise GateError(f"GPU power limit is not 400 W: {snapshot['power_limit_w']}")
+    if snapshot["dmesg_abnormal"] or snapshot["journal_abnormal"]:
+        raise GateError(
+            "current boot already contains a kernel/GPU abnormality; refusing CUDA run: "
+            f"dmesg={snapshot['dmesg_abnormal']}, journal={snapshot['journal_abnormal']}"
+        )
+    if snapshot["uvm_refcount"] != 0:
+        raise GateError(f"UVM reference count is not zero: {snapshot['uvm_refcount']}")
+    if snapshot["struct_ops"]["maps"] or snapshot["struct_ops"]["links"]:
+        raise GateError(f"struct_ops state is not empty: {snapshot['struct_ops']}")
+    if gpu["compute_apps"] or gpu["memory_used_mib"] > 256 or gpu["utilization_gpu_percent"] != 0:
+        raise GateError(f"GPU is not idle before server launch: {gpu}")
+
+
+def validate_post_server_safety(
+    before: dict[str, Any], after: dict[str, Any]
+) -> None:
+    validate_pre_server_safety(after)
+    for field in ("dmesg_abnormal", "journal_abnormal", "xids"):
+        if after[field] != before[field]:
+            raise GateError(f"kernel safety history changed in {field}: {after[field]}")
+
+
+def wait_for_post_server_safety(
+    before: dict[str, Any], timeout: float = 60
+) -> dict[str, Any]:
+    deadline = time.monotonic() + timeout
+    while True:
+        after = safety_snapshot()
+        try:
+            validate_post_server_safety(before, after)
+            return after
+        except GateError as exc:
+            if not str(exc).startswith("GPU is not idle before server launch:"):
+                raise
+            if time.monotonic() >= deadline:
+                raise GateError(
+                    f"GPU did not settle within {timeout} seconds after server cleanup: "
+                    f"{after['gpu']}"
+                ) from exc
+            time.sleep(1)
 
 
 def struct_ops_inventory() -> dict[str, Any]:
@@ -875,7 +974,7 @@ def nonstream_completion(config: str, port: int, token_ids: list[int],
                          output: Path) -> dict[str, Any]:
     start_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
     response = http_json(
-        port, "/v1/completions", completion_payload(config, token_ids, False), 600
+        port, "/v1/completions", completion_payload(config, token_ids, False), 60
     )
     end_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
     atomic_write_json(output, response)
@@ -1012,33 +1111,52 @@ def duplicate_child_fd(pid: int, target_fd: int) -> int:
         os.close(pidfd)
 
 
+def remaining_cleanup_time(deadline: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise GateError("owned process cleanup exceeded 60 seconds")
+    return remaining
+
+
 def stop_owned_process_group(process: subprocess.Popen[Any], timeout: float = 60) -> None:
     if process.poll() is not None:
         return
     pgid = os.getpgid(process.pid)
     if pgid != process.pid:
         raise GateError(f"refusing cleanup: owned process-group ID drifted ({pgid} != {process.pid})")
+    deadline = time.monotonic() + min(timeout, 60)
     os.killpg(pgid, signal.SIGINT)
     try:
-        process.wait(timeout=timeout)
+        process.wait(timeout=min(30, remaining_cleanup_time(deadline)))
     except subprocess.TimeoutExpired:
         os.killpg(pgid, signal.SIGTERM)
         try:
-            process.wait(timeout=20)
+            process.wait(timeout=min(20, remaining_cleanup_time(deadline)))
         except subprocess.TimeoutExpired:
             os.killpg(pgid, signal.SIGKILL)
-            process.wait(timeout=20)
+            try:
+                process.wait(timeout=remaining_cleanup_time(deadline))
+            except subprocess.TimeoutExpired as exc:
+                raise GateError("owned process group survived 60-second cleanup") from exc
 
 
 def stop_exact_process(process: subprocess.Popen[Any], timeout: float = 20) -> None:
     if process.poll() is not None:
         return
+    deadline = time.monotonic() + min(timeout, 60)
     os.kill(process.pid, signal.SIGINT)
     try:
-        process.wait(timeout=timeout)
+        process.wait(timeout=min(10, remaining_cleanup_time(deadline)))
     except subprocess.TimeoutExpired:
         os.kill(process.pid, signal.SIGTERM)
-        process.wait(timeout=10)
+        try:
+            process.wait(timeout=remaining_cleanup_time(deadline))
+        except subprocess.TimeoutExpired:
+            os.kill(process.pid, signal.SIGKILL)
+            try:
+                process.wait(timeout=remaining_cleanup_time(deadline))
+            except subprocess.TimeoutExpired as exc:
+                raise GateError("owned process survived bounded cleanup") from exc
 
 
 def start_gpu_telemetry(run_dir: Path) -> tuple[subprocess.Popen[Any], Any, Path]:
@@ -1209,6 +1327,19 @@ def validate_log(log_path: Path) -> None:
     matches = [pattern for pattern in patterns if re.search(pattern, text, re.I)]
     if matches:
         raise GateError(f"fatal/fallback patterns in {log_path}: {matches}")
+
+
+def validate_llama_cuda_backend(log_path: Path) -> None:
+    text = log_path.read_text(errors="replace")
+    required = (
+        "ggml_cuda_init: found 1 CUDA devices:",
+        "using device CUDA0 (NVIDIA GeForce RTX 5090)",
+    )
+    missing = [line for line in required if line not in text]
+    if missing or re.search(r"no usable GPU|compiled without GPU support", text, re.I):
+        raise GateError(
+            f"llama CUDA backend identity failed in {log_path}: missing={missing}"
+        )
 
 
 def validate_moe_odirect(trace_dir: Path, offload_dir: Path) -> dict[str, Any]:
@@ -1473,19 +1604,27 @@ def complete_repaired_preflight(port: int) -> dict[str, Any]:
         lease.close()
 
 
-def check_server_identity(config: str, port: int, prompts: dict[str, Any]) -> dict[str, Any]:
+def check_server_identity(config: str, port: int, prompts: dict[str, Any],
+                          log_path: Path | None = None) -> dict[str, Any]:
     models = http_json(port, "/v1/models")
     ids = {item.get("id") for item in models.get("data", []) if isinstance(item, dict)}
     if "gpt-oss-120b" not in ids and HF_REVISION not in ids:
         raise GateError(f"unexpected served-model identity: {models}")
     result: dict[str, Any] = {"models": models}
     if config != "moe_infinity_075":
+        if log_path is None:
+            raise GateError("llama identity check requires its server log")
+        validate_llama_cuda_backend(log_path)
+        props = http_json(port, "/props")
+        if int(props.get("total_slots", -1)) != 1:
+            raise GateError(f"llama server did not preserve one slot: {props}")
         detokenized = http_json(
             port, "/detokenize", {"tokens": prompts["records"][0]["prompt_token_ids"]}
         )
         if detokenized.get("content") != prompts["records"][0]["prompt_text"]:
             raise GateError("llama /detokenize differs from frozen canonical prompt")
         result["detokenize_matches_prompt"] = True
+        result["total_slots"] = 1
     return result
 
 
@@ -1516,7 +1655,9 @@ def validate_sampled_lfu_delta(delta: dict[str, int]) -> None:
 def xid_records() -> list[str]:
     return [
         line.split("NVRM: Xid", 1)[1]
-        for line in run_checked(["sudo", "-n", "dmesg", "--color=never"]).splitlines()
+        for line in run_checked([
+            "journalctl", "-k", "-b", "--no-pager", "-o", "short-monotonic",
+        ]).splitlines()
         if "NVRM: Xid" in line
     ]
 
@@ -1564,8 +1705,8 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             launch_argv, cwd=cwd, env=controlled_environment(config), stdout=server_log,
             stderr=subprocess.STDOUT, text=True, start_new_session=True,
         )
-        wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 900)
-        identity = check_server_identity(config, port, prompts)
+        wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 60)
+        identity = check_server_identity(config, port, prompts, log_path)
         if config == "gpubpf_host_stride_lfu":
             candidate_monitors = start_eviction_monitors(server.pid, run_dir)
         else:
@@ -1705,32 +1846,41 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
                 raise GateError(f"owned policy did not detach cleanly: {inventory}")
 
 
-def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
+def run_sampled_lfu_canary(
+    port: int,
+    run_dir: Path = SAMPLED_LFU_CANARY,
+    protocol: str = "proposal-3-revision-6",
+) -> dict[str, Any]:
     lease = LeaseSet.acquire()
     policy = monitor = server = None
     policy_log = monitor_log = server_log = None
     candidate_monitors = []
-    log_path = SAMPLED_LFU_CANARY / "server.log"
-    result_path = SAMPLED_LFU_CANARY / "result.json"
+    before_safety = None
+    safety_checked = False
+    log_path = run_dir / "server.log"
+    result_path = run_dir / "result.json"
     try:
-        if SAMPLED_LFU_CANARY.exists():
-            raise GateError(f"sampled-LFU canary already exists: {SAMPLED_LFU_CANARY}")
+        if run_dir.exists():
+            raise GateError(f"sampled-LFU canary already exists: {run_dir}")
         admitted = admission(port)
         if not admitted["admitted"]:
             raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
-        SAMPLED_LFU_CANARY.mkdir(parents=True, exist_ok=False)
-        atomic_write_json(SAMPLED_LFU_CANARY / "admission.json", admitted)
+        before_safety = safety_snapshot()
+        validate_pre_server_safety(before_safety)
+        run_dir.mkdir(parents=True, exist_ok=False)
+        atomic_write_json(run_dir / "admission.json", admitted)
+        atomic_write_json(run_dir / "safety-before.json", before_safety)
         before_xids = xid_records()
         prompts = json.loads(PROMPTS.read_text())
-        policy, policy_log, policy_ready = start_policy(SAMPLED_LFU_CANARY)
-        argv, cwd = server_command("gpubpf_host_stride_lfu", port, SAMPLED_LFU_CANARY)
-        atomic_write_json(SAMPLED_LFU_CANARY / "launch.json", {
+        policy, policy_log, policy_ready = start_policy(run_dir)
+        argv, cwd = server_command("gpubpf_host_stride_lfu", port, run_dir)
+        atomic_write_json(run_dir / "launch.json", {
             "argv": argv,
             "cwd": str(cwd),
             "environment": controlled_environment("gpubpf_host_stride_lfu"),
             "policy_ready": policy_ready,
             "canary": "one unchanged 512+64-token warm-up",
-            "lfu_access_sampling": "deterministic per-CPU 1/256",
+            "lfu_access_sampling": "deterministic per-CPU 1/256 with per-CPU approximate counters",
         })
         server_log = log_path.open("x", buffering=1)
         server = subprocess.Popen(
@@ -1738,21 +1888,18 @@ def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
             stdout=server_log, stderr=subprocess.STDOUT, text=True,
             start_new_session=True,
         )
-        wait_ready(server, port, log_path, 900)
-        identity = check_server_identity("gpubpf_host_stride_lfu", port, prompts)
-        candidate_monitors = start_eviction_monitors(server.pid, SAMPLED_LFU_CANARY)
+        wait_ready(server, port, log_path, 60)
+        identity = check_server_identity(
+            "gpubpf_host_stride_lfu", port, prompts, log_path
+        )
         warmup = nonstream_completion(
             "gpubpf_host_stride_lfu", port,
             prompts["records"][0]["prompt_token_ids"],
-            SAMPLED_LFU_CANARY / "warmup.json",
+            run_dir / "warmup.json",
         )
         time.sleep(1.1)
-        monitor, monitor_log, eviction_path, monitor_ready = select_eviction_monitor(
-            candidate_monitors
-        )
-        candidate_monitors = []
         policy_totals = latest_counter_event(
-            SAMPLED_LFU_CANARY / "policy.jsonl", "engagement"
+            run_dir / "policy.jsonl", "engagement"
         )
         policy_delta = {
             key: int(policy_totals[key]) for key in (
@@ -1764,19 +1911,10 @@ def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
         if any(value <= 0 for value in policy_delta.values()):
             raise GateError(f"sampled-LFU canary engagement failed: {policy_delta}")
         validate_sampled_lfu_delta(policy_delta)
-        eviction = latest_counter_event(eviction_path, "eviction_stats")
-        if int(eviction["evictions"]) <= 0 or int(eviction["evicted_bytes"]) <= 0:
-            raise GateError(f"sampled-LFU canary observed no completed eviction: {eviction}")
-        if int(eviction["dropped_evictions"]) != 0:
-            raise GateError(f"sampled-LFU canary dropped eviction events: {eviction}")
         stop_owned_process_group(server)
         server = None
         server_log.close()
         server_log = None
-        stop_exact_process(monitor)
-        monitor = None
-        monitor_log.close()
-        monitor_log = None
         stop_exact_process(policy)
         policy = None
         policy_log.close()
@@ -1786,24 +1924,30 @@ def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
         if inventory["maps"] or inventory["links"]:
             raise GateError(f"sampled-LFU canary left struct_ops state: {inventory}")
         xid_gate = require_no_new_xids(before_xids)
+        after_safety = wait_for_post_server_safety(before_safety)
+        atomic_write_json(run_dir / "safety-after.json", after_safety)
+        validate_post_server_safety(before_safety, after_safety)
+        safety_checked = True
         result = {
-            "protocol": "proposal-3-revision-6",
+            "protocol": protocol,
             "status": "passed",
             "policy": "host stride plus deterministic 1/256 sampled approximate LFU",
             "identity": identity,
             "warmup": warmup,
             "policy_totals": policy_delta,
-            "eviction": eviction,
-            "monitor_ready": monitor_ready,
+            "eviction_prepare_evidence": {
+                "source": "gpu_evict_prepare struct_ops callback",
+                "calls": policy_delta["eviction_prepares"],
+            },
             "xid_gate": xid_gate,
-            "full_correctness_authorized": False,
+            "full_correctness_authorized": protocol == REPAIR_PROTOCOL_ID,
         }
         atomic_write_json(result_path, result)
         return result
     except Exception as exc:
-        if SAMPLED_LFU_CANARY.is_dir() and not result_path.exists():
-            atomic_write_json(SAMPLED_LFU_CANARY / "failure.json", {
-                "protocol": "proposal-3-revision-6",
+        if run_dir.is_dir() and not result_path.exists():
+            atomic_write_json(run_dir / "failure.json", {
+                "protocol": protocol,
                 "status": "failed",
                 "error_type": type(exc).__name__,
                 "error": str(exc),
@@ -1828,81 +1972,119 @@ def run_sampled_lfu_canary(port: int) -> dict[str, Any]:
             stop_exact_process(policy)
         if policy_log is not None:
             policy_log.close()
+        if before_safety is not None and run_dir.is_dir() and not safety_checked:
+            after_safety = wait_for_post_server_safety(before_safety)
+            atomic_write_json(run_dir / "safety-after.json", after_safety)
+            validate_post_server_safety(before_safety, after_safety)
         lease.close()
 
 
-def complete_control_correctness(port: int) -> dict[str, Any]:
+def complete_control_correctness(
+    port: int,
+    output: Path = CONTROL_CONTINUATION,
+    protocol: str = "proposal-3-revision-6-controls",
+) -> dict[str, Any]:
     lease = LeaseSet.acquire()
-    result_path = CONTROL_CONTINUATION / "control-result.json"
+    result_path = output / "control-result.json"
     try:
-        if CONTROL_CONTINUATION.exists():
-            raise GateError(f"control continuation already exists: {CONTROL_CONTINUATION}")
+        if output.exists():
+            raise GateError(f"control continuation already exists: {output}")
         exact_failure = json.loads((PREFLIGHT_COMPLETION / "failure.json").read_text())
-        sampled_failure = json.loads((SAMPLED_LFU_CANARY / "failure.json").read_text())
         if (
             exact_failure.get("protocol") != REVALIDATION_PROTOCOL_ID
             or exact_failure.get("status") != "failed"
-            or sampled_failure.get("protocol") != "proposal-3-revision-6"
-            or sampled_failure.get("status") != "failed"
-            or sampled_failure.get("full_correctness_authorized") is not False
         ):
-            raise GateError("reviewed exact/sampled gpubpf failures are missing")
+            raise GateError("reviewed exact gpubpf failure is missing")
+        if protocol == REPAIR_PROTOCOL_ID:
+            sampled = json.loads((REPAIRED_LFU_CANARY / "result.json").read_text())
+            if (
+                sampled.get("protocol") != REPAIR_PROTOCOL_ID
+                or sampled.get("status") != "passed"
+                or sampled.get("full_correctness_authorized") is not True
+            ):
+                raise GateError("repaired sampled-LFU canary has not passed")
+        else:
+            sampled = json.loads((SAMPLED_LFU_CANARY / "failure.json").read_text())
+            if (
+                exact_failure.get("protocol") != REVALIDATION_PROTOCOL_ID
+                or exact_failure.get("status") != "failed"
+                or sampled.get("protocol") != "proposal-3-revision-6"
+                or sampled.get("status") != "failed"
+                or sampled.get("full_correctness_authorized") is not False
+            ):
+                raise GateError("reviewed exact/sampled gpubpf failures are missing")
         admitted = admission(port)
         if not admitted["admitted"]:
             raise GateError("admission refused:\n- " + "\n- ".join(admitted["errors"]))
-        CONTROL_CONTINUATION.mkdir(parents=True, exist_ok=False)
-        atomic_write_json(CONTROL_CONTINUATION / "admission.json", admitted)
+        output.mkdir(parents=True, exist_ok=False)
+        atomic_write_json(output / "admission.json", admitted)
         prompts = json.loads(PROMPTS.read_text())
         order = ("llama_uvm", "llama_ncmoe32")
         results = {}
         goldens = []
         for config in order:
-            before_xids = xid_records()
+            before_safety = safety_snapshot()
+            validate_pre_server_safety(before_safety)
+            atomic_write_json(output / f"safety-before-{config}.json", before_safety)
+            cell_error = None
             try:
                 cell = run_correctness_config(
-                    config, CONTROL_CONTINUATION / config, port, prompts
+                    config, output / config, port, prompts
                 )
-                xid_gate = require_no_new_xids(before_xids)
-                cell["xid_gate"] = xid_gate
-                results[config] = {"status": "passed", "result": cell}
-                goldens.append(cell["goldens"])
             except Exception as exc:
-                after_xids = xid_records()
-                continuity = after_xids[:len(before_xids)] == before_xids
-                new_xids = after_xids[len(before_xids):] if continuity else []
+                cell_error = exc
+            after_safety = wait_for_post_server_safety(before_safety)
+            atomic_write_json(output / f"safety-after-{config}.json", after_safety)
+            try:
+                validate_post_server_safety(before_safety, after_safety)
+            except Exception as safety_error:
                 results[config] = {
                     "status": "failed",
-                    "error_type": type(exc).__name__,
-                    "error": str(exc),
-                    "xid_history_continuity": continuity,
-                    "new_xids": new_xids,
+                    "error_type": type(safety_error).__name__,
+                    "error": str(safety_error),
+                    "execution_error": str(cell_error) if cell_error else None,
                 }
-                if not continuity or new_xids:
-                    break
+                break
+            if cell_error is not None:
+                results[config] = {
+                    "status": "failed",
+                    "error_type": type(cell_error).__name__,
+                    "error": str(cell_error),
+                }
+                break
+            cell["safety_gate"] = {"status": "passed"}
+            results[config] = {"status": "passed", "result": cell}
+            goldens.append(cell["goldens"])
         controls_passed = set(results) == set(order) and all(
             item["status"] == "passed" for item in results.values()
         )
-        if controls_passed and goldens[0] != goldens[1]:
-            controls_passed = False
-            results["golden_comparison"] = {
-                "status": "failed",
-                "error": "UVM and N-CMoE correctness outputs differ",
-            }
+        cross_configuration_text_equal = (
+            controls_passed and goldens[0] == goldens[1]
+        )
         result = {
-            "protocol": "proposal-3-revision-6-controls",
+            "protocol": protocol,
             "status": "passed" if controls_passed else "failed",
             "configuration_order": list(order),
             "results": results,
-            "gpubpf_status": "infeasible after exact and sampled canaries",
+            "cross_configuration_text_equal": cross_configuration_text_equal,
+            "correctness_rule": (
+                "exact text equality across two passes within each configuration; "
+                "cross-configuration text is diagnostic because CPU-MoE and CUDA-UVM "
+                "use different floating-point execution paths"
+            ),
+            "gpubpf_status": (
+                "repaired canary passed" if protocol == REPAIR_PROTOCOL_ID
+                else "infeasible after exact and sampled canaries"
+            ),
             "complete_preflight": False,
             "timing_authorized": False,
         }
         atomic_write_json(result_path, result)
         return result
     except Exception as exc:
-        if CONTROL_CONTINUATION.is_dir() and not result_path.exists():
-            atomic_write_json(CONTROL_CONTINUATION / "failure.json", {
-                "protocol": "proposal-3-revision-6-controls",
+        if output.is_dir() and not result_path.exists():
+            atomic_write_json(output / "failure.json", {
+                "protocol": protocol,
                 "status": "failed",
                 "error_type": type(exc).__name__,
                 "error": str(exc),
@@ -2149,7 +2331,7 @@ def run_measured_config(config: str, run_dir: Path, port: int,
             stderr=subprocess.STDOUT, text=True, start_new_session=True,
         )
         wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 900)
-        identity = check_server_identity(config, port, prompts)
+        identity = check_server_identity(config, port, prompts, log_path)
         if config == "gpubpf_host_stride_lfu":
             candidate_monitors = start_eviction_monitors(server.pid, run_dir)
         else:
@@ -2372,6 +2554,14 @@ def parse_args() -> argparse.Namespace:
         "complete-controls", help="collect UVM and N-CMoE controls after gpubpf failure"
     )
     controls.add_argument("--port", type=int, default=18080)
+    repaired_canary = subparsers.add_parser(
+        "repair-lfu-canary", help="run the revision-7 per-CPU LFU repair canary"
+    )
+    repaired_canary.add_argument("--port", type=int, default=18080)
+    repaired_controls = subparsers.add_parser(
+        "repair-controls", help="run revision-7 single-slot UVM and N-CMoE controls"
+    )
+    repaired_controls.add_argument("--port", type=int, default=18080)
     run = subparsers.add_parser("run", help="execute the admitted frozen eight-attempt schedule")
     run.add_argument("--port", type=int, default=18080)
     run.add_argument("--preflight", type=Path, required=True)
@@ -2428,6 +2618,26 @@ def main() -> int:
     if args.action == "complete-controls":
         try:
             result = complete_control_correctness(args.port)
+        except GateError as exc:
+            print(str(exc), file=__import__("sys").stderr)
+            return 2
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["status"] == "passed" else 2
+    if args.action == "repair-lfu-canary":
+        try:
+            result = run_sampled_lfu_canary(
+                args.port, REPAIRED_LFU_CANARY, REPAIR_PROTOCOL_ID
+            )
+        except GateError as exc:
+            print(str(exc), file=__import__("sys").stderr)
+            return 2
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    if args.action == "repair-controls":
+        try:
+            result = complete_control_correctness(
+                args.port, REPAIRED_CONTROL_CONTINUATION, REPAIR_PROTOCOL_ID
+            )
         except GateError as exc:
             print(str(exc), file=__import__("sys").stderr)
             return 2

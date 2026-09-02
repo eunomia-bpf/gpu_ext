@@ -11,6 +11,52 @@ import run_xsched_rq3 as runner
 
 
 class RunnerTests(unittest.TestCase):
+    def test_candidate_commands_do_not_change_the_old_policy(self):
+        old_timeslice, old_preempt = runner.gpubpf_policy_commands("gpubpf")
+        no_timeslice, no_preempt = runner.gpubpf_policy_commands("gpubpf_nocooldown")
+        interleave_timeslice, interleave_preempt = runner.gpubpf_policy_commands("gpubpf_interleave")
+        self.assertEqual(no_timeslice, old_timeslice)
+        self.assertEqual(no_preempt[:-1], old_preempt[:-1])
+        self.assertEqual((old_preempt[-1], no_preempt[-1]), ("100", "0"))
+        self.assertEqual(interleave_timeslice, old_timeslice + ["-i", "bench_lc:2", "-i", "bench_be:0"])
+        self.assertEqual(interleave_preempt, old_preempt)
+        self.assertEqual(runner.CONFIGS, ("native", "xsched", "gpubpf"))
+
+    def test_configuration_lists_are_explicit_and_unique(self):
+        self.assertEqual(runner.parse_configs("native,gpubpf_nocooldown"), ("native", "gpubpf_nocooldown"))
+        for invalid in ("", "native,native", "unknown"):
+            with self.assertRaises(Exception):
+                runner.parse_configs(invalid)
+
+    def test_no_cooldown_requires_every_lc_launch_and_four_targets(self):
+        counts = {
+            "uprobe_hit": 120, "preempt_ok": 160, "preempt_err": 0,
+            "skipped": 80, "cooldown_skip": 0, "targets_hit": 160,
+            "tsg_captured": 4, "active_targets": 4,
+        }
+        text = lambda values: "\n".join(f"  {key}: {value}" for key, value in values.items())
+        result = runner.validate_gpubpf_engagement(
+            "gpubpf_nocooldown", "timeslice_mod: 20", text(counts), 5)
+        self.assertEqual(result["expected_preemptions"], 160)
+        counts.update(preempt_ok=8, targets_hit=8, cooldown_skip=38)
+        with self.assertRaisesRegex(RuntimeError, "exactly 160"):
+            runner.validate_gpubpf_engagement(
+                "gpubpf_nocooldown", "timeslice_mod: 20", text(counts), 5)
+        self.assertEqual(runner.validate_gpubpf_engagement(
+            "gpubpf", "timeslice_mod: 20", text(counts), 5)["preempt_ok"], 8)
+
+    def test_interleave_must_be_observed_without_setter_errors(self):
+        preempt = "\n".join(f"{key}: {value}" for key, value in {
+            "uprobe_hit": 120, "preempt_ok": 8, "preempt_err": 0, "skipped": 80,
+            "cooldown_skip": 38, "targets_hit": 8, "tsg_captured": 4, "active_targets": 4,
+        }.items())
+        timeslice = "timeslice_mod: 20\ninterleave_mod: 20\ninterleave_observed: 20\ninterleave_mismatch: 0\nsetter_error: 0"
+        self.assertEqual(runner.validate_gpubpf_engagement(
+            "gpubpf_interleave", timeslice, preempt, 5)["interleave_observed"], 20)
+        with self.assertRaisesRegex(RuntimeError, "not confirmed"):
+            runner.validate_gpubpf_engagement(
+                "gpubpf_interleave", timeslice.replace("interleave_mismatch: 0", "interleave_mismatch: 1"), preempt, 5)
+
     def test_clock_offset_is_bounded(self):
         before = {"offset_ns": -300000000, "uncertainty_ns": 3000}
         after = {"offset_ns": -300010000, "uncertainty_ns": 4000}

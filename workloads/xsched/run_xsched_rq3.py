@@ -34,6 +34,8 @@ EXPECTED_DRIVER = "575.57.08"
 XSCHED_COMMIT = "f49289f0220931df78de948ed841ecbaf960a919"
 SEED = 1797
 CONFIGS = ("native", "xsched", "gpubpf")
+GPUBPF_CONFIGS = ("gpubpf", "gpubpf_nocooldown", "gpubpf_interleave")
+SUPPORTED_CONFIGS = ("native", "xsched") + GPUBPF_CONFIGS
 REPETITIONS = 10
 
 
@@ -248,6 +250,29 @@ def base_env() -> dict[str, str]:
     return env
 
 
+def parse_configs(text: str) -> tuple[str, ...]:
+    configs = tuple(item.strip() for item in text.split(",") if item.strip())
+    if not configs or len(configs) != len(set(configs)):
+        raise argparse.ArgumentTypeError("configuration list must be nonempty and unique")
+    unknown = set(configs) - set(SUPPORTED_CONFIGS)
+    if unknown:
+        raise argparse.ArgumentTypeError(f"unknown configurations: {sorted(unknown)}")
+    return configs
+
+
+def gpubpf_policy_commands(config: str) -> tuple[list[str], list[str]]:
+    if config not in GPUBPF_CONFIGS:
+        raise ValueError(f"not a gpubpf configuration: {config}")
+    timeslice = [str(EXTENSION / "gpu_sched_set_timeslices"),
+                 "-p", "bench_lc:1000000", "-p", "bench_be:200"]
+    if config == "gpubpf_interleave":
+        timeslice += ["-i", "bench_lc:2", "-i", "bench_be:0"]
+    preempt = [str(EXTENSION / "uprobe_preempt_multi"),
+               "--be-name", "bench_be", "--lc-name", "bench_lc",
+               "--cooldown-us", "0" if config == "gpubpf_nocooldown" else "100"]
+    return timeslice, preempt
+
+
 def start_policy(config: str, cpus: list[int], run_dir: Path) -> list[ManagedProcess]:
     policies: list[ManagedProcess] = []
     env = base_env()
@@ -258,15 +283,13 @@ def start_policy(config: str, cpus: list[int], run_dir: Path) -> list[ManagedPro
             time.sleep(0.5)
             if policies[0].proc.poll() is not None:
                 raise RuntimeError("xserver failed to stay running")
-        elif config == "gpubpf":
+        elif config in GPUBPF_CONFIGS:
             sudo = sudo_prefix()
+            timeslice_command, preempt_command = gpubpf_policy_commands(config)
             policies.append(ManagedProcess(
-                "timeslice", sudo + [str(EXTENSION / "gpu_sched_set_timeslices"),
-                                      "-p", "bench_lc:1000000", "-p", "bench_be:200"], env, cpus[0]))
+                "timeslice", sudo + timeslice_command, env, cpus[0]))
             policies.append(ManagedProcess(
-                "preempt", sudo + [str(EXTENSION / "uprobe_preempt_multi"),
-                                    "--be-name", "bench_be", "--lc-name", "bench_lc",
-                                    "--cooldown-us", "100"], env, cpus[1]))
+                "preempt", sudo + preempt_command, env, cpus[1]))
             time.sleep(1.0)
             if any(policy.proc.poll() is not None for policy in policies):
                 raise RuntimeError("gpubpf policy failed to stay running")
@@ -377,6 +400,47 @@ def write_process_log(path: Path, process: ManagedProcess) -> None:
     }, indent=2) + "\n")
 
 
+def parse_final_counters(text: str, names: tuple[str, ...]) -> dict[str, int]:
+    result = {}
+    for name in names:
+        matches = re.findall(rf"(?m)^\s*{re.escape(name)}:\s+(\d+)\s*$", text)
+        if not matches:
+            raise RuntimeError(f"policy final counter is missing: {name}")
+        result[name] = int(matches[-1])
+    return result
+
+
+def validate_gpubpf_engagement(config: str, timeslice_text: str,
+                               preempt_text: str, tasks: int) -> dict[str, int]:
+    result = parse_final_counters(timeslice_text, ("timeslice_mod",))
+    result.update(parse_final_counters(preempt_text, (
+        "uprobe_hit", "preempt_ok", "preempt_err", "skipped", "cooldown_skip",
+        "targets_hit", "tsg_captured", "active_targets",
+    )))
+    if result["timeslice_mod"] < 6:
+        raise RuntimeError("gpubpf did not modify timeslices for all six processes")
+    if result["preempt_ok"] == 0 or result["preempt_err"] != 0:
+        raise RuntimeError("gpubpf preemption engagement gate failed")
+    if result["active_targets"] != 4 or result["tsg_captured"] != 4:
+        raise RuntimeError("gpubpf did not capture exactly four BE GR targets")
+    if result["uprobe_hit"] != 6 * 4 * tasks or result["skipped"] != 4 * 4 * tasks:
+        raise RuntimeError("gpubpf launch/filter counts differ from the fixed workload")
+    if config == "gpubpf_nocooldown":
+        expected = 2 * 4 * tasks * 4
+        if (result["preempt_ok"] != expected or result["targets_hit"] != expected
+                or result["cooldown_skip"] != 0):
+            raise RuntimeError(f"no-cooldown requires exactly {expected} successful target preemptions")
+        result["expected_preemptions"] = expected
+    if config == "gpubpf_interleave":
+        result.update(parse_final_counters(timeslice_text, (
+            "interleave_mod", "interleave_observed", "interleave_mismatch", "setter_error",
+        )))
+        if (result["interleave_mod"] < 6 or result["interleave_observed"] < 6
+                or result["interleave_mismatch"] != 0 or result["setter_error"] != 0):
+            raise RuntimeError("interleave requests were not confirmed at channel-group bind")
+    return result
+
+
 @safe_run
 def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int,
                   threads: int, timeout: float) -> dict[str, Any]:
@@ -481,17 +545,10 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
         if server_text.count("set priority 1") < 8 or server_text.count("set priority 0") < 16:
             raise RuntimeError("xserver log did not establish both priority classes on 24 XQueues")
         engagement = {"audit": audit, "be_suspend_ok": be_transitions, "be_resume_ok": be_resumes}
-    elif config == "gpubpf":
+    elif config in GPUBPF_CONFIGS:
         timeslice_text = "\n".join(policies[0].stdout_lines + policies[0].stderr_lines)
         preempt_text = "\n".join(policies[1].stdout_lines + policies[1].stderr_lines)
-        modified = re.findall(r"timeslice_mod:\s+(\d+)", timeslice_text)
-        preempt_ok = re.findall(r"preempt_ok:\s+(\d+)", preempt_text)
-        preempt_err = re.findall(r"preempt_err:\s+(\d+)", preempt_text)
-        if not modified or int(modified[-1]) < 6:
-            raise RuntimeError("gpubpf did not modify timeslices for all six processes")
-        if not preempt_ok or int(preempt_ok[-1]) == 0 or (preempt_err and int(preempt_err[-1]) != 0):
-            raise RuntimeError("gpubpf preemption engagement gate failed")
-        engagement = {"timeslice_mod": int(modified[-1]), "preempt_ok": int(preempt_ok[-1])}
+        engagement = validate_gpubpf_engagement(config, timeslice_text, preempt_text, tasks)
 
     result = {
         "config": config, "reps": reps, "tasks_per_stream": tasks, "blocks": blocks,
@@ -623,6 +680,7 @@ def analyze(root: Path) -> dict[str, Any]:
         "phase": "full", "repetitions": REPETITIONS, "tasks_per_stream": 50,
     }
     repetitions = protocol["repetitions"]
+    configs = tuple(protocol.get("configs", CONFIGS))
     records = []
     for path in sorted(root.glob("**/result.json")):
         record = json.loads(path.read_text())
@@ -635,14 +693,14 @@ def analyze(root: Path) -> dict[str, Any]:
         if record["tasks_per_stream"] != protocol["tasks_per_stream"]:
             raise RuntimeError("cell task count differs from the frozen protocol")
         by_block.setdefault(record["block"], {})[record["config"]] = record
-    complete = {block: values for block, values in by_block.items() if set(values) == set(CONFIGS)}
+    complete = {block: values for block, values in by_block.items() if set(values) == set(configs)}
     if len(complete) != repetitions or set(complete) != set(range(repetitions)):
         raise RuntimeError(f"analysis requires {repetitions} complete randomized blocks, found {len(complete)}")
     summary: dict[str, Any] = {
         "protocol": protocol, "complete_blocks": len(complete), "configs": {}, "paired": {},
         "xsched_scope": "upstream Level-1 HPF on sm_120; not XSched paper Level-3 reproduction",
     }
-    for config in CONFIGS:
+    for config in configs:
         lc = [complete[block][config]["lc_p99_us"] for block in sorted(complete)]
         be = [complete[block][config]["be_throughput_kernels_s"] for block in sorted(complete)]
         summary["configs"][config] = {
@@ -656,26 +714,38 @@ def analyze(root: Path) -> dict[str, Any]:
             if all(metric in complete[b][config] for b in complete):
                 summary["configs"][config][f"{metric}_median"] = statistics.median(
                     complete[b][config][metric] for b in complete)
-    for baseline in ("native", "xsched"):
-        lc_delta = [complete[b]["gpubpf"]["lc_p99_us"] - complete[b][baseline]["lc_p99_us"] for b in sorted(complete)]
-        be_ratio = [complete[b]["gpubpf"]["be_throughput_kernels_s"] /
-                    complete[b][baseline]["be_throughput_kernels_s"] - 1.0 for b in sorted(complete)]
-        summary["paired"][f"gpubpf_vs_{baseline}"] = {
-            "lc_p99_delta_us_mean_ci95": bootstrap_ci(lc_delta, SEED + 2),
-            "be_throughput_relative_mean_ci95": bootstrap_ci(be_ratio, SEED + 3),
-        }
+    for candidate in GPUBPF_CONFIGS:
+        if candidate not in configs:
+            continue
+        for baseline in ("native", "xsched", "gpubpf"):
+            if baseline not in configs or baseline == candidate:
+                continue
+            lc_delta = [complete[b][candidate]["lc_p99_us"] - complete[b][baseline]["lc_p99_us"] for b in sorted(complete)]
+            be_ratio = [complete[b][candidate]["be_throughput_kernels_s"] /
+                        complete[b][baseline]["be_throughput_kernels_s"] - 1.0 for b in sorted(complete)]
+            summary["paired"][f"{candidate}_vs_{baseline}"] = {
+                "lc_p99_delta_us_mean_ci95": bootstrap_ci(lc_delta, SEED + 2),
+                "be_throughput_relative_mean_ci95": bootstrap_ci(be_ratio, SEED + 3),
+            }
     summary["be_noninferiority_margin"] = -0.05
-    xsched_comparison = summary["paired"]["gpubpf_vs_xsched"]
-    latency_ci = xsched_comparison["lc_p99_delta_us_mean_ci95"]
-    throughput_ci = xsched_comparison["be_throughput_relative_mean_ci95"]
-    decision = classify_comparison(latency_ci, throughput_ci)
-    summary["predeclared_decision"] = {
-        "classification": decision,
+    rules = {
         "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
         "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
         "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
         "inconclusive_rule": "all remaining combinations",
     }
+    for candidate in GPUBPF_CONFIGS:
+        comparison = summary["paired"].get(f"{candidate}_vs_xsched")
+        if comparison is None:
+            continue
+        decision = {"classification": classify_comparison(
+            comparison["lc_p99_delta_us_mean_ci95"],
+            comparison["be_throughput_relative_mean_ci95"],
+        ), **rules}
+        if candidate == "gpubpf":
+            summary["predeclared_decision"] = decision
+        else:
+            summary.setdefault("candidate_decisions", {})[candidate] = decision
     (root / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary
 
@@ -689,6 +759,8 @@ def main() -> int:
     parser.add_argument("--blocks", type=int, default=340)
     parser.add_argument("--threads", type=int, default=256)
     parser.add_argument("--timeout", type=float, default=900.0)
+    parser.add_argument("--configs", type=parse_configs, default=CONFIGS,
+                        help="comma-separated independent configurations; default preserves the original three")
     args = parser.parse_args()
     if args.tasks is None:
         args.tasks = {"pilot": 5, "preflight": 2}.get(args.phase, 50)
@@ -752,12 +824,12 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
     root = args.output or RAW / f"{args.phase}-{timestamp}"
     root.mkdir(parents=True, exist_ok=False)
     (root / "admission.json").write_text(json.dumps(checks, indent=2) + "\n")
-    repetitions = 5 if args.phase == "pilot" else REPETITIONS
+    repetitions = {"pilot": 5, "preflight": 1}.get(args.phase, REPETITIONS)
     protocol = {
         "phase": args.phase, "repetitions": repetitions, "seed": SEED,
         "tasks_per_stream": min(args.tasks, 2) if args.phase == "preflight" else args.tasks,
         "streams_per_process": 4, "lc_processes": 2, "be_processes": 4,
-        "configs": CONFIGS, "reps": args.reps, "blocks": args.blocks,
+        "configs": args.configs, "reps": args.reps, "blocks": args.blocks,
         "threads": args.threads, "timeout_seconds_per_cell": args.timeout,
         "full_50_kernel_10_block_protocol": args.phase == "full" and args.tasks == 50,
         "short_budget_difference": (
@@ -765,12 +837,16 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
             "40 LC samples/cell means nearest-rank P99 is the sample maximum"
         ) if args.phase == "pilot" else None,
         "kernel_target_ms": 80, "xsched_level": 1,
+        "candidate_policy_differences": {
+            "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
+            "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",
+        } if any(config not in CONFIGS for config in args.configs) else {},
     }
     (root / "protocol.json").write_text(json.dumps(protocol, indent=2) + "\n")
 
     if args.phase == "preflight":
         results = []
-        for config in CONFIGS:
+        for config in args.configs:
             result = execute_round(config, root / config, args.reps, min(args.tasks, 2),
                                    args.blocks, args.threads, args.timeout)
             result["block"] = 0
@@ -785,7 +861,7 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
                     execute_isolated(role, root / f"control-{role}-{repetition}", args.reps,
                                      args.tasks, args.blocks, args.threads, args.timeout)
         for block in range(repetitions):
-            order = list(CONFIGS)
+            order = list(args.configs)
             rng.shuffle(order)
             for order_index, config in enumerate(order):
                 result = execute_round(config, root / f"block-{block:02d}-{order_index}-{config}",

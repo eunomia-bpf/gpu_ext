@@ -1,5 +1,12 @@
 # MoE-Infinity revision baseline
 
+Current 575 execution entrypoint and status: [continuation-575.md](continuation-575.md).
+The first real 575 warm-up exposed a Triton CUDA 13.1 module-load crash;
+pinning its Blackwell assembler to CUDA 12.9 and isolating the compile cache
+completed the identical diagnostic request. The new four-cell correctness
+and five-block timing sequence still must finish. The historical 610 protocol
+and failures below are retained, not reused as 575 performance samples.
+
 This directory stages the MoE research-system baseline named in revision R1.
 Upstream dependencies and build products remain under ignored `deps/`; raw
 experiment outputs will be kept under ignored `raw/`.

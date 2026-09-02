@@ -11,6 +11,12 @@ record rather than vendored into gpu_ext.
 
 ## Current status
 
+- [BPF HPF on the same XSched frontend now has repeated performance data](bpftime-hpf-performance-575-20260902.md):
+  all 15 paired cells passed; median LC P99/max was 3695.408 ms versus
+  original XSched's 3936.093 ms, with a paired interval crossing zero.
+  The actual BPF/JIT policy matches upstream HPF in 158,769 tested decisions
+  and uses its unchanged Level-1 actuator. This demonstrates bounded policy
+  expressibility, not a driver-only BPF win or Level-3 reproduction.
 - [Two driver-policy improvements were also measured](driver-candidates-575-20260902.md):
   disabling the preemption cooldown and requesting differentiated interleave.
   All 25 five-configuration cells completed; neither reached XSched's LC

@@ -1,0 +1,25 @@
+{
+  "phase": "preflight",
+  "repetitions": 1,
+  "seed": 1797,
+  "tasks_per_stream": 2,
+  "streams_per_process": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "configs": [
+    "bpftime_hpf"
+  ],
+  "reps": 9496464,
+  "blocks": 340,
+  "threads": 256,
+  "timeout_seconds_per_cell": 120.0,
+  "full_50_kernel_10_block_protocol": false,
+  "short_budget_difference": null,
+  "kernel_target_ms": 80,
+  "xsched_level": 1,
+  "candidate_policy_differences": {
+    "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
+    "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",
+    "bpftime_hpf": "same upstream XSched frontend/Level-1 actuator; HPF decisions run in bpftime ubpf-jit, not driver-only BPF"
+  }
+}

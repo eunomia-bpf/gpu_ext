@@ -1,0 +1,119 @@
+{
+  "protocol": {
+    "phase": "pilot",
+    "repetitions": 5,
+    "seed": 1797,
+    "tasks_per_stream": 5,
+    "streams_per_process": 4,
+    "lc_processes": 2,
+    "be_processes": 4,
+    "configs": [
+      "native",
+      "xsched",
+      "bpftime_hpf"
+    ],
+    "reps": 9496464,
+    "blocks": 340,
+    "threads": 256,
+    "timeout_seconds_per_cell": 120.0,
+    "full_50_kernel_10_block_protocol": false,
+    "short_budget_difference": "5 complete blocks and 5 kernels/stream instead of 10 blocks and 50 kernels/stream; 40 LC samples/cell means nearest-rank P99 is the sample maximum",
+    "kernel_target_ms": 80,
+    "xsched_level": 1,
+    "candidate_policy_differences": {
+      "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
+      "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",
+      "bpftime_hpf": "same upstream XSched frontend/Level-1 actuator; HPF decisions run in bpftime ubpf-jit, not driver-only BPF"
+    }
+  },
+  "complete_blocks": 5,
+  "configs": {
+    "native": {
+      "lc_p99_median_us": 7251551.1,
+      "lc_p99_mean_ci95": [
+        7220959.6514,
+        7256677.4724
+      ],
+      "be_throughput_median": 10.265775105776624,
+      "be_throughput_mean_ci95": [
+        10.259745433338827,
+        10.3056703942351
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 3221210.8699,
+      "lc_p50_us_median": 3075366.215,
+      "lc_p95_us_median": 6696715.372
+    },
+    "xsched": {
+      "lc_p99_median_us": 3936092.868,
+      "lc_p99_mean_ci95": [
+        3676040.391,
+        4376250.3312
+      ],
+      "be_throughput_median": 9.65570646608989,
+      "be_throughput_mean_ci95": [
+        9.599595651389011,
+        9.709193065101115
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 2042591.806,
+      "lc_p50_us_median": 2118162.254,
+      "lc_p95_us_median": 3742737.933
+    },
+    "bpftime_hpf": {
+      "lc_p99_median_us": 3695407.593,
+      "lc_p99_mean_ci95": [
+        3403631.737,
+        4402239.4464
+      ],
+      "be_throughput_median": 9.560156619002905,
+      "be_throughput_mean_ci95": [
+        9.502199007286094,
+        9.637396921519063
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 1962239.29425,
+      "lc_p50_us_median": 2052140.065,
+      "lc_p95_us_median": 3455788.307
+    }
+  },
+  "paired": {
+    "bpftime_hpf_vs_native": {
+      "lc_p99_delta_us_mean_ci95": [
+        -3840300.258,
+        -2818720.205
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.07785914299935434,
+        -0.06134984740174858
+      ]
+    },
+    "bpftime_hpf_vs_xsched": {
+      "lc_p99_delta_us_mean_ci95": [
+        -518009.0728,
+        258531.02539999987
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.01758863468549334,
+        0.0029488526261637117
+      ]
+    }
+  },
+  "xsched_scope": "upstream Level-1 HPF on sm_120; not XSched paper Level-3 reproduction",
+  "be_noninferiority_margin": -0.05,
+  "candidate_decisions": {
+    "bpftime_hpf": {
+      "classification": "inconclusive",
+      "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
+      "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
+      "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
+      "inconclusive_rule": "all remaining combinations"
+    }
+  }
+}

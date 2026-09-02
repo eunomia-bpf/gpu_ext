@@ -1,0 +1,30 @@
+{
+  "name": "lc2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_lc",
+    "lc",
+    "2",
+    "4",
+    "5",
+    "9496464",
+    "340",
+    "256",
+    "0",
+    "-12662779"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"lc\",\"process_id\":2,\"streams\":4,\"tasks\":5}",
+    "{\"event\":\"result\",\"role\":\"lc\",\"process_id\":2,\"completion_host_ns\":3268482661485,\"outputs_validated\":1740800,\"samples\":[{\"submit_ns\":1788391493239905455,\"submit_cupti_ns\":1788391493252568234,\"entry_ns\":1788391494185335616,\"exit_ns\":1788391495730246592},{\"submit_ns\":1788391493243018881,\"submit_cupti_ns\":1788391493255681660,\"entry_ns\":1788391495730251488,\"exit_ns\":1788391496881782112},{\"submit_ns\":1788391493243019814,\"submit_cupti_ns\":1788391493255682593,\"entry_ns\":1788391496881785088,\"exit_ns\":1788391497584438944},{\"submit_ns\":1788391493243020537,\"submit_cupti_ns\":1788391493255683316,\"entry_ns\":1788391497584442752,\"exit_ns\":1788391497942520000},{\"submit_ns\":1788391493243021282,\"submit_cupti_ns\":1788391493255684061,\"entry_ns\":1788391497942523360,\"exit_ns\":1788391498177568544},{\"submit_ns\":1788391493243010678,\"submit_cupti_ns\":1788391493255673457,\"entry_ns\":1788391493252116544,\"exit_ns\":1788391494211546688},{\"submit_ns\":1788391493243022109,\"submit_cupti_ns\":1788391493255684888,\"entry_ns\":1788391494211550016,\"exit_ns\":1788391495156439904},{\"submit_ns\":1788391493243022940,\"submit_cupti_ns\":1788391493255685719,\"entry_ns\":1788391495156443392,\"exit_ns\":1788391496059347744},{\"submit_ns\":1788391493243023649,\"submit_cupti_ns\":1788391493255686428,\"entry_ns\":1788391496328365184,\"exit_ns\":1788391497076585792},{\"submit_ns\":1788391493243024366,\"submit_cupti_ns\":1788391493255687145,\"entry_ns\":1788391497076589088,\"exit_ns\":1788391497575379328},{\"submit_ns\":1788391493243014991,\"submit_cupti_ns\":1788391493255677770,\"entry_ns\":1788391493252187424,\"exit_ns\":1788391495134933856},{\"submit_ns\":1788391493243025080,\"submit_cupti_ns\":1788391493255687859,\"entry_ns\":1788391495134938560,\"exit_ns\":1788391496041572608},{\"submit_ns\":1788391493243025787,\"submit_cupti_ns\":1788391493255688566,\"entry_ns\":1788391496041576864,\"exit_ns\":1788391497129985312},{\"submit_ns\":1788391493243026574,\"submit_cupti_ns\":1788391493255689353,\"entry_ns\":1788391497129989280,\"exit_ns\":1788391497747322496},{\"submit_ns\":1788391493243027364,\"submit_cupti_ns\":1788391493255690143,\"entry_ns\":1788391497747325440,\"exit_ns\":1788391498014493344},{\"submit_ns\":1788391493243016912,\"submit_cupti_ns\":1788391493255679691,\"entry_ns\":1788391493252116832,\"exit_ns\":1788391494211872320},{\"submit_ns\":1788391493243029247,\"submit_cupti_ns\":1788391493255692026,\"entry_ns\":1788391494560945344,\"exit_ns\":1788391495934763808},{\"submit_ns\":1788391493243030132,\"submit_cupti_ns\":1788391493255692911,\"entry_ns\":1788391495934767264,\"exit_ns\":1788391496693172768},{\"submit_ns\":1788391493243030916,\"submit_cupti_ns\":1788391493255693695,\"entry_ns\":1788391496693174784,\"exit_ns\":1788391497351265088},{\"submit_ns\":1788391493243031658,\"submit_cupti_ns\":1788391493255694437,\"entry_ns\":1788391497351269536,\"exit_ns\":1788391497814188192}],\"min_queue_ns\":9099920,\"max_queue_ns\":4699502078,\"clock_offset_ns\":-12662779}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 95736 @ 16:24:52.666892] using global scheduler",
+    "XSCHED_AUDIT pid=95736 xqueue=8500639051794980288 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0",
+    "XSCHED_AUDIT pid=95736 xqueue=8500639051782088928 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0",
+    "XSCHED_AUDIT pid=95736 xqueue=8500639051782054592 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0",
+    "XSCHED_AUDIT pid=95736 xqueue=8500639051798290736 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0"
+  ]
+}

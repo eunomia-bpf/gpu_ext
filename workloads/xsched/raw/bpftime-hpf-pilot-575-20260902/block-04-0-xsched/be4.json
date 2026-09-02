@@ -1,0 +1,31 @@
+{
+  "name": "be4",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_be",
+    "be",
+    "4",
+    "4",
+    "5",
+    "9496464",
+    "340",
+    "256",
+    "1",
+    "-13979544"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":4,\"streams\":4,\"tasks\":5}",
+    "{\"event\":\"running\",\"role\":\"be\",\"process_id\":4,\"host_ns\":3351546270496,\"stream0_task0_active\":true}",
+    "{\"event\":\"result\",\"role\":\"be\",\"process_id\":4,\"completion_host_ns\":3357203534927,\"outputs_validated\":1740800,\"samples\":[{\"submit_ns\":1788391581240241776,\"submit_cupti_ns\":1788391581254221320,\"entry_ns\":1788391581242789504,\"exit_ns\":1788391581875548704},{\"submit_ns\":1788391581243072859,\"submit_cupti_ns\":1788391581257052403,\"entry_ns\":1788391581882592416,\"exit_ns\":1788391582831369952},{\"submit_ns\":1788391581243074274,\"submit_cupti_ns\":1788391581257053818,\"entry_ns\":1788391582831373792,\"exit_ns\":1788391583521469440},{\"submit_ns\":1788391581243075173,\"submit_cupti_ns\":1788391581257054717,\"entry_ns\":1788391583521473824,\"exit_ns\":1788391584018541856},{\"submit_ns\":1788391581243076020,\"submit_cupti_ns\":1788391581257055564,\"entry_ns\":1788391584018545120,\"exit_ns\":1788391584497697344},{\"submit_ns\":1788391581240407627,\"submit_cupti_ns\":1788391581254387171,\"entry_ns\":1788391581243118400,\"exit_ns\":1788391581883057632},{\"submit_ns\":1788391581243076852,\"submit_cupti_ns\":1788391581257056396,\"entry_ns\":1788391582232416320,\"exit_ns\":1788391583405521024},{\"submit_ns\":1788391581243077858,\"submit_cupti_ns\":1788391581257057402,\"entry_ns\":1788391583405524096,\"exit_ns\":1788391584039707584},{\"submit_ns\":1788391581243078627,\"submit_cupti_ns\":1788391581257058171,\"entry_ns\":1788391584039711584,\"exit_ns\":1788391584733702912},{\"submit_ns\":1788391581243079381,\"submit_cupti_ns\":1788391581257058925,\"entry_ns\":1788391586066431392,\"exit_ns\":1788391586730312608},{\"submit_ns\":1788391581240414066,\"submit_cupti_ns\":1788391581254393610,\"entry_ns\":1788391581865373664,\"exit_ns\":1788391583284315520},{\"submit_ns\":1788391581243080232,\"submit_cupti_ns\":1788391581257059776,\"entry_ns\":1788391583284320352,\"exit_ns\":1788391584140471008},{\"submit_ns\":1788391581243081002,\"submit_cupti_ns\":1788391581257060546,\"entry_ns\":1788391584214579392,\"exit_ns\":1788391585015350208},{\"submit_ns\":1788391581243081808,\"submit_cupti_ns\":1788391581257061352,\"entry_ns\":1788391585015353984,\"exit_ns\":1788391585363679968},{\"submit_ns\":1788391581243082603,\"submit_cupti_ns\":1788391581257062147,\"entry_ns\":1788391586066430464,\"exit_ns\":1788391586730210688},{\"submit_ns\":1788391581240417137,\"submit_cupti_ns\":1788391581254396681,\"entry_ns\":1788391581243300608,\"exit_ns\":1788391582819196736},{\"submit_ns\":1788391581243084618,\"submit_cupti_ns\":1788391581257064162,\"entry_ns\":1788391582819203168,\"exit_ns\":1788391583541859552},{\"submit_ns\":1788391581243085513,\"submit_cupti_ns\":1788391581257065057,\"entry_ns\":1788391583730670368,\"exit_ns\":1788391584586147584},{\"submit_ns\":1788391581243086355,\"submit_cupti_ns\":1788391581257065899,\"entry_ns\":1788391584586152000,\"exit_ns\":1788391585116423744},{\"submit_ns\":1788391581243087080,\"submit_cupti_ns\":1788391581257066624,\"entry_ns\":1788391586066599904,\"exit_ns\":1788391586900304896}],\"min_queue_ns\":2547728,\"max_queue_ns\":4823512824,\"clock_offset_ns\":-13979544}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 98175 @ 16:26:20.697021] using global scheduler",
+    "XSCHED_AUDIT pid=98175 xqueue=9187167868591750464 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=98175 xqueue=9187167868578859232 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=98175 xqueue=9187167868578824896 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=98175 xqueue=9187167868595060912 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1"
+  ]
+}

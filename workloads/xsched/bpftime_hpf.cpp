@@ -10,6 +10,7 @@
 #include "ebpf-vm.h"
 #include "bpftime_hpf.h"
 #include "xsched/sched/policy/policy.h"
+#include "xsched/utils/log.h"
 
 using namespace xsched::sched;
 
@@ -57,7 +58,9 @@ public:
         if (hint->Type() != kHintTypePriority) return;
         auto priority = std::dynamic_pointer_cast<const PriorityHint>(hint);
         if (!priority) throw std::runtime_error("invalid priority hint");
-        priorities_[priority->Handle()] = std::clamp(priority->Prio(), PRIORITY_MIN, PRIORITY_MAX);
+        const Priority value = std::clamp(priority->Prio(), PRIORITY_MIN, PRIORITY_MAX);
+        priorities_[priority->Handle()] = value;
+        XINFO("set priority %d for XQueue 0x" FMT_64X, value, priority->Handle());
     }
 
     void Sched(const Status &status) override

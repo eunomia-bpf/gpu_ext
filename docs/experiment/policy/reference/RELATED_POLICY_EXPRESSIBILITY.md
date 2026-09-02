@@ -230,6 +230,18 @@ memory and returned to an idle GPU without new Xids. Counter snapshots and
 failure-side correctness retention were subsequently added for diagnosis;
 that diagnostic revision has only been rebuilt, not rerun on the GPU.
 
+The three unchanged result files and parsed facts are retained in
+[`workloads/bpftime-device-smoke/raw/canary-evidence.json`](../../../../workloads/bpftime-device-smoke/raw/canary-evidence.json).
+A subsequent CPU-only call to the existing return-probe translation library
+generated one unpredicated return call and no warp/lane filter. The per-thread
+expectation remains 4,096 × 8; `call.uni` does not mean one invocation per warp.
+The host lookup copies all 32,768 map bytes, and the probe retains ownership of
+the CUDA allocation after the target exits. The leading unconfirmed hypothesis
+is launch routing bypassing the patched CUfunction. Next-run counter snapshots
+plus existing debug routing messages can distinguish that from a map/codegen
+defect. Run 03's original patched PTX was not retained; the CPU reconstruction
+is not retroactive execution evidence.
+
 Primary artifacts provide future original-system baselines for
 [Orion](https://github.com/eth-easl/orion),
 [Paella](https://github.com/eniac/paella), and

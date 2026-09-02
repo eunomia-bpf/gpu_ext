@@ -1,0 +1,50 @@
+{
+  "date": "2026-09-02",
+  "scope": "Parsed key facts from three failed device canaries; original result.json files are retained unchanged.",
+  "runs": [
+    {
+      "directory": "575-canary-root-01",
+      "status": "failed",
+      "probe_ready": true,
+      "native_correctness": {"launches": 8, "checked_values": 32768, "mismatches": 0},
+      "instrumented_correctness": {"launches": 8, "checked_values": 32768, "mismatches": 0},
+      "runtime_rejection": "A CUDA attach must be used with a CUDA program (program with name starts with cuda__), not count_return",
+      "source_lines": {"instrumented.log": [23, 24, 26, 28], "probe.log": [22]},
+      "interpretation": "Attach successfully was logged despite rejected CUDA program; it cannot establish engagement."
+    },
+    {
+      "directory": "575-canary-root-02",
+      "status": "failed",
+      "probe_ready": false,
+      "native_correctness": {"launches": 8, "checked_values": 32768, "mismatches": 0},
+      "instrumented_target_started": false,
+      "interpretation": "After the BPF function acquired the cuda__ prefix, the loader still searched for count_return and exited before ready; both names are now aligned."
+    },
+    {
+      "directory": "575-canary-root-03",
+      "status": "failed",
+      "probe_ready": true,
+      "native_correctness": {"launches": 8, "checked_values": 32768, "mismatches": 0},
+      "instrumented_correctness": {"launches": 8, "checked_values": 32768, "mismatches": 0},
+      "patch_matched_kernel_count": 1,
+      "patched_module_loaded": true,
+      "map_type": 1502,
+      "map_thread_capacity": 4096,
+      "map_storage_bytes": 32768,
+      "counter_values_recorded": false,
+      "expected_device_thread_returns": 32768,
+      "counter_wait_timeout_seconds": 10,
+      "interpretation": "Correct output plus a loaded patched module do not establish that launches used that module or that return callbacks executed."
+    }
+  ],
+  "common_cleanup": {"private_shared_memory_removed": true, "post_gpu_compute_apps": [], "post_uvm_refcount": 0, "new_xids": []},
+  "cpu_diagnosis": {
+    "offline_pass_check": {"gpu_execution": false, "bpf_instructions": 13, "kernel_return_call_sites": 1, "warp_or_lane_filter": false},
+    "offline_pass_method": "Extract current vector PTX with cuobjdump and probe instructions with readelf, bind the sole map immediate to observed FD 17, then call existing ptxpass_kretprobe process_input through ctypes. This recreates translation, not run-03 PTX provenance; run 03 did not retain its patched PTX.",
+    "per_thread_semantics": "The return call is unpredicated at the kernel epilogue; call.uni is a uniform call, not a one-lane invocation. Helper type 1502 addresses key*thread_count*value_size + globalThreadId*value_size. The exact 4096*8 expectation is retained.",
+    "host_map_read": "get_userspace_value_size multiplies value_size by gpu_thread_count; elem_lookup copies the entire 32768-byte entry with cuMemcpyDtoH when GDRCopy is unavailable.",
+    "lifetime": "The probe owns the CUDA allocation and remains alive while polling. Agent SHM_OPEN_ONLY teardown does not free the owner allocation. Target cudaDeviceSynchronize completes each launch. No evidence currently attributes failure to teardown or missing flush.",
+    "leading_unconfirmed_hypothesis": "Runtime launches bypassed patched CUfunction routing, or only a subset reached it. Existing info-level logs and missing counter snapshots cannot distinguish this from a translation/map defect.",
+    "next_falsifiable_check": "Use the already-added counter snapshots and existing runtime debug launch-routing messages. Eight patched launch-route records with zero counters would reject routing bypass as the explanation; absent route records with all-zero counters would support it. Do not reduce expected counts. Keep the GPU run separately authorized and finite."
+  }
+}

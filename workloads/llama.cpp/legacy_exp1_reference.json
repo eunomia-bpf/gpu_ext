@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "experiment": "Figure 6 GPT-OSS-120B expert offloading",
+  "reported_environment": {
+    "gpu": "NVIDIA GeForce RTX 5090 (32 GiB)",
+    "llama_build_commit": "10e97801",
+    "llama_build_number": 7099,
+    "model": "GPT-OSS-120B MXFP4 MoE",
+    "model_size_gib": 59.02,
+    "reported_vmm": "yes"
+  },
+  "reported_results_tokens_per_second": {
+    "gpubpf_stride_lfu": {
+      "pp512": 229.67,
+      "tg128": 86.89
+    },
+    "ncmoe32": {
+      "pp512": 260.14,
+      "tg128": 18.18
+    },
+    "ncmoe64": {
+      "pp512": 245.63,
+      "tg128": 16.34
+    },
+    "uvm_plain": {
+      "pp512": 238.48,
+      "tg128": 7.72
+    },
+    "uvm_user_hint": {
+      "pp512": 144.0,
+      "tg128": 49.31
+    }
+  },
+  "source_record": "docs/test-record-single.md",
+  "evidence_limits": [
+    "The surviving source is a hand-written console transcript, not per-trial machine-readable output.",
+    "The exact driver version, benchmark repetition count, power and thermal telemetry are not recorded with the five values.",
+    "The UVM plain, user-hint and gpubpf source states were not preserved as three independently buildable source revisions.",
+    "The deleted historical runner launched only ncmoe64, ncmoe32 and one UVM mode; it did not launch the user-hint or gpubpf cells."
+  ]
+}

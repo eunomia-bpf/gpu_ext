@@ -35,7 +35,9 @@ XSCHED_COMMIT = "f49289f0220931df78de948ed841ecbaf960a919"
 SEED = 1797
 CONFIGS = ("native", "xsched", "gpubpf")
 GPUBPF_CONFIGS = ("gpubpf", "gpubpf_nocooldown", "gpubpf_interleave")
-SUPPORTED_CONFIGS = ("native", "xsched") + GPUBPF_CONFIGS
+XSCHED_CONFIGS = ("xsched", "bpftime_hpf")
+POLICY_CANDIDATES = GPUBPF_CONFIGS + ("bpftime_hpf",)
+SUPPORTED_CONFIGS = ("native",) + XSCHED_CONFIGS + GPUBPF_CONFIGS
 REPETITIONS = 10
 
 
@@ -100,7 +102,7 @@ def sudo_prefix() -> list[str]:
     return ["sudo", "-n"]
 
 
-def admission(require_runtime: bool) -> dict[str, Any]:
+def admission(require_runtime: bool, configs: tuple[str, ...] = CONFIGS) -> dict[str, Any]:
     workload = HERE / "build" / "priority_workload"
     expected_xsched_diff = patch_body((HERE / "xsched-engagement.patch").read_text())
     actual_xsched_diff = patch_body(run(["git", "-C", str(XSCHED), "diff", "--", "preempt"]).stdout)
@@ -131,6 +133,15 @@ def admission(require_runtime: bool) -> dict[str, Any]:
         },
     }
     errors: list[str] = []
+    if "bpftime_hpf" in configs:
+        checks["bpftime_hpf_files"] = {
+            name: file_metadata(HERE / name) for name in (
+                "build/xserver-bpftime", "build/bpftime_hpf.bin", "bpftime_hpf.cpp",
+                "bpftime_hpf.bpf.c", "bpftime_hpf.h",
+            )
+        }
+        if any(not value["exists"] for value in checks["bpftime_hpf_files"].values()):
+            errors.append("same-frontend bpftime HPF files are missing; build xserver-bpftime first")
     if checks["xsched_commit"] != XSCHED_COMMIT:
         errors.append(f"XSched commit is {checks['xsched_commit']}, expected {XSCHED_COMMIT}")
     if not checks["xsched_diff_matches_reviewed_patch"]:
@@ -245,7 +256,7 @@ def base_env() -> dict[str, str]:
     for key in list(env):
         if key.startswith("XSCHED_"):
             env.pop(key)
-    for key in ("LD_PRELOAD", "LD_LIBRARY_PATH"):
+    for key in ("LD_PRELOAD", "LD_LIBRARY_PATH", "GPUBPF_HPF_CODE"):
         env.pop(key, None)
     return env
 
@@ -273,13 +284,25 @@ def gpubpf_policy_commands(config: str) -> tuple[list[str], list[str]]:
     return timeslice, preempt
 
 
+def xsched_server(config: str) -> tuple[list[str], dict[str, str]]:
+    env = base_env()
+    binary = XSCHED_OUTPUT / "bin" / "xserver"
+    if config == "bpftime_hpf":
+        binary = HERE / "build" / "xserver-bpftime"
+        env["GPUBPF_HPF_CODE"] = str(HERE / "build" / "bpftime_hpf.bin")
+    elif config != "xsched":
+        raise ValueError(f"not an XSched frontend configuration: {config}")
+    return [str(binary), "HPF", "50000"], env
+
+
 def start_policy(config: str, cpus: list[int], run_dir: Path) -> list[ManagedProcess]:
     policies: list[ManagedProcess] = []
     env = base_env()
     try:
-        if config == "xsched":
+        if config in XSCHED_CONFIGS:
+            server_command, server_env = xsched_server(config)
             policies.append(ManagedProcess(
-                "xserver", [str(XSCHED_OUTPUT / "bin" / "xserver"), "HPF", "50000"], env, cpus[0]))
+                "xserver", server_command, server_env, cpus[0]))
             time.sleep(0.5)
             if policies[0].proc.poll() is not None:
                 raise RuntimeError("xserver failed to stay running")
@@ -314,7 +337,7 @@ def start_policy(config: str, cpus: list[int], run_dir: Path) -> list[ManagedPro
 
 def workload_env(config: str, role: str) -> dict[str, str]:
     env = base_env()
-    if config != "xsched":
+    if config not in XSCHED_CONFIGS:
         return env
     env.update({
         "XSCHED_SCHEDULER": "GLB",
@@ -441,6 +464,19 @@ def validate_gpubpf_engagement(config: str, timeslice_text: str,
     return result
 
 
+def validate_bpftime_hpf_engagement(server_text: str) -> dict[str, int | str]:
+    if "bpftime_hpf_ready: backend=ubpf-jit max_queues=64" not in server_text:
+        raise RuntimeError("bpftime HPF did not report the bounded JIT backend ready")
+    matches = re.findall(r"bpftime_hpf_stats: calls=(\d+) queues=(\d+) suspend=(\d+) resume=(\d+)", server_text)
+    if not matches:
+        raise RuntimeError("bpftime HPF has no final decision counters")
+    calls, queues, suspend, resume = map(int, matches[-1])
+    if min(calls, queues, suspend, resume) <= 0 or queues != suspend + resume:
+        raise RuntimeError("bpftime HPF did not exercise both suspend and resume decisions")
+    return {"backend": "ubpf-jit", "calls": calls, "queues": queues,
+            "suspend": suspend, "resume": resume, "max_queues": 64}
+
+
 @safe_run
 def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int,
                   threads: int, timeout: float) -> dict[str, Any]:
@@ -515,7 +551,7 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
         raise RuntimeError("sample count mismatch")
 
     engagement: dict[str, Any] = {}
-    if config == "xsched":
+    if config in XSCHED_CONFIGS:
         audit = []
         pattern = re.compile(
             r"XSCHED_AUDIT pid=(\d+) xqueue=(\d+) level=(\d+) threshold=(\d+) batch=(\d+) "
@@ -545,6 +581,8 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
         if server_text.count("set priority 1") < 8 or server_text.count("set priority 0") < 16:
             raise RuntimeError("xserver log did not establish both priority classes on 24 XQueues")
         engagement = {"audit": audit, "be_suspend_ok": be_transitions, "be_resume_ok": be_resumes}
+        if config == "bpftime_hpf":
+            engagement["bpftime_hpf"] = validate_bpftime_hpf_engagement(server_text)
     elif config in GPUBPF_CONFIGS:
         timeslice_text = "\n".join(policies[0].stdout_lines + policies[0].stderr_lines)
         preempt_text = "\n".join(policies[1].stdout_lines + policies[1].stderr_lines)
@@ -714,7 +752,7 @@ def analyze(root: Path) -> dict[str, Any]:
             if all(metric in complete[b][config] for b in complete):
                 summary["configs"][config][f"{metric}_median"] = statistics.median(
                     complete[b][config][metric] for b in complete)
-    for candidate in GPUBPF_CONFIGS:
+    for candidate in POLICY_CANDIDATES:
         if candidate not in configs:
             continue
         for baseline in ("native", "xsched", "gpubpf"):
@@ -734,7 +772,7 @@ def analyze(root: Path) -> dict[str, Any]:
         "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
         "inconclusive_rule": "all remaining combinations",
     }
-    for candidate in GPUBPF_CONFIGS:
+    for candidate in POLICY_CANDIDATES:
         comparison = summary["paired"].get(f"{candidate}_vs_xsched")
         if comparison is None:
             continue
@@ -780,7 +818,10 @@ def main() -> int:
         subprocess.run(["make", "-C", str(XSCHED), "cuda"], check=True, env=build_env)
         subprocess.run(["make", "-B", "-C", str(EXTENSION), "uprobe_preempt_multi",
                         "gpu_sched_set_timeslices"], check=True, env=build_env)
-        post = admission(require_runtime=False)
+        if "bpftime_hpf" in args.configs:
+            subprocess.run(["make", "-C", str(HERE), "CXX=/usr/bin/g++",
+                            "build/xserver-bpftime", "test-bpftime-hpf"], check=True)
+        post = admission(require_runtime=False, configs=args.configs)
         if not post["admitted"]:
             raise RuntimeError("post-build admission failed: " + "; ".join(post["errors"]))
         print(json.dumps(post, indent=2))
@@ -792,14 +833,14 @@ def main() -> int:
         return 0
 
     if args.phase == "admission":
-        checks = admission(require_runtime=True)
+        checks = admission(require_runtime=True, configs=args.configs)
         print(json.dumps(checks, indent=2))
         return 0 if checks["admitted"] else 2
     if args.phase != "calibrate" and not args.reps:
         parser.error("--reps is required and must be frozen by an isolated ~80 ms calibration")
     lease = shared.LeaseSet.acquire()
     try:
-        checks = admission(require_runtime=True)
+        checks = admission(require_runtime=True, configs=args.configs)
         print(json.dumps(checks, indent=2), flush=True)
         if not checks["admitted"]:
             return 2
@@ -840,6 +881,7 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
         "candidate_policy_differences": {
             "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
             "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",
+            "bpftime_hpf": "same upstream XSched frontend/Level-1 actuator; HPF decisions run in bpftime ubpf-jit, not driver-only BPF",
         } if any(config not in CONFIGS for config in args.configs) else {},
     }
     (root / "protocol.json").write_text(json.dumps(protocol, indent=2) + "\n")

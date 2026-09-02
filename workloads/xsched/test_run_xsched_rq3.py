@@ -11,6 +11,29 @@ import run_xsched_rq3 as runner
 
 
 class RunnerTests(unittest.TestCase):
+    def test_bpftime_uses_identical_worker_environment(self):
+        for role in ("lc", "be"):
+            self.assertEqual(runner.workload_env("xsched", role), runner.workload_env("bpftime_hpf", role))
+        original, original_env = runner.xsched_server("xsched")
+        candidate, candidate_env = runner.xsched_server("bpftime_hpf")
+        self.assertEqual(original[1:], candidate[1:])
+        self.assertNotEqual(original[0], candidate[0])
+        self.assertNotIn("GPUBPF_HPF_CODE", original_env)
+        self.assertEqual(candidate_env.pop("GPUBPF_HPF_CODE"), str(runner.HERE / "build/bpftime_hpf.bin"))
+        self.assertEqual(original_env, candidate_env)
+
+    def test_bpftime_requires_jit_and_both_decision_types(self):
+        ready = "bpftime_hpf_ready: backend=ubpf-jit max_queues=64\n"
+        result = runner.validate_bpftime_hpf_engagement(ready + "bpftime_hpf_stats: calls=7 queues=100 suspend=40 resume=60")
+        self.assertEqual(result["queues"], 100)
+        for invalid in (
+            "bpftime_hpf_stats: calls=7 queues=100 suspend=40 resume=60",
+            ready + "bpftime_hpf_stats: calls=7 queues=100 suspend=0 resume=100",
+            ready + "bpftime_hpf_stats: calls=7 queues=100 suspend=40 resume=50",
+        ):
+            with self.assertRaises(RuntimeError):
+                runner.validate_bpftime_hpf_engagement(invalid)
+
     def test_candidate_commands_do_not_change_the_old_policy(self):
         old_timeslice, old_preempt = runner.gpubpf_policy_commands("gpubpf")
         no_timeslice, no_preempt = runner.gpubpf_policy_commands("gpubpf_nocooldown")

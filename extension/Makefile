@@ -34,7 +34,7 @@ HAVE_SCX := $(if $(SCX_INCLUDE_DIR),$(if $(wildcard $(SCX_HEADER)),$(if $(wildca
 HAVE_NVML := $(if $(wildcard $(CUDA_INCLUDE_DIR)/nvml.h),$(if $(firstword $(wildcard $(CUDA_STUB_DIR)/libnvidia-ml.so $(CUDA_STUB_DIR)/libnvidia-ml.so.*)),1,0),0)
 HAVE_CUDA := $(if $(wildcard $(CUDA_INCLUDE_DIR)/cuda.h),$(if $(firstword $(wildcard $(CUDA_STUB_DIR)/libcuda.so $(CUDA_STUB_DIR)/libcuda.so.*)),1,0),0)
 
-BPF_APPS_ALL = struct_ops prefetch_always_max prefetch_none prefetch_none_revision prefetch_adaptive_tree_iter prefetch_adaptive_sequential prefetch_pid_tree prefetch_eviction_pid prefetch_stride prefetch_stride_lfu eviction_fifo eviction_lfu eviction_mru eviction_pid_quota eviction_freq_pid_decay eviction_fifo_chance eviction_cycle_moe chunk_trace prefetch_trace gpu_sched_trace gpu_preempt_ctrl gpu_sched_set_timeslices eviction_lfu_xcoord prefetch_always_max_cycle_moe prefetch_max_mru_expert prefetch_max_passive_mru prefetch_cross_block_v2 prefetch_template_belady prefetch_proactive_layer prefetch_always_max_xcoord prefetch_always_max_qos test_preempt_kfunc test_preempt_demo test_preempt_multi test_uprobe_preempt uprobe_preempt_multi prefetch_faiss_phase prefetch_serving_adaptive test_uprobe_prefetch prefetch_faiss_uprobe prefetch_stride_multiblock prefetch_llama_phase prefetch_vllm_phase prefetch_vllm_phase_transparent prefetch_cooperative prefetch_reuse_dist prefetch_throttled_xb prefetch_gnn_proactive prefetch_moe_expert expert_buffering_trace expert_buffering_policy # BPF apps that need skeletons
+BPF_APPS_ALL = struct_ops prefetch_always_max prefetch_none prefetch_none_revision prefetch_adaptive_tree_iter prefetch_adaptive_sequential prefetch_pid_tree prefetch_eviction_pid prefetch_stride prefetch_stride_lfu prefetch_delta_markov eviction_fifo eviction_lfu eviction_mru eviction_2q_approx eviction_pid_quota eviction_freq_pid_decay eviction_fifo_chance eviction_cycle_moe chunk_trace prefetch_trace gpu_sched_trace gpu_preempt_ctrl gpu_sched_set_timeslices eviction_lfu_xcoord prefetch_always_max_cycle_moe prefetch_max_mru_expert prefetch_max_passive_mru prefetch_cross_block_v2 prefetch_template_belady prefetch_proactive_layer prefetch_always_max_xcoord prefetch_always_max_qos test_preempt_kfunc test_preempt_demo test_preempt_multi test_uprobe_preempt uprobe_preempt_multi prefetch_faiss_phase prefetch_serving_adaptive test_uprobe_prefetch prefetch_faiss_uprobe prefetch_stride_multiblock prefetch_llama_phase prefetch_vllm_phase prefetch_vllm_phase_transparent prefetch_cooperative prefetch_reuse_dist prefetch_throttled_xb prefetch_gnn_proactive prefetch_moe_expert expert_buffering_trace expert_buffering_policy # BPF apps that need skeletons
 DEFERRED_VA_SPACE_APPS = prefetch_cross_block_v2 prefetch_proactive_layer \
 	prefetch_faiss_phase test_uprobe_prefetch prefetch_faiss_uprobe \
 	prefetch_stride_multiblock prefetch_llama_phase prefetch_vllm_phase \
@@ -73,6 +73,7 @@ REVISION_SCHED_FIXTURE_OBJECTS = \
 	$(OUTPUT)/revision_pmm_reorder_setter.bpf.o
 $(REVISION_SCHED_FIXTURE_OBJECTS): revision_sched_fixture.bpf.h
 $(OUTPUT)/revision_pmm_hidden_write.bpf.o $(OUTPUT)/revision_pmm_reorder_setter.bpf.o: revision_pmm_fixture.bpf.h
+$(OUTPUT)/eviction_2q_approx.bpf.o $(OUTPUT)/prefetch_delta_markov.bpf.o: safe_policy_models.h
 ALL_APPS += revision_sched_verifier
 
 CARGO ?= $(shell which cargo)
@@ -137,6 +138,15 @@ all: $(APPS)
 clean:
 	$(call msg,CLEAN)
 	$(Q)rm -rf $(OUTPUT) $(ALL_APPS)
+
+.PHONY: test_safe_policy_models
+test_safe_policy_models: $(OUTPUT)/test_safe_policy_models
+	$(call msg,TEST,$<)
+	$(Q)$<
+
+$(OUTPUT)/test_safe_policy_models: test_safe_policy_models.c safe_policy_models.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) $< -o $@
 
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)

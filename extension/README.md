@@ -133,6 +133,7 @@ Prefetch hook 只能在当前 VA block (2MB) 内操作。原型曾把整数
 | `eviction_fifo.bpf.c` | FIFO | 不移动 chunk，保持插入顺序，bypass 所有 access |
 | `eviction_mru.bpf.c` | MRU | activate 时 move_head，最近使用的优先 evict |
 | `eviction_lfu.bpf.c` | LFU | per-CPU array 频率计数，低频在 head |
+| `eviction_2q_approx.bpf.c` | 近似 2Q / segmented LRU | 新 chunk 放 HEAD probation；不同 list-generation episode 达到二次命中门槛后移到 TAIL protected；同 generation 的 activate/access 只计一次 |
 | `eviction_cycle_moe.bpf.c` | T1 频率保护 | activate 时计数，access_count >= 3 则 move_tail 保护 |
 | `eviction_fifo_chance.bpf.c` | PID FIFO + 二次机会 | FIFO 基础上，被 evict 时减 chance 值，有 chance 则移到 tail |
 | `eviction_freq_pid_decay.bpf.c` | PID 频率衰减 | per-PID 频率计数，频率随时间指数衰减 |
@@ -152,6 +153,7 @@ Prefetch hook 只能在当前 VA block (2MB) 内操作。原型曾把整数
 | `prefetch_adaptive_sequential.bpf.c` | 自适应顺序 | 按访问密度阈值决定是否预取子区域，使用 ENTER_LOOP 模式 |
 | `prefetch_adaptive_tree_iter.bpf.c` | 自适应树迭代 | 遍历 bitmap tree，按每个子区域的 access count 决定 |
 | `prefetch_stride.bpf.c` | 步长检测 | 检测固定步长访问模式，预取下一个预测位置 |
+| `prefetch_delta_markov.bpf.c` | Block-local delta/Markov | 按 VA block 学习 `delta[n] -> delta[n+1]`，置信度门控并严格裁剪到当前 block；只读 kprobe 补充 block identity |
 | `prefetch_pid_tree.bpf.c` | PID 树 | PID-aware 预取带宽分配，高优先级进程获得更多预取 |
 | `prefetch_serving_adaptive.bpf.c` | 服务自适应 | fault-rate 门控的 always_max，低 fault rate 时禁用预取减少干扰 |
 
@@ -263,6 +265,10 @@ sudo ./prefetch_llama_phase /path/to/libllama.so 0 32 0
 ```
 
 Loader 自动清理旧 struct_ops、加载 BPF、attach struct_ops。Ctrl-C 退出时自动 detach。
+
+新增的安全 ABI 策略使用 ownership-scoped loader，只销毁本进程创建的
+link，不自动清理其他进程的 struct_ops。两条策略的可表达性边界、参数和
+engagement metrics 见 [`SAFE_POLICY_ROUTES.md`](SAFE_POLICY_ROUTES.md)。
 
 ### 验证
 

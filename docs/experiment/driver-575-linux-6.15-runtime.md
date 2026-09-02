@@ -79,3 +79,35 @@ waits only within the existing deadline when maps/links and compute apps are
 empty; the final zero-reference and clean-kernel requirements are unchanged.
 Runner changes present during these runs are committed alongside this note;
 the recorded run Git revisions are not rewritten after the fact.
+
+## Built-only GSP scheduling propagation fix
+
+The sibling `gpu_ext-kernel-575` source now contains commit `363416c4` on
+`test-sched`. **This build has not been staged or loaded.** The experiments
+above and the ongoing MoE campaign still use the staged/loaded `28b1d30c`
+modules; updating source does not update the running driver.
+
+Source inspection found that the open GSP-client scheduling HAL setters only
+update host-side timeslice/interleave fields. Channel-group allocation does not
+carry those fields to GSP. The patch forwards accepted policy requests through
+the existing GSP control RPCs after successful remote allocation. Native,
+default, rejected, and non-GSP paths do not gain policy RPCs. Constructor errors
+explicitly free a successfully allocated remote object before local cleanup;
+the original error is retained and a failed cleanup RPC is reported.
+
+The CPU-only build succeeded using the command above, restricted to CPUs 8–15
+while MoE owned the GPU. The resulting local `kernel-open/nvidia.ko` is
+30,109,912 bytes with version `575.57.08` and vermagic for
+`6.15.11-061511-generic`. Existing transition-validator tests passed all 12 cases
+and 145 assertions. These tests cover policy validation, **not execution of the
+new GSP RPC or rollback path**. Independent source review found and checked the
+explicit constructor-error cleanup. Known compiler-package and missing module
+description warnings remain; the build had no errors.
+
+After the current GPU campaign completes, a separate canary must check native
+allocation/destruction, timeslice-only/interleave-only/combined RPC execution,
+and controlled first/second-control failures with exactly one remote cleanup.
+Reading the host shadow fields is not proof of hardware enforcement. Each run
+must end with no UVM references, attached policy, compute client, or new Xid.
+Performance requires a new campaign: this source fix does not revise the
+preserved [negative driver-candidate measurements](../../workloads/xsched/driver-candidates-575-20260902.md).

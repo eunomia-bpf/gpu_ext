@@ -141,10 +141,11 @@ def admission(require_runtime: bool) -> dict[str, Any]:
             errors.append("GPU is not idle: " + "; ".join(checks["gpu_processes"]))
         try:
             sudo = sudo_prefix()
-            btf = run(sudo + ["bpftool", "btf", "dump", "file", "/sys/kernel/btf/nvidia", "format", "c"], check=False)
+            # C output omits standalone FUNC records; use raw BTF for kfuncs.
+            btf = run(sudo + ["bpftool", "btf", "dump", "file", "/sys/kernel/btf/nvidia", "format", "raw"], check=False)
             checks["nvidia_btf_probe_rc"] = btf.returncode
-            checks["has_nv_gpu_sched_ops"] = "struct nv_gpu_sched_ops" in btf.stdout
-            checks["has_preempt_kfunc"] = "bpf_nv_gpu_preempt_tsg" in btf.stdout
+            checks["has_nv_gpu_sched_ops"] = "STRUCT 'nv_gpu_sched_ops'" in btf.stdout
+            checks["has_preempt_kfunc"] = "FUNC 'bpf_nv_gpu_preempt_tsg'" in btf.stdout
             if not checks["has_nv_gpu_sched_ops"] or not checks["has_preempt_kfunc"]:
                 errors.append("NVIDIA BTF lacks nv_gpu_sched_ops or bpf_nv_gpu_preempt_tsg")
             checks["safety"] = shared.safety_snapshot()

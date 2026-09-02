@@ -1003,9 +1003,16 @@ def validate_completion_response(response: dict[str, Any], prompt_tokens: int) -
 def nonstream_completion(config: str, port: int, token_ids: list[int],
                          output: Path, *, timeout: float = 60) -> dict[str, Any]:
     start_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
-    response = http_json(
-        port, "/v1/completions", completion_payload(config, token_ids, False), timeout
-    )
+    try:
+        response = http_json(
+            port, "/v1/completions", completion_payload(config, token_ids, False), timeout
+        )
+    except Exception as exc:
+        atomic_write_json(output.with_suffix(".failure.json"), {
+            "error_type": type(exc).__name__, "error": str(exc),
+            "elapsed_ms": (time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW) - start_ns) / 1e6,
+        })
+        raise
     end_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
     atomic_write_json(output, response)
     validated = validate_completion_response(response, len(token_ids))
@@ -1880,7 +1887,13 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
         return result
     finally:
         if server is not None:
+            before_cleanup = server.poll()
             stop_owned_process_group(server)
+            atomic_write_json(run_dir / "server-exit.json", {
+                "pid": server.pid, "returncode_before_cleanup": before_cleanup,
+                "returncode_after_cleanup": server.returncode,
+                "cleanup_requested": before_cleanup is None,
+            })
         if server_log is not None:
             server_log.close()
         if monitor is not None:
@@ -2461,7 +2474,13 @@ def run_measured_config(config: str, run_dir: Path, port: int,
         return result
     finally:
         if server is not None:
+            before_cleanup = server.poll()
             stop_owned_process_group(server)
+            atomic_write_json(run_dir / "server-exit.json", {
+                "pid": server.pid, "returncode_before_cleanup": before_cleanup,
+                "returncode_after_cleanup": server.returncode,
+                "cleanup_requested": before_cleanup is None,
+            })
         if server_log is not None:
             server_log.close()
         if monitor is not None:

@@ -91,32 +91,86 @@ def run_cell(config: str, directory: Path, port: int, prompts: dict[str, Any],
         emit(f"finished {config}: {'passed' if result is not None else 'failed'}")
 
 
-def preflight(output: Path, port: int, expert_store: Path | None = None) -> dict[str, Any]:
+def validate_saved_correctness(path: Path, result: dict[str, Any]) -> None:
+    """Re-read the real responses and cleanup record before reusing a passed cell."""
+    if read_json(path / "result.json") != result:
+        raise base.GateError(f"saved correctness result differs: {path}")
+    safety = read_json(path / "safety.json")
+    if safety.get("passed") is not True:
+        raise base.GateError(f"saved correctness cleanup did not pass: {path}")
+    base.validate_pre_server_safety(safety["after"])
+    passes = result.get("passes", [])
+    if len(passes) != 2 or any(len(part) != 8 for part in passes):
+        raise base.GateError(f"incomplete saved correctness: {path}")
+    base.validate_completion_response(read_json(path / "warmup.json"), 512)
+    for pass_number, part in enumerate(passes, start=1):
+        for prompt_number, item in enumerate(part, start=1):
+            raw = base.validate_completion_response(
+                read_json(path / f"smoke-pass{pass_number}-prompt{prompt_number}.json"), 512)
+            if any(raw[key] != item[key] for key in raw):
+                raise base.GateError(f"saved response differs: {path}, {pass_number}/{prompt_number}")
+    if ([item["text"] for item in passes[0]] != result.get("goldens")
+            or any(a["text"] != b["text"] for a, b in zip(*passes))):
+        raise base.GateError(f"saved exact-output gate failed: {path}")
+
+
+def preflight(output: Path, port: int, expert_store: Path | None = None, *,
+              resume: bool = False) -> dict[str, Any]:
     admitted = require_admission(port)
-    output.mkdir(parents=True, exist_ok=False)
-    base.atomic_write_json(output / "admission.json", admitted)
-    runtime = admitted["runtime_files"]
-    expert_store = (expert_store or output / "expert-store").absolute()
-    result: dict[str, Any] = {
-        "protocol": PROTOCOL, "driver": DRIVER, "kernel": KERNEL,
-        "source_commit": base.run_checked(["git", "rev-parse", "HEAD"], cwd=base.GPU_EXT),
-        "status": "running", "runtime_files": runtime,
-        "configuration_order": list(base.FROZEN_CORRECTNESS_ORDER), "results": {},
-        "cross_configuration_output_equality_required": False,
-        "completed_evictions_claimed": False,
-        "moe_storage": "buffered NVMe hydration followed by CPU expert offload/cache",
-        "expert_store": str(expert_store),
-        "triton_compiler_version": admitted["triton_compiler_version"],
-    }
+    if resume:
+        result = read_json(output / "preflight-result.json")
+        if result.get("protocol") != PROTOCOL or result.get("status") != "failed":
+            raise base.GateError("only a failed current-protocol preflight can be resumed")
+        base.require_runtime_continuity(result["runtime_files"], admitted["runtime_files"])
+        if not result.get("row_chunking_numerical_gate"):
+            raise base.GateError("the numerical gate must have completed before cell continuation")
+        if expert_store and expert_store.absolute() != Path(result["expert_store"]):
+            raise base.GateError("cannot change the expert store during correctness continuation")
+        for config, saved in result["results"].items():
+            cell = result.get("cell_directories", {}).get(config, config)
+            validate_saved_correctness(output / cell, saved)
+        number = len(list(output.glob("failed-preflight-*.json"))) + 1
+        base.atomic_write_json(output / f"failed-preflight-{number:02d}.json", result)
+        result.setdefault("continuations", []).append({
+            "number": number, "admission": admitted,
+            "source_commit": base.run_checked(["git", "rev-parse", "HEAD"], cwd=base.GPU_EXT),
+            "reused_complete_cells": list(result["results"]),
+        })
+        result.update(status="running")
+        result.pop("error", None)
+        runtime = result["runtime_files"]
+        expert_store = Path(result["expert_store"])
+    else:
+        output.mkdir(parents=True, exist_ok=False)
+        base.atomic_write_json(output / "admission.json", admitted)
+        runtime = admitted["runtime_files"]
+        expert_store = (expert_store or output / "expert-store").absolute()
+        result = {
+            "protocol": PROTOCOL, "driver": DRIVER, "kernel": KERNEL,
+            "source_commit": base.run_checked(["git", "rev-parse", "HEAD"], cwd=base.GPU_EXT),
+            "status": "running", "runtime_files": runtime,
+            "configuration_order": list(base.FROZEN_CORRECTNESS_ORDER), "results": {},
+            "cross_configuration_output_equality_required": False,
+            "completed_evictions_claimed": False,
+            "moe_storage": "buffered NVMe hydration followed by CPU expert offload/cache",
+            "expert_store": str(expert_store),
+            "triton_compiler_version": admitted["triton_compiler_version"],
+        }
     base.atomic_write_json(output / "preflight-result.json", result)
     try:
-        before = admitted["safety"]
-        result["row_chunking_numerical_gate"] = base.run_row_chunking_numerical_gate()
-        result["numerical_safety"] = base.wait_for_post_server_safety(before)
+        if not resume:
+            before = admitted["safety"]
+            result["row_chunking_numerical_gate"] = base.run_row_chunking_numerical_gate()
+            result["numerical_safety"] = base.wait_for_post_server_safety(before)
         prompts = read_json(base.PROMPTS)
         for config in base.FROZEN_CORRECTNESS_ORDER:
+            if config in result["results"]:
+                emit(f"retaining verified complete correctness {config}")
+                continue
+            cell = config if not (output / config).exists() else f"{config}-retry-{number:02d}"
+            result.setdefault("cell_directories", {})[config] = cell
             result["results"][config] = run_cell(
-                config, output / config, port, prompts, expert_store, runtime,
+                config, output / cell, port, prompts, expert_store, runtime,
             )
             base.atomic_write_json(output / "preflight-result.json", result)
             time.sleep(60)
@@ -137,6 +191,8 @@ def load_preflight(path: Path) -> dict[str, Any]:
             or not result.get("row_chunking_numerical_gate")):
         raise base.GateError("a complete passing four-cell 575 correctness preflight is required")
     for config in base.CONFIGS:
+        validate_saved_correctness(
+            path / result.get("cell_directories", {}).get(config, config), result["results"][config])
         passes = result["results"][config].get("passes", [])
         if (len(passes) != 2 or any(len(part) != 8 for part in passes)
                 or any(a["text"] != b["text"] for a, b in zip(*passes))):
@@ -234,6 +290,8 @@ def main() -> int:
     parser.add_argument("--preflight", type=Path, default=DEFAULT_OUTPUT / "preflight")
     parser.add_argument("--expert-store", type=Path,
                         help="reuse generated disk tensor data, never live process cache state")
+    parser.add_argument("--resume-preflight", action="store_true",
+                        help="retain failures and revalidate saved complete cells before continuation")
     parser.add_argument("--port", type=int, default=18080)
     parser.add_argument("--max-blocks", type=int, choices=(1, 2, 3, 4, 5), default=5,
                         help="fixed staged stopping point; fewer than five remains preliminary")
@@ -247,7 +305,8 @@ def main() -> int:
     signal.signal(signal.SIGTERM, interrupted)
     lease = base.LeaseSet.acquire()
     try:
-        result = (preflight(args.output, args.port, args.expert_store) if args.action == "preflight" else
+        result = (preflight(args.output, args.port, args.expert_store,
+                            resume=args.resume_preflight) if args.action == "preflight" else
                   full_schedule(args.output, args.preflight, args.port, args.max_blocks))
         print(json.dumps(result, indent=2), flush=True)
         return 0

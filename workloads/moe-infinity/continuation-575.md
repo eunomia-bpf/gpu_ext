@@ -121,3 +121,23 @@ Preserved local evidence:
 All three runs returned the GPU to 2 MiB, zero utilization, UVM refcount zero,
 and empty struct_ops. No NVIDIA Xid occurred. The original CPU segmentation
 fault is nevertheless a real failure and is not hidden by the no-Xid statement.
+
+## Correctness continuation after the UVM connection failure
+
+The CUDA-12.9 preflight completed both full MoE and gpubpf correctness cells.
+The next UVM control returned the warm-up and nine correctness responses, then
+closed the connection during pass 2, prompt 2. Its log ends after prompt
+processing, about five seconds after the previous response. The available
+kernel journal has no matching OOM, segmentation fault, or Xid; no new core
+was found. Because the original cleanup helper did not record the server's
+exit status before cleanup, the process exit cause is not established.
+
+The original failed directory is retained. `--resume-preflight` rechecks the
+unchanged runtime inventory and every saved response, output pair, and cleanup
+record before retaining a previously complete cell; failed cells run their
+entire two-pass workload in new retry directories. Each prior failed summary
+is preserved separately. This avoids repeating the complete ten-minute BPF
+correctness cell while retaining all failures. It does not skip any of the
+four configurations or admit an incomplete correctness pass. Added diagnostics
+record failed-request elapsed time and the server exit status before and after
+owned cleanup; server arguments, requests, model, and policy are unchanged.

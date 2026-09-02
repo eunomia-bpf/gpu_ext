@@ -5,12 +5,35 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import run_575_head_to_head as current
 import run_moe_head_to_head as base
 
 
 class CurrentStackTests(unittest.TestCase):
+    def test_correctness_resume_rechecks_raw_responses_and_saved_result(self):
+        response = {"choices": [{"text": "test", "finish_reason": "length"}],
+                    "usage": {"prompt_tokens": 512, "completion_tokens": 64}}
+        item = base.validate_completion_response(response, 512)
+        result = {"passes": [[item] * 8, [item] * 8], "goldens": ["test"] * 8}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            base.atomic_write_json(path / "result.json", result)
+            base.atomic_write_json(path / "safety.json", {"passed": True, "after": {}})
+            base.atomic_write_json(path / "warmup.json", response)
+            for part in (1, 2):
+                for prompt in range(1, 9):
+                    base.atomic_write_json(path / f"smoke-pass{part}-prompt{prompt}.json", response)
+            with patch.object(base, "validate_pre_server_safety") as safety:
+                current.validate_saved_correctness(path, result)
+                safety.assert_called_once_with({})
+                altered = copy.deepcopy(response)
+                altered["usage"]["completion_tokens"] = 63
+                base.atomic_write_json(path / "smoke-pass2-prompt2.json", altered)
+                with self.assertRaises(base.GateError):
+                    current.validate_saved_correctness(path, result)
+
     def test_current_moe_pins_blackwell_jit_compiler_and_cache(self):
         env = base.controlled_environment("moe_infinity_075", cuda129_triton=True)
         self.assertEqual(env["TRITON_PTXAS_BLACKWELL_PATH"], "/usr/local/cuda-12.9/bin/ptxas")

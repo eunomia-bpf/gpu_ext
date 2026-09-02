@@ -1,0 +1,32 @@
+{
+  "name": "be3",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_be",
+    "be",
+    "3",
+    "4",
+    "5",
+    "9496464",
+    "340",
+    "256",
+    "1",
+    "-5696957"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":3,\"streams\":4,\"tasks\":5}",
+    "{\"event\":\"running\",\"role\":\"be\",\"process_id\":3,\"host_ns\":1699484089810,\"stream0_task0_active\":true}",
+    "{\"event\":\"result\",\"role\":\"be\",\"process_id\":3,\"completion_host_ns\":1706954367543,\"outputs_validated\":1740800,\"samples\":[{\"submit_ns\":1788389929142601748,\"submit_cupti_ns\":1788389929148298705,\"entry_ns\":1788389929145200928,\"exit_ns\":1788389930097020832},{\"submit_ns\":1788389929145661780,\"submit_cupti_ns\":1788389929151358737,\"entry_ns\":1788389933796496864,\"exit_ns\":1788389934414558912},{\"submit_ns\":1788389929145663160,\"submit_cupti_ns\":1788389929151360117,\"entry_ns\":1788389934414564000,\"exit_ns\":1788389935053536800},{\"submit_ns\":1788389929145664035,\"submit_cupti_ns\":1788389929151360992,\"entry_ns\":1788389935053541664,\"exit_ns\":1788389935652761248},{\"submit_ns\":1788389929145664818,\"submit_cupti_ns\":1788389929151361775,\"entry_ns\":1788389935652764736,\"exit_ns\":1788389936181099168},{\"submit_ns\":1788389929142834589,\"submit_cupti_ns\":1788389929148531546,\"entry_ns\":1788389929145201984,\"exit_ns\":1788389930097040768},{\"submit_ns\":1788389929145665652,\"submit_cupti_ns\":1788389929151362609,\"entry_ns\":1788389933796497184,\"exit_ns\":1788389934414879168},{\"submit_ns\":1788389929145666531,\"submit_cupti_ns\":1788389929151363488,\"entry_ns\":1788389934657131872,\"exit_ns\":1788389935742145760},{\"submit_ns\":1788389929145667282,\"submit_cupti_ns\":1788389929151364239,\"entry_ns\":1788389935742150048,\"exit_ns\":1788389936269634560},{\"submit_ns\":1788389929145668044,\"submit_cupti_ns\":1788389929151365001,\"entry_ns\":1788389936269637664,\"exit_ns\":1788389936616037792},{\"submit_ns\":1788389929142841459,\"submit_cupti_ns\":1788389929148538416,\"entry_ns\":1788389929145734016,\"exit_ns\":1788389930538392096},{\"submit_ns\":1788389929145668821,\"submit_cupti_ns\":1788389929151365778,\"entry_ns\":1788389930538397920,\"exit_ns\":1788389931256005728},{\"submit_ns\":1788389929145669701,\"submit_cupti_ns\":1788389929151366658,\"entry_ns\":1788389931256008288,\"exit_ns\":1788389931799695040},{\"submit_ns\":1788389929145670541,\"submit_cupti_ns\":1788389929151367498,\"entry_ns\":1788389931799699456,\"exit_ns\":1788389932286576160},{\"submit_ns\":1788389929145671326,\"submit_cupti_ns\":1788389929151368283,\"entry_ns\":1788389933796498656,\"exit_ns\":1788389935044276064},{\"submit_ns\":1788389929142844877,\"submit_cupti_ns\":1788389929148541834,\"entry_ns\":1788389930070768640,\"exit_ns\":1788389931058049152},{\"submit_ns\":1788389929145673388,\"submit_cupti_ns\":1788389929151370345,\"entry_ns\":1788389931058055264,\"exit_ns\":1788389931603779584},{\"submit_ns\":1788389929145674320,\"submit_cupti_ns\":1788389929151371277,\"entry_ns\":1788389931603783136,\"exit_ns\":1788389932132701824},{\"submit_ns\":1788389929145675129,\"submit_cupti_ns\":1788389929151372086,\"entry_ns\":1788389932132706240,\"exit_ns\":1788389932540528576},{\"submit_ns\":1788389929145675904,\"submit_cupti_ns\":1788389929151372861,\"entry_ns\":1788389934397332672,\"exit_ns\":1788389935448014880}],\"min_queue_ns\":2367395,\"max_queue_ns\":7123969620,\"clock_offset_ns\":-5696957}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 52408 @ 15:58:48.594849] using global scheduler",
+    "XSCHED_AUDIT pid=52408 xqueue=14751634905615670576 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=52408 xqueue=14751634905602779360 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=52408 xqueue=14751634905602745024 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=52408 xqueue=14751634905618981024 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "[XSCHED WARN @ T 52434 @ 15:58:57.092997] scheduler not initialized, event type(11) dropped @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/preempt/src/sched/agent.cpp:55"
+  ]
+}

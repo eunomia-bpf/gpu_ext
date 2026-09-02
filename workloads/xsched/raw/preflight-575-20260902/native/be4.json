@@ -1,0 +1,25 @@
+{
+  "name": "be4",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_be",
+    "be",
+    "4",
+    "4",
+    "2",
+    "9496464",
+    "340",
+    "256",
+    "1",
+    "-3417318"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":4,\"streams\":4,\"tasks\":2}",
+    "{\"event\":\"running\",\"role\":\"be\",\"process_id\":4,\"host_ns\":1589410588138,\"stream0_task0_active\":true}",
+    "{\"event\":\"result\",\"role\":\"be\",\"process_id\":4,\"completion_host_ns\":1592806947238,\"outputs_validated\":696320,\"samples\":[{\"submit_ns\":1788389819060020709,\"submit_cupti_ns\":1788389819063438027,\"entry_ns\":1788389819069146656,\"exit_ns\":1788389820024403712},{\"submit_ns\":1788389819069860550,\"submit_cupti_ns\":1788389819073277868,\"entry_ns\":1788389820376391104,\"exit_ns\":1788389821864600384},{\"submit_ns\":1788389819062362682,\"submit_cupti_ns\":1788389819065780000,\"entry_ns\":1788389819997643008,\"exit_ns\":1788389821706424128},{\"submit_ns\":1788389819069862868,\"submit_cupti_ns\":1788389819073280186,\"entry_ns\":1788389821706429056,\"exit_ns\":1788389822466271264},{\"submit_ns\":1788389819062365132,\"submit_cupti_ns\":1788389819065782450,\"entry_ns\":1788389819069146336,\"exit_ns\":1788389820024075072},{\"submit_ns\":1788389819069864511,\"submit_cupti_ns\":1788389819073281829,\"entry_ns\":1788389820024078816,\"exit_ns\":1788389820983495872},{\"submit_ns\":1788389819062367172,\"submit_cupti_ns\":1788389819065784490,\"entry_ns\":1788389819069146784,\"exit_ns\":1788389820957470912},{\"submit_ns\":1788389819069866054,\"submit_cupti_ns\":1788389819073283372,\"entry_ns\":1788389820957481440,\"exit_ns\":1788389822116011072}],\"min_queue_ns\":6779612,\"max_queue_ns\":2636566188,\"clock_offset_ns\":-3417318}"
+  ],
+  "stderr": []
+}

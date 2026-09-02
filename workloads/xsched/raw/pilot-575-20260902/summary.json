@@ -1,0 +1,112 @@
+{
+  "protocol": {
+    "phase": "pilot",
+    "repetitions": 5,
+    "seed": 1797,
+    "tasks_per_stream": 5,
+    "streams_per_process": 4,
+    "lc_processes": 2,
+    "be_processes": 4,
+    "configs": [
+      "native",
+      "xsched",
+      "gpubpf"
+    ],
+    "reps": 9496464,
+    "blocks": 340,
+    "threads": 256,
+    "timeout_seconds_per_cell": 120.0,
+    "full_50_kernel_10_block_protocol": false,
+    "short_budget_difference": "5 complete blocks and 5 kernels/stream instead of 10 blocks and 50 kernels/stream; 40 LC samples/cell means nearest-rank P99 is the sample maximum",
+    "kernel_target_ms": 80,
+    "xsched_level": 1
+  },
+  "complete_blocks": 5,
+  "configs": {
+    "native": {
+      "lc_p99_median_us": 7245487.379,
+      "lc_p99_mean_ci95": [
+        7202086.0772,
+        7371860.1152
+      ],
+      "be_throughput_median": 10.20913459564031,
+      "be_throughput_mean_ci95": [
+        10.037233366449298,
+        10.244655663919144
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 3225344.841825,
+      "lc_p50_us_median": 3113396.649,
+      "lc_p95_us_median": 6673534.917
+    },
+    "xsched": {
+      "lc_p99_median_us": 4293025.225,
+      "lc_p99_mean_ci95": [
+        3899153.2072,
+        4727376.5656
+      ],
+      "be_throughput_median": 9.574409996829903,
+      "be_throughput_mean_ci95": [
+        9.494503917204938,
+        9.674710299383626
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 2369874.905325,
+      "lc_p50_us_median": 2447267.209,
+      "lc_p95_us_median": 4094335.237
+    },
+    "gpubpf": {
+      "lc_p99_median_us": 7396934.758,
+      "lc_p99_mean_ci95": [
+        7313417.3028,
+        7500178.9672
+      ],
+      "be_throughput_median": 9.884174166955837,
+      "be_throughput_mean_ci95": [
+        9.873521772256709,
+        10.066109764167736
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 3223717.39415,
+      "lc_p50_us_median": 3056811.601,
+      "lc_p95_us_median": 6723899.239
+    }
+  },
+  "paired": {
+    "gpubpf_vs_native": {
+      "lc_p99_delta_us_mean_ci95": [
+        3201.5878000002353,
+        267325.2277999997
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.03499999252655019,
+        -0.008557461625514762
+      ]
+    },
+    "gpubpf_vs_xsched": {
+      "lc_p99_delta_us_mean_ci95": [
+        2618222.2021999997,
+        3546547.501
+      ],
+      "be_throughput_relative_mean_ci95": [
+        0.032767605103108055,
+        0.04350443649655964
+      ]
+    }
+  },
+  "xsched_scope": "upstream Level-1 HPF on sm_120; not XSched paper Level-3 reproduction",
+  "be_noninferiority_margin": -0.05,
+  "predeclared_decision": {
+    "classification": "negative",
+    "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
+    "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
+    "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
+    "inconclusive_rule": "all remaining combinations"
+  }
+}

@@ -11,6 +11,12 @@ record rather than vendored into gpu_ext.
 
 ## Current status
 
+- **A real repeated three-way performance campaign is complete:** five
+  randomized blocks, native/original XSched/our gpubpf, all 15 cells valid.
+  [Measured results](performance-575-20260902.md) show lower LC tail latency
+  for XSched and modestly higher BE throughput for gpubpf versus XSched.
+  This is the explicitly scoped short-budget campaign, not the original
+  50-kernel/10-block full protocol.
 - The old review in [plan-review.md](plan-review.md) is a historical record,
   not an additional execution-approval requirement. The user has authorized
   automatic performance experiments. The runner now brackets the CUPTI/device

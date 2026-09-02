@@ -1,0 +1,30 @@
+{
+  "name": "lc2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_lc",
+    "lc",
+    "2",
+    "4",
+    "2",
+    "9496464",
+    "340",
+    "256",
+    "0",
+    "-3530890"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"lc\",\"process_id\":2,\"streams\":4,\"tasks\":2}",
+    "{\"event\":\"result\",\"role\":\"lc\",\"process_id\":2,\"completion_host_ns\":1598148356753,\"outputs_validated\":696320,\"samples\":[{\"submit_ns\":1788389826012758739,\"submit_cupti_ns\":1788389826016289629,\"entry_ns\":1788389826026309376,\"exit_ns\":1788389827288933728},{\"submit_ns\":1788389826015129050,\"submit_cupti_ns\":1788389826018659940,\"entry_ns\":1788389827288937600,\"exit_ns\":1788389827674397504},{\"submit_ns\":1788389826015118569,\"submit_cupti_ns\":1788389826018649459,\"entry_ns\":1788389826026229920,\"exit_ns\":1788389826971522432},{\"submit_ns\":1788389826015129955,\"submit_cupti_ns\":1788389826018660845,\"entry_ns\":1788389827095185984,\"exit_ns\":1788389827591012384},{\"submit_ns\":1788389826015123750,\"submit_cupti_ns\":1788389826018654640,\"entry_ns\":1788389826026229600,\"exit_ns\":1788389826971197120},{\"submit_ns\":1788389826015130831,\"submit_cupti_ns\":1788389826018661721,\"entry_ns\":1788389826971201696,\"exit_ns\":1788389827297438080},{\"submit_ns\":1788389826015126656,\"submit_cupti_ns\":1788389826018657546,\"entry_ns\":1788389826945240384,\"exit_ns\":1788389827546415968},{\"submit_ns\":1788389826015131623,\"submit_cupti_ns\":1788389826018662513,\"entry_ns\":1788389827546420384,\"exit_ns\":1788389827807684544}],\"min_queue_ns\":11105850,\"max_queue_ns\":1531288761,\"clock_offset_ns\":-3530890}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 48368 @ 15:57:04.851879] using global scheduler",
+    "XSCHED_AUDIT pid=48368 xqueue=13614491004382416432 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0",
+    "XSCHED_AUDIT pid=48368 xqueue=13614491004369524960 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0",
+    "XSCHED_AUDIT pid=48368 xqueue=13614491004369490624 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0",
+    "XSCHED_AUDIT pid=48368 xqueue=13614491004385726640 level=1 threshold=16 batch=8 suspend_ok=0 resume_ok=0"
+  ]
+}

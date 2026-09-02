@@ -1,0 +1,24 @@
+{
+  "name": "calibration-1",
+  "command": [
+    "taskset",
+    "-c",
+    "0",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/priority_workload",
+    "lc",
+    "1",
+    "1",
+    "1",
+    "9001451",
+    "340",
+    "256",
+    "0",
+    "-3063191"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"lc\",\"process_id\":1,\"streams\":1,\"tasks\":1}",
+    "{\"event\":\"result\",\"role\":\"lc\",\"process_id\":1,\"completion_host_ns\":1570826389776,\"outputs_validated\":87040,\"samples\":[{\"submit_ns\":1788389800409344980,\"submit_cupti_ns\":1788389800412408171,\"entry_ns\":1788389800409425216,\"exit_ns\":1788389800485255136}],\"min_queue_ns\":80236,\"max_queue_ns\":80236,\"clock_offset_ns\":-3063191}"
+  ],
+  "stderr": []
+}

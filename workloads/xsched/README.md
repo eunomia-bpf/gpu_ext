@@ -11,6 +11,10 @@ record rather than vendored into gpu_ext.
 
 ## Current status
 
+- [Two driver-policy improvements were also measured](driver-candidates-575-20260902.md):
+  disabling the preemption cooldown and requesting differentiated interleave.
+  All 25 five-configuration cells completed; neither reached XSched's LC
+  latency. Original and candidate outcomes are preserved separately.
 - **A real repeated three-way performance campaign is complete:** five
   randomized blocks, native/original XSched/our gpubpf, all 15 cells valid.
   [Measured results](performance-575-20260902.md) show lower LC tail latency

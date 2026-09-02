@@ -1,0 +1,82 @@
+{
+  "config": "gpubpf_nocooldown",
+  "reps": 9496464,
+  "tasks_per_stream": 5,
+  "blocks": 340,
+  "threads": 256,
+  "be_release_ns": 2809096458580,
+  "all_be_running_ns": 2809719671395,
+  "lc_release_ns": 2809724671493,
+  "be_running_events": [
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 1,
+      "host_ns": 2809719493512,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 2,
+      "host_ns": 2809104317943,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 3,
+      "host_ns": 2809712483959,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 4,
+      "host_ns": 2809110905742,
+      "stream0_task0_active": true
+    }
+  ],
+  "lc_samples": 40,
+  "be_completed": 80,
+  "lc_mean_us": 3109933.682375,
+  "lc_p50_us": 2778601.351,
+  "lc_p95_us": 6686606.064,
+  "lc_p99_us": 7231644.292,
+  "lc_p99_is_sample_maximum": true,
+  "lc_completion_p99_us": 7392610.532,
+  "be_throughput_kernels_s": 10.272749791948952,
+  "outputs_validated_per_process": 1740800,
+  "clock_calibration": {
+    "event": "clock_probe",
+    "offset_ns": -7751376,
+    "offset_low_ns": -7753946,
+    "offset_high_ns": -7748806,
+    "uncertainty_ns": 2570
+  },
+  "clock_calibration_after": {
+    "event": "clock_probe",
+    "offset_ns": -7832698,
+    "offset_low_ns": -7835313,
+    "offset_high_ns": -7830082,
+    "uncertainty_ns": 2616
+  },
+  "clock_error": {
+    "offset_drift_ns": 81322,
+    "conservative_error_bound_ns": 86508
+  },
+  "engagement": {
+    "timeslice_mod": 20,
+    "uprobe_hit": 120,
+    "preempt_ok": 160,
+    "preempt_err": 0,
+    "skipped": 80,
+    "cooldown_skip": 0,
+    "targets_hit": 160,
+    "tsg_captured": 4,
+    "active_targets": 4,
+    "expected_preemptions": 160
+  },
+  "block": 3,
+  "order_index": 4
+}

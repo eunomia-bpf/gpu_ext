@@ -1,0 +1,230 @@
+{
+  "protocol": {
+    "phase": "pilot",
+    "repetitions": 5,
+    "seed": 1797,
+    "tasks_per_stream": 5,
+    "streams_per_process": 4,
+    "lc_processes": 2,
+    "be_processes": 4,
+    "configs": [
+      "native",
+      "xsched",
+      "gpubpf",
+      "gpubpf_nocooldown",
+      "gpubpf_interleave"
+    ],
+    "reps": 9496464,
+    "blocks": 340,
+    "threads": 256,
+    "timeout_seconds_per_cell": 120.0,
+    "full_50_kernel_10_block_protocol": false,
+    "short_budget_difference": "5 complete blocks and 5 kernels/stream instead of 10 blocks and 50 kernels/stream; 40 LC samples/cell means nearest-rank P99 is the sample maximum",
+    "kernel_target_ms": 80,
+    "xsched_level": 1,
+    "candidate_policy_differences": {
+      "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
+      "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind"
+    }
+  },
+  "complete_blocks": 5,
+  "configs": {
+    "native": {
+      "lc_p99_median_us": 7266732.53,
+      "lc_p99_mean_ci95": [
+        7226821.2086,
+        7344927.1774
+      ],
+      "be_throughput_median": 10.207123154856147,
+      "be_throughput_mean_ci95": [
+        10.006313372701053,
+        10.255089575027116
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 3224438.70015,
+      "lc_p50_us_median": 3063042.665,
+      "lc_p95_us_median": 6626967.868
+    },
+    "xsched": {
+      "lc_p99_median_us": 4127607.02,
+      "lc_p99_mean_ci95": [
+        3515805.509,
+        4319827.5032
+      ],
+      "be_throughput_median": 9.573505458438728,
+      "be_throughput_mean_ci95": [
+        9.507272115045744,
+        9.613717064754848
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 2233859.486,
+      "lc_p50_us_median": 2384401.716,
+      "lc_p95_us_median": 3875749.26
+    },
+    "gpubpf": {
+      "lc_p99_median_us": 7220816.67,
+      "lc_p99_mean_ci95": [
+        7212995.9532,
+        7427366.3304
+      ],
+      "be_throughput_median": 10.216065420098133,
+      "be_throughput_mean_ci95": [
+        10.031259123889503,
+        10.264757340639926
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 3226615.71635,
+      "lc_p50_us_median": 3112562.517,
+      "lc_p95_us_median": 6712883.816
+    },
+    "gpubpf_nocooldown": {
+      "lc_p99_median_us": 7230446.947,
+      "lc_p99_mean_ci95": [
+        7206256.4982,
+        7234902.1746000005
+      ],
+      "be_throughput_median": 10.25475751554745,
+      "be_throughput_mean_ci95": [
+        10.203560994490816,
+        10.270442203440762
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 3102654.4553,
+      "lc_p50_us_median": 2778155.393,
+      "lc_p95_us_median": 6673753.202
+    },
+    "gpubpf_interleave": {
+      "lc_p99_median_us": 7252303.977,
+      "lc_p99_mean_ci95": [
+        7224198.9628,
+        7267491.1756
+      ],
+      "be_throughput_median": 10.236517043583543,
+      "be_throughput_mean_ci95": [
+        10.200715515789444,
+        10.29473869925586
+      ],
+      "lc_samples_per_cell": 40,
+      "be_kernels_per_cell": 80,
+      "lc_p99_is_sample_maximum": true,
+      "lc_mean_us_median": 3229431.505575,
+      "lc_p50_us_median": 3107069.772,
+      "lc_p95_us_median": 6702637.28
+    }
+  },
+  "paired": {
+    "gpubpf_vs_native": {
+      "lc_p99_delta_us_mean_ci95": [
+        -108609.62539999987,
+        153211.80140000023
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.01610686188807393,
+        0.021226616923208708
+      ]
+    },
+    "gpubpf_vs_xsched": {
+      "lc_p99_delta_us_mean_ci95": [
+        2965771.5048,
+        3709553.643
+      ],
+      "be_throughput_relative_mean_ci95": [
+        0.04691183923300435,
+        0.07535142646731981
+      ]
+    },
+    "gpubpf_nocooldown_vs_native": {
+      "lc_p99_delta_us_mean_ci95": [
+        -113880.51300000008,
+        -16732.988399999962
+      ],
+      "be_throughput_relative_mean_ci95": [
+        0.0011730910324271536,
+        0.019978741014822398
+      ]
+    },
+    "gpubpf_nocooldown_vs_xsched": {
+      "lc_p99_delta_us_mean_ci95": [
+        2889377.4605999994,
+        3719336.1346000005
+      ],
+      "be_throughput_relative_mean_ci95": [
+        0.06636481076375622,
+        0.07571668233879966
+      ]
+    },
+    "gpubpf_nocooldown_vs_gpubpf": {
+      "lc_p99_delta_us_mean_ci95": [
+        -199628.38000000027,
+        14233.695399999991
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.0024078913293736903,
+        0.02070808851252883
+      ]
+    },
+    "gpubpf_interleave_vs_native": {
+      "lc_p99_delta_us_mean_ci95": [
+        -75344.51100000032,
+        1885.4963999999686
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.0011585939222411134,
+        0.023690994476487835
+      ]
+    },
+    "gpubpf_interleave_vs_xsched": {
+      "lc_p99_delta_us_mean_ci95": [
+        2911328.9099999997,
+        3752342.1082
+      ],
+      "be_throughput_relative_mean_ci95": [
+        0.06266398190930081,
+        0.07968062499676512
+      ]
+    },
+    "gpubpf_interleave_vs_gpubpf": {
+      "lc_p99_delta_us_mean_ci95": [
+        -190480.8818,
+        46400.08199999966
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.006220948299562101,
+        0.026291999729213544
+      ]
+    }
+  },
+  "xsched_scope": "upstream Level-1 HPF on sm_120; not XSched paper Level-3 reproduction",
+  "be_noninferiority_margin": -0.05,
+  "predeclared_decision": {
+    "classification": "negative",
+    "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
+    "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
+    "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
+    "inconclusive_rule": "all remaining combinations"
+  },
+  "candidate_decisions": {
+    "gpubpf_nocooldown": {
+      "classification": "negative",
+      "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
+      "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
+      "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
+      "inconclusive_rule": "all remaining combinations"
+    },
+    "gpubpf_interleave": {
+      "classification": "negative",
+      "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
+      "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
+      "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
+      "inconclusive_rule": "all remaining combinations"
+    }
+  }
+}

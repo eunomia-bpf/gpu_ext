@@ -1,0 +1,85 @@
+{
+  "config": "gpubpf_interleave",
+  "reps": 9496464,
+  "tasks_per_stream": 5,
+  "blocks": 340,
+  "threads": 256,
+  "be_release_ns": 2656641550684,
+  "all_be_running_ns": 2657269038171,
+  "lc_release_ns": 2657274038249,
+  "be_running_events": [
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 1,
+      "host_ns": 2657268643328,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 2,
+      "host_ns": 2656642589865,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 3,
+      "host_ns": 2656645016929,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 4,
+      "host_ns": 2656649382250,
+      "stream0_task0_active": true
+    }
+  ],
+  "lc_samples": 40,
+  "be_completed": 80,
+  "lc_mean_us": 3230154.1337,
+  "lc_p50_us": 3107069.772,
+  "lc_p95_us": 6702637.28,
+  "lc_p99_us": 7285185.084,
+  "lc_p99_is_sample_maximum": true,
+  "lc_completion_p99_us": 7510704.604,
+  "be_throughput_kernels_s": 10.236517043583543,
+  "outputs_validated_per_process": 1740800,
+  "clock_calibration": {
+    "event": "clock_probe",
+    "offset_ns": -6932564,
+    "offset_low_ns": -6935145,
+    "offset_high_ns": -6929982,
+    "uncertainty_ns": 2582
+  },
+  "clock_calibration_after": {
+    "event": "clock_probe",
+    "offset_ns": -6971053,
+    "offset_low_ns": -6973665,
+    "offset_high_ns": -6968441,
+    "uncertainty_ns": 2612
+  },
+  "clock_error": {
+    "offset_drift_ns": 38489,
+    "conservative_error_bound_ns": 43683
+  },
+  "engagement": {
+    "timeslice_mod": 20,
+    "uprobe_hit": 120,
+    "preempt_ok": 8,
+    "preempt_err": 0,
+    "skipped": 80,
+    "cooldown_skip": 38,
+    "targets_hit": 8,
+    "tsg_captured": 4,
+    "active_targets": 4,
+    "interleave_mod": 20,
+    "interleave_observed": 18,
+    "interleave_mismatch": 0,
+    "setter_error": 0
+  },
+  "block": 1,
+  "order_index": 1
+}

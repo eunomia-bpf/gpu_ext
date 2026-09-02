@@ -713,12 +713,37 @@ def classify_comparison(latency_ci: list[float], throughput_ci: list[float]) -> 
 
 
 def analyze(root: Path) -> dict[str, Any]:
+    failures = sorted(root.glob("**/failure.json"))
+    if failures:
+        raise RuntimeError(f"campaign contains a failed cell: {failures[0].parent.name}")
     protocol_path = root / "protocol.json"
     protocol = json.loads(protocol_path.read_text()) if protocol_path.exists() else {
         "phase": "full", "repetitions": REPETITIONS, "tasks_per_stream": 50,
     }
     repetitions = protocol["repetitions"]
     configs = tuple(protocol.get("configs", CONFIGS))
+    controls = {}
+    if protocol["phase"] == "full":
+        expected_samples = protocol.get("streams_per_process", 4) * protocol["tasks_per_stream"]
+        expected_values = expected_samples * protocol.get("blocks", 340) * protocol.get("threads", 256)
+        for role in ("lc", "be"):
+            role_controls = []
+            for repetition in range(3):
+                path = root / f"control-{role}-{repetition}" / "result.json"
+                if not path.is_file():
+                    raise RuntimeError(f"full campaign requires isolated control {path.parent.name}")
+                record = json.loads(path.read_text())
+                if (record["control"] != f"isolated-{role}"
+                        or record["samples"] != expected_samples
+                        or record["outputs_validated"] != expected_values):
+                    raise RuntimeError(f"isolated control workload mismatch: {path.parent.name}")
+                role_controls.append(record)
+            controls[role] = {
+                "repetitions": len(role_controls), "samples_per_cell": expected_samples,
+                "completion_p99_median_us": statistics.median(record["p99_us"] for record in role_controls),
+                "throughput_median_kernels_s": statistics.median(
+                    record["throughput_kernels_s"] for record in role_controls),
+            }
     records = []
     for path in sorted(root.glob("**/result.json")):
         record = json.loads(path.read_text())
@@ -732,12 +757,15 @@ def analyze(root: Path) -> dict[str, Any]:
             raise RuntimeError("cell task count differs from the frozen protocol")
         by_block.setdefault(record["block"], {})[record["config"]] = record
     complete = {block: values for block, values in by_block.items() if set(values) == set(configs)}
-    if len(complete) != repetitions or set(complete) != set(range(repetitions)):
+    if (len(complete) != repetitions or set(complete) != set(range(repetitions))
+            or set(by_block) != set(complete)):
         raise RuntimeError(f"analysis requires {repetitions} complete randomized blocks, found {len(complete)}")
     summary: dict[str, Any] = {
         "protocol": protocol, "complete_blocks": len(complete), "configs": {}, "paired": {},
         "xsched_scope": "upstream Level-1 HPF on sm_120; not XSched paper Level-3 reproduction",
     }
+    if controls:
+        summary["isolated_controls"] = controls
     for config in configs:
         lc = [complete[block][config]["lc_p99_us"] for block in sorted(complete)]
         be = [complete[block][config]["be_throughput_kernels_s"] for block in sorted(complete)]

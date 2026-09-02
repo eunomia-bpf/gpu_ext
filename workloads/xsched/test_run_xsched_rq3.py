@@ -125,6 +125,39 @@ class RunnerTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "5 complete"):
                 runner.analyze(root)
 
+    def test_full_analysis_requires_all_six_correct_isolated_controls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "protocol.json").write_text(json.dumps({
+                "phase": "full", "repetitions": 10, "tasks_per_stream": 50,
+                "blocks": 340, "threads": 256,
+            }))
+            with self.assertRaisesRegex(RuntimeError, "requires isolated control"):
+                runner.analyze(root)
+            for role in ("lc", "be"):
+                for repetition in range(3):
+                    directory = root / f"control-{role}-{repetition}"
+                    directory.mkdir()
+                    (directory / "result.json").write_text(json.dumps({
+                        "control": f"isolated-{role}", "samples": 200,
+                        "outputs_validated": 200 * 340 * 256,
+                        "p99_us": 10, "throughput_kernels_s": 10,
+                    }))
+            with self.assertRaisesRegex(RuntimeError, "10 complete"):
+                runner.analyze(root)
+            (directory / "result.json").write_text(json.dumps({
+                "control": "isolated-be", "samples": 20, "outputs_validated": 20 * 340 * 256,
+            }))
+            with self.assertRaisesRegex(RuntimeError, "isolated control workload mismatch"):
+                runner.analyze(root)
+
+    def test_analysis_does_not_accept_a_result_from_a_failed_cell(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "failure.json").write_text(json.dumps({"error": "cleanup failed"}))
+            with self.assertRaisesRegex(RuntimeError, "failed cell"):
+                runner.analyze(root)
+
     def test_complete_pilot_preserves_scope_and_all_three_configs(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

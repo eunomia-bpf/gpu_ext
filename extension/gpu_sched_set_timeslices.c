@@ -56,6 +56,8 @@ static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
     int index_fd = bpf_map__fd(skel->maps.history_index);
     __u64 task_init = 0, bind = 0, task_destroy = 0, timeslice_mod = 0;
     __u64 policy_hit = 0, policy_miss = 0;
+    __u64 interleave_mod = 0, interleave_observed = 0;
+    __u64 interleave_mismatch = 0, setter_error = 0;
     __u32 key;
 
     key = 0; bpf_map_lookup_elem(stats_fd, &key, &task_init);
@@ -64,6 +66,10 @@ static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
     key = 3; bpf_map_lookup_elem(stats_fd, &key, &timeslice_mod);
     key = 4; bpf_map_lookup_elem(stats_fd, &key, &policy_hit);
     key = 5; bpf_map_lookup_elem(stats_fd, &key, &policy_miss);
+    key = 6; bpf_map_lookup_elem(stats_fd, &key, &interleave_mod);
+    key = 7; bpf_map_lookup_elem(stats_fd, &key, &interleave_observed);
+    key = 8; bpf_map_lookup_elem(stats_fd, &key, &interleave_mismatch);
+    key = 9; bpf_map_lookup_elem(stats_fd, &key, &setter_error);
 
     printf("\n=== Statistics ===\n");
     printf("task_init:      %llu\n", (unsigned long long)task_init);
@@ -72,6 +78,10 @@ static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
     printf("timeslice_mod:  %llu\n", (unsigned long long)timeslice_mod);
     printf("policy_hit:     %llu\n", (unsigned long long)policy_hit);
     printf("policy_miss:    %llu\n", (unsigned long long)policy_miss);
+    printf("interleave_mod: %llu\n", (unsigned long long)interleave_mod);
+    printf("interleave_observed: %llu\n", (unsigned long long)interleave_observed);
+    printf("interleave_mismatch: %llu\n", (unsigned long long)interleave_mismatch);
+    printf("setter_error:  %llu\n", (unsigned long long)setter_error);
 
     /* Print timeslice modification history */
     __u32 idx = 0;
@@ -95,17 +105,18 @@ static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
 
 static void usage(const char *prog)
 {
-    fprintf(stderr, "Usage: %s [-h] [-p process:timeslice_us] ...\n", prog);
+    fprintf(stderr, "Usage: %s [-h] [-p process:timeslice_us] [-i process:level] ...\n", prog);
     fprintf(stderr, "\nOptions:\n");
     fprintf(stderr, "  -h                Show this help\n");
     fprintf(stderr, "  -p PROC:TIME      Set timeslice for process (can be repeated)\n");
+    fprintf(stderr, "  -i PROC:LEVEL     Set runlist interleave: 0=low, 1=medium, 2=high\n");
     fprintf(stderr, "\nExamples:\n");
     fprintf(stderr, "  %s -p python:2000              # python gets 2000us timeslice\n", prog);
     fprintf(stderr, "  %s -p uvmbench:500 -p cuda:1000  # multiple policies\n", prog);
     fprintf(stderr, "\nThe program runs until Ctrl+C. Check dmesg for bpf_printk output.\n");
 }
 
-static int parse_policy(const char *arg, struct policy_entry *entry)
+static int parse_policy(const char *arg, struct policy_entry *entry, bool interleave)
 {
     char *colon = strchr(arg, ':');
     if (!colon) {
@@ -114,17 +125,20 @@ static int parse_policy(const char *arg, struct policy_entry *entry)
     }
 
     size_t name_len = colon - arg;
-    if (name_len >= TASK_COMM_LEN) {
+    if (name_len == 0 || name_len >= TASK_COMM_LEN) {
         fprintf(stderr, "Process name too long: %.*s\n", (int)name_len, arg);
         return -1;
     }
 
     memset(entry->comm, 0, TASK_COMM_LEN);
     memcpy(entry->comm, arg, name_len);
-    entry->timeslice_us = strtoull(colon + 1, NULL, 10);
+    char *end = NULL;
+    errno = 0;
+    entry->timeslice_us = strtoull(colon + 1, &end, 10);
 
-    if (entry->timeslice_us == 0) {
-        fprintf(stderr, "Invalid timeslice: %s\n", colon + 1);
+    if (errno || colon[1] < '0' || colon[1] > '9' || !end || *end != '\0'
+        || (interleave ? entry->timeslice_us > 2 : entry->timeslice_us == 0)) {
+        fprintf(stderr, "Invalid %s: %s\n", interleave ? "interleave" : "timeslice", colon + 1);
         return -1;
     }
 
@@ -136,11 +150,13 @@ int main(int argc, char **argv)
     struct gpu_sched_set_timeslices_bpf *skel;
     struct bpf_link *link = NULL;
     struct policy_entry policies[MAX_POLICIES];
+    struct policy_entry priorities[MAX_POLICIES];
     int num_policies = 0;
+    int num_priorities = 0;
     int err;
     int opt;
 
-    while ((opt = getopt(argc, argv, "hp:")) != -1) {
+    while ((opt = getopt(argc, argv, "hp:i:")) != -1) {
         switch (opt) {
         case 'h':
             usage(argv[0]);
@@ -150,10 +166,19 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Too many policies (max %d)\n", MAX_POLICIES);
                 return 1;
             }
-            if (parse_policy(optarg, &policies[num_policies]) < 0) {
+            if (parse_policy(optarg, &policies[num_policies], false) < 0) {
                 return 1;
             }
             num_policies++;
+            break;
+        case 'i':
+            if (num_priorities >= MAX_POLICIES) {
+                fprintf(stderr, "Too many interleave policies (max %d)\n", MAX_POLICIES);
+                return 1;
+            }
+            if (parse_policy(optarg, &priorities[num_priorities], true) < 0)
+                return 1;
+            num_priorities++;
             break;
         default:
             usage(argv[0]);
@@ -183,11 +208,24 @@ int main(int argc, char **argv)
             if (err) {
                 fprintf(stderr, "Failed to add policy for %s: %s\n",
                         policies[i].comm, strerror(errno));
+                err = -1;
+                goto cleanup;
             } else {
                 printf("Policy: %s -> %llu us\n",
                        policies[i].comm, (unsigned long long)policies[i].timeslice_us);
             }
         }
+    }
+
+    for (int i = 0; i < num_priorities; i++) {
+        __u32 level = (__u32)priorities[i].timeslice_us;
+        if (bpf_map_update_elem(bpf_map__fd(skel->maps.process_interleave),
+                                priorities[i].comm, &level, BPF_ANY) != 0) {
+            fprintf(stderr, "Failed to add interleave policy: %s\n", strerror(errno));
+            err = -1;
+            goto cleanup;
+        }
+        printf("Interleave policy: %s -> %u\n", priorities[i].comm, level);
     }
 
     /* Attach struct_ops */
@@ -200,7 +238,7 @@ int main(int argc, char **argv)
     }
 
     printf("GPU Scheduler struct_ops attached. Press Ctrl+C to stop.\n");
-    if (num_policies == 0) {
+    if (num_policies == 0 && num_priorities == 0) {
         printf("No policies configured. Use -p PROC:TIME to set timeslices.\n");
     }
     printf("Check: sudo cat /sys/kernel/debug/tracing/trace_pipe\n");

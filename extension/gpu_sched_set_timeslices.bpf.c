@@ -23,10 +23,18 @@ struct {
     __type(value, __u64);
 } process_timeslice SEC(".maps");
 
+/* Optional hardware runlist priority; absent entries preserve native defaults. */
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 256);
+    __type(key, char[TASK_COMM_LEN]);
+    __type(value, __u32);
+} process_interleave SEC(".maps");
+
 /* Statistics map */
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 8);
+    __uint(max_entries, 10);
     __type(key, __u32);
     __type(value, __u64);
 } stats SEC(".maps");
@@ -37,6 +45,10 @@ struct {
 #define STAT_TIMESLICE_MOD  3
 #define STAT_POLICY_HIT     4
 #define STAT_POLICY_MISS    5
+#define STAT_INTERLEAVE_MOD 6
+#define STAT_INTERLEAVE_OBSERVED 7
+#define STAT_INTERLEAVE_MISMATCH 8
+#define STAT_SETTER_ERROR   9
 
 /* Trace events for debugging */
 struct gpu_sched_trace_event {
@@ -108,6 +120,7 @@ int BPF_PROG(on_task_init, struct nv_gpu_task_init_ctx *init_ctx)
 {
     char comm[TASK_COMM_LEN];
     __u64 *timeslice;
+    __u32 *interleave;
 
     inc_stat(STAT_TASK_INIT);
 
@@ -116,6 +129,14 @@ int BPF_PROG(on_task_init, struct nv_gpu_task_init_ctx *init_ctx)
 
     /* Get current process name */
     bpf_get_current_comm(&comm, sizeof(comm));
+
+    interleave = bpf_map_lookup_elem(&process_interleave, comm);
+    if (interleave) {
+        if (bpf_nv_gpu_set_interleave(init_ctx, *interleave) == 0)
+            inc_stat(STAT_INTERLEAVE_MOD);
+        else
+            inc_stat(STAT_SETTER_ERROR);
+    }
 
     bpf_printk("GPU sched: TSG %llu init, comm=%s, default_ts=%llu\n",
                init_ctx->tsg_id, comm, init_ctx->default_timeslice);
@@ -126,7 +147,10 @@ int BPF_PROG(on_task_init, struct nv_gpu_task_init_ctx *init_ctx)
         __u64 old_ts = init_ctx->default_timeslice;
         __u64 new_ts = *timeslice;
 
-        bpf_nv_gpu_set_timeslice(init_ctx, new_ts);
+        if (bpf_nv_gpu_set_timeslice(init_ctx, new_ts) != 0) {
+            inc_stat(STAT_SETTER_ERROR);
+            return 0;
+        }
         inc_stat(STAT_TIMESLICE_MOD);
         inc_stat(STAT_POLICY_HIT);
 
@@ -149,6 +173,7 @@ SEC("struct_ops/on_bind")
 int BPF_PROG(on_bind, struct nv_gpu_bind_ctx *bind_ctx)
 {
     char comm[TASK_COMM_LEN];
+    __u32 *interleave;
 
     inc_stat(STAT_BIND);
 
@@ -156,6 +181,13 @@ int BPF_PROG(on_bind, struct nv_gpu_bind_ctx *bind_ctx)
         return 0;
 
     bpf_get_current_comm(&comm, sizeof(comm));
+    interleave = bpf_map_lookup_elem(&process_interleave, comm);
+    if (interleave) {
+        if (bind_ctx->interleave_level == *interleave)
+            inc_stat(STAT_INTERLEAVE_OBSERVED);
+        else
+            inc_stat(STAT_INTERLEAVE_MISMATCH);
+    }
     bpf_printk("GPU sched: TSG %llu bind, comm=%s, channels=%u, ts=%llu\n",
                bind_ctx->tsg_id, comm, bind_ctx->channel_count, bind_ctx->timeslice_us);
 

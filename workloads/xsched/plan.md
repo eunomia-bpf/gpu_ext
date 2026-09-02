@@ -1,8 +1,26 @@
 # Experiment Plan: RQ3 XSched Level-1 on sm_120
 
-Status: **closed after round-3 review; no GPU execution authorized**. The
-CUPTI/globaltimer clock-domain proof and mutually exclusive result categories
-remain unresolved. See `plan-review.md`; builds are preparation, not results.
+Status (2026-09-02): **authorized for automatic three-way performance execution**.
+The earlier closed review is retained in `plan-review.md` as history. The
+runner now measures the CUPTI/globaltimer offset in a separate 16-sample
+bracketed probe before each cell, checks a second probe after the policy has
+detached, and rejects combined drift/uncertainty above 1 ms. Result categories
+are now mutually exclusive. No new academic review cycle is required.
+
+## Fixed short-budget campaign
+
+The user prioritizes obtaining native, original user-space-policy, and our
+BPF-policy performance within the current session. `pilot` therefore runs
+five complete seed-1797 randomized blocks, with five kernels per stream.
+All other algorithm/workload settings below remain unchanged, including the
+80 ms isolated kernel calibration, 2 LC + 4 BE processes, four streams each,
+XSched HPF settings, gpubpf timeslices, correctness, and engagement checks.
+The 40 LC samples per cell make nearest-rank P99 equal to the sample maximum;
+the report must disclose that and also report P50/P95/mean and BE throughput.
+There are no isolated role controls in this short-budget campaign. It is a
+repeated three-way performance comparison, not the original 50-kernel/10-block
+protocol, whose `full` command and completion rule remain unchanged below.
+The saved `protocol.json` records this distinction before the first cell.
 
 ## Research Question
 
@@ -64,7 +82,7 @@ remain unresolved. See `plan-review.md`; builds are preparation, not results.
 
 ## Execution
 
-- Required stack before any runtime: boot the same custom gpubpf-capable NVIDIA 575.57.08 driver for all three configurations, expose `struct nv_gpu_sched_ops` and `bpf_nv_gpu_preempt_tsg` in `/sys/kernel/btf/nvidia`, provide non-interactive root permission for BPF loading, and leave the RTX 5090 idle. The runner refuses any mismatch and never kills unrelated processes.
+- Required stack before any runtime: use the same custom gpubpf-capable NVIDIA 575.57.08 driver on Linux 6.15.11 for all three configurations, expose `struct nv_gpu_sched_ops` and `bpf_nv_gpu_preempt_tsg` in `/sys/kernel/btf/nvidia`, provide non-interactive root permission for BPF loading, and leave the RTX 5090 idle. The runner refuses any mismatch and never kills unrelated processes. Every live phase holds the shared GPU and struct-ops leases and records per-cell before/after kernel, Xid, UVM, GPU-idle, 400 W power-limit, and struct-ops checks.
 - Authoritative build: `python3 workloads/xsched/run_xsched_rq3.py build` from `gpu_ext/`. This applies the reviewed patch to an unmodified pinned XSched checkout, or verifies an already patched checkout byte-for-byte; any other diff is rejected. It then performs a clean CUDA rebuild using `/usr/bin/g++`, builds the `sm_120` harness, and rebuilds both gpubpf loaders from current source. The standalone harness command is `make -C workloads/xsched`.
 - Admission: `python3 workloads/xsched/run_xsched_rq3.py admission`. It records driver, live compute processes, required BTF types/kfuncs, commits, the exact small XSched diff, and ordinary source/binary file metadata. A failed admission exits 2 and creates no run.
 - Isolated calibration: `python3 workloads/xsched/run_xsched_rq3.py calibrate --output workloads/xsched/raw/calibration-<id> --reps 1000000`. Copy the emitted `frozen_reps` value verbatim; no policy or full result is examined while tuning.
@@ -83,11 +101,11 @@ remain unresolved. See `plan-review.md`; builds are preparation, not results.
 - Positive result: gpubpf lowers paired LC P99 while keeping BE throughput within the predeclared tolerance/CI.
 - Negative or contradictory result: XSched matches or wins one or both primary metrics; report that boundary without averaging metrics into a single score.
 - Mixed or inconclusive result: One system improves LC latency but materially reduces BE throughput, variability crosses both orderings, or engagement cannot be established.
-- Frozen decision rule against XSched: **positive** only if the upper 95% CI of paired `gpubpf - XSched` LC launch-latency difference is below zero and the lower 95% CI of paired relative BE-throughput change is at least -5%. **Negative** if the LC CI lower bound is nonnegative or the BE CI upper bound is below -5%; **mixed** if exactly one positive condition is established; otherwise **inconclusive**.
+- Frozen decision rule against XSched: **positive** only if the upper 95% CI of paired `gpubpf - XSched` LC launch-latency difference is below zero and the lower 95% CI of paired relative BE-throughput change is at least -5%. **Mixed** if LC improvement is established but the BE CI upper bound is below -5%. **Negative** if the LC CI lower bound is nonnegative, or BE inferiority is established without established LC improvement. All remaining combinations are **inconclusive**. The categories are mutually exclusive.
 - Target paper figure or table: RQ3 scheduling subsection / Fig. 12 companion table or grouped plot.
 
 ## Reproducibility Notes
 
 - Software and data versions: Record gpu_ext/bpftime commits and dirty state, XSched and all submodule commits, driver, CUDA toolkit, compiler, GPU clocks/power/temperature, and ordinary harness file metadata.
 - Config and seed notes: Preserve exact process roles, streams, tasks, work repetitions, queue threshold/batch size, policy/timeslice settings, CPU affinity, launch order, and seed 1797.
-- Known deviations: The public XSched implementation supplies only Level-1 on sm_120; the result must not be described as reproducing the XSched paper's Level-3 numbers. The GPU is currently idle, but the live 610.43.02 core module lacks the required scheduling BTF/hooks. The gpubpf-enabled 575.57.08 modules now build with BTF for installed Linux 6.14.0-37, but activating that matching kernel/userspace stack requires an authorized reboot maintenance window. No runtime preflight has started.
+- Known deviations: The public XSched implementation supplies only Level-1 on sm_120; the result must not be described as reproducing the XSched paper's Level-3 numbers. The machine has rebooted to Linux 6.15.11 and driver 575.57.08. The parent experiment coordinator is activating the matching custom gpubpf modules; current module readiness is determined from live BTF/admission, never assumed from this status prose.

@@ -266,8 +266,15 @@ def start_policy(config: str, cpus: list[int], run_dir: Path) -> list[ManagedPro
             if any(policy.proc.poll() is not None for policy in policies):
                 raise RuntimeError("gpubpf policy failed to stay running")
             inventory = shared.struct_ops_inventory()
-            if len(inventory["maps"]) != 1 or len(inventory["links"]) != 1:
-                raise RuntimeError(f"expected one owned scheduling map/link: {inventory}")
+            # Some installed bpftool versions do not name new struct-ops
+            # link types. The map's kernel-reported owner PID is decisive.
+            owners = {int(owner["pid"]) for item in inventory["maps"]
+                      for owner in item.get("pids", ())}
+            owned_pids = set(shared.descendants(policies[0].proc.pid))
+            if (len(inventory["maps"]) != 1 or len(inventory["links"]) > 1
+                    or not owners or not owners.issubset(owned_pids)):
+                raise RuntimeError(f"expected one owned scheduling map: {inventory}")
+            inventory["owned_loader_pids"] = sorted(owned_pids)
             (run_dir / "policy-attachment.json").write_text(json.dumps(inventory, indent=2) + "\n")
     except BaseException:
         for policy in reversed(policies):

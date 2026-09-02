@@ -88,6 +88,15 @@ class CurrentStackTests(unittest.TestCase):
         self.assertEqual(base.analyze_valid_blocks([{}, {}]),
                          {"outcome": "inconclusive", "valid_blocks": 2})
 
+    def test_descriptive_checkpoint_uses_only_complete_paired_blocks(self):
+        blocks = [{"results": {c: {"output_throughput_tokens_per_s": float(i + 1)}
+                                for c in base.CONFIGS}} for i in range(2)]
+        values = current.descriptive_summary(blocks)
+        for config in base.CONFIGS:
+            self.assertTrue(values[config]["preliminary"])
+            self.assertEqual(values[config]["block_output_throughput_tokens_per_s"], [1.0, 2.0])
+            self.assertEqual(values[config]["paired_geometric_mean_ratio_vs_moe"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()

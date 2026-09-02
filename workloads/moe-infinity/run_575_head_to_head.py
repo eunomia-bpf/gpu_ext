@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -94,6 +95,7 @@ def preflight(output: Path, port: int) -> dict[str, Any]:
     runtime = admitted["runtime_files"]
     result: dict[str, Any] = {
         "protocol": PROTOCOL, "driver": DRIVER, "kernel": KERNEL,
+        "source_commit": base.run_checked(["git", "rev-parse", "HEAD"], cwd=base.GPU_EXT),
         "status": "running", "runtime_files": runtime,
         "configuration_order": list(base.FROZEN_CORRECTNESS_ORDER), "results": {},
         "cross_configuration_output_equality_required": False,
@@ -145,6 +147,7 @@ def full_schedule(output: Path, preflight_path: Path, port: int,
     session_file = output / "session.json"
     session = {"protocol": PROTOCOL, "preflight": str(preflight_path.absolute()),
                "runtime_files": runtime, "target_valid_blocks": 5,
+               "source_commit": checked["source_commit"],
                "maximum_attempts": 8, "schedule": read_json(base.SCHEDULE)}
     if session_file.exists() and read_json(session_file) != session:
         raise base.GateError("continuation session does not match the frozen preflight and schedule")
@@ -191,11 +194,29 @@ def full_schedule(output: Path, preflight_path: Path, port: int,
         result = {"protocol": PROTOCOL, "attempts": attempts, "valid_blocks": len(valid),
                   "target_valid_blocks": 5, "stage_limit": max_blocks,
                   "full_experiment_complete": len(valid) == 5,
+                  "descriptive": descriptive_summary(valid),
                   "analysis": base.analyze_valid_blocks(valid)}
         base.atomic_write_json(output / "experiment-result.json", result)
         emit(f"accepted complete paired blocks: {len(valid)}/5")
     if not attempts:
         raise base.GateError("no completed attempted block")
+    return result
+
+
+def descriptive_summary(blocks: list[dict[str, Any]]) -> dict[str, Any]:
+    """Show actual completed-block values without an underpowered interval claim."""
+    if not blocks:
+        return {}
+    result = {}
+    for config in base.CONFIGS:
+        values = [block["results"][config]["output_throughput_tokens_per_s"] for block in blocks]
+        ratios = [value / block["results"]["moe_infinity_075"]["output_throughput_tokens_per_s"]
+                  for value, block in zip(values, blocks)]
+        result[config] = {
+            "block_output_throughput_tokens_per_s": values,
+            "paired_geometric_mean_ratio_vs_moe": math.exp(sum(map(math.log, ratios)) / len(ratios)),
+            "preliminary": len(blocks) < 5,
+        }
     return result
 
 

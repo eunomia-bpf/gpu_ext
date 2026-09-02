@@ -75,6 +75,26 @@ persistent queue-admission semantics. The completed candidates provide
 experimental evidence that these two small parameter changes do not close
 the LC gap; they do not show that HPF is inexpressible in BPF.
 
+An additional source inspection identified a separate actuation defect in the
+loaded 575 source revision `28b1d30c`: the generated
+`kfifoChannelGroupSetTimesliceSched_56cd7a` and
+`kchangrpSetInterleaveLevelSched_56cd7a` implementations simply return `NV_OK`.
+The generated dispatch macros select these implementations. In contrast,
+`kchangrpapiCtrlCmdSetTimeslice_IMPL` explicitly invokes `NV_RM_RPC_CONTROL`
+when `IS_GSP_CLIENT(pGpu)` is true, and updates host bookkeeping only after
+that control succeeds. The old task-init hook changes the host scheduling
+fields without taking this GSP control route. Thus the recorded 20
+modifications and 18 bind observations establish **host-side policy/field
+engagement, not hardware-applied timeslice/interleave changes**. This is a
+concrete reason not to interpret the unsuccessful knob experiments as a
+fundamental limit of driver-side BPF scheduling. A subsequent GSP propagation
+repair must be evaluated as a new version; these results remain unchanged.
+
+Source locations in the matching `gpu_ext-kernel-575` checkout are
+`src/nvidia/generated/g_kernel_fifo_nvoc.h:842`,
+`src/nvidia/generated/g_kernel_channel_group_nvoc.h:234`, and
+`src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c:1393`.
+
 ## Evidence
 
 - [Frozen five-configuration protocol](raw/candidate-pilot-575-20260902/protocol.json)

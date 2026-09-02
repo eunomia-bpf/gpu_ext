@@ -1,0 +1,113 @@
+{
+  "files": [
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/eviction_2q_approx.bpf.o",
+      "size_bytes": 17664
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/eviction_2q_approx",
+      "size_bytes": 1546296
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/eviction_2q_approx.bpf.c",
+      "size_bytes": 6331
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/eviction_2q_approx.c",
+      "size_bytes": 7209
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/safe_policy_models.h",
+      "size_bytes": 4645
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/run_safe_policy_smoke.py",
+      "size_bytes": 24726
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/uvm_fault_stream",
+      "size_bytes": 1022440
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/uvm_fault_stream.cu",
+      "size_bytes": 7396
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/results/safe-575-20260902-2q-03/policy.jsonl",
+      "size_bytes": 935
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/results/safe-575-20260902-2q-03/workload.log",
+      "size_bytes": 56
+    },
+    {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/results/safe-575-20260902-2q-03/workload-result.json",
+      "size_bytes": 141
+    }
+  ],
+  "git_revision": "1f50495a8a443c9bd3a30823fad19654a2f82284",
+  "interface": {
+    "btf_path": "/sys/kernel/btf/nvidia_uvm",
+    "driver_revision": "575.57.08",
+    "gpu_mem_ops_members": 6,
+    "markov_observation_hook_verified": false,
+    "required_policy_kfuncs": 2
+  },
+  "ownership": {
+    "loader_pid": 46684,
+    "struct_link_enumerated": false,
+    "struct_link_id": 171,
+    "struct_map_id": 171
+  },
+  "policy": "eviction_2q_approx",
+  "policy_metrics": {
+    "access_events": 12843,
+    "activate_events": 4096,
+    "admissions": 4334,
+    "eviction_prepares": 0,
+    "generation_resets": 0,
+    "identity_resets": 0,
+    "probation_head_requests": 16939,
+    "promotions": 0,
+    "protected_tail_requests": 0,
+    "reorder_errors": 0,
+    "same_episode_events": 12605
+  },
+  "safety_metrics": {
+    "after": {
+      "dmesg_abnormal_records": 0,
+      "gpu_compute_processes": 0,
+      "gpu_memory_used_mib": 2,
+      "gpu_utilization_percent": 0,
+      "journal_abnormal_records": 0,
+      "power_limit_service_active": true,
+      "power_limit_w": 400.0,
+      "struct_ops_links": 0,
+      "struct_ops_maps": 0,
+      "uvm_refcount": 0,
+      "xid_records": 0
+    },
+    "before": {
+      "dmesg_abnormal_records": 0,
+      "gpu_compute_processes": 0,
+      "gpu_memory_used_mib": 2,
+      "gpu_utilization_percent": 0,
+      "journal_abnormal_records": 0,
+      "power_limit_service_active": true,
+      "power_limit_w": 400.0,
+      "struct_ops_links": 0,
+      "struct_ops_maps": 0,
+      "uvm_refcount": 0,
+      "xid_records": 0
+    }
+  },
+  "schema": 1,
+  "workload_metrics": {
+    "bytes": 8589934592,
+    "first_mismatch": null,
+    "kernel_ms": 258.494,
+    "mismatches": 0,
+    "region_bytes": 65536,
+    "regions": 131072
+  }
+}

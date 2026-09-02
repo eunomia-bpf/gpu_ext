@@ -420,12 +420,23 @@ def wait_for_post_server_safety(
             validate_post_server_safety(before, after)
             return after
         except GateError as exc:
-            if not str(exc).startswith("GPU is not idle before server launch:"):
+            # Module references held by the just-detached BPF programs can be
+            # released asynchronously after their maps/links disappear. Wait
+            # for zero, never accept a nonzero final count or a new anomaly.
+            transient_uvm_release = (
+                str(exc).startswith("UVM reference count is not zero:")
+                and not after["struct_ops"]["maps"]
+                and not after["struct_ops"]["links"]
+                and not after["gpu"]["compute_apps"]
+            )
+            if not transient_uvm_release and not str(exc).startswith(
+                "GPU is not idle before server launch:"
+            ):
                 raise
             if time.monotonic() >= deadline:
                 raise GateError(
                     f"GPU did not settle within {timeout} seconds after server cleanup: "
-                    f"{after['gpu']}"
+                    f"{after['gpu']}; uvm_refcount={after['uvm_refcount']}"
                 ) from exc
             time.sleep(1)
 
@@ -605,6 +616,7 @@ def run_row_chunking_numerical_gate() -> dict[str, Any]:
         text=True,
         capture_output=True,
         check=False,
+        timeout=600,
     )
     if result.returncode:
         raise GateError(
@@ -983,10 +995,10 @@ def validate_completion_response(response: dict[str, Any], prompt_tokens: int) -
 
 
 def nonstream_completion(config: str, port: int, token_ids: list[int],
-                         output: Path) -> dict[str, Any]:
+                         output: Path, *, timeout: float = 60) -> dict[str, Any]:
     start_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
     response = http_json(
-        port, "/v1/completions", completion_payload(config, token_ids, False), 60
+        port, "/v1/completions", completion_payload(config, token_ids, False), timeout
     )
     end_ns = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
     atomic_write_json(output, response)
@@ -1725,7 +1737,8 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             launch_argv, cwd=cwd, env=controlled_environment(config), stdout=server_log,
             stderr=subprocess.STDOUT, text=True, start_new_session=True,
         )
-        wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 60)
+        wait_ready(server, port, log_path,
+                   1800 if config == "moe_infinity_075" else (900 if current_deployment else 60))
         identity = check_server_identity(config, port, prompts, log_path)
         if config == "gpubpf_host_stride_lfu" and not current_deployment:
             candidate_monitors = start_eviction_monitors(server.pid, run_dir)
@@ -1733,7 +1746,8 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             monitor_ready = None
 
         warmup = nonstream_completion(
-            config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json"
+            config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json",
+            timeout=600 if current_deployment else 60,
         )
         time.sleep(1.1)
         if config == "gpubpf_host_stride_lfu" and not current_deployment:
@@ -1762,6 +1776,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
                     nonstream_completion(
                         config, port, record["prompt_token_ids"],
                         run_dir / f"smoke-pass{pass_number}-prompt{prompt_number}.json",
+                        timeout=600 if current_deployment else 60,
                     )
                 )
             passes.append(outputs)
@@ -2379,7 +2394,8 @@ def run_measured_config(config: str, run_dir: Path, port: int,
         else:
             monitor_ready = None
         warmup = nonstream_completion(
-            config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json"
+            config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json",
+            timeout=600 if current_deployment else 60,
         )
         time.sleep(1.1)
         if config == "gpubpf_host_stride_lfu" and not current_deployment:

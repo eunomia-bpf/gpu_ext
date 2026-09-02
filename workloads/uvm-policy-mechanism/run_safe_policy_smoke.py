@@ -369,8 +369,10 @@ def validate_active_policy_safety(
         raise GateError("active struct_ops ownership validation failed") from exc
 
 
-def verify_policy_interface(policy: str) -> dict[str, Any]:
-    interface = shared.verify_loaded_uvm_interface()
+def verify_policy_interface(
+    policy: str, expected_driver: str | None = None
+) -> dict[str, Any]:
+    interface = shared.verify_loaded_uvm_interface(expected_driver)
     observation_hook_verified = False
     if policy == "prefetch_delta_markov":
         raw = shared.run_checked(
@@ -398,7 +400,9 @@ def verify_policy_interface(policy: str) -> dict[str, Any]:
     }
 
 
-def admission(policy: str | None) -> tuple[dict[str, Any], dict[str, Any] | None]:
+def admission(
+    policy: str | None, expected_driver: str | None = None
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
     selected = tuple(POLICIES) if policy is None else (policy,)
     evidence: dict[str, Any] = {
         "policies": list(selected),
@@ -426,7 +430,7 @@ def admission(policy: str | None) -> tuple[dict[str, Any], dict[str, Any] | None
             if "prefetch_delta_markov" in selected
             else selected[0]
         )
-        evidence["interface"] = verify_policy_interface(interface_policy)
+        evidence["interface"] = verify_policy_interface(interface_policy, expected_driver)
     except Exception as exc:
         errors.append(f"loaded safe ABI: {exc}")
     try:
@@ -550,7 +554,9 @@ def _run_workload(output: Path) -> tuple[dict[str, Any], Path]:
     return validate_workload_result(value), log_path
 
 
-def run_smoke(policy: str, output: Path) -> dict[str, Any]:
+def run_smoke(
+    policy: str, output: Path, expected_driver: str | None = None
+) -> dict[str, Any]:
     output = output.resolve()
     if output.exists():
         raise GateError(f"refusing to overwrite existing output path: {output}")
@@ -565,7 +571,7 @@ def run_smoke(policy: str, output: Path) -> dict[str, Any]:
     after = None
     errors: list[str] = []
     try:
-        evidence, before = admission(policy)
+        evidence, before = admission(policy, expected_driver)
         if not evidence["admitted"] or before is None:
             raise GateError("run admission failed: " + "; ".join(evidence["errors"]))
         output.mkdir(parents=True, exist_ok=False)
@@ -597,7 +603,7 @@ def run_smoke(policy: str, output: Path) -> dict[str, Any]:
         try:
             after = shared.wait_for_post_server_safety(before, timeout=60)
         except Exception as exc:
-            errors.append(f"post-run safety gate failed: {type(exc).__name__}")
+            errors.append(f"post-run safety gate failed: {type(exc).__name__}: {exc}")
 
         policy_metrics = None
         if policy_log_path is not None:
@@ -609,6 +615,19 @@ def run_smoke(policy: str, output: Path) -> dict[str, Any]:
             except Exception as exc:
                 errors.append(f"policy engagement: {exc}")
         if errors:
+            try:
+                failure_snapshot = shared.safety_snapshot()
+            except Exception as exc:
+                failure_snapshot = {"snapshot_error": str(exc)}
+            shared.atomic_write_json(output / "failure.json", {
+                "policy": policy,
+                "errors": errors,
+                "admission": evidence,
+                "ownership": ownership,
+                "workload_metrics": workload_metrics,
+                "policy_metrics": policy_metrics,
+                "post_failure_snapshot": failure_snapshot,
+            })
             raise GateError("; ".join(errors))
         if (
             ownership is None
@@ -660,6 +679,12 @@ def build_parser() -> argparse.ArgumentParser:
     run = subparsers.add_parser("run", help="attach one policy and run one smoke")
     run.add_argument("--policy", choices=tuple(POLICIES), required=True)
     run.add_argument("--output", type=Path, required=True)
+    for command in (admit, run):
+        command.add_argument(
+            "--expected-driver",
+            choices=("575.57.08", "610.43.02"),
+            help="require this exact live driver version; default preserves the original experiment",
+        )
     return parser
 
 
@@ -667,10 +692,10 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         if args.action == "admit":
-            result, _ = admission(args.policy)
+            result, _ = admission(args.policy, args.expected_driver)
             print(json.dumps(result, indent=2, sort_keys=True))
             return 0 if result["admitted"] else 2
-        result = run_smoke(args.policy, args.output)
+        result = run_smoke(args.policy, args.output, args.expected_driver)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
     except GateError as exc:

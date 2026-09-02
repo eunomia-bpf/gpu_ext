@@ -1,0 +1,121 @@
+{
+  "admission": {
+    "admitted": true,
+    "errors": [],
+    "files": [
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/eviction_2q_approx.bpf.o",
+        "size_bytes": 17664
+      },
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/eviction_2q_approx",
+        "size_bytes": 1546296
+      },
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/eviction_2q_approx.bpf.c",
+        "size_bytes": 6331
+      },
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/eviction_2q_approx.c",
+        "size_bytes": 7209
+      },
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/safe_policy_models.h",
+        "size_bytes": 4645
+      },
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/run_safe_policy_smoke.py",
+        "size_bytes": 24726
+      },
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/uvm_fault_stream",
+        "size_bytes": 1022440
+      },
+      {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/uvm_fault_stream.cu",
+        "size_bytes": 7396
+      }
+    ],
+    "git_revision": "a95356719efc6e6b0d5f5a6b4a63ee7699d9bb94",
+    "interface": {
+      "btf_path": "/sys/kernel/btf/nvidia_uvm",
+      "driver_revision": "575.57.08",
+      "gpu_mem_ops_members": 6,
+      "markov_observation_hook_verified": false,
+      "required_policy_kfuncs": 2
+    },
+    "policies": [
+      "eviction_2q_approx"
+    ],
+    "safety_metrics": {
+      "dmesg_abnormal_records": 0,
+      "gpu_compute_processes": 0,
+      "gpu_memory_used_mib": 2,
+      "gpu_utilization_percent": 0,
+      "journal_abnormal_records": 0,
+      "power_limit_service_active": true,
+      "power_limit_w": 400.0,
+      "struct_ops_links": 0,
+      "struct_ops_maps": 0,
+      "uvm_refcount": 0,
+      "xid_records": 0
+    }
+  },
+  "errors": [
+    "post-run safety gate failed: GateError: UVM reference count is not zero: 2"
+  ],
+  "ownership": {
+    "loader_pid": 44871,
+    "struct_link_enumerated": false,
+    "struct_link_id": 127,
+    "struct_map_id": 127
+  },
+  "policy": "eviction_2q_approx",
+  "policy_metrics": {
+    "access_events": 12871,
+    "activate_events": 4096,
+    "admissions": 4328,
+    "eviction_prepares": 0,
+    "generation_resets": 0,
+    "identity_resets": 0,
+    "probation_head_requests": 16967,
+    "promotions": 0,
+    "protected_tail_requests": 0,
+    "reorder_errors": 0,
+    "same_episode_events": 12639
+  },
+  "post_failure_snapshot": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 105.47,
+      "sm_clock_mhz": 2910,
+      "temperature_c": 49,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788389694724316786,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "workload_metrics": {
+    "bytes": 8589934592,
+    "first_mismatch": null,
+    "kernel_ms": 258.137,
+    "mismatches": 0,
+    "region_bytes": 65536,
+    "regions": 131072
+  }
+}

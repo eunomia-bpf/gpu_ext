@@ -6,11 +6,44 @@ from __future__ import annotations
 import json
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import run_safe_policy_smoke as smoke
 
 
 class CommandTests(unittest.TestCase):
+    def test_post_safety_waits_for_detached_module_reference_release(self) -> None:
+        pending = {"struct_ops": {"maps": [], "links": []},
+                   "gpu": {"compute_apps": []}, "uvm_refcount": 2}
+        settled = {**pending, "uvm_refcount": 0}
+        with patch.object(smoke.shared, "safety_snapshot", side_effect=[pending, settled]), \
+             patch.object(smoke.shared, "validate_post_server_safety", side_effect=[
+                 smoke.GateError("UVM reference count is not zero: 2"), None]), \
+             patch.object(smoke.shared.time, "sleep"):
+            self.assertIs(smoke.shared.wait_for_post_server_safety({}), settled)
+
+    def test_post_safety_does_not_wait_through_kernel_anomaly(self) -> None:
+        state = {"struct_ops": {"maps": [], "links": []},
+                 "gpu": {"compute_apps": []}, "uvm_refcount": 0}
+        with patch.object(smoke.shared, "safety_snapshot", return_value=state), \
+             patch.object(smoke.shared, "validate_post_server_safety", side_effect=
+                          smoke.GateError("current boot already contains a kernel/GPU abnormality")), \
+             patch.object(smoke.shared.time, "sleep") as sleeper:
+            with self.assertRaises(smoke.GateError):
+                smoke.shared.wait_for_post_server_safety({})
+            sleeper.assert_not_called()
+
+    def test_driver_gate_is_explicit_and_forwarded(self) -> None:
+        args = smoke.build_parser().parse_args(["admit", "--expected-driver", "575.57.08"])
+        self.assertEqual(args.expected_driver, "575.57.08")
+        with patch.object(smoke.shared, "verify_loaded_uvm_interface", return_value={
+            "version": "575.57.08", "gpu_mem_ops_members": list(range(6)),
+            "required_kfuncs": list(range(2)),
+        }) as verify:
+            result = smoke.verify_policy_interface("eviction_2q_approx", args.expected_driver)
+        verify.assert_called_once_with("575.57.08")
+        self.assertEqual(result["driver_revision"], "575.57.08")
+
     def test_markov_command_is_fixed_and_noninteractive(self) -> None:
         command = smoke.policy_command("prefetch_delta_markov")
         self.assertEqual(command[:2], ["sudo", "-n"])

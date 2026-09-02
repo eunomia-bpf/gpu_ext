@@ -1,0 +1,259 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -17,7 +17,10 @@
+     message(STATUS "CUDA found")
+     set(USE_CUDA ON)
+     enable_language(CUDA)
+-    set(CMAKE_CUDA_ARCHITECTURES 80)
++    set(GPREEMPT_CUDA_ARCH 80 CACHE STRING "CUDA SM architecture for GPreempt")
++    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
++        set(CMAKE_CUDA_ARCHITECTURES ${GPREEMPT_CUDA_ARCH})
++    endif()
+     set(CMAKE_CUDA_FLAGS "-O3 ${CMAKE_CUDA_FLAGS}")
+     add_definitions(-DCUDA)
+     include_directories(${CUDA_INCLUDE_DIRS})
+@@ -49,8 +52,8 @@
+ add_subdirectory(third_party/disb)
+ include_directories("${PROJECT_SOURCE_DIR}/third_party/disb/include")
+ 
+ add_definitions(-DMODEL_PATH="${CMAKE_CURRENT_LIST_DIR}/model")
+-add_definitions(-DBUILD_PATH="${CMAKE_CURRENT_LIST_DIR}/build")
++add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
+ 
+ include_directories("${PROJECT_SOURCE_DIR}/include")
+@@ -99,7 +102,7 @@
+     add_custom_command(
+         OUTPUT ${CUBIN_OUTPUT}
+-        COMMAND ${CMAKE_CUDA_COMPILER} -arch=sm_80 ${PROJECT_SOURCE_DIR}/src/block.cu -o ${CUBIN_OUTPUT} -cubin
++        COMMAND ${CMAKE_CUDA_COMPILER} -arch=sm_${GPREEMPT_CUDA_ARCH} ${PROJECT_SOURCE_DIR}/src/block.cu -o ${CUBIN_OUTPUT} -cubin
+         DEPENDS ${PROJECT_SOURCE_DIR}/src/block.cu
+         COMMENT "Compiling block.cu to CUBIN"
+     )
+diff --git a/model/makefile b/model/makefile
+--- a/model/makefile
++++ b/model/makefile
+@@ -5,8 +5,9 @@
+ 
+ USE_CUDA = $(shell command -v nvcc >/dev/null 2>&1 && echo yes || echo no)
+ ifeq ($(USE_CUDA), yes)
++	CUDA_ARCH ?= 80
+ 	COMPILER = nvcc
+-	FLAGS = -arch=sm_80 -O3 --cubin
++	FLAGS = -arch=sm_$(CUDA_ARCH) -O3 --cubin
+ else
+ 	COMPILER = hipcc
+ 	FLAGS = --offload-arch=gfx908 --genco -O3
+diff --git a/src/gpreempt.cpp b/src/gpreempt.cpp
+--- a/src/gpreempt.cpp
++++ b/src/gpreempt.cpp
+@@ -1,5 +1,6 @@
+ #include "gpreempt.h"
+ #include <stdio.h>
++#include <errno.h>
+ 
+ #ifdef CUDA
+@@ -12,13 +13,15 @@
+     NvP64 params, 
+     NvU32 paramsSize
+ ) {
++    if (hClient == 0 || hObject == 0 || params == nullptr || paramsSize == 0)
++        return NV_ERR_GENERIC;
+     if (fd < 0) {
+-        fd = open("/dev/nvidiactl", O_RDWR);
++        fd = open("/dev/nvidiactl", O_RDWR | O_CLOEXEC);
+         if (fd < 0) {
+             return NV_ERR_GENERIC;
+         }
+     }
+-    NVOS54_PARAMETERS controlArgs;
++    NVOS54_PARAMETERS controlArgs{};
+@@ -26,7 +29,11 @@
+     controlArgs.paramsSize = paramsSize;
+     controlArgs.flags = 0x0;
+     controlArgs.status = 0x0;
+-    ioctl(fd, OP_CONTROL, &controlArgs);
++    if (ioctl(fd, OP_CONTROL, &controlArgs) < 0) {
++        fprintf(stderr, "NvRmControl ioctl failed: errno=%d\n", errno);
++        return NV_ERR_GENERIC;
++    }
+     return controlArgs.status;
+ }
+@@ -33,19 +40,34 @@
+ NV_STATUS NvRmQuery(
+     NvContext *pContext
+ ) {
++    if (pContext == nullptr || pContext->hClient == 0)
++        return NV_ERR_GENERIC;
++    const NvHandle creatorTid = pContext->hClient;
++    *pContext = NvContext{};
+     if (fd < 0) {
+-        fd = open("/dev/nvidiactl", O_RDWR);
++        fd = open("/dev/nvidiactl", O_RDWR | O_CLOEXEC);
+         if (fd < 0) {
+             return NV_ERR_GENERIC;
+         }
+     }
+-    NVOS54_PARAMETERS queryArgs;
+-    queryArgs.hClient = pContext->hClient;
++    NVOS54_PARAMETERS queryArgs{};
++    queryArgs.hClient = creatorTid;
+     queryArgs.status = 0x0;
+     queryArgs.params = (NvP64)&pContext->channels;
+-    ioctl(fd, OP_QUERY, &queryArgs);
++    queryArgs.paramsSize = sizeof(pContext->channels);
++    if (ioctl(fd, OP_QUERY, &queryArgs) < 0) {
++        fprintf(stderr, "NvRmQuery ioctl failed: errno=%d\n", errno);
++        return NV_ERR_GENERIC;
++    }
++    if (queryArgs.status != NV_OK)
++        return queryArgs.status;
++    if (queryArgs.hClient == 0 || queryArgs.hObject == 0 ||
++        pContext->channels.numChannels == 0 ||
++        pContext->channels.numChannels > NV2080_CTRL_FIFO_DISABLE_CHANNELS_MAX_ENTRIES)
++        return NV_ERR_GENERIC;
+     pContext->hClient = queryArgs.hClient;
+     pContext->hObject = queryArgs.hObject;
+     return queryArgs.status;
+ }
+@@ -56,6 +80,20 @@
+-    NVA06C_CTRL_TIMESLICE_PARAMS timesliceParams0;
++    if (!ctx.hClient || !ctx.hObject || !timesliceUs || fd < 0)
++        return NV_ERR_GENERIC;
++    NVA06C_CTRL_TIMESLICE_PARAMS timesliceParams0{};
+     timesliceParams0.timesliceUs = timesliceUs;
+-    return NvRmControl(ctx.hClient, ctx.hObject, NVA06C_CTRL_CMD_SET_TIMESLICE, (NvP64)&timesliceParams0, sizeof(timesliceParams0));
++    // 575 compatibility transport: driver revalidates ownership and permits
++    // only SET_TIMESLICE; general RM_CONTROL security checks remain intact.
++    NVOS54_PARAMETERS control{};
++    control.hClient = ctx.hClient;
++    control.hObject = ctx.hObject;
++    control.cmd = NVA06C_CTRL_CMD_SET_TIMESLICE;
++    control.flags = 0x00010001; // Version 1, operation 1.
++    control.params = &timesliceParams0;
++    control.paramsSize = sizeof(timesliceParams0);
++    if (ioctl(fd, OP_QUERY, &control) < 0) {
++        fprintf(stderr, "NvRmModifyTS scoped ioctl failed: errno=%d\n", errno);
++        return NV_ERR_GENERIC;
++    }
++    return control.status;
+ }
+@@ -75,6 +97,6 @@
+     NvContext ctx
+ ) {
+-    NVA06C_CTRL_PREEMPT_PARAMS preemptParams;
++    NVA06C_CTRL_PREEMPT_PARAMS preemptParams{};
+     preemptParams.bWait = NV_FALSE;
+     preemptParams.bManualTimeout = NV_FALSE;
+diff --git a/src/tests/test-basic.cpp b/src/tests/test-basic.cpp
+--- a/src/tests/test-basic.cpp
++++ b/src/tests/test-basic.cpp
+@@ -1,56 +1,98 @@
+ #include <stdio.h>
+ #include "gpreempt.h"
+ #include <gdrapi.h>
+ #include "util/gpu_util.h"
+ 
+-int main(){
+-    foo::util::init_cuda();
+-    GPUcontext g_ctx;
+-    GPUdevice dev;
+-    GPUDeviceGet(&dev, 0);
+-    GPUCtxCreate(&g_ctx, 0, dev);
+-    NvContext nvctx;
+-    nvctx.hClient = util_gettid();
+-    NVRMCHECK(NvRmQuery(&nvctx));
+-    if(set_priority(nvctx, 1)){
+-        LOG(ERROR) << "Failed to set priority";
+-        return -1;
+-    }
+-    printf("PASS set priority\n");
+-
+-    // Test GDRcopy
+-    gdr_t g = gdr_open();
+-    if(g == nullptr) {
+-        LOG(ERROR) << "Failed to open gdr";
+-        return -1;
+-    }
+-    GPUdeviceptr mem_pool;
+-    ASSERT_CUDA_ERROR(GPUMemAlloc(&mem_pool, GPU_PAGE_SIZE  * 2));
+-    mem_pool = (mem_pool + GPU_PAGE_SIZE ) & ~(GPU_PAGE_SIZE - 1);
+-    gdr_mh_t g_mh;
+-    if(gdr_pin_buffer(g, (unsigned long)mem_pool, GPU_PAGE_SIZE , 0, 0, &g_mh) != 0) {
+-        LOG(ERROR) << "GDRError Failed to pin input buffer";
+-        return -1;
+-    }
+-    int *h_pool;
+-    if (gdr_map(g, g_mh, (void**)&h_pool, GPU_PAGE_SIZE ) != 0) {
+-        LOG(ERROR) << "GDRError Failed to map input GPU buffer";
+-        return -1;
+-    }
+-    gdr_info_t info;
+-    if(gdr_get_info(g, g_mh, &info) != 0) {
+-        LOG(ERROR) << "GDRError Failed to get info";
+-        return -1;
+-    }
+-    printf("PASS GDRcopy\n");
+-
+-    // Release GDRcopy
+-    gdr_unpin_buffer(g, g_mh);
+-    gdr_close(g);
+-    
+-    GPUMemFree(mem_pool);
+-    GPUMemFreeHost(h_pool);
+-
+-    printf("PASS all\n");
+-    return 0;
++#define CHECK_CUDA(call) do { if ((call) != CUDA_SUCCESS) { \
++    fprintf(stderr, "CUDA smoke failed: %s\n", #call); goto cleanup; } } while (0)
++#define CHECK_GDR(call) do { if ((call) != 0) { \
++    fprintf(stderr, "GDR smoke failed: %s\n", #call); goto cleanup; } } while (0)
++
++int main() {
++    GPUcontext context = nullptr;
++    GPUdevice device = 0;
++    GPUdeviceptr allocation = 0, aligned = 0;
++    gdr_t g = nullptr;
++    gdr_mh_t handle{};
++    gdr_info_t info{};
++    void *mapping = nullptr;
++    bool pinned = false;
++    NvContext nvctx{};
++    unsigned int expected = 0x13579bdfU, observed = 0;
++    int result = 1;
++    CHECK_CUDA(GPUInit(0));
++    CHECK_CUDA(GPUDeviceGet(&device, 0));
++    CHECK_CUDA(GPUCtxCreate(&context, 0, device));
++    nvctx.hClient = util_gettid();
++    if (NvRmQuery(&nvctx) != NV_OK || set_priority(nvctx, 1) != 0) {
++        fprintf(stderr, "GPreempt owned-context query/timeslice failed\n");
++        goto cleanup;
++    }
++    printf("PASS set priority (request accepted; effective timeslice needs driver evidence)\n");
++    g = gdr_open();
++    if (!g) goto cleanup;
++    CHECK_CUDA(GPUMemAlloc(&allocation, GPU_PAGE_SIZE * 2));
++    aligned = (allocation + GPU_PAGE_SIZE - 1) & ~(GPU_PAGE_SIZE - 1);
++    CHECK_GDR(gdr_pin_buffer(g, aligned, GPU_PAGE_SIZE, 0, 0, &handle));
++    pinned = true;
++    CHECK_GDR(gdr_map(g, handle, &mapping, GPU_PAGE_SIZE));
++    CHECK_GDR(gdr_get_info(g, handle, &info));
++    if (aligned < info.va || aligned - info.va + sizeof(expected) > GPU_PAGE_SIZE)
++        goto cleanup;
++    CHECK_GDR(gdr_copy_to_mapping(handle, static_cast<char *>(mapping) +
++                                 (aligned - info.va), &expected, sizeof(expected)));
++    CHECK_CUDA(GPUMemcpyDtoH(&observed, aligned, sizeof(observed)));
++    if (observed != expected) goto cleanup;
++    printf("PASS GDRcopy flag roundtrip\n");
++    result = 0;
++cleanup:
++    if (mapping && gdr_unmap(g, handle, mapping, GPU_PAGE_SIZE)) result = 1;
++    if (pinned && gdr_unpin_buffer(g, handle)) result = 1;
++    if (g && gdr_close(g)) result = 1;
++    if (allocation && GPUMemFree(allocation) != CUDA_SUCCESS) result = 1;
++    if (context && GPUCtxDestroy(context) != CUDA_SUCCESS) result = 1;
++    if (!result) printf("PASS all (finite smoke only; not scheduling performance)\n");
++    return result;
+-}
+\ No newline at end of file
++}

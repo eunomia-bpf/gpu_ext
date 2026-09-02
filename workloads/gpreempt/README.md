@@ -1,0 +1,126 @@
+# GPreempt original-policy 575 / sm_120 compatibility build
+
+Upstream: <https://github.com/thustorage/GPreempt>, pinned to `249ee3e`.
+This directory preserves the original clients, executors, workload definitions,
+1,000,000 µs LC / 1 µs BE timeslices, hint daemon, blocking kernel, CUDA graphs,
+and GDRCopy signaling. Compilation is not an experimental reproduction.
+The [source audit](../../docs/driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md)
+defines the remaining driver, model, and comparison work.
+
+## Build and CPU tests
+
+Run from this directory, with no active timed experiment:
+
+```bash
+make build JOBS=4 CPUSET=8-15
+make test-cpu
+```
+
+`prepare.sh` makes a separate ignored clone at `deps/upstream`; it never patches
+the read-only survey cache. It applies `compatibility.patch` using a patch check,
+retains original submodule revisions, and switches only local clone transport
+from SSH to HTTPS. No system package installation or GPU execution occurs.
+Targets are the original CMake `gpreempt`, `baseclient`, `gpreemptclient`,
+`gpreemptclient_wo`, `block_cubin`, and `test-basic`, under `build/ninja`.
+The mock transport test wraps `open` and `ioctl`, so it cannot contact a GPU.
+
+Compatibility changes are limited to configurable build architectures,
+out-of-tree block-module lookup, initialized/checked ioctl arguments, the narrow
+575 timeslice transport below, and correct finite-smoke allocation/GDR cleanup.
+The first configure incorrectly accepted failing glog platform probes (`io.h`,
+`REG_PC`); evidence remains in `build/CMakeFiles/CMakeConfigureLog.yaml`.
+The actual cause was this host's `/usr/bin/c++` returning exit status 0 after a
+deliberate `#error`, while `/usr/bin/g++-13` correctly returned 1. The supported
+build explicitly selects GCC/G++ 13, including NVCC's host compiler, and uses
+Ninja rather than changing glog or the system compiler. Use `FRESH=--fresh`
+once when replacing a configure cache produced by the broken compiler.
+
+The first successful CPU-only full build on 2026-09-02 produced `baseclient`
+(1,176,624 bytes), `gpreemptclient` (1,191,504), `gpreemptclient_wo` (1,185,032),
+`test-basic` (1,028,960), `libgpreempt.so` (16,496), and `block.cubin` (7,384).
+`cuobjdump --list-elf` identified `block.sm_120.cubin`; `ldd gpreemptclient`
+resolved every dependency. The mock transport test passed 13 ioctl calls,
+including syscall failure, NV status failure, malformed query responses, and
+both original timeslices. None of these checks initialized CUDA.
+
+## Frozen userspace/driver ABI
+
+- Both operations use `OP_QUERY = 0xc0204660`, a 32-byte `NVOS54_PARAMETERS`.
+- Query: `flags=0`, `cmd=0`, input `hClient=creator TID`, zero `hObject`,
+  `params=&NvChannels`, `paramsSize=sizeof(NvChannels)`. The driver must return
+  exactly one owned GR TSG and 1–64 channels; ambiguity is a failure, not a
+  reason to select the first match.
+- Timeslice: `flags=0x00010001` (version 1 / operation 1),
+  `cmd=0xa06c0103`, query-returned `hClient/hObject`, `paramsSize=8`, and the
+  original 64-bit timeslice value. The driver rechecks process ownership under
+  its API/GPU locks before allowing only this operation.
+- General `OP_CONTROL` remains separate and preserves the driver's ordinary
+  security checks; no global `Nv04ControlWithSecInfo` bypass is introduced.
+  All syscall and returned NV status failures propagate to the caller.
+
+This is an explicit compatibility transport change, not a scheduling-policy
+change. The driver port is developed separately; building userspace does not
+mean that the running kernel implements this ABI.
+
+## GDRCopy dependency: build, do not install/load automatically
+
+The driver owner prepared official GDRCopy v2.5 at revision `bda1f60` in
+`deps/gdrcopy`, without vendor edits. Rebuild with:
+
+```bash
+make gdrcopy-driver JOBS=4 CPUSET=8-15
+```
+
+The exact build uses CUDA 12.9, the 575 driver's `kernel-open/nvidia` headers,
+Linux `6.15.11-061511-generic`, GCC 14, and `HAVE_VM_FLAGS_SET=y`. Its default
+conftest incorrectly selected `n`, causing a duplicate helper and read-only
+`vm_flags` errors; this kernel's `include/linux/mm.h:995` provides
+`vm_flags_set`, so the explicit `y` matches the inspected API. The successful
+build produced `gdrdrv.ko` (535,584 bytes), version 2.5 with the 6.15.11 vermagic.
+It has not been loaded by this workflow. Never load `nv-p2p-dummy.ko` (a link
+stub), and do not use the upstream install/load script's device deletion or
+world-writable defaults. Module loading and exact device-node ownership are
+handled separately by the driver owner.
+
+`make -C deps/gdrcopy exes -j4 CUDA=/usr/local/cuda-12.9` also completed without
+GPU execution: official `sanity` is 196,480 bytes, `pplat` is 1,284,824 bytes,
+and the private `libgdrapi.so.2.5` is 26,464 bytes. This is dependency readiness,
+not evidence that pin/map works on this GPU. After a separately coordinated
+module load, official `sanity -t basic_cumemalloc` and
+`sanity -t data_validation_cumemalloc` are candidate bounded checks; the local
+finite smoke below additionally tests the compatibility query/timeslice path.
+
+## Finite smoke, only after the driver owner releases a GPU slot
+
+```bash
+python3 -B run_smoke.py --output raw/575-smoke-01
+```
+
+This acquires the shared GPU and struct-ops leases, checks the idle GPU, requires
+the separately prepared `/dev/gdrdrv`, and runs the original `test-basic` target
+with a 30-second bound. The compatibility smoke checks query/control errors,
+a GDRCopy flag roundtrip, and correct unmap/unpin/free/context cleanup. It does
+not launch the unbounded blocking kernel or claim effective timeslice/preemption
+performance; actual driver actuation needs independent evidence. Every outcome,
+including failure, retains `smoke.log` and `result.json`, and cleanup targets only
+the owned process group. The runner never changes modules, devices, or services.
+
+## Model assets and fair cells still required
+
+The official checkout contains only `model/makefile`, not ready model assets.
+Its generation script uses patched TVM `513c2be0c3b853`, defaults to Inception
+instead of config A's VGG/ResNet152, contains an additional `sm_80` target and a
+hard-coded `get_source("hip")`, and executes `module.run()` to collect host
+metadata. Consequently it is not a CPU-only ready-made model exporter. Model
+generation needs explicit model selection, CUDA-source export, sm_120 targeting,
+the patched TVM host metadata path, and a later authorized GPU validation slot.
+Do not substitute a hand-written vector kernel and call it the model experiment.
+
+Primary comparison remains upstream native `baseclient` (single context with
+stream priorities), complete original `gpreemptclient` on the 575 port (two role
+contexts), and the equivalent BPF policy on the same two-context topology.
+`gpreemptclient_wo` is an optional timeslice-only ablation. Preserve original
+config A's 60 seconds, 100 requests/s per role, 200 µs preprocessing and graphs;
+initialize identical deterministic input in all three cells and verify outputs
+against isolated native execution. Role-to-TSG and hint bridges for the BPF cell
+are separate work, not implied by this compatibility build.

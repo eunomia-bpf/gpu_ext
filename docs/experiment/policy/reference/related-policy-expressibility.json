@@ -42,9 +42,135 @@
     "moe_expert_caching",
     "kv_weight_tiering",
     "gpu_scheduling_qos",
-    "multi_gpu_storage"
+    "multi_gpu_storage",
+    "userspace_device_ebpf"
   ],
+  "bpftime_cpu_checks": {
+    "date": "2026-09-02",
+    "clean_source": {"path": "/home/yunwei37/workspace/gpu/bpftime-r5", "revision": "36610ee"},
+    "development_source": {"path": "/home/yunwei37/workspace/gpu/bpftime", "revision": "d6316fa", "tracked_changes_present": true, "modified_by_this_check": false},
+    "verifier_build": "cmake --build ../bpftime-r5/build-r5-v2 --target bpftime_verifier_tests -j2",
+    "verifier_test": "../bpftime-r5/build-r5-v2/bpftime-verifier/bpftime_verifier_tests '[gpu]' --reporter compact",
+    "verifier_result": {"cases": 17, "assertions": 126, "passed": true, "gpu_execution": false},
+    "compiled_examples": ["bpftime-r5/example/gpu/kernel_trace/kernel_trace.bpf.c", "bpftime-r5/example/gpu/threadhist/threadhist.bpf.c", "bpftime/example/gpu/atomizer/atomizer.bpf.c"],
+    "compiled_output_directory": "/tmp/bpftime-policy-offline-Eo1Lr2",
+    "claim_boundary": "Compilation and offline GPU-verifier unit tests only; neither a paper reproduction nor proof that the existing development agent links the r5 verifier."
+  },
   "records": [
+    {
+      "id": "bpftime-eim-osdi25", "title": "Extending Applications Safely and Efficiently", "year": 2025, "venue": "OSDI", "category": "userspace_device_ebpf",
+      "primary_url": "https://www.usenix.org/conference/osdi25/presentation/zheng-yusheng",
+      "artifact_url": "https://github.com/eunomia-bpf/bpftime",
+      "observes": ["application extension entries, explicitly declared memory and callable resources"],
+      "acts": ["executes verified userspace extensions through binary rewriting with configurable resource access and isolation"],
+      "classification": "PARTIAL",
+      "mapping_reason": "The sibling bpftime runtime supplies host hooks and maps that can carry GPU policy decisions, but the gpubpf driver ABI alone is not the EIM application-extension framework.",
+      "missing_primitives": ["application-specific extension entry and resource contracts", "complete userspace isolation and capability enforcement in the active GPU agent"],
+      "in_tree_programs": [],
+      "evidence": {"level": "source", "paths": ["docs/experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md"], "note": "Clean r5 offline GPU-verifier tests passed; this does not establish all EIM properties or connect that verifier to the development CUDA agent."},
+      "bpftime_route": "Evaluate a native host admission callback against the same bounded eBPF predicate. A cuLaunchKernel return override is not a correct defer/replay queue by itself."
+    },
+    {
+      "id": "egpu-hcds25", "title": "eGPU: Extending eBPF Programmability and Observability to GPUs", "year": 2025, "venue": "HCDS", "category": "userspace_device_ebpf",
+      "primary_url": "https://asplos.dev/pdf/bpftime_super.pdf",
+      "artifact_url": "https://github.com/eunomia-bpf/bpftime/tree/master/example/gpu",
+      "observes": ["GPU kernel entry/return, thread/block identity, device timer and device-memory events"],
+      "acts": ["injects eBPF-derived device instrumentation and exchanges state through GPU and host-shared maps"],
+      "classification": "PARTIAL",
+      "mapping_reason": "The local bpftime device path provides observation components used by gpubpf, but device instrumentation does not by itself create launch admission, TSG scheduling or arbitrary memory migration.",
+      "missing_primitives": ["device-event to owning process/TSG correlation for a control loop", "explicit bridge from sampled device state to a chosen driver policy action"],
+      "in_tree_programs": ["workloads/bpftime-device-smoke/probe.bpf.c", "workloads/bpftime-device-smoke/vector.cu"],
+      "evidence": {"level": "build", "paths": ["workloads/bpftime-device-smoke/Makefile", "docs/experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md"], "note": "Finite CUDA 12.9/sm_120 workload and probe built. Three 575 canaries failed the complete engagement criterion: first GPU program prefix, then loader name, then callback timeout despite native/instrumented exact correctness and patched module load. Prefix/name fixes and diagnostic snapshots are present; no passed device-return engagement or scheduler performance claim."},
+      "bpftime_route": "First count exactly 32768 device-thread returns while checking 32768 vector outputs; only then connect sampled observations to a separately validated scheduler."
+    },
+    {
+      "id": "orion-eurosys24", "title": "Orion: Interference-aware, Fine-grained GPU Sharing for ML Applications", "year": 2024, "venue": "EuroSys", "category": "gpu_scheduling_qos",
+      "primary_url": "https://doi.org/10.1145/3627703.3629578", "artifact_url": "https://github.com/eth-easl/orion",
+      "observes": ["operator profiles, compute versus memory demand, SM needs, job priority and queued operations"],
+      "acts": ["intercepts CUDA/cuDNN/cuBLAS operations and admits compatible high-priority and best-effort operations from software queues"],
+      "classification": "PARTIAL", "mapping_reason": "TSG priority and timeslice choices capture coarse priority intent, not Orion's per-operator interference-aware admission decision.",
+      "missing_primitives": ["per-operation deferred launch queues and completion events", "operator resource profiles and stream/dependency identity"],
+      "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c"],
+      "evidence": {"level": "source", "paths": [], "note": "Official artifact is available; no local Orion build or performance claim."},
+      "bpftime_route": "Host hooks can supply launch identity and timestamps; a new lossless queue/dependency wrapper is still required before evaluating an Orion-like admission predicate."
+    },
+    {
+      "id": "paella-sosp23", "title": "Paella: Low-latency Model Serving with Software-defined GPU Scheduling", "year": 2023, "venue": "SOSP", "category": "gpu_scheduling_qos",
+      "primary_url": "https://doi.org/10.1145/3600006.3613163", "artifact_url": "https://github.com/eniac/paella",
+      "observes": ["request/model identity, instrumented kernel execution and resource availability"],
+      "acts": ["co-designs TVM kernel instrumentation, shared-memory communication and a fine-grained software kernel scheduler"],
+      "classification": "PARTIAL", "mapping_reason": "Driver timeslices express priorities and bpftime can add device events, but neither supplies Paella's compiler/runtime scheduling protocol.",
+      "missing_primitives": ["per-kernel dispatch and completion protocol", "compiler-preserved kernel dependencies and model/request scheduling metadata"],
+      "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c"],
+      "evidence": {"level": "source", "paths": [], "note": "Paella's public SOSP artifact uses custom TVM and documents a CUDA 12.2 setup; not yet ported or run on this RTX 5090."},
+      "bpftime_route": "Device return counters are an observable component; a block-filtering example is not Paella and cannot establish its end-to-end latency result."
+    },
+    {
+      "id": "tally-asplos25", "title": "Tally: Non-Intrusive Performance Isolation for Concurrent Deep Learning Workloads", "year": 2025, "venue": "ASPLOS", "category": "gpu_scheduling_qos",
+      "primary_url": "https://doi.org/10.1145/3669940.3707282", "artifact_url": "https://github.com/tally-project/tally",
+      "observes": ["high-priority and best-effort work, kernel execution properties, thread-block availability"],
+      "acts": ["virtualizes CUDA execution and schedules GPU work at thread-block granularity for priority isolation"],
+      "classification": "PARTIAL", "mapping_reason": "TSG preemption supports coarse isolation; the inspected bpftime atomizer can filter blocks in a simple independent-block kernel but is not a transparent Tally runtime.",
+      "missing_primitives": ["transparent block-level scheduling and resubmission", "complete CUDA API/dependency virtualization"],
+      "in_tree_programs": ["extension/gpu_preempt_ctrl.bpf.c"],
+      "evidence": {"level": "source", "paths": [], "note": "Official tally and tally-bench artifacts identified; no local Tally workload result."},
+      "bpftime_route": "A finite sliced vector workload can compare native slicing against a BPF block-range predicate, with all slices replayed exactly once; this tests one component only."
+    },
+    {
+      "id": "lithos-sosp25", "title": "LithOS: An Operating System for Efficient Machine Learning on GPUs", "year": 2025, "venue": "SOSP", "category": "gpu_scheduling_qos",
+      "primary_url": "https://www.pdl.cmu.edu/PDL-FTP/BigLearning/lithos_sosp25.pdf",
+      "observes": ["outstanding work, per-atom resource demand, TPC availability and workload behavior"],
+      "acts": ["atomizes kernels, allocates and steals individual TPCs, right-sizes resource allocations and controls power"],
+      "classification": "PARTIAL", "mapping_reason": "TSG timeslices and a restricted block-range filter match only scheduling intent and an atomization component, not spatial TPC isolation or the power controller.",
+      "missing_primitives": ["TPC selection/quota/stealing controls", "transparent dependency-safe atomization", "per-atom right-sizing and DVFS controls"],
+      "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c"],
+      "evidence": {"level": "source", "paths": [], "note": "Official CMU SOSP manuscript inspected; no local LithOS implementation claim."},
+      "bpftime_route": "Study bounded independent-block atomization only after proving complete coverage; reject cooperative/global-synchronizing kernels without stronger transformation support."
+    },
+    {
+      "id": "kernelet-2013", "title": "Kernelet: High-Throughput GPU Kernel Executions with Dynamic Slicing and Scheduling", "year": 2013, "venue": "arXiv (TPDS manuscript)", "category": "gpu_scheduling_qos",
+      "primary_url": "https://arxiv.org/abs/1303.5164",
+      "observes": ["kernel occupancy and resource use, candidate slices and predicted co-execution throughput"],
+      "acts": ["splits kernels into slices with tunable occupancy and co-schedules slices using a Markov performance model"],
+      "classification": "PARTIAL", "mapping_reason": "A bounded block-range predicate is a candidate slicing component; current driver hooks cannot construct slices or enforce their occupancy and co-execution schedule.",
+      "missing_primitives": ["slice launch/replay and dependency preservation", "occupancy controls and calibrated co-execution model"],
+      "in_tree_programs": [],
+      "evidence": {"level": "source", "paths": [], "note": "Author-submitted 2013 manuscript retained; bpftime atomizer compilation is not a Kernelet implementation or performance result."},
+      "bpftime_route": "The existing atomizer's early-exit helper supplies a restricted block filter. Add parameter bounds, native slicing baseline, all-slice replay and exact output checks before GPU policy testing."
+    },
+    {
+      "id": "bless-eurosys25", "title": "Improving GPU Sharing Performance through Adaptive Bubbleless Spatial-Temporal Sharing", "year": 2025, "venue": "EuroSys", "category": "gpu_scheduling_qos",
+      "primary_url": "https://doi.org/10.1145/3689031.3696070",
+      "observes": ["per-application GPU quotas, idle execution bubbles and varying workload behavior"],
+      "acts": ["adjusts spatial allocations and fine-grained temporal kernel scheduling to meet quotas while filling idle bubbles"],
+      "classification": "PARTIAL", "mapping_reason": "Timeslice policy can explore temporal quota intent but cannot provide Bless's precise spatial-temporal quotas or bandwidth-interference control.",
+      "missing_primitives": ["precise spatial resource partitioning", "per-kernel quota accounting and gap-filling dispatch", "interference feedback beyond process lifecycle"],
+      "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c"],
+      "evidence": {"level": "source", "paths": [], "note": "Author-hosted EuroSys manuscript checked; no local Bless reproduction."},
+      "bpftime_route": "Combine per-kernel events with a bounded host admission rule as a future temporal subpolicy; do not equate TSG timeslices with SM or memory-bandwidth quotas."
+    },
+    {
+      "id": "timegraph-atc11", "title": "TimeGraph: GPU Scheduling for Real-Time Multi-Tasking Environments", "year": 2011, "venue": "USENIX ATC", "category": "gpu_scheduling_qos",
+      "primary_url": "https://www.usenix.org/conference/usenixatc11/timegraph-gpu-scheduling-real-time-multi-tasking-environments",
+      "observes": ["command-group submission/completion, task priority, reservation capacity/period and estimated command cost"],
+      "acts": ["gates GPU command groups with PRT/HT scheduling and posterior/apriori reservation enforcement"],
+      "classification": "PARTIAL", "mapping_reason": "Priority and timeslice intents map to the scheduler ABI, but TimeGraph schedules non-preemptive command groups using completion interrupts and reservation accounting absent from that ABI.",
+      "missing_primitives": ["command-group admission and completion identity", "per-reservation budget replenishment and execution-cost accounting"],
+      "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c", "extension/gpu_sched_trace.bpf.c"],
+      "evidence": {"level": "source", "paths": [], "note": "Original driver-level PRT/HT and reservation mechanisms inspected; no real-time guarantee transfers to current TSG policy."},
+      "bpftime_route": "Explicit host launch and device completion events could enable an approximate admission controller; it remains cooperative unless all hardware submission paths are mediated."
+    },
+    {
+      "id": "gdev-atc12", "title": "Gdev: First-Class GPU Resource Management in the Operating System", "year": 2012, "venue": "USENIX ATC", "category": "gpu_scheduling_qos",
+      "primary_url": "https://www.usenix.org/system/files/conference/atc12/atc12-final319.pdf", "artifact_url": "https://github.com/shinpei0208/gdev",
+      "observes": ["GPU API operations, context ownership, compute/DMA use and device-memory demand"],
+      "acts": ["provides OS-integrated GPU APIs, shared device memory/swapping and logical-GPU resource scheduling"],
+      "classification": "PARTIAL", "mapping_reason": "Process scheduling and UVM page-policy hooks expose some related choices, but do not implement Gdev's unified kernel/user API, memory IPC or separate compute/DMA virtualization.",
+      "missing_primitives": ["OS-callable GPU execution API", "inter-context device-memory sharing", "independent DMA/compute admission and accounting"],
+      "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c"],
+      "evidence": {"level": "source", "paths": [], "note": "Official ATC paper and Nouveau-oriented artifact identified; historical code is not a drop-in RTX 5090/CUDA 12.9 baseline."},
+      "bpftime_route": "Userspace hooks can prototype API policies but cannot make a cooperative wrapper equivalent to kernel-enforced GPU resource mediation."
+    },
     {
       "id": "paged-memory-hpca16",
       "title": "Towards High Performance Paged Memory for GPUs",

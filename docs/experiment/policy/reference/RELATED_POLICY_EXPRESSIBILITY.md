@@ -7,12 +7,12 @@ successful local analogue as a reproduction of the original system.
 
 The machine-readable source of truth is
 [`related-policy-expressibility.json`](related-policy-expressibility.json).  It
-currently contains **38 papers across six policy families**.  Every row records
+currently contains **48 papers across seven policy families**.  Every row records
 the primary publication/artifact URL, the paper's observations and actions, the
 whole-policy classification, missing primitives, any corresponding in-tree
 programs, and the strongest evidence level actually available.
 
-The broader 49-source reading corpus and its 44 locally retained, first-page
+The broader 59-source reading corpus and its 54 locally retained, first-page
 checked PDFs are indexed by
 [`docs/paper-material/policy-expressibility-papers/MANIFEST.md`](../../../paper-material/policy-expressibility-papers/MANIFEST.md).
 
@@ -61,8 +61,9 @@ paper's own evaluation:
 4. `performance`: a controlled run recorded an outcome metric for that local
    analogue.
 
-Only the page-level Expert Buffering analogue is above `source` in this
-inventory, and its note explicitly limits the evidence to that analogue.  The
+The page-level Expert Buffering analogue has local runtime evidence. The new
+finite bpftime device-event workload has build evidence, explicitly separate
+from the original eGPU paper's evaluation. The
 four local PDFs previously found to contain unrelated papers are excluded as
 evidence; publication, author, and official artifact URLs are used instead.
 
@@ -127,6 +128,21 @@ observation/action and missing-primitive text.
 | [REEF](https://www.usenix.org/conference/osdi22/presentation/han) | 2022 | `PARTIAL` | whole-TSG preempt | No kernel kill/restore, padding, or request mapping |
 | [Salus](https://arxiv.org/abs/1902.04610) | 2020 | `PARTIAL` | process scheduler + PID quota | No iteration lanes or framework allocator |
 | [Transparent GPU Sharing](https://www.usenix.org/conference/nsdi23/presentation/wu) | 2023 | `PARTIAL` | process timeslices | No per-submission gate or completion feedback loop |
+| [Orion](https://doi.org/10.1145/3627703.3629578) | 2024 | `PARTIAL` | priority/timeslice intent | Needs per-operator profiles and lossless deferred launch queues |
+| [Paella](https://doi.org/10.1145/3600006.3613163) | 2023 | `PARTIAL` | driver priority + device-event components | Needs compiler/runtime dispatch and completion protocol |
+| [Tally](https://doi.org/10.1145/3669940.3707282) | 2025 | `PARTIAL` | whole-TSG preempt | No transparent thread-block scheduler or CUDA virtualization |
+| [LithOS](https://arxiv.org/abs/2504.15465) | 2025 | `PARTIAL` | coarse process scheduling | No TPC steering/stealing, atomization runtime, or DVFS control |
+| [Kernelet](https://arxiv.org/abs/1303.5164) | 2013 | `PARTIAL` | potential bounded block-filter component | Needs complete slice replay, profiling, and coexecution selection |
+| [Bless](https://doi.org/10.1145/3689031.3696070) | 2025 | `PARTIAL` | timeslice intent | No per-kernel spatial quotas or bubble-filling admission |
+| [TimeGraph](https://www.usenix.org/conference/usenixatc11/timegraph-gpu-scheduling-real-time-multi-tasking-environments) | 2011 | `PARTIAL` | priority and whole-TSG actions | No command-group admission/completion and real-time reservation accounting |
+| [Gdev](https://www.usenix.org/system/files/conference/atc12/atc12-final319.pdf) | 2012 | `PARTIAL` | process timeslice + memory heuristics | No independent compute/DMA reservations or integrated GPU API |
+
+### Userspace and device eBPF
+
+| Paper | Year | Result | Available local component | Boundary |
+|---|---:|---|---|---|
+| [Extending Applications Safely and Efficiently / bpftime](https://www.usenix.org/conference/osdi25/presentation/zheng-yusheng) | 2025 | `PARTIAL` | host hooks, maps, offline GPU-verifier tests | Driver hooks do not supply the whole EIM extension/resource contract |
+| [eGPU](https://asplos.dev/pdf/bpftime_super.pdf) | 2025 | `PARTIAL` | finite device-return counter workload | Observation/injection is not a scheduler; driver-policy feedback bridge remains explicit |
 
 ### Multi-GPU and storage
 
@@ -161,6 +177,65 @@ Papers classified `NO` are still useful: they identify concrete ABI extensions
 needed for a future experiment.  They are not candidates for relabeling an
 existing program.
 
+## bpftime routes and local checks
+
+The clean sibling `bpftime-r5` source at revision `36610ee` built its verifier
+test target and passed **17 GPU-verifier test cases / 126 assertions** on the
+CPU. The r5 `kernel_trace` and `threadhist` BPF examples, plus the development
+tree's existing `atomizer` example, also compiled to BPF objects. None of those
+checks executed a GPU kernel. The development source at revision `d6316fa`
+already had tracked edits; this investigation did not modify that source.
+
+Two short implementation routes emerge from the new papers:
+
+1. **Keep a runtime's original frontend, move its bounded policy decision to
+   userspace eBPF.** A same-XQueue HPF adapter is now available under
+   `workloads/xsched/bpftime_hpf.*`; native XSched remains the reference, and
+   the adapter uses bpftime's host-side uBPF JIT. This is not device-side BPF.
+   More elaborate Orion/TimeGraph admission requires operation identity,
+   completion events, and a lossless queue/dependency protocol; overriding a
+   `cuLaunchKernel` return value does not implement that protocol.
+2. **Add device observations, then evaluate one bounded block-policy
+   component.** Device-return/thread maps can feed a host policy, but need
+   explicit process/TSG correlation before they drive gpubpf. The existing
+   atomizer's block-range predicate is a possible Kernelet/Tally/LithOS
+   component only for independent-block kernels. Its partition divisor needs
+   validation, and every slice must be replayed exactly once. Native slicing
+   is the appropriate component baseline. This does not implement TPC
+   steering, transparent CUDA virtualization, or whole-paper scheduling.
+
+`workloads/bpftime-device-smoke/` provides a finite device-observation check:
+eight launches of 4,096 threads, exact checking of all 32,768 output values,
+and an independent requirement for 32,768 device-return callbacks (eight per
+thread). It uses unique named shared memory, the shared GPU/struct-ops leases,
+owned process-group cleanup, and pre/post GPU safety checks. It never removes
+bpftime's default segment. Build and run from the repository root:
+
+```bash
+make -C workloads/bpftime-device-smoke -j2
+python3 -B workloads/bpftime-device-smoke/run_smoke.py \
+  --output workloads/bpftime-device-smoke/raw/575-canary-next
+```
+
+The existing CUDA runtime build is `../bpftime/build-cuda-pr503`; it is not
+asserted to incorporate the r5 verifier. The three retained 575 canaries
+(`raw/575-canary-root-01`, `-02`, `-03`) all **failed** the full engagement
+criterion. Run 01 exposed the required `cuda__` GPU-program name prefix; run
+02 exposed the matching loader-name update. Both names are now fixed. Run 03
+matched/injected the target PTX and loaded its module; native and instrumented
+workloads each checked all 32,768 values without mismatch, but the callback
+criterion timed out. Attach success and preserved output correctness are not
+proof of device-event engagement. All three runs removed their private shared
+memory and returned to an idle GPU without new Xids. Counter snapshots and
+failure-side correctness retention were subsequently added for diagnosis;
+that diagnostic revision has only been rebuilt, not rerun on the GPU.
+
+Primary artifacts provide future original-system baselines for
+[Orion](https://github.com/eth-easl/orion),
+[Paella](https://github.com/eniac/paella), and
+[Tally](https://github.com/tally-project/tally), but none was built or run here.
+TimeGraph/Gdev's legacy driver mechanisms are not drop-in RTX 5090 baselines.
+
 ## Offline validation
 
 Run from the repository root:
@@ -169,7 +244,7 @@ Run from the repository root:
 python3 docs/experiment/policy/reference/validate_related_policy_expressibility.py
 ```
 
-The check enforces the record floor, six-category coverage, classification and
+The check enforces the record floor, seven-category coverage, classification and
 evidence enums, HTTPS URL shape, required fields, repository-relative path
 containment/existence, and exclusion of known mismatched local source assets.
 It is deliberately offline and does not make network availability a build gate.

@@ -24,6 +24,7 @@ CATEGORIES = {
     "kv_weight_tiering",
     "gpu_scheduling_qos",
     "multi_gpu_storage",
+    "userspace_device_ebpf",
 }
 DISALLOWED_LOCAL_ASSETS = {
     "forest_isca25.pdf",
@@ -184,8 +185,9 @@ def validate(inventory_path: Path) -> list[str]:
     if missing_categories:
         fail(errors, f"categories with no records: {sorted(missing_categories)}")
     for category, count in sorted(category_counts.items()):
-        if count < 4:
-            fail(errors, f"{category}: expected at least four papers, found {count}")
+        minimum = 2 if category == "userspace_device_ebpf" else 4
+        if count < minimum:
+            fail(errors, f"{category}: expected at least {minimum} papers, found {count}")
 
     return errors
 

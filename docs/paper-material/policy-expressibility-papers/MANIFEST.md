@@ -3,8 +3,8 @@
 This directory is deliberately separate from `../ref-paper/`. None of the four
 known-mismatched files in that directory were read, overwritten, or reused.
 
-As of 2026-09-02, the catalog contains 49 primary-source entries. Forty-four
-PDFs (84,722,842 bytes) were retained. Every retained file passed `pdfinfo` and
+As of 2026-09-02, the catalog contains 59 primary-source entries. Fifty-four
+PDFs (96,870,994 bytes) were retained. Every retained file passed `pdfinfo` and
 page-one `pdftotext` extraction, followed by a manual title-and-author check.
 Five entries could not be retained: one is source code rather than a paper, two
 ACM endpoints rejected automated retrieval, one advertised author link is
@@ -65,6 +65,16 @@ contains the same required provenance and validation fields in compact form.
 | 47 | Combining HW/SW Mechanisms to Improve NUMA Performance of Multi-GPU Systems (2018, MICRO) | [NVIDIA Research](https://research.nvidia.com/publication/2018-10_combining-hwsw-mechanisms-improve-numa-performance-multi-gpu-systems) | [PDF](https://d1qx31qr3h6wln.cloudfront.net/publications/MICRO_2018_CARVE.pdf) | `47-micro18-carve.pdf` / 863,202 | verified title and authors |
 | 48 | Griffin: Hardware-Software Support for Efficient Page Migration in Multi-GPU Systems (2020, HPCA) | [DOI](https://doi.org/10.1109/HPCA47549.2020.00055) | [PDF](https://sarchlab.org/hpca2020.pdf) | `48-hpca20-griffin.pdf` / 408,470 | verified title and authors |
 | 49 | Beyond the Socket: NUMA-Aware GPUs (2017, MICRO) | [NVIDIA Research](https://research.nvidia.com/publication/2017-10_Beyond-the-socket%3A) | [PDF](https://d1qx31qr3h6wln.cloudfront.net/publications/MICRO_2017_TMG.pdf) | `49-micro17-beyond-the-socket.pdf` / 1,264,331 | verified title and authors |
+| 50 | Extending Applications Safely and Efficiently / bpftime (2025, OSDI) | [USENIX](https://www.usenix.org/conference/osdi25/presentation/zheng-yusheng) | [PDF](https://www.usenix.org/system/files/osdi25-zheng-yusheng.pdf) | `50-osdi25-bpftime-eim.pdf` / 691,321 | verified title and authors |
+| 51 | eGPU: Extending eBPF Programmability and Observability to GPUs (2025, HCDS) | [Publisher](https://camps.aptaracorp.com/ACM_PMS/PMS/ACM/HCDS25/10/13a8f7c0-0a7e-11f0-ada9-16bb50361d1f/OUT/hcds25-10.html) | [PDF](https://asplos.dev/pdf/bpftime_super.pdf) | `51-hcds25-egpu.pdf` / 609,048 | verified title and authors |
+| 52 | Orion: Interference-aware, Fine-grained GPU Sharing for ML Applications (2024, EuroSys) | [DOI](https://doi.org/10.1145/3627703.3629578) | [PDF](https://fotstrt.github.io/files/2024-orion.pdf) | `52-eurosys24-orion.pdf` / 1,894,950 | verified title and authors |
+| 53 | Paella: Low-latency Model Serving with Software-defined GPU Scheduling (2023, SOSP) | [DOI](https://doi.org/10.1145/3600006.3613163) | [PDF](https://vincen.tl/files/ng23paella.pdf) | `53-sosp23-paella.pdf` / 1,203,901 | verified title and authors |
+| 54 | Tally: Non-Intrusive Performance Isolation for Concurrent Deep Learning Workloads (2025, ASPLOS) | [DOI](https://doi.org/10.1145/3669940.3707282) | [PDF](https://arxiv.org/pdf/2410.07381) | `54-asplos25-tally.pdf` / 1,176,509 | verified title and authors |
+| 55 | LithOS: An Operating System for Efficient Machine Learning on GPUs (2025, SOSP) | [arXiv](https://arxiv.org/abs/2504.15465) | [PDF](https://www.pdl.cmu.edu/PDL-FTP/BigLearning/lithos_sosp25.pdf) | `55-sosp25-lithos.pdf` / 1,693,307 | verified title and authors |
+| 56 | Kernelet: High-Throughput GPU Kernel Executions with Dynamic Slicing and Scheduling (2013, arXiv manuscript) | [arXiv](https://arxiv.org/abs/1303.5164) | [PDF](https://arxiv.org/pdf/1303.5164) | `56-2013-kernelet.pdf` / 1,039,256 | verified title and authors |
+| 57 | Improving GPU Sharing Performance through Adaptive Bubbleless Spatial-Temporal Sharing / Bless (2025, EuroSys) | [DOI](https://doi.org/10.1145/3689031.3696070) | [PDF](https://jamesthez.github.io/files/bless-eurosys25.pdf) | `57-eurosys25-bless.pdf` / 2,327,832 | verified title and authors |
+| 58 | TimeGraph: GPU Scheduling for Real-Time Multi-Tasking Environments (2011, USENIX ATC) | [USENIX](https://www.usenix.org/conference/usenixatc11/timegraph-gpu-scheduling-real-time-multi-tasking-environments) | [PDF](https://www.usenix.org/legacy/events/atc11/tech/final_files/Kato.pdf) | `58-atc11-timegraph.pdf` / 493,655 | verified title and authors |
+| 59 | Gdev: First-Class GPU Resource Management in the Operating System (2012, USENIX ATC) | [USENIX](https://www.usenix.org/system/files/conference/atc12/atc12-final319.pdf) | [PDF](https://www.usenix.org/system/files/conference/atc12/atc12-final319.pdf) | `59-atc12-gdev.pdf` / 1,018,373 | verified title and authors |
 
 ## Verification commands
 

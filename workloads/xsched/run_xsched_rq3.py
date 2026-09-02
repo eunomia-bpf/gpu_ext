@@ -58,6 +58,11 @@ def file_metadata(path: Path) -> dict[str, Any]:
     }
 
 
+def patch_body(text: str) -> str:
+    """Compare the small source edit, never Git's blob-index metadata."""
+    return "\n".join(line for line in text.splitlines() if not line.startswith("index ")) + "\n"
+
+
 def percentile(values: list[float], fraction: float) -> float:
     if not values:
         raise ValueError("empty sample")
@@ -95,8 +100,8 @@ def sudo_prefix() -> list[str]:
 
 def admission(require_runtime: bool) -> dict[str, Any]:
     workload = HERE / "build" / "priority_workload"
-    expected_xsched_diff = (HERE / "xsched-engagement.patch").read_text()
-    actual_xsched_diff = run(["git", "-C", str(XSCHED), "diff", "--", "preempt"]).stdout
+    expected_xsched_diff = patch_body((HERE / "xsched-engagement.patch").read_text())
+    actual_xsched_diff = patch_body(run(["git", "-C", str(XSCHED), "diff", "--", "preempt"]).stdout)
     source_paths = [
         EXTENSION / "uprobe_preempt_multi.c", EXTENSION / "uprobe_preempt_multi.bpf.c",
         EXTENSION / "gpu_sched_set_timeslices.c", EXTENSION / "gpu_sched_set_timeslices.bpf.c",
@@ -694,10 +699,10 @@ def main() -> int:
     if args.phase == "build":
         subprocess.run(["make", "-C", str(HERE)], check=True)
         current_diff = run(["git", "-C", str(XSCHED), "diff", "--", "preempt"]).stdout
-        reviewed_patch = (HERE / "xsched-engagement.patch").read_text()
+        reviewed_patch = patch_body((HERE / "xsched-engagement.patch").read_text())
         if not current_diff:
             subprocess.run(["git", "-C", str(XSCHED), "apply", str(HERE / "xsched-engagement.patch")], check=True)
-        elif current_diff != reviewed_patch:
+        elif patch_body(current_diff) != reviewed_patch:
             raise RuntimeError("refusing to build unexpected XSched source diff")
         build_env = {**os.environ, "CC": "/usr/bin/gcc", "CXX": "/usr/bin/g++"}
         subprocess.run(["make", "-C", str(XSCHED), "cuda"], check=True, env=build_env)

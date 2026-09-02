@@ -240,11 +240,12 @@ def controlled_environment(config: str) -> dict[str, str]:
     return env
 
 
-def server_command(config: str, port: int, attempt_dir: Path) -> tuple[list[str], Path]:
+def server_command(config: str, port: int, attempt_dir: Path,
+                   offload_dir: Path | None = None) -> tuple[list[str], Path]:
     if config not in CONFIGS:
         raise GateError(f"unknown configuration: {config}")
     if config == "moe_infinity_075":
-        offload = (attempt_dir / "moe-offload").resolve()
+        offload = (offload_dir or attempt_dir / "moe-offload").absolute()
         return (
             [
                 "taskset", "-c", "0-7", str(MOE_PYTHON), "-m",
@@ -663,7 +664,9 @@ def traced_moe_argv(argv: list[str], trace_dir: Path) -> list[str]:
     ] + argv[3:]
 
 
-def verify_small_artifacts() -> dict[str, Any]:
+def verify_small_artifacts(*, driver_version: str | None = None,
+                           module_root: Path | None = None,
+                           kernel_release: str | None = None) -> dict[str, Any]:
     frozen = json.loads(ARTIFACTS.read_text())
     workload = json.loads(WORKLOAD_MANIFEST.read_text())
     observed: dict[str, Any] = {}
@@ -700,26 +703,30 @@ def verify_small_artifacts() -> dict[str, Any]:
             raise GateError(f"required runtime artifact is missing: {path}")
     observed["required_files"] = [str(path.resolve()) for path in required_runtime]
     for name, metadata in frozen["custom_driver_modules"].items():
-        path = KERNEL_MODULE_ROOT / name
+        path = (module_root or KERNEL_MODULE_ROOT) / name
         if not path.is_file():
             raise GateError(f"required custom module is missing: {path}")
         modinfo = run_checked(["modinfo", str(path)])
         version = re.search(r"^version:\s+(\S+)", modinfo, re.MULTILINE)
         vermagic = re.search(r"^vermagic:\s+(.+)$", modinfo, re.MULTILINE)
-        if not version or version.group(1) != EXPECTED_DRIVER:
+        if not version or version.group(1) != (driver_version or EXPECTED_DRIVER):
             raise GateError(f"custom module version mismatch: {path}")
-        if not vermagic or vermagic.group(1) != metadata["vermagic"]:
+        expected_vermagic = metadata["vermagic"]
+        if kernel_release is not None:
+            expected_vermagic = kernel_release + " " + expected_vermagic.split(" ", 1)[1]
+        if not vermagic or vermagic.group(1) != expected_vermagic:
             raise GateError(f"custom module vermagic mismatch: {path}")
     return observed
 
 
-def verify_loaded_uvm_interface() -> dict[str, Any]:
+def verify_loaded_uvm_interface(expected_driver: str | None = None) -> dict[str, Any]:
     """Prove that the live UVM module exposes the frozen gpubpf ABI."""
     if not LOADED_UVM_VERSION.is_file():
         raise GateError(f"loaded UVM version is unavailable: {LOADED_UVM_VERSION}")
     version = LOADED_UVM_VERSION.read_text().strip()
-    if version != EXPECTED_DRIVER:
-        raise GateError(f"loaded UVM version mismatch: expected {EXPECTED_DRIVER}, found {version}")
+    expected_driver = expected_driver or EXPECTED_DRIVER
+    if version != expected_driver:
+        raise GateError(f"loaded UVM version mismatch: expected {expected_driver}, found {version}")
     if not LOADED_UVM_BTF.is_file():
         raise GateError(
             "loaded nvidia_uvm has no module BTF; the custom gpubpf UVM interface "
@@ -802,7 +809,9 @@ def verify_model_artifacts() -> dict[str, Any]:
     return result
 
 
-def admission(port: int) -> dict[str, Any]:
+def admission(port: int, *, driver_version: str | None = None,
+              module_root: Path | None = None, kernel_release: str | None = None,
+              minimum_free_bytes: int = 200 * 1024**3) -> dict[str, Any]:
     evidence: dict[str, Any] = {"timestamp_ns": time.time_ns(), "errors": []}
     errors: list[str] = evidence["errors"]
     try:
@@ -810,8 +819,8 @@ def admission(port: int) -> dict[str, Any]:
         gpu = evidence["gpu"]
         if gpu["name"] != EXPECTED_GPU:
             errors.append(f"GPU: expected {EXPECTED_GPU}, found {gpu['name']}")
-        if gpu["driver"] != EXPECTED_DRIVER:
-            errors.append(f"driver: expected {EXPECTED_DRIVER}, found {gpu['driver']}")
+        if gpu["driver"] != (driver_version or EXPECTED_DRIVER):
+            errors.append(f"driver: expected {driver_version or EXPECTED_DRIVER}, found {gpu['driver']}")
         if gpu["compute_apps"]:
             errors.append(f"foreign GPU compute processes: {gpu['compute_apps']}")
         if gpu["memory_used_mib"] > 256:
@@ -825,7 +834,7 @@ def admission(port: int) -> dict[str, Any]:
     except Exception as exc:
         errors.append(f"struct_ops inventory: {exc}")
     try:
-        evidence["loaded_uvm_interface"] = verify_loaded_uvm_interface()
+        evidence["loaded_uvm_interface"] = verify_loaded_uvm_interface(driver_version)
     except Exception as exc:
         errors.append(f"loaded UVM interface: {exc}")
     try:
@@ -833,8 +842,8 @@ def admission(port: int) -> dict[str, Any]:
         mount = evidence["mount"]
         if Path(mount["source"]).resolve() != Path(EXPECTED_MOUNT_SOURCE).resolve() or mount["fstype"] != EXPECTED_MOUNT_FSTYPE:
             errors.append(f"storage is not {EXPECTED_MOUNT_SOURCE} {EXPECTED_MOUNT_FSTYPE}: {mount}")
-        if mount["free_bytes"] < 200 * 1024**3:
-            errors.append(f"less than 200 GiB storage free: {mount['free_bytes']}")
+        if mount["free_bytes"] < minimum_free_bytes:
+            errors.append(f"less than {minimum_free_bytes} bytes storage free: {mount['free_bytes']}")
     except Exception as exc:
         errors.append(f"storage inventory: {exc}")
     try:
@@ -842,7 +851,10 @@ def admission(port: int) -> dict[str, Any]:
         evidence["moe_source"] = git_revision(
             MOE_SOURCE, EXPECTED_MOE_COMMIT, allow_instrumentation=True
         )
-        evidence["small_artifacts"] = verify_small_artifacts()
+        evidence["small_artifacts"] = verify_small_artifacts(
+            driver_version=driver_version, module_root=module_root,
+            kernel_release=kernel_release,
+        )
         evidence["runtime_files"] = runtime_file_inventory()
         evidence["models"] = verify_model_artifacts()
     except Exception as exc:
@@ -1184,7 +1196,7 @@ def start_gpu_telemetry(run_dir: Path) -> tuple[subprocess.Popen[Any], Any, Path
     return process, log, path
 
 
-def validate_gpu_telemetry(path: Path) -> dict[str, Any]:
+def validate_gpu_telemetry(path: Path, *, allow_fixed_power_cap: bool = False) -> dict[str, Any]:
     lines = [line for line in path.read_text(errors="replace").splitlines() if line.strip()]
     if len(lines) < 2:
         raise GateError(f"GPU telemetry has no samples: {path}")
@@ -1197,7 +1209,9 @@ def validate_gpu_telemetry(path: Path) -> dict[str, Any]:
         rows.append(dict(zip(headers, fields)))
     if not rows:
         raise GateError("GPU telemetry has no parseable rows")
-    reason_headers = headers[6:]
+    reason_headers = [key for key in headers[6:] if not (
+        allow_fixed_power_cap and "sw_power_cap" in key
+    )]
     throttled = [
         {key: row[key] for key in reason_headers}
         for row in rows if any(row[key].lower() not in {"not active", "n/a"} for key in reason_headers)
@@ -1212,6 +1226,10 @@ def validate_gpu_telemetry(path: Path) -> dict[str, Any]:
         "mean_power_w": sum(numeric(headers[3])) / len(rows),
         "min_sm_clock_mhz": min(numeric(headers[4])),
         "max_sm_clock_mhz": max(numeric(headers[4])), "throttled": False,
+        "fixed_power_cap_samples": sum(
+            any("sw_power_cap" in key and row[key].lower() == "active" for key in headers)
+            for row in rows
+        ),
     }
 
 
@@ -1672,7 +1690,9 @@ def require_no_new_xids(before: list[str]) -> dict[str, int]:
 
 
 def run_correctness_config(config: str, run_dir: Path, port: int,
-                           prompts: dict[str, Any]) -> dict[str, Any]:
+                           prompts: dict[str, Any], *,
+                           current_deployment: bool = False,
+                           offload_dir: Path | None = None) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
     policy = None
     policy_log = None
@@ -1687,10 +1707,10 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
     try:
         if config == "gpubpf_host_stride_lfu":
             policy, policy_log, policy_ready = start_policy(run_dir)
-        argv, cwd = server_command(config, port, run_dir)
+        argv, cwd = server_command(config, port, run_dir, offload_dir)
         launch_argv = argv
         trace_dir = None
-        if config == "moe_infinity_075":
+        if config == "moe_infinity_075" and not current_deployment:
             trace_dir = run_dir / "strace"
             trace_dir.mkdir()
             launch_argv = traced_moe_argv(argv, trace_dir)
@@ -1707,7 +1727,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
         )
         wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 60)
         identity = check_server_identity(config, port, prompts, log_path)
-        if config == "gpubpf_host_stride_lfu":
+        if config == "gpubpf_host_stride_lfu" and not current_deployment:
             candidate_monitors = start_eviction_monitors(server.pid, run_dir)
         else:
             monitor_ready = None
@@ -1716,7 +1736,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json"
         )
         time.sleep(1.1)
-        if config == "gpubpf_host_stride_lfu":
+        if config == "gpubpf_host_stride_lfu" and not current_deployment:
             monitor, monitor_log, eviction_path, monitor_ready = select_eviction_monitor(
                 candidate_monitors
             )
@@ -1731,7 +1751,7 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
         )
         eviction_before = (
             latest_counter_event(eviction_path, "eviction_stats")
-            if config == "gpubpf_host_stride_lfu" else None
+            if config == "gpubpf_host_stride_lfu" and not current_deployment else None
         )
 
         passes: list[list[dict[str, Any]]] = []
@@ -1778,21 +1798,32 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
                 != delta["expert_cache_accesses"]
             ):
                 raise GateError(f"MoE expert cache gate failed: {delta}")
-            if int(moe_after["revision"]["kv_cache_num_blocks"]) != 128 or io_delta["read_bytes"] <= 0:
+            if int(moe_after["revision"]["kv_cache_num_blocks"]) != 128 or (
+                not current_deployment and io_delta["read_bytes"] <= 0
+            ):
                 raise GateError(f"MoE KV/direct-read gate failed: stats={moe_after}, io={io_delta}")
-            offload_files = sorted((run_dir / "moe-offload").rglob("*"))
+            store_root = offload_dir or run_dir / "moe-offload"
+            offload_files = sorted(store_root.rglob("*"))
             if not any(path.is_file() and path.stat().st_size > 0 for path in offload_files):
                 raise GateError("MoE expert offload store is empty")
             engagement.update(before=moe_before, after=moe_after, delta=delta,
                               metrics_delta=metrics_delta)
-            engagement["odirect"] = validate_moe_odirect(
-                trace_dir, run_dir / "moe-offload"
-            )
+            if current_deployment:
+                partitions = sorted(store_root.rglob("archer_param_*"))
+                if {path.name for path in partitions} != {f"archer_param_{i}" for i in range(7)}:
+                    raise GateError("MoE store lacks the seven expected expert partitions")
+                engagement["storage"] = {
+                    "deployment": "buffered NVMe hydration followed by CPU expert offload/cache",
+                    "partitions": [{"path": str(path.absolute()), "bytes": path.stat().st_size}
+                                   for path in partitions],
+                    "steady_state_direct_io_claimed": False,
+                }
+            else:
+                engagement["odirect"] = validate_moe_odirect(trace_dir, store_root)
         elif config == "gpubpf_host_stride_lfu":
             policy_after = latest_counter_event(run_dir / "policy.jsonl", "engagement")
-            eviction_after = latest_counter_event(
-                eviction_path, "eviction_stats"
-            )
+            eviction_after = (latest_counter_event(eviction_path, "eviction_stats")
+                              if not current_deployment else None)
             policy_delta = counter_delta(
                 policy_before, policy_after,
                 ("page_fault_calls", "stride_detections", "prefetches_issued",
@@ -1802,18 +1833,21 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             eviction_delta = counter_delta(
                 eviction_before, eviction_after,
                 ("evictions", "evicted_bytes", "dropped_evictions"),
-            )
+            ) if not current_deployment else None
             if any(policy_delta[key] <= 0 for key in policy_delta):
                 raise GateError(f"combined-policy smoke engagement gate failed: {policy_delta}")
             validate_sampled_lfu_delta(policy_delta)
-            if eviction_delta["evictions"] <= 0 or eviction_delta["evicted_bytes"] <= 0:
+            if eviction_delta is not None and (
+                eviction_delta["evictions"] <= 0 or eviction_delta["evicted_bytes"] <= 0
+            ):
                 raise GateError(f"completed UVM eviction gate failed: {eviction_delta}")
-            if eviction_delta["dropped_evictions"] != 0:
+            if eviction_delta is not None and eviction_delta["dropped_evictions"] != 0:
                 raise GateError(f"UVM eviction event queue dropped records: {eviction_delta}")
             engagement.update(
                 policy_before=policy_before, policy_after=policy_after,
                 policy_delta=policy_delta, eviction_before=eviction_before,
                 eviction_after=eviction_after, eviction_delta=eviction_delta,
+                completed_evictions_claimed=not current_deployment,
             )
         result = {
             "config": config, "identity": identity, "monitor_ready": monitor_ready,
@@ -2237,20 +2271,23 @@ def streamed_completion(config: str, port: int, token_ids: list[int],
 
 
 def engagement_snapshot(config: str, port: int, run_dir: Path,
-                        server_pid: int, eviction_path: Path | None = None) -> dict[str, Any]:
+                        server_pid: int, eviction_path: Path | None = None, *,
+                        current_deployment: bool = False) -> dict[str, Any]:
     result: dict[str, Any] = {"process_io": process_tree_io(server_pid)}
     if config == "moe_infinity_075":
         result["moe"] = moe_snapshot(port)
     elif config == "gpubpf_host_stride_lfu":
-        if eviction_path is None:
+        if eviction_path is None and not current_deployment:
             raise GateError("gpubpf engagement snapshot lacks selected eviction monitor")
         result["policy"] = latest_counter_event(run_dir / "policy.jsonl", "engagement")
-        result["evictions"] = latest_counter_event(eviction_path, "eviction_stats")
+        result["evictions"] = (latest_counter_event(eviction_path, "eviction_stats")
+                               if not current_deployment else None)
     return result
 
 
 def validate_measured_engagement(config: str, before: dict[str, Any],
-                                 after: dict[str, Any]) -> dict[str, Any]:
+                                 after: dict[str, Any], *,
+                                 current_deployment: bool = False) -> dict[str, Any]:
     io_delta = after["process_io"]["read_bytes"] - before["process_io"]["read_bytes"]
     result: dict[str, Any] = {
         "read_bytes": io_delta,
@@ -2274,7 +2311,7 @@ def validate_measured_engagement(config: str, before: dict[str, Any],
         if delta["expert_cache_accesses"] <= 0 or (
             delta["expert_cache_hits"] + delta["expert_cache_misses"]
             != delta["expert_cache_accesses"]
-        ) or io_delta <= 0:
+        ) or (not current_deployment and io_delta <= 0):
             raise GateError(f"MoE measured offload gate failed: delta={delta}, read_bytes={io_delta}")
         if metric_tokens != 512 or metric_steps != delta["engine_steps"]:
             raise GateError(f"MoE measured /metrics disagreement: tokens={metric_tokens}, steps={metric_steps}")
@@ -2282,6 +2319,7 @@ def validate_measured_engagement(config: str, before: dict[str, Any],
             raise GateError(f"MoE KV gauge changed: {after['moe']}")
         result["moe_delta"] = delta
         result["metrics_delta"] = {"tokens": metric_tokens, "steps": metric_steps}
+        result["steady_state_direct_io_claimed"] = not current_deployment
     elif config == "gpubpf_host_stride_lfu":
         policy_delta = counter_delta(
             before["policy"], after["policy"],
@@ -2292,21 +2330,25 @@ def validate_measured_engagement(config: str, before: dict[str, Any],
         eviction_delta = counter_delta(
             before["evictions"], after["evictions"],
             ("evictions", "evicted_bytes", "dropped_evictions"),
-        )
+        ) if not current_deployment else None
         if any(value <= 0 for value in policy_delta.values()):
             raise GateError(f"gpubpf measured hook gate failed: {policy_delta}")
         validate_sampled_lfu_delta(policy_delta)
-        if eviction_delta["evictions"] <= 0 or eviction_delta["evicted_bytes"] <= 0:
+        if eviction_delta is not None and (
+            eviction_delta["evictions"] <= 0 or eviction_delta["evicted_bytes"] <= 0
+        ):
             raise GateError(f"gpubpf completed-eviction gate failed: {eviction_delta}")
-        if eviction_delta["dropped_evictions"] != 0:
+        if eviction_delta is not None and eviction_delta["dropped_evictions"] != 0:
             raise GateError(f"gpubpf eviction queue dropped events: {eviction_delta}")
-        result.update(policy_delta=policy_delta, eviction_delta=eviction_delta)
+        result.update(policy_delta=policy_delta, eviction_delta=eviction_delta,
+                      completed_evictions_claimed=not current_deployment)
     return result
 
 
 def run_measured_config(config: str, run_dir: Path, port: int,
                         prompts: dict[str, Any], prompt_order: list[int],
-                        goldens: list[str]) -> dict[str, Any]:
+                        goldens: list[str], *, current_deployment: bool = False,
+                        offload_dir: Path | None = None) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
     policy = monitor = server = None
     candidate_monitors = []
@@ -2320,7 +2362,7 @@ def run_measured_config(config: str, run_dir: Path, port: int,
             policy, policy_log, policy_ready = start_policy(run_dir)
         else:
             policy_ready = None
-        argv, cwd = server_command(config, port, run_dir)
+        argv, cwd = server_command(config, port, run_dir, offload_dir)
         atomic_write_json(run_dir / "launch.json", {
             "argv": argv, "cwd": str(cwd), "environment": controlled_environment(config),
             "policy_ready": policy_ready,
@@ -2332,7 +2374,7 @@ def run_measured_config(config: str, run_dir: Path, port: int,
         )
         wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 900)
         identity = check_server_identity(config, port, prompts, log_path)
-        if config == "gpubpf_host_stride_lfu":
+        if config == "gpubpf_host_stride_lfu" and not current_deployment:
             candidate_monitors = start_eviction_monitors(server.pid, run_dir)
         else:
             monitor_ready = None
@@ -2340,12 +2382,13 @@ def run_measured_config(config: str, run_dir: Path, port: int,
             config, port, prompts["records"][0]["prompt_token_ids"], run_dir / "warmup.json"
         )
         time.sleep(1.1)
-        if config == "gpubpf_host_stride_lfu":
+        if config == "gpubpf_host_stride_lfu" and not current_deployment:
             monitor, monitor_log, eviction_path, monitor_ready = select_eviction_monitor(
                 candidate_monitors
             )
             candidate_monitors = []
-        before = engagement_snapshot(config, port, run_dir, server.pid, eviction_path)
+        before = engagement_snapshot(config, port, run_dir, server.pid, eviction_path,
+                                     current_deployment=current_deployment)
         if any(item["affinity"] != list(range(8)) for item in before["process_io"]["members"]):
             raise GateError("owned measured process tree escaped CPU 0-7")
         telemetry, telemetry_log, telemetry_path = start_gpu_telemetry(run_dir)
@@ -2359,13 +2402,16 @@ def run_measured_config(config: str, run_dir: Path, port: int,
             ))
         block_end_ns = requests[-1]["eof_ns"]
         time.sleep(1.1)
-        after = engagement_snapshot(config, port, run_dir, server.pid, eviction_path)
+        after = engagement_snapshot(config, port, run_dir, server.pid, eviction_path,
+                                    current_deployment=current_deployment)
         stop_exact_process(telemetry)
         telemetry_log.close()
         telemetry = None
         telemetry_log = None
-        gpu_telemetry = validate_gpu_telemetry(telemetry_path)
-        engagement = validate_measured_engagement(config, before, after)
+        gpu_telemetry = validate_gpu_telemetry(telemetry_path,
+                                             allow_fixed_power_cap=current_deployment)
+        engagement = validate_measured_engagement(config, before, after,
+                                                 current_deployment=current_deployment)
         duration_s = (block_end_ns - block_start_ns) / 1e9
         ttfts = [request["ttft_ms"] for request in requests]
         e2es = [request["e2e_ms"] for request in requests]

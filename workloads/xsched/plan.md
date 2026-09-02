@@ -7,6 +7,32 @@ bracketed probe before each cell, checks a second probe after the policy has
 detached, and rejects combined drift/uncertainty above 1 ms. Result categories
 are now mutually exclusive. No new academic review cycle is required.
 
+## Full-workload continuation
+
+The user subsequently requested completion of XSched, GPreempt, and MoE, not
+only the short-budget pilot. The next XSched campaign restores **50 kernels
+per stream, ten complete randomized blocks, and three isolated controls per
+role**. Its four configurations are `native,xsched,gpubpf,bpftime_hpf`: the
+original driver policy remains visible, and the same-frontend BPF HPF port is
+reported separately rather than replacing it under the same name. The added
+arm leaves each configuration's workload, original HPF settings, metrics,
+correctness checks, and interpretation rule unchanged.
+
+GPU execution follows the current MoE campaign. The new GSP propagation fix
+must first pass a separate runtime canary; a host-field readback does not prove
+firmware enforcement. All four arms then use the same newly recorded driver
+image and a frozen native calibration. Preserve every existing negative and
+inconclusive pilot result. Analysis now requires the six correctly sized
+isolated controls and rejects a campaign containing a failed cell.
+
+The command is `python3 -B workloads/xsched/run_xsched_rq3.py full --configs
+native,xsched,gpubpf,bpftime_hpf --output workloads/xsched/raw/full-575-gsp
+--reps FROZEN_REPS` (one shell line, new output directory). No full-workload
+performance result is claimed yet. Historical “GPREEMPT-equivalent” labels
+below denote the differentiated-timeslice/one-shot-preempt analogue, not the
+complete GPreempt hint/blocking-kernel protocol; see the
+[current source audit](../../docs/driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md).
+
 ## Fixed short-budget campaign
 
 The user prioritizes obtaining native, original user-space-policy, and our

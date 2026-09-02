@@ -11,6 +11,12 @@ record rather than vendored into gpu_ext.
 
 ## Current status
 
+- **The full workload remains pending:** the user requested completion of
+  all three systems. The [continuation plan](plan.md#full-workload-continuation)
+  restores 50 kernels/stream, ten randomized blocks, and six isolated controls,
+  with native/original XSched/driver BPF/same-frontend BPF HPF shown separately.
+  It follows MoE's exclusive GPU campaign and a canary for the built-only GSP
+  propagation fix; the completed pilots below are not relabeled as this run.
 - [BPF HPF on the same XSched frontend now has repeated performance data](bpftime-hpf-performance-575-20260902.md):
   all 15 paired cells passed; median LC P99/max was 3695.408 ms versus
   original XSched's 3936.093 ms, with a paired interval crossing zero.

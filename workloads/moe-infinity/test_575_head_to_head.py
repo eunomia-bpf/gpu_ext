@@ -11,6 +11,15 @@ import run_moe_head_to_head as base
 
 
 class CurrentStackTests(unittest.TestCase):
+    def test_current_moe_pins_blackwell_jit_compiler_and_cache(self):
+        env = base.controlled_environment("moe_infinity_075", cuda129_triton=True)
+        self.assertEqual(env["TRITON_PTXAS_BLACKWELL_PATH"], "/usr/local/cuda-12.9/bin/ptxas")
+        self.assertEqual(env["TRITON_PTXAS_PATH"], "/usr/local/cuda-12.9/bin/ptxas")
+        self.assertTrue(env["TRITON_CACHE_DIR"].endswith("deps/triton-cache-cuda129"))
+        for config in base.CONFIGS[:-1]:
+            self.assertEqual(base.controlled_environment(config, cuda129_triton=True),
+                             base.controlled_environment(config))
+
     def test_moe_cpu_offload_does_not_claim_steady_state_disk_reads(self):
         revision = dict(engine_generated_tokens=0, engine_steps=0, expert_cache_accesses=0,
                         expert_cache_hits=0, expert_cache_misses=0, kv_cache_num_blocks=128)

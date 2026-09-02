@@ -1,6 +1,8 @@
 # MoE-Infinity four-cell continuation on 575
 
-Protocol: `proposal-3-revision-8-575`, recorded before any 575 performance result.
+Current protocol: `proposal-3-revision-9-575-cuda129`, recorded before any 575
+performance result. Revision 8's first warm-up and the following diagnostic
+failure are preserved; see the compiler-load investigation below.
 
 The user requested automatic completion of the actual MoE-Infinity, XSched,
 and LMCache comparisons, explicitly including gpubpf. This continuation uses
@@ -49,14 +51,15 @@ Commands from this directory:
 .venv/bin/python -m unittest -q test_offline.py test_575_head_to_head.py
 .venv/bin/python run_575_head_to_head.py admit
 .venv/bin/python run_575_head_to_head.py preflight \
-  --output raw/head-to-head-575/preflight
+  --output raw/head-to-head-575-cuda129/preflight \
+  --expert-store raw/head-to-head-575/preflight/expert-store
 .venv/bin/python run_575_head_to_head.py run \
-  --preflight raw/head-to-head-575/preflight \
-  --output raw/head-to-head-575/timing --max-blocks 2
+  --preflight raw/head-to-head-575-cuda129/preflight \
+  --output raw/head-to-head-575-cuda129/timing --max-blocks 2
 # Continue the same frozen sequence, without rerunning accepted blocks:
 .venv/bin/python run_575_head_to_head.py run \
-  --preflight raw/head-to-head-575/preflight \
-  --output raw/head-to-head-575/timing --max-blocks 5
+  --preflight raw/head-to-head-575-cuda129/preflight \
+  --output raw/head-to-head-575-cuda129/timing --max-blocks 5
 ```
 
 The two-block stage is a time-budgeted preliminary checkpoint, not full
@@ -65,3 +68,56 @@ request durations for planning are 6.5–13.6 s for UVM, 6.4–7.3 s for N-CMoE3
 about 5 s for repaired MoE, and one 45.026 s gpubpf warm-up. These are not
 current performance measurements. Startup, 575 performance, and any failures
 may prevent the preliminary checkpoint from finishing within one hour.
+
+## 575 compiler-load investigation
+
+On 2026-09-02, revision 8's real MoE server loaded the model and answered
+health/model requests, but its first 512-token warm-up lost the HTTP connection.
+The kernel journal identifies a user-process segmentation fault in
+`libcuda.so.575.57.08`, not an OOM kill or NVIDIA Xid. A subsequent owned GDB
+diagnostic reproduced the failure and recorded the relevant native chain:
+
+```text
+libcuda.so.1 internal frames
+cuModuleLoadData
+Triton cuda_utils.loadBinary
+PyTorch PythonKernelHolder / dispatcher
+```
+
+The active Triton is 3.7.1. Its `get_ptxas(arch)` selects `ptxas-blackwell` for
+architecture 100 and later, including this sm_120 GPU. The actual bundled
+`ptxas-blackwell --version` reports CUDA 13.1 / V13.1.80, whereas
+`/usr/local/cuda-12.9/bin/ptxas --version` reports CUDA 12.9 / V12.9.86.
+Thus the earlier CUDA 12.9 environment description did not cover the JIT
+compiler selected for the first inference. Source inspection shows that
+Triton derives PTX 9.1 versus PTX 8.8 from these compiler versions.
+
+A second GDB diagnostic changed only the two explicit Triton assembler paths
+to CUDA 12.9 and used a separate compilation cache. The identical warm-up then
+returned HTTP 200 with 512 prompt and 64 completion tokens in 6.866 seconds;
+its visible output exactly matched the historical repaired MoE warm-up. This
+is strong evidence that the selected JIT toolchain/cache was the immediate
+compatibility problem, not proof that every possible 575 workload is fixed.
+Because compiler selection and cache isolation changed together, this evidence
+does not isolate a stale-cache effect from an unsupported binary-toolchain
+effect. The GDB duration is diagnostic, not a performance sample.
+
+Revision 9 fixes both assembler variables to `/usr/local/cuda-12.9/bin/ptxas`
+and uses `deps/triton-cache-cuda129` for every MoE correctness/timing process.
+It records compiler version and file metadata and reruns all four correctness
+cells before accepting timing. No model, expert policy, input, output length,
+request count, or performance estimator changes. The already generated tensor
+store is reused; every new process still recreates its live CPU/GPU caches.
+
+Preserved local evidence:
+
+- `raw/head-to-head-575/preflight`: initial real failure, numerical tests,
+  source/runtime inventory, server log, and cleanup.
+- `raw/head-to-head-575/gdb-warmup-01`: native backtrace of the repeated
+  compiler-load fault; not a timing sample.
+- `raw/head-to-head-575/gdb-warmup-cuda129-01`: successful same-request
+  diagnostic, full response, compiler environment, and cleanup.
+
+All three runs returned the GPU to 2 MiB, zero utilization, UVM refcount zero,
+and empty struct_ops. No NVIDIA Xid occurred. The original CPU segmentation
+fault is nevertheless a real failure and is not hidden by the no-Xid statement.

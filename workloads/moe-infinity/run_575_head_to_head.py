@@ -18,11 +18,11 @@ from typing import Any
 
 import run_moe_head_to_head as base
 
-PROTOCOL = "proposal-3-revision-8-575"
+PROTOCOL = "proposal-3-revision-9-575-cuda129"
 DRIVER = "575.57.08"
 KERNEL = "6.15.11-061511-generic"
 MODULES = Path("/opt/gpubpf/modules") / DRIVER / KERNEL
-DEFAULT_OUTPUT = base.HERE / "raw/head-to-head-575"
+DEFAULT_OUTPUT = base.HERE / "raw/head-to-head-575-cuda129"
 
 
 def read_json(path: Path) -> Any:
@@ -36,6 +36,9 @@ def admit(port: int) -> dict[str, Any]:
     if result["kernel"] != KERNEL:
         result["errors"].append(f"kernel must be {KERNEL}")
     try:
+        compiler = Path("/usr/local/cuda-12.9/bin/ptxas")
+        result["triton_compiler_version"] = base.run_checked([str(compiler), "--version"])
+        result["runtime_files"]["triton_ptxas"] = base.file_metadata(compiler)
         result["safety"] = base.safety_snapshot()
         base.validate_pre_server_safety(result["safety"])
     except Exception as exc:
@@ -88,11 +91,12 @@ def run_cell(config: str, directory: Path, port: int, prompts: dict[str, Any],
         emit(f"finished {config}: {'passed' if result is not None else 'failed'}")
 
 
-def preflight(output: Path, port: int) -> dict[str, Any]:
+def preflight(output: Path, port: int, expert_store: Path | None = None) -> dict[str, Any]:
     admitted = require_admission(port)
     output.mkdir(parents=True, exist_ok=False)
     base.atomic_write_json(output / "admission.json", admitted)
     runtime = admitted["runtime_files"]
+    expert_store = (expert_store or output / "expert-store").absolute()
     result: dict[str, Any] = {
         "protocol": PROTOCOL, "driver": DRIVER, "kernel": KERNEL,
         "source_commit": base.run_checked(["git", "rev-parse", "HEAD"], cwd=base.GPU_EXT),
@@ -101,6 +105,8 @@ def preflight(output: Path, port: int) -> dict[str, Any]:
         "cross_configuration_output_equality_required": False,
         "completed_evictions_claimed": False,
         "moe_storage": "buffered NVMe hydration followed by CPU expert offload/cache",
+        "expert_store": str(expert_store),
+        "triton_compiler_version": admitted["triton_compiler_version"],
     }
     base.atomic_write_json(output / "preflight-result.json", result)
     try:
@@ -110,7 +116,7 @@ def preflight(output: Path, port: int) -> dict[str, Any]:
         prompts = read_json(base.PROMPTS)
         for config in base.FROZEN_CORRECTNESS_ORDER:
             result["results"][config] = run_cell(
-                config, output / config, port, prompts, output / "expert-store", runtime,
+                config, output / config, port, prompts, expert_store, runtime,
             )
             base.atomic_write_json(output / "preflight-result.json", result)
             time.sleep(60)
@@ -148,6 +154,7 @@ def full_schedule(output: Path, preflight_path: Path, port: int,
     session = {"protocol": PROTOCOL, "preflight": str(preflight_path.absolute()),
                "runtime_files": runtime, "target_valid_blocks": 5,
                "source_commit": checked["source_commit"],
+               "expert_store": checked["expert_store"],
                "maximum_attempts": 8, "schedule": read_json(base.SCHEDULE)}
     if session_file.exists() and read_json(session_file) != session:
         raise base.GateError("continuation session does not match the frozen preflight and schedule")
@@ -177,7 +184,7 @@ def full_schedule(output: Path, preflight_path: Path, port: int,
                 for config in scheduled["configuration_order"]:
                     block["results"][config] = run_cell(
                         config, directory / config, port, prompts,
-                        preflight_path / "expert-store", runtime,
+                        Path(checked["expert_store"]), runtime,
                         prompt_order=scheduled["prompt_order"], goldens=goldens[config],
                     )
                     base.atomic_write_json(directory / "progress.json", block)
@@ -225,6 +232,8 @@ def main() -> int:
     parser.add_argument("action", choices=("admit", "preflight", "run"))
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--preflight", type=Path, default=DEFAULT_OUTPUT / "preflight")
+    parser.add_argument("--expert-store", type=Path,
+                        help="reuse generated disk tensor data, never live process cache state")
     parser.add_argument("--port", type=int, default=18080)
     parser.add_argument("--max-blocks", type=int, choices=(1, 2, 3, 4, 5), default=5,
                         help="fixed staged stopping point; fewer than five remains preliminary")
@@ -238,7 +247,7 @@ def main() -> int:
     signal.signal(signal.SIGTERM, interrupted)
     lease = base.LeaseSet.acquire()
     try:
-        result = (preflight(args.output, args.port) if args.action == "preflight" else
+        result = (preflight(args.output, args.port, args.expert_store) if args.action == "preflight" else
                   full_schedule(args.output, args.preflight, args.port, args.max_blocks))
         print(json.dumps(result, indent=2), flush=True)
         return 0

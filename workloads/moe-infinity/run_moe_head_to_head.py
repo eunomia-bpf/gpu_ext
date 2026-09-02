@@ -210,7 +210,7 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False)
     return {"path": str(repo), "commit": actual, "status": status}
 
 
-def controlled_environment(config: str) -> dict[str, str]:
+def controlled_environment(config: str, *, cuda129_triton: bool = False) -> dict[str, str]:
     env = {
         "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
         "HOME": "/home/yunwei37",
@@ -237,6 +237,12 @@ def controlled_environment(config: str) -> dict[str, str]:
             MOE_ENABLE_SM90="0",
             NVTX_DISABLE="1",
         )
+        if cuda129_triton:
+            env.update(
+                TRITON_PTXAS_BLACKWELL_PATH="/usr/local/cuda-12.9/bin/ptxas",
+                TRITON_PTXAS_PATH="/usr/local/cuda-12.9/bin/ptxas",
+                TRITON_CACHE_DIR=str(HERE / "deps/triton-cache-cuda129"),
+            )
     return env
 
 
@@ -1729,12 +1735,13 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
         atomic_write_json(
             run_dir / "launch.json",
             {"argv": argv, "executed_argv": launch_argv, "cwd": str(cwd),
-             "environment": controlled_environment(config),
+             "environment": controlled_environment(config, cuda129_triton=current_deployment),
              "policy_ready": policy_ready},
         )
         server_log = log_path.open("x", buffering=1)
         server = subprocess.Popen(
-            launch_argv, cwd=cwd, env=controlled_environment(config), stdout=server_log,
+            launch_argv, cwd=cwd,
+            env=controlled_environment(config, cuda129_triton=current_deployment), stdout=server_log,
             stderr=subprocess.STDOUT, text=True, start_new_session=True,
         )
         wait_ready(server, port, log_path,
@@ -2379,12 +2386,14 @@ def run_measured_config(config: str, run_dir: Path, port: int,
             policy_ready = None
         argv, cwd = server_command(config, port, run_dir, offload_dir)
         atomic_write_json(run_dir / "launch.json", {
-            "argv": argv, "cwd": str(cwd), "environment": controlled_environment(config),
+            "argv": argv, "cwd": str(cwd),
+            "environment": controlled_environment(config, cuda129_triton=current_deployment),
             "policy_ready": policy_ready,
         })
         server_log = log_path.open("x", buffering=1)
         server = subprocess.Popen(
-            argv, cwd=cwd, env=controlled_environment(config), stdout=server_log,
+            argv, cwd=cwd, env=controlled_environment(config, cuda129_triton=current_deployment),
+            stdout=server_log,
             stderr=subprocess.STDOUT, text=True, start_new_session=True,
         )
         wait_ready(server, port, log_path, 1800 if config == "moe_infinity_075" else 900)

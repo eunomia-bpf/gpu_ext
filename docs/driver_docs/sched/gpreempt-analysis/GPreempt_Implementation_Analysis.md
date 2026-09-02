@@ -1,5 +1,12 @@
 # GPreempt Implementation Analysis
 
+Current feasibility and source corrections are in the
+[2026-09-02 575/Blackwell audit](feasibility-575-20260902.md): an original-policy
+port is pending, not ruled out by the 550.120 version mismatch. Current artifact
+code sets BE timeslices to 1 µs; BLP is a separate comparison client, not a
+required component of the main GPreempt client. The analysis below is retained
+as a historical record; it is not evidence of a completed BPF reproduction.
+
 This document provides a detailed analysis of the GPreempt implementation, comparing it with the claims made in the USENIX ATC'25 paper "GPreempt: GPU Preemptive Scheduling Made General and Efficient."
 
 ## Table of Contents

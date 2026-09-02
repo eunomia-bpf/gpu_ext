@@ -572,13 +572,13 @@
       "venue": "USENIX ATC",
       "category": "gpu_scheduling_qos",
       "primary_url": "https://www.usenix.org/conference/atc25/presentation/fan",
-      "observes": ["task priority, launch progress, and preemption state"],
-      "acts": ["sets scheduling policy and performs yield-assisted pre-preemption"],
+      "observes": ["LC/BE role and CUDA context, input-preprocessing hints and predicted readiness time"],
+      "acts": ["sets asymmetric LC/BE TSG timeslices and launches a GDRCopy-signaled blocking kernel ahead of LC readiness"],
       "classification": "ANALOGUE",
-      "mapping_reason": "In-tree programs implement priority timeslices and supported whole-TSG preemption intent, not GPREEMPT's yield and driver design.",
-      "missing_primitives": ["yield-assisted pre-preemption", "kernel progress state", "GPREEMPT driver protocol"],
+      "mapping_reason": "In-tree programs implement coarse priority/timeslice intent, not GPREEMPT's complete hint-and-blocking-kernel protocol. A 575/Blackwell original-policy port is a concrete pending task, not absolutely infeasible.",
+      "missing_primitives": ["LC/BE role-to-TSG mapping for two contexts in one process", "per-request preprocessing hint/deadline feed", "GDRCopy-signaled blocking-kernel pre-preemption protocol", "validated 575 original query/control transport and effective timeslice behavior"],
       "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c", "extension/gpu_preempt_ctrl.bpf.c"],
-      "evidence": {"level": "source", "paths": [], "note": "This row claims policy-intent analogy, not artifact reproduction or performance parity."}
+      "evidence": {"level": "source", "paths": ["docs/driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md"], "note": "Official 249ee3e source inspected. Driver patch fails read-only application check on 575 in four files; standalone host wrapper and original block.cu compiled for sm_120, but no GPreempt driver or workload ran. The policy classification remains analogy, not reproduction/performance parity. Historical 550.120/sm_80 restrictions are retained; future 575 GSP commit 363416c4 is not loaded or validated here."}
     },
     {
       "id": "gcaps-ecrts24",

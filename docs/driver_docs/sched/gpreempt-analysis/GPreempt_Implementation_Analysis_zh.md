@@ -1,5 +1,10 @@
 # GPreempt 实现分析
 
+当前可行性与源码纠正见 [2026-09-02 的 575/Blackwell 审计](feasibility-575-20260902.md)：
+原策略移植尚未完成，不能仅因 550.120 版本限制而判定永远不可行。
+当前官方代码把 BE 时间片设为 1 µs；BLP 是单独的对比客户端，并非主 GPreempt 客户端必需组件。
+下文保留为历史分析，不能作为已完成 BPF 等价复现的证据。
+
 本文档详细分析 GPreempt 的实现，并与 USENIX ATC'25 论文《GPreempt: GPU Preemptive Scheduling Made General and Efficient》中的声明进行对比。
 
 ## 目录

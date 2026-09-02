@@ -122,7 +122,7 @@ observation/action and missing-primitive text.
 
 | Paper | Year | Result | Closest in-tree policy | Boundary |
 |---|---:|---|---|---|
-| [GPREEMPT](https://www.usenix.org/conference/atc25/presentation/fan) | 2025 | `ANALOGUE` | timeslice + whole-TSG preempt | No yield/pre-preemption protocol or kernel progress state |
+| [GPREEMPT](https://www.usenix.org/conference/atc25/presentation/fan) | 2025 | `ANALOGUE` | timeslice + whole-TSG preempt | [575 port pending](../../../driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md); missing role-to-TSG, hint and blocking-kernel protocol |
 | [GCAPS](https://arxiv.org/abs/2406.05221) | 2024 | `PARTIAL` | timeslice + whole-TSG preempt | No GPU-segment feed or real-time admission guarantee |
 | [XSched](https://www.usenix.org/conference/osdi25/presentation/shen) | 2025 | `PARTIAL` | timeslice + whole-TSG preempt | No XQueue/cross-XPU command suspend-resume runtime |
 | [REEF](https://www.usenix.org/conference/osdi22/presentation/han) | 2022 | `PARTIAL` | whole-TSG preempt | No kernel kill/restore, padding, or request mapping |
@@ -176,6 +176,16 @@ ports:
 Papers classified `NO` are still useful: they identify concrete ABI extensions
 needed for a future experiment.  They are not candidates for relabeling an
 existing program.
+
+**Current GPreempt feasibility:** the
+[2026-09-02 source audit](../../../driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md)
+replaces an absolute “infeasible” interpretation with **575/Blackwell port
+pending, comparison not completed**. The official artifact still targets
+550.120/sm_80, and its patch fails the read-only check on the 575 tree; those
+negative results remain recorded. Basic wrapper and `sm_120` blocking-kernel
+compilation succeeded, but no GPreempt driver or workload was run. Our present
+BPF implementation remains an analogue, not an equivalent full-system port.
+The separate historical paper feasibility table is retained unchanged.
 
 ## bpftime routes and local checks
 

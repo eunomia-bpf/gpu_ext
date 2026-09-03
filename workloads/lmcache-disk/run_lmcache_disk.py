@@ -175,7 +175,7 @@ def run_cell(config: str, output: Path, port: int, trace: bool,
         prompts = {**prompts, "prefixes": prompts["prefixes"][:prefix_limit]}
         result = legacy.run_config(
             config, output, prompts, port, Path(observations["model_path"]),
-            trace=trace, recorded_environment=observations,
+            trace=trace, recorded_environment=observations, expected_driver=expected_driver,
         )
     return result
 
@@ -190,6 +190,15 @@ def _validate_recorded_environment(value: dict[str, Any]) -> None:
         or value.get("telemetry_cpu") != safety.TELEMETRY_CPU
     ):
         raise GateError("575 records require the actual boot and fixed worker/telemetry CPU placement")
+    if gpu.get("driver") == "575.57.08":
+        compiler = value.get("triton_ptxas", {})
+        if (compiler.get("path") != str(legacy.TRITON_PTXAS_575)
+                or not isinstance(compiler.get("bytes"), int) or compiler["bytes"] <= 0
+                or not re.search(r"release 12\.9, V" + re.escape(legacy.TRITON_PTXAS_575_VERSION) + r"\b",
+                                 compiler.get("version_output", ""))
+                or value.get("server_environment", {}).get("TRITON_PTXAS_BLACKWELL_PATH")
+                != str(legacy.TRITON_PTXAS_575)):
+            raise GateError("575 records require the explicit CUDA 12.9.86 Triton compiler pin and inventory")
     runtime = value.get("runtime_imports", {})
     source = value.get("lmcache_source", {})
     if (
@@ -390,8 +399,13 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     if result.get("command") != expected_command:
         raise GateError(f"server command differs from fixed cell configuration: {run_dir}")
     cache_dir = (run_dir / "cache").resolve()
-    if result.get("environment") != server_environment(config, cache_dir):
+    expected_environment = server_environment(
+        config, cache_dir, recorded_environment.get("expected_driver", EXPECTED_DRIVER))
+    if result.get("environment") != expected_environment:
         raise GateError(f"server environment differs from fixed cell configuration: {run_dir}")
+    if ("server_environment" in recorded_environment
+            and recorded_environment["server_environment"] != expected_environment):
+        raise GateError(f"pre-launch server environment differs from the result: {run_dir}")
 
     engagement = validate_log(config, log, observations, cache_dir)
     if result.get("engagement") != engagement:

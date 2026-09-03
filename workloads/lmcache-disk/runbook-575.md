@@ -1,7 +1,9 @@
 # LMCache 575 execution runbook
 
-Read-only preparation, 2026-09-03; **none of these commands ran**. Root remains
-the sole GPU launcher. Follow the current addendum in [plan-v2.md](plan-v2.md),
+Updated 2026-09-03 after the first traced preflight failed before serving and
+the tiny Triton diagnostic supported the explicit 12.9 compiler repair. The
+`preflight-02` has been launched; it and the subsequent commands below are not
+completed results. Root remains the sole GPU launcher. Follow the current addendum in [plan-v2.md](plan-v2.md),
 not the closed 610 command interface: traced disk preflight, then **three
 untraced correctness cells**, then 30 untraced formal cells. No BPF arm.
 
@@ -19,6 +21,7 @@ exact venv in its shebang.
 | vLLM | `vllm-0.27.1+cu129.dist-info/METADATA`; requires torch 2.13.0; the official cu129 wheel/index is recorded in `artifacts-current.json` |
 | LMCache | `lmcache-0.5.4.dist-info/METADATA`; `direct_url.json` names the present local `dist-current-py312/lmcache-0.5.4-cp312-cp312-linux_x86_64.whl` |
 | CUDA packages | Installed metadata: toolkit 12.9.1, runtime 12.9.79, NVRTC/nvJitLink 12.9.86, bindings 12.9.7; torch explicitly requires toolkit 12.9.1 |
+| Triton assembler on 575 | All three arms explicitly use `TRITON_PTXAS_BLACKWELL_PATH=/usr/local/cuda-12.9/bin/ptxas`, version 12.9.86; the default Blackwell assembler is 13.1.80. |
 
 Metadata is under `current-venv/lib/python3.12/site-packages`; versions agree
 with [current-requirements.txt](current-requirements.txt). Both frozen wheel
@@ -26,15 +29,30 @@ files, `strace`, and the fixed `uv` executable exist. LMCache source revision
 `3e11b8ed` is recorded in the manifest, not freshly Git-checked by this audit.
 The loaded module version files both say 575.57.08. Ancillary nvdisasm 13.3.73
 and NVML Python bindings 13.610.43 are not CUDA-runtime/driver requirements by
-themselves. Metadata neither demonstrates a 575 incompatibility nor proves
-live compatibility; the prior single-prefix success was on 610. Keep the
-fixed 0.98 memory budget and `VLLM_USE_DEEP_GEMM=0`; startup margin is untested
-on 575 with this complete workload.
+themselves. The prior single-prefix success was on 610. The actual 575
+diagnostic in `raw/triton-575-diagnostic-01` failed with the default assembler
+and passed 4,096 exact outputs with 12.9; see [compatibility-575.md](compatibility-575.md).
+This is not full-model or storage evidence. Keep the fixed 0.98 memory budget
+and `VLLM_USE_DEEP_GEMM=0`; complete-workload startup with the repair remains
+to be tested.
+
+The pin is inside `server_environment`, including `recompute`, not merely in
+the launcher environment. Admission records the accessible 12.9.86 binary's
+file inventory and version. `environment.json` saves the full server
+environment before startup, and `result.json` repeats it after success;
+revalidation requires consistent values. Older 610 runs retain their original
+unpinned behavior and are never mixed with the 575 comparison.
 
 Wait for the current GPU campaign and let the runner acquire both existing
 leases. Launch with CPUs **8–16 available**: the worker/strace gets 8–15 and
 telemetry/kernel monitoring gets 16. Do not pin the launcher to CPU 17 or
 8–15. No ambient `LD_PRELOAD`, `LD_AUDIT`, or CUDA injection may be present.
+The current shared lock files are root-owned; use `sudo -n` for the actual
+`run-cell` commands below, without changing their permissions. Offline
+validation only needs read access to the saved artifacts.
+Set `HF_HOME` explicitly for that root launcher: the prepared model/tokenizer
+cache is under the user's existing cache, not root's default cache. Worker
+processes already receive this same cache location from the frozen runner.
 The runner checks 400 W, exclusivity, driver, port 18080, the frozen ext4 NVMe
 mount and at least 100 GiB free. This audit did not perform that admission.
 
@@ -45,23 +63,24 @@ this preparation imported no CUDA package and read no model or large corpus.
 
 ## Preflight and correctness: four separate startups
 
-Run separately and stop on any failure. These output directories were absent
-at inspection; never overwrite an existing attempt.
+Run separately and stop on any failure. Preserve the failed
+`raw/storage-575-preflight-01/disk`; use the new `preflight-02` directory below,
+and never overwrite an existing attempt.
 
 ```bash
-taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
+sudo -n env HF_HOME=/home/yunwei37/.cache/huggingface taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
   --expected-driver 575.57.08 --prefix-limit 8 --config lmcache_disk \
-  --output raw/storage-575-preflight-01/disk --trace
+  --output raw/storage-575-preflight-02/disk --trace
 taskset -c 17 ./current-venv/bin/python -B run_lmcache_disk.py validate-cell \
-  raw/storage-575-preflight-01/disk --require-trace
+  raw/storage-575-preflight-02/disk --require-trace
 
-taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
+sudo -n env HF_HOME=/home/yunwei37/.cache/huggingface taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
   --expected-driver 575.57.08 --prefix-limit 8 --config recompute \
   --output raw/storage-575-correctness-01/recompute
-taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
+sudo -n env HF_HOME=/home/yunwei37/.cache/huggingface taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
   --expected-driver 575.57.08 --prefix-limit 8 --config lmcache_cpu \
   --output raw/storage-575-correctness-01/lmcache_cpu
-taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
+sudo -n env HF_HOME=/home/yunwei37/.cache/huggingface taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
   --expected-driver 575.57.08 --prefix-limit 8 --config lmcache_disk \
   --output raw/storage-575-correctness-01/lmcache_disk
 taskset -c 17 ./current-venv/bin/python -B run_lmcache_disk.py compare-outputs \
@@ -90,7 +109,7 @@ For every table entry, use output
 `CONFIG` is the full name in that column. The first exact command is:
 
 ```bash
-taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
+sudo -n env HF_HOME=/home/yunwei37/.cache/huggingface taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
   --expected-driver 575.57.08 --prefix-limit 8 --config lmcache_cpu \
   --output raw/storage-575-full-01/attempt-00/position-0-lmcache_cpu
 ```

@@ -1,0 +1,114 @@
+{
+  "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+  "cleanup_errors": [],
+  "coordinator_cpu_affinity": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "error": "GateError: server exited 1 before ready\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"uvloop/loop.pyx\", line 1518, in uvloop.loop.Loop.run_until_complete\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/uvloop/__init__.py\", line 48, in wrapper\n(APIServer pid=255116)     return await main\n(APIServer pid=255116)            ^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py\", line 764, in run_server\n(APIServer pid=255116)     await run_server_worker(listen_address, sock, args, **uvicorn_kwargs)\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py\", line 778, in run_server_worker\n(APIServer pid=255116)     async with build_async_engine_client(\n(APIServer pid=255116)   File \"/usr/lib/python3.12/contextlib.py\", line 210, in __aenter__\n(APIServer pid=255116)     return await anext(self.gen)\n(APIServer pid=255116)            ^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py\", line 132, in build_async_engine_client\n(APIServer pid=255116)     async with build_async_engine_client_from_engine_args(\n(APIServer pid=255116)   File \"/usr/lib/python3.12/contextlib.py\", line 210, in __aenter__\n(APIServer pid=255116)     return await anext(self.gen)\n(APIServer pid=255116)            ^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/entrypoints/openai/api_server.py\", line 168, in build_async_engine_client_from_engine_args\n(APIServer pid=255116)     async_llm = AsyncLLM.from_vllm_config(\n(APIServer pid=255116)                 ^^^^^^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/v1/engine/async_llm.py\", line 220, in from_vllm_config\n(APIServer pid=255116)     return cls(\n(APIServer pid=255116)            ^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/v1/engine/async_llm.py\", line 149, in __init__\n(APIServer pid=255116)     self.engine_core = EngineCoreClient.make_async_mp_client(\n(APIServer pid=255116)                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/tracing/otel.py\", line 178, in sync_wrapper\n(APIServer pid=255116)     return func(*args, **kwargs)\n(APIServer pid=255116)            ^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py\", line 139, in make_async_mp_client\n(APIServer pid=255116)     return AsyncMPClient(*client_args)\n(APIServer pid=255116)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/tracing/otel.py\", line 178, in sync_wrapper\n(APIServer pid=255116)     return func(*args, **kwargs)\n(APIServer pid=255116)            ^^^^^^^^^^^^^^^^^^^^^\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py\", line 987, in __init__\n(APIServer pid=255116)     super().__init__(\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/v1/engine/core_client.py\", line 609, in __init__\n(APIServer pid=255116)     with launch_core_engines(\n(APIServer pid=255116)   File \"/usr/lib/python3.12/contextlib.py\", line 144, in __exit__\n(APIServer pid=255116)     next(self.gen)\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/v1/engine/utils.py\", line 1194, in launch_core_engines\n(APIServer pid=255116)     wait_for_engine_startup(\n(APIServer pid=255116)   File \"/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/v1/engine/utils.py\", line 1253, in wait_for_engine_startup\n(APIServer pid=255116)     raise RuntimeError(\n(APIServer pid=255116) RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}\n/usr/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown\n  warnings.warn('resource_tracker: There appear to be %d '\n",
+  "expected_driver": "575.57.08",
+  "final_boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+  "finished_ns": 1788435502303460596,
+  "kernel_abnormal": [],
+  "kernel_command": [
+    "/usr/bin/taskset",
+    "-c",
+    "16",
+    "/usr/bin/journalctl",
+    "-k",
+    "-b",
+    "--follow",
+    "--no-pager",
+    "-n",
+    "0",
+    "-o",
+    "short-monotonic"
+  ],
+  "monitors_alive_before_stop": [
+    true,
+    true
+  ],
+  "monitors_started_ns": 1788435386131513578,
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 7001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 37.72,
+      "sm_clock_mhz": 997,
+      "temperature_c": 46,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788435501685519448,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 10.44,
+      "sm_clock_mhz": 22,
+      "temperature_c": 40,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788435385214000166,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "started_ns": 1788435384681527322,
+  "status": "failed",
+  "telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2677.0,
+    "mean_power_w": 42.66977391304348,
+    "min_sm_clock_mhz": 22.0,
+    "peak_memory_mib": 30724.0,
+    "peak_temperature_c": 46.0,
+    "samples": 575,
+    "throttled": false
+  },
+  "telemetry_cpu": 16,
+  "worker_cpu_affinity": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ]
+}

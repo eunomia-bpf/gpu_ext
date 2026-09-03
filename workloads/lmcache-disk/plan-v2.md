@@ -4,9 +4,29 @@
 
 The user's subsequent execution request resumes the work on the prepared
 575.57.08 host; the earlier 610 attempt history below is not rewritten or counted
-as a successful 575 run. **No new 575 model load, disk preflight or performance
-cell has run yet.** The model, eight prefixes, three native configurations and
-ten complete paired blocks remain unchanged; there is no BPF arm.
+as a successful 575 run. The traced `raw/storage-575-preflight-01/disk` failed
+before readiness after loading 29.04 GiB of weights, with a native stack at
+`cuModuleLoadData`/`loadBinary`; it served no requests. The model, eight prefixes,
+three native configurations and ten complete paired blocks remain unchanged;
+there is no BPF arm and no completed 575 storage/performance result yet.
+
+The same-environment, no-model/no-strace diagnostic in
+`raw/triton-575-diagnostic-01` then failed with exit -11 using Triton 3.7.1's
+default Blackwell assembler (CUDA 13.1), but passed all 4,096 exact outputs with
+`/usr/local/cuda-12.9/bin/ptxas` (12.9.86). Both had 33,137,426,432 device bytes
+free before the tiny kernel and clean safety/cleanup records. This supports a
+compiler-pipeline repair, not a general driver incompatibility claim or full
+model compatibility. Details are in [compatibility-575.md](compatibility-575.md).
+
+For **all three 575 arms**, the server environment now explicitly sets
+`TRITON_PTXAS_BLACKWELL_PATH=/usr/local/cuda-12.9/bin/ptxas`. Admission checks
+the accessible binary and version and records its ordinary file inventory and
+version output. The complete server environment is saved before launch in
+`environment.json` and again in a successful `result.json`; 575 revalidation
+requires this pin and consistent records. An outer environment variable alone
+is insufficient because the runner constructs its own fixed environment.
+The default 610 path remains unchanged. No package, model, workload, memory
+budget, correctness threshold, storage configuration, or schedule is changed.
 
 The runner now holds the existing GPU/struct-ops leases, pins only the worker
 (and optional strace wrapper) to CPU 8–15, and collects GPU telemetry every
@@ -19,17 +39,20 @@ kernel errors or thermal/hardware throttling; normal fixed-power-cap activity
 is reported. All cleanup targets owned process groups, never global processes
 or shared-memory files.
 
-Next, under the main thread's GPU schedule (the runner takes its own leases):
+The main thread has launched the repaired traced preflight below (the runner
+takes its own leases); no outcome is claimed yet:
 
 ```sh
-./current-venv/bin/python -B run_lmcache_disk.py run-cell \
-  --expected-driver 575.57.08 --config lmcache_disk \
-  --output raw/storage-575-preflight-01/disk --trace
+sudo -n env HF_HOME=/home/yunwei37/.cache/huggingface taskset -c 8-16 ./current-venv/bin/python -B run_lmcache_disk.py run-cell \
+  --expected-driver 575.57.08 --prefix-limit 8 --config lmcache_disk \
+  --output raw/storage-575-preflight-02/disk --trace
 ```
 
 Validate the full eight-prefix trace before the three correctness cells and
-30 untraced formal cells. The safety changes have only CPU unit-test evidence;
-they do not establish runtime compatibility or storage performance on 575.
+30 untraced formal cells, all with the same explicit 12.9 compiler pin. Keep
+the failed `preflight-01` intact and do not reuse its directory. The successful
+tiny diagnostic is not the disk preflight, full-model correctness check, or
+storage performance measurement.
 
 ## Historical revision-2 protocol
 

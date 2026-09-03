@@ -44,6 +44,8 @@ RUNNER = Path(__file__).resolve()
 
 EXPECTED_DRIVER = "610.43.02"
 EXPERIMENT_DRIVERS = (EXPECTED_DRIVER, "575.57.08")
+TRITON_PTXAS_575 = Path("/usr/local/cuda-12.9/bin/ptxas")
+TRITON_PTXAS_575_VERSION = "12.9.86"
 EXPECTED_MOUNT_SOURCE = "/dev/disk/by-uuid/864c5664-999e-43c2-9967-4edaeee79d57"
 EXPECTED_VLLM_VERSION = "0.27.1+cu129"
 EXPECTED_LMCACHE_VERSION = "0.5.4"
@@ -339,6 +341,14 @@ def admission(port: int, require_model: bool = True, storage_path: Path = HERE /
     try:
         manifest["lmcache_source"] = git_clean_at(LMCACHE_REPO, LMCACHE_COMMIT)
         manifest["runtime_imports"] = verify_python_artifacts()
+        if expected_driver == "575.57.08":
+            compiler = file_identity(TRITON_PTXAS_575)
+            compiler["version_output"] = run_checked(
+                [str(TRITON_PTXAS_575), "--version"], env=controlled_environment(""))
+            if not re.search(r"release 12\.9, V" + re.escape(TRITON_PTXAS_575_VERSION) + r"\b",
+                             compiler["version_output"]):
+                raise GateError("575 requires the recorded CUDA 12.9.86 Triton assembler")
+            manifest["triton_ptxas"] = compiler
     except Exception as exc:
         errors.append(f"software artifacts: {exc}")
     try:
@@ -506,8 +516,12 @@ def load_prompts(path: Path) -> dict[str, Any]:
     return prompts
 
 
-def server_environment(config: str, cache_dir: Path) -> dict[str, str]:
+def server_environment(config: str, cache_dir: Path,
+                       expected_driver: str = EXPECTED_DRIVER) -> dict[str, str]:
+    validate_driver(expected_driver, expected_driver)
     env = controlled_environment()
+    if expected_driver == "575.57.08":
+        env["TRITON_PTXAS_BLACKWELL_PATH"] = str(TRITON_PTXAS_575)
     env.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", VLLM_WORKER_MULTIPROC_METHOD="spawn",
                VLLM_USE_DEEP_GEMM="0")
     if config == "lmcache_cpu":
@@ -533,7 +547,8 @@ def server_argv(config: str, model_path: Path, port: int | str) -> list[str]:
     return argv
 
 
-def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_path: Path, trace_dir: Path | None = None):
+def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_path: Path,
+                 trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER):
     argv = server_argv(config, model_path, port)
     launch = list(argv)
     if trace_dir is not None:
@@ -544,7 +559,8 @@ def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_
     launch = ["/usr/bin/taskset", "-c", "8-15", *launch]
     log_file = log_path.open("x")
     try:
-        proc = subprocess.Popen(launch, cwd=VLLM_WORKLOAD, env=server_environment(config, cache_dir),
+        proc = subprocess.Popen(launch, cwd=VLLM_WORKLOAD,
+                                env=server_environment(config, cache_dir, expected_driver),
                                 stdout=log_file, stderr=subprocess.STDOUT, text=True, start_new_session=True)
     except BaseException:
         log_file.close()
@@ -842,20 +858,25 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
 
 def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
                model_path: Path, trace: bool = False,
-               recorded_environment: dict[str, Any] | None = None) -> dict[str, Any]:
+               recorded_environment: dict[str, Any] | None = None,
+               expected_driver: str = EXPECTED_DRIVER) -> dict[str, Any]:
     prefix_count = len(prompts.get("prefixes", []))
     if not 1 <= prefix_count <= PREFIXES:
         raise GateError(f"run requires between 1 and {PREFIXES} prefixes")
     # The thin runner creates this unique directory while holding the leases.
     if not run_dir.is_dir():
         raise GateError("run directory must be prepared by the lease-owning runner")
-    if recorded_environment is not None:
-        atomic_write_json(run_dir / "environment.json", recorded_environment)
     cache_dir = (run_dir / "cache").resolve()
+    environment = server_environment(config, cache_dir, expected_driver)
+    if recorded_environment is not None:
+        validate_driver(recorded_environment["gpu"]["driver"], expected_driver)
+        atomic_write_json(run_dir / "environment.json",
+                          {**recorded_environment, "server_environment": environment})
     cache_dir.mkdir()
     log_path = run_dir / "server.log"
     trace_dir = run_dir / "strace" if trace else None
-    proc, log_file, argv, launch = start_server(config, model_path, cache_dir, port, log_path, trace_dir)
+    proc, log_file, argv, launch = start_server(
+        config, model_path, cache_dir, port, log_path, trace_dir, expected_driver=expected_driver)
     observations: list[dict[str, Any]] = []
     try:
         wait_ready(proc, port, log_path)
@@ -889,7 +910,7 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
         "schema": 2, "config": config, "prefix_count": prefix_count,
         "worker_cpu_affinity": worker_affinity,
         "command": argv, "launch_command": launch,
-        "environment": server_environment(config, cache_dir),
+        "environment": environment,
         "warm_phase": {"sequential": True, "requests": prefix_count, "output_tokens": warm_tokens,
                        "elapsed_s": warm_elapsed_s, "requests_per_s": prefix_count / warm_elapsed_s,
                        "output_tokens_per_s": warm_tokens / warm_elapsed_s,

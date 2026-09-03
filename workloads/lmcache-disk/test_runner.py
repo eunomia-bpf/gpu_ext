@@ -45,6 +45,7 @@ class HarnessTests(unittest.TestCase):
         admit.assert_called_once_with(18080, require_model=True, storage_path=Path("/output"),
                                       expected_driver="575.57.08")
         self.assertEqual(run.call_args.kwargs["recorded_environment"], observations)
+        self.assertEqual(run.call_args.kwargs["expected_driver"], "575.57.08")
 
     def test_formal_rejects_smoke_and_mixed_driver_cells(self):
         schedule = json.loads(runner.SCHEDULE.read_text())["attempts"]
@@ -105,11 +106,97 @@ class HarnessTests(unittest.TestCase):
             runner.run_cell("lmcache_disk", Path("/output"), 18080, False, 0)
 
     def test_all_cells_share_runtime_repair(self):
-        for config in runner.CONFIGS:
-            env = runner.server_environment(config, Path("/cache"))
-            self.assertEqual(env["VLLM_USE_DEEP_GEMM"], "0")
-            argv = runner.server_argv(config, Path("/model"), 18080)
-            self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.98")
+        with patch.dict(os.environ, {"TRITON_PTXAS_BLACKWELL_PATH": "/wrong/compiler",
+                                     "TRITON_PTXAS_PATH": "/also/wrong"}):
+            for config in runner.CONFIGS:
+                old_env = runner.server_environment(config, Path("/cache"))
+                self.assertEqual(old_env, runner.server_environment(config, Path("/cache"), "610.43.02"))
+                self.assertNotIn("TRITON_PTXAS_BLACKWELL_PATH", old_env)
+                self.assertNotIn("TRITON_PTXAS_PATH", old_env)
+                new_env = runner.server_environment(config, Path("/cache"), "575.57.08")
+                self.assertEqual(new_env, {**old_env, "TRITON_PTXAS_BLACKWELL_PATH":
+                                          str(runner.legacy.TRITON_PTXAS_575)})
+                self.assertEqual(new_env["VLLM_USE_DEEP_GEMM"], "0")
+                argv = runner.server_argv(config, Path("/model"), 18080)
+                self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.98")
+
+    def test_compiler_pin_reaches_actual_server_launch_for_all_arms(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for driver in runner.legacy.EXPERIMENT_DRIVERS:
+                for config in runner.CONFIGS:
+                    with (self.subTest(driver=driver, config=config),
+                          patch.object(runner.legacy.subprocess, "Popen") as start):
+                        _, log, _, _ = runner.start_server(
+                            config, Path("/model"), root / "cache", 18080,
+                            root / f"{driver}-{config}.log", expected_driver=driver)
+                    log.close()
+                    self.assertEqual(start.call_args.kwargs["env"],
+                                     runner.server_environment(config, root / "cache", driver))
+
+    def test_failed_start_preserves_explicit_compiler_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            observations = {"gpu": {"driver": "575.57.08"}, "expected_driver": "575.57.08"}
+            def failed_start(*args, **kwargs):
+                saved = json.loads((output / "environment.json").read_text())
+                self.assertEqual(saved["server_environment"], runner.server_environment(
+                    "recompute", output / "cache", "575.57.08"))
+                self.assertEqual(kwargs["expected_driver"], "575.57.08")
+                raise RuntimeError("simulated server startup failure")
+            with patch.object(runner.legacy, "start_server", side_effect=failed_start):
+                with self.assertRaisesRegex(RuntimeError, "simulated server startup failure"):
+                    runner.legacy.run_config(
+                        "recompute", output, {"prefixes": [{}]}, 18080, Path("/model"),
+                        recorded_environment=observations, expected_driver="575.57.08")
+            self.assertNotIn("server_environment", observations)
+
+    def test_575_recorded_compiler_pin_and_inventory_are_required(self):
+        frozen = runner.legacy.load_artifacts()
+        model = Path("/model") / runner.MODEL_REVISION
+        model_names = ["config.json", "model.safetensors.index.json"] + [
+            f"model-{index:05d}-of-00007.safetensors" for index in range(1, 8)]
+        record = {
+            **PLACEMENT, "expected_driver": "575.57.08",
+            "gpu": {"driver": "575.57.08", "compute_apps": [], "memory_used_mib": 0},
+            "lmcache_source": {"commit": runner.legacy.LMCACHE_COMMIT, "path": str(runner.legacy.LMCACHE_REPO)},
+            "runtime_imports": {
+                "lmcache_version": runner.EXPECTED_LMCACHE_VERSION,
+                "vllm_version": runner.EXPECTED_VLLM_VERSION,
+                "modules": {name: {"path": path, "bytes": 1} for name, path in frozen["runtime_import_paths"].items()},
+                "dependency_lines": (runner.HERE / frozen["environment_freeze"]["relative_path"]).read_text().splitlines(),
+            },
+            "storage": {"mount": {"filesystems": [{"source": runner.legacy.EXPECTED_MOUNT_SOURCE, "fstype": "ext4"}]},
+                        "free_bytes": 100 * 1024**3},
+            "model_path": str(model), "model_revision": runner.MODEL_REVISION,
+            "model_artifacts": [{"name": name, "path": str(model / name), "bytes": 1} for name in model_names],
+            "workload_artifacts": {name: {"path": str(path.absolute())} for name, path in (
+                ("dataset", runner.legacy.DATASET), ("prompts", runner.PROMPTS), ("schedule", runner.SCHEDULE))},
+            "triton_ptxas": {"path": str(runner.legacy.TRITON_PTXAS_575), "bytes": 1,
+                             "version_output": "Cuda compilation tools, release 12.9, V12.9.86\n"},
+            "server_environment": runner.server_environment("recompute", Path("/cache"), "575.57.08"),
+        }
+        runner._validate_recorded_environment(record)
+        for defect in ("missing inventory", "wrong path", "wrong version", "empty binary", "missing pin", "wrong pin"):
+            bad = json.loads(json.dumps(record))
+            if defect == "missing inventory":
+                del bad["triton_ptxas"]
+            elif defect == "wrong path":
+                bad["triton_ptxas"]["path"] = "/wrong/ptxas"
+            elif defect == "wrong version":
+                bad["triton_ptxas"]["version_output"] = "release 13.1, V13.1.80"
+            elif defect == "empty binary":
+                bad["triton_ptxas"]["bytes"] = 0
+            elif defect == "missing pin":
+                del bad["server_environment"]
+            else:
+                bad["server_environment"]["TRITON_PTXAS_BLACKWELL_PATH"] = "/wrong/ptxas"
+            with self.subTest(defect=defect), self.assertRaisesRegex(runner.GateError, "compiler pin and inventory"):
+                runner._validate_recorded_environment(bad)
+        # Older 610 evidence need not retroactively acquire 575-only fields.
+        record["gpu"]["driver"] = record["expected_driver"] = "610.43.02"
+        del record["triton_ptxas"], record["server_environment"]
+        runner._validate_recorded_environment(record)
 
     def test_strace_output_is_absolute_across_server_cwd(self):
         with tempfile.TemporaryDirectory(dir=".") as tmp:

@@ -1,0 +1,10 @@
+python=/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python
+engine=torch 2.13.0+cu129; triton 3.7.1
+requested_TRITON_PTXAS_PATH=<unset>
+requested_TRITON_PTXAS_BLACKWELL_PATH=/usr/local/cuda-12.9/bin/ptxas
+imports_complete; torch_cuda_build=12.9
+device=NVIDIA GeForce RTX 5090; arch=sm_120
+selected_compiler=/usr/local/cuda-12.9/bin/ptxas; compiler_release=12.9
+inputs_ready; elements=4096; tensor_bytes=49152; device_free_bytes=33137426432; device_total_bytes=33669316608
+begin_one_triton_compile_load_launch
+PASS: one Triton launch; all 4096 FP32 outputs exactly match CPU

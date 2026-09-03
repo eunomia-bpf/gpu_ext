@@ -31,7 +31,7 @@ def admit(port, driver_stage=None):
         raise base.GateError("server port is already in use")
     source = base.git_revision(base.MOE_SOURCE, base.EXPECTED_MOE_COMMIT,
                                allow_instrumentation=True, paper_activation=True)
-    files = [HERE / name for name in ("paper_policy.py", "paper_server.py",
+    files = [HERE / name for name in ("paper_policy.py", "paper_policy_buffers.py", "paper_server.py",
              "paper-activation.patch", "run_paper_policy.py", "prompts.json")]
     files += sorted(base.MOE_SOURCE.glob("moe_infinity/_*.so"))
     files += [base.EXTENSION / ".output" / name for name in (
@@ -110,7 +110,8 @@ def canary(mode, output, port, driver_stage=None):
     before = None
     process = log = telemetry = telemetry_log = None
     result = {"protocol": "paper-v3-same-frontend-canary-2-stream", "mode": mode,
-              "execution_domain": "host-ubpf-jit", "performance_result": False}
+              "execution_domain": "host-ubpf-jit" if mode == "paper-bpf" else "native",
+              "performance_result": False}
     try:
         admission = admit(port, driver_stage)
         before = admission["safety"]

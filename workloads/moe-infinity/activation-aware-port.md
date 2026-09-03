@@ -1,9 +1,11 @@
 # MoE-Infinity activation-aware policy: explicit paper-v3 port
 
-Status: **the first real paper-BPF canary passed**, including two full requests,
-exact same-frontend outputs, and all three BPF selectors. Native-off/native-paper
-canaries and the repeated three-arm comparison remain unfinished; **no paired
-performance or completed-reproduction claim yet**. This replaces the stopped generic-policy
+Status: **all three enhanced real canaries passed** on driver stage `849ea75d`,
+including finite numerics, two full nonstream requests and one full SSE request
+per mode, exact same-frontend outputs, and actual policy engagement. See the
+[three-mode preflight record](raw/paper-v3-575/preflight-849ea75d/README.md).
+The repeated three-arm comparison remains unfinished; **no paired performance
+or completed-reproduction claim yet**. This replaces the stopped generic-policy
 campaign, whose diagnostic data remain in [results-575.md](results-575.md).
 
 The target is [arXiv:2401.14361v3](https://arxiv.org/abs/2401.14361), dated
@@ -163,5 +165,5 @@ same-snapshot native/BPF verification enabled. All outputs must match the
 retained same-frontend MoE goldens; the stream must contain 65 frames and both
 engine and metrics counters must increase by exactly 64 tokens. The retained
 first canary above predates this extra SSE request and is not relabelled as
-having run it. This diagnostic is explicitly not a paired
-performance result. Native-off and paper-native require their own canaries too.
+having run it. All three modes subsequently passed the enhanced canary on
+`849ea75d`; that diagnostic is still explicitly not a paired performance result.

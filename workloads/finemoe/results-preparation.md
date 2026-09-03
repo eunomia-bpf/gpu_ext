@@ -55,3 +55,31 @@ active. Only this diagnostic enables Python faulthandler. Its campaign is marked
 if execution unexpectedly succeeds. A normal no-debugger golden must succeed
 before later stages; no model, precision, cohort, budget or tolerance changes
 are part of this diagnostic.
+
+## Native-stack observation and scoped compatibility retry
+
+The diagnostic stopped at its first SIGSEGV inside `libcuda.so.575.57.08`, through
+`cuModuleLoadData` and Triton's `cuda_utils` binary loader. GDB then explicitly
+killed its inferior; cleanup passed. Because a debugger can stop before a
+driver's signal handler runs, this observation does **not** establish the cause
+of v2's un-debugged fatal SIGILL.
+
+The recently generated kernel name was `_bmm_outer_product_kernel`, targeting
+CUDA SM120. Installed Torch source registers this as an `aten::bmm` override for
+outer-product shapes; Qwen's RoPE implementation uses precisely that matrix
+shape. RoPE bmm is therefore a candidate, not a confirmed faulting operator.
+The observed toolchain is Torch 2.13.0+cu129, Triton 3.7.1 and its bundled ptxas
+12.8.93, with userspace libcuda 575.57.08. Cache directory identifiers are not
+used as evidence or provenance.
+
+The approved normal `raw/golden-v3` retry uniformly sets
+`TORCH_DISABLE_NATIVE_JIT=1` for every stage and arm. This uses PyTorch's existing
+compatibility switch to disable automatic Triton/DSL operator overrides without
+editing Torch, Qwen's mathematics, checkpoint, precision, cohort, cache budget
+or numerical-tolerance rule. Worker startup verifies the official
+`torch._native.common_utils.check_native_jit_disabled()` predicate and records
+`runtime_versions.torch_native_dsl_jit_disabled=true` in golden/history/cell raw
+results. The separate actual uBPF selector JIT is unaffected and retains its
+exact oracle and JIT-call engagement gates. This is a proposed compatibility
+remedy, not a verified root-cause claim; full normal 73+9 validation is still
+required. No GPU run or extension rebuild was performed during this change.

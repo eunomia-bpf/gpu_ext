@@ -127,8 +127,13 @@ def worker(args):
         raise RuntimeError("launch through compare.py, which holds the project GPU leases")
     data = json.loads(args.data.read_text())
     validate_data(data)
+    from torch._native.common_utils import check_native_jit_disabled
+    native_dsl_disabled = check_native_jit_disabled()
+    if not native_dsl_disabled:
+        raise RuntimeError("common PyTorch native DSL overrides must be disabled before worker startup")
     versions = {"python": sys.version.split()[0], "torch": str(torch.__version__),
-                "torch_cuda": torch.version.cuda, "transformers": transformers.__version__, "numpy": np.__version__}
+                "torch_cuda": torch.version.cuda, "transformers": transformers.__version__, "numpy": np.__version__,
+                "torch_native_dsl_jit_disabled": native_dsl_disabled}
     torch.set_num_threads(4)
     torch.manual_seed(data["seed"])
     torch.backends.cuda.matmul.allow_tf32 = False

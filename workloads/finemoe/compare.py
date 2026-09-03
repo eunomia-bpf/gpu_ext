@@ -295,7 +295,8 @@ def child_environment(inherited=None, *, native_backtrace=False):
                "CUBLAS_WORKSPACE_CONFIG": ":4096:8", "OMP_NUM_THREADS": "4",
                "MKL_NUM_THREADS": "4", "TOKENIZERS_PARALLELISM": "false",
                "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
-               "PYTORCH_ALLOC_CONF": "expandable_segments:True"}
+               "PYTORCH_ALLOC_CONF": "expandable_segments:True",
+               "TORCH_DISABLE_NATIVE_JIT": "1"}
     if native_backtrace:
         changes["PYTHONFAULTHANDLER"] = "1"
     env.update(changes)

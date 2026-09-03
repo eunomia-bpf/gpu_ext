@@ -1,0 +1,57 @@
+[Publication note: vendor-internal Triton cache directory identifiers are omitted; debugger frames, library basenames, signals and instructions are otherwise unchanged.]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 466289]
+Loading checkpoint shards:   0%|          | 0/8 [00:00<?, ?it/s]Loading checkpoint shards:  12%|█▎        | 1/8 [00:00<00:06,  1.13it/s]Loading checkpoint shards:  25%|██▌       | 2/8 [00:01<00:04,  1.37it/s]Loading checkpoint shards:  38%|███▊      | 3/8 [00:02<00:03,  1.47it/s]Loading checkpoint shards:  50%|█████     | 4/8 [00:02<00:02,  1.52it/s]Loading checkpoint shards:  62%|██████▎   | 5/8 [00:03<00:01,  1.55it/s]Loading checkpoint shards:  75%|███████▌  | 6/8 [00:04<00:01,  1.56it/s]Loading checkpoint shards:  88%|████████▊ | 7/8 [00:04<00:00,  1.57it/s]Loading checkpoint shards: 100%|██████████| 8/8 [00:04<00:00,  1.97it/s]Loading checkpoint shards: 100%|██████████| 8/8 [00:04<00:00,  1.65it/s]
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:629: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.7` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
+  warnings.warn(
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:634: UserWarning: `do_sample` is set to `False`. However, `top_p` is set to `0.8` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_p`.
+  warnings.warn(
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:651: UserWarning: `do_sample` is set to `False`. However, `top_k` is set to `20` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_k`.
+  warnings.warn(
+[Detaching after vfork from child process 466528]
+[Detaching after vfork from child process 466529]
+[Detaching after vfork from child process 466530]
+[Detaching after vfork from child process 466531]
+
+Thread 1 "python" received signal SIGSEGV, Segmentation fault.
+0x00007fffb1b4784e in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#0  0x00007fffb1b4784e in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#1  0x00007fffb1a3d6d2 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#2  0x00007fffb1b857fa in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#3  0x00007fffb1b76da0 in cuModuleLoadData () from /lib/x86_64-linux-gnu/libcuda.so.1
+#4  0x00007ffec4acb3dc in loadBinary () from /home/yunwei37/.triton/cache/<omitted-vendor-cache-id>/cuda_utils.cpython-312-x86_64-linux-gnu.so
+#5  0x0000000000581c80 in ?? ()
+#6  0x0000000000548f35 in _PyObject_MakeTpCall ()
+#7  0x00000000005d6f09 in _PyEval_EvalFrameDefault ()
+#8  0x000000000054ca6d in ?? ()
+#9  0x00000000005db13e in _PyEval_EvalFrameDefault ()
+#10 0x000000000054cb34 in ?? ()
+#11 0x000000000054b155 in PyObject_Call ()
+#12 0x00000000005db13e in _PyEval_EvalFrameDefault ()
+#13 0x0000000000549935 in PyObject_Vectorcall ()
+#14 0x00007fff1b669805 in pybind11::detail::unpacking_collector<(pybind11::return_value_policy)1>::call(_object*) const () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#15 0x00007fff1ba862f5 in pybind11::object pybind11::detail::object_api<pybind11::handle>::operator()<(pybind11::return_value_policy)1, pybind11::detail::args_proxy, pybind11::detail::kwargs_proxy>(pybind11::detail::args_proxy&&, pybind11::detail::kwargs_proxy&&) const () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#16 0x00007fff1be11061 in torch::impl::dispatch::PythonKernelHolder::operator()(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#17 0x00007fff0c48c5ef in c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#18 0x00007fff1bb49da4 in torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#19 0x00007fff1bb4a3a0 in torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#20 0x00007fff1bb4a598 in torch::jit::_get_operation_for_overload_or_packet(std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > const&, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#21 0x00007fff1ba2295d in pybind11::cpp_function::initialize<torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}, pybind11::object, pybind11::args const&, pybind11::kwargs const&, pybind11::name, pybind11::doc>(torch::jit::initJITBindings(_object*)::{lambda(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)#2}::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) const::{lambda(pybind11::args const&, pybind11::kwargs const&)#1}&&, pybind11::object (*)(pybind11::args const&, pybind11::kwargs const&), pybind11::name const&, pybind11::doc const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail::function_call&) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#22 0x00007fff1b3f2ba2 in pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#23 0x0000000000581add in ?? ()
+#24 0x00000000005db13e in _PyEval_EvalFrameDefault ()
+#25 0x000000000054a782 in _PyObject_Call_Prepend ()
+#26 0x00000000005a31b8 in ?? ()
+#27 0x000000000054b0ac in PyObject_Call ()
+#28 0x00000000005db13e in _PyEval_EvalFrameDefault ()
+#29 0x0000000000549935 in PyObject_Vectorcall ()
+=> 0x7fffb1b4784e:	incl   -0x77(%rcx)
+   0x7fffb1b47851:	(bad)
+   0x7fffb1b47854:	cmp    $0x54c5677,%eax
+   0x7fffb1b47859:	call   0x7fffb19c5350 <pthread_mutex_lock@plt>
+   0x7fffb1b4785e:	mov    -0x98(%rbp),%rdi
+   0x7fffb1b47865:	call   0x7fffb19c5200 <free@plt>
+   0x7fffb1b4786a:	mov    -0x90(%rbp),%rdi
+   0x7fffb1b47871:	test   %rdi,%rdi
+[Inferior 1 (process 466232) killed]

@@ -22,8 +22,15 @@ loading with CUDA OOM before any request; cleanup passed. See
 legacy `PYTORCH_CUDA_ALLOC_CONF` without logging its value. The experimental
 allocator option is a proposed fragmentation remedy, not a demonstrated fix.
 The v2 retry loaded all eight shards (27,925 MiB sampled peak) but ended with
-SIGILL before any completed request. A golden-only native-stack diagnostic is
-next; its output cannot serve as an experiment reference.
+SIGILL before any completed request. A golden-only native-stack diagnostic then
+stopped at a SIGSEGV in libcuda's Triton module-load path; this is an observation,
+not proof of the un-debugged SIGILL's root cause. RoPE's bmm is a source-backed
+candidate, not a confirmed faulting operator. Before fresh normal golden-v3,
+all stages/arms now set `TORCH_DISABLE_NATIVE_JIT=1` and the worker checks the
+official `check_native_jit_disabled()` predicate, recording it in every raw
+result's runtime state. This only disables PyTorch's automatic Triton/DSL operator
+overrides, not the independently linked uBPF selector JIT or its engagement gate.
+No Torch source, model mathematics, precision, cohort, budget or tolerance changed.
 **No numerical GPU canary, history store, or performance cell has passed.**
 
 ## Research Question
@@ -239,14 +246,15 @@ model golden and same-arm repeat tolerance, then the full 64-request history,
 then all four numerical/oracle/copy-accounting canaries. Formal runs disable
 full-logit transfer and shadow comparisons, retain exact golden token checks,
 and use fresh processes with the same store/warmup. The failed v1 and v2 GPU
-attempts are retained; the next run is a diagnostic, not an experiment reference.
+attempts and diagnostic are retained; the next run is normal golden-v3 with the
+same full 73-request / 9-repeat protocol, not a reduced model or cohort.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
 
-The immediate diagnostic is `.venv/bin/python -B compare.py --mode golden
+The completed diagnostic used `.venv/bin/python -B compare.py --mode golden
 --native-backtrace --output raw/golden-sigill-gdb-01 --timeout 1200`. It cannot be
-reused as a reference. After diagnosis, a normal no-debugger attempt needs a new
-directory; the following staged commands are not claims that those stages passed.
+reused as a reference. The next normal no-debugger attempt uses a new directory;
+the following staged commands are not claims that those stages passed.
 
 ```sh
 .venv/bin/python -B compare.py --mode golden --output raw/golden-v3

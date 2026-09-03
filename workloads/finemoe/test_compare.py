@@ -149,10 +149,12 @@ class CompareTests(unittest.TestCase):
 
     def test_common_allocator_environment_suppresses_legacy_alias(self):
         inherited = {"PYTORCH_CUDA_ALLOC_CONF": "legacy-fixture-do-not-record",
-                     "PYTORCH_ALLOC_CONF": "old-fixture", "PATH": "/fixture/bin"}
+                     "PYTORCH_ALLOC_CONF": "old-fixture", "PATH": "/fixture/bin", "TORCH_DISABLE_NATIVE_JIT": "0"}
         child, recorded, removed = compare.child_environment(inherited)
         self.assertEqual(child["PYTORCH_ALLOC_CONF"], "expandable_segments:True")
         self.assertEqual(recorded["PYTORCH_ALLOC_CONF"], "expandable_segments:True")
+        self.assertEqual(child["TORCH_DISABLE_NATIVE_JIT"], "1")
+        self.assertEqual(recorded["TORCH_DISABLE_NATIVE_JIT"], "1")
         self.assertNotIn("PYTORCH_CUDA_ALLOC_CONF", child)
         self.assertEqual(removed, ["PYTORCH_CUDA_ALLOC_CONF"])
         self.assertEqual(child["PATH"], inherited["PATH"])

@@ -22,7 +22,7 @@ prepare:
 build: cpu prepare
 	cd deps/vattention/pod_attn && env CUDA_VISIBLE_DEVICES= CCACHE_DISABLE=1 CUDA_HOME=$(CUDA_HOME) \
 	  TORCH_CUDA_ARCH_LIST='12.0+PTX' MAX_JOBS=2 NVCC_THREADS=1 \
-	  POD_EXPERIMENT_DIR=$(POD_ROOT) $(TORCH_PYTHON) setup.py build_ext \
+	  POD_EXPERIMENT_DIR=$(POD_ROOT) $(TORCH_PYTHON) $(POD_ROOT)/host_link.py build_ext \
 	  --build-lib $(POD_ROOT)/build/python --build-temp $(POD_ROOT)/build/torch
 
 build/.dir:
@@ -66,4 +66,4 @@ test: cpu
 	taskset -c $(CPUSET) build/test-launch-bridge
 	taskset -c $(CPUSET) $(PYTHON) test_ptx_adapter.py
 	taskset -c $(CPUSET) $(PYTHON) test_bench.py
-	taskset -c $(CPUSET) $(PYTHON) -m unittest test_ptx_prune test_ptx_partition test_prepare_ptx
+	taskset -c $(CPUSET) $(PYTHON) -m unittest test_ptx_prune test_ptx_partition test_prepare_ptx test_host_link test_run_study

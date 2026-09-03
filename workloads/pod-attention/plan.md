@@ -1,10 +1,12 @@
 # POD-Attention: real device-BPF task selection
 
-Status: CPU implementation/build in progress; compilation resumed after the
-coordinator's Hummingbird GPU calibration. Selector/ABI and launch-bridge CPU
+Status: CPU implementation/build in progress; all 21 fused CUDA compilation
+units finished, and the fused extension now links after the scoped host-stub
+repair below. The original FlashAttention extension is still building.
+Selector/ABI and launch-bridge CPU
 checks, ten PTX-adapter tests, seven benchmark-audit tests and eighteen
-preparation/pruning/partition tests pass. The complete extension is not yet
-linked; no GPU correctness, engagement or performance test has run. This is an operator port,
+preparation/pruning/partition tests pass. No GPU correctness, engagement or
+performance test has run. This is an operator port,
 not a Sarathi/full-paper reproduction.
 
 The first build exposed NVCC removing the constant length argument. The fix is
@@ -19,6 +21,21 @@ pass; it is not GPU-tested. Existing bpftime does not transfer the original
 kernel's dynamic shared-memory opt-in to its newly loaded CUfunction.
 
 ## CPU preparation milestone (not GPU results)
+
+The first final host link failed because NVCC emitted the same strong
+`pod_device_selector` CPU stub in twenty objects. It is an unused 25-byte
+`exit(1)` guard, not the GPU implementation. `host_link.py` checks zero host or
+CUDA-registration references to that symbol, then localizes only its host
+binding in private link copies. All originals remain untouched; every other
+defined symbol and semantic relocation is checked unchanged, including each
+object's 135 CUDA-registration references. The embedded `.nv_fatbin` sections
+are compared directly byte-for-byte; no content identifiers are generated.
+The explicit objects/sizes/disassemblies live in `build/link/attempt-01/inventory.json`.
+Four CPU fixture tests pass. The subsequent fused build reports `ninja: no work
+to do` and links normally; none of its twenty large numerical TUs was rebuilt.
+Only the separate original FA extension omits `--keep-device-functions`, since
+it has no typed selector ABI. Both retain the original numerical optimization
+flags, all official TUs, and sm_120 plus PTX; fused flags/order are unchanged.
 
 `--keep-device-functions` also emits many unused helpers. All four official
 planned TUs now have a real adapter path within the unchanged 67,108,864-byte
@@ -49,8 +66,8 @@ shared objects are CTA-local. Function/entry address identity and module-level
 function aliases/tables are absent. Any contrary evidence rejects partitioning.
 Original PTX, linked extension and explicit function/packet inventories remain
 preserved; no dirty bpftime code is changed. `prepare_ptx.py` must rerun these
-checks after the full extension links and match exact representatives to its
-symbols. That final linked extraction, loader lifecycle, launch bridge,
+checks against the linked fused extension and match exact representatives to its
+symbols. That final linked extraction, real loader lifecycle, launch bridge,
 full-shape numerical correctness and device engagement are still unverified.
 
 ## Question and decision value

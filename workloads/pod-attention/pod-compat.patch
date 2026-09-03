@@ -54,6 +54,15 @@ diff --git a/setup.py b/setup.py
              ],
          )
      )
+@@ -227,7 +227,7 @@
+                     ]
+                     + generator_flag
+-                    + cc_flag
++                    + [flag for flag in cc_flag if flag != "--keep-device-functions"]
+                 ),
+             },
+             include_dirs=[
+                 Path(this_dir) / "csrc" / "cutlass" / "include",
 diff --git a/pod_attn/fused_api.cpp b/pod_attn/fused_api.cpp
 --- a/pod_attn/fused_api.cpp
 +++ b/pod_attn/fused_api.cpp

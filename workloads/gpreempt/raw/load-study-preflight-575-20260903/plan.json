@@ -1,0 +1,97 @@
+{
+  "arrival_phase_ns": 0,
+  "blocks": 1,
+  "cell_timeout_seconds": 240,
+  "clock": "steady_clock",
+  "comparison_variant": "host_mapped_compatibility",
+  "configs": {
+    "be_continuous": {
+      "tasks": [
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "vgg",
+            "name": "vgg_rt",
+            "preprocess_time": 200,
+            "priority": 0,
+            "use_cuda_graph": true
+          },
+          "id": "vgg_rt",
+          "load": {
+            "frequency": 100,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        },
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "resnet152",
+            "name": "resnet152_be",
+            "preprocess_time": 200,
+            "priority": 1,
+            "use_cuda_graph": true
+          },
+          "id": "resnet152_be",
+          "load": {
+            "type": "continuous"
+          }
+        }
+      ],
+      "time": 10
+    }
+  },
+  "cooldown_seconds": 10,
+  "flag_transport": "host_mapped",
+  "formal_required_blocks": 5,
+  "gdrcopy_directory": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/gdrcopy-2.5.2",
+  "goodput_definition": "verified_ready_ns < end_ns, divided by configured seconds",
+  "incomplete_rule": "report backlog/coverage and conditional completed-request p99; never discard overload",
+  "kernel_repetition": 1,
+  "mode": "preflight",
+  "orders": [
+    {
+      "arm": "native",
+      "block": 0,
+      "cell": 0,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 0,
+      "cell": 1,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 0,
+      "cell": 2,
+      "scenario": "be_continuous"
+    }
+  ],
+  "p99_definition": "nearest rank, scheduled arrival to synchronized and numerically verified output",
+  "p99_population": "all_started_and_verified_including_after_window",
+  "policy_changes": false,
+  "privilege": "all clients and loader run as root without permission changes",
+  "required_cells": 3,
+  "scenario_orders": [
+    [
+      "be_continuous"
+    ]
+  ],
+  "scenarios": [
+    "be_continuous"
+  ],
+  "schema": "gpreempt_load_study_v1",
+  "seed": 20260903,
+  "statistics": {
+    "confidence": 0.95,
+    "draws": 10000,
+    "equivalence_claimed": false,
+    "estimator": "paired geometric-mean ratios",
+    "interval": "percentile paired-block bootstrap",
+    "seed": 20260903
+  },
+  "timed_seconds_per_cell": 10,
+  "window": "[begin_ns,end_ns); no new start at or after end"
+}

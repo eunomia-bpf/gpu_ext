@@ -1,0 +1,418 @@
+{
+  "campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/load-study-preflight-575-20260903",
+  "complete": true,
+  "continuous_offered_or_miss_rate_defined": false,
+  "driver_revision_evidence": "declared expected source revision, not inferred from runtime counters",
+  "equivalence_claimed": false,
+  "flag_transport": "host_mapped",
+  "formal_complete": false,
+  "formal_eligible": false,
+  "goodput_definition": "verified completions strictly before common cutoff divided by configured seconds",
+  "incomplete_cells": [],
+  "latency_definition": "nearest-rank scheduled-arrival to synchronized/numerically-verified output ready",
+  "mode": "preflight",
+  "original_gdr_transport": false,
+  "rejected_cells": [],
+  "required_cells": 3,
+  "scenarios": {
+    "be_continuous": {
+      "arms": {
+        "bpf_gpreempt": {
+          "resnet152_be": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": null,
+            "median_completion_coverage": null,
+            "median_goodput_rps": 179.9,
+            "median_p99_response_us": 6197.342,
+            "paired_cell_count": 1
+          },
+          "vgg_rt": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": 0,
+            "median_completion_coverage": 1.0,
+            "median_goodput_rps": 100.0,
+            "median_p99_response_us": 1619.98,
+            "paired_cell_count": 1
+          }
+        },
+        "native": {
+          "resnet152_be": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": null,
+            "median_completion_coverage": null,
+            "median_goodput_rps": 198.4,
+            "median_p99_response_us": 5433.013,
+            "paired_cell_count": 1
+          },
+          "vgg_rt": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": 0,
+            "median_completion_coverage": 1.0,
+            "median_goodput_rps": 100.0,
+            "median_p99_response_us": 1859.286,
+            "paired_cell_count": 1
+          }
+        },
+        "original_gpreempt": {
+          "resnet152_be": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": null,
+            "median_completion_coverage": null,
+            "median_goodput_rps": 180.5,
+            "median_p99_response_us": 6179.733,
+            "paired_cell_count": 1
+          },
+          "vgg_rt": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": 0,
+            "median_completion_coverage": 1.0,
+            "median_goodput_rps": 100.0,
+            "median_p99_response_us": 1668.011,
+            "paired_cell_count": 1
+          }
+        }
+      },
+      "complete": true,
+      "paired": {
+        "bpf_gpreempt/native:resnet152_be:goodput_rps": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.9067540322580645
+          ],
+          "conditional_response_population": false,
+          "direction": "higher is better",
+          "geometric_ratio": 0.9067540322580645,
+          "paired_block_bootstrap_ci95": null
+        },
+        "bpf_gpreempt/native:vgg_rt:p99_response_us": {
+          "all_offered_latency_comparison": true,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.8712914527404606
+          ],
+          "conditional_response_population": false,
+          "direction": "lower is better",
+          "geometric_ratio": 0.8712914527404606,
+          "paired_block_bootstrap_ci95": null
+        },
+        "bpf_gpreempt/original_gpreempt:resnet152_be:goodput_rps": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.9966759002770084
+          ],
+          "conditional_response_population": false,
+          "direction": "higher is better",
+          "geometric_ratio": 0.9966759002770084,
+          "paired_block_bootstrap_ci95": null
+        },
+        "bpf_gpreempt/original_gpreempt:vgg_rt:p99_response_us": {
+          "all_offered_latency_comparison": true,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.9712046263483874
+          ],
+          "conditional_response_population": false,
+          "direction": "lower is better",
+          "geometric_ratio": 0.9712046263483874,
+          "paired_block_bootstrap_ci95": null
+        },
+        "original_gpreempt/native:resnet152_be:goodput_rps": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.9097782258064516
+          ],
+          "conditional_response_population": false,
+          "direction": "higher is better",
+          "geometric_ratio": 0.9097782258064516,
+          "paired_block_bootstrap_ci95": null
+        },
+        "original_gpreempt/native:vgg_rt:p99_response_us": {
+          "all_offered_latency_comparison": true,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.8971244875721109
+          ],
+          "conditional_response_population": false,
+          "direction": "lower is better",
+          "geometric_ratio": 0.8971244875721109,
+          "paired_block_bootstrap_ci95": null
+        }
+      },
+      "per_cell_points": [
+        {
+          "arm": "native",
+          "begin_ns": 11660886494478,
+          "block": 0,
+          "cell": 0,
+          "end_ns": 11670886494478,
+          "last_verified_ready_ns": 11670889936485,
+          "metrics": {
+            "resnet152_be": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 1984,
+              "completion_coverage": null,
+              "goodput_rps": 198.4,
+              "in_window_response_p99_us": 5433.013,
+              "mean_response_us": 5039.171578337531,
+              "never_started_backlog": null,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 2095,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "resnet152_be",
+                "timed_checked": 1985
+              },
+              "offered_requests": null,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 5433.013,
+              "p99_sample_count": 1985,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 5433.013,
+              "service_p99_us": 5432.678,
+              "started_requests": 1985,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": null,
+              "window_completion_fraction": null
+            },
+            "vgg_rt": {
+              "all_offered_p99_response_us": 1859.286,
+              "completed_after_window": 0,
+              "completed_in_window": 1000,
+              "completion_coverage": 1.0,
+              "goodput_rps": 100.0,
+              "in_window_response_p99_us": 1859.286,
+              "mean_response_us": 1656.486321,
+              "never_started_backlog": 0,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 1110,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "vgg_rt",
+                "timed_checked": 1000
+              },
+              "offered_requests": 1000,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 1859.286,
+              "p99_sample_count": 1000,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 1859.286,
+              "service_p99_us": 1697.193,
+              "started_requests": 1000,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": 0,
+              "window_completion_fraction": 1.0
+            }
+          },
+          "native_priorities": {
+            "resnet152_be": {
+              "actual": "0",
+              "greatest": "-5",
+              "least": "0",
+              "role": "1",
+              "task": "resnet152_be"
+            },
+            "vgg_rt": {
+              "actual": "-5",
+              "greatest": "-5",
+              "least": "0",
+              "role": "0",
+              "task": "vgg_rt"
+            }
+          },
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/load-study-preflight-575-20260903/block-00/be_continuous/native",
+          "scenario": "be_continuous"
+        },
+        {
+          "arm": "bpf_gpreempt",
+          "begin_ns": 11690699615896,
+          "block": 0,
+          "cell": 1,
+          "end_ns": 11700699615896,
+          "last_verified_ready_ns": 11700701572194,
+          "metrics": {
+            "resnet152_be": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 1799,
+              "completion_coverage": null,
+              "goodput_rps": 179.9,
+              "in_window_response_p99_us": 6197.409,
+              "mean_response_us": 5556.209758333333,
+              "never_started_backlog": null,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 1910,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "resnet152_be",
+                "timed_checked": 1800
+              },
+              "offered_requests": null,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 6197.342,
+              "p99_sample_count": 1800,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 6197.342,
+              "service_p99_us": 6197.093,
+              "started_requests": 1800,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": null,
+              "window_completion_fraction": null
+            },
+            "vgg_rt": {
+              "all_offered_p99_response_us": 1619.98,
+              "completed_after_window": 0,
+              "completed_in_window": 1000,
+              "completion_coverage": 1.0,
+              "goodput_rps": 100.0,
+              "in_window_response_p99_us": 1619.98,
+              "mean_response_us": 1547.012801,
+              "never_started_backlog": 0,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 1110,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "vgg_rt",
+                "timed_checked": 1000
+              },
+              "offered_requests": 1000,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 1619.98,
+              "p99_sample_count": 1000,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 1619.98,
+              "service_p99_us": 1430.678,
+              "started_requests": 1000,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": 0,
+              "window_completion_fraction": 1.0
+            }
+          },
+          "native_priorities": {},
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/load-study-preflight-575-20260903/block-00/be_continuous/bpf_gpreempt",
+          "scenario": "be_continuous"
+        },
+        {
+          "arm": "original_gpreempt",
+          "begin_ns": 11721041317887,
+          "block": 0,
+          "cell": 2,
+          "end_ns": 11731041317887,
+          "last_verified_ready_ns": 11731042869476,
+          "metrics": {
+            "resnet152_be": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 1805,
+              "completion_coverage": null,
+              "goodput_rps": 180.5,
+              "in_window_response_p99_us": 6179.733,
+              "mean_response_us": 5537.733861018826,
+              "never_started_backlog": null,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 1916,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "resnet152_be",
+                "timed_checked": 1806
+              },
+              "offered_requests": null,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 6179.733,
+              "p99_sample_count": 1806,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 6179.733,
+              "service_p99_us": 6179.518,
+              "started_requests": 1806,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": null,
+              "window_completion_fraction": null
+            },
+            "vgg_rt": {
+              "all_offered_p99_response_us": 1668.011,
+              "completed_after_window": 0,
+              "completed_in_window": 1000,
+              "completion_coverage": 1.0,
+              "goodput_rps": 100.0,
+              "in_window_response_p99_us": 1668.011,
+              "mean_response_us": 1512.036791,
+              "never_started_backlog": 0,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 1110,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "vgg_rt",
+                "timed_checked": 1000
+              },
+              "offered_requests": 1000,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 1668.011,
+              "p99_sample_count": 1000,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 1668.011,
+              "service_p99_us": 1422.197,
+              "started_requests": 1000,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": 0,
+              "window_completion_fraction": 1.0
+            }
+          },
+          "native_priorities": {},
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/load-study-preflight-575-20260903/block-00/be_continuous/original_gpreempt",
+          "scenario": "be_continuous"
+        }
+      ],
+      "required_blocks": 1,
+      "valid_paired_blocks": 1
+    }
+  },
+  "schema": "gpreempt_load_study_audit_v1",
+  "source_revisions": {
+    "expected_driver_port": "849ea75d",
+    "gpu_ext_head": "d6a4e4c388c17b5f6e0c863ad9b0ad23e153be00",
+    "upstream": "249ee3e"
+  },
+  "statistics": {
+    "confidence": 0.95,
+    "draws": 10000,
+    "equivalence_claimed": false,
+    "estimator": "paired geometric-mean ratios",
+    "interval": "percentile paired-block bootstrap",
+    "seed": 20260903
+  },
+  "unexpected_cells": [],
+  "valid_cells": 3
+}

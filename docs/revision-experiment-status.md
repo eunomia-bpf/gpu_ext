@@ -10,14 +10,32 @@ engagement, raw results, and implementation/compatibility limits retained.
 Reproducing an algorithm does not imply reproducing the paper's original
 hardware, transport, or headline performance numbers.
 
-All three scoped comparisons are now complete, including the unchanged full
-XSched campaign. The requested follow-on work is a literature search for useful,
-interesting questions that can be tested cheaply; it does not relabel a proposed
-component port as a reproduced system. No new GPU experiment has been started.
+All three original scoped comparisons are complete, including the unchanged
+full XSched campaign. The subsequent literature search identifies useful,
+interesting questions; it does not relabel proposed component ports as
+reproduced systems. The user has since prioritized the GPreempt load study below.
 The [follow-on survey](background-related-work.md) records seven additional
 papers, their downloaded PDFs and artifact/hardware limits. Its priorities are
 adaptive expert prefetch, idle-interval-aware scheduling and device-local task
 selection; these are proposals, not new measured results.
+
+### Current priority: GPreempt contention study
+
+Independent XSched runtime development is paused. The
+[new fixed GPreempt plan](../workloads/gpreempt/load-study-plan.md) compares
+native / original-C / actual BPF with LC 100 requests/s and BE 100, 200, or
+closed-loop continuous supply. It adds a common-phase FIFO arrival schedule,
+complete response timestamps, and explicit deadline/backlog accounting; the
+old service-p99 experiment and its binaries remain unchanged.
+
+The three 10-second real-GPU preflight cells passed independent raw audit at
+04:53 UTC, with every foreground request verified and no CUDA/numerical,
+engagement, telemetry, or cleanup failure. These cells are excluded from formal
+estimates. The 45-cell, five-paired-block-per-scenario run started at 04:53:52 UTC
+under the existing exclusive leases, using a fixed 5-second inter-cell cooldown.
+No driver or service changes were made. Live artifacts are
+`workloads/gpreempt/raw/load-study-full-575-20260903/{plan,progress,summary}.json`;
+completion is pending, not implied by the successful preflight.
 
 ## Completed comparisons — 2026-09-03
 

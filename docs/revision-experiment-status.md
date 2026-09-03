@@ -10,16 +10,17 @@ engagement, raw results, and implementation/compatibility limits retained.
 Reproducing an algorithm does not imply reproducing the paper's original
 hardware, transport, or headline performance numbers.
 
-MoE-Infinity and GPreempt have complete scoped comparisons below. Finish the
-unchanged full XSched campaign next. Only after all three are complete, inspect
-additional interesting research directions and papers, prioritizing useful
-questions that can be tested cheaply. Do not add competing GPU work to the
-current XSched timing window. Record and push scoped findings and changes.
+All three scoped comparisons are now complete, including the unchanged full
+XSched campaign. The requested follow-on work is a literature search for useful,
+interesting questions that can be tested cheaply; it does not relabel a proposed
+component port as a reproduced system. No new GPU experiment has been started.
+Record and push scoped findings and changes.
 
-## Current execution update — 2026-09-03 02:44 UTC
+## Completed comparisons — 2026-09-03
 
-This section supersedes the dated August 31 execution state below. The active
-user-requested queue is GPreempt, MoE-Infinity, and XSched; LMCache is paused.
+This section supersedes the dated August 31 execution state below. The
+user-requested GPreempt, MoE-Infinity, and XSched comparisons are complete;
+LMCache is paused.
 The host is Linux `6.15.11-061511-generic`, RTX 5090, and NVIDIA 575.57.08 with
 the temporarily loaded `849ea75d` scheduling port. After an unexpected reboot
 at 01:37:41 UTC, the verified modules were restored with ordinary unload/load;
@@ -31,10 +32,14 @@ and [MoE raw-data recovery](../workloads/moe-infinity/recovery-20260903-013741.m
 | --- | --- |
 | GPreempt three-way | **5 complete paired blocks, 15/15 cells passed**, each retaining the original 60-second config-A workload. Independent raw-request, numerical, engagement, telemetry and cleanup audit accepts all 15. LC service-stage p99 medians: native **1.414351 ms**, original C **1.415130 ms**, BPF **1.419397 ms**. BPF/original-C paired geometric ratio **1.002575**, 95% paired-block bootstrap CI **[1.001278, 1.003740]**: a small measured overhead, not superiority or an equivalence proof. BE throughput medians are 100 req/s, with BPF/original ratio **0.9998666**, CI **[0.9995999, 1]**. This is the disclosed **host-mapped flag compatibility variant**, not original GDRCopy reproduction; the rate-limited workload does not establish saturated throughput. [Raw final audit](../workloads/gpreempt/raw/575-host-mapped-three-way-01/audited-analysis-final.json). |
 | MoE-Infinity same algorithm | **5 complete paired blocks, 15/15 cells independently raw-audited**, no failed, incomplete or rejected attempts. Throughput medians: baseline **11.8964**, paper-native **11.2233**, paper-BPF **11.1900 token/s**. BPF/native paired geometric ratio **0.996540**, 95% CI **[0.989239, 1.005508]**; no predeclared equivalence margin, so this is not formal equivalence. Relative to baseline, BPF throughput is **6.92% lower**, while the secondary first-visible-text TTFT is **22.48% lower** (paired ratio 0.775152, CI [0.757434, 0.795402]). All arms share the current MoE frontend and weights; the two paper arms share EAMC prediction, prefetch ranking, score-based eviction and the repaired prediction-protected executor. BPF selectors execute in the **host ubpf JIT**, not the old kernel-UVM program. This is an explicitly scoped algorithm port, not the authors' original hardware/model reproduction. [Final raw audit](../workloads/moe-infinity/raw/paper-v3-575/timing-849ea75d-02-postboot/audited-analysis-final.json), [algorithm scope](../workloads/moe-infinity/activation-aware-port.md), [why the old 1.63 token/s comparison was confounded](../workloads/moe-infinity/diagnosis-before-prediction-protection.md). |
-| XSched | **Full campaign running**, immediately after MoE released the GPU. The frozen workload is 10 paired four-arm blocks, 50 kernels/stream, plus six isolated controls. Fresh postboot calibration gives **79.968544 ms** isolated kernels at `reps=9511106`; all four two-kernel preflight arms passed actual numerical, policy-engagement and independent raw checks. Native, original XSched and bpftime HPF share the Level-1 frontend; the driver-BPF priority/preemption arm is a separately labelled algorithm. Full-performance results remain pending, and short pilots are not substituted. [Full runtime plan](../workloads/xsched/full-runtime-plan-575-20260903.md). |
+| XSched | **10 complete four-arm blocks plus six isolated controls, 46/46 cells raw-audited**; the full 50-kernel/stream workload was not shortened. LC submission-to-first-CTA-entry p99 medians: native **76.8780 s**, original XSched **26.9784 s**, same-policy BPF HPF **27.2502 s**; BE medians **10.2377 / 10.1497 / 10.1616 kernels/s**. BPF HPF minus XSched paired mean LC difference **+0.291953 s**, 95% CI **[-0.109087, +0.642367]**; no clear latency difference or formal equivalence. BE paired mean change **+0.090314%**, CI **[+0.029818%, +0.147607%]**. The separate driver-BPF policy gives **22.1691 s / 6.1373 kernels/s**: lower LC delay but **39.545% lower BE throughput** than XSched. This verifies bounded HPF on the original **Level-1** frontend/actuator, not Level-3 or a pure JIT-cost experiment. [Full report](../workloads/xsched/performance-full-575-20260903.md), [46-cell raw audit](../workloads/xsched/raw/full-persistent-575-20260903/independent-raw-audit.json). |
 
-CPU implementation and offline analysis proceed in parallel. GPU timing is
-exclusive, with no overlapping compilation or model hydration. Raw failures and
+GPU timing was exclusive, with no overlapping compilation or model hydration.
+An additional independent calculation rebuilt all 49,200 XSched samples and
+the paired intervals from the 246 worker records and found no discrepancy.
+After final cleanup and released leases, GDM and nvidia-persistenced were
+restored successfully at 03:50 UTC. The node labels already had their original
+values and were not overwritten. Raw failures and
 partial attempts are retained, never counted as complete pairs. Local scoped
 changes and portable raw evidence are committed and pushed; unrelated worktree
 changes are preserved. Completing these scoped comparisons does not complete

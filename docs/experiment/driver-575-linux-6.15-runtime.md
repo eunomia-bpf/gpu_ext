@@ -258,3 +258,31 @@ bpftime HPF preflights all passed. Calibration and preflight records are in
 `preflight-persistent-575-20260903/` under the same raw directory. These checks
 re-establish runtime readiness after the reboot; they are not the full paired
 performance comparison or evidence that the original GDR transport is supported.
+
+## Three-comparison completion and service restoration
+
+All three scoped comparisons subsequently completed: GPreempt 15/15 cells,
+MoE-Infinity 15/15 cells, and XSched 40/40 mixed cells plus six controls.
+XSched exited normally and its independent 46-cell raw audit passed before any
+service restoration. The final pre-restoration snapshot records 400 W,
+GPU 2 MiB/0%, no compute client, UVM references zero, empty struct-ops state,
+and no Xid or kernel abnormality; both experiment leases were released.
+
+At 2026-09-03 03:50 UTC, ordinary `systemctl start` restored
+`nvidia-persistenced.service` and `gdm.service`. Both changed from inactive/dead
+to active/running with `Result=success`; a later check confirmed those states.
+Their unit enablement was unchanged. The post-restoration kernel-journal check
+found no Xid, NVRM error/failure, BUG, Oops, or panic entry. No module reload,
+reboot, package change, or new GPU experiment was performed.
+
+The earlier four-paused-pod description is historical, not the final state.
+Read-only checks already found the `lab` node Ready with its original labels
+`fleet.yunwei37.com/gpu=rtx5090` and
+`monitoring.yunwei37.com/managed=true`; neither label was rewritten. The generic
+device plugin and node exporter were running; no running NVIDIA device-plugin
+or DCGM pod was found on that node. The completed NVIDIA installer Job is not
+a running device plugin. DaemonSet-list access was denied and no alternate
+credentials or cluster changes were attempted. SSH, logind and k3s-agent stayed
+active. The requested 575 driver and existing 400 W setting were not rolled back.
+
+See the [completed comparison summary](../revision-experiment-status.md).

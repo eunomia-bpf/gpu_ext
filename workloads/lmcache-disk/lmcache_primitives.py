@@ -12,7 +12,6 @@ import argparse
 import json
 import os
 import re
-import signal
 import socket
 import statistics
 import subprocess
@@ -27,6 +26,9 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 GPU_EXT = HERE.parents[1]
+sys.path.insert(0, str(GPU_EXT / "workloads/gpreempt"))
+import run_three_way as shared  # noqa: E402
+
 VLLM_WORKLOAD = GPU_EXT / "workloads" / "vllm"
 CURRENT_ENV = HERE / "current-venv"
 PYTHON = CURRENT_ENV / "bin" / "python"
@@ -41,6 +43,7 @@ PLAN = HERE / "plan-v2.md"
 RUNNER = Path(__file__).resolve()
 
 EXPECTED_DRIVER = "610.43.02"
+EXPERIMENT_DRIVERS = (EXPECTED_DRIVER, "575.57.08")
 EXPECTED_MOUNT_SOURCE = "/dev/disk/by-uuid/864c5664-999e-43c2-9967-4edaeee79d57"
 EXPECTED_VLLM_VERSION = "0.27.1+cu129"
 EXPECTED_LMCACHE_VERSION = "0.5.4"
@@ -83,6 +86,11 @@ FATAL_LOG_PATTERNS = (
 
 class GateError(RuntimeError):
     pass
+
+
+def validate_driver(observed: str, expected: str = EXPECTED_DRIVER) -> None:
+    if expected not in EXPERIMENT_DRIVERS or observed != expected:
+        raise GateError(f"driver: expected explicit {expected}, found {observed}")
 
 
 def file_identity(path: Path) -> dict[str, Any]:
@@ -130,11 +138,17 @@ def atomic_write_json(path: Path, value: Any) -> None:
     atomic_write_text(path, json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
-def run_checked(argv: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> str:
-    proc = subprocess.run(argv, cwd=cwd, env=env, text=True, capture_output=True, check=False)
+def run_checked(argv: list[str], cwd: Path | None = None, env: dict[str, str] | None = None,
+                timeout: float = 180) -> str:
+    proc = subprocess.Popen(argv, cwd=cwd, env=env, text=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, start_new_session=True)
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+    finally:
+        shared.stop_owned(proc)
     if proc.returncode:
-        raise GateError(f"command failed ({proc.returncode}): {argv!r}\n{proc.stderr[-3000:]}")
-    return proc.stdout.strip()
+        raise GateError(f"command failed ({proc.returncode}): {argv!r}\n{stderr[-3000:]}")
+    return stdout.strip()
 
 
 def git_clean_at(repo: Path, commit: str) -> dict[str, str]:
@@ -317,9 +331,11 @@ def storage_metadata(target: Path) -> dict[str, Any]:
     }
 
 
-def admission(port: int, require_model: bool = True, storage_path: Path = HERE / "raw") -> dict[str, Any]:
+def admission(port: int, require_model: bool = True, storage_path: Path = HERE / "raw",
+              expected_driver: str = EXPECTED_DRIVER) -> dict[str, Any]:
+    validate_driver(expected_driver, expected_driver)
     errors = []
-    manifest: dict[str, Any] = {"timestamp_ns": time.time_ns()}
+    manifest: dict[str, Any] = {"timestamp_ns": time.time_ns(), "expected_driver": expected_driver}
     try:
         manifest["lmcache_source"] = git_clean_at(LMCACHE_REPO, LMCACHE_COMMIT)
         manifest["runtime_imports"] = verify_python_artifacts()
@@ -342,8 +358,7 @@ def admission(port: int, require_model: bool = True, storage_path: Path = HERE /
     try:
         state = gpu_state()
         manifest["gpu"] = state
-        if state["driver"] != EXPECTED_DRIVER:
-            errors.append(f"driver: expected {EXPECTED_DRIVER}, found {state['driver']}")
+        validate_driver(state["driver"], expected_driver)
         if state["compute_apps"]:
             errors.append(f"GPU has foreign compute processes: {state['compute_apps']}")
         if state["memory_used_mib"] > 256:
@@ -526,9 +541,14 @@ def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_
         trace_dir.mkdir(parents=True, exist_ok=False)
         launch = ["/usr/bin/strace", "-ff", "-qq", "-s", "4096", "-e", "trace=open,openat",
                   "-o", str(trace_dir / "open.trace")] + launch
+    launch = ["/usr/bin/taskset", "-c", "8-15", *launch]
     log_file = log_path.open("x")
-    proc = subprocess.Popen(launch, cwd=VLLM_WORKLOAD, env=server_environment(config, cache_dir),
-                            stdout=log_file, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    try:
+        proc = subprocess.Popen(launch, cwd=VLLM_WORKLOAD, env=server_environment(config, cache_dir),
+                                stdout=log_file, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    except BaseException:
+        log_file.close()
+        raise
     return proc, log_file, argv, launch
 
 
@@ -551,16 +571,7 @@ def wait_ready(proc: subprocess.Popen, port: int, log_path: Path, timeout: float
 
 def stop_owned_server(proc: subprocess.Popen, log_file) -> None:
     try:
-        if proc.poll() is None:
-            pgid = os.getpgid(proc.pid)
-            if pgid != proc.pid:
-                raise GateError(f"refusing cleanup: process group changed ({pgid} != {proc.pid})")
-            os.killpg(pgid, signal.SIGINT)
-            try:
-                proc.wait(timeout=45)
-            except subprocess.TimeoutExpired:
-                os.killpg(pgid, signal.SIGTERM)
-                proc.wait(timeout=20)
+        shared.stop_owned(proc)
     finally:
         log_file.close()
 
@@ -835,7 +846,9 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
     prefix_count = len(prompts.get("prefixes", []))
     if not 1 <= prefix_count <= PREFIXES:
         raise GateError(f"run requires between 1 and {PREFIXES} prefixes")
-    run_dir.mkdir(parents=True, exist_ok=False)
+    # The thin runner creates this unique directory while holding the leases.
+    if not run_dir.is_dir():
+        raise GateError("run directory must be prepared by the lease-owning runner")
     if recorded_environment is not None:
         atomic_write_json(run_dir / "environment.json", recorded_environment)
     cache_dir = (run_dir / "cache").resolve()
@@ -846,6 +859,9 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
     observations: list[dict[str, Any]] = []
     try:
         wait_ready(proc, port, log_path)
+        worker_affinity = sorted(os.sched_getaffinity(proc.pid))
+        if worker_affinity != list(range(8, 16)):
+            raise GateError(f"server CPU affinity differs from 8-15: {worker_affinity}")
         for item in prompts["prefixes"]:
             index = item["index"]
             cold = streamed_completion(port, item["cold_token_ids"], f"lmc-p{index}-cold")
@@ -871,6 +887,7 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
     warm_tokens = sum(int(x["warm"]["usage"]["completion_tokens"]) for x in observations)
     result = {
         "schema": 2, "config": config, "prefix_count": prefix_count,
+        "worker_cpu_affinity": worker_affinity,
         "command": argv, "launch_command": launch,
         "environment": server_environment(config, cache_dir),
         "warm_phase": {"sequential": True, "requests": prefix_count, "output_tokens": warm_tokens,

@@ -10,12 +10,17 @@ recomputes validation/analysis from those outputs.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack, contextmanager
 import importlib.util
 import json
 import math
+import os
 import re
+import signal
 import statistics
+import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +49,9 @@ MODEL_REVISION = legacy.MODEL_REVISION
 EXPECTED_DRIVER = legacy.EXPECTED_DRIVER
 EXPECTED_LMCACHE_VERSION = legacy.EXPECTED_LMCACHE_VERSION
 EXPECTED_VLLM_VERSION = legacy.EXPECTED_VLLM_VERSION
+shared = legacy.shared
+safety = shared.safety
+WORKER_CPUS = list(range(8, 16))
 
 # Re-export the small primitives used by CPU structural tests.
 server_environment = legacy.server_environment
@@ -57,40 +65,135 @@ prepare_prompts = legacy.prepare_prompts
 validate_schedule = legacy.validate_schedule
 
 
-def inspect_environment(port: int, storage_root: Path) -> dict[str, Any]:
+@contextmanager
+def managed_cell(output: Path, expected_driver: str):
+    """Use the existing leases and safety checks; never clean global GPU state."""
+    with ExitStack() as cleanup:
+        lease = shared.Leases()
+        cleanup.callback(lease.close)
+        output.mkdir(parents=True, exist_ok=False)
+        record = {"status": "failed", "expected_driver": expected_driver,
+                  "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
+                  "worker_cpu_affinity": WORKER_CPUS, "telemetry_cpu": safety.TELEMETRY_CPU,
+                  "coordinator_cpu_affinity": sorted(os.sched_getaffinity(0)), "started_ns": time.time_ns()}
+        # Shared safety diagnostics use this cell's bounded, owned subprocess helper.
+        previous_checked = safety.run_checked
+        safety.run_checked = legacy.run_checked
+        cleanup.callback(setattr, safety, "run_checked", previous_checked)
+        previous_signal = signal.getsignal(signal.SIGTERM)
+        def interrupted(signum, _frame):
+            raise InterruptedError(f"signal {signum}; cleaning only owned processes")
+        signal.signal(signal.SIGTERM, interrupted)
+        cleanup.callback(signal.signal, signal.SIGTERM, previous_signal)
+        processes, streams, errors = [], [], []
+        before = None
+        finished = False
+        try:
+            if not (set(WORKER_CPUS) | {safety.TELEMETRY_CPU}) <= set(record["coordinator_cpu_affinity"]):
+                raise GateError("coordinator needs CPUs 8-16 available; only the server is pinned to 8-15")
+            if any(os.environ.get(key) for key in ("LD_PRELOAD", "LD_AUDIT", "CUDA_INJECTION64_PATH", "CUDA_INJECTION32_PATH")):
+                raise GateError("launch the coordinator without ambient injection")
+            before = safety.safety_snapshot()
+            record["safety_before"] = before
+            safety.validate_pre_server_safety(before)
+            legacy.validate_driver(before["gpu"]["driver"], expected_driver)
+            telemetry, stream, telemetry_path = safety.start_gpu_telemetry(output)
+            processes.append(telemetry)
+            streams.append(stream)
+            kernel_stream = (output / "kernel-follow.log").open("x")
+            streams.append(kernel_stream)
+            kernel_command = ["/usr/bin/taskset", "-c", str(safety.TELEMETRY_CPU), "/usr/bin/journalctl",
+                              "-k", "-b", "--follow", "--no-pager", "-n", "0", "-o", "short-monotonic"]
+            journal = subprocess.Popen(kernel_command, stdout=kernel_stream, stderr=subprocess.STDOUT,
+                                       env=legacy.controlled_environment(""), start_new_session=True)
+            processes.append(journal)
+            record["kernel_command"] = kernel_command
+            record["monitors_started_ns"] = time.time_ns()
+            yield record
+            finished = True
+        except BaseException as error:
+            record["error"] = f"{type(error).__name__}: {error}"
+            raise
+        finally:
+            record["monitors_alive_before_stop"] = [process.poll() is None for process in processes]
+            if finished and record["monitors_alive_before_stop"] != [True, True]:
+                errors.append("continuous GPU/kernel monitor exited before the cell finished")
+            # run_config has already reaped the server group before returning/raising.
+            for process in reversed(processes):
+                try:
+                    shared.stop_owned(process)
+                except BaseException as error:
+                    errors.append(str(error))
+            for stream in streams:
+                stream.close()
+            try:
+                if before is not None:
+                    try:
+                        record["safety_after"] = safety.wait_for_post_server_safety(before)
+                    except BaseException:
+                        record["safety_after"] = safety.safety_snapshot()
+                        raise
+                    legacy.validate_driver(record["safety_after"]["gpu"]["driver"], expected_driver)
+                if processes:
+                    record["telemetry"] = safety.validate_gpu_telemetry(telemetry_path, allow_fixed_power_cap=True)
+                if (output / "kernel-follow.log").exists():
+                    record["kernel_abnormal"] = safety.filtered_kernel_records((output / "kernel-follow.log").read_text())
+                    if record["kernel_abnormal"]:
+                        errors.append("kernel/GPU error recorded during the cell")
+                record["final_boot_id"] = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+                if record["final_boot_id"] != record["boot_id"]:
+                    errors.append("boot identity changed during the cell")
+            except BaseException as error:
+                errors.append(str(error))
+            record.update(finished_ns=time.time_ns(), cleanup_errors=errors)
+            if finished and not errors:
+                record["status"] = "passed"
+            legacy.atomic_write_json(output / "execution.json", record)
+            if errors:
+                raise GateError("; ".join(errors))
+
+
+def inspect_environment(port: int, storage_root: Path,
+                        expected_driver: str = EXPECTED_DRIVER) -> dict[str, Any]:
     """Return read-only launch observations; this is not a promotion marker."""
-    return legacy.admission(port, require_model=True, storage_path=storage_root)
+    return legacy.admission(port, require_model=True, storage_path=storage_root,
+                            expected_driver=expected_driver)
 
 
 def run_cell(config: str, output: Path, port: int, trace: bool,
-             prefix_limit: int = PREFIXES) -> dict[str, Any]:
+             prefix_limit: int = PREFIXES,
+             expected_driver: str = EXPECTED_DRIVER) -> dict[str, Any]:
     """Run one cell through the official vLLM serve path and retain raw output."""
     if config not in CONFIGS:
         raise GateError(f"unknown configuration: {config}")
     if not 1 <= prefix_limit <= PREFIXES:
         raise GateError(f"prefix limit must be between 1 and {PREFIXES}")
-    observations = inspect_environment(port, output)
-    prompts = load_prompts(PROMPTS)
-    prompts = {**prompts, "prefixes": prompts["prefixes"][:prefix_limit]}
-    result = legacy.run_config(
-        config,
-        output,
-        prompts,
-        port,
-        Path(observations["model_path"]),
-        trace=trace,
-        recorded_environment=observations,
-    )
+    with managed_cell(output, expected_driver) as execution:
+        observations = inspect_environment(port, output, expected_driver)
+        observations.update({key: execution[key] for key in ("boot_id", "worker_cpu_affinity", "telemetry_cpu")})
+        prompts = load_prompts(PROMPTS)
+        prompts = {**prompts, "prefixes": prompts["prefixes"][:prefix_limit]}
+        result = legacy.run_config(
+            config, output, prompts, port, Path(observations["model_path"]),
+            trace=trace, recorded_environment=observations,
+        )
     return result
 
 
 def _validate_recorded_environment(value: dict[str, Any]) -> None:
     gpu = value.get("gpu", {})
+    # Records predating explicit selection belong to the original 610 protocol.
+    legacy.validate_driver(gpu.get("driver"), value.get("expected_driver", EXPECTED_DRIVER))
+    if (gpu.get("driver") == "575.57.08" or "worker_cpu_affinity" in value) and (
+        not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", value.get("boot_id", ""))
+        or value.get("worker_cpu_affinity") != WORKER_CPUS
+        or value.get("telemetry_cpu") != safety.TELEMETRY_CPU
+    ):
+        raise GateError("575 records require the actual boot and fixed worker/telemetry CPU placement")
     runtime = value.get("runtime_imports", {})
     source = value.get("lmcache_source", {})
     if (
-        gpu.get("driver") != EXPECTED_DRIVER
-        or gpu.get("compute_apps") != []
+        gpu.get("compute_apps") != []
         or not isinstance(gpu.get("memory_used_mib"), int)
         or gpu["memory_used_mib"] > 256
         or source.get("commit") != legacy.LMCACHE_COMMIT
@@ -200,6 +303,42 @@ def _expected_store_state(
     }
 
 
+def validate_execution(run_dir: Path, environment: dict[str, Any]) -> dict[str, Any]:
+    """Reparse actual safety evidence, independently of the server's exit/result."""
+    path = run_dir / "execution.json"
+    if not path.is_file() or not (run_dir / "kernel-follow.log").is_file():
+        raise GateError("new cells require execution and continuous kernel records")
+    record = json.loads(path.read_text())
+    if (record.get("status") != "passed" or record.get("cleanup_errors") != []
+            or record.get("monitors_alive_before_stop") != [True, True]
+            or record.get("worker_cpu_affinity") != WORKER_CPUS
+            or record.get("telemetry_cpu") != safety.TELEMETRY_CPU
+            or not (set(WORKER_CPUS) | {safety.TELEMETRY_CPU}) <= set(record.get("coordinator_cpu_affinity", []))
+            or record.get("boot_id") != environment.get("boot_id")
+            or record.get("final_boot_id") != record.get("boot_id")):
+        raise GateError("cell safety/monitor/CPU/boot evidence is incomplete")
+    try:
+        before, after = record["safety_before"], record["safety_after"]
+        expected = environment["expected_driver"]
+        if record["expected_driver"] != expected:
+            raise GateError("safety driver declaration differs from environment")
+        for snapshot in (before, after):
+            legacy.validate_driver(snapshot["gpu"]["driver"], expected)
+        if not (record["started_ns"] <= before["timestamp_ns"] <= record["monitors_started_ns"]
+                <= environment["timestamp_ns"] <= after["timestamp_ns"] <= record["finished_ns"]):
+            raise GateError("safety evidence does not enclose the cell launch")
+        safety.validate_post_server_safety(before, after)
+        telemetry = safety.validate_gpu_telemetry(run_dir / "gpu-telemetry.csv", allow_fixed_power_cap=True)
+        if telemetry != record.get("telemetry"):
+            raise GateError("saved GPU telemetry differs from raw samples")
+        abnormal = safety.filtered_kernel_records((run_dir / "kernel-follow.log").read_text())
+        if abnormal or record.get("kernel_abnormal") != abnormal:
+            raise GateError("kernel error or inconsistent kernel evidence during cell")
+    except (KeyError, TypeError, ValueError, RuntimeError) as error:
+        raise GateError(f"invalid execution evidence: {error}") from error
+    return record
+
+
 def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     """Reparse one cell's result, server log, and optional raw trace."""
     result_path = run_dir / "result.json"
@@ -210,6 +349,11 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     result = json.loads(result_path.read_text())
     recorded_environment = json.loads(environment_path.read_text())
     _validate_recorded_environment(recorded_environment)
+    guarded = "worker_cpu_affinity" in recorded_environment
+    if guarded:
+        validate_execution(run_dir, recorded_environment)
+        if result.get("worker_cpu_affinity") != WORKER_CPUS:
+            raise GateError("actual server CPU affinity differs from 8-15")
     config = result.get("config")
     if result.get("schema") != 2 or config not in CONFIGS:
         raise GateError(f"invalid result schema/config under {run_dir}")
@@ -279,6 +423,8 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
         ]
     else:
         expected_launch = expected_command
+    if guarded:
+        expected_launch = ["/usr/bin/taskset", "-c", "8-15", *expected_launch]
     if launch != expected_launch:
         raise GateError(f"raw launch command mismatch under {run_dir}")
 
@@ -300,7 +446,8 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
         )
     ):
         raise GateError(f"warm-phase metric derivation mismatch under {run_dir}")
-    return {"result": result, "engagement": engagement, "trace": trace}
+    return {"result": result, "engagement": engagement, "trace": trace,
+            "environment": recorded_environment}
 
 
 def exact_outputs(run_dir: Path) -> dict[str, str]:
@@ -426,6 +573,8 @@ def analyze(root: Path) -> dict[str, Any]:
     observed_attempts, _ = _validate_execution_sequence(root, groups)
     complete = []
     reference_outputs = None
+    comparison_driver = None
+    comparison_boot = None
     for attempt in sorted(groups):
         cells = groups[attempt]
         if set(cells) != set(CONFIGS):
@@ -436,7 +585,18 @@ def analyze(root: Path) -> dict[str, Any]:
         expected_positions = {config: position for position, config in enumerate(scheduled[attempt])}
         if positions != expected_positions:
             raise GateError(f"attempt {attempt} position mismatch: {positions} != {expected_positions}")
-        validated = {config: validate_cell(cells[config][1])["result"] for config in CONFIGS}
+        checked = {config: validate_cell(cells[config][1]) for config in CONFIGS}
+        validated = {config: value["result"] for config, value in checked.items()}
+        if any(value.get("prefix_count", PREFIXES) != PREFIXES for value in validated.values()):
+            raise GateError("formal analysis requires all eight prefixes; smoke cells are excluded")
+        drivers = {value["environment"]["gpu"]["driver"] for value in checked.values()}
+        if len(drivers) != 1 or (comparison_driver is not None and drivers != {comparison_driver}):
+            raise GateError("formal analysis cannot mix driver versions within or across blocks")
+        comparison_driver = next(iter(drivers))
+        boots = {value["environment"].get("boot_id") for value in checked.values()}
+        if len(boots) != 1 or (comparison_boot is not None and boots != {comparison_boot}):
+            raise GateError("formal analysis cannot mix boot identities within or across blocks")
+        comparison_boot = next(iter(boots))
         for config, result in validated.items():
             outputs = legacy.output_texts(result)
             if reference_outputs is None:
@@ -493,6 +653,8 @@ def analyze(root: Path) -> dict[str, Any]:
     rate_ci = primary["warm_request_rate_relative"]["ci95"]
     decision = classify_effect(latency_ci, rate_ci)
     result = {
+        "driver": comparison_driver,
+        "boot_id": comparison_boot,
         "complete_attempts": [attempt for attempt, _ in complete],
         "observed_attempts": observed_attempts,
         "actual_position_counts": position_counts,
@@ -511,6 +673,8 @@ def main() -> int:
     inspect = sub.add_parser("inspect")
     inspect.add_argument("--port", type=int, default=18080)
     inspect.add_argument("--storage-root", type=Path, default=HERE / "raw")
+    inspect.add_argument("--expected-driver", choices=legacy.EXPERIMENT_DRIVERS,
+                         default=EXPECTED_DRIVER)
     prepare = sub.add_parser("prepare-prompts")
     prepare.add_argument("--output", type=Path, default=PROMPTS)
     cell = sub.add_parser("run-cell")
@@ -519,6 +683,8 @@ def main() -> int:
     cell.add_argument("--port", type=int, default=18080)
     cell.add_argument("--trace", action="store_true")
     cell.add_argument("--prefix-limit", type=int, default=PREFIXES)
+    cell.add_argument("--expected-driver", choices=legacy.EXPERIMENT_DRIVERS,
+                      default=EXPECTED_DRIVER)
     validate = sub.add_parser("validate-cell")
     validate.add_argument("run_dir", type=Path)
     validate.add_argument("--require-trace", action="store_true")
@@ -529,11 +695,12 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.command == "inspect":
-            value = inspect_environment(args.port, args.storage_root)
+            value = inspect_environment(args.port, args.storage_root, args.expected_driver)
         elif args.command == "prepare-prompts":
             value = prepare_prompts(args.output)
         elif args.command == "run-cell":
-            value = run_cell(args.config, args.output, args.port, args.trace, args.prefix_limit)
+            value = run_cell(args.config, args.output, args.port, args.trace,
+                             args.prefix_limit, args.expected_driver)
         elif args.command == "validate-cell":
             value = validate_cell(args.run_dir, args.require_trace)
         elif args.command == "compare-outputs":

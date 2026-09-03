@@ -2,11 +2,15 @@
 """CPU-only structural tests for the LMCache revision harness."""
 
 import importlib.util
+from contextlib import nullcontext
 import json
+import os
+import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 MODULE_PATH = Path(__file__).with_name("run_lmcache_disk.py")
@@ -14,9 +18,59 @@ SPEC = importlib.util.spec_from_file_location("run_lmcache_disk", MODULE_PATH)
 assert SPEC and SPEC.loader
 runner = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(runner)
+PLACEMENT = dict(boot_id="11111111-2222-3333-4444-555555555555", worker_cpu_affinity=list(range(8, 16)), telemetry_cpu=16)
 
 
 class HarnessTests(unittest.TestCase):
+    def test_driver_selection_is_exact_and_explicit(self):
+        runner.legacy.validate_driver("610.43.02")
+        runner.legacy.validate_driver("575.57.08", "575.57.08")
+        for observed, expected in (("575.57.08", "610.43.02"),
+                                   ("610.43.02", "575.57.08"),
+                                   ("575.99", "575.99")):
+            with self.subTest(observed=observed, expected=expected):
+                with self.assertRaises(runner.GateError):
+                    runner.legacy.validate_driver(observed, expected)
+        with self.assertRaisesRegex(runner.GateError, "driver"):
+            runner._validate_recorded_environment({"gpu": {"driver": "575.57.08"}})
+
+    def test_explicit_driver_is_passed_to_admission_and_saved_observations(self):
+        observations = {"model_path": "/model", "expected_driver": "575.57.08",
+                        "gpu": {"driver": "575.57.08"}}
+        with (patch.object(runner.legacy, "admission", return_value=observations) as admit,
+              patch.object(runner, "managed_cell", return_value=nullcontext(PLACEMENT)),
+              patch.object(runner, "load_prompts", return_value={"prefixes": [{}]}),
+              patch.object(runner.legacy, "run_config", return_value={}) as run):
+            runner.run_cell("lmcache_disk", Path("/output"), 18080, False, 1, "575.57.08")
+        admit.assert_called_once_with(18080, require_model=True, storage_path=Path("/output"),
+                                      expected_driver="575.57.08")
+        self.assertEqual(run.call_args.kwargs["recorded_environment"], observations)
+
+    def test_formal_rejects_smoke_and_mixed_driver_cells(self):
+        schedule = json.loads(runner.SCHEDULE.read_text())["attempts"]
+        groups = {row["attempt"]: {config: (position, Path(f"/{row['attempt']}/{config}"))
+                                  for position, config in enumerate(row["order"])}
+                  for row in schedule[:2]}
+        for defect in ("prefix", "within-block driver", "across-block driver", "within-block boot", "across-block boot"):
+            def checked(path):
+                block, config = int(path.parent.name), path.name
+                driver = ("610.43.02" if
+                          (defect == "within-block driver" and config == "recompute") or
+                          (defect == "across-block driver" and block == 1) else "575.57.08")
+                return {"result": {"prefix_count": 1 if defect == "prefix" else 8},
+                        "environment": {"gpu": {"driver": driver}, "boot_id": (
+                            "other" if (defect == "within-block boot" and config == "recompute") or
+                            (defect == "across-block boot" and block == 1) else PLACEMENT["boot_id"])}}
+            with (self.subTest(defect=defect),
+                  patch.object(runner, "_attempt_cells", return_value=groups),
+                  patch.object(runner, "_validate_execution_sequence", return_value=([0, 1], [])),
+                  patch.object(runner, "validate_cell", side_effect=checked),
+                  patch.object(runner.legacy, "output_texts", return_value={"same": "text"}),
+                  patch.object(runner.legacy, "atomic_write_json") as write):
+                with self.assertRaisesRegex(runner.GateError, "eight prefixes|mix driver|mix boot"):
+                    runner.analyze(Path("/unused"))
+                write.assert_not_called()
+
     def test_response_gate_requires_captured_vllm_request_id(self):
         response = {
             "request_header": "lmc-p0-cold",
@@ -36,6 +90,7 @@ class HarnessTests(unittest.TestCase):
     def test_prefix_limited_cell_slices_only_after_full_prompt_load(self):
         prompts = {"prefixes": [{"index": index} for index in range(runner.PREFIXES)]}
         with (
+            patch.object(runner, "managed_cell", return_value=nullcontext(PLACEMENT)),
             patch.object(runner, "inspect_environment", return_value={"model_path": "/model"}),
             patch.object(runner, "load_prompts", return_value=prompts) as load,
             patch.object(runner.legacy, "run_config", return_value={"status": "ok"}) as run,
@@ -67,6 +122,83 @@ class HarnessTests(unittest.TestCase):
             log.close()
             trace_output = Path(launch[launch.index("-o") + 1])
             self.assertEqual(trace_output, root.resolve() / "strace/open.trace")
+            self.assertEqual(launch[:3], ["/usr/bin/taskset", "-c", "8-15"])
+
+    def test_owned_diagnostics_and_exited_server_cleanup(self):
+        process = Mock()
+        process.communicate.side_effect = subprocess.TimeoutExpired(["/diagnostic"], 1)
+        with (patch.object(runner.legacy.subprocess, "Popen", return_value=process) as start,
+              patch.object(runner.shared, "stop_owned") as stop):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                runner.legacy.run_checked(["/diagnostic"], timeout=1)
+        self.assertTrue(start.call_args.kwargs["start_new_session"])
+        stop.assert_called_once_with(process)
+        log = Mock()
+        process.poll.return_value = 0
+        with patch.object(runner.shared, "stop_owned") as stop:
+            runner.legacy.stop_owned_server(process, log)
+        stop.assert_called_once_with(process)
+        log.close.assert_called_once()
+
+    def test_busy_lease_prevents_inspection_and_output_creation(self):
+        with (tempfile.TemporaryDirectory() as tmp,
+              patch.object(runner.shared, "Leases", side_effect=BlockingIOError("busy")),
+              patch.object(runner, "inspect_environment") as inspect):
+            output = Path(tmp) / "cell"
+            with self.assertRaises(BlockingIOError):
+                runner.run_cell("recompute", output, 18080, False)
+            self.assertFalse(output.exists())
+        inspect.assert_not_called()
+
+    def test_managed_cell_safety_is_independent_of_a_result_file(self):
+        def snapshot():
+            return dict(timestamp_ns=time.time_ns(), power_limit_service="active", power_limit_w=400.0,
+                        gpu=dict(driver="575.57.08", compute_apps=[], memory_used_mib=0, utilization_gpu_percent=0),
+                        uvm_refcount=0, struct_ops=dict(maps=[], links=[]), dmesg_abnormal=[], journal_abnormal=[], xids=[])
+        for defect in (None, "body failure", "monitor died", "post safety", "kernel error"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as tmp:
+                output = Path(tmp) / "cell"
+                lease, gpu_monitor, kernel_monitor, stream = Mock(), Mock(), Mock(), Mock()
+                gpu_monitor.poll.return_value = 0 if defect == "monitor died" else None
+                kernel_monitor.poll.return_value = None
+                def start_monitor(directory):
+                    path = directory / "gpu-telemetry.csv"
+                    headers = "timestamp, memory.used, temperature.gpu, power.draw, clocks.current.sm, clocks.current.memory, clocks_event_reasons.sw_power_cap, clocks_event_reasons.hw_slowdown\n"
+                    path.write_text(headers + "2026/09/03 10:00:00.000, 100 MiB, 40, 80 W, 1000 MHz, 1000 MHz, Not Active, Not Active\n")
+                    return gpu_monitor, stream, path
+                with (patch.dict(os.environ, {}, clear=True),
+                      patch.object(runner.shared, "Leases", return_value=lease),
+                      patch.object(runner.os, "sched_getaffinity", return_value=set(range(8, 17))),
+                      patch.object(runner.safety, "safety_snapshot", side_effect=snapshot),
+                      patch.object(runner.safety, "start_gpu_telemetry", side_effect=start_monitor),
+                      patch.object(runner.safety, "wait_for_post_server_safety", side_effect=(RuntimeError("new Xid") if defect == "post safety" else lambda before: snapshot())),
+                      patch.object(runner.subprocess, "Popen", return_value=kernel_monitor),
+                      patch.object(runner.shared, "stop_owned") as stop):
+                    def run():
+                        with runner.managed_cell(output, "575.57.08") as execution:
+                            environment = {**PLACEMENT, "boot_id": execution["boot_id"], "expected_driver": "575.57.08", "timestamp_ns": time.time_ns()}
+                            (output / "result.json").write_text('{"unit_test_only":true}\n')
+                            if defect == "kernel error":
+                                (output / "kernel-follow.log").write_text("NVRM: Xid test fixture\n")
+                            if defect == "body failure":
+                                raise RuntimeError("server failed")
+                        return environment
+                    if defect is None:
+                        environment = run()
+                    else:
+                        with self.assertRaises(RuntimeError):
+                            run()
+                lease.close.assert_called_once()
+                self.assertEqual(stop.call_count, 2)
+                record = json.loads((output / "execution.json").read_text())
+                self.assertEqual(record["status"], "passed" if defect is None else "failed")
+                if defect is None:
+                    self.assertEqual(runner.validate_execution(output, environment), record)
+                    for field, bad in (("status", "failed"), ("final_boot_id", "different"),
+                                       ("monitors_alive_before_stop", [False, True]), ("telemetry_cpu", 8)):
+                        (output / "execution.json").write_text(json.dumps({**record, field: bad}))
+                        with self.assertRaises(runner.GateError):
+                            runner.validate_execution(output, environment)
 
     def test_request_scoped_log_parser(self):
         request_id = "cmpl-lmc-p3-warm"

@@ -1,6 +1,39 @@
 # LMCache local-NVMe experiment protocol — revision 2
 
-Status: **offline repair passed final independent review; no further GPU launch
+## Current execution addendum — 2026-09-03
+
+The user's subsequent execution request resumes the work on the prepared
+575.57.08 host; the earlier 610 attempt history below is not rewritten or counted
+as a successful 575 run. **No new 575 model load, disk preflight or performance
+cell has run yet.** The model, eight prefixes, three native configurations and
+ten complete paired blocks remain unchanged; there is no BPF arm.
+
+The runner now holds the existing GPU/struct-ops leases, pins only the worker
+(and optional strace wrapper) to CPU 8–15, and collects GPU telemetry every
+200 ms plus a live kernel journal on CPU 16. Do not externally pin the coordinator
+to 8–15: it must retain CPUs 8–16 in its allowed set. `execution.json` records the
+actual boot, explicit driver, CPU placement, pre/post safety, monitor lifetime
+and cleanup; 575 validation reparses those files and rejects mixed-driver/boot
+formal blocks. The shared checks require the existing 400 W limit and reject
+kernel errors or thermal/hardware throttling; normal fixed-power-cap activity
+is reported. All cleanup targets owned process groups, never global processes
+or shared-memory files.
+
+Next, under the main thread's GPU schedule (the runner takes its own leases):
+
+```sh
+./current-venv/bin/python -B run_lmcache_disk.py run-cell \
+  --expected-driver 575.57.08 --config lmcache_disk \
+  --output raw/storage-575-preflight-01/disk --trace
+```
+
+Validate the full eight-prefix trace before the three correctness cells and
+30 untraced formal cells. The safety changes have only CPU unit-test evidence;
+they do not establish runtime compatibility or storage performance on 575.
+
+## Historical revision-2 protocol
+
+Historical status: **offline repair passed final independent review; no further GPU launch
 is authorized because revision 1 exhausted the three-attempt preflight cap**.
 
 This protocol addresses the explicit revision commitment to extend the LMCache

@@ -1,4 +1,4 @@
-# Hummingbird completion-fence ablation — preparation only
+# Hummingbird completion-fence ablation — completed
 
 RQ3: “Does \sys improve tail latency, throughput, and resource fairness
 compared to user-space and global policies in multi-tenant settings?”
@@ -92,8 +92,11 @@ and CLI help check pass. OpenCode's full
 consultation and the accepted/rejected suggestions are retained in
 [opencode-review.md](opencode-review.md) and [opencode-final.md](opencode-final.md).
 The subsequent [real eight-cell preflight](preflight-results.md) passes the
-independent audit and exercises depth 2 in every relevant cell. All 40 formal
-performance cells remain **PENDING**; the short preflight is not their result.
+independent audit and exercises depth 2 in every relevant cell. The separate
+[40-cell formal comparison](results-575-20260903.md) is now complete and raw
+recomputation passes. Bound 2 raises C/BPF background goodput by about 15%,
+but the joint foreground-protection test remains inconclusive. The short
+preflight is not pooled with these formal results.
 
 CPU-only preparation/build entrypoints (no CUDA-kernel rebuild):
 
@@ -108,7 +111,7 @@ and native libraries without modifying them. The private client defaults to
 bound 1; `--lp-inflight-bound 2` is the explicit ablation. Do not invoke the
 client on a workload until root admits the new exclusive real-GPU preflight.
 
-## Root-only next execution
+## Root-only recorded execution
 
 The coordinator must retain normal CPU affinity so the inherited telemetry
 worker can use CPU 16; do not wrap GPU runs in the CPU-17 preparation taskset.
@@ -117,7 +120,8 @@ GPU0 and struct-ops lease inodes, clean explicit environment, exact 575.57.08
 driver gate, continuous telemetry, before/after safety and owned process-group
 cleanup are reused unchanged. No build occurs inside the run.
 
-From the repository root, after admission (these commands have **not** run):
+From the repository root, these admitted commands have now run successfully.
+Do not reuse their existing output paths; the records are retained:
 
 ```bash
 sudo python3 -B workloads/hummingbird/pipeline/run_study.py preflight \

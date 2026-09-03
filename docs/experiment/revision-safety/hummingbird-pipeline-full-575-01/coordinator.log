@@ -1,0 +1,90 @@
+Id=gdm.service
+ActiveState=active
+
+Id=nvidia-persistenced.service
+ActiveState=active
+START 1/40 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=1844358 BE_rps=133.01666666666668
+START 2/40 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=1837073 BE_rps=153.25
+START 3/40 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=1854688 BE_rps=133.08333333333334
+START 4/40 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=1890063 BE_rps=152.35
+START 5/40 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=4859470 BE_rps=153.75
+START 6/40 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=4828136 BE_rps=133.61666666666667
+START 7/40 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=4684057 BE_rps=133.55
+START 8/40 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=5196676 BE_rps=153.03333333333333
+START 9/40 {'block': 1, 'scenario': 'periodic', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=1851469 BE_rps=133.5
+START 10/40 {'block': 1, 'scenario': 'periodic', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=1820713 BE_rps=153.41666666666666
+START 11/40 {'block': 1, 'scenario': 'periodic', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=1815124 BE_rps=133.28333333333333
+START 12/40 {'block': 1, 'scenario': 'periodic', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=1844397 BE_rps=152.76666666666668
+START 13/40 {'block': 1, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=4730702 BE_rps=153.26666666666668
+START 14/40 {'block': 1, 'scenario': 'burstgpt', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=4886603 BE_rps=133.66666666666666
+START 15/40 {'block': 1, 'scenario': 'burstgpt', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=4788263 BE_rps=153.85
+START 16/40 {'block': 1, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=4868057 BE_rps=133.15
+START 17/40 {'block': 2, 'scenario': 'periodic', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=1864389 BE_rps=153.4
+START 18/40 {'block': 2, 'scenario': 'periodic', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=1853523 BE_rps=153.75
+START 19/40 {'block': 2, 'scenario': 'periodic', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=1812976 BE_rps=133.26666666666668
+START 20/40 {'block': 2, 'scenario': 'periodic', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=1875969 BE_rps=133.41666666666666
+START 21/40 {'block': 2, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=4732137 BE_rps=133.33333333333334
+START 22/40 {'block': 2, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=4745754 BE_rps=153.61666666666667
+START 23/40 {'block': 2, 'scenario': 'burstgpt', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=4784214 BE_rps=133.58333333333334
+START 24/40 {'block': 2, 'scenario': 'burstgpt', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=4786032 BE_rps=153.66666666666666
+START 25/40 {'block': 3, 'scenario': 'periodic', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=1841779 BE_rps=153.11666666666667
+START 26/40 {'block': 3, 'scenario': 'periodic', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=1857917 BE_rps=153.76666666666668
+START 27/40 {'block': 3, 'scenario': 'periodic', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=1845303 BE_rps=133.16666666666666
+START 28/40 {'block': 3, 'scenario': 'periodic', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=1829608 BE_rps=133.33333333333334
+START 29/40 {'block': 3, 'scenario': 'burstgpt', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=4726035 BE_rps=133.6
+START 30/40 {'block': 3, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=4688262 BE_rps=154.06666666666666
+START 31/40 {'block': 3, 'scenario': 'burstgpt', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=5245261 BE_rps=153.86666666666667
+START 32/40 {'block': 3, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=4763944 BE_rps=133.33333333333334
+START 33/40 {'block': 4, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=4968014 BE_rps=153.55
+START 34/40 {'block': 4, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=4763927 BE_rps=133.78333333333333
+START 35/40 {'block': 4, 'scenario': 'burstgpt', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=4752050 BE_rps=134.3
+START 36/40 {'block': 4, 'scenario': 'burstgpt', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=5020035 BE_rps=153.25
+START 37/40 {'block': 4, 'scenario': 'periodic', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=1855456 BE_rps=152.7
+START 38/40 {'block': 4, 'scenario': 'periodic', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=1872925 BE_rps=153.55
+START 39/40 {'block': 4, 'scenario': 'periodic', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=1823854 BE_rps=133.3
+START 40/40 {'block': 4, 'scenario': 'periodic', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=1835889 BE_rps=133.33333333333334
+Id=gdm.service
+ActiveState=active
+
+Id=nvidia-persistenced.service
+ActiveState=active

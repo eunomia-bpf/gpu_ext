@@ -26,6 +26,10 @@ This is only a reviewed source proposal. There has been no driver compilation,
 new symbol/BTF inspection, fentry admission, SELECTED/FINISHED observation,
 target readback, module reload or reboot. The two hooks and local counter add
 functional-diagnostic overhead and must not be used for performance cells.
-The per-invocation identity values are opaque correlation tokens; future
-records must not publish raw kernel addresses. The actual Q2 transition test
-therefore remains open despite this successful source review.
+Follow-up review found that the proposed identity tokens were raw stack and
+bitmap-tree addresses. Omitting them from reports would not make that tracing
+interface safe, so the proposal now removes both fields and their assignments,
+along with fixed constants and an unused page index. The observer must pair one
+outstanding SELECTED/FINISHED frame per full `pid_tgid` and reject nesting or
+unmatched phases. The actual Q2 transition test remains open despite this
+successful source review.

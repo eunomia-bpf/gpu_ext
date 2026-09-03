@@ -35,7 +35,8 @@ boundaries.
 driver paths:
 
 1. `kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h`: a scalar-only diagnostic
-   context, two phase values and one void-returning declaration.
+   context containing no kernel addresses, two phase values and one
+   void-returning declaration.
 2. `kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c`: one `noinline`, const-pointer
    hook with the existing barrier-only pattern used by
    `nv_gpu_sched_gsp_control_complete`.
@@ -68,14 +69,11 @@ separately exposed action-validator return. For invalid99 with legal (0,0),
 expect region APPLY and actual effect NATIVE; do not label APPLY as acceptance
 of action99. No validator is rerun solely to synthesize a diagnostic result.
 
-The two numeric identity tokens are the live diagnostic-frame and bitmap-tree
-addresses, copied as opaque scalars. Together with the observer's full
-`pid_tgid`, they associate SELECTED with FINISHED; tokens may be reused after
-a completed invocation and must never be dereferenced or published as raw
-addresses. Pair only one outstanding frame per task, reject nested/duplicate
+The diagnostic publishes no pointer or address-derived identity. Pair only one
+outstanding frame per full observer `pid_tgid`; reject nested or duplicate
 starts and unmatched completion, and assign any persistent sequence in the
-observer. These tokens do not independently identify the target TGID/VA space:
-the same exclusive-window limitation as the original fixture remains.
+observer. This does not independently identify the target TGID/VA space: the
+same exclusive-window limitation as the original fixture remains.
 
 FINISHED occurs after the whole selected branch; it is also emitted for
 BYPASS to make zero traversal an explicit completed control. Only the native

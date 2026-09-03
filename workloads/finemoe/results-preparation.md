@@ -221,3 +221,41 @@ Xid/kernel abnormality. History validates exact tokens, not full logits; the
 next four-arm preflight must independently check its retained actual logits
 against golden-v4's unchanged absolute tolerance 0.0. No performance result is
 claimed, and the failed history-v1/v2 records remain unchanged.
+
+## First numerical preflight: retained prefill-only logit discrepancy
+
+`raw/preflight-v1` stopped on its first arm, `finemoe-bpf`, during warmup question
+137, before any evaluation request or complete four-arm block. All 16 generated
+tokens exactly matched HF. Independently loading the retained actual
+`block-00/finemoe-bpf/question-137-logits.npy` and golden-v4's array found 155
+different values among 2,430,976 finite float32 values. All differences were in
+generation step 0 (prefill), with maximum absolute error 0.03125; all subsequent
+15 decode steps were exactly equal. All 16 per-step argmax IDs also matched.
+The fixed zero-tolerance gate correctly rejected the cell. This does not identify
+a BPF-specific error because the other three arms had not run.
+
+The failed request record, both reference/actual arrays and original failure
+remain available. The worker exited 1, cleanup passed, and 199 telemetry samples
+peaked at 17,905 MiB and 44 C with no disallowed throttling. The GPU returned to
+15 MiB, no compute process, UVM 0 and no Xid/kernel abnormality.
+
+Source inspection identified a directly relevant common execution difference:
+HF 4.49's `GenerationMixin` detects the `logits_to_keep` forward parameter and
+requests one position during generation; its Qwen head slices hidden states
+before the linear operation. The older author forward lacked this parameter,
+computed logits for all prefill positions and discarded extra positions later.
+Its custom `prepare_inputs_for_generation` also did not forward the keyword.
+Different linear-operation shapes are a candidate explanation for the observed
+prefill-only numerical difference, not a proven root cause.
+
+The common Python compatibility patch now exposes `logits_to_keep=0`, forwards
+it through the custom input preparation, and applies the same HF slice before
+the head. Default zero still computes all positions and preserves the author's
+float32 output conversion. The change is retained in `common-runtime.patch`;
+reverse application checks passed. Three CPU regressions execute the actual
+author methods to verify `GenerationMixin` detection, keyword propagation and
+head input shape, unchanged default-zero behavior, and tensor-position slicing.
+All 51 Python tests passed without CUDA initialization. No strategy, model
+weight, numerical tolerance or compiled extension changed. Fresh full
+`raw/history-v4` and `raw/preflight-v2` will determine whether this compatibility
+repair removes the measured discrepancy; no GPU run was performed during it.

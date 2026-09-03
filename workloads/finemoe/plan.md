@@ -62,6 +62,14 @@ finite values and populate the full 1,000-entry capacity. History inputs remain
 disjoint from held-out/warmup inputs. The observed token failure is resolved;
 full-logit equivalence at unchanged tolerance 0.0 remains a four-arm preflight
 gate, not a conclusion from history.
+The first numerical preflight stopped on BPF warmup question 137: exact tokens,
+but 155 prefill-only logit values differed (max 0.03125); all 15 later decode
+steps were exactly equal. The zero-tolerance failure is retained. The author's
+head computed all prefill positions while HF 4.49 requested only the last.
+`common-runtime.patch` now aligns the `logits_to_keep` signature, propagation and
+pre-head slice, retaining default-zero full-logit semantics. All 51 CPU tests
+passed; no policy, tolerance or compiled extension changed. This remains a
+candidate fix until fresh history-v4 and four-arm preflight-v2 pass.
 
 ## Research Question
 
@@ -278,21 +286,22 @@ full-logit transfer and shadow comparisons, retain exact golden token checks,
 and use fresh processes with the same store/warmup. The failed v1 and v2 GPU
 attempts and diagnostic are retained. Normal golden-v4 completed the full
 73-request / 9-repeat protocol and independent two-array numerical audit;
-history-v3 completed the full 64-request real history and store audit. The next
-run is the four-arm numerical/oracle/copy-accounting preflight.
+history-v3 completed the full 64-request real history and store audit. Following
+the retained preflight-v1 discrepancy and Python head-shape compatibility change,
+the next runs are fresh full history-v4 and four-arm preflight-v2.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
 
 The completed diagnostic used `.venv/bin/python -B compare.py --mode golden
 --native-backtrace --output raw/golden-sigill-gdb-01 --timeout 1200`. It cannot be
-reused as a reference. The normal golden-v4 and history-v3 commands below have
-completed; the subsequent preflight/full commands are not claims those stages passed.
+reused as a reference. Normal golden-v4 has completed; the fresh history-v4,
+preflight-v2 and full commands below are not claims those stages passed.
 
 ```sh
 .venv/bin/python -B compare.py --mode golden --output raw/golden-v4
-.venv/bin/python -B compare.py --mode history --golden raw/golden-v4/stage --output raw/history-v3
-.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v4/stage --history raw/history-v3/stage --output raw/preflight-v1
-.venv/bin/python -B compare.py --mode full --golden raw/golden-v4/stage --history raw/history-v3/stage --preflight raw/preflight-v1 --output raw/full-v1
+.venv/bin/python -B compare.py --mode history --golden raw/golden-v4/stage --output raw/history-v4
+.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v4/stage --history raw/history-v4/stage --output raw/preflight-v2
+.venv/bin/python -B compare.py --mode full --golden raw/golden-v4/stage --history raw/history-v4/stage --preflight raw/preflight-v2 --output raw/full-v1
 ```
 
 The parent controller must retain its ordinary affinity (it runs telemetry on

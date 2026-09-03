@@ -1,0 +1,366 @@
+--- a/Makefile
++++ b/Makefile
+@@ -3,22 +3,23 @@
+ HB_CLANG ?= /usr/bin/clang
+ HB_OBJCOPY ?= /usr/bin/llvm-objcopy
+ HB_CPUSET ?= 4-7
+-HB_OUTPUT := $(CURDIR)/build
+-HB_BPFTIME := $(abspath ../../../bpftime)
++HB_SOURCE := $(abspath ../../..)
++HB_OUTPUT := $(abspath ..)
++HB_BPFTIME := $(abspath $(HB_SOURCE)/../../../bpftime)
+ HB_VM_BUILD := $(HB_BPFTIME)/build
+ HB_INCLUDES := -I$(HB_BPFTIME)/vm/vm-core/include -I$(HB_BPFTIME)/vm/compat/include
+ HB_VM_LIBS := $(HB_VM_BUILD)/vm/vm-core/libbpftime_vm.a \
+ 	-Wl,--whole-archive $(HB_VM_BUILD)/vm/compat/ubpf-vm/libbpftime_ubpf_vm.a \
+ 	-Wl,--no-whole-archive $(HB_VM_BUILD)/vm/compat/ubpf-vm/ubpf/lib/libubpf.a \
+ 	$(HB_VM_BUILD)/third_party/spdlog/libspdlogd.a -lpthread -ldl
+-HB_UPSTREAM := $(abspath ../gpreempt/deps/upstream)
+-HB_GP_BUILD := $(abspath ../gpreempt/build/load-study)
+-HB_GP_ARTIFACT := $(abspath ../gpreempt)
+-HB_EXTENSION := $(abspath ../../extension)
++HB_UPSTREAM := $(abspath $(HB_SOURCE)/../gpreempt/deps/upstream)
++HB_GP_BUILD := $(abspath $(HB_SOURCE)/../gpreempt/build/load-study)
++HB_GP_ARTIFACT := $(abspath $(HB_SOURCE)/../gpreempt)
++HB_EXTENSION := $(abspath $(HB_SOURCE)/../../extension)
+ HB_CUDA := /usr/local/cuda-12.9
+-HB_DISB_ARCHIVE ?= $(HB_OUTPUT)/disb-trace/libdisb.a
++HB_DISB_ARCHIVE ?= $(HB_SOURCE)/build/disb-trace/libdisb.a
+ HB_CUDA_INCLUDES := -I$(HB_CUDA)/include -include cuda_runtime.h \
+-	-I$(HB_OUTPUT)/disb-src/include -I$(CURDIR) -I$(HB_UPSTREAM)/include \
++	-I$(HB_SOURCE)/build/disb-src/include -I$(CURDIR) -I$(HB_SOURCE) -I$(HB_SOURCE)/pipeline -I$(HB_UPSTREAM)/include \
+ 	-I$(HB_UPSTREAM)/third_party/jsoncpp/include -I$(HB_GP_BUILD)/third_party/glog \
+ 	-I$(HB_UPSTREAM)/third_party/glog/src -I$(HB_GP_ARTIFACT) -I$(HB_EXTENSION)
+ HB_DEFINES := -DCUDA -DGPREEMPT_LOAD_STUDY -DGLOG_USE_GLOG_EXPORT \
+@@ -71,10 +72,10 @@
+ 	taskset -c $(HB_CPUSET) $(HB_CXX) $(HB_CPPFLAGS) $< $(HB_OUTPUT)/idle_executor.o \
+ 		$(HB_OUTPUT)/idle_policy.o $(HB_VM_LIBS) $(HB_GPU_LIBS) -o $@
+ 
+-$(HB_OUTPUT)/idle_executor.o: idle_executor.cpp idle_executor.h idle_policy.h split_grid.h Makefile | $(HB_OUTPUT)
++$(HB_OUTPUT)/idle_executor.o: idle_executor.cpp idle_executor.h idle_policy.h $(HB_SOURCE)/split_grid.h $(HB_SOURCE)/pipeline/pipeline_events.h Makefile | $(HB_OUTPUT)
+ 	taskset -c $(HB_CPUSET) $(HB_CXX) $(HB_CPPFLAGS) -c $< -o $@
+ 
+-$(HB_OUTPUT)/hummingbird_client.o: hummingbird_client.cpp idle_executor.h $(HB_OUTPUT)/disb-src/include/benchmark.h Makefile | $(HB_OUTPUT)
++$(HB_OUTPUT)/hummingbird_client.o: hummingbird_client.cpp idle_executor.h $(HB_SOURCE)/build/disb-src/include/benchmark.h Makefile | $(HB_OUTPUT)
+ 	taskset -c $(HB_CPUSET) $(HB_CXX) $(HB_CPPFLAGS) -c $< -o $@
+ 
+ $(HB_OUTPUT)/hummingbird_profile.o: hummingbird_profile.cpp idle_executor.h Makefile | $(HB_OUTPUT)
+--- a/hummingbird_client.cpp
++++ b/hummingbird_client.cpp
+@@ -12,6 +12,8 @@
+ using namespace hummingbird;
+ namespace {
+ std::string mode, split_cubin, profile_path, bpf_path;
++std::string inflight_option;
++uint32_t inflight_bound = 1;
+ std::unique_ptr<Profile> profile;
+ SharedState shared;
+ std::mutex setup_mutex;
+@@ -141,7 +143,7 @@
+     }
+     void initialize_executor(bool scheduled) {
+         if (scheduled) executor_ = std::make_shared<IdleExecutor>(split_cubin, *profile, shared,
+-                                                               mode == "idle_bpf", bpf_path);
++                                                               mode == "idle_bpf", bpf_path, inflight_bound);
+         else if (idle_mode() && role_) executor_ = std::make_shared<SplitModel>(split_cubin);
+         else executor_ = std::make_shared<CheckedExecutor>();
+         status_check(executor_->init(model_name_), "initialize real model");
+@@ -209,18 +211,25 @@
+     try {
+         if (argc == 2 && !std::strcmp(argv[1], "--help")) {
+             std::cout << "hummingbird_client CONFIG.json --mode native|timeslice_control|idle_c|idle_bpf "
+-                         "[--profile PROFILE.json --split-cubin SPLIT.cubin --bpf-program PROGRAM.bin]\n";
++                         "[--profile PROFILE.json --split-cubin SPLIT.cubin --bpf-program PROGRAM.bin "
++                         "--lp-inflight-bound 1|2]\n";
+             return 0;
+         }
+         if (argc < 4 || argc % 2) throw std::runtime_error("invalid command; use --help");
+         for (int i = 2; i < argc; i += 2) {
+             std::string arg = argv[i], value = argv[i + 1];
+             std::string *target = arg == "--mode" ? &mode : arg == "--profile" ? &profile_path :
+-                arg == "--split-cubin" ? &split_cubin : arg == "--bpf-program" ? &bpf_path : nullptr;
++                arg == "--split-cubin" ? &split_cubin : arg == "--bpf-program" ? &bpf_path :
++                arg == "--lp-inflight-bound" ? &inflight_option : nullptr;
+             if (!target || !target->empty()) throw std::runtime_error("unknown or repeated option: " + arg);
+             *target = value;
+         }
+         if (mode != "native" && mode != "timeslice_control" && !idle_mode()) throw std::runtime_error("unknown mode");
++        if (!inflight_option.empty()) {
++            if (!idle_mode() || (inflight_option != "1" && inflight_option != "2"))
++                throw std::runtime_error("idle pipeline bound must be exactly 1 or 2");
++            inflight_bound = inflight_option == "2" ? 2 : 1;
++        }
+         if (const char *value = std::getenv("GPREEMPT_POLICY"))
+             if (std::string(value) != "original") throw std::runtime_error("idle study rejects unrelated driver BPF policy");
+         if (idle_mode()) {
+@@ -244,6 +253,7 @@
+         Json::Value setup; setup["mode"] = mode; setup["graph"] = false; setup["profile_path"] = profile_path;
+         setup["split_cubin"] = split_cubin; setup["bpf_program"] = bpf_path;
+         setup["lp_worker_cpu"] = idle_mode() ? Json::Value(2) : Json::Value();
++        setup["configured_lp_inflight_bound"] = idle_mode() ? Json::Value(inflight_bound) : Json::Value();
+         setup["small_input_enabled"] = profile ? profile->small_input_enabled : false;
+         setup["small_output_enabled"] = profile ? profile->small_output_enabled : false;
+         setup["isolated_lc_calibration"] = lc_only;
+--- a/idle_executor.cpp
++++ b/idle_executor.cpp
+@@ -142,8 +142,9 @@
+ Status SplitModel::launch_kernel(size_t index, CUstream stream) { launch_whole(index, stream); return Status::Succ; }
+ 
+ IdleExecutor::IdleExecutor(std::string cubin, const Profile &profile, SharedState &state,
+-                           bool bpf, const std::string &path)
+-    : SplitModel(std::move(cubin)), profile_(profile), state_(state), policy_(bpf, path) {}
++                           bool bpf, const std::string &path, uint32_t inflight_bound)
++    : SplitModel(std::move(cubin)), profile_(profile), state_(state), policy_(bpf, path),
++      events(inflight_bound) {}
+ IdleExecutor::~IdleExecutor() {
+     try { shutdown(); } catch (const std::exception &e) {
+         std::fprintf(stderr, "HUMMINGBIRD_FATAL worker cleanup: %s\n", e.what()); std::terminate();
+@@ -164,8 +165,15 @@
+ void IdleExecutor::start(CUcontext context, CUstream stream) {
+     if (worker_.joinable() || !context || !stream) throw std::runtime_error("invalid idle worker start");
+     verify_profile(); context_ = context; stream_ = stream;
+-    cuda_check(cuEventCreate(&event_, CU_EVENT_DISABLE_TIMING), "create LP completion event");
+-    worker_ = std::thread(&IdleExecutor::worker, this);
++    try {
++        for (uint32_t i = 0; i < events.bound(); ++i)
++            cuda_check(cuEventCreate(&events_[i], CU_EVENT_DISABLE_TIMING), "create LP completion event");
++        worker_ = std::thread(&IdleExecutor::worker, this);
++    } catch (...) {
++        for (auto &event : events_)
++            if (event) { cuda_check(cuEventDestroy(event), "destroy unstarted LP event"); event = nullptr; }
++        throw;
++    }
+ }
+ Status IdleExecutor::execute(CUstream stream) {
+     std::lock_guard<std::mutex> lock(mutex_);
+@@ -186,7 +194,8 @@
+     { std::lock_guard<std::mutex> lock(mutex_); closing_ = true; condition_.notify_all(); }
+     worker_.join();
+     cuda_check(cuCtxSetCurrent(context_), "LP cleanup context");
+-    cuda_check(cuEventDestroy(event_), "destroy LP completion event"); event_ = nullptr;
++    for (auto &event : events_)
++        if (event) { cuda_check(cuEventDestroy(event), "destroy LP completion event"); event = nullptr; }
+ }
+ void IdleExecutor::worker() {
+     try {
+@@ -206,13 +215,14 @@
+ void IdleExecutor::run_request() {
+     const auto deadline = now_ns() + 120000000000ULL;
+     uint64_t tick_due = 0;
+-    bool in_flight = false;
++    if (events.outstanding()) throw std::runtime_error("new LP request before previous drain");
+     auto done = [&] {
+-        if (!in_flight) return true;
+-        ++event_checks_; const auto begin = now_ns(); const auto result = cuEventQuery(event_);
+-        event_query_ns_ += now_ns() - begin;
+-        if (result == CUDA_ERROR_NOT_READY) return false;
+-        cuda_check(result, "query LP completion"); in_flight = false; return true;
++        return events.retire_completed([&](uint32_t slot) {
++            ++event_checks_; const auto begin = now_ns(); const auto result = cuEventQuery(events_[slot]);
++            event_query_ns_ += now_ns() - begin;
++            if (result == CUDA_ERROR_NOT_READY) return false;
++            cuda_check(result, "query LP completion"); return true;
++        });
+     };
+     for (size_t i = 0; i < get_kernel_num(); ++i) {
+         const auto &p = profile_.kernels[i];
+@@ -231,6 +241,7 @@
+             input.split_ns = p.split_ns; input.whole_ns = p.whole_ns;
+             input.hp_pending = state_.hp_pending; input.hp_gpu_done = state_.hp_gpu_done;
+             input.lp_pending = 1; input.lp_gpu_done = gpu_done;
++            input.lp_outstanding = events.outstanding(); input.lp_inflight_bound = events.bound();
+             input.kernel_unstarted = cursor.unstarted(); input.consolidate = 1;
+             if (state_.small_active && state_.hp_context && !state_.hp_pending) {
+                 const auto query_begin = now_ns();
+@@ -251,14 +262,16 @@
+             if (output.action == HB_SPLIT || output.action == HB_WHOLE) {
+                 // This lock also guards HP pending publication. No HP enqueue can
+                 // race between policy observation and this single CUDA submission.
++                const auto slot = events.next_slot(); // Assert policy result, never prefilter it.
+                 Tile tile = output.action == HB_WHOLE ? Tile{{0, 0, 0}, p.grid} : cursor.current();
+                 if (p.name == "nop") { launch_whole(i, stream_); ++nops_; }
+                 else {
+                     launch_tile(i, stream_, tile);
+                     ctas_ += uint64_t(tile.grid[0]) * tile.grid[1] * tile.grid[2];
+                 }
+-                cuda_check(cuEventRecord(event_, stream_), "record LP completion");
+-                in_flight = true; max_lp_inflight_ = 1; tick_due = output.next_tick_ns;
++                // Same stream preserves dependencies across original kernels too.
++                cuda_check(cuEventRecord(events_[slot], stream_), "record LP completion");
++                events.issued(); tick_due = output.next_tick_ns;
+                 if (output.action == HB_WHOLE) ++whole_launches_; else ++split_launches_;
+                 if (output.bubble == HB_SMALL_BUBBLE) {
+                     ++small_launches_;
+@@ -300,8 +313,13 @@
+     result["tick_waits"] = Json::UInt64(tick_waits_); result["admission_lock_wait_ns"] = Json::UInt64(admission_lock_ns_);
+     result["decisions"] = Json::UInt64(policy_.decisions); result["jit_decisions"] = Json::UInt64(policy_.jit_decisions);
+     result["decision_ns"] = Json::UInt64(policy_.decision_ns);
+-    result["max_lp_inflight"] = Json::UInt64(max_lp_inflight_); result["configured_lp_inflight_bound"] = 1;
+-    result["completion_fence"] = "event-query-before-next-launch";
++    result["max_lp_inflight"] = events.peak; result["configured_lp_inflight_bound"] = events.bound();
++    result["completion_fence"] = events.bound() == 1 ? "event-query-before-next-launch" : "bounded-kernel-tick-event-ring";
++    result["lp_events_issued"] = Json::UInt64(events.issued_count);
++    result["lp_events_retired"] = Json::UInt64(events.retired_count);
++    result["lp_outstanding_at_report"] = events.outstanding();
++    result["lp_overlap_launches"] = Json::UInt64(events.overlap_launches);
++    result["lp_bound_semantics"] = "host-issued-unretired-events-not-device-queue-occupancy";
+     return result;
+ }
+ } // namespace hummingbird
+--- a/idle_executor.h
++++ b/idle_executor.h
+@@ -3,6 +3,7 @@
+ #include "executor.h"
+ #include "idle_policy.h"
+ #include "split_grid.h"
++#include "pipeline_events.h"
+ #include <atomic>
+ #include <condition_variable>
+ #include <exception>
+@@ -82,7 +83,7 @@
+ class IdleExecutor : public SplitModel {
+ public:
+     IdleExecutor(std::string cubin, const Profile &profile, SharedState &state,
+-                 bool bpf, const std::string &bpf_path);
++                 bool bpf, const std::string &bpf_path, uint32_t inflight_bound = 1);
+     ~IdleExecutor() override;
+     void start(CUcontext context, CUstream stream);
+     Status execute(CUstream stream) override; // accepts at most one whole request, returns asynchronously
+@@ -98,7 +99,8 @@
+     Policy policy_;
+     CUcontext context_ = nullptr;
+     CUstream stream_ = nullptr;
+-    CUevent event_ = nullptr;
++    std::array<CUevent, 2> events_{};
++    PipelineEvents events;
+     std::thread worker_;
+     std::mutex mutex_;
+     std::condition_variable condition_;
+@@ -107,7 +109,7 @@
+     uint64_t requested_ = 0, completed_ = 0, split_launches_ = 0, whole_launches_ = 0;
+     uint64_t small_launches_ = 0, large_launches_ = 0, ctas_ = 0, nops_ = 0;
+     uint64_t input_small_launches_ = 0, output_small_launches_ = 0;
+-    uint64_t max_lp_inflight_ = 0, event_query_ns_ = 0;
++    uint64_t event_query_ns_ = 0;
+     uint64_t event_checks_ = 0, event_waits_ = 0, event_wait_ns_ = 0, stops_ = 0;
+     uint64_t tick_waits_ = 0, admission_lock_ns_ = 0;
+ };
+--- a/idle_policy.c
++++ b/idle_policy.c
+@@ -2,7 +2,7 @@
+ #include "idle_policy.h"
+ 
+ /* Paper-described Hummingbird Algorithm 1 component, with the explicit
+- * nonblocking event-completion guard documented in plan.md. This function
++ * fixed-bound completion-fence ablation in pipeline/plan.md. This function
+  * issues no CUDA operation; the common asynchronous executor applies actions.
+  */
+ hb_u64 hb_decide(struct hb_call *call, unsigned long length)
+@@ -18,7 +18,10 @@
+     if (in->hp_gpu_done > 1 || in->small_active > 1 || in->small_start_done > 1 ||
+         in->lp_pending > 1 || in->lp_gpu_done > 1 || in->kernel_unstarted > 1 ||
+         in->consolidate > 1 || in->now_ns < in->last_hp_activity_ns ||
+-        !in->large_after_ns || !in->split_ns || !in->whole_ns)
++        !in->large_after_ns || !in->split_ns || !in->whole_ns ||
++        (in->lp_inflight_bound != 1 && in->lp_inflight_bound != 2) ||
++        in->lp_outstanding > in->lp_inflight_bound ||
++        in->lp_gpu_done != (in->lp_outstanding == 0))
+         return HB_ERROR;
+ 
+     /* HP arrival closes LP admission before considering timers or LP progress. */
+@@ -48,9 +51,10 @@
+         out->wait_reason = HB_WAIT_TICK;
+         return out->action;
+     }
+-    /* A profiled tick does not establish completion. Underprediction must not
+-     * accumulate launches. Count this wait separately in the real executor. */
+-    if (!in->lp_gpu_done) {
++    /* Both C and JIT decide here, without a native admission prefilter.
++     * Bound 1 retains the event fence; 2 is a fixed pipeline ablation.
++     * A profiled tick does not prove completion or hardware queue occupancy. */
++    if (in->lp_outstanding == in->lp_inflight_bound) {
+         out->wait_reason = HB_WAIT_LP_EVENT;
+         return out->action;
+     }
+--- a/idle_policy.h
++++ b/idle_policy.h
+@@ -31,6 +31,9 @@
+     hb_u32 lp_gpu_done;
+     hb_u32 kernel_unstarted;
+     hb_u32 consolidate;
++    /* Host-issued, not-yet-retired event count; not hardware queue occupancy. */
++    hb_u32 lp_outstanding;
++    hb_u32 lp_inflight_bound;
+ };
+ 
+ struct hb_output {
+--- a/test_idle_policy.cpp
++++ b/test_idle_policy.cpp
+@@ -26,6 +26,7 @@
+     call.input.lp_gpu_done = 1;
+     call.input.kernel_unstarted = 1;
+     call.input.consolidate = 1;
++    call.input.lp_inflight_bound = 1;
+     return call;
+ }
+ 
+@@ -83,7 +84,25 @@
+         call = valid(); call.input.tick_due_ns = 1000001;
+         check(call, HB_WAIT, HB_WAIT_TICK, 1000001);
+         call = valid(); call.input.lp_gpu_done = 0;
++        call.input.lp_outstanding = 1;
+         check(call, HB_WAIT, HB_WAIT_LP_EVENT, 0);
++        call.input.lp_inflight_bound = 2;
++        check(call, HB_SPLIT, HB_NOT_WAITING, 1015000);
++        call.input.tick_due_ns = 1000001;
++        check(call, HB_WAIT, HB_WAIT_TICK, 1000001);
++        call.input.tick_due_ns = 0;
++        call.input.lp_outstanding = 2;
++        check(call, HB_WAIT, HB_WAIT_LP_EVENT, 0);
++        call.input.hp_pending = 1;
++        check(call, HB_STOP_LP, HB_NOT_WAITING, 0);
++        for (hb_u32 bound : {0U, 3U}) {
++            call = valid(); call.input.lp_inflight_bound = bound;
++            check(call, HB_ERROR, HB_NOT_WAITING, 0);
++        }
++        call = valid(); call.input.lp_outstanding = 1;
++        check(call, HB_ERROR, HB_NOT_WAITING, 0);
++        call = valid(); call.input.lp_gpu_done = 0; call.input.lp_outstanding = 2;
++        check(call, HB_ERROR, HB_NOT_WAITING, 0);
+         call = valid(); call.input.last_hp_activity_ns = 900000;
+         check(call, HB_WHOLE, HB_NOT_WAITING, 1085000);
+         call.input.kernel_unstarted = 0;
+@@ -110,6 +129,7 @@
+                 c.input.small_start_done = (bits >> 3) & 1;
+                 c.input.lp_pending = (bits >> 4) & 1;
+                 c.input.lp_gpu_done = (bits >> 5) & 1;
++                c.input.lp_outstanding = c.input.lp_gpu_done ? 0 : 1;
+                 c.input.kernel_unstarted = (bits >> 6) & 1;
+                 c.input.consolidate = (bits >> 7) & 1;
+                 c.input.last_hp_activity_ns = c.input.now_ns - elapsed;
+@@ -120,6 +140,15 @@
+                 if (c_result == HB_SPLIT || c_result == HB_WHOLE)
+                     require(!c.input.hp_pending && c.input.hp_gpu_done && c.input.lp_gpu_done,
+                             "launch without genuine completion/priority permission");
++                ++checked;
++                c = bpf; c.input.lp_inflight_bound = 2;
++                bpf = c;
++                const auto pipelined = hb_decide(&c, sizeof(c));
++                require(pipelined == execute(&bpf, sizeof(bpf)), "pipeline return mismatch");
++                require(std::memcmp(&c, &bpf, sizeof(c)) == 0, "pipeline state mismatch");
++                if (pipelined == HB_SPLIT || pipelined == HB_WHOLE)
++                    require(!c.input.hp_pending && c.input.hp_gpu_done && c.input.lp_outstanding < 2,
++                            "pipeline launch without priority/capacity permission");
+                 ++checked;
+             }
+         }
+--- a/test_profile.cpp
++++ b/test_profile.cpp
+@@ -51,6 +51,7 @@
+     state.large_after_ns = 1000; state.launch_overhead_ns = 500; state.split_ns = 5000;
+     state.whole_ns = 10000; state.hp_gpu_done = state.lp_gpu_done = state.lp_pending = 1;
+     state.kernel_unstarted = state.consolidate = 1;
++    state.lp_inflight_bound = 1;
+     for (unsigned int pending : {0, 1}) {
+         state.hp_pending = pending;
+         const auto left = c.decide(state), right = bpf.decide(state);

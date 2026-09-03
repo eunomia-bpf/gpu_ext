@@ -1,0 +1,61 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline'
+taskset -c 17 python3 -B prepare.py
+completion-fence.patch reverse application check passed
+make -C /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src -j1 HB_CPUSET=17 /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/hummingbird_client /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.bin
+make[1]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src'
+taskset -c 17 /usr/bin/g++-13 -std=c++17 -O2 -Wall -Wextra -I/home/yunwei37/workspace/gpu/bpftime/vm/vm-core/include -I/home/yunwei37/workspace/gpu/bpftime/vm/compat/include -I/usr/local/cuda-12.9/include -include cuda_runtime.h -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/include -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/third_party/jsoncpp/include -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/third_party/glog -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/third_party/glog/src -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt -I/home/yunwei37/workspace/gpu/gpu_ext/extension -DCUDA -DGPREEMPT_LOAD_STUDY -DGLOG_USE_GLOG_EXPORT -DMODEL_PATH='"/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model"' -DBUILD_PATH='"/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study"' -c hummingbird_client.cpp -o /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/hummingbird_client.o
+In file included from /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/disb.h:30,
+                 from hummingbird_client.cpp:5:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::start(const std::chrono::_V2::system_clock::time_point&)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:80:69: warning: unused parameter ‘beginTime’ [-Wunused-parameter]
+   80 |     virtual void start(const std::chrono::system_clock::time_point &beginTime) {}
+      |                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::stop(const std::chrono::_V2::system_clock::time_point&)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:81:68: warning: unused parameter ‘endTime’ [-Wunused-parameter]
+   81 |     virtual void stop(const std::chrono::system_clock::time_point &endTime) {}
+      |                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::consumeRecord(std::shared_ptr<DISB::Record>)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:85:56: warning: unused parameter ‘record’ [-Wunused-parameter]
+   85 |     virtual void consumeRecord(std::shared_ptr<Record> record) {}
+      |                                ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::onPrepareInput(std::shared_ptr<DISB::Record>)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:88:57: warning: unused parameter ‘record’ [-Wunused-parameter]
+   88 |     virtual void onPrepareInput(std::shared_ptr<Record> record) {}
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::onPreprocess(std::shared_ptr<DISB::Record>)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:89:55: warning: unused parameter ‘record’ [-Wunused-parameter]
+   89 |     virtual void onPreprocess(std::shared_ptr<Record> record) {}
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::onCopyInput(std::shared_ptr<DISB::Record>)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:90:54: warning: unused parameter ‘record’ [-Wunused-parameter]
+   90 |     virtual void onCopyInput(std::shared_ptr<Record> record) {}
+      |                              ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::onInfer(std::shared_ptr<DISB::Record>)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:91:50: warning: unused parameter ‘record’ [-Wunused-parameter]
+   91 |     virtual void onInfer(std::shared_ptr<Record> record) {}
+      |                          ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::onCopyOutput(std::shared_ptr<DISB::Record>)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:92:55: warning: unused parameter ‘record’ [-Wunused-parameter]
+   92 |     virtual void onCopyOutput(std::shared_ptr<Record> record) {}
+      |                               ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h: In member function ‘virtual void DISB::Analyzer::onPostprocess(std::shared_ptr<DISB::Record>)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/analyzer.h:93:56: warning: unused parameter ‘record’ [-Wunused-parameter]
+   93 |     virtual void onPostprocess(std::shared_ptr<Record> record) {}
+      |                                ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+In file included from /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/load.h:29,
+                 from /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/disb.h:31:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/client.h: In member function ‘virtual void DISB::DependentClient::consumePrevResults(const std::map<std::__cxx11::basic_string<char>, std::shared_ptr<DISB::InferResult> >&)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/client.h:88:96: warning: unused parameter ‘prevResults’ [-Wunused-parameter]
+   88 |     virtual void consumePrevResults(const std::map<std::string, std::shared_ptr<InferResult>> &prevResults) {}
+      |                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/load.h: In member function ‘virtual void DISB::Load::start(const std::chrono::_V2::system_clock::time_point&, const std::chrono::_V2::system_clock::time_point&)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/load.h:77:69: warning: unused parameter ‘beginTime’ [-Wunused-parameter]
+   77 |     virtual void start(const std::chrono::system_clock::time_point &beginTime,
+      |                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-src/include/load.h:78:69: warning: unused parameter ‘endTime’ [-Wunused-parameter]
+   78 |                        const std::chrono::system_clock::time_point &endTime) {}
+      |                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+taskset -c 17 /usr/bin/g++-13 /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/hummingbird_client.o /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_executor.o /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.o /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/disb-trace/libdisb.a /home/yunwei37/workspace/gpu/bpftime/build/vm/vm-core/libbpftime_vm.a -Wl,--whole-archive /home/yunwei37/workspace/gpu/bpftime/build/vm/compat/ubpf-vm/libbpftime_ubpf_vm.a -Wl,--no-whole-archive /home/yunwei37/workspace/gpu/bpftime/build/vm/compat/ubpf-vm/ubpf/lib/libubpf.a /home/yunwei37/workspace/gpu/bpftime/build/third_party/spdlog/libspdlogd.a -lpthread -ldl -L/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study -lexecutor -lworkloads -lgpreempt -L/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/third_party/glog -lglog -L/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/third_party/jsoncpp/src/lib_json -ljsoncpp -L/usr/local/cuda-12.9/lib64 -lcuda -lcudart -lpthread -ldl -Wl,--build-id=none -Wl,-rpath,/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study:/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/third_party/glog:/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/third_party/jsoncpp/src/lib_json:/home/yunwei37/workspace/gpu/gpu_ext/extension/.output:/usr/local/cuda-12.9/lib64 -Wl,-Map,/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/hummingbird_client.map -o /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/hummingbird_client
+make[1]: '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.bin' is up to date.
+make[1]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src'
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline'

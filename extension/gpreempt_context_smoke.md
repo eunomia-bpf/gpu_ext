@@ -1,7 +1,9 @@
 # Two-context / real GSP timeslice canary
 
-Preparation completed on 2026-09-03 UTC; **no GPU run or attachment is implied
-by these build and parser tests**. This is a transport/policy correctness
+On 2026-09-03 UTC the original two-context path passed real GSP-completion,
+numerical and negative-case checks. The BPF path passed those context checks
+but **failed the final timeslice gate**: CUDA overwrote both requested values
+with 2,048 us before kernel execution. This is a transport/policy correctness
 canary, not GPReempt performance or its GDRCopy actuator test.
 
 ## Build
@@ -52,12 +54,14 @@ kernels; the full client and the separate GDRCopy checks still must do that.
 
 ## Real GSP observation, not host shadow state
 
-The observer is read-only BPF tracing. It records entry/return from
-`rpcRmApiControl_GSP`, restricted to SET_TIMESLICE `0xa06c0103`, and counts
-`_issueRpcAndWait` entry/return while that control is active. It records the
-actual client, TSG, input timeslice, parameters size, wait count, transport
-status, final control status, and timestamps. It neither changes the driver
-nor writes policy settings.
+The observer is read-only BPF tracing of the normal Kbuild-instrumented
+`nv_gpu_sched_gsp_control_complete` hook added in driver `e7d46fa5`. Core RM
+functions are notrace, and an initial direct attachment failed safely; no
+notrace restriction is bypassed. The hook is emitted only after a real GSP
+RPC wait. The observer restricts records to SET_TIMESLICE `0xa06c0103` and
+captures the actual client, object, original input value/size, serialized size,
+transport status, firmware status/validity and monotonic completion timestamp.
+It never writes policy settings or changes the existing RPC return path.
 
 The 575 source chain is explicit:
 
@@ -68,15 +72,16 @@ The 575 source chain is explicit:
 3. `rpcRmApiControl_GSP` in `src/nvidia/src/kernel/vgpu/rpc.c:10361` builds the
    GSP control message and waits for it. After `_issueRpcAndWait`, it combines
    the transport result with the **actual GSP control handler's returned
-   status**, before returning to its caller. Both traced functions exist in
-   the built 575 module symbol inventory.
+   status**, before returning to its caller. The new kernel-open hook captures
+   these statuses before the existing error handling and deserialization.
 
-The offline checker requires one observed wait/completion and zero statuses,
-matching the queried role handles and timeslice. It also rejects a later
+The offline checker requires actual completed RPC records and zero transport
+and valid firmware statuses, matching queried role handles and timeslice. It rejects a later
 different successful timeslice **before the kernel begins**, so a CUDA-side
 overwrite cannot be hidden by an earlier successful BPF request. Event losses,
 missing completions, and no-event observer runs are failures. This proves
-firmware acceptance/status when run successfully; it does **not** measure the
+firmware acceptance/status when run successfully; userspace additionally checks
+its final ioctl/RM status. It does **not** measure the
 physical scheduling quantum or replace contention performance measurements.
 The observer currently checks **timeslice only**, not interleave or a combined
 timeslice/interleave transaction.
@@ -129,9 +134,33 @@ python3 extension/gpreempt_context_smoke_check.py \
   --mode bpf --client-log CLIENT_LOG --rpc-log RPC_LOG --policy-log POLICY_LOG
 ```
 
-The analyzer's six CPU unit tests use explicitly synthetic records only; they
+The analyzer's seven CPU unit tests use explicitly synthetic records only; they
 exercise missing/failed RPCs, wrong ownership, zero BPF engagement, dropped
 events, and a later timeslice overwrite. They are not GPU measurements.
 Finally require zero UVM references, no Xid, empty struct_ops, and removal of
 only the loader's own pins; release both leases only after cleanup. A canary
 or parser failure keeps its raw evidence and does not authorize performance.
+
+## Actual canary record (2026-09-03 UTC)
+
+Raw evidence is under `workloads/xsched/raw/`:
+
+| Directory | Result |
+| --- | --- |
+| `gpreempt-context-original-20260903-0036` | Direct core-RM probe rejected as notrace before CUDA; safe failure. |
+| `gpreempt-context-original-20260903-0041` | Explicit observer-off original context/control/numerical pass; no direct firmware evidence. |
+| `gpreempt-context-bpf-20260903-0042` | Context/numerical pass, policy fails two shadow mismatches; grpID-only map could confuse GR and CE runlists. |
+| `gpreempt-context-original-e7d46fa5-20260903-0106` | Full canary pass: each role default 2,048 us then explicit original 1,000,000 / 1 us, real GSP statuses zero. |
+| `gpreempt-context-bpf-e7d46fa5-20260903-0107` | Corrected composite identity: two clean GR registrations/destructions, two matching binds, zero policy errors. **Fails firmware gate:** requested 1,000,000 / 1 us is subsequently overwritten by CUDA's 2,048 us for both roles. |
+
+Each executed client checks all 2,048 outputs and all 17 negative cases. All
+five attempts finish with zero UVM references, empty struct_ops and no Xid.
+The failed BPF result is retained; successful bind shadow counters do not
+override contradictory firmware evidence. Init-only timeslice actuation needs
+a later validated BPF decision/actuator path before this arm can be timed as
+an equivalent policy. No physical quantum, interleave, full hint actuator or
+performance result is claimed here.
+
+`--rpc-observer off` (wrapper) / `--context-only` (offline checker) is an explicit
+diagnostic mode only; it marks firmware status unobserved. The default still
+requires the real completion observer and the last-value-before-kernel check.

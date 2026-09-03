@@ -184,8 +184,8 @@ extern "C" int gpreempt_ctx_register(gp_u64 context, gp_u32 client, gp_u32 tsg, 
             throw std::runtime_error("queried context does not match the BPF-controlled GR TSG");
         ++state().registrations;
         std::printf("gpreempt_context_registered: role=%u hclient=%u htsg=%u tsg_id=%llu "
-                    "engine=%u timeslice_us=%llu cuda_context=%llu\n", role, client, tsg,
-                    record.tsg_id, record.engine, record.timeslice_us, context);
+                    "engine=%u runlist=%u timeslice_us=%llu cuda_context=%llu\n", role, client, tsg,
+                    record.tsg_id, record.engine, record.runlist_id, record.timeslice_us, context);
         std::fflush(stdout);
         return 0;
     } catch (const std::exception &error) { return fail(error); }

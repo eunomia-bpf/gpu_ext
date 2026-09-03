@@ -38,6 +38,8 @@ struct nv_gpu_bind_ctx {
 
 struct nv_gpu_task_destroy_ctx {
     __u64 tsg_id;
+    __u32 runlist_id;
+    __u32 engine_type;
 };
 
 /* GPU Scheduler struct_ops definition */

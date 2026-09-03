@@ -1,0 +1,30 @@
+[
+  {
+    "name": "policy",
+    "command": [
+      "taskset",
+      "-c",
+      "8-15",
+      "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_policy",
+      "--library",
+      "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/libgpreempt_bridge.so",
+      "--pin-dir",
+      "/sys/fs/bpf/gpreempt-context-229581-8195401117059",
+      "--duration",
+      "120"
+    ],
+    "pid": 229613,
+    "returncode": 1
+  },
+  {
+    "name": "client",
+    "command": [
+      "taskset",
+      "-c",
+      "8-15",
+      "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_context_smoke"
+    ],
+    "pid": 229615,
+    "returncode": 0
+  }
+]

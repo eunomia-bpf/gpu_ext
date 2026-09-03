@@ -13,13 +13,19 @@
  * RM GR0..GR7 = 1..8; COPY0 starts at 9. Unknown engine 0 is fail-closed. */
 struct gp_pending {
     __u64 user_pointer;
-    __u64 tsg_id;
+    struct gp_tsg_key tsg;
     __u32 hclient;
     __u32 status_offset;
     __u32 gr_seen;
     __u32 reserved;
 };
-struct gp_tsg { struct gp_record record; struct gp_handle_key handles; };
+struct gp_tsg {
+    struct gp_record record;
+    struct gp_handle_key handles;
+    __u32 init_runlist, reserved;
+};
+struct gp_bind_observation bind_history[GP_BIND_HISTORY_MAX];
+__u32 bind_history_count;
 
 struct {
     __uint(type, BPF_MAP_TYPE_HASH); __uint(max_entries, 64);
@@ -35,7 +41,7 @@ struct {
 } pending SEC(".maps");
 struct {
     __uint(type, BPF_MAP_TYPE_HASH); __uint(max_entries, 128);
-    __type(key, __u64); __type(value, struct gp_tsg);
+    __type(key, struct gp_tsg_key); __type(value, struct gp_tsg);
 } tsgs SEC(".maps");
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY); __uint(max_entries, GP_STAT_COUNT);
@@ -151,20 +157,22 @@ int BPF_PROG(gp_task_init, struct nv_gpu_task_init_ctx *init)
         error(scope, GP_ALLOC_ERROR); return 0;
     }
     struct gp_tsg target = {};
-    __u64 tsg_id = init->tsg_id;
+    struct gp_tsg_key tsg = { .tsg_id = init->tsg_id, .runlist_id = init->runlist_id };
     target.record.pid_tgid = id;
-    target.record.tsg_id = tsg_id;
+    target.record.tsg_id = tsg.tsg_id;
+    target.record.runlist_id = tsg.runlist_id;
     target.record.role = scope->role;
     target.record.engine = init->engine_type;
     target.record.timeslice_us = scope->role == GP_LC ? 1000000 : 1;
-    if (bpf_map_update_elem(&tsgs, &tsg_id, &target, BPF_NOEXIST)) {
+    target.init_runlist = init->runlist_id;
+    if (bpf_map_update_elem(&tsgs, &tsg, &target, BPF_NOEXIST)) {
         error(scope, GP_MAP_ERROR); return 0;
     }
     if (bpf_nv_gpu_set_timeslice(init, target.record.timeslice_us)) {
-        bpf_map_delete_elem(&tsgs, &tsg_id);
+        bpf_map_delete_elem(&tsgs, &tsg);
         error(scope, GP_SETTER_ERROR); return 0;
     }
-    allocation->tsg_id = tsg_id;
+    allocation->tsg = tsg;
     allocation->gr_seen = 1;
     scope->gr_inits++;
     count(GP_GR_INIT);
@@ -182,14 +190,14 @@ int ioctl_exit(struct pt_regs *ctx)
     bpf_map_delete_elem(&pending, &id);
     if (!allocation.gr_seen) return 0; // Non-GR allocations are not policy targets.
     struct gp_scope *scope = bpf_map_lookup_elem(&scopes, &id);
-    struct gp_tsg *target = bpf_map_lookup_elem(&tsgs, &allocation.tsg_id);
+    struct gp_tsg *target = bpf_map_lookup_elem(&tsgs, &allocation.tsg);
     struct gp_handle_key key = { .hclient = allocation.hclient };
     __u32 nvstatus = ~0U;
     if (!scope || !target || PT_REGS_RC(ctx) != 0 ||
         bpf_probe_read_user(&nvstatus, sizeof(nvstatus),
                             (void *)(allocation.user_pointer + allocation.status_offset)) || nvstatus ||
         bpf_probe_read_user(&key.htsg, sizeof(key.htsg), (void *)(allocation.user_pointer + 8)) || !key.htsg) {
-        bpf_map_delete_elem(&tsgs, &allocation.tsg_id);
+        bpf_map_delete_elem(&tsgs, &allocation.tsg);
         error(scope, GP_ALLOC_ERROR); return 0;
     }
     target->handles = key;
@@ -204,22 +212,37 @@ SEC("struct_ops/gp_bind")
 int BPF_PROG(gp_bind, struct nv_gpu_bind_ctx *binding)
 {
     if (!binding) return 0;
-    __u64 id = binding->tsg_id;
-    struct gp_tsg *target = bpf_map_lookup_elem(&tsgs, &id);
-    if (target) count(binding->timeslice_us == target->record.timeslice_us ? GP_BIND_MATCH : GP_BIND_MISMATCH);
+    struct gp_tsg_key key = { .tsg_id = binding->tsg_id, .runlist_id = binding->runlist_id };
+    struct gp_tsg *target = bpf_map_lookup_elem(&tsgs, &key);
+    if (target) {
+        count(binding->timeslice_us == target->record.timeslice_us ? GP_BIND_MATCH : GP_BIND_MISMATCH);
+        __u32 index = __sync_fetch_and_add(&bind_history_count, 1);
+        if (index < GP_BIND_HISTORY_MAX) {
+            struct gp_bind_observation *record = &bind_history[index];
+            record->pid_tgid = bpf_get_current_pid_tgid();
+            record->tsg_id = key.tsg_id;
+            record->expected_us = target->record.timeslice_us;
+            record->observed_us = binding->timeslice_us;
+            record->role = target->record.role;
+            record->init_runlist = target->init_runlist;
+            record->bind_runlist = binding->runlist_id;
+            record->channel_count = binding->channel_count;
+            record->handle_known = target->handles.hclient != 0;
+        } else count(GP_MAP_ERROR);
+    }
     return 0; // This observation is host shadow state, NOT proof of hardware execution.
 }
 
 SEC("struct_ops/gp_destroy")
 int BPF_PROG(gp_destroy, struct nv_gpu_task_destroy_ctx *destroy)
 {
-    if (!destroy) return 0;
-    __u64 id = destroy->tsg_id;
-    struct gp_tsg *target = bpf_map_lookup_elem(&tsgs, &id);
+    if (!destroy || destroy->engine_type < 1 || destroy->engine_type > 8) return 0;
+    struct gp_tsg_key key = { .tsg_id = destroy->tsg_id, .runlist_id = destroy->runlist_id };
+    struct gp_tsg *target = bpf_map_lookup_elem(&tsgs, &key);
     if (target) {
         struct gp_handle_key handles = target->handles;
         bpf_map_delete_elem(&records, &handles);
-        bpf_map_delete_elem(&tsgs, &id);
+        bpf_map_delete_elem(&tsgs, &key);
         count(GP_DESTROY);
     }
     return 0;

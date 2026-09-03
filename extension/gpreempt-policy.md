@@ -1,6 +1,6 @@
-# GPReempt BPF policy arm: CPU implementation, runtime not yet validated
+# GPReempt BPF policy arm: implemented, runtime persistence failure identified
 
-This arm ports the **full** GPReempt decisions from upstream `249ee3e` rather
+This arm implements GPReempt decisions from upstream `249ee3e` rather
 than calling a timeslice-only program a full port. The original CUDA executor,
 two blocking-kernel launches, GDRCopy mapping/writes, and double-context topology
 remain in the client. Kernel BPF chooses the context timeslice; a real bpftime
@@ -16,7 +16,8 @@ of upstream's primary baseline.
 ## Dependencies and boundary
 
 - The separate NVIDIA 575 driver repository needs the GSP propagation repair
-  `363416c4` and owned GR query/narrow control transport `e3bb2938`. Building
+  `363416c4`, owned GR query/narrow control transport `e3bb2938`, and per-runlist
+  destruction identity / real GSP completion hook `e7d46fa5`. Building
   these commits is not a hardware validation. No module is installed or loaded
   by this implementation or its CPU tests.
 - `workloads/gpreempt/policy-bridge.patch` owns integration with the original
@@ -45,7 +46,8 @@ The actual `task_init` BPF callback sees the engine already assigned by 575:
 Only these GR engines receive LC 1,000,000 us or BE 1 us. Other engines preserve
 native settings; engine zero is rejected. The current 575 minimum-timeslice HAL
 returns zero, so the validator does not clamp a requested 1 us to a larger
-minimum. Actual GSP acceptance still needs a runtime check.
+minimum. Actual GSP acceptance was observed, but CUDA subsequently reset both
+roles to 2,048 us before execution; init-only actuation is not yet equivalent.
 
 The ioctl-return probe publishes a handle record only when both the syscall and
 NV status succeed and the returned handle is nonzero. The owned driver query
@@ -53,7 +55,11 @@ returns the context's actual `hClient/hTsg`; a second marker joins these handles
 back to the captured GR allocation and role. `gpreempt_ctx_register` checks the
 kernel record, creator thread, engine, exactly one GR initialization, CUDA
 context identity, and requested timeslice. `gpreempt_ctx_end` verifies that the
-scope was removed. Destruction removes TSG/handle records. Bounded maps contain
+scope was removed. TSG state uses `(runlist_id, tsg_id)` because the driver
+allocates numeric grpIDs in per-runlist CHID managers. GR-only destruction
+uses the appended actual runlist/engine identity and removes TSG/handle records.
+CE bind/destruction must not alias GR records with the same numeric grpID.
+Bounded maps contain
 64 scopes/allocations and 128 TSG/handle records.
 
 `bind_shadow_match` is explicitly a check of host bookkeeping. Neither a
@@ -89,12 +95,14 @@ CPU checks completed on 2026-09-03 UTC:
 
 - BPF object compilation, skeleton generation, loader compilation, and the
   strongly linked shared bridge succeeded with the real `g++` compiler.
-- Actual kernel-policy C with mocked helper/maps/setter: 77 cases and 1,397
+- Actual kernel-policy C with mocked helper/maps/setter: 78 cases and 1,500
   assertions. Includes both roles, every GR engine 1..8, direct/transferred
   NVOS21/NVOS64, untouched native/CE, nested/unknown roles, unknown engine,
   missing allocation correlation, syscall/NV-status/copy/handle failures,
   setter/map failures, wrong creator/role registration, shadow mismatch, and
-  destruction cleanup. The same tests passed AddressSanitizer and
+  destruction cleanup, and two GR runlists sharing a grpID while a CE runlist
+  binds/destroys the same numeric ID without changing either GR record.
+  The same tests passed AddressSanitizer and
   UndefinedBehaviorSanitizer. This is **not** a verifier, concurrency, GSP, or GPU test.
 - Real ubpf JIT versus an independent transcription of original hint branches:
   101,536 decisions, zero mismatches. Covers equal/before/after deadlines,
@@ -143,4 +151,7 @@ must independently check all of the following:
 5. Post-run process exit, no Xid, zero UVM references, empty struct_ops, and
    removal of the owned pins. Keep failed canaries and unsuccessful arms.
 
-At this checkpoint no GPReempt GPU canary or performance comparison has run.
+The real canary and failed historical runs are recorded in
+`gpreempt_context_smoke.md`. Corrected BPF identity/registration/numerics pass,
+but strict firmware evidence rejects the CUDA 2,048-us overwrite. No GPReempt
+performance comparison or complete original-GDR reproduction is claimed.

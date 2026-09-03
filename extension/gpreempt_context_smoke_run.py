@@ -111,8 +111,9 @@ def run(args):
             return process
 
         try:
-            observer = start('rpc', [HERE / '.output/gpreempt_context_smoke_rpc', '120'])
-            observer.ready('gpreempt_rpc_observer_ready:', min(deadline, time.monotonic() + 15))
+            if args.rpc_observer == 'required':
+                observer = start('rpc', [HERE / '.output/gpreempt_context_smoke_rpc', '120'])
+                observer.ready('gpreempt_rpc_observer_ready:', min(deadline, time.monotonic() + 15))
             if args.mode == 'bpf':
                 env.update(GPREEMPT_BPF_MAPS=str(pin), GPREEMPT_HINT_CODE=str(HERE / '.output/gpreempt_hint.bin'))
                 policy = start('policy', [HERE / '.output/gpreempt_policy', '--library',
@@ -142,7 +143,8 @@ def run(args):
                 try:
                     if any(p.proc.returncode != 0 for p in processes):
                         raise RuntimeError('one or more observer/policy processes failed')
-                    result = analyze((output / 'client.stdout').read_text(), (output / 'rpc.stdout').read_text(),
+                    result = analyze((output / 'client.stdout').read_text(),
+                                     (output / 'rpc.stdout').read_text() if args.rpc_observer == 'required' else None,
                                      args.mode, (output / 'policy.stdout').read_text() if args.mode == 'bpf' else None)
                     if pin.exists():
                         raise RuntimeError('owned BPF pin directory still exists after loader cleanup')
@@ -153,7 +155,8 @@ def run(args):
                 (output / 'safety-after.json').write_text(json.dumps(after, indent=2) + '\n')
             except BaseException as error:
                 failure = (failure or '') + f'; post-safety: {type(error).__name__}: {error}'
-            record = dict(mode=args.mode, timeout_seconds=args.timeout, result=result, failure=failure)
+            record = dict(mode=args.mode, timeout_seconds=args.timeout, rpc_observer=args.rpc_observer,
+                          result=result, failure=failure)
             (output / 'result.json').write_text(json.dumps(record, indent=2) + '\n')
         print(json.dumps(record, indent=2), flush=True)
         return 1 if failure else 0
@@ -164,6 +167,8 @@ def main():
     parser.add_argument('--mode', choices=('original', 'bpf'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--timeout', type=float, default=60)
+    parser.add_argument('--rpc-observer', choices=('required', 'off'), default='required',
+                        help='off is context-only diagnosis; cannot claim direct firmware RPC evidence')
     args = parser.parse_args()
     if not 1 <= args.timeout <= 60:
         parser.error('canary total startup/runtime deadline must be 1..60 seconds')

@@ -17,13 +17,14 @@ static int event(void *unused, void *data, size_t size)
     (void)unused;
     if (size != sizeof(struct gp_rpc_event)) return -EINVAL;
     const struct gp_rpc_event *e = data;
-    printf("{\"event\":\"gsp_timeslice_rpc\",\"pid\":%llu,\"tid\":%llu,\"hclient\":%u,"
-           "\"hobject\":%u,\"command\":%u,\"params_size\":%u,\"timeslice_us\":%llu,"
-           "\"issue_count\":%u,\"wait_count\":%u,\"wait_status\":%u,\"wait_errors\":%u,"
-           "\"return_status\":%u,\"read_error\":%u,\"entered_ns\":%llu,\"elapsed_ns\":%llu}\n",
-           e->pid_tgid >> 32, e->pid_tgid & 0xffffffffULL, e->hclient, e->hobject, e->command,
-           e->params_size, e->timeslice_us, e->issue_count, e->wait_count, e->wait_status,
-           e->wait_errors, e->return_status, e->read_error, e->entered_ns, e->elapsed_ns);
+    const struct gp_gsp_completion *c = &e->completion;
+    printf("{\"event\":\"gsp_timeslice_rpc\",\"source\":\"kernel_open_rpc_completion\","
+           "\"pid\":%llu,\"tid\":%llu,\"hclient\":%u,\"hobject\":%u,\"command\":%u,"
+           "\"params_size\":%u,\"wire_size\":%u,\"timeslice_us\":%llu,\"input_valid\":%u,"
+           "\"transport_status\":%u,\"gsp_status\":%u,\"gsp_status_valid\":%u,\"completed_ns\":%llu}\n",
+           e->pid_tgid >> 32, e->pid_tgid & 0xffffffffULL, c->hClient, c->hObject, c->command,
+           c->input_size, c->wire_size, c->input_value, c->input_valid, c->transport_status,
+           c->gsp_status, c->gsp_status_valid, e->completed_ns);
     ++received;
     fflush(stdout);
     return 0;
@@ -55,7 +56,7 @@ int main(int argc, char **argv)
     ring = ring_buffer__new(bpf_map__fd(skeleton->maps.events), event, NULL, NULL);
     if (!ring) goto done;
     signal(SIGTERM, stop); signal(SIGINT, stop);
-    printf("gpreempt_rpc_observer_ready: pid=%u seconds=%u source=rpcRmApiControl_GSP+_issueRpcAndWait\n", pid, seconds);
+    printf("gpreempt_rpc_observer_ready: pid=%u seconds=%u source=kernel_open_rpc_completion\n", pid, seconds);
     fflush(stdout);
     struct timespec start, now;
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -68,8 +69,8 @@ int main(int argc, char **argv)
     __u64 values[4] = {};
     for (__u32 key = 0; key < 4; ++key)
         if (bpf_map_lookup_elem(bpf_map__fd(skeleton->maps.stats), &key, &values[key])) goto done;
-    printf("{\"event\":\"gpreempt_rpc_observer_summary\",\"entered\":%llu,\"completed\":%llu,"
-           "\"map_errors\":%llu,\"ring_drops\":%llu,\"received\":%llu}\n",
+    printf("{\"event\":\"gpreempt_rpc_observer_summary\",\"observed\":%llu,\"completed\":%llu,"
+           "\"read_errors\":%llu,\"ring_drops\":%llu,\"received\":%llu}\n",
            (unsigned long long)values[0], (unsigned long long)values[1],
            (unsigned long long)values[2], (unsigned long long)values[3], received);
     /* Still correlate entries with queried role handles; zero events is NOT a pass. */

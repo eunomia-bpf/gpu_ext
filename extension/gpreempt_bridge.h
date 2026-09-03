@@ -27,6 +27,7 @@ struct gp_scope {
 };
 
 struct gp_handle_key { gp_u32 hclient, htsg; };
+struct gp_tsg_key { gp_u64 tsg_id; gp_u32 runlist_id, reserved; };
 struct gp_record {
     gp_u64 pid_tgid;
     gp_u64 tsg_id;
@@ -35,7 +36,13 @@ struct gp_record {
     gp_u32 role;
     gp_u32 engine;
     gp_u32 registered;
-    gp_u32 reserved;
+    gp_u32 runlist_id;
+};
+
+#define GP_BIND_HISTORY_MAX 128
+struct gp_bind_observation {
+    gp_u64 pid_tgid, tsg_id, expected_us, observed_us;
+    gp_u32 role, init_runlist, bind_runlist, channel_count, handle_known, reserved;
 };
 
 enum gp_stat {

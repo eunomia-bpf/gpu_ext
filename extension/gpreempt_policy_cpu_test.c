@@ -33,8 +33,8 @@ static int bpf_probe_read_user(void *, __u32, const void *);
 static int bpf_nv_gpu_set_timeslice(struct nv_gpu_task_init_ctx *, __u64);
 #include "gpreempt_policy.bpf.c"
 
-struct slot { int used; unsigned char key[8]; _Alignas(8) unsigned char value[56]; };
-struct mock_map { struct slot slots[128]; size_t value_size; };
+struct slot { int used; unsigned char key[16]; _Alignas(8) unsigned char value[64]; };
+struct mock_map { struct slot slots[128]; size_t value_size, key_size; };
 static struct mock_map mocks[4];
 static __u64 counters[GP_STAT_COUNT], identity, last_timeslice;
 static unsigned setter_calls, cases, assertions;
@@ -59,7 +59,7 @@ static void *bpf_map_lookup_elem(void *map, const void *key)
     }
     struct mock_map *mock = map_state(map);
     for (unsigned i = 0; i < 128; ++i)
-        if (mock->slots[i].used && !memcmp(mock->slots[i].key, key, 8)) return mock->slots[i].value;
+        if (mock->slots[i].used && !memcmp(mock->slots[i].key, key, mock->key_size)) return mock->slots[i].value;
     return NULL;
 }
 static int bpf_map_update_elem(void *map, const void *key, const void *value, __u64 flags)
@@ -75,7 +75,7 @@ static int bpf_map_update_elem(void *map, const void *key, const void *value, __
     for (unsigned i = 0; i < 128; ++i) {
         if (mock->slots[i].used) continue;
         mock->slots[i].used = 1;
-        memcpy(mock->slots[i].key, key, 8);
+        memcpy(mock->slots[i].key, key, mock->key_size);
         memcpy(mock->slots[i].value, value, mock->value_size);
         return 0;
     }
@@ -85,7 +85,7 @@ static int bpf_map_delete_elem(void *map, const void *key)
 {
     struct mock_map *mock = map_state(map);
     for (unsigned i = 0; i < 128; ++i) {
-        if (mock->slots[i].used && !memcmp(mock->slots[i].key, key, 8)) {
+        if (mock->slots[i].used && !memcmp(mock->slots[i].key, key, mock->key_size)) {
             mock->slots[i].used = 0;
             return 0;
         }
@@ -110,10 +110,13 @@ static void reset(void)
     ++cases;
     memset(mocks, 0, sizeof(mocks));
     memset(counters, 0, sizeof(counters));
+    memset(bind_history, 0, sizeof(bind_history));
+    bind_history_count = 0;
     mocks[0].value_size = sizeof(struct gp_scope);
     mocks[1].value_size = sizeof(struct gp_record);
     mocks[2].value_size = sizeof(struct gp_pending);
     mocks[3].value_size = sizeof(struct gp_tsg);
+    for (unsigned i = 0; i < 4; ++i) mocks[i].key_size = i == 3 ? sizeof(struct gp_tsg_key) : 8;
     identity = (42ULL << 32) | 101;
     setter_calls = 0;
     setter_failure = read_failure = 0;
@@ -158,17 +161,66 @@ static void successful_context(unsigned role, unsigned size, int transfer, unsig
     struct nv_gpu_bind_ctx binding = {.tsg_id = 123, .timeslice_us = last_timeslice};
     gp_bind(&binding);
     CHECK(counters[GP_BIND_MATCH] == 1 && counters[GP_BIND_MISMATCH] == 0);
+    CHECK(bind_history_count == 1 && bind_history[0].expected_us == last_timeslice &&
+          bind_history[0].observed_us == last_timeslice && bind_history[0].handle_known);
     ++binding.timeslice_us;
     gp_bind(&binding);
     CHECK(counters[GP_BIND_MISMATCH] == 1);
-    struct nv_gpu_task_destroy_ctx destroy = {.tsg_id = 123};
+    struct nv_gpu_task_destroy_ctx destroy = {.tsg_id = 123, .engine_type = engine};
     gp_destroy(&destroy);
-    CHECK(!bpf_map_lookup_elem(&records, &key) && !bpf_map_lookup_elem(&tsgs, &destroy.tsg_id));
+    struct gp_tsg_key tsg_key = {.tsg_id = 123};
+    CHECK(!bpf_map_lookup_elem(&records, &key) && !bpf_map_lookup_elem(&tsgs, &tsg_key));
     CHECK(counters[GP_DESTROY] == 1);
+}
+
+static void cross_runlist_identity(void)
+{
+    reset();
+    for (unsigned role = 0; role < 2; ++role) {
+        identity = (42ULL << 32) | (101 + role);
+        CHECK(begin(role) != NULL);
+        __u32 header[12] = {17, 3, 900 + role, 0xa06c};
+        allocation_enter(header, 32, 0);
+        struct nv_gpu_task_init_ctx init = {.tsg_id = 123, .runlist_id = 5 + role, .engine_type = 1};
+        CHECK(gp_task_init(&init) == 1);
+        struct pt_regs exit = {};
+        ioctl_exit(&exit);
+        struct pt_regs registration = {.args = {0x4321 + role, 17, 900 + role, role}};
+        register_context(&registration);
+        scope_leave(&exit);
+    }
+    CHECK(counters[GP_REGISTERED] == 2 && counters[GP_ALLOC_ERROR] == 0);
+    struct nv_gpu_bind_ctx binding = {.tsg_id = 123, .runlist_id = 7, .timeslice_us = 3000};
+    gp_bind(&binding); // A CE runlist reuses the same grpID: no false shadow mismatch.
+    CHECK(bind_history_count == 0 && counters[GP_BIND_MISMATCH] == 0);
+    struct nv_gpu_task_destroy_ctx destroy = {.tsg_id = 123, .runlist_id = 7, .engine_type = 9};
+    gp_destroy(&destroy); // CE destruction must not delete either GR allocation.
+    CHECK(counters[GP_DESTROY] == 0);
+    for (unsigned role = 0; role < 2; ++role) {
+        struct gp_tsg_key key = {.tsg_id = 123, .runlist_id = 5 + role};
+        struct gp_tsg *record = bpf_map_lookup_elem(&tsgs, &key);
+        CHECK(record && record->record.role == role);
+        binding.runlist_id = 5 + role;
+        binding.timeslice_us = role == GP_LC ? 1000000 : 1;
+        gp_bind(&binding);
+        CHECK(bind_history_count == role + 1 && counters[GP_BIND_MISMATCH] == 0);
+        // Wrong engine cannot delete a GR record even when both numeric fields match.
+        destroy.runlist_id = 5 + role;
+        gp_destroy(&destroy);
+        CHECK(bpf_map_lookup_elem(&tsgs, &key) != NULL);
+        destroy.engine_type = 1;
+        gp_destroy(&destroy);
+        CHECK(!bpf_map_lookup_elem(&tsgs, &key));
+        struct gp_handle_key handle = {17, 900 + role};
+        CHECK(!bpf_map_lookup_elem(&records, &handle));
+        destroy.engine_type = 9;
+    }
+    CHECK(counters[GP_DESTROY] == 2 && counters[GP_BIND_MATCH] == 2);
 }
 
 int main(void)
 {
+    cross_runlist_identity();
     for (unsigned role = 0; role <= 1; ++role)
         for (unsigned size = 32; size <= 48; size += 16)
             for (int transfer = 0; transfer <= 1; ++transfer)

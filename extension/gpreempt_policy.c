@@ -37,6 +37,14 @@ static int print_stats(struct gpreempt_policy_bpf *skeleton)
             failures += value;
     }
     putchar('\n');
+    for (__u32 i = 0; i < skeleton->bss->bind_history_count && i < GP_BIND_HISTORY_MAX; ++i) {
+        const struct gp_bind_observation *r = &skeleton->bss->bind_history[i];
+        printf("{\"event\":\"gpreempt_bind_shadow\",\"index\":%u,\"pid_tgid\":%llu,"
+               "\"tsg_id\":%llu,\"role\":%u,\"expected_us\":%llu,\"observed_us\":%llu,"
+               "\"init_runlist\":%u,\"bind_runlist\":%u,\"channels\":%u,\"handle_known\":%u}\n",
+               i, r->pid_tgid, r->tsg_id, r->role, r->expected_us, r->observed_us,
+               r->init_runlist, r->bind_runlist, r->channel_count, r->handle_known);
+    }
     fflush(stdout);
     return failures ? -1 : 0;
 }

@@ -6,7 +6,9 @@
 #include "ctrl/ctrla06c.h"
 #include "ctrl/ctrl2080/ctrl2080fifo.h"
 #include "nv-gpreempt-transport.h"
+#include "nv-gpu-rpc-diagnostic.h"
 #include "gpreempt_bridge.h"
+#include "gpreempt_context_smoke_rpc.h"
 #include <array>
 #include <atomic>
 #include <cerrno>
@@ -35,6 +37,22 @@ static_assert(sizeof(NVOS54_PARAMETERS) == 32 && sizeof(Channels) == 536 &&
 static_assert(offsetof(NVOS54_PARAMETERS, status) == 28 &&
               offsetof(Channels, hClientList) == 24 &&
               offsetof(Channels, hChannelList) == 280, "575 ABI offsets");
+static_assert(sizeof(gp_gsp_completion) == sizeof(nv_gpu_gsp_control_complete_ctx) &&
+              sizeof(gp_gsp_completion) == 48, "575 GSP completion size");
+#define GP_CHECK_COMPLETION_OFFSET(field) static_assert(offsetof(gp_gsp_completion, field) == \
+    offsetof(nv_gpu_gsp_control_complete_ctx, field), "575 GSP completion offset " #field)
+GP_CHECK_COMPLETION_OFFSET(input_value);
+GP_CHECK_COMPLETION_OFFSET(hClient);
+GP_CHECK_COMPLETION_OFFSET(hObject);
+GP_CHECK_COMPLETION_OFFSET(command);
+GP_CHECK_COMPLETION_OFFSET(input_size);
+GP_CHECK_COMPLETION_OFFSET(wire_size);
+GP_CHECK_COMPLETION_OFFSET(input_valid);
+GP_CHECK_COMPLETION_OFFSET(transport_status);
+GP_CHECK_COMPLETION_OFFSET(gsp_status);
+GP_CHECK_COMPLETION_OFFSET(gsp_status_valid);
+GP_CHECK_COMPLETION_OFFSET(reserved);
+#undef GP_CHECK_COMPLETION_OFFSET
 
 static std::mutex output_mutex, creation_mutex;
 static std::atomic<unsigned> assertions{0}, negatives{0}, values{0};

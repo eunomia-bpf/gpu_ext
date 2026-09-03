@@ -17,7 +17,7 @@ all: bridge policy
 bridge: $(GP_OUTPUT)/libgpreempt_bridge.so $(GP_OUTPUT)/gpreempt_hint.bin
 policy: $(GP_OUTPUT)/gpreempt_policy
 
-$(GP_OUTPUT)/gpreempt_context_smoke: gpreempt_context_smoke.cpp gpreempt_bridge.h $(GP_OUTPUT)/libgpreempt_bridge.so
+$(GP_OUTPUT)/gpreempt_context_smoke: gpreempt_context_smoke.cpp gpreempt_bridge.h gpreempt_context_smoke_rpc.h $(GP_DRIVER_ROOT)/kernel-open/common/inc/nv-gpu-rpc-diagnostic.h $(GP_OUTPUT)/libgpreempt_bridge.so
 	$(CXX) -O2 -g -std=c++17 -Wall -Wextra -Wl,--build-id=none \
 		-I$(GP_CUDA_ROOT)/include -I$(GP_DRIVER_ROOT)/src/common/sdk/nvidia/inc \
 		-I$(GP_DRIVER_ROOT)/kernel-open/common/inc $< \
@@ -51,7 +51,7 @@ $(GP_OUTPUT)/libgpreempt_bridge.so: gpreempt_bridge.cpp gpreempt_bridge.h | $(GP
 		$(GP_INCLUDES) $< $(GP_VM_LIBS) -o $@
 
 $(GP_OUTPUT)/gpreempt_policy.bpf.o: gpreempt_policy.bpf.c gpreempt_bridge.h gpu_sched_set_timeslices.h | $(GP_OUTPUT)
-	clang -O2 -g -target bpf -D__TARGET_ARCH_x86 -I.output -I../libbpf/include/uapi \
+	clang -O2 -g -target bpf -mcpu=v3 -D__TARGET_ARCH_x86 -I.output -I../libbpf/include/uapi \
 		-I../vmlinux/x86 -c $< -o $@
 
 $(GP_OUTPUT)/gpreempt_policy.skel.h: $(GP_OUTPUT)/gpreempt_policy.bpf.o

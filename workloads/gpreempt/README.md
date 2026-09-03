@@ -195,6 +195,15 @@ measurement. CUDA source export and model choice are explicit fixes to the
 provided generation script. Runtime output agreement still must be checked in
 the original standalone executor and every comparison cell.
 
+The original native executor has now passed a complete config-A correctness
+canary in `raw/575-native-executor-canary-01/`: both VGG19 and ResNet152 completed
+6,000 timed requests plus 110 warmup/calibration requests, with all 1,000 output
+values checked each time and maximum absolute error zero. Post-run UVM,
+struct-ops and compute-client state was clean, with no new Xid. Other CPU builds
+were permitted during this canary, so its retained latency samples are diagnostic
+and are not a paired comparative performance result. Original/BPF policy arms
+still require their own numeric checks and timed comparison.
+
 Primary comparison remains upstream native `baseclient` (single context with
 stream priorities), complete original `gpreemptclient` on the 575 port (two role
 contexts), and the equivalent BPF policy on the same two-context topology.

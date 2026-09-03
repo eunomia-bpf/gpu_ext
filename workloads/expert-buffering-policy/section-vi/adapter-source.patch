@@ -1,0 +1,367 @@
+--- a/core/prefetch/task_scheduler.h
++++ b/core/prefetch/task_scheduler.h
+@@ -17,6 +17,7 @@
+ #include "model/model_topology.h"
+ #include "utils/noncopyable.h"
+ #include "finemoe_copy_ledger.h"
++#include "eb_section_vi/adapter_state.h"
+ 
+ #define SKIP_TO_NEXT_ITERATION                                  \
+     std::this_thread::sleep_for(std::chrono::microseconds(10)); \
+@@ -25,6 +26,8 @@
+ #define NUM_PRIORITY 20UL
+ 
+ struct Task {
++    eb_u64 eb_epoch = 0;
++    eb_u32 eb_layer = 0, eb_expert = 0;
+     bool on_demand = false;
+     NodePtr node;
+     std::vector<NodePtr> remove_nodes;
+@@ -53,6 +56,14 @@
+     void StopExec(const std::uint64_t& request_id, const NodePtr& node);
+     void EnqueueTask(const TaskPtr& task);
+     void DrainForSnapshot();
++    void ConfigureExpertBuffering(const std::string &arm, eb_u32 capacity,
++                                 const std::string &library, const std::string &bytecode);
++    eb_u64 BeginExpertBuffering(eb_u32 layer, eb_u32 device,
++                               const std::vector<std::uint32_t> &tensor_ids,
++                               const std::vector<eb_u32> &counts);
++    void EndExpertBuffering(eb_u32 layer, eb_u64 epoch);
++    std::map<std::string, eb_u64> ExpertBufferingStats();
++    bool ExpertBufferingEnabled() const { return eb_state_ != nullptr; }
+ 
+     void ClearQueue()
+     {
+@@ -101,6 +112,11 @@
+     void GPUThreadFunc(int gpu_id, int thread_id);
+     void SetNodeDevice(const TaskPtr& task);
+     void FinishTask();
++    void StampExpertBufferingTask(const TaskPtr &task);
++    bool RemoveExpertBufferingNode(const TaskPtr &task);
++    void CopyExpertBufferingNode(const TaskPtr &task);
++    void CheckExpertBufferingResidency(eb_u32 layer, const NodePtrList &nodes);
++    std::int64_t ExpertBufferingResidentBytes() const;
+ 
+     std::string DebugString(const std::vector<std::deque<TaskPtr>>& queue);
+ 
+@@ -119,6 +135,9 @@
+     std::unordered_set<NodePtr> candidates_;
+ 
+     std::atomic<bool> main_thread_stop_flag_;
++    std::mutex eb_mutex_;
++    std::unique_ptr<eb_adapter::State> eb_state_;
++    std::map<eb_u32, NodePtrList> eb_nodes_;
+ };
+ 
+ extern std::unique_ptr<ArcherTaskPool> kTaskPool;
+--- a/core/prefetch/task_scheduler.cpp
++++ b/core/prefetch/task_scheduler.cpp
+@@ -16,6 +16,7 @@
+ #include "finemoe_runtime_safety.h"
+ 
+ std::unique_ptr<ArcherTaskPool> kTaskPool = nullptr;
++#include "eb_section_vi/adapter_live.inc"
+ 
+ ArcherTaskPool::ArcherTaskPool()
+ {
+@@ -43,6 +44,9 @@
+ 
+ void ArcherTaskPool::FetchExec(const std::uint64_t& request_id, const NodePtr& node)
+ {
++    // EB's actual current-batch routing precedes the authoritative demand path.
++    // Do not race a second, un-stamped sparse copy against AcquireTensor.
++    if (eb_state_ && node->is_sparse) return;
+     auto task = std::make_shared<Task>();
+     task->on_demand = false;
+     task->node = node;
+@@ -83,6 +87,8 @@
+ 
+ void ArcherTaskPool::EnqueueTask(const TaskPtr& task)
+ {
++    if (eb_state_ && task->node->is_sparse)
++        throw std::runtime_error("EB forbids speculative sparse tasks");
+     ARCHER_LOG_DEBUG("EnqueueTask: {}", task->DebugString());
+ 
+     {
+@@ -136,6 +142,8 @@
+     task->dst_device = node->default_device;
+     task->request_id = request_id;
+ 
++    if (eb_state_ && node->is_sparse) StampExpertBufferingTask(task);
++
+     ARCHER_LOG_DEBUG("StartExec: {}", task->DebugString());
+ 
+     node->visit_count += 1;
+@@ -234,6 +242,7 @@
+ 
+ void ArcherTaskPool::ClearCacheSparseNode(int device_id)
+ {
++    if (eb_state_) throw std::runtime_error("EB requires a fresh process, not untracked cache clear");
+     auto nodes = kTopologyHandle->GetSparseNodes();
+ 
+     NodePtrList device_nodes;
+@@ -539,7 +548,8 @@
+         // immediately before physical copy, not on the earlier Python thread.
+         if (!node->device.is_cuda() && task->dst_device.is_cuda()) {
+             if (!node->is_sparse) RemoveCachedDenseNode(node);
+-            bool success = RemoveCachedSparseNode(node, gpu_id, task->priority > 0);
++            bool success = eb_state_ ? RemoveExpertBufferingNode(task)
++                : RemoveCachedSparseNode(node, gpu_id, task->priority > 0);
+             if (!success) {
+                 ARCHER_LOG_DEBUG("{} evict failed, move to CPU", task->DebugString());
+                 if (task->priority > 0) {
+@@ -596,6 +606,8 @@
+     }
+ 
+     if (node->device.type() == task->dst_device.type()) {
++        if (eb_state_ && node->is_sparse)
++            throw std::runtime_error("EB duplicate or externally completed sparse copy");
+         ARCHER_LOG_DEBUG("SetNodeDevice: task: {}, skip same device", task->DebugString());
+         if (!task->on_demand) node->mutex.unlock();
+         return;
+@@ -603,8 +615,8 @@
+ 
+     auto start_time = MCIROSECONDS_SINCE_EPOCH;
+ 
+-    // node->SetDevice(task->dst_device);
+-    node->SetDevice(task->dst_device, task->on_demand, nullptr, task->priority > 0);
++    if (eb_state_ && node->is_sparse) CopyExpertBufferingNode(task);
++    else node->SetDevice(task->dst_device, task->on_demand, nullptr, task->priority > 0);
+     auto end_time = MCIROSECONDS_SINCE_EPOCH;
+     ARCHER_LOG_DEBUG(
+         "SetNodeDevice: task: {}, emplace time {} us", task->DebugString(), end_time - start_time);
+--- a/core/prefetch/archer_prefetch_handle.h
++++ b/core/prefetch/archer_prefetch_handle.h
+@@ -23,6 +23,12 @@
+ 
+     void ReplaceCacheCandidates(const std::vector<std::uint32_t>& tensor_ids);
+     void EnqueuePrefetch(const uint32_t tensor_id, int gpu_id, float prob);
++    void ConfigureExpertBuffering(const std::string &arm, std::uint32_t capacity,
++                                 const std::string &library, const std::string &bytecode);
++    std::uint64_t BeginExpertBuffering(std::uint32_t layer, std::uint32_t device,
++                                     const std::vector<std::uint32_t> &tensor_ids,
++                                     const std::vector<std::uint32_t> &counts);
++    void EndExpertBuffering(std::uint32_t layer, std::uint64_t epoch);
+ 
+     void OffloadTensor(torch::Tensor& tensor, const std::uint32_t tensor_id);
+     void RegisterTensor(torch::Tensor& tensor, const std::uint32_t tensor_id);
+--- a/core/prefetch/archer_prefetch_handle.cpp
++++ b/core/prefetch/archer_prefetch_handle.cpp
+@@ -98,6 +98,24 @@
+     finemoe_revision::Ledger().Count("compute_release_syncs");
+ }
+ 
++void ArcherPrefetchHandle::ConfigureExpertBuffering(const std::string &arm, std::uint32_t capacity,
++                                                   const std::string &library, const std::string &bytecode)
++{
++    kTaskPool->ConfigureExpertBuffering(arm, capacity, library, bytecode);
++}
++
++std::uint64_t ArcherPrefetchHandle::BeginExpertBuffering(std::uint32_t layer, std::uint32_t device,
++                                                       const std::vector<std::uint32_t> &tensor_ids,
++                                                       const std::vector<std::uint32_t> &counts)
++{
++    return kTaskPool->BeginExpertBuffering(layer, device, tensor_ids, counts);
++}
++
++void ArcherPrefetchHandle::EndExpertBuffering(std::uint32_t layer, std::uint64_t epoch)
++{
++    kTaskPool->EndExpertBuffering(layer, epoch);
++}
++
+ void ArcherPrefetchHandle::AcquireTensor(std::uint64_t& request_id, torch::Tensor& buffer)
+ {
+     auto tensor_id = kArcherTensorHandle->GetTensorId((void*)buffer.data_ptr());
+--- a/core/python/py_archer_prefetch.cpp
++++ b/core/python/py_archer_prefetch.cpp
+@@ -11,6 +11,12 @@
+ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
+ {
+     m.attr("finemoe_runtime_revision") = "dynamic-set-safety-20260903-v2";
++    m.attr("expert_buffering_runtime_revision") = "section-vi-private-adapter-v1";
++    m.def("expert_buffering_snapshot", [] {
++        if (!kTaskPool) throw std::runtime_error("EB engine is not initialized");
++        kTaskPool->DrainForSnapshot();
++        return kTaskPool->ExpertBufferingStats();
++    });
+     m.def("finemoe_clock_ns", [] { return finemoe_revision::NowNs(); });
+     m.def("finemoe_begin_measurement", [] {
+         if (!kTaskPool) throw std::runtime_error("FineMoE engine is not initialized");
+@@ -46,6 +52,9 @@
+     });
+     py::class_<ArcherPrefetchHandle>(m, "prefetch_handle")
+         .def(py::init<const std::string&, const double>())
++        .def("configure_expert_buffering", &ArcherPrefetchHandle::ConfigureExpertBuffering)
++        .def("begin_expert_buffering", &ArcherPrefetchHandle::BeginExpertBuffering)
++        .def("end_expert_buffering", &ArcherPrefetchHandle::EndExpertBuffering)
+ 
+         .def("offload", &ArcherPrefetchHandle::OffloadTensor)
+         .def("register",
+--- a/finemoe/models/modeling_qwen/modeling_qwen2_moe.py
++++ b/finemoe/models/modeling_qwen/modeling_qwen2_moe.py
+@@ -838,6 +838,7 @@
+             config.hidden_size, 1, bias=False)
+ 
+         self.archer_engine = None
++        self.eb_section_vi = False
+ 
+     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+         """ """
+@@ -858,36 +859,28 @@
+         expert_index = selected_experts.reshape(
+             batch_size, sequence_length, self.top_k)
+ 
+-        # Record states
+-        for i, seq_id in enumerate(self.seq_id_list):
+-            self.expert_tracer.update_entry(
+-                seq_id=seq_id,
+-                expert_list=expert_index[i],
+-                layer_idx=self.layer_id,
+-                hidden_states=hidden_states[i *
+-                                            sequence_length:(i+1)*sequence_length],
+-                expert_probs=expert_probs[i *
+-                                          sequence_length:(i+1)*sequence_length],
+-            )
+-
+-        input_trajs = []
+-        # A completed request may remain in the tracing archive. Match only
+-        # the active sequence IDs, in their current batch order.
+-        for seq_id in self.seq_id_list:
+-            trace_entry = self.expert_tracer.trace[seq_id]
+-            chosen_iters = trace_entry.iters[-1:]
+-            input_trajs.append(torch.stack(
+-                [it["probs"][:self.layer_id+1] for it in chosen_iters], dim=0))
+-
+-        input_trajs = torch.stack(input_trajs, dim=0).to(
+-            dtype=torch.float, device=self.device, non_blocking=True
+-        )
+-        assert not (input_trajs == 0).all(
+-            dim=-1).any(), f"Layer with all-zero expert probs exist"
+-
+-        assert self.expert_map_matcher is not None
+-        for seq_id, trajs in zip(self.seq_id_list, input_trajs):
+-            self.expert_map_matcher.traj_prefetch(seq_id, trajs)
++        if not self.eb_section_vi:
++            # The original FineMoE prediction path is not part of Section VI.
++            for i, seq_id in enumerate(self.seq_id_list):
++                self.expert_tracer.update_entry(
++                    seq_id=seq_id,
++                    expert_list=expert_index[i],
++                    layer_idx=self.layer_id,
++                    hidden_states=hidden_states[i * sequence_length:(i+1)*sequence_length],
++                    expert_probs=expert_probs[i * sequence_length:(i+1)*sequence_length],
++                )
++            input_trajs = []
++            for seq_id in self.seq_id_list:
++                trace_entry = self.expert_tracer.trace[seq_id]
++                chosen_iters = trace_entry.iters[-1:]
++                input_trajs.append(torch.stack(
++                    [it["probs"][:self.layer_id+1] for it in chosen_iters], dim=0))
++            input_trajs = torch.stack(input_trajs, dim=0).to(
++                dtype=torch.float, device=self.device, non_blocking=True)
++            assert not (input_trajs == 0).all(dim=-1).any(), f"Layer with all-zero expert probs exist"
++            assert self.expert_map_matcher is not None
++            for seq_id, trajs in zip(self.seq_id_list, input_trajs):
++                self.expert_map_matcher.traj_prefetch(seq_id, trajs)
+ 
+         final_hidden_states = torch.zeros(
+             (batch_size * sequence_length, hidden_dim), dtype=hidden_states.dtype, device=hidden_states.device
+@@ -898,6 +891,12 @@
+         expert_mask = torch.nn.functional.one_hot(
+             selected_experts, num_classes=self.num_experts).permute(2, 1, 0)
+ 
++        if self.eb_section_vi:
++            # Actual top-k token assignments, not softmax probabilities/history.
++            counts = expert_mask.sum(dim=(1, 2)).to(device="cpu", dtype=torch.int64).tolist()
++            eb_epoch = self.archer_engine.begin_expert_buffering(
++                self.layer_id, 0, self.eb_tensor_ids, counts)
++
+         # Loop over all available experts in the model and perform the computation on each expert
+         for expert_idx in range(self.num_experts):
+             expert_layer = self.experts[expert_idx]
+@@ -919,6 +918,9 @@
+             final_hidden_states.index_add_(
+                 0, top_x, current_hidden_states.to(hidden_states.dtype))
+ 
++        if self.eb_section_vi:
++            self.archer_engine.end_expert_buffering(self.layer_id, eb_epoch)
++
+         shared_expert_output = self.shared_expert(hidden_states)
+         shared_expert_output = F.sigmoid(
+             self.shared_expert_gate(hidden_states)) * shared_expert_output
+@@ -1236,12 +1238,12 @@
+         if inputs_embeds is None:
+             inputs_embeds = self.embed_tokens(input_ids)
+ 
+-        for seq_id, embeds in zip(self.seq_id_list, inputs_embeds):
+-            self.expert_tracer.update_embed(seq_id, embeds)
+-
+-        assert self.expert_map_matcher is not None
+-        for seq_id, embeds in zip(self.seq_id_list, inputs_embeds):
+-            self.expert_map_matcher.embed_prefetch(seq_id, embeds)
++        if not getattr(self, "eb_section_vi", False):
++            for seq_id, embeds in zip(self.seq_id_list, inputs_embeds):
++                self.expert_tracer.update_embed(seq_id, embeds)
++            assert self.expert_map_matcher is not None
++            for seq_id, embeds in zip(self.seq_id_list, inputs_embeds):
++                self.expert_map_matcher.embed_prefetch(seq_id, embeds)
+ 
+         if cache_position is None:
+             past_seen_tokens = past_key_values.get_seq_length(
+--- a/finemoe/runtime/model_offload.py
++++ b/finemoe/runtime/model_offload.py
+@@ -385,6 +385,16 @@
+             self.checkpoint,
+             _archer_config.device_memory_ratio,
+         )
++        # This private source copy is exclusively the Section VI experiment.
++        # Missing configuration/old frozen binary must fail, not silently run it.
++        if self.config.model_type != "qwen2_moe" or self.num_experts != 60:
++            raise RuntimeError("Section VI adapter requires the frozen 60-expert Qwen model")
++        if getattr(self.prefetch_lib, "expert_buffering_runtime_revision", None) != "section-vi-private-adapter-v1":
++            raise RuntimeError("Section VI requires its separately rebuilt offloader")
++        self.eb_section_vi = True
++        self.archer_engine.configure_expert_buffering(
++            os.environ["EB_SECTION_VI_ARM"], int(os.environ["EB_SECTION_VI_CAPACITY"]),
++            os.environ["EB_SECTION_VI_LIBRARY"], os.environ["EB_SECTION_VI_BYTECODE"])
+ 
+         self.archer_config = _archer_config
+ 
+@@ -685,6 +695,7 @@
+                 model.model.expert_tracer = self.expert_tracer
+                 model.model.expert_map_matcher = self.expert_map_matcher
+                 model.model._device = self.device
++                model.model.eb_section_vi = self.eb_section_vi
+ 
+                 module_idx = 0
+                 self.expert_layer_modules = []
+@@ -707,6 +718,10 @@
+                         self.expert_layer_modules.append(module)
+ 
+                         module.layer_id = module_idx
++                        module.eb_section_vi = self.eb_section_vi
++                        module.eb_tensor_ids = [
++                            self.expert_tensor_map[(module_idx, expert)]
++                            for expert in range(self.num_experts)]
+ 
+                         module_idx += 1
+ 
+--- a/op_builder/prefetch.py
++++ b/op_builder/prefetch.py
+@@ -35,6 +35,7 @@
+             'core/model/model_topology.cpp',
+             'core/prefetch/archer_prefetch_handle.cpp',
+             'core/prefetch/task_scheduler.cpp',
++            'core/eb_section_vi/adapter_state.cpp',
+             'core/prefetch/task_thread.cpp',
+             'core/memory/memory_pool.cpp',
+             'core/memory/stream_pool.cpp',
+@@ -77,7 +78,7 @@
+         ]
+ 
+     def extra_ldflags(self):
+-        return []
++        return ['-ldl']
+ 
+     def is_compatible(self, verbose=True):
+         return super().is_compatible(verbose)

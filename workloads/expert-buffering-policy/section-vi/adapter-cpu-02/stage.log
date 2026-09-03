@@ -1,0 +1,20 @@
+checking file core/prefetch/task_scheduler.h
+checking file core/prefetch/task_scheduler.cpp
+checking file core/prefetch/archer_prefetch_handle.h
+checking file core/prefetch/archer_prefetch_handle.cpp
+checking file core/python/py_archer_prefetch.cpp
+checking file finemoe/models/modeling_qwen/modeling_qwen2_moe.py
+checking file finemoe/runtime/model_offload.py
+checking file op_builder/prefetch.py
+checking file finemoe/ops/op_builder/prefetch.py
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/prepare_adapter.py", line 50, in <module>
+    stage(args.stage)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/prepare_adapter.py", line 30, in stage
+    shutil.copytree(FROZEN / directory, destination / directory, ignore=ignore)
+  File "/usr/lib/python3.12/shutil.py", line 600, in copytree
+    return _copytree(entries=entries, src=src, dst=dst, symlinks=symlinks,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/shutil.py", line 554, in _copytree
+    raise Error(errors)
+shutil.Error: [('/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/core', '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-01/core/core', "[Errno 40] Too many levels of symbolic links: '/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/core'")]

@@ -7,11 +7,14 @@ not evidence that this algorithm has been reproduced.
 
 The subsequent [adapter state interface](adapter-step-a.md) now passes 1,432
 CPU checks, including 650 additional native/actual-JIT paired decisions. It
-provides epoch/cohort/residency and status validation for the future C++ worker;
-real node locks, CUDA copy completion and live eviction are not yet connected.
+provides epoch/cohort/residency and status validation for the C++ worker.
+[Step B](adapter-step-b.md) now prepares the private source wiring and passes
+61 fake-device control checks plus eight source/cleanup tests. Actual node
+locking, copy completion and eviction are wired in that **unbuilt private
+patch**, not yet validated on a real CUDA workload.
 
-Scope: add only this independent policy, real host-uBPF path and CPU oracle;
-do not change the old page-profile policy or the frozen FineMoE runtime.
+Scope: this independent policy, real host-uBPF path, CPU oracle and private
+adapter source; do not change the old page-profile policy or the frozen FineMoE runtime.
 The smallest acceptable change implements victim decisions and their tests;
 it does not add a new offloader or an experiment framework.
 
@@ -105,8 +108,9 @@ reviewed adapter/build; preserve the recorded FineMoE experiment.
    executing experts cannot be evicted. Admission serial exhaustion must fail,
    not wrap. A live stale commit must re-snapshot boundedly or fail explicitly.
 
-These C++ changes require a later offloader-extension build. They are **not**
-implemented by this standalone selector or by changing a Python prefetch mask.
+The [private source patch](adapter-source.patch) now wires these boundaries;
+it still requires an offloader-extension build and real GPU correctness gates.
+The standalone selector and CPU tests alone do not establish that live path.
 
 ## Future protocol: not executed or performance-frozen
 

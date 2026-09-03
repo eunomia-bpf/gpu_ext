@@ -1,0 +1,16 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'
+taskset -c 17 /usr/bin/g++-13 -std=c++17 -O2 -Wall -Wextra -Werror -Wl,--build-id=none -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe adapter_state.cpp test_adapter_live.cpp -ldl -pthread -o build/test_adapter_live
+In file included from test_adapter_live.cpp:86:
+adapter_live.inc: In member function ‘bool ArcherTaskPool::RemoveExpertBufferingNode(const TaskPtr&)’:
+adapter_live.inc:146:56: error: ignoring return value of ‘bool std::unique_lock<_Mutex>::try_lock() [with _Mutex = std::mutex]’, declared with attribute ‘nodiscard’ [-Werror=unused-result]
+  146 |         if (i != task->eb_expert) locks.back().try_lock();
+      |                                   ~~~~~~~~~~~~~~~~~~~~~^~
+In file included from /usr/include/c++/13/condition_variable:43,
+                 from /home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_runtime_safety.h:5,
+                 from test_adapter_live.cpp:4:
+/usr/include/c++/13/bits/unique_lock.h:148:7: note: declared here
+  148 |       try_lock()
+      |       ^~~~~~~~
+cc1plus: all warnings being treated as errors
+make: *** [adapter.mk:7: build/test_adapter_live] Error 1
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'

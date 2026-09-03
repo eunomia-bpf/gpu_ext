@@ -73,9 +73,13 @@ Tiancheng Hu et al., *Hummingbird: SLO-Oriented GPU Preemption at
 Microsecond-scale*. Splits kernels through PTX transformation and replays the
 correct block-index offsets; its scheduler fills detected idle intervals and
 stops admitting low-priority work when high-priority work is ready. Larger idle
-intervals permit consolidation. [Reviewed paper, v1](https://arxiv.org/html/2601.04071v1).
-The [arXiv record](https://arxiv.org/abs/2601.04071) also lists a newer v2;
-the local PDF and this mechanism reading are explicitly v1.
+intervals permit consolidation. The original survey read
+[v1](https://arxiv.org/html/2601.04071v1); implementation preparation now also
+checks [v2, 2026-02-10](https://arxiv.org/abs/2601.04071v2), retained as a
+[separate PDF](reference/2026-hu-hummingbird-v2.pdf). Section 4.3 requires
+real bubble hints, waiting for high-priority GPU completion, split-kernel
+admission and kernel-tick pacing. Merely shortening GPreempt's hint is not this
+algorithm.
 
 No runnable author artifact was confirmed in this bounded search. The
 `microsoft/hummingbird` ML tensor compiler is unrelated. A driver policy
@@ -142,7 +146,8 @@ reference. [Evaluation methodology](https://arxiv.org/html/2608.11688v1#S5.SS2).
 
 ## Downloaded PDF inventory
 
-All seven downloads were checked with `pdfinfo` and first-page title inspection.
+All original seven downloads and the additional Hummingbird v2 snapshot were
+checked with `pdfinfo` and first-page title inspection.
 Sizes are the local downloaded files; this is an inventory, not evidence that
 any artifact builds or runs. PDFs remain the original authors' work.
 
@@ -151,6 +156,7 @@ any artifact builds or runs. PDFs remain the original authors' work.
 | FineMoE / author EuroSys 2026 PDF | [PDF](reference/2026-yu-finemoe.pdf) | 1,335,925 | 16 |
 | HybriMoE / arXiv v1, 2025-04-08 | [PDF](reference/2025-zhong-hybrimoe.pdf) | 527,582 | 7 |
 | Hummingbird / arXiv v1, 2026-01-07 | [PDF](reference/2026-hu-hummingbird.pdf) | 971,539 | 20 |
+| Hummingbird / arXiv v2, 2026-02-10 | [PDF](reference/2026-hu-hummingbird-v2.pdf) | 1,126,558 | 20 |
 | UniBoost / author ICML 2026 PDF | [PDF](reference/2026-li-tail-aware-scheduling.pdf) | 800,021 | 16 |
 | POD-Attention / author ASPLOS 2025 PDF | [PDF](reference/2025-pod-attention.pdf) | 1,091,305 | 16 |
 | MPK / arXiv v2, 2026-06-10 | [PDF](reference/2026-mpk-v2.pdf) | 829,938 | 18 |

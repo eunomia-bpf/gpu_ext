@@ -1,0 +1,35 @@
+{
+  "tasks": [
+    {
+      "client": {
+        "batch_size": 1,
+        "model_name": "vgg",
+        "name": "vgg_rt",
+        "preprocess_time": 200,
+        "priority": 0,
+        "use_cuda_graph": false
+      },
+      "id": "vgg_rt",
+      "load": {
+        "frequency": 100,
+        "priority": 0,
+        "type": "periodic_fifo"
+      }
+    },
+    {
+      "client": {
+        "batch_size": 1,
+        "model_name": "resnet152",
+        "name": "resnet152_be",
+        "preprocess_time": 200,
+        "priority": 1,
+        "use_cuda_graph": false
+      },
+      "id": "resnet152_be",
+      "load": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "time": 10
+}

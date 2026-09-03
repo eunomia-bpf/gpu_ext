@@ -1,10 +1,10 @@
 # FineMoE dynamic prefetch sets on the official Qwen execution path
 
-Status: source inspection and scoped preparation; **no new GPU result yet**.
+Status: original-model GPU reference passed; **offload-policy results pending**.
 This is a FineMoE **dynamic-set component experiment**, not a reproduction of
 the entire EuroSys evaluation or a renamed EAMC activation-count heuristic.
 
-FineMoE is in active CPU preparation, with GPU work coordinated by the root lease.
+FineMoE is in active preparation, with GPU work coordinated by the root lease.
 The original Qwen checkpoint is downloaded (exact source revision and 16-file
 size inventory in `source-inventory.json`), the official extension compiles, and
 the private Transformers 4.49 overlay imports the compiled module. Final CPU
@@ -35,8 +35,13 @@ No Torch source, model mathematics, precision, cohort, budget or tolerance chang
 Normal golden-v3 has now passed 73 requests and nine repeated-output checks;
 its fixed reported absolute tolerance is 0.0 and teardown passed. It is retained
 unchanged as preparation, but its repeat logits were not separately saved.
-The final golden-v4 adds only those nine array files so an independent reader can
-recompute repeat errors. The full 64/8/1 cohort and all calculations stay fixed.
+Final golden-v4 has also passed 73 originals + nine repeats, retaining both sets
+of arrays. Independent CPU recomputation found all nine actual maximum errors
+equal to 0.0 across 43,757,568 finite float32 values (18 arrays); the frozen
+absolute tolerance remains 0.0. Raw token/timing checks, unchanged runtime
+inventory and cleanup passed; sampled peaks were 28,041 MiB and 50 C. V4 is the
+final reference, not an offload-policy performance result. The full 64/8/1 cohort
+and all calculations stay fixed. See `results-preparation.md` for audit scope.
 
 ## Research Question
 
@@ -218,7 +223,7 @@ any frozen parameter. No model/precision changes to make a failing cell pass.
 | Run group | Role | Workload | Arms | Repetitions | Decision |
 |---|---|---|---|---:|---|
 | CPU | dependency | Paper boundaries + real-method downstream call capture | Python/C/JIT | deterministic cases | Exact algorithm/engagement parity. |
-| preflight | dependency | Full 64/8/1 cohort, original real Qwen | four above | 1 each | Memory, numerical, copy-accounting and nontrivial dynamic set. |
+| preflight | dependency | Full 64/8/1 cohort, original real Qwen | four above | 1 each | Memory, numerical, copy-accounting and actual selector/JIT/API engagement; no result-direction gate. |
 | full | supporting | frozen store, 8 held-out prompts | four above | 5 paired blocks | Useful/unused-byte and latency/throughput tradeoff. |
 
 ## Execution
@@ -251,15 +256,16 @@ model golden and same-arm repeat tolerance, then the full 64-request history,
 then all four numerical/oracle/copy-accounting canaries. Formal runs disable
 full-logit transfer and shadow comparisons, retain exact golden token checks,
 and use fresh processes with the same store/warmup. The failed v1 and v2 GPU
-attempts and diagnostic are retained; the next run is normal golden-v4 with the
-same full 73-request / 9-repeat protocol, not a reduced model or cohort.
+attempts and diagnostic are retained. Normal golden-v4 completed the full
+73-request / 9-repeat protocol and independent two-array numerical audit;
+the next run builds the full 64-request real history, not a reduced cohort.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
 
 The completed diagnostic used `.venv/bin/python -B compare.py --mode golden
 --native-backtrace --output raw/golden-sigill-gdb-01 --timeout 1200`. It cannot be
-reused as a reference. The next normal no-debugger attempt uses a new directory;
-the following staged commands are not claims that those stages passed.
+reused as a reference. The normal golden-v4 command below has completed;
+the subsequent history/preflight/full commands are not claims those stages passed.
 
 ```sh
 .venv/bin/python -B compare.py --mode golden --output raw/golden-v4

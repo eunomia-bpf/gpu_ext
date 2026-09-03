@@ -1,6 +1,8 @@
-# FineMoE preparation: retained first-load failure
+# FineMoE preparation: original-model reference and retained failures
 
-No FineMoE numerical correctness or performance result is established yet.
+The original-model GPU reference has passed. FineMoE offload-policy numerical
+correctness and performance remain unestablished. Earlier attempts below are
+retained chronologically; the latest successful stage is at the end.
 
 `raw/golden-v1/stage/worker.log` records the original full BF16 Qwen checkpoint
 failing while loading its seventh of eight shards. The worker exited 1 before
@@ -112,3 +114,28 @@ worker change writes `question-ID-repeat-logits.npy` and records its filename
 in each repeat row. No generation, random seed, cohort, mathematics, tolerance
 rule or budget changes. A fresh full normal `raw/golden-v4` will be the final
 reference after both original and repeated arrays pass offline recomputation.
+
+## Final normal v4: independently recomputed reference passed
+
+`raw/golden-v4` completed normally (exit 0, no debugger): all 73 original
+requests and nine repeats passed, producing 1,168 + 144 generated tokens.
+The 18 persisted float32 arrays have shape `(16, 1, 151936)` each, contain
+43,757,568 finite values, and total 175,032,576 file bytes. An independent
+CPU-only audit loaded every original/repeat pair: all values were exactly equal,
+and all nine recomputed maximum absolute errors were **0.0**. The frozen
+absolute tolerance is therefore 0.0; it is not changed for the offload arms.
+
+The audit also verified frozen input IDs, request/log order, 16 generated token
+IDs per request, token timestamps and derived TTFT/TPOT, repeat token equality,
+the unchanged 42-file runtime inventory, and the same runtime versions/native
+DSL compatibility predicate recorded above. All 961 raw telemetry samples had
+inactive throttle flags; peaks were 28,041 MiB and 50 C. Cleanup returned to
+15 MiB, no compute process, UVM 0, empty struct-ops state and no Xid/kernel
+abnormality. No performance claim is made from this reference preparation.
+
+V4 is the final reference for the next 64-request history stage and the four
+numerical canaries. History checks exact original-HF token IDs; each canary also
+checks all logits for its disjoint warmup and eight held-out requests against
+the same fixed tolerance. No actual FineMoE offload arm has passed those gates
+yet, and no four-arm performance block is complete. Earlier failures and v3
+remain unchanged.

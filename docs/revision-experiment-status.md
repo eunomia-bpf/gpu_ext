@@ -44,11 +44,11 @@ the 50-cell performance matrix remains pending. See the
 [current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
 FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;
 the full original Qwen model has now completed a normal 73-request reference
-and nine exact repeated-output checks. Preparation required a common allocator
-setting and disabling optional PyTorch DSL overrides, not the separate uBPF
+and nine exact repeated-output checks. All 18 saved original/repeated FP32
+arrays passed independent numerical recomputation with zero error. Preparation
+required a common allocator setting and disabling optional PyTorch DSL overrides, not the separate uBPF
 policy JIT. Earlier OOM/SIGILL and diagnostic records remain retained; the
-precise fatal-signal cause is not established. A fresh reference will also save
-both sets of repeated logits for independent numerical recomputation. FineMoE
+precise fatal-signal cause is not established. FineMoE
 offload correctness, history, actual transfers and four-arm timing are still
 open; see the [preparation record](../workloads/finemoe/results-preparation.md).
 The original complete LMSYS dataset requires

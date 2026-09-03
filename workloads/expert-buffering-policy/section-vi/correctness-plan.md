@@ -4,20 +4,25 @@
 timing window closed: six bridge tests (five actual host-uBPF decisions) and
 eight controller/mode tests, including analyzer AST coverage. Original logs
 are in [step-c-cpu-01](step-c-cpu-01/execution.md). **The three real GPU
-preflight cells and 15-cell performance matrix have not run.** The prior private
+preflight gates and 15-cell performance matrix have not completed.** The prior private
 offloader build/import passed separately (`4438d62`, 59,238,064 bytes); this
 step does not modify its source tree, `State`, or the accepted Step B patch.
 
-The requested OpenCode independent review is now authorized after the CPU
-tests and closed HB timing window; no review result is claimed yet. Its complete
+The requested OpenCode independent review completed after the CPU tests and
+closed HB timing window; its [actual final report](opencode-review-02/final.md)
+has no blocking findings. Attempt 01 returned no visible text and remains
+preserved as incomplete; attempt 02 supplied the full report with no tool-use
+events, and its owned process group was empty after exit. See
+[review outcome and caveat handling](opencode-review.md). Its complete
 bounded [prompt](opencode-correctness-review-prompt.md) and exact seven-source
 [context](opencode-correctness-review-context.md) are prepared. Default routing
 now names an nvfp4 gateway; an external HTTPS endpoint alone does not establish
 that its backend is independent of this host's GPU. The coordinator therefore
 deferred the request during formal timing; no EB workload will run during
 this review. No model override, service change or fabricated review verdict is
-permitted. The invocation must keep `snapshot:false`, all tools denied,
-CPU 17 and a ten-minute deadline, and retain its actual events/stderr/final.
+permitted. Both actual invocations used `snapshot:false`, all tools denied,
+CPU 17 and a ten-minute deadline, retaining their complete requests/events/stderr.
+The successful second invocation additionally retains its exact final report.
 
 ## Boundary and reuse
 

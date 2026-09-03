@@ -1,0 +1,40 @@
+{
+  "status": "exited_without_final_review",
+  "exit_code": 0,
+  "observed_finished": "2026-09-03 16:04:15 UTC",
+  "visible_output_tokens": 0,
+  "session_id": "ses_f97fdfd0fffeIXsbKtxZi9yNmP",
+  "started": "2026-09-03 16:02:36 UTC",
+  "cpu": 17,
+  "deadline_seconds": 600,
+  "kill_grace_seconds": 5,
+  "model": "default configured; no override",
+  "snapshot": false,
+  "permission_overlay": {
+    "snapshot": false,
+    "share": "disabled",
+    "autoupdate": false,
+    "permission": {
+      "*": "deny"
+    },
+    "agent": {
+      "build": {
+        "permission": {
+          "*": "deny"
+        }
+      },
+      "qwen": {
+        "permission": {
+          "*": "deny",
+          "edit": "deny",
+          "bash": "deny"
+        }
+      }
+    }
+  },
+  "external_plugins": false,
+  "request": "request.md",
+  "stdout": "events.jsonl",
+  "stderr": "stderr.log",
+  "command": "taskset -c 17 env OPENCODE_CONFIG_CONTENT='{\"snapshot\":false,\"share\":\"disabled\",\"autoupdate\":false,\"permission\":{\"*\":\"deny\"},\"agent\":{\"build\":{\"permission\":{\"*\":\"deny\"}},\"qwen\":{\"permission\":{\"*\":\"deny\",\"edit\":\"deny\",\"bash\":\"deny\"}}}}' timeout --kill-after=5s 600s opencode run --pure --format json --title eb-section-vi-step-c-review \"$( < /home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/opencode-review-01/request.md )\" > /home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/opencode-review-01/events.jsonl 2> /home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/opencode-review-01/stderr.log"
+}

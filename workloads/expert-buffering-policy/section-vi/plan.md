@@ -16,7 +16,9 @@ the adapter is not yet validated on a real CUDA workload.
 The same-worker [Step C correctness/performance source](correctness-plan.md)
 is now prepared for three exact-logit preflight arms and a separately gated
 15-cell timed matrix. Its shadow build, six bridge tests and eight controller
-tests pass ([logs](step-c-cpu-01/execution.md)); the GPU cells have not run.
+tests pass ([logs](step-c-cpu-01/execution.md)); the real GPU gates remain
+unclosed. [OpenCode's completed read-only review](opencode-review.md) reports
+no blockers; it does not replace the required GPU execution.
 
 Scope: this independent policy, real host-uBPF path, CPU oracle and private
 adapter source; do not change the old page-profile policy or the frozen FineMoE runtime.

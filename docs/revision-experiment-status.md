@@ -1,4 +1,30 @@
-# ASPLOS 2027 revision experiment handoff — 2026-08-31
+# ASPLOS 2027 revision experiment handoff
+
+## Current execution update — 2026-09-03 02:11 UTC
+
+This section supersedes the dated August 31 execution state below. The active
+user-requested queue is GPreempt, MoE-Infinity, and XSched; LMCache is paused.
+The host is Linux `6.15.11-061511-generic`, RTX 5090, and NVIDIA 575.57.08 with
+the temporarily loaded `849ea75d` scheduling port. After an unexpected reboot
+at 01:37:41 UTC, the verified modules were restored with ordinary unload/load;
+the reboot cause is unknown. See the
+[driver recovery record](experiment/driver-575-linux-6.15-runtime.md)
+and [MoE raw-data recovery](../workloads/moe-infinity/recovery-20260903-013741.md).
+
+| Experiment | Actual completion and interpretation |
+| --- | --- |
+| GPreempt three-way | **5 complete paired blocks, 15/15 cells passed**, each retaining the original 60-second config-A workload. Independent raw-request, numerical, engagement, telemetry and cleanup audit accepts all 15. LC service-stage p99 medians: native **1.414351 ms**, original C **1.415130 ms**, BPF **1.419397 ms**. BPF/original-C paired geometric ratio **1.002575**, 95% paired-block bootstrap CI **[1.001278, 1.003740]**: a small measured overhead, not superiority or an equivalence proof. BE throughput medians are 100 req/s, with BPF/original ratio **0.9998666**, CI **[0.9995999, 1]**. This is the disclosed **host-mapped flag compatibility variant**, not original GDRCopy reproduction; the rate-limited workload does not establish saturated throughput. [Raw final audit](../workloads/gpreempt/raw/575-host-mapped-three-way-01/audited-analysis-final.json). |
+| MoE-Infinity same algorithm | The old generic UVM stride/LFU result (1.63 token/s versus 5.94 UVM and 11.64 MoE) did **not** implement the MoE paper algorithm and is not a same-algorithm comparison. The new native/BPF arms share the paper-v3 EAMC matching, prefetch ranking, score-based eviction and serving frontend; BPF decisions execute in the **host ubpf JIT**, not the old kernel-UVM program. Earlier three-mode canaries passed, but the first formal campaign was interrupted by reboot: one BPF cell is intact, another arm's raw SSE is damaged, and **0/5 paired blocks** are valid. A further source audit found missing upstream prediction-set protection in the shared prefetch executor; that protection and stale-task epochs are now implemented for both paper arms and are being rebuilt/retested before a fresh 5-block campaign. [Algorithm and executor scope](../workloads/moe-infinity/activation-aware-port.md). |
+| XSched | Fresh postboot calibration gives **79.968544 ms** isolated kernels at frozen `reps=9511106`. All four two-kernel preflight arms pass actual numerical, policy-engagement and independent raw checks. The complete comparison is **not yet run**: 10 paired four-arm blocks, 50 kernels/stream, plus six isolated controls remain queued. Native, original XSched and bpftime HPF share the Level-1 frontend; the driver-BPF priority/preemption arm is a separately labelled algorithm. Short pilots are not substituted for the full workload. [Full runtime plan](../workloads/xsched/full-runtime-plan-575-20260903.md). |
+
+CPU implementation and offline analysis proceed in parallel. GPU timing is
+exclusive, with no overlapping compilation or model hydration. Raw failures and
+partial attempts are retained, never counted as complete pairs. Local scoped
+changes and portable raw evidence are committed and pushed; unrelated worktree
+changes are preserved. Completing these scoped comparisons does not complete
+every revision requirement listed in the historical matrix.
+
+## Historical handoff — 2026-08-31 (not the current machine or queue)
 
 The active work is implementation and evaluation against
 [the revision plan](paper/asplos-27-rebuttal/revision-plan.md). One complete,

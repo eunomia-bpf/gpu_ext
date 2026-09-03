@@ -1,11 +1,17 @@
 # MoE-Infinity revision baseline
 
 Active work: the [explicit paper-v3 activation-aware port](activation-aware-port.md)
-now has passed three-mode enhanced canaries: finite numerics, full nonstream
+previously passed three-mode enhanced canaries: finite numerics, full nonstream
 and SSE same-frontend exact outputs, actual EAMC matching/prefetch ranking/
 score-based eviction, zero shadow mismatches and clean teardown. Evidence is
 in [the 849ea75d preflight record](raw/paper-v3-575/preflight-849ea75d/README.md).
-The three-mode repeated performance comparison is not completed yet.
+The first repeated campaign was interrupted by a reboot and has **zero complete
+paired blocks**; see [the raw recovery audit](recovery-20260903-013741.md).
+A subsequent source audit identified missing upstream prediction-set protection
+in the shared prefetch executor. Both paper arms now implement that protection
+and reject stale unissued work. The updated store is being rebuilt and requires
+fresh real canaries before a new five-block performance campaign; the earlier
+canaries do not validate this executor change.
 
 Current status: the generic host-stride/LFU campaign was **stopped on user
 instruction** after one paired block because it does not reproduce MoE-Infinity's

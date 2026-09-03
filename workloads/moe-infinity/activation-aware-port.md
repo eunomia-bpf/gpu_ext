@@ -1,13 +1,19 @@
 # MoE-Infinity activation-aware policy: explicit paper-v3 port
 
-Status: **all three enhanced real canaries passed** on driver stage `849ea75d`,
+Status: **earlier three-mode enhanced real canaries passed** on driver stage `849ea75d`,
 including finite numerics, two full nonstream requests and one full SSE request
 per mode, exact same-frontend outputs, and actual policy engagement. See the
 [three-mode preflight record](raw/paper-v3-575/preflight-849ea75d/README.md).
 The subsequent exact-ABI bulk-packing optimization also passed its own
 [enhanced BPF canary](raw/paper-v3-575/canary-bpf-packed-849ea75d-01/README.md).
-The repeated three-arm comparison remains unfinished; **no paired performance
-or completed-reproduction claim yet**. This replaces the stopped generic-policy
+The first repeated comparison was interrupted by a reboot and has **zero valid
+paired blocks**; [the recovery audit](recovery-20260903-013741.md) rejects the
+damaged native raw responses. Prediction-set protection and stale-task epochs
+were subsequently added to the common executor as described below. That update
+is being rebuilt and needs fresh real three-mode canaries before timing; the
+earlier successful canaries do not establish its runtime correctness.
+There is **no paired performance or completed-reproduction claim yet**.
+This replaces the stopped generic-policy
 campaign, whose diagnostic data remain in [results-575.md](results-575.md).
 
 The target is [arXiv:2401.14361v3](https://arxiv.org/abs/2401.14361), dated
@@ -157,6 +163,13 @@ protected candidates after drain, and equal issued/completed copy counts. An old
 store binary without these fields is rejected even when its numerical outputs
 match. Per-snapshot protected-resident skips are accumulated locally and then
 added once to their counter; no per-resident atomic operation is introduced.
+Formal timing additionally requires positive protection/epoch increments during
+the measured requests, so excluded warmup cannot supply the engagement evidence.
+The protection counter is workload coverage, not a universal correctness rule:
+it records traversal of a protected resident, not proof that an otherwise-safe
+victim would have been evicted. Selector calls also differ from actual successful
+evictions. Transfer completion is checked after the real drain endpoint returns,
+not inferred from equal counters in an arbitrary live snapshot.
 
 The protection helper is exercised separately by
 `test_revision_prediction_set.cpp`: protection versus demand progress, stale

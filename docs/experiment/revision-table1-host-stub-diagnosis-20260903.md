@@ -109,3 +109,33 @@ taskset -c 17 sed -n '309,351p' ../bpftime-table1-575/attach/nv_attach_impl/nv_a
 
 The two-probe suggestion is diagnostic planning, not evidence of corrected
 launch latency, formal Table 1 completion, or GPU-verifier acceptance.
+
+## Independent clock-domain blocker
+
+Read-only follow-up while the Hummingbird formal campaign runs: the custom
+NVBit adapter passes `CLOCK_REALTIME` from `observability.cu:56–61,263` to
+`observe_entry`, which directly subtracts it from raw `%globaltimer`
+(`inject_funcs.cu:71–76`). The old 220 clock errors therefore must not be
+repaired by clamping negative differences or selecting a convenient offset.
+The three-arm histogram diagnostic now passes, but it does not exercise
+this subtraction.
+
+CUDA 12.9's PTX specification describes `%globaltimer` as a nanosecond timer
+with target-specific behavior; it does not establish a common epoch with
+host wall time. See the [archived PTX clock-register contract](https://docs.nvidia.com/cuda/archive/12.9.1/parallel-thread-execution/index.html#special-registers-globaltimer-globaltimer-lo-globaltimer-hi).
+The installed CUDA 12.9 `cupti_activity.h:7149–7161,7983–8006` agrees with
+the [CUPTI 12.9 timestamp API documentation](https://docs.nvidia.com/cupti/12.9/api/group__CUPTI__ACTIVITY__API.html):
+CUPTI normalizes GPU activity timestamps to CPU time during post-processing
+using interpolation; `cuptiGetTimestamp` corresponds to those normalized
+activity records, not arbitrary raw device-register values. **Inference:**
+replacing only the host clock call with `cuptiGetTimestamp` does not establish
+a valid subtraction from raw `%globaltimer` either.
+
+A future untimed repair must preserve raw host/device observations, establish
+their mapping and uncertainty on this actual stack, and reject missing or
+ambiguous correlations. A CUPTI activity trace can be a separately labeled
+diagnostic reference, but importing its completed activity timestamps as the
+probe result would change what is being compared. Any calibration used in
+formal runs must be specified identically for both probe arms, with its cost
+and placement disclosed. No calibration, extra CUDA launch, CUPTI collection,
+or clock-domain repair was executed for this source-level follow-up.

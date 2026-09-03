@@ -147,6 +147,8 @@ class ComparisonTests(unittest.TestCase):
                 return telemetry, stream, path / "gpu-telemetry.csv"
             original_exists = Path.exists
             def exists(path):
+                if str(path).startswith(("/sys/fs/bpf/", "/sys/module/gdrdrv/")):
+                    return False
                 return str(path) == "/dev/gdrdrv" or original_exists(path)
             with patch.object(runner.safety, "safety_snapshot", return_value={"gpu": {"driver": "575.57.08"}}), \
                  patch.object(runner.safety, "validate_pre_server_safety"), \

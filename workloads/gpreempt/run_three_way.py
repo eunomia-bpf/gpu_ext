@@ -322,7 +322,7 @@ def run_cell(directory: Path, arm: str, config: Path, timeout: int, gdrcopy: Pat
         try:
             if before is not None:
                 result["safety_after"] = safety.wait_for_post_server_safety(before)
-            if pin.exists():
+            if loader is not None and pin.exists():
                 raise RuntimeError(f"owned BPF pins survived loader cleanup: {pin}")
             if telemetry is not None:
                 result["telemetry"] = safety.validate_gpu_telemetry(telemetry_path, allow_fixed_power_cap=True)

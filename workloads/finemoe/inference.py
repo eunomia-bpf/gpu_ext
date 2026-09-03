@@ -111,6 +111,35 @@ def check_result(result, logits, gold, directory, tolerance):
     return check
 
 
+def retain_and_check_result(result, logits, gold, directory, tolerance, output=None):
+    """Retain preparation evidence before the unchanged correctness gate.
+
+    Formal timing passes output=None and performs no additional file writes.
+    """
+    if output is None:
+        return check_result(result, logits, gold, directory, tolerance)
+    question_id = result["question_id"]
+    if logits is not None:
+        filename = f"question-{question_id}-logits.npy"
+        np.save(output / filename, logits, allow_pickle=False)
+        result["logits_file"] = filename
+    retained = {"status": "unchecked", "request": result.copy(),
+                "expected_generated_ids": gold["requests"][str(question_id)]["generated_ids"],
+                "golden_absolute_tolerance": tolerance}
+    path = output / f"question-{question_id}-result.json"
+    atomic_write_json(path, retained)
+    try:
+        check = check_result(result, logits, gold, directory, tolerance)
+    except Exception as exc:
+        retained.update(status="failed", error=f"{type(exc).__name__}: {exc}")
+        atomic_write_json(path, retained)
+        raise
+    retained["status"] = "passed"
+    retained["request"]["correctness"] = check
+    atomic_write_json(path, retained)
+    return check
+
+
 def save_repeat_logits(directory, question_id, logits):
     filename = f"question-{question_id}-repeat-logits.npy"
     np.save(directory / filename, logits, allow_pickle=False)
@@ -196,7 +225,8 @@ def worker(args):
         records = []
         for row in data["history"]:
             record, _ = generate(model, row, False)
-            record["correctness"] = check_result(record, None, golden, args.golden, 0)
+            record["correctness"] = retain_and_check_result(
+                record, None, golden, args.golden, 0, args.output)
             records.append(record)
             atomic_write_json(args.output / "history-progress.json", records)
             print(json.dumps({"stage": "history", "question_id": row["question_id"], "tokens": 16}), flush=True)
@@ -223,7 +253,9 @@ def worker(args):
     warmup = []
     for row in data["warmup"]:
         record, logits = generate(model, row, args.check_logits)
-        record["correctness"] = check_result(record, logits, golden, args.golden, golden["absolute_tolerance"])
+        record["correctness"] = retain_and_check_result(
+            record, logits, golden, args.golden, golden["absolute_tolerance"],
+            args.output if args.check_logits else None)
         warmup.append(record)
     before = prefetch_op.finemoe_copy_snapshot()
     prefetch_op.finemoe_begin_measurement()
@@ -235,7 +267,9 @@ def worker(args):
     records = []
     for row in data["evaluation"]:
         record, logits = generate(model, row, args.check_logits)
-        record["correctness"] = check_result(record, logits, golden, args.golden, golden["absolute_tolerance"])
+        record["correctness"] = retain_and_check_result(
+            record, logits, golden, args.golden, golden["absolute_tolerance"],
+            args.output if args.check_logits else None)
         record["verified_ready_ns"] = time.perf_counter_ns()
         records.append(record)
         print(json.dumps({"stage": "cell", "arm": args.arm, "question_id": row["question_id"], "tokens": 16}), flush=True)

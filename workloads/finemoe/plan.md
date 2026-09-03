@@ -42,6 +42,12 @@ absolute tolerance remains 0.0. Raw token/timing checks, unchanged runtime
 inventory and cleanup passed; sampled peaks were 28,041 MiB and 50 C. V4 is the
 final reference, not an offload-policy performance result. The full 64/8/1 cohort
 and all calculations stay fixed. See `results-preparation.md` for audit scope.
+The first actual offload history attempt, `raw/history-v1`, then failed the exact
+token gate on its first question (141), before any accepted history request or
+store export; cleanup passed. Its cause is not established. A storage-only patch
+now retains history actual/expected token records and preflight actual logits
+before the existing gates, without changing tolerance or adding formal timing
+writes. All 46 Python regression tests passed; no retry has run under this patch.
 
 ## Research Question
 

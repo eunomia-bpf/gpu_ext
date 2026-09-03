@@ -139,3 +139,29 @@ checks all logits for its disjoint warmup and eight held-out requests against
 the same fixed tolerance. No actual FineMoE offload arm has passed those gates
 yet, and no four-arm performance block is complete. Earlier failures and v3
 remain unchanged.
+
+## First real offload history: token gate rejected the first request
+
+`raw/history-v1` loaded all eight checkpoint shards through the author's actual
+offload path, then failed on the first history question (141): its 16 generated
+tokens did not exactly match the original-HF reference. This is a token mismatch,
+not rejection of a nonzero logit error against the frozen tolerance. No history
+request passed and no valid history store was exported. The demand-only selector
+was used, so this failure cannot be attributed to the dynamic-set C/BPF choice.
+
+The worker exited 1; controller cleanup passed (GPU 15 MiB, no compute process,
+UVM 0 and no Xid/kernel abnormality). Its 633 telemetry samples peaked at
+17,967 MiB and 48 C. The original raw failure remains unchanged. A warning about
+CPU model parameters versus CUDA input is consistent with offload placeholders;
+that warning alone does not establish the numerical cause.
+
+The failed request's actual IDs were not retained before the gate raised. The
+next storage-only change saves each history request's actual record and expected
+IDs before checking them. Numerical preflight likewise saves actual per-request
+logits and records before checking its warmup and eight evaluation requests,
+including the failing request if a gate rejects it. The fixed tolerance and all
+model calculations remain unchanged; formal performance cells do not perform
+these extra writes. Four targeted CPU tests cover token-failure evidence,
+numerical-failure evidence, successful array retention and zero extra formal
+writes; all 46 existing and new Python tests passed. No retry or model/extension
+change was part of this diagnostic-evidence patch.

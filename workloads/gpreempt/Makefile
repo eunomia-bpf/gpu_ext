@@ -7,14 +7,18 @@ HOST_CXX ?= /usr/bin/g++-13
 GDRCOPY_DIR ?= $(CURDIR)/deps/gdrcopy-2.5.2
 FRESH ?=
 BRIDGE ?= 0
+LOAD_STUDY ?= 0
 UPSTREAM := $(abspath deps/upstream)
 BUILD := $(abspath build/ninja)
+ifeq ($(LOAD_STUDY),1)
+BUILD := $(abspath build/load-study)
+endif
 
-.PHONY: all prepare configure build build-bridge test-cpu gdrcopy-driver prepare-tvm configure-tvm build-tvm build-host-flag
+.PHONY: all prepare configure build build-bridge build-load-study test-load-study test-cpu gdrcopy-driver prepare-tvm configure-tvm build-tvm build-host-flag
 all: build
 
 prepare:
-	bash ./prepare.sh $(if $(filter 1,$(BRIDGE)),--bridge,)
+	bash ./prepare.sh $(if $(filter 1,$(LOAD_STUDY)),--load-study,$(if $(filter 1,$(BRIDGE)),--bridge,))
 
 configure: prepare
 	taskset -c $(CPUSET) env -u MAKEFLAGS -u MFLAGS cmake $(FRESH) -G Ninja -S $(UPSTREAM) -B $(BUILD) \
@@ -23,7 +27,8 @@ configure: prepare
 		-DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=$(CUDA_HOME)/bin/nvcc \
 		-DCUDA_TOOLKIT_ROOT_DIR=$(CUDA_HOME) -DCMAKE_CUDA_ARCHITECTURES=$(CUDA_ARCH) \
 		-DGPREEMPT_CUDA_ARCH=$(CUDA_ARCH) -DWITH_GFLAGS=OFF -DBUILD_TESTING=OFF \
-		-DGPREEMPT_ARTIFACT_DIR=$(CURDIR) -DGPREEMPT_BRIDGE_DIR=$(abspath ../../extension)
+		-DGPREEMPT_ARTIFACT_DIR=$(CURDIR) -DGPREEMPT_BRIDGE_DIR=$(abspath ../../extension) \
+		-DGPREEMPT_LOAD_STUDY=$(if $(filter 1,$(LOAD_STUDY)),ON,OFF)
 
 build: configure
 	taskset -c $(CPUSET) env -u MAKEFLAGS -u MFLAGS cmake --build $(BUILD) --target \
@@ -31,6 +36,19 @@ build: configure
 
 build-bridge:
 	$(MAKE) build BRIDGE=1
+
+# Separate output tree: never overwrite the frozen original config-A binaries.
+build-load-study:
+	$(MAKE) build BRIDGE=1 LOAD_STUDY=1
+
+test-load-study:
+	mkdir -p build/load-study
+	taskset -c $(CPUSET) $(HOST_CXX) -std=c++17 -O2 -Wall -Wextra -Werror -pthread \
+		test_load_study_measurement.cpp -o build/load-study/test-measurement
+	taskset -c $(CPUSET) build/load-study/test-measurement
+	bash -n prepare.sh
+	taskset -c $(CPUSET) python3 -B test_load_study.py
+	taskset -c $(CPUSET) python3 -B test_analyze_load_study.py
 
 test-cpu: prepare
 	mkdir -p $(BUILD)

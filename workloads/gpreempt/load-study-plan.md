@@ -84,8 +84,8 @@ Retain failed attempts and reasons; never silently retry or drop slow cells.
 
 Keep old build/ninja binaries and run_three_way.py unchanged. New instrumentation
 is opt-in, with replayable patch, CPU boundary tests, and build/load-study.
-One independent plan review and implementation review precede a real three-arm
-continuous-load preflight (excluded from final estimates). Freeze after a valid
+One independent plan review and implementation review precede a real three-arm,
+10-second continuous-load preflight (excluded from final estimates). Freeze after a valid
 preflight, then run all 45 cells; about 45 minutes of timing plus setup/cleanup.
 Stop on correctness/engagement/safety failure, diagnose and retain evidence;
 if code changes, do not combine different implementations as one frozen run.

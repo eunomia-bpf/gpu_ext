@@ -68,6 +68,8 @@ The driver owner prepared official GDRCopy v2.5 at revision `bda1f60` in
 `deps/gdrcopy`, without vendor edits. Rebuild with:
 
 ```bash
+# Only for a new checkout where deps/gdrcopy does not yet exist:
+git clone --branch v2.5 --depth 1 https://github.com/NVIDIA/gdrcopy.git deps/gdrcopy
 make gdrcopy-driver JOBS=4 CPUSET=8-15
 ```
 
@@ -104,6 +106,8 @@ not launch the unbounded blocking kernel or claim effective timeslice/preemption
 performance; actual driver actuation needs independent evidence. Every outcome,
 including failure, retains `smoke.log` and `result.json`, and cleanup targets only
 the owned process group. The runner never changes modules, devices, or services.
+It starts the child with an explicit minimal environment, excluding inherited
+preload/injection variables and resolving GDRCopy from the private build first.
 
 ## Model assets and fair cells still required
 

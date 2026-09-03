@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
-import os
 from pathlib import Path
 import signal
 import subprocess
@@ -39,7 +38,9 @@ def run(output: Path) -> dict:
         with (output / "smoke.log").open("x") as stream:
             process = subprocess.Popen(["taskset", "-c", "8-15", str(executable)],
                 stdout=stream, stderr=subprocess.STDOUT, start_new_session=True,
-                env={**os.environ, "CUDA_VISIBLE_DEVICES": "0"})
+                env={"PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+                     "LANG": "C.UTF-8", "CUDA_VISIBLE_DEVICES": "0",
+                     "LD_LIBRARY_PATH": f"{HERE / 'deps/gdrcopy/src'}:/usr/local/cuda-12.9/lib64:/usr/local/lib"})
             result["returncode"] = process.wait(timeout=30)
         log = (output / "smoke.log").read_text(errors="replace")
         facts = {

@@ -34,6 +34,7 @@ test-cpu: prepare
 	taskset -c $(CPUSET) $(BUILD)/test-transport
 	bash -n prepare.sh
 	python3 -B run_smoke.py --help
+	python3 -B test_smoke.py
 
 # Root-owned dependency checkout, official v2.5 (bda1f60); build only, never load.
 gdrcopy-driver:

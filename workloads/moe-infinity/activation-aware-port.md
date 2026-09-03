@@ -108,14 +108,62 @@ safe victim, and cannot evict a pending/executing expert. Scores affect cache
 replacement in both prefill and decode; the upstream prefill-only overload
 shortcut remains only in `native-off`.
 
+The shared executor additionally mirrors the pinned upstream prefetcher's
+prediction-set protection: `memory/expert_prefetcher.py` registers every positive
+predicted candidate before enqueueing, and `task_scheduler.cpp` excludes those
+residents from speculative eviction. Our native and BPF arms now apply that same
+restriction before building the scored selector snapshot. Demand does **not**
+apply this set restriction: an oversized prediction cannot prevent a required
+expert from being fetched. If all safe residents are protected, the speculative
+candidate is skipped. There is no new candidate-score versus victim-score
+threshold, top-k budget, or changes to the three BPF selection programs.
+
+This protection is a common **executor eligibility constraint**, not a fourth
+BPF policy or a claim that BPF performs every runtime decision. The selector
+bridge itself still neither sorts nor filters its input. The paper's Algorithm 1
+defines demand eviction; page 6 explicitly omits detailed prefetch implementation.
+Accordingly this scheduling detail is attributed to the pinned source, not to an
+unstated paper requirement. The previous implementation lacked this protection,
+allowing a later low-ranked speculative candidate to evict an earlier, unused
+prefetch from the same prediction; its retained observations are not mixed with
+new measurements.
+
+Prediction updates and drains invalidate the previous epoch. Each background
+item carries its publishing epoch. The worker checks it before claiming a node,
+again when committing a selected victim (also rechecking the protection set),
+and immediately before physically issuing its copy. The final check and issue
+share the publisher's mutex, closing the check-to-issue race. An already-issued
+copy completes and releases its node even after the epoch changes; its event wait
+does not hold the publisher mutex. A stale task may have already evicted an
+unprotected victim while its epoch was current, but cannot start a new copy after
+invalidation. Demand never carries a speculative epoch.
+
 Prefetch candidates are enqueued in the selected order, not issued through the
 dormant prefetch engine. H2D uses the same native `SetDevice`, stream and event
 pool; event completion precedes publishing IDLE. The kernel math is unchanged.
 Counters expose submitted candidates, completed transfers, first-use hits,
 unused-prefetch evictions and bytes, unused residents, actual scored selections,
-BPF calls and mismatches. An unused resident at shutdown is not a completed
-wasted eviction. These are necessary attribution evidence, not performance
+BPF calls and mismatches. Additional counters expose protection-set resident
+skips, stale discarded items, unavailable victims, copy starts, selected-victim
+recheck rejections, current epoch and protected-candidate count. An unused
+resident at shutdown is not a completed wasted eviction. These are necessary
+attribution evidence, not performance
 results by themselves.
+
+The protection helper is exercised separately by
+`test_revision_prediction_set.cpp`: protection versus demand progress, stale
+claim, changed protection after victim selection, stale-before-copy rejection,
+completion after copy issue, queue replacement, drain, duplicate candidates and
+full 64-bit identities. `test_revision_prefetch_source.py` checks the live-source
+wiring without compiling or loading CUDA. Passing its static checks is not
+evidence that the new store binary has been built or run.
+
+Known non-measured accessor limitation: the upstream `GetCacheOccupancyBytes()`
+iterates cache membership without a shared writer lock. It must not be used for
+concurrent live occupancy observations during this port's background work. The
+revision endpoint instead uses atomic `get_cache_counts`, and the comparison's
+state snapshots occur after drain; neither depends on that unsafe accessor.
+This focused change does not restructure the upstream/native-off cache pipeline.
 
 The first `paper-bpf` canary on the coordinator's `e7d46fa5` driver stage passed
 at 2026-09-03 01:10 UTC. Four expert row sizes and four accumulation arrival

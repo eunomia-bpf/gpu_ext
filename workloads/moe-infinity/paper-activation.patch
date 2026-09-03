@@ -72,7 +72,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
      // Cache-hit path: expert already on GPU, skip fetch queue entirely.
      // transfer_event stays nullptr — GPUExecFunc will skip cudaStreamWaitEvent.
      args.gpu_id = expert_node->node->device.index();
-@@ -333,12 +372,74 @@ double ExpertDispatcher::GetCacheHitRate() const {
+@@ -333,12 +372,83 @@ double ExpertDispatcher::GetCacheHitRate() const {
    return static_cast<double>(hits) / static_cast<double>(access);
  }
  
@@ -89,12 +89,22 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
  //   }
  // }
  
- ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id) {
+-ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id) {
++ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id, uint64_t prediction_epoch) {
 +  if (activation_mode_.load(std::memory_order_acquire)) {
 +    std::lock_guard<std::mutex> lock(activation_mutex_);
++    if (prediction_epoch && !activation_prediction_.Current(prediction_epoch))
++      return nullptr;
 +    std::vector<moe_expert_scored_candidate> snapshot;
 +    snapshot.reserve(cached_experts_[gpu_id].size());
 +    for (auto key : cached_experts_[gpu_id]) {
++      // Upstream prefetch protects every member of its current prediction set.
++      // This common executor restriction applies identically before either
++      // selector; demand (epoch == 0) still considers all safely idle residents.
++      if (prediction_epoch && !activation_prediction_.MayEvict(prediction_epoch, key)) {
++        activation_protected_skips_.fetch_add(1, std::memory_order_relaxed);
++        continue;
++      }
 +      auto layer = key >> 32;
 +      auto expert = key & 0xffffffffULL;
 +      auto node = experts_[expert][layer]->node;
@@ -147,7 +157,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
    uint64_t min_visit_count = INT_MAX;
    ExpertNodePtr evict_expert_node = nullptr;
  
-@@ -358,6 +459,152 @@ ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id) {
+@@ -358,6 +468,200 @@ ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id) {
    return evict_expert_node;
  }
  
@@ -178,9 +188,10 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
 +              "paper score dimensions mismatch");
 +  {
 +    std::lock_guard<std::mutex> lock(activation_mutex_);
++    activation_prediction_.Invalidate();
 +    activation_scores_ = scores;
++    for (auto& queue : input_queue_) queue.ReplaceBackground({});
 +  }
-+  for (auto& queue : input_queue_) queue.ReplaceBackground({});
 +}
 +
 +void ExpertDispatcher::SubmitActivationPrefetch(const std::vector<uint64_t>& identities) {
@@ -198,9 +209,13 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
 +    item.activation_prefetch = true;
 +    work[item.gpu_id].push_back(item);
 +  }
++  std::lock_guard<std::mutex> lock(activation_mutex_);
++  const auto epoch = activation_prediction_.Replace(identities);
 +  activation_submitted_.fetch_add(identities.size());
-+  for (int gpu = 0; gpu < kNumDevices(); ++gpu)
++  for (int gpu = 0; gpu < kNumDevices(); ++gpu) {
++    for (auto& item : work[gpu]) item.prediction_epoch = epoch;
 +    input_queue_[gpu].ReplaceBackground(std::move(work[gpu]));
++  }
 +}
 +
 +void ExpertDispatcher::RecordActivationUse(uint64_t key) {
@@ -210,12 +225,26 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
 +}
 +
 +void ExpertDispatcher::DrainActivationPrefetch() {
++  if (!activation_mode_.load(std::memory_order_acquire)) return;
++  {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    activation_prediction_.Invalidate();
++    for (auto& queue : input_queue_) queue.ReplaceBackground({});
++  }
++  // Never wait while holding activation_mutex_: a copy already issued is
++  // allowed to finish, account its residency and release its claimed node.
 +  for (auto& queue : input_queue_) queue.DrainBackground();
 +}
 +
-+bool ExpertDispatcher::EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id) {
++bool ExpertDispatcher::EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id,
++                                             uint64_t prediction_epoch) {
 +  if (!victim || !victim->node) return false;
 +  std::lock_guard<std::mutex> lock(activation_mutex_);
++  uint64_t key = (uint64_t(victim->layer_idx) << 32) | victim->expert_idx;
++  if (prediction_epoch && !activation_prediction_.MayEvict(prediction_epoch, key)) {
++    activation_victim_recheck_rejected_.fetch_add(1, std::memory_order_relaxed);
++    return false;  // prediction/protection may have changed since selection
++  }
 +  auto node = victim->node;
 +  if (!node->device.is_cuda() || node->pending_dispatches.load() != 0) return false;
 +  auto expected = NodeExecState::IDLE;
@@ -223,7 +252,6 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
 +    return false;  // demand may have claimed it after the selection snapshot
 +  // Enqueue takes the same mutex: it cannot observe or execute freed storage.
 +  node->SetDevice(node->default_host);
-+  uint64_t key = (uint64_t(victim->layer_idx) << 32) | victim->expert_idx;
 +  cache_sizes_[gpu_id] += node->byte_size;
 +  cached_experts_[gpu_id].erase(key);
 +  if (unused_activation_prefetch_.erase(key)) {
@@ -242,6 +270,10 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
 +  if (!node) return;
 +  {
 +    std::lock_guard<std::mutex> lock(activation_mutex_);
++    if (!activation_prediction_.Current(args.prediction_epoch)) {
++      activation_stale_.fetch_add(1, std::memory_order_relaxed);
++      return;
++    }
 +    if (node->device.is_cuda() || node->pending_dispatches.load() != 0 ||
 +        node->exec_state.load() != NodeExecState::IDLE) return;
 +    node->is_prefetching.store(true, std::memory_order_release);
@@ -258,13 +290,32 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
 +    cache_cv_[gpu_id].notify_all();
 +  };
 +  while (cache_sizes_[gpu_id] < node->byte_size) {
-+    auto victim = FindExpertEvict(gpu_id);
-+    if (!EvictActivationVictim(victim, gpu_id)) {
++    auto victim = FindExpertEvict(gpu_id, args.prediction_epoch);
++    if (!EvictActivationVictim(victim, gpu_id, args.prediction_epoch)) {
++      {
++        std::lock_guard<std::mutex> lock(activation_mutex_);
++        if (!activation_prediction_.Current(args.prediction_epoch))
++          activation_stale_.fetch_add(1, std::memory_order_relaxed);
++        else
++          activation_no_victim_.fetch_add(1, std::memory_order_relaxed);
++      }
 +      release(); return;  // never stall demand for speculation
 +    }
 +  }
 +  cudaEvent_t done = nullptr;
-+  node->SetDevice(CUDA_DEVICE(gpu_id), true, fetch_streams_[gpu_id], &done);
++  {
++    std::unique_lock<std::mutex> lock(activation_mutex_);
++    if (!activation_prediction_.Current(args.prediction_epoch)) {
++      activation_stale_.fetch_add(1, std::memory_order_relaxed);
++      lock.unlock();
++      release(); return;
++    }
++    // Last stale check and physical issue share the publisher's mutex. A new
++    // prediction cannot slip between them. Do not hold this mutex through the
++    // event wait: an already-issued transfer may complete under a newer epoch.
++    node->SetDevice(CUDA_DEVICE(gpu_id), true, fetch_streams_[gpu_id], &done);
++    activation_copy_started_.fetch_add(1, std::memory_order_relaxed);
++  }
 +  if (done) {
 +    CUDA_CHECK(cudaEventSynchronize(done));
 +    kCudaEventPool->Release(done);
@@ -294,13 +345,20 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
 +          {"prefetch_wasted", activation_wasted_.load()},
 +          {"prefetch_bytes", activation_bytes_.load()},
 +          {"prefetch_wasted_bytes", activation_wasted_bytes_.load()},
-+          {"prefetch_unused_resident", unused_activation_prefetch_.size()}};
++          {"prefetch_unused_resident", unused_activation_prefetch_.size()},
++          {"prefetch_prediction_epoch", activation_prediction_.Epoch()},
++          {"prefetch_protected_candidates", activation_prediction_.Size()},
++          {"prefetch_protected_resident_skips", activation_protected_skips_.load()},
++          {"prefetch_stale_discarded", activation_stale_.load()},
++          {"prefetch_no_victim", activation_no_victim_.load()},
++          {"prefetch_copy_started", activation_copy_started_.load()},
++          {"prefetch_victim_recheck_rejected", activation_victim_recheck_rejected_.load()}};
 +}
 +
  void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
  #ifndef NVTX_DISABLE
    nvtx3::scoped_range r("gpu_fetch");
-@@ -392,6 +639,12 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+@@ -392,6 +696,12 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
        break;
      }
  
@@ -313,7 +371,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
      auto device = CUDA_DEVICE(gpu_id);
      auto original_device = (args.remote) ? CPU_DEVICE : hidden_states_.device();
      int64_t layer_idx = args.layer_idx;
-@@ -401,20 +654,22 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+@@ -401,20 +711,22 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
      auto expert_node = experts_[expert_idx][layer_idx];
  
      if (args.wait_for_prefetch) {
@@ -344,7 +402,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
          expert_node->node->incache_visit_count += 1;
          expert_node->SetTensorsFromBlob(expert_node->node->device);
          ExecArgs exec_args;
-@@ -443,7 +698,14 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+@@ -443,7 +755,14 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
                 cached_experts_[gpu_id].size());
  
      if (!cache_hit && cache_sizes_[gpu_id] < expert_node->node->byte_size) {
@@ -360,7 +418,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
          // force fetch to GPU regardless of cache size, only for prefill
          // only one extra cache slot for prefill
          DLOG_DEBUG("overloading expert cache: gpu_id ", gpu_id, " cache size ",
-@@ -471,10 +733,10 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+@@ -471,10 +790,10 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
                " expert_idx ", expert_idx);
            {
              std::unique_lock<std::mutex> lock(cache_mutex_[gpu_id]);
@@ -373,7 +431,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
            }
            if (main_thread_stop_flag_.load(std::memory_order_acquire)) break;
            evict_expert_node = FindExpertEvict(gpu_id);
-@@ -533,6 +795,14 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+@@ -533,6 +852,14 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
  
          // std::lock_guard<std::mutex> lock(cache_mutex_[gpu_id]);
          uint64_t evict_key = (evict_layer_idx << 32) + evict_expert_idx;
@@ -388,7 +446,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
          auto it = cached_experts_[gpu_id].find(evict_key);
          if (it != cached_experts_[gpu_id].end()) {
            cached_experts_[gpu_id].erase(it);
-@@ -588,6 +858,9 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+@@ -588,6 +915,9 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
  void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
    cudaSetDevice(gpu_id);
    cudaStream_t stream = exec_streams_[thread_idx];
@@ -398,7 +456,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
  
    while (!main_thread_stop_flag_.load(std::memory_order_acquire)) {
      ExecArgs args;
-@@ -635,10 +908,6 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
+@@ -635,10 +965,6 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
          }
        }
  
@@ -409,7 +467,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
        if (expert_type_ == GPT_OSS_MOE_DENSE_ACT_DENSE) {
          modules_[thread_idx]->DequantMxfp4Params(stream);
        }
-@@ -659,6 +928,16 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
+@@ -659,6 +985,16 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
        DLOG_WARN("GPUExecFunc: expert forward failed: ", e.what(),
                  " (expert_idx=", args.expert_node->expert_idx,
                  " layer_idx=", args.expert_node->layer_idx, ")");
@@ -426,7 +484,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
        args.expert_node->node->exec_state.store(NodeExecState::IDLE,
                                                 std::memory_order_release);
        pending_.fetch_sub(1);
-@@ -674,6 +953,8 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+@@ -674,6 +1010,8 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
    auto output_device =
        (args.out_gpu_id < 0) ? CPU_DEVICE : CUDA_DEVICE(args.out_gpu_id);
    torch::Tensor output_tensor = output.to(output_device).to(torch::kFloat32);
@@ -435,7 +493,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
  
    DLOG_TRACE("ExpertDispatcher::OutputFunc: output_tensor ",
               output_tensor.sizes().vec(), "(", output_tensor.device().str(),
-@@ -682,7 +963,6 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+@@ -682,7 +1020,6 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
    // args.expert_node->node->mutex.unlock();
    int64_t expert_idx = args.expert_node->expert_idx;
    int64_t layer_idx = args.expert_node->layer_idx;
@@ -443,7 +501,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
  
    args.expert_node->node->exec_state.store(NodeExecState::IDLE,
                                             std::memory_order_release);
-@@ -698,17 +978,7 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+@@ -698,17 +1035,7 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
  
    {
      std::lock_guard<std::mutex> lock(accum_mutex_);
@@ -462,7 +520,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
    }
    pending_.fetch_sub(1);
    if (pending_.load() == 0) {
-@@ -720,7 +990,8 @@ std::vector<ExpertDispatcher::CallResult> ExpertDispatcher::Wait() {
+@@ -720,7 +1047,8 @@ std::vector<ExpertDispatcher::CallResult> ExpertDispatcher::Wait() {
    // int wait_count = 0;
  
    std::unique_lock<std::mutex> lock(pending_mutex_);
@@ -472,7 +530,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
  
    num_enqueued_.store(0);
    std::vector<CallResult> output_queue;
-@@ -737,8 +1008,23 @@ torch::Tensor ExpertDispatcher::WaitHiddenStates() {
+@@ -737,8 +1065,23 @@ torch::Tensor ExpertDispatcher::WaitHiddenStates() {
    nvtx3::scoped_range r("expert_wait_barrier");
  #endif
    std::unique_lock<std::mutex> lock(pending_mutex_);
@@ -497,7 +555,7 @@ diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatch
    return final_hidden_states_;
  }
  
-@@ -748,8 +1034,72 @@ void ExpertDispatcher::SetInputs(const torch::Tensor& hidden_states,
+@@ -748,8 +1091,72 @@ void ExpertDispatcher::SetInputs(const torch::Tensor& hidden_states,
    int device = at::cuda::current_device();
    auto options =
        torch::TensorOptions().dtype(torch::kFloat32).device(CUDA_DEVICE(device));
@@ -590,15 +648,16 @@ diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher
  
  enum MUTEX_TYPE {
    INPUT_MUTEX = 0,
-@@ -45,6 +48,7 @@ class ExpertDispatcher : public base::noncopyable {
+@@ -45,6 +48,8 @@ class ExpertDispatcher : public base::noncopyable {
      int gpu_id = -1;
      bool remote = false;
      bool wait_for_prefetch = false;
 +    bool activation_prefetch = false;
++    uint64_t prediction_epoch = 0;
    } CallArgs;
    typedef struct {
      torch::Tensor hidden_states =
-@@ -110,7 +114,16 @@ class ExpertDispatcher : public base::noncopyable {
+@@ -110,7 +115,16 @@ class ExpertDispatcher : public base::noncopyable {
    void ClearExpertCacheCounts();
    // Read-only observability accessors; neither alters routing/dispatch.
    std::int64_t GetCacheOccupancyBytes();
@@ -615,12 +674,15 @@ diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher
    void SetExpectedQueue(int expected_pending = 0) {
      pending_.store(expected_pending);
    }
-@@ -134,12 +147,15 @@ class ExpertDispatcher : public base::noncopyable {
+@@ -133,13 +147,17 @@ class ExpertDispatcher : public base::noncopyable {
+   void OutputFunc(ExecArgs args, torch::Tensor output, torch::Tensor token_mask,
                    int gpu_id);
  
-   ExpertNodePtr FindExpertEvict(int gpu_id);
+-  ExpertNodePtr FindExpertEvict(int gpu_id);
++  ExpertNodePtr FindExpertEvict(int gpu_id, uint64_t prediction_epoch = 0);
 +  void FetchActivationPrefetch(const CallArgs& args, int gpu_id);
-+  bool EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id);
++  bool EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id,
++                              uint64_t prediction_epoch = 0);
 +  void RecordActivationUse(uint64_t identity);
  
   private:
@@ -632,7 +694,7 @@ diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher
    // std::vector<std::deque<ExecArgs>> exec_queue_;
    std::vector<ThreadSafeQueue<ExecArgs>> exec_queue_;
    std::vector<CallResult> output_queue_;
-@@ -170,6 +186,10 @@ class ExpertDispatcher : public base::noncopyable {
+@@ -170,6 +188,10 @@ class ExpertDispatcher : public base::noncopyable {
  
    std::mutex output_mutex_;
    std::mutex accum_mutex_;
@@ -643,7 +705,7 @@ diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher
  
    std::vector<cudaStream_t> exec_streams_;
    std::vector<cudaStream_t> fetch_streams_;
-@@ -184,6 +204,20 @@ class ExpertDispatcher : public base::noncopyable {
+@@ -184,6 +206,24 @@ class ExpertDispatcher : public base::noncopyable {
    std::vector<int64_t> cache_sizes_;
    std::vector<std::unordered_set<uint64_t>> cached_experts_;
  
@@ -654,12 +716,16 @@ diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher
 +                           mep_u64*) = nullptr;
 +  mutable std::mutex activation_mutex_;
 +  std::vector<double> activation_scores_;
++  RevisionPredictionSet activation_prediction_;
 +  std::unordered_set<uint64_t> unused_activation_prefetch_;
 +  std::atomic<uint64_t> activation_eviction_calls_{0}, activation_bpf_calls_{0};
 +  std::atomic<uint64_t> activation_mismatches_{0}, activation_evictions_{0};
 +  std::atomic<uint64_t> activation_submitted_{0}, activation_completed_{0};
 +  std::atomic<uint64_t> activation_hits_{0}, activation_wasted_{0};
 +  std::atomic<uint64_t> activation_bytes_{0}, activation_wasted_bytes_{0};
++  std::atomic<uint64_t> activation_protected_skips_{0}, activation_stale_{0};
++  std::atomic<uint64_t> activation_no_victim_{0}, activation_copy_started_{0};
++  std::atomic<uint64_t> activation_victim_recheck_rejected_{0};
 +
    int cache_capacity_ = 0;
    int num_threads_ = 1;
@@ -933,13 +999,47 @@ diff --git a/core/parallel/revision_fetch_queue.h b/core/parallel/revision_fetch
 new file mode 100644
 --- /dev/null
 +++ b/core/parallel/revision_fetch_queue.h
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,95 @@
 +#pragma once
 +
 +#include <condition_variable>
++#include <cstdint>
 +#include <deque>
++#include <limits>
 +#include <mutex>
++#include <stdexcept>
++#include <unordered_set>
 +#include <vector>
++
++// Shared executor constraint, not an additional ranking policy. The owner must
++// hold its activation mutex for every call and through the corresponding victim
++// removal / physical-copy issue. Demand does not consult this protection set.
++class RevisionPredictionSet {
++ public:
++  uint64_t Invalidate() {
++    if (epoch_ == std::numeric_limits<uint64_t>::max())
++      throw std::overflow_error("paper prediction epoch exhausted");
++    ++epoch_;
++    candidates_.clear();
++    return epoch_;
++  }
++  uint64_t Replace(const std::vector<uint64_t>& candidates) {
++    // Build before publishing so allocation failure cannot expose a partial set.
++    std::unordered_set<uint64_t> replacement(candidates.begin(), candidates.end());
++    Invalidate();
++    candidates_.swap(replacement);
++    return epoch_;
++  }
++  bool Current(uint64_t epoch) const { return epoch != 0 && epoch == epoch_; }
++  bool MayEvict(uint64_t epoch, uint64_t resident) const {
++    return Current(epoch) && candidates_.find(resident) == candidates_.end();
++  }
++  uint64_t Epoch() const { return epoch_; }
++  uint64_t Size() const { return candidates_.size(); }
++ private:
++  uint64_t epoch_ = 0;
++  std::unordered_set<uint64_t> candidates_;
++};
 +
 +// One worker owns cache accounting. Demand always wins over queued prefetch;
 +// replacing predictions discards only unstarted background work, never demand.

@@ -15,6 +15,11 @@ MODES = ("native-off", "paper-native", "paper-bpf")
 STORE = HERE / "raw/head-to-head-575/preflight/expert-store"
 OLD_CORRECTNESS = HERE / "raw/head-to-head-575-lossless/preflight/moe_infinity_075"
 DRIVER_STAGE = Path("/opt/gpubpf/modules/575.57.08/gpreempt-e7d46fa5-6.15.11")
+PREFETCH_PROTECTION_COUNTERS = (
+    "prefetch_prediction_epoch", "prefetch_protected_candidates",
+    "prefetch_protected_resident_skips", "prefetch_stale_discarded",
+    "prefetch_no_victim", "prefetch_copy_started", "prefetch_victim_recheck_rejected",
+)
 
 
 def emit(message):
@@ -67,14 +72,31 @@ def launch(mode, output, port, verify):
 
 
 def validate_activation(mode, state):
+    if mode not in MODES or state.get("mode") != mode:
+        raise base.GateError("activation response mode differs from requested arm")
+    dispatcher = state["dispatcher"]
+    # Require actual rebuilt-store observations, not source/producer claims.
+    # In particular an old .so without prediction-set protection cannot pass.
+    for key in PREFETCH_PROTECTION_COUNTERS:
+        value = dispatcher.get(key)
+        if type(value) is not int or value < 0:
+            raise base.GateError(f"missing/invalid rebuilt-store protection counter {key}")
     if mode == "native-off":
-        if state["dispatcher"]["mode"] != 0:
+        if dispatcher["mode"] != 0 or any(dispatcher[key] for key in PREFETCH_PROTECTION_COUNTERS):
             raise base.GateError("native-off unexpectedly enabled policy")
         return
-    controller, dispatcher = state["controller"], state["dispatcher"]
+    controller = state["controller"]
     expected_mode = 2 if mode == "paper-bpf" else 1
     if dispatcher["mode"] != expected_mode:
         raise base.GateError("actual dispatcher policy mode differs from requested arm")
+    if dispatcher["prefetch_prediction_epoch"] <= 0:
+        raise base.GateError("no measured prediction epochs in rebuilt store")
+    if dispatcher["prefetch_protected_resident_skips"] <= 0:
+        raise base.GateError("prediction-set protection did not engage")
+    if dispatcher["prefetch_protected_candidates"] != 0:
+        raise base.GateError("activation snapshot was not taken after protection drain")
+    if dispatcher["prefetch_copy_started"] != dispatcher["prefetch_completed"]:
+        raise base.GateError("prefetch copy issue/completion mismatch after drain")
     for key in ("matched_predictions", "completed_requests", "prefetch_candidates_selected"):
         if controller[key] <= 0:
             raise base.GateError(f"paper controller did not engage {key}")

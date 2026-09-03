@@ -150,6 +150,14 @@ resident at shutdown is not a completed wasted eviction. These are necessary
 attribution evidence, not performance
 results by themselves.
 
+The canary requires all seven new protection/epoch/copy counters from the real
+loaded store. Native-off must keep them all zero. Both paper arms must show a
+positive prediction epoch and protected-resident skip count, no remaining
+protected candidates after drain, and equal issued/completed copy counts. An old
+store binary without these fields is rejected even when its numerical outputs
+match. Per-snapshot protected-resident skips are accumulated locally and then
+added once to their counter; no per-resident atomic operation is introduced.
+
 The protection helper is exercised separately by
 `test_revision_prediction_set.cpp`: protection versus demand progress, stale
 claim, changed protection after victim selection, stale-before-copy rejection,

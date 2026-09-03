@@ -194,10 +194,29 @@ CPU-only validation: the incrementally rebuilt full client linked successfully;
 49 fake CUDA/GDR lifecycle checks passed without linking or calling a GPU
 runtime. Tests include exact allocation/free bases, GDR pin failure without
 fallback, portable mapping flags, aligned flag stores, bounded incomplete-event
-cleanup without premature free, and idempotent completed cleanup. The 13 runner
+cleanup without premature free, and idempotent completed cleanup. The 14 runner
 tests also pass, including transport mismatch and mixed-pair rejection. These
-are build/component results; the full host-mapped two-context policy has not
-yet been executed or measured by this change.
+are build/component results, distinct from the GPU canary below.
+
+The full **original-C policy with host-mapped flags** subsequently passed the
+original 60-second config-A correctness canary in
+[`raw/575-host-mapped-original-canary-01/result.json`](raw/575-host-mapped-original-canary-01/result.json).
+Both models completed 6,000 timed and 110 warmup/calibration requests, checking
+every one of their 1,000 outputs with maximum absolute error zero. Reset, hint,
+block, and release each executed 6,000 times; bridge errors were zero, and the
+host-mapped allocation reported successful cleanup. Post-run UVM references,
+compute clients, struct-ops state, and new Xids were all clear. Concurrent CPU
+builds were permitted, so this result is explicitly **correctness-only**, not a
+formal paired performance measurement. The result, full client log (including
+the original six-stage samples), and telemetry are retained. It does not turn
+the failed original-GDR attempts into passes, and does not validate the BPF arm.
+
+The BPF comparison additionally requires the runtime timeslice-control hook:
+both LC and BE must report at least one `control_override`, with exact agreement
+between total and per-role counters and zero setter errors. This prevents the
+old init-only implementation from passing when CUDA subsequently writes its
+2048 µs default. These are accepted BPF **request** counters, not independent
+proof of firmware actuation; the coordinator's real GSP canary remains distinct.
 
 ## Model assets and fair cells still required
 

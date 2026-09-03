@@ -45,7 +45,7 @@ def engagement_fixture():
               "block=150 release=150 scopes=2 registered=2 ended=2 errors=0\n")
     kernel = ("gpreempt_policy_stats: scope_enter=2 scope_leave=2 gr_init=2 timeslice_ok=2 alloc_captured=2 "
               "registered=2 destroy=2 unknown_engine=0 setter_error=0 alloc_error=0 register_error=0 "
-              "bind_shadow_mismatch=0 map_error=0 scope_error=0\n")
+              "bind_shadow_mismatch=0 map_error=0 scope_error=0 control_override=2 control_lc=1 control_be=1\n")
     return bridge + transport_fixture(), kernel
 
 
@@ -92,13 +92,21 @@ class ComparisonTests(unittest.TestCase):
         client, loader = engagement_fixture()
         self.assertEqual(runner.check_engagement("bpf_gpreempt", client, loader)["backend"], "ubpf-jit")
         for old, new in (("gr_init=2", "gr_init=0"), ("destroy=2", "destroy=0"),
-                         ("setter_error=0", "setter_error=1")):
+                         ("setter_error=0", "setter_error=1"), ("control_lc=1", "control_lc=0"),
+                         ("control_be=1", "control_be=0"), ("control_override=2", "control_override=3")):
             with self.assertRaises(ValueError):
                 runner.check_engagement("bpf_gpreempt", client, loader.replace(old, new))
         for old, new in (("role=1", "role=0"), ("cuda_context=101", "cuda_context=100"),
                          ("backend=ubpf-jit", "backend=original-c"), ("errors=0", "errors=1")):
             with self.assertRaises(ValueError):
                 runner.check_engagement("bpf_gpreempt", client.replace(old, new), loader)
+
+    def test_more_runtime_controls_are_allowed_but_role_engagement_is_required(self):
+        client, loader = engagement_fixture()
+        loader = loader.replace("control_override=2", "control_override=5").replace("control_lc=1", "control_lc=4")
+        result = runner.check_engagement("bpf_gpreempt", client, loader)
+        self.assertEqual(result["runtime_control_request_engagement"], {"lc": 4, "be": 1})
+        self.assertFalse(result["hardware_timeslice_proven_by_shadow_counters"])
 
     def test_original_backend_does_not_silently_use_bpf(self):
         original = ("gpreempt_bridge_stats: backend=original-c preprocess=500 due=100 infer=500 "

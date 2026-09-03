@@ -156,10 +156,16 @@ def check_engagement(arm: str, client_log: str, loader_log: str, flag_transport:
                 "map_error", "scope_error"):
         if int(kernel.get(key, -1)) != 0:
             raise ValueError(f"kernel policy error: {key}")
+    control_lc = int(kernel.get("control_lc", 0))
+    control_be = int(kernel.get("control_be", 0))
+    if (control_lc <= 0 or control_be <= 0 or
+            int(kernel.get("control_override", -1)) != control_lc + control_be):
+        raise ValueError("both role contexts must exercise the persistent native-control BPF hook")
     for key in ("scopes", "registered", "ended"):
         if int(fields.get(key, -1)) != 2:
             raise ValueError(f"bridge {key} does not match two contexts")
     result.update(kernel=kernel, registrations=registrations,
+                  runtime_control_request_engagement={"lc": control_lc, "be": control_be},
                   hardware_timeslice_proven_by_shadow_counters=False)
     return result
 

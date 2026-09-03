@@ -24,6 +24,79 @@ registration. Console/file/unset logger modes each preserve exact
 checks logger routing, not CUDA attachment or whole-application correctness.
 The original test output is [bootstrap-cpu.log](../../../../docs/experiment/revision-safety/table1-runtime-build-575-03/bootstrap-cpu.log).
 
+## Targeted untimed entry point — prepared, not yet run
+
+[`run_targeted_diagnostic.py`](run_targeted_diagnostic.py) reuses the existing
+`run_correctness_cell`, private loader/segment, owned cleanup, safety telemetry
+and shared leases. It runs the unchanged eight-token correctness command,
+not llama-bench, and never builds tools or resumes/overwrites an output directory.
+The main entry also installs/restores `run_cmd_owned`, as the formal runner does.
+
+- Default histogram sequence: native baseline, current NVBit histogram, then
+  gpubpf histogram. Each output must exactly match the new baseline using the
+  original normalization; every original per-tool engagement check remains.
+  Fresh aggregate sample and nonzero-thread counts are compared after all
+  three pass. A difference is unresolved counting semantics/coverage, **not
+  automatically BPF loss**. Matching totals alone do not prove per-launch or
+  per-slot coverage.
+- Separate optional launch-latency sequence: native baseline, then gpubpf
+  launchlate, with `SPDLOG_LEVEL=info` recorded for both loader and target.
+  Zero host correlation, underflow/overflow or clock errors still fail the
+  original engagement check. No clock offset or latency performance is inferred.
+- Any failed correctness/engagement check stops the sequence; an exception or
+  interrupt retains its error and end time before releasing the existing lease.
+  Unconfirmed CUDA cleanup still preserves the private loader/segment through
+  the existing fatal-cleanup path. There is no retry or seven-arm fallback.
+
+The closed preflight-03 manifest supplies unchanged workload parameters and
+already-built BPF probe paths. The default NVBit path is the separately rebuilt
+[`observability.so`](nvbit_adapters/observability/observability.so), not the old
+preflight library: see the [EXIT-predicate repair](nvbit-exit-predicate-repair.md)
+and commit `52ab4d9`. Its recorded build size is 3,183,016 bytes. Historical
+901,120 versus 720,896 totals are diagnostic leads, not a trusted reference
+count. No new NVBit build is performed by this entry point.
+
+`diagnostic.json` records current file sizes/timestamps, not copied runtime
+metadata from preflight 03: current agent/server libraries and agent object,
+runtime patch/report (`8f7d2d5`), selected BPF binary and its prepared C/BPF
+sources, current NVBit library/sources/repair note, and the client/model paths.
+Each cell retains the original command, stdout/stderr and safety/probe records.
+It is explicitly **not full preflight or performance evidence** and does not
+create a resumable formal `result.json`. Exit 0 means only these selected
+diagnostic checks passed; exit 2 preserves a failed check/count disagreement.
+The original full seven-arm correctness and performance gates are unchanged.
+
+Root-only launch examples from the repository root, after exclusive GPU
+admission; these commands have **not** been run as part of this preparation:
+
+```sh
+sudo -n env PATH=/usr/local/cuda-12.9/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  CUDA_HOME=/usr/local/cuda-12.9 \
+  taskset -c 17 python3 -B \
+  workloads/llama.cpp/observability_overhead/revision-rq4/run_targeted_diagnostic.py \
+  --task threadhist \
+  --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575 \
+  --nvbit-tool workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/observability.so \
+  --output-dir workloads/llama.cpp/observability_overhead/revision-rq4/raw/diagnostic-histogram-575-01
+
+sudo -n env PATH=/usr/local/cuda-12.9/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  CUDA_HOME=/usr/local/cuda-12.9 \
+  taskset -c 17 python3 -B \
+  workloads/llama.cpp/observability_overhead/revision-rq4/run_targeted_diagnostic.py \
+  --task launchlate \
+  --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575 \
+  --output-dir workloads/llama.cpp/observability_overhead/revision-rq4/raw/diagnostic-launchlate-575-01
+```
+
+CPU verification: `taskset -c 17 python3 -B -m unittest -q
+test_targeted_diagnostic test_offline` in this directory passed **34 tests**
+(10 targeted plus the unchanged 24 offline checks). The new tests use CPU
+fixtures/mocks, including exact-output rejection, count disagreement,
+launchlate error preservation, info logging at both endpoints, fresh inventory,
+no build/timing calls, output refusal and SIGTERM/helper/lease restoration.
+Root independently reran the same 34 tests successfully. This is preparation
+evidence only; no GPU, service, original raw or dependency was changed here.
+
 The first incremental [build attempt](../../../../docs/experiment/revision-safety/table1-runtime-build-575-02/build.log)
 printed duplicate logger-definition errors because the old logger header lacked
 an include guard and the agent included it twice. Although the build command

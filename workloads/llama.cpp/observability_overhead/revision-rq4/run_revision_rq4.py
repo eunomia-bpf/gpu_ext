@@ -229,7 +229,8 @@ def segment_identity(path: Path) -> tuple[int, int, int]:
 
 
 @contextmanager
-def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: Path):
+def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: Path,
+                  *, diagnostic_log_level: str | None = None):
     """Keep an owned loader alive until its direct CUDA client has returned."""
     name = f"rq4_{os.getpid()}_{time.monotonic_ns()}"
     segment = SHM_ROOT / name
@@ -243,6 +244,11 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
     env["BPFTIME_GLOBAL_SHM_NAME"] = name
     command, loader_env = target_launch(command, env)
     target_env = {**core.agent_env(args, run_dir, tool), "BPFTIME_GLOBAL_SHM_NAME": name}
+    if diagnostic_log_level is not None:
+        if diagnostic_log_level != "info":
+            raise ValueError("the optional untimed diagnostic logging level is info")
+        env["SPDLOG_LEVEL"] = loader_env["SPDLOG_LEVEL"] = "info"
+        target_env["SPDLOG_LEVEL"] = "info"
     recorded_env = {key: value for key, value in env.items()
                     if key.startswith("BPFTIME_") or key in ("LD_PRELOAD", "SPDLOG_LEVEL")}
     record = {"private_segment": name, "command": command, "loader_environment": recorded_env,
@@ -666,6 +672,7 @@ def run_correctness_cell(
     args: argparse.Namespace,
     output_dir: Path,
     tool_dirs: dict[str, Path],
+    *, diagnostic_log_level: str | None = None,
 ) -> dict[str, Any]:
     run_dir = output_dir / "correctness" / config / f"attempt_{attempt:02d}"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -676,7 +683,8 @@ def run_correctness_cell(
     if config != "baseline":
         system, tool = config.split("_", 1)
         if system == "gpubpf":
-            probe_context = private_probe(tool, args, tool_dirs[tool], run_dir)
+            probe_context = private_probe(tool, args, tool_dirs[tool], run_dir,
+                                          diagnostic_log_level=diagnostic_log_level)
         else:
             env.update(
                 {

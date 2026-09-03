@@ -1,0 +1,9 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch'
+mkdir -p build
+clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I../.output -I../../libbpf/include/uapi -I../../vmlinux/x86 -I.. \
+  -I/usr/include/x86_64-linux-gnu -c fixture.bpf.c -o build/fixture.tmp.bpf.o
+../.output/bpftool/bootstrap/bpftool gen object build/fixture.bpf.o build/fixture.tmp.bpf.o
+../.output/bpftool/bootstrap/bpftool gen skeleton build/fixture.bpf.o > build/fixture.skel.h
+cc -g -O2 -Wall -Wextra -I../.output -I../../libbpf/include/uapi -I../../vmlinux/x86 -I.. -Ibuild loader.c ../.output/libbpf.a \
+  -lelf -lz -Wl,--build-id=none -o build/prefetch_safety
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch'

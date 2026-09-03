@@ -1,0 +1,1464 @@
+{
+  "complete": true,
+  "campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02",
+  "valid_blocks": 5,
+  "valid_cells": 15,
+  "capacity": 16,
+  "preflight": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-correctness-02",
+  "medians": {
+    "fifo": {
+      "tokens_per_second": 5.507772079014044,
+      "tokens_per_second_including_drain": 5.507211646409424,
+      "median_ttft_ms": 754.092093,
+      "median_tpot_ms": 130.63234826666667,
+      "drain_seconds": 0.002306439,
+      "cpu_seconds": 134.86467099999996
+    },
+    "native": {
+      "tokens_per_second": 5.663289801607075,
+      "tokens_per_second_including_drain": 5.662643226864806,
+      "median_ttft_ms": 726.4778895,
+      "median_tpot_ms": 128.894069,
+      "drain_seconds": 0.002463303,
+      "cpu_seconds": 131.02247400000002
+    },
+    "bpf": {
+      "tokens_per_second": 5.621269543278982,
+      "tokens_per_second_including_drain": 5.6207763391969845,
+      "median_ttft_ms": 721.6146444999999,
+      "median_tpot_ms": 130.0738737,
+      "drain_seconds": 0.002494065,
+      "cpu_seconds": 131.82583300000002
+    }
+  },
+  "paired_effects": {
+    "native_over_fifo": {
+      "tokens_per_second": {
+        "candidate": [
+          5.68256915875878,
+          5.663289801607075,
+          5.6737973311294505,
+          5.63710457747738,
+          5.620476849846488
+        ],
+        "reference": [
+          5.555315111197774,
+          5.505252010633193,
+          5.481664472644523,
+          5.52363882947018,
+          5.507772079014044
+        ],
+        "paired_absolute_differences": [
+          0.12725404756100644,
+          0.15803779097388215,
+          0.19213285848492756,
+          0.11346574800719988,
+          0.11270477083244401
+        ],
+        "mean_paired_absolute_difference": 0.14071904317189202,
+        "absolute_difference_ci95": [
+          0.11591901704805885,
+          0.16958042288717295
+        ],
+        "paired_ratios": [
+          1.0229067199634638,
+          1.0287067314391127,
+          1.035050094627962,
+          1.0205418477764745,
+          1.0204628603390973
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 1.0255182673578283,
+        "ratio_ci95": [
+          1.0209827740802135,
+          1.0308638294843675
+        ]
+      },
+      "tokens_per_second_including_drain": {
+        "candidate": [
+          5.681934166115306,
+          5.662643226864806,
+          5.673164635955479,
+          5.636425375173159,
+          5.6199569578850666
+        ],
+        "reference": [
+          5.554608740431385,
+          5.504699759899584,
+          5.480982251656009,
+          5.523077494838916,
+          5.507211646409424
+        ],
+        "paired_absolute_differences": [
+          0.1273254256839218,
+          0.15794346696522243,
+          0.19218238429947032,
+          0.11334788033424292,
+          0.11274531147564293
+        ],
+        "mean_paired_absolute_difference": 0.1407088937517001,
+        "absolute_difference_ci95": [
+          0.1159023618607387,
+          0.16956770003957528
+        ],
+        "paired_ratios": [
+          1.0229224832267905,
+          1.0286924762211016,
+          1.0350634932710108,
+          1.0205225945933516,
+          1.0204723040831654
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 1.0255192694898645,
+        "ratio_ci95": [
+          1.020981995510686,
+          1.03086508944337
+        ]
+      },
+      "median_ttft_ms": {
+        "candidate": [
+          704.9777670000001,
+          698.027585,
+          726.4778895,
+          732.0293915,
+          735.3518055
+        ],
+        "reference": [
+          736.650977,
+          757.5326995,
+          749.751129,
+          754.092093,
+          765.012784
+        ],
+        "paired_absolute_differences": [
+          -31.673209999999926,
+          -59.50511449999999,
+          -23.273239500000045,
+          -22.062701500000003,
+          -29.660978500000056
+        ],
+        "mean_paired_absolute_difference": -33.2350488,
+        "absolute_difference_ci95": [
+          -46.69235859999999,
+          -24.06657210000003
+        ],
+        "paired_ratios": [
+          0.9570037765659545,
+          0.9214487842712591,
+          0.968958713632027,
+          0.9707426961444084,
+          0.9612281270060449
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9557056324379188,
+        "ratio_ci95": [
+          0.9378351492060866,
+          0.967979223057203
+        ]
+      },
+      "median_tpot_ms": {
+        "candidate": [
+          129.10238470000002,
+          128.92161993333332,
+          128.23990946666666,
+          128.6090346,
+          128.894069
+        ],
+        "reference": [
+          131.9422828333333,
+          130.63234826666667,
+          131.65149746666668,
+          130.45459110000002,
+          130.57201023333334
+        ],
+        "paired_absolute_differences": [
+          -2.8398981333332927,
+          -1.7107283333333498,
+          -3.411588000000023,
+          -1.845556500000015,
+          -1.6779412333333426
+        ],
+        "mean_paired_absolute_difference": -2.2971424400000044,
+        "absolute_difference_ci95": [
+          -2.9570780933333425,
+          -1.72457912666668
+        ],
+        "paired_ratios": [
+          0.9784762088971843,
+          0.9869042518485456,
+          0.9740862195596081,
+          0.9858528819534967,
+          0.9871493038183693
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.982479571112345,
+        "ratio_ci95": [
+          0.9775151516309073,
+          0.9867918808036472
+        ]
+      },
+      "drain_seconds": {
+        "candidate": [
+          0.002463303,
+          0.002519809,
+          0.002453218,
+          0.002675349,
+          0.002049252
+        ],
+        "reference": [
+          0.002869556,
+          0.002280055,
+          0.002847382,
+          0.002306439,
+          0.002297113
+        ],
+        "paired_absolute_differences": [
+          -0.0004062530000000001,
+          0.000239754,
+          -0.0003941639999999998,
+          0.00036891000000000007,
+          -0.00024786099999999983
+        ],
+        "mean_paired_absolute_difference": -8.792279999999992e-05,
+        "absolute_difference_ci95": [
+          -0.0003697389999999999,
+          0.00019389340000000008
+        ],
+        "paired_ratios": [
+          0.858426530097339,
+          1.105152726578964,
+          0.8615696804994905,
+          1.1599478676869408,
+          0.8920989084994949
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9670600962417539,
+        "ratio_ci95": [
+          0.8663233438800132,
+          1.0824444646063922
+        ]
+      },
+      "cpu_seconds": {
+        "candidate": [
+          130.591956,
+          131.02247400000002,
+          130.76054800000003,
+          131.77505199999996,
+          132.037828
+        ],
+        "reference": [
+          133.85915599999998,
+          135.03678999999997,
+          135.49777200000005,
+          134.46024199999997,
+          134.86467099999996
+        ],
+        "paired_absolute_differences": [
+          -3.267199999999974,
+          -4.014315999999951,
+          -4.737224000000026,
+          -2.6851900000000057,
+          -2.8268429999999682
+        ],
+        "mean_paired_absolute_difference": -3.5061545999999852,
+        "absolute_difference_ci95": [
+          -4.182235600000007,
+          -2.8582531999999845
+        ],
+        "paired_ratios": [
+          0.9755922560874358,
+          0.970272427240014,
+          0.965038362402003,
+          0.9800298589377817,
+          0.9790394105510407
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.973978160609384,
+        "ratio_ci95": [
+          0.9690659771809416,
+          0.9787447865053943
+        ]
+      }
+    },
+    "bpf_over_fifo": {
+      "tokens_per_second": {
+        "candidate": [
+          5.657843657006018,
+          5.60149605575876,
+          5.674076991076995,
+          5.621269543278982,
+          5.514848049594834
+        ],
+        "reference": [
+          5.555315111197774,
+          5.505252010633193,
+          5.481664472644523,
+          5.52363882947018,
+          5.507772079014044
+        ],
+        "paired_absolute_differences": [
+          0.10252854580824433,
+          0.09624404512556772,
+          0.1924125184324721,
+          0.09763071380880195,
+          0.007075970580789459
+        ],
+        "mean_paired_absolute_difference": 0.09917835875117512,
+        "absolute_difference_ci95": [
+          0.044000100535236085,
+          0.15449979658300403
+        ],
+        "paired_ratios": [
+          1.0184559370181503,
+          1.0174822233277743,
+          1.0351011119693079,
+          1.0176750719630534,
+          1.0012847246544117
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 1.0179435980382296,
+        "ratio_ci95": [
+          1.0079253527912704,
+          1.0280951720616984
+        ]
+      },
+      "tokens_per_second_including_drain": {
+        "candidate": [
+          5.657207645310776,
+          5.60083728358768,
+          5.673531076496314,
+          5.6207763391969845,
+          5.514237994206738
+        ],
+        "reference": [
+          5.554608740431385,
+          5.504699759899584,
+          5.480982251656009,
+          5.523077494838916,
+          5.507211646409424
+        ],
+        "paired_absolute_differences": [
+          0.10259890487939138,
+          0.09613752368809614,
+          0.1925488248403049,
+          0.0976988443580682,
+          0.0070263477973142585
+        ],
+        "mean_paired_absolute_difference": 0.09920208911263498,
+        "absolute_difference_ci95": [
+          0.04396309439188606,
+          0.1546088326474102
+        ],
+        "paired_ratios": [
+          1.0184709508218976,
+          1.0174646262069431,
+          1.0351303499992413,
+          1.0176892039717647,
+          1.001275844882754
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 1.0179498504498092,
+        "ratio_ci95": [
+          1.0079194748801696,
+          1.0281183068012951
+        ]
+      },
+      "median_ttft_ms": {
+        "candidate": [
+          712.2179975,
+          721.6146444999999,
+          724.6336695,
+          751.9703455,
+          714.5384369999999
+        ],
+        "reference": [
+          736.650977,
+          757.5326995,
+          749.751129,
+          754.092093,
+          765.012784
+        ],
+        "paired_absolute_differences": [
+          -24.432979499999988,
+          -35.918055000000095,
+          -25.117459499999995,
+          -2.1217474999999695,
+          -50.47434700000008
+        ],
+        "mean_paired_absolute_difference": -27.612917700000025,
+        "absolute_difference_ci95": [
+          -41.74057180000009,
+          -13.343255399999999
+        ],
+        "paired_ratios": [
+          0.9668323530914152,
+          0.9525854725166223,
+          0.9664989374094027,
+          0.9971863549297287,
+          0.9340215640108831
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9632032692341991,
+        "ratio_ci95": [
+          0.9451160394722976,
+          0.9820120615898715
+        ]
+      },
+      "median_tpot_ms": {
+        "candidate": [
+          128.76985573333332,
+          130.8630796,
+          129.01984679999998,
+          130.0738737,
+          136.37694043333335
+        ],
+        "reference": [
+          131.9422828333333,
+          130.63234826666667,
+          131.65149746666668,
+          130.45459110000002,
+          130.57201023333334
+        ],
+        "paired_absolute_differences": [
+          -3.172427099999993,
+          0.23073133333332407,
+          -2.631650666666701,
+          -0.38071740000000887,
+          5.804930200000001
+        ],
+        "mean_paired_absolute_difference": -0.02982672666667554,
+        "absolute_difference_ci95": [
+          -2.3977745866666793,
+          3.0027742533333255
+        ],
+        "paired_ratios": [
+          0.975955948071572,
+          1.001766264913667,
+          0.9800104767715763,
+          0.9970816098016192,
+          1.044457691886849
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9995620958937329,
+        "ratio_ci95": [
+          0.981771712527714,
+          1.0226662785991902
+        ]
+      },
+      "drain_seconds": {
+        "candidate": [
+          0.002494065,
+          0.002623946,
+          0.002101661,
+          0.001941926,
+          0.00250921
+        ],
+        "reference": [
+          0.002869556,
+          0.002280055,
+          0.002847382,
+          0.002306439,
+          0.002297113
+        ],
+        "paired_absolute_differences": [
+          -0.00037549099999999993,
+          0.0003438909999999998,
+          -0.000745721,
+          -0.0003645129999999999,
+          0.00021209700000000007
+        ],
+        "mean_paired_absolute_difference": -0.00018594739999999997,
+        "absolute_difference_ci95": [
+          -0.0005213873999999999,
+          0.0001736557999999999
+        ],
+        "paired_ratios": [
+          0.8691466554407721,
+          1.150825747624509,
+          0.7381029310433233,
+          0.8419585343466703,
+          1.0923319836681957
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9254926697372037,
+        "ratio_ci95": [
+          0.8038623086330029,
+          1.0698793683419674
+        ]
+      },
+      "cpu_seconds": {
+        "candidate": [
+          131.07036699999998,
+          132.36767899999998,
+          130.90596,
+          131.82583300000002,
+          134.47111700000002
+        ],
+        "reference": [
+          133.85915599999998,
+          135.03678999999997,
+          135.49777200000005,
+          134.46024199999997,
+          134.86467099999996
+        ],
+        "paired_absolute_differences": [
+          -2.7887890000000084,
+          -2.6691109999999867,
+          -4.591812000000061,
+          -2.6344089999999483,
+          -0.3935539999999378
+        ],
+        "mean_paired_absolute_difference": -2.6155349999999884,
+        "absolute_difference_ci95": [
+          -3.8157912000000236,
+          -1.320771999999954
+        ],
+        "paired_ratios": [
+          0.9791662439586873,
+          0.9802341939555881,
+          0.9661115313394226,
+          0.9804075244785001,
+          0.9970818599335037
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9805510285549388,
+        "ratio_ci95": [
+          0.9717703773586231,
+          0.9901274543688732
+        ]
+      }
+    },
+    "bpf_over_native": {
+      "tokens_per_second": {
+        "candidate": [
+          5.657843657006018,
+          5.60149605575876,
+          5.674076991076995,
+          5.621269543278982,
+          5.514848049594834
+        ],
+        "reference": [
+          5.68256915875878,
+          5.663289801607075,
+          5.6737973311294505,
+          5.63710457747738,
+          5.620476849846488
+        ],
+        "paired_absolute_differences": [
+          -0.024725501752762113,
+          -0.06179374584831443,
+          0.0002796599475445305,
+          -0.015835034198397935,
+          -0.10562880025165455
+        ],
+        "mean_paired_absolute_difference": -0.0415406844207169,
+        "absolute_difference_ci95": [
+          -0.0789030361603352,
+          -0.011167250050893784
+        ],
+        "paired_ratios": [
+          0.9956488867865951,
+          0.9890887190991393,
+          1.0000492897315896,
+          0.9971909277217127,
+          0.9812064344229904
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9926138133656907,
+        "ratio_ci95": [
+          0.9859592049989165,
+          0.9980243381794113
+        ]
+      },
+      "tokens_per_second_including_drain": {
+        "candidate": [
+          5.657207645310776,
+          5.60083728358768,
+          5.673531076496314,
+          5.6207763391969845,
+          5.514237994206738
+        ],
+        "reference": [
+          5.681934166115306,
+          5.662643226864806,
+          5.673164635955479,
+          5.636425375173159,
+          5.6199569578850666
+        ],
+        "paired_absolute_differences": [
+          -0.024726520804530416,
+          -0.061805943277126296,
+          0.00036644054083456723,
+          -0.01564903597617473,
+          -0.10571896367832867
+        ],
+        "mean_paired_absolute_difference": -0.04150680463906511,
+        "absolute_difference_ci95": [
+          -0.07892237405765741,
+          -0.011058342335042149
+        ],
+        "paired_ratios": [
+          0.9956482211722921,
+          0.9890853192050126,
+          1.000064591910221,
+          0.9972235885451257,
+          0.9811886524273109
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9926189402137507,
+        "ratio_ci95": [
+          0.9859542646935175,
+          0.9980433883854349
+        ]
+      },
+      "median_ttft_ms": {
+        "candidate": [
+          712.2179975,
+          721.6146444999999,
+          724.6336695,
+          751.9703455,
+          714.5384369999999
+        ],
+        "reference": [
+          704.9777670000001,
+          698.027585,
+          726.4778895,
+          732.0293915,
+          735.3518055
+        ],
+        "paired_absolute_differences": [
+          7.240230499999939,
+          23.587059499999896,
+          -1.8442199999999502,
+          19.940954000000033,
+          -20.813368500000024
+        ],
+        "mean_paired_absolute_difference": 5.6221310999999785,
+        "absolute_difference_ci95": [
+          -8.868674299999999,
+          18.5097647974998
+        ],
+        "paired_ratios": [
+          1.0102701543777903,
+          1.0337910134310808,
+          0.9974614230843705,
+          1.0272406466619313,
+          0.9716960394408115
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 1.0078451319546526,
+        "ratio_ci95": [
+          0.9877156164775908,
+          1.0264209914091436
+        ]
+      },
+      "median_tpot_ms": {
+        "candidate": [
+          128.76985573333332,
+          130.8630796,
+          129.01984679999998,
+          130.0738737,
+          136.37694043333335
+        ],
+        "reference": [
+          129.10238470000002,
+          128.92161993333332,
+          128.23990946666666,
+          128.6090346,
+          128.894069
+        ],
+        "paired_absolute_differences": [
+          -0.3325289666667004,
+          1.941459666666674,
+          0.7799373333333222,
+          1.464839100000006,
+          7.482871433333344
+        ],
+        "mean_paired_absolute_difference": 2.2673157133333293,
+        "absolute_difference_ci95": [
+          0.3864182599999822,
+          5.034002260000006
+        ],
+        "paired_ratios": [
+          0.9974243003532475,
+          1.0150592248815258,
+          1.006081861228513,
+          1.0113898615642047,
+          1.058054427883205
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 1.0173871551975857,
+        "ratio_ci95": [
+          1.0029872336170413,
+          1.03879474918352
+        ]
+      },
+      "drain_seconds": {
+        "candidate": [
+          0.002494065,
+          0.002623946,
+          0.002101661,
+          0.001941926,
+          0.00250921
+        ],
+        "reference": [
+          0.002463303,
+          0.002519809,
+          0.002453218,
+          0.002675349,
+          0.002049252
+        ],
+        "paired_absolute_differences": [
+          3.076200000000015e-05,
+          0.0001041369999999998,
+          -0.00035155700000000017,
+          -0.000733423,
+          0.0004599579999999999
+        ],
+        "mean_paired_absolute_difference": -9.802460000000006e-05,
+        "absolute_difference_ci95": [
+          -0.00042793020000000015,
+          0.00023179039999999992
+        ],
+        "paired_ratios": [
+          1.012488110476056,
+          1.0413273386990838,
+          0.8566955729168789,
+          0.7258589440106693,
+          1.2244516535789645
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 0.9570167079935445,
+        "ratio_ci95": [
+          0.828765501396022,
+          1.1048149729977976
+        ]
+      },
+      "cpu_seconds": {
+        "candidate": [
+          131.07036699999998,
+          132.36767899999998,
+          130.90596,
+          131.82583300000002,
+          134.47111700000002
+        ],
+        "reference": [
+          130.591956,
+          131.02247400000002,
+          130.76054800000003,
+          131.77505199999996,
+          132.037828
+        ],
+        "paired_absolute_differences": [
+          0.4784109999999657,
+          1.3452049999999645,
+          0.1454119999999648,
+          0.050781000000057475,
+          2.4332890000000305
+        ],
+        "mean_paired_absolute_difference": 0.8906195999999966,
+        "absolute_difference_ci95": [
+          0.17415940000000205,
+          1.7580968000000041
+        ],
+        "paired_ratios": [
+          1.003663403280367,
+          1.010266979083298,
+          1.0011120479550144,
+          1.0003853612594291,
+          1.018428726349543
+        ],
+        "ratio_defined": true,
+        "geometric_mean_ratio": 1.0067484756962541,
+        "ratio_ci95": [
+          1.0013309135986685,
+          1.0133095919369548
+        ]
+      }
+    }
+  },
+  "cells": [
+    {
+      "block": 0,
+      "arm": "bpf",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-00/bpf",
+      "metrics": {
+        "tokens_per_second": 5.657843657006018,
+        "tokens_per_second_including_drain": 5.657207645310776,
+        "median_ttft_ms": 712.2179975,
+        "median_tpot_ms": 128.76985573333332,
+        "drain_seconds": 0.002494065,
+        "cpu_seconds": 131.07036699999998
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 17959,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 0,
+      "arm": "native",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-00/native",
+      "metrics": {
+        "tokens_per_second": 5.68256915875878,
+        "tokens_per_second_including_drain": 5.681934166115306,
+        "median_ttft_ms": 704.9777670000001,
+        "median_tpot_ms": 129.10238470000002,
+        "drain_seconds": 0.002463303,
+        "cpu_seconds": 130.591956
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 0,
+      "arm": "fifo",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-00/fifo",
+      "metrics": {
+        "tokens_per_second": 5.555315111197774,
+        "tokens_per_second_including_drain": 5.554608740431385,
+        "median_ttft_ms": 736.650977,
+        "median_tpot_ms": 131.9422828333333,
+        "drain_seconds": 0.002869556,
+        "cpu_seconds": 133.85915599999998
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 13304,
+        "evictions": 13304
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 230179209216,
+        "demand_copy_completed": 13304,
+        "demand_copy_started": 13304,
+        "expert_demand_cache_hits": 4655,
+        "expert_demand_cache_misses": 13304,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 1,
+      "arm": "fifo",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-01/fifo",
+      "metrics": {
+        "tokens_per_second": 5.505252010633193,
+        "tokens_per_second_including_drain": 5.504699759899584,
+        "median_ttft_ms": 757.5326995,
+        "median_tpot_ms": 130.63234826666667,
+        "drain_seconds": 0.002280055,
+        "cpu_seconds": 135.03678999999997
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 13304,
+        "evictions": 13304
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 230179209216,
+        "demand_copy_completed": 13304,
+        "demand_copy_started": 13304,
+        "expert_demand_cache_hits": 4655,
+        "expert_demand_cache_misses": 13304,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 1,
+      "arm": "native",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-01/native",
+      "metrics": {
+        "tokens_per_second": 5.663289801607075,
+        "tokens_per_second_including_drain": 5.662643226864806,
+        "median_ttft_ms": 698.027585,
+        "median_tpot_ms": 128.92161993333332,
+        "drain_seconds": 0.002519809,
+        "cpu_seconds": 131.02247400000002
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 1,
+      "arm": "bpf",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-01/bpf",
+      "metrics": {
+        "tokens_per_second": 5.60149605575876,
+        "tokens_per_second_including_drain": 5.60083728358768,
+        "median_ttft_ms": 721.6146444999999,
+        "median_tpot_ms": 130.8630796,
+        "drain_seconds": 0.002623946,
+        "cpu_seconds": 132.36767899999998
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 17959,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 2,
+      "arm": "bpf",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-02/bpf",
+      "metrics": {
+        "tokens_per_second": 5.674076991076995,
+        "tokens_per_second_including_drain": 5.673531076496314,
+        "median_ttft_ms": 724.6336695,
+        "median_tpot_ms": 129.01984679999998,
+        "drain_seconds": 0.002101661,
+        "cpu_seconds": 130.90596
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 17959,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 2,
+      "arm": "fifo",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-02/fifo",
+      "metrics": {
+        "tokens_per_second": 5.481664472644523,
+        "tokens_per_second_including_drain": 5.480982251656009,
+        "median_ttft_ms": 749.751129,
+        "median_tpot_ms": 131.65149746666668,
+        "drain_seconds": 0.002847382,
+        "cpu_seconds": 135.49777200000005
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 13304,
+        "evictions": 13304
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 230179209216,
+        "demand_copy_completed": 13304,
+        "demand_copy_started": 13304,
+        "expert_demand_cache_hits": 4655,
+        "expert_demand_cache_misses": 13304,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 2,
+      "arm": "native",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-02/native",
+      "metrics": {
+        "tokens_per_second": 5.6737973311294505,
+        "tokens_per_second_including_drain": 5.673164635955479,
+        "median_ttft_ms": 726.4778895,
+        "median_tpot_ms": 128.23990946666666,
+        "drain_seconds": 0.002453218,
+        "cpu_seconds": 130.76054800000003
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 3,
+      "arm": "fifo",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-03/fifo",
+      "metrics": {
+        "tokens_per_second": 5.52363882947018,
+        "tokens_per_second_including_drain": 5.523077494838916,
+        "median_ttft_ms": 754.092093,
+        "median_tpot_ms": 130.45459110000002,
+        "drain_seconds": 0.002306439,
+        "cpu_seconds": 134.46024199999997
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 13304,
+        "evictions": 13304
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 230179209216,
+        "demand_copy_completed": 13304,
+        "demand_copy_started": 13304,
+        "expert_demand_cache_hits": 4655,
+        "expert_demand_cache_misses": 13304,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 3,
+      "arm": "bpf",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-03/bpf",
+      "metrics": {
+        "tokens_per_second": 5.621269543278982,
+        "tokens_per_second_including_drain": 5.6207763391969845,
+        "median_ttft_ms": 751.9703455,
+        "median_tpot_ms": 130.0738737,
+        "drain_seconds": 0.001941926,
+        "cpu_seconds": 131.82583300000002
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 17959,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 3,
+      "arm": "native",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-03/native",
+      "metrics": {
+        "tokens_per_second": 5.63710457747738,
+        "tokens_per_second_including_drain": 5.636425375173159,
+        "median_ttft_ms": 732.0293915,
+        "median_tpot_ms": 128.6090346,
+        "drain_seconds": 0.002675349,
+        "cpu_seconds": 131.77505199999996
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 4,
+      "arm": "native",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-04/native",
+      "metrics": {
+        "tokens_per_second": 5.620476849846488,
+        "tokens_per_second_including_drain": 5.6199569578850666,
+        "median_ttft_ms": 735.3518055,
+        "median_tpot_ms": 128.894069,
+        "drain_seconds": 0.002049252,
+        "cpu_seconds": 132.037828
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 4,
+      "arm": "fifo",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-04/fifo",
+      "metrics": {
+        "tokens_per_second": 5.507772079014044,
+        "tokens_per_second_including_drain": 5.507211646409424,
+        "median_ttft_ms": 765.012784,
+        "median_tpot_ms": 130.57201023333334,
+        "drain_seconds": 0.002297113,
+        "cpu_seconds": 134.86467099999996
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 0,
+        "admissions": 13304,
+        "evictions": 13304
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 230179209216,
+        "demand_copy_completed": 13304,
+        "demand_copy_started": 13304,
+        "expert_demand_cache_hits": 4655,
+        "expert_demand_cache_misses": 13304,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    },
+    {
+      "block": 4,
+      "arm": "bpf",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-full-02/block-04/bpf",
+      "metrics": {
+        "tokens_per_second": 5.514848049594834,
+        "tokens_per_second_including_drain": 5.514237994206738,
+        "median_ttft_ms": 714.5384369999999,
+        "median_tpot_ms": 136.37694043333335,
+        "drain_seconds": 0.00250921,
+        "cpu_seconds": 134.47111700000002
+      },
+      "eb_delta": {
+        "decisions": 17959,
+        "jit_calls": 17959,
+        "admissions": 11595,
+        "evictions": 11595
+      },
+      "executor_counters": {
+        "compute_release_sync_errors": 0,
+        "compute_release_syncs": 24487,
+        "demand_copy_bytes": 200610938880,
+        "demand_copy_completed": 11595,
+        "demand_copy_started": 11595,
+        "expert_demand_cache_hits": 6364,
+        "expert_demand_cache_misses": 11595,
+        "expert_demand_uses": 17959,
+        "peak_pool_resident_bytes": 10361180160,
+        "prefetch_copy_bytes": 0,
+        "prefetch_copy_completed": 0,
+        "prefetch_copy_errors": 0,
+        "prefetch_copy_started": 0,
+        "prefetch_enqueue_resident_skip": 0,
+        "prefetch_evicted_unused_bytes": 0,
+        "prefetch_evicted_unused_copies": 0,
+        "prefetch_eviction_skip": 0,
+        "prefetch_first_use_bytes": 0,
+        "prefetch_first_use_copies": 0,
+        "prefetch_queue_canceled": 0,
+        "prefetch_queue_dequeued": 0,
+        "prefetch_queue_enqueued": 0,
+        "prefetch_resident_unused_bytes": 0,
+        "prefetch_resident_unused_copies": 0
+      }
+    }
+  ],
+  "bootstrap": {
+    "seed": 20260903,
+    "draws": 10000,
+    "unit": "complete paired block",
+    "ci": "95% percentile: mean absolute difference / geometric mean ratio"
+  },
+  "scope": "Section VI policy port on Qwen; not original-paper end-to-end reproduction"
+}

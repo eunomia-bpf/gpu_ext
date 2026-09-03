@@ -351,6 +351,7 @@ def summarize(results: list[dict], blocks: int) -> dict:
             "bpf_over_original_lc_p99": bpf[TASKS[0]]["p99_latency_us"] / original[TASKS[0]]["p99_latency_us"],
             "bpf_over_original_be_throughput": bpf[TASKS[1]]["throughput_rps"] / original[TASKS[1]]["throughput_rps"]})
     return {"valid_paired_blocks": len(ratios), "formal_5_block_complete": len(ratios) >= 5,
+            "requested_blocks_complete": len(ratios) == blocks,
             "paired_ratios": ratios, "medians": {key: statistics.median(row[key] for row in ratios)
             for key in ratios[0] if key != "block"} if ratios else {},
             "interpretation": "LC p99 ratio lower is better; BE throughput ratio higher is better; inspect sample counts"}
@@ -391,6 +392,7 @@ def main():
     safety.atomic_write_json(output / "config-A.json", config)
     results = []
     lease = None
+    run_error = None
     def interrupted(signum, _frame):
         raise InterruptedError(f"signal {signum}; cleaning up only owned experiment processes")
     signal.signal(signal.SIGTERM, interrupted)
@@ -410,8 +412,13 @@ def main():
                 print(f"PASS block={block} arm={arm}", flush=True)
                 if len(results) < args.blocks * 3:
                     time.sleep(args.cooldown_seconds)
+    except BaseException as exc:
+        run_error = f"{type(exc).__name__}: {exc}"
+        raise
     finally:
-        safety.atomic_write_json(output / "summary.json", summarize(results, args.blocks))
+        summary = summarize(results, args.blocks)
+        summary.update(status="failed" if run_error else "completed", error=run_error)
+        safety.atomic_write_json(output / "summary.json", summary)
         if lease is not None:
             lease.close()
 

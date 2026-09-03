@@ -6,7 +6,9 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
+from unittest.mock import Mock, patch
 
 import run_three_way as runner
 
@@ -125,6 +127,42 @@ class ComparisonTests(unittest.TestCase):
             self.assertEqual(runner.group_members(child.pid), [])
         finally:
             runner.stop_owned(child)
+
+    def test_native_cell_full_lifecycle_without_gpu(self):
+        report, checks = report_fixture()
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / "cell"
+            process, telemetry = Mock(), Mock()
+            process.returncode = 0
+            process.poll.return_value = 0
+            def popen(command, **kwargs):
+                self.assertEqual(Path(command[0]).name, "baseclient")
+                self.assertEqual(kwargs["env"]["GPREEMPT_POLICY"], "original")
+                self.assertNotIn("LD_PRELOAD", kwargs["env"])
+                kwargs["stdout"].write(report_log(report, checks))
+                kwargs["stdout"].flush()
+                return process
+            def start_telemetry(path):
+                stream = (path / "gpu-telemetry.csv").open("x")
+                return telemetry, stream, path / "gpu-telemetry.csv"
+            original_exists = Path.exists
+            def exists(path):
+                return str(path) == "/dev/gdrdrv" or original_exists(path)
+            with patch.object(runner.safety, "safety_snapshot", return_value={"gpu": {"driver": "575.57.08"}}), \
+                 patch.object(runner.safety, "validate_pre_server_safety"), \
+                 patch.object(runner.safety, "wait_for_post_server_safety", return_value={"mock_idle": True}), \
+                 patch.object(runner.safety, "start_gpu_telemetry", side_effect=start_telemetry), \
+                 patch.object(runner.safety, "validate_gpu_telemetry", return_value={"mock_samples": 1}), \
+                 patch.object(runner.subprocess, "Popen", side_effect=popen), \
+                 patch.object(runner, "stop_owned") as stop, \
+                 patch.object(Path, "exists", exists):
+                result = runner.run_cell(directory, "native", Path(temporary) / "config.json", 240)
+                self.assertEqual(result["status"], "passed")
+                self.assertEqual(result["metrics"][runner.TASKS[0]]["completed_requests"], 150)
+                self.assertIn(process, [call.args[0] for call in stop.call_args_list])
+                self.assertIn(telemetry, [call.args[0] for call in stop.call_args_list])
+                self.assertEqual(json.loads((directory / "result.json").read_text())["status"], "passed")
+                self.assertTrue((directory / "request-report.json").exists())
 
 
 if __name__ == "__main__":

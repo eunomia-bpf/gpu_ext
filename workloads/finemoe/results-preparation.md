@@ -193,3 +193,31 @@ private library identifiers. Two CPU regressions check the actual local
 configuration and recorded-field boundary; all 48 Python tests passed with no
 CUDA initialization. The next normal run is fresh `raw/history-v3`; no extension
 rebuild or GPU run was performed during this configuration repair.
+
+## History v3: full real history and store independently passed
+
+After matching the checkpoint generation configuration, `raw/history-v3`
+completed normally: all 64 history requests and 1,024 generated tokens exactly
+matched original-HF golden-v4, including the formerly failing question 141.
+Independent checks verified every saved request against the frozen cohort and
+golden tokens, its timestamps and derived TTFT/TPOT, raw log/progress agreement,
+and the actual repetition-penalty/EOS configuration plus greedy/16-token
+overrides. History IDs and truncated tokenized inputs are disjoint from all eight
+held-out requests and the warmup. This resolves the observed history token
+failure; it does not establish complete logit equality for the offload executor.
+
+The two actual exported store files are `stage/store~embed~1000.npy`
+(8,192,128 bytes; shape `(1000, 2048)`) and `stage/store~traj~1000.npy`
+(5,760,128 bytes; shape `(1000, 24, 60)`). Both are float32, together containing
+3,488,000 finite values; all 1,000 entries are populated, and the maximum
+per-layer probability-sum error is 1.8131e-7. The recorded capacity and data size
+are both 1,000. Store files reside directly in `stage`, so the existing reference
+inventory includes them when the next campaign starts.
+
+The 42-file runtime inventory and 19-file golden reference inventory remained
+unchanged. All 1,115 telemetry samples had inactive throttle flags, with peaks
+18,399 MiB and 55 C. Cleanup passed: GPU 15 MiB, no compute process, UVM 0 and no
+Xid/kernel abnormality. History validates exact tokens, not full logits; the
+next four-arm preflight must independently check its retained actual logits
+against golden-v4's unchanged absolute tolerance 0.0. No performance result is
+claimed, and the failed history-v1/v2 records remain unchanged.

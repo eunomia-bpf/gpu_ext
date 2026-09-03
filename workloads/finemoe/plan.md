@@ -31,7 +31,8 @@ official `check_native_jit_disabled()` predicate, recording it in every raw
 result's runtime state. This only disables PyTorch's automatic Triton/DSL operator
 overrides, not the independently linked uBPF selector JIT or its engagement gate.
 No Torch source, model mathematics, precision, cohort, budget or tolerance changed.
-**No four-arm numerical canary, history store, or performance cell has passed.**
+**The real history store has passed; no four-arm numerical canary or performance
+cell has passed.**
 Normal golden-v3 has now passed 73 requests and nine repeated-output checks;
 its fixed reported absolute tolerance is 0.0 and teardown passed. It is retained
 unchanged as preparation, but its repeat logits were not separately saved.
@@ -53,8 +54,14 @@ generated position 14. CPU checks confirmed the author loader omitted the
 checkpoint generation configuration (repetition penalty 1.0 instead of HF's
 1.05, plus different EOS defaults). `create_finemoe` now loads that complete local
 configuration for all offload arms, preserving explicit greedy/16-token settings,
-golden-v4 and tolerance 0.0. All 48 Python tests passed; history-v3 must determine
-whether this confirmed configuration discrepancy explains the failed output.
+golden-v4 and tolerance 0.0. All 48 Python tests passed. History-v3 then passed all
+64 requests (1,024 exact HF tokens), including question 141, with independent
+request/cohort/configuration/cleanup checks. Its two actual float32 store arrays,
+`(1000, 2048)` embeddings and `(1000, 24, 60)` full probabilities, contain 3,488,000
+finite values and populate the full 1,000-entry capacity. History inputs remain
+disjoint from held-out/warmup inputs. The observed token failure is resolved;
+full-logit equivalence at unchanged tolerance 0.0 remains a four-arm preflight
+gate, not a conclusion from history.
 
 ## Research Question
 
@@ -271,14 +278,15 @@ full-logit transfer and shadow comparisons, retain exact golden token checks,
 and use fresh processes with the same store/warmup. The failed v1 and v2 GPU
 attempts and diagnostic are retained. Normal golden-v4 completed the full
 73-request / 9-repeat protocol and independent two-array numerical audit;
-the next run builds the full 64-request real history, not a reduced cohort.
+history-v3 completed the full 64-request real history and store audit. The next
+run is the four-arm numerical/oracle/copy-accounting preflight.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
 
 The completed diagnostic used `.venv/bin/python -B compare.py --mode golden
 --native-backtrace --output raw/golden-sigill-gdb-01 --timeout 1200`. It cannot be
-reused as a reference. The normal golden-v4 command below has completed;
-the subsequent history/preflight/full commands are not claims those stages passed.
+reused as a reference. The normal golden-v4 and history-v3 commands below have
+completed; the subsequent preflight/full commands are not claims those stages passed.
 
 ```sh
 .venv/bin/python -B compare.py --mode golden --output raw/golden-v4

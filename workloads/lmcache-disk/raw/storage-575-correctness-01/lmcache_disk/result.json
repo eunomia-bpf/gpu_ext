@@ -1,0 +1,735 @@
+{
+  "cache_footprint": {
+    "bytes": 1207959552,
+    "files": 48
+  },
+  "command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+    "serve",
+    "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "--served-model-name",
+    "Qwen/Qwen3-30B-A3B-FP8",
+    "--enforce-eager",
+    "--max-model-len",
+    "4096",
+    "--gpu-memory-utilization",
+    "0.98",
+    "--max-num-seqs",
+    "1",
+    "--no-enable-prefix-caching",
+    "--port",
+    "18080",
+    "--kv-transfer-config",
+    "{\"kv_connector\":\"LMCacheConnectorV1\",\"kv_role\":\"kv_both\"}"
+  ],
+  "config": "lmcache_disk",
+  "engagement": {
+    "native_prefix_rates": [
+      0.0,
+      0.0
+    ],
+    "request_evidence": {
+      "cmpl-lmc-p0-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1550
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p0-warm-0-8f949537"
+        ],
+        "stores": []
+      },
+      "cmpl-lmc-p1-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1549
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p1-warm-0-8cd86a5f"
+        ],
+        "stores": []
+      },
+      "cmpl-lmc-p2-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1550
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p2-warm-0-920fcc5b"
+        ],
+        "stores": []
+      },
+      "cmpl-lmc-p3-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1550
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p3-warm-0-9afc067c"
+        ],
+        "stores": []
+      },
+      "cmpl-lmc-p4-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1550
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p4-warm-0-96916569"
+        ],
+        "stores": []
+      },
+      "cmpl-lmc-p5-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1549
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p5-warm-0-a1fb69f6"
+        ],
+        "stores": []
+      },
+      "cmpl-lmc-p6-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1549
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p6-warm-0-9a86e3c1"
+        ],
+        "stores": []
+      },
+      "cmpl-lmc-p7-warm": {
+        "hits": [
+          1536
+        ],
+        "request_totals": [
+          1549
+        ],
+        "retrieved": [
+          [
+            1536,
+            1536,
+            1536
+          ]
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p7-warm-0-a76ba5f6"
+        ],
+        "stores": []
+      }
+    }
+  },
+  "environment": {
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "HF_HOME": "/home/yunwei37/.cache/huggingface",
+    "HF_HUB_OFFLINE": "1",
+    "HOME": "/home/yunwei37",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "LMCACHE_CHUNK_SIZE": "256",
+    "LMCACHE_EXTRA_CONFIG": "{\"use_odirect\":true}",
+    "LMCACHE_LOCAL_CPU": "False",
+    "LMCACHE_LOCAL_DISK": "file:///home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/storage-575-correctness-01/lmcache_disk/cache",
+    "LMCACHE_MAX_LOCAL_CPU_SIZE": "2.0",
+    "LMCACHE_MAX_LOCAL_DISK_SIZE": "16.0",
+    "LMCACHE_SAVE_UNFULL_CHUNK": "False",
+    "LMCACHE_USE_LAYERWISE": "False",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "PYTHONNOUSERSITE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TRITON_PTXAS_BLACKWELL_PATH": "/usr/local/cuda-12.9/bin/ptxas",
+    "TZ": "UTC",
+    "VLLM_USE_DEEP_GEMM": "0",
+    "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
+    "XDG_CACHE_HOME": "/home/yunwei37/.cache"
+  },
+  "launch_command": [
+    "/usr/bin/taskset",
+    "-c",
+    "8-15",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+    "serve",
+    "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "--served-model-name",
+    "Qwen/Qwen3-30B-A3B-FP8",
+    "--enforce-eager",
+    "--max-model-len",
+    "4096",
+    "--gpu-memory-utilization",
+    "0.98",
+    "--max-num-seqs",
+    "1",
+    "--no-enable-prefix-caching",
+    "--port",
+    "18080",
+    "--kv-transfer-config",
+    "{\"kv_connector\":\"LMCacheConnectorV1\",\"kv_role\":\"kv_both\"}"
+  ],
+  "observations": [
+    {
+      "cold": {
+        "e2e_ms": 877.335958,
+        "engine_request_id": "cmpl-lmc-p0-cold",
+        "input_tokens": 1549,
+        "request_header": "lmc-p0-cold",
+        "status": 200,
+        "text": "  \nCold suffix 1: summarize the material in one paragraph.  \nCold suffix",
+        "ttft_ms": 553.21094,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 0,
+      "store_state": {
+        "bytes": 150994944,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 6,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1549
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p0-cold-0-b45eb654"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 526.041733,
+        "engine_request_id": "cmpl-lmc-p0-warm",
+        "input_tokens": 1550,
+        "request_header": "lmc-p0-warm",
+        "status": 200,
+        "text": "\n\nCold : state the central topic in one sentence.  \nCold suffix ",
+        "ttft_ms": 93.580032,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1550,
+          "total_tokens": 1566
+        }
+      }
+    },
+    {
+      "cold": {
+        "e2e_ms": 543.82449,
+        "engine_request_id": "cmpl-lmc-p1-cold",
+        "input_tokens": 1548,
+        "request_header": "lmc-p1-cold",
+        "status": 200,
+        "text": " \n[gpt]<think>\nOkay, the user asked how to make an HTTP",
+        "ttft_ms": 99.972475,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1548,
+          "total_tokens": 1564
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 1,
+      "store_state": {
+        "bytes": 301989888,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 12,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1548
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p1-cold-0-8dfba219"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 525.481648,
+        "engine_request_id": "cmpl-lmc-p1-warm",
+        "input_tokens": 1549,
+        "request_header": "lmc-p1-warm",
+        "status": 200,
+        "text": "\n</>\n</>\n</>\n</>\n</>\n</>\n</>\n</",
+        "ttft_ms": 92.686852,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      }
+    },
+    {
+      "cold": {
+        "e2e_ms": 532.986529,
+        "engine_request_id": "cmpl-lmc-p2-cold",
+        "input_tokens": 1549,
+        "request_header": "lmc-p2-cold",
+        "status": 200,
+        "text": " \n\nOkay, the user wants a one-sentence summary of the material provided.",
+        "ttft_ms": 98.471706,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 2,
+      "store_state": {
+        "bytes": 452984832,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 18,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1549
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p2-cold-0-a2dcb322"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 529.227891,
+        "engine_request_id": "cmpl-lmc-p2-warm",
+        "input_tokens": 1550,
+        "request_header": "lmc-p2-warm",
+        "status": 200,
+        "text": " \n\nOkay, the user asked how to make a software like Obs by Python.",
+        "ttft_ms": 93.40751,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1550,
+          "total_tokens": 1566
+        }
+      }
+    },
+    {
+      "cold": {
+        "e2e_ms": 531.637352,
+        "engine_request_id": "cmpl-lmc-p3-cold",
+        "input_tokens": 1549,
+        "request_header": "lmc-p3-cold",
+        "status": 200,
+        "text": " \n\nCold suffix 4: write a 100-word summary of the",
+        "ttft_ms": 98.379418,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 3,
+      "store_state": {
+        "bytes": 603979776,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 24,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1549
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p3-cold-0-85a64672"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 523.272451,
+        "engine_request_id": "cmpl-lmc-p3-warm",
+        "input_tokens": 1550,
+        "request_header": "lmc-p3-warm",
+        "status": 200,
+        "text": " \n\nCold suffix 4: write a 00-word summary of the material",
+        "ttft_ms": 89.50691,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1550,
+          "total_tokens": 1566
+        }
+      }
+    },
+    {
+      "cold": {
+        "e2e_ms": 537.844567,
+        "engine_request_id": "cmpl-lmc-p4-cold",
+        "input_tokens": 1549,
+        "request_header": "lmc-p4-cold",
+        "status": 200,
+        "text": " \n\nCold suffix 5: write a 100-word summary of the",
+        "ttft_ms": 97.91568,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 4,
+      "store_state": {
+        "bytes": 754974720,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 30,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1549
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p4-cold-0-b31aa547"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 528.516539,
+        "engine_request_id": "cmpl-lmc-p4-warm",
+        "input_tokens": 1550,
+        "request_header": "lmc-p4-warm",
+        "status": 200,
+        "text": "\n\n[4: summarize the summary in the style of a press release\n\nCold",
+        "ttft_ms": 88.88441,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1550,
+          "total_tokens": 1566
+        }
+      }
+    },
+    {
+      "cold": {
+        "e2e_ms": 551.358248,
+        "engine_request_id": "cmpl-lmc-p5-cold",
+        "input_tokens": 1548,
+        "request_header": "lmc-p5-cold",
+        "status": 200,
+        "text": " (This is a story about a boy named MK who is captured by Wuk",
+        "ttft_ms": 97.939738,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1548,
+          "total_tokens": 1564
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 5,
+      "store_state": {
+        "bytes": 905969664,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 36,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1548
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p5-cold-0-acddb199"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 548.039237,
+        "engine_request_id": "cmpl-lmc-p5-warm",
+        "input_tokens": 1549,
+        "request_header": "lmc-p5-warm",
+        "status": 200,
+        "text": " (The story is about a boy named MK who is trapped and mistreated by",
+        "ttft_ms": 93.874708,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      }
+    },
+    {
+      "cold": {
+        "e2e_ms": 533.211251,
+        "engine_request_id": "cmpl-lmc-p6-cold",
+        "input_tokens": 1548,
+        "request_header": "lmc-p6-cold",
+        "status": 200,
+        "text": " \n\nCold suffix 7: write a code in C# to create a class",
+        "ttft_ms": 99.03196,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1548,
+          "total_tokens": 1564
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 6,
+      "store_state": {
+        "bytes": 1056964608,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 42,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1548
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p6-cold-0-a01f0d63"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 522.945834,
+        "engine_request_id": "cmpl-lmc-p6-warm",
+        "input_tokens": 1549,
+        "request_header": "lmc-p6-warm",
+        "status": 200,
+        "text": "\n\n[1: write a code in C# to create a class for the",
+        "ttft_ms": 90.312652,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      }
+    },
+    {
+      "cold": {
+        "e2e_ms": 531.227401,
+        "engine_request_id": "cmpl-lmc-p7-cold",
+        "input_tokens": 1548,
+        "request_header": "lmc-p7-cold",
+        "status": 200,
+        "text": " The material is about the use of topic models to analyze the content of a large",
+        "ttft_ms": 98.099671,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1548,
+          "total_tokens": 1564
+        }
+      },
+      "expected_hit_tokens": 1536,
+      "prefix_index": 7,
+      "store_state": {
+        "bytes": 1207959552,
+        "durability": "fsync(each file) + fsync(directory)",
+        "files": 48,
+        "per_file_bytes": [
+          25165824
+        ],
+        "request_log": {
+          "hits": [
+            0
+          ],
+          "request_totals": [
+            1548
+          ],
+          "retrieved": [],
+          "runtime_ids": [
+            "cmpl-lmc-p7-cold-0-a478fb17"
+          ],
+          "stores": [
+            [
+              1536,
+              1536
+            ]
+          ]
+        }
+      },
+      "warm": {
+        "e2e_ms": 523.1393,
+        "engine_request_id": "cmpl-lmc-p7-warm",
+        "input_tokens": 1549,
+        "request_header": "lmc-p7-warm",
+        "status": 200,
+        "text": " The material is the use of topic models in the analysis of large text corpora",
+        "ttft_ms": 91.067776,
+        "usage": {
+          "completion_tokens": 16,
+          "prompt_tokens": 1549,
+          "total_tokens": 1565
+        }
+      }
+    }
+  ],
+  "odirect": null,
+  "prefix_count": 8,
+  "schema": 2,
+  "server_log": {
+    "bytes": 50359,
+    "ctime_ns": 1788437211041760145,
+    "device": 66305,
+    "inode": 94383703,
+    "mtime_ns": 1788437211041760145,
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/storage-575-correctness-01/lmcache_disk/server.log"
+  },
+  "warm_phase": {
+    "elapsed_s": 4.227627831,
+    "excludes": [
+      "server startup",
+      "cold population",
+      "persistence barriers",
+      "shutdown"
+    ],
+    "output_tokens": 128,
+    "output_tokens_per_s": 30.2770265304368,
+    "requests": 8,
+    "requests_per_s": 1.8923141581523,
+    "sequential": true
+  },
+  "worker_cpu_affinity": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ]
+}

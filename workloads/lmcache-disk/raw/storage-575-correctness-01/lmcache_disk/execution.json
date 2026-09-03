@@ -1,0 +1,113 @@
+{
+  "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+  "cleanup_errors": [],
+  "coordinator_cpu_affinity": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "expected_driver": "575.57.08",
+  "final_boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+  "finished_ns": 1788437214689092491,
+  "kernel_abnormal": [],
+  "kernel_command": [
+    "/usr/bin/taskset",
+    "-c",
+    "16",
+    "/usr/bin/journalctl",
+    "-k",
+    "-b",
+    "--follow",
+    "--no-pager",
+    "-n",
+    "0",
+    "-o",
+    "short-monotonic"
+  ],
+  "monitors_alive_before_stop": [
+    true,
+    true
+  ],
+  "monitors_started_ns": 1788437140355327704,
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 7001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 29.78,
+      "sm_clock_mhz": 675,
+      "temperature_c": 48,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788437214076527247,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 11.35,
+      "sm_clock_mhz": 21,
+      "temperature_c": 44,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788437139433634800,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "started_ns": 1788437138834859069,
+  "status": "passed",
+  "telemetry": {
+    "fixed_power_cap_samples": 5,
+    "max_sm_clock_mhz": 2910.0,
+    "mean_power_w": 48.53232240437159,
+    "min_sm_clock_mhz": 21.0,
+    "peak_memory_mib": 32076.0,
+    "peak_temperature_c": 52.0,
+    "samples": 366,
+    "throttled": false
+  },
+  "telemetry_cpu": 16,
+  "worker_cpu_affinity": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ]
+}

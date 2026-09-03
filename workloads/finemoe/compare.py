@@ -11,6 +11,7 @@ import math
 import os
 from pathlib import Path
 import random
+import signal
 import statistics
 import subprocess
 import sys
@@ -269,24 +270,94 @@ def command(args, stage, output, arm=None):
         result += ["--arm", arm]
     if args.mode == "preflight":
         result += ["--check-logits"]
+    if getattr(args, "native_backtrace", False):
+        require(args.mode == "golden" and stage == "golden" and arm is None,
+                "native backtrace is only permitted for a diagnostic golden")
+        debugger = ["/usr/bin/gdb", "--batch", "--nx", "--return-child-result",
+                    "-iex", "set auto-load off", "-iex", "set debuginfod enabled off",
+                    "-ex", "set confirm off", "-ex", "set pagination off",
+                    "-ex", "set startup-with-shell off", "-ex", "set print thread-events off",
+                    "-ex", "run", "-ex", "bt 30", "-ex", "x/8i $pc", "-ex", "kill", "--args"]
+        result = result[:3] + debugger + result[3:]
     return result
 
 
-def child_environment(inherited=None):
+def child_environment(inherited=None, *, native_backtrace=False):
     env = dict(os.environ if inherited is None else inherited)
     removed = []
     # Never record the inherited value. PyTorch's legacy alias can override the
     # canonical setting, so suppress it identically in preparation and all arms.
-    if "PYTORCH_CUDA_ALLOC_CONF" in env:
-        del env["PYTORCH_CUDA_ALLOC_CONF"]
-        removed.append("PYTORCH_CUDA_ALLOC_CONF")
+    for name in ("PYTORCH_CUDA_ALLOC_CONF", "PYTHONFAULTHANDLER"):
+        if name in env:
+            del env[name]
+            removed.append(name)
     changes = {"CUDA_VISIBLE_DEVICES": "0", "FINEMOE_EXCLUSIVE_LEASE": "1",
                "CUBLAS_WORKSPACE_CONFIG": ":4096:8", "OMP_NUM_THREADS": "4",
                "MKL_NUM_THREADS": "4", "TOKENIZERS_PARALLELISM": "false",
                "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
                "PYTORCH_ALLOC_CONF": "expandable_segments:True"}
+    if native_backtrace:
+        changes["PYTHONFAULTHANDLER"] = "1"
     env.update(changes)
     return env, changes, removed
+
+
+def validate_reference(directory, expected_mode):
+    campaign = read_json(directory.parent / "campaign.json")
+    require(campaign.get("diagnostic") is not True,
+            "debugger output is diagnostic-only, never an experiment reference")
+    require(campaign["mode"] == expected_mode and campaign["complete"] is True,
+            "preparation reference did not complete normally")
+    result = read_json(directory / "result.json")
+    require(result["status"] == "passed" and result.get("diagnostic") is not True and
+            not result.get("cleanup_error"), "preparation reference failed or was diagnostic")
+
+
+def process_identity(pid):
+    try:
+        record = (Path("/proc") / str(pid) / "stat").read_text()
+        fields = record[record.rfind(")") + 2:].split()
+        return {"pid": pid, "state": fields[0], "ppid": int(fields[1]),
+                "pgid": int(fields[2]), "session": int(fields[3]), "start_ticks": int(fields[19])}
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def remember_debugger_children(process, owned):
+    if process.poll() is not None:
+        return
+    for pid in base.descendants(process.pid):
+        identity = process_identity(pid)
+        if pid != process.pid and identity is not None:
+            owned[pid] = identity
+            require(identity["session"] == process.pid, "debugger child escaped the owned session")
+
+
+def stop_debugger_children(owned):
+    # GDB may give its inferior a separate PGID. Only a previously observed
+    # descendant with the same PID/start time/session is eligible for cleanup.
+    def living():
+        found = []
+        for pid, original in owned.items():
+            current = process_identity(pid)
+            if current and current["state"] != "Z" and all(current[key] == original[key]
+                    for key in ("pid", "session", "start_ticks")):
+                found.append(pid)
+        return found
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        for pid in living():
+            try:
+                os.kill(pid, sig)
+                if sig == signal.SIGTERM:
+                    os.kill(pid, signal.SIGCONT)
+            except ProcessLookupError:
+                pass
+        deadline = time.monotonic() + 3
+        while living() and time.monotonic() < deadline:
+            time.sleep(.1)
+        if not living():
+            return
+    require(not living(), "owned debugger inferior survived bounded cleanup")
 
 
 def durable_artifacts(directory):
@@ -302,13 +373,15 @@ def run_stage(args, stage, directory, frozen, data, arm=None):
     before = base.safety_snapshot()
     base.validate_pre_server_safety(before)
     require(inventory() == frozen, "runtime files changed before child launch")
-    env, env_changes, removed_names = child_environment()
+    diagnostic = bool(getattr(args, "native_backtrace", False))
+    env, env_changes, removed_names = child_environment(native_backtrace=diagnostic)
     cmd = command(args, stage, directory, arm)
-    result = {"status": "running", "stage": stage, "arm": arm, "command": cmd,
+    result = {"status": "running", "stage": stage, "arm": arm, "command": cmd, "diagnostic": diagnostic,
               "environment": env_changes, "environment_removed_names": removed_names,
               "safety_before": before, "runtime_before": frozen}
     base.atomic_write_json(directory / "launch.json", result)
     process = telemetry = stream = None
+    debugger_children = {}
     error = None
     try:
         telemetry, stream, telemetry_path = base.start_gpu_telemetry(directory)
@@ -316,7 +389,20 @@ def run_stage(args, stage, directory, frozen, data, arm=None):
             process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
                                        env=env, start_new_session=True, cwd=HERE)
             print(json.dumps({"stage": stage, "arm": arm, "pid": process.pid, "directory": str(directory)}), flush=True)
-            result["returncode"] = process.wait(timeout=args.timeout)
+            if diagnostic:
+                deadline = time.monotonic() + args.timeout
+                while True:
+                    remember_debugger_children(process, debugger_children)
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise subprocess.TimeoutExpired(cmd, args.timeout)
+                    try:
+                        result["returncode"] = process.wait(timeout=min(1., remaining))
+                        break
+                    except subprocess.TimeoutExpired:
+                        continue
+            else:
+                result["returncode"] = process.wait(timeout=args.timeout)
         require(result["returncode"] == 0, f"real {stage}/{arm} child failed: {result['returncode']}")
         artifact = directory / {"golden": "golden.json", "history": "history.json", "cell": "worker-result.json"}[stage]
         record = read_json(artifact)
@@ -327,20 +413,34 @@ def run_stage(args, stage, directory, frozen, data, arm=None):
         error = exc
         result["error"] = f"{type(exc).__name__}: {exc}"
     finally:
-        try:
-            if process is not None:
-                base.stop_exact_process(process)
-            if telemetry is not None:
-                base.stop_exact_process(telemetry)
-            if stream is not None:
-                stream.close()
-            result["safety_after"] = base.wait_for_post_server_safety(before)
-            result["telemetry"] = base.validate_gpu_telemetry(directory / "gpu-telemetry.csv", allow_fixed_power_cap=True)
-            result["runtime_after"] = inventory()
-            require(result["runtime_after"] == frozen, "runtime files changed during child")
-        except BaseException as cleanup_error:
-            result["cleanup_error"] = f"{type(cleanup_error).__name__}: {cleanup_error}"
-            error = error or cleanup_error
+        cleanup_errors = []
+        def cleanup(label, operation):
+            nonlocal error
+            try:
+                return operation()
+            except BaseException as exc:
+                cleanup_errors.append(f"{label}: {type(exc).__name__}: {exc}")
+                error = error or exc
+                return None
+        if process is not None:
+            if diagnostic:
+                cleanup("remember descendants", lambda: remember_debugger_children(process, debugger_children))
+            cleanup("owned process group", lambda: base.stop_owned_process_group(process))
+            if diagnostic:
+                result["owned_debugger_descendants"] = list(debugger_children.values())
+                cleanup("owned debugger inferiors", lambda: stop_debugger_children(debugger_children))
+        if telemetry is not None:
+            cleanup("telemetry process", lambda: base.stop_exact_process(telemetry))
+        if stream is not None:
+            cleanup("telemetry stream", stream.close)
+        result["safety_after"] = cleanup("post safety", lambda: base.wait_for_post_server_safety(before))
+        result["telemetry"] = cleanup("telemetry audit", lambda: base.validate_gpu_telemetry(
+            directory / "gpu-telemetry.csv", allow_fixed_power_cap=True))
+        result["runtime_after"] = cleanup("runtime inventory", inventory)
+        cleanup("runtime freeze", lambda: require(result["runtime_after"] == frozen, "runtime files changed during child"))
+        if cleanup_errors:
+            result["cleanup_errors"] = cleanup_errors
+            result["cleanup_error"] = "; ".join(cleanup_errors)
         result["status"] = "failed" if error else "passed"
         durable_artifacts(directory)
         base.atomic_write_json(directory / "result.json", result)
@@ -359,13 +459,20 @@ def main():
     parser.add_argument("--history", type=Path)
     parser.add_argument("--preflight", type=Path)
     parser.add_argument("--timeout", type=int, default=3600)
+    parser.add_argument("--native-backtrace", action="store_true",
+                        help="diagnostic golden only; never accepted as a golden/history/performance reference")
     args = parser.parse_args()
+    require(not args.native_backtrace or args.mode == "golden", "--native-backtrace requires --mode golden")
     for name in ("data", "output", "golden", "history", "preflight"):
         if getattr(args, name):
             setattr(args, name, getattr(args, name).resolve())
     require(not args.output.exists(), "output already exists; preserve previous failure and use a new directory")
     require(args.mode == "golden" or args.golden, "real original-model golden is required")
     require(args.mode not in ("preflight", "full") or args.history, "real full history is required")
+    if args.golden:
+        validate_reference(args.golden, "golden")
+    if args.history:
+        validate_reference(args.history, "history")
     frozen, data = inventory(), read_json(args.data)
     references = {}
     for folder in (args.golden, args.history):
@@ -377,6 +484,7 @@ def main():
         require(args.preflight is not None, "full run requires four-arm numerical preflight")
         preflight = read_json(args.preflight / "campaign.json")
         require(preflight["complete"] is True and preflight["mode"] == "preflight" and
+                preflight.get("diagnostic") is not True and
                 preflight["runtime"] == frozen and preflight["data"] == data and
                 preflight["reference_files"] == references,
                 "preflight incomplete or runtime/data changed")
@@ -388,6 +496,7 @@ def main():
     try:
         args.output.mkdir(parents=True, exist_ok=False)
         manifest = {"schema": "finemoe_dynamic_set_v1", "mode": args.mode, "complete": False,
+                    "diagnostic": args.native_backtrace,
                     "seed": SEED, "orders": orders(args.mode), "data": data, "runtime": frozen,
                     "model_files": model_inventory(), "golden": str(args.golden) if args.golden else None,
                     "reference_files": references,

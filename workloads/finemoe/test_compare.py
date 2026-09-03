@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 import compare
 
@@ -158,6 +159,49 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(inherited["PYTORCH_CUDA_ALLOC_CONF"], "legacy-fixture-do-not-record")
         self.assertNotIn("legacy-fixture-do-not-record", str(recorded))
         self.assertEqual(compare.child_environment({})[2], [])
+
+    def test_native_backtrace_is_golden_only_and_has_explicit_kill(self):
+        args = SimpleNamespace(mode="golden", data=Path("data.json"), golden=None, history=None, native_backtrace=True)
+        command = compare.command(args, "golden", Path("out"))
+        self.assertEqual(command[:4], ["taskset", "-c", "8-11", "/usr/bin/gdb"])
+        for value in ("--batch", "--nx", "--return-child-result", "set auto-load off", "set debuginfod enabled off",
+                      "set confirm off", "bt 30", "x/8i $pc", "kill"):
+            self.assertIn(value, command)
+        self.assertLess(command.index("run"), command.index("bt 30"))
+        self.assertLess(command.index("x/8i $pc"), command.index("kill"))
+        args.mode = "history"
+        with self.assertRaises(compare.base.GateError):
+            compare.command(args, "history", Path("out"))
+        with mock.patch("sys.argv", ["compare.py", "--mode", "full", "--native-backtrace", "--output", "unused"]):
+            with self.assertRaises(compare.base.GateError):
+                compare.main()
+
+    def test_faulthandler_only_in_diagnostic_environment(self):
+        child, recorded, removed = compare.child_environment({"PYTHONFAULTHANDLER": "old"})
+        self.assertNotIn("PYTHONFAULTHANDLER", child)
+        self.assertNotIn("PYTHONFAULTHANDLER", recorded)
+        self.assertEqual(removed, ["PYTHONFAULTHANDLER"])
+        child, recorded, _ = compare.child_environment({}, native_backtrace=True)
+        self.assertEqual(child["PYTHONFAULTHANDLER"], recorded["PYTHONFAULTHANDLER"])
+        self.assertEqual(child["PYTHONFAULTHANDLER"], "1")
+
+    def test_successful_debugger_output_cannot_be_used_as_golden(self):
+        with mock.patch.object(compare, "read_json", return_value={"complete": True, "mode": "golden", "diagnostic": True}):
+            with self.assertRaises(compare.base.GateError):
+                compare.validate_reference(Path("fixture/stage"), "golden")
+
+    def test_reused_pid_is_not_killed_by_debugger_cleanup(self):
+        original = {"pid": 999, "session": 999, "start_ticks": 10, "state": "S"}
+        changed = {**original, "start_ticks": 11}
+        with mock.patch.object(compare, "process_identity", return_value=changed), mock.patch.object(compare.os, "kill") as kill:
+            compare.stop_debugger_children({999: original})
+        kill.assert_not_called()
+
+    def test_finished_debugger_is_not_rescanned_after_pid_release(self):
+        process = SimpleNamespace(pid=999, poll=lambda: 0)
+        with mock.patch.object(compare.base, "descendants") as scan:
+            compare.remember_debugger_children(process, {})
+        scan.assert_not_called()
 
 
 if __name__ == "__main__":

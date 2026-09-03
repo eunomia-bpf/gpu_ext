@@ -21,6 +21,9 @@ loading with CUDA OOM before any request; cleanup passed. See
 `PYTORCH_ALLOC_CONF=expandable_segments:True` setting and remove an inherited
 legacy `PYTORCH_CUDA_ALLOC_CONF` without logging its value. The experimental
 allocator option is a proposed fragmentation remedy, not a demonstrated fix.
+The v2 retry loaded all eight shards (27,925 MiB sampled peak) but ended with
+SIGILL before any completed request. A golden-only native-stack diagnostic is
+next; its output cannot serve as an experiment reference.
 **No numerical GPU canary, history store, or performance cell has passed.**
 
 ## Research Question
@@ -235,16 +238,21 @@ lease/safety/telemetry controller. Its staged preparation creates a real origina
 model golden and same-arm repeat tolerance, then the full 64-request history,
 then all four numerical/oracle/copy-accounting canaries. Formal runs disable
 full-logit transfer and shadow comparisons, retain exact golden token checks,
-and use fresh processes with the same store/warmup. The failed v1 GPU load is
-retained; the next original-model correctness attempt uses a fresh v2 directory.
+and use fresh processes with the same store/warmup. The failed v1 and v2 GPU
+attempts are retained; the next run is a diagnostic, not an experiment reference.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
 
+The immediate diagnostic is `.venv/bin/python -B compare.py --mode golden
+--native-backtrace --output raw/golden-sigill-gdb-01 --timeout 1200`. It cannot be
+reused as a reference. After diagnosis, a normal no-debugger attempt needs a new
+directory; the following staged commands are not claims that those stages passed.
+
 ```sh
-.venv/bin/python -B compare.py --mode golden --output raw/golden-v2
-.venv/bin/python -B compare.py --mode history --golden raw/golden-v2/stage --output raw/history-v1
-.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v2/stage --history raw/history-v1/stage --output raw/preflight-v1
-.venv/bin/python -B compare.py --mode full --golden raw/golden-v2/stage --history raw/history-v1/stage --preflight raw/preflight-v1 --output raw/full-v1
+.venv/bin/python -B compare.py --mode golden --output raw/golden-v3
+.venv/bin/python -B compare.py --mode history --golden raw/golden-v3/stage --output raw/history-v1
+.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v3/stage --history raw/history-v1/stage --output raw/preflight-v1
+.venv/bin/python -B compare.py --mode full --golden raw/golden-v3/stage --history raw/history-v1/stage --preflight raw/preflight-v1 --output raw/full-v1
 ```
 
 The parent controller must retain its ordinary affinity (it runs telemetry on

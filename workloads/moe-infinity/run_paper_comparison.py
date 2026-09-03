@@ -148,13 +148,21 @@ def activation_delta(mode, before, after):
          "rank_calls", "bpf_match_calls", "aborted_requests"))
     dispatcher = base.counter_delta(before["dispatcher"], after["dispatcher"],
         ("prefetch_completed", "prefetch_bytes", "eviction_selections", "bpf_eviction_calls",
-         "prefetch_hits", "prefetch_wasted", "prefetch_wasted_bytes"))
+         "prefetch_hits", "prefetch_wasted", "prefetch_wasted_bytes",
+         "prefetch_prediction_epoch", "prefetch_protected_resident_skips",
+         "prefetch_stale_discarded", "prefetch_no_victim", "prefetch_copy_started",
+         "prefetch_victim_recheck_rejected"))
     if controller["completed_requests"] != 8 or controller["aborted_requests"] != 0:
         raise base.GateError(f"paper request accounting mismatch: {controller}")
     if any(controller[k] <= 0 for k in ("matched_predictions", "prefetch_candidates_selected")):
         raise base.GateError("no measured-window EAMC prediction/prefetch selection")
     if any(dispatcher[k] <= 0 for k in ("prefetch_completed", "prefetch_bytes", "eviction_selections")):
         raise base.GateError("no measured-window prefetch/eviction engagement")
+    if any(dispatcher[k] <= 0 for k in
+           ("prefetch_prediction_epoch", "prefetch_protected_resident_skips")):
+        raise base.GateError("no measured-window prediction-set protection engagement")
+    if dispatcher["prefetch_copy_started"] != dispatcher["prefetch_completed"]:
+        raise base.GateError("measured-window prefetch issue/completion mismatch")
     if mode == "paper-bpf":
         if not (controller["rank_calls"] > 0 and controller["bpf_match_calls"] > 0
                 and dispatcher["bpf_eviction_calls"] > 0):

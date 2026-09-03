@@ -82,7 +82,9 @@ def validate_activation(mode, state):
         if type(value) is not int or value < 0:
             raise base.GateError(f"missing/invalid rebuilt-store protection counter {key}")
     if mode == "native-off":
-        if dispatcher["mode"] != 0 or any(dispatcher[key] for key in PREFETCH_PROTECTION_COUNTERS):
+        if (state["controller"] or dispatcher["mode"] != 0 or
+                any(type(value) is not int or value != 0
+                    for key, value in dispatcher.items() if key != "mode")):
             raise base.GateError("native-off unexpectedly enabled policy")
         return
     controller = state["controller"]

@@ -61,6 +61,19 @@ class ActivationGateTests(unittest.TestCase):
                 with self.subTest(mode=mode, key=key), self.assertRaises(paper.base.GateError):
                     paper.validate_activation(mode, missing)
 
+    def test_native_off_rejects_legacy_policy_counters_and_controller(self):
+        baseline = state("native-off")
+        for key in baseline["dispatcher"]:
+            if key == "mode":
+                continue
+            unexpected = state("native-off")
+            unexpected["dispatcher"][key] = 1
+            with self.subTest(key=key), self.assertRaises(paper.base.GateError):
+                paper.validate_activation("native-off", unexpected)
+        baseline["controller"] = {"completed_requests": 1}
+        with self.assertRaises(paper.base.GateError):
+            paper.validate_activation("native-off", baseline)
+
     def test_both_paper_arms_require_drain_and_all_issued_copies_complete(self):
         for mode in ("paper-native", "paper-bpf"):
             for key, value in (("prefetch_protected_candidates", 1),

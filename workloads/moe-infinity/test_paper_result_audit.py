@@ -43,7 +43,12 @@ def activation(mode, phase):
         "prefetch_wasted": 2 if measured else 0,
         "prefetch_wasted_bytes": 2000 if measured else 0,
         "prefetch_unused_resident": 1 if measured else 0,
-        "eviction_mismatches": 0}
+        "eviction_mismatches": 0,
+        **dict.fromkeys(audit.paper.PREFETCH_PROTECTION_COUNTERS, 0)}
+    if mode != "native-off":
+        dispatcher.update(prefetch_prediction_epoch=completed * 100,
+                          prefetch_protected_resident_skips=50 if measured else 0,
+                          prefetch_copy_started=12 if measured else 0)
     return {"mode": mode, "algorithm": "arxiv-2401.14361v3-reimplementation",
             "features": "shared-float64-EAMC-cosine-and-probability",
             "controller": controller, "dispatcher": dispatcher}

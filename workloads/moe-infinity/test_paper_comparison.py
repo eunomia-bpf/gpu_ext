@@ -36,7 +36,9 @@ def activation_pair(mode):
         "bpf_eviction_calls": 1 if bpf else 0, "eviction_mismatches": 0,
         "prefetch_submitted": 0, "prefetch_completed": 0, "prefetch_bytes": 0,
         "prefetch_hits": 0, "prefetch_wasted": 0, "prefetch_wasted_bytes": 0,
-        "prefetch_unused_resident": 0}
+        "prefetch_unused_resident": 0,
+        **dict.fromkeys(comparison.paper.PREFETCH_PROTECTION_COUNTERS, 0)}
+    dispatcher["prefetch_prediction_epoch"] = 100
     before = {"mode": mode, "controller": controller, "dispatcher": dispatcher}
     after = copy.deepcopy(before)
     after["controller"].update(completed_requests=9, matched_predictions=100,
@@ -45,7 +47,8 @@ def activation_pair(mode):
     after["dispatcher"].update(eviction_selections=21, bpf_eviction_calls=21 if bpf else 0,
         prefetch_submitted=200, prefetch_completed=12, prefetch_bytes=1200,
         prefetch_hits=9, prefetch_wasted=2, prefetch_wasted_bytes=200,
-        prefetch_unused_resident=1)
+        prefetch_unused_resident=1, prefetch_prediction_epoch=200,
+        prefetch_protected_resident_skips=50, prefetch_copy_started=12)
     return before, after
 
 
@@ -146,6 +149,21 @@ class ComparisonTests(unittest.TestCase):
         after = copy.deepcopy(before)
         after["controller"]["completed_requests"] += 8
         with self.assertRaises(comparison.base.GateError):
+            comparison.activation_delta("paper-native", before, after)
+
+    def test_warmup_protection_cannot_substitute_for_measured_protection(self):
+        for mode in ("paper-native", "paper-bpf"):
+            for key in ("prefetch_prediction_epoch", "prefetch_protected_resident_skips"):
+                before, after = activation_pair(mode)
+                before["dispatcher"][key] = after["dispatcher"][key]
+                with self.subTest(mode=mode, key=key), self.assertRaisesRegex(
+                        comparison.base.GateError, "measured-window prediction-set"):
+                    comparison.activation_delta(mode, before, after)
+
+    def test_pending_warmup_copy_cannot_complete_inside_measured_window(self):
+        before, after = activation_pair("paper-native")
+        before["dispatcher"]["prefetch_copy_started"] = 1
+        with self.assertRaisesRegex(comparison.base.GateError, "measured-window prefetch issue"):
             comparison.activation_delta("paper-native", before, after)
 
     def run_stream(self, directory, lines, golden="x" * 64, status=200):

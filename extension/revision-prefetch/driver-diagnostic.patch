@@ -1,0 +1,103 @@
+diff --git a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h
+--- a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h
++++ b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h
+@@ -12,3 +12,35 @@
+ } uvm_bpf_prefetch_decision_t;
+ 
++enum uvm_bpf_prefetch_diagnostic_phase {
++    UVM_BPF_PREFETCH_DIAG_SELECTED = 1,
++    UVM_BPF_PREFETCH_DIAG_FINISHED = 2,
++};
++
++/* Driver-owned copies for a privileged, read-only tracing observer.
++ * Identity tokens are valid only for this invocation; they are not pointers
++ * the observer may dereference. Output fields are valid only at FINISHED. */
++struct uvm_bpf_prefetch_diagnostic_ctx {
++    NvU64 invocation_id;
++    NvU64 bitmap_tree_id;
++    NvS64 raw_action;
++    NvU64 requested_first;
++    NvU64 requested_outer;
++    NvU64 max_first;
++    NvU64 max_outer;
++    NvU64 block_outer;
++    NvU64 type_outer;
++    NvU64 output_first;
++    NvU64 output_outer;
++    NvU32 phase;
++    NvU32 page_index;
++    NvU32 request_attempted;
++    NvU32 request_conflict;
++    NvU32 initial_region_result;
++    NvU32 initial_effect;
++    NvU32 native_iterations;
++    NvU32 native_completed;
++};
++
++void uvm_bpf_prefetch_diagnostic(const struct uvm_bpf_prefetch_diagnostic_ctx *ctx);
++
+ typedef struct uvm_bpf_pmm_decision_ctx
+diff --git a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c
+--- a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c
++++ b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c
+@@ -345,2 +345,9 @@
++/* Kbuild-instrumented observation only: no policy dispatch or state writes. */
++noinline void uvm_bpf_prefetch_diagnostic(const struct uvm_bpf_prefetch_diagnostic_ctx *ctx)
++{
++	if (ctx)
++		barrier();
++}
++
+ /* Wrapper functions for calling BPF hooks */
+ NvS64 uvm_bpf_call_gpu_page_prefetch(
+diff --git a/kernel-open/nvidia-uvm/uvm_perf_prefetch.c b/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
+--- a/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
++++ b/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
+@@ -112,4 +112,5 @@
+     enum nv_gpu_transition_result region_result;
+     enum nv_gpu_prefetch_initial_effect initial_effect;
+     NvS64 raw_action;
++    struct uvm_bpf_prefetch_diagnostic_ctx diagnostic = {0};
+     const NvU64 type_outer = (NvU64)(uvm_page_index_t)~0U;
+@@ -126,4 +127,21 @@
+     initial_effect = nv_gpu_transition_prefetch_initial_effect(raw_action,
+                                                                region_result);
+ 
++    diagnostic.invocation_id = (NvU64)(unsigned long)&diagnostic;
++    diagnostic.bitmap_tree_id = (NvU64)(unsigned long)bitmap_tree;
++    diagnostic.raw_action = raw_action;
++    diagnostic.requested_first = initial_decision.first;
++    diagnostic.requested_outer = initial_decision.outer;
++    diagnostic.max_first = max_prefetch_region.first;
++    diagnostic.max_outer = max_prefetch_region.outer;
++    diagnostic.block_outer = PAGES_PER_UVM_VA_BLOCK;
++    diagnostic.type_outer = type_outer;
++    diagnostic.phase = UVM_BPF_PREFETCH_DIAG_SELECTED;
++    diagnostic.page_index = page_index;
++    diagnostic.request_attempted = initial_decision.attempted;
++    diagnostic.request_conflict = initial_decision.conflict;
++    diagnostic.initial_region_result = region_result;
++    diagnostic.initial_effect = initial_effect;
++    uvm_bpf_prefetch_diagnostic(&diagnostic);
++
+     if (initial_effect == NV_GPU_PREFETCH_INITIAL_BYPASS) {
+@@ -190,9 +208,11 @@
+             uvm_va_block_region_t subregion = uvm_perf_prefetch_bitmap_tree_iter_get_range(bitmap_tree, &iter);
+             NvU16 subregion_pages = uvm_va_block_region_num_pages(subregion);
+ 
++            ++diagnostic.native_iterations;
+             UVM_ASSERT(counter <= subregion_pages);
+             if (counter * 100 > subregion_pages * g_uvm_perf_prefetch_threshold)
+                 relative_region = subregion;
+         }
++        diagnostic.native_completed = 1;
+ 
+         if (relative_region.outer != 0) {
+@@ -216,2 +236,7 @@
++    diagnostic.output_first = prefetch_region.first;
++    diagnostic.output_outer = prefetch_region.outer;
++    diagnostic.phase = UVM_BPF_PREFETCH_DIAG_FINISHED;
++    uvm_bpf_prefetch_diagnostic(&diagnostic);
++
+     return prefetch_region;
+ }

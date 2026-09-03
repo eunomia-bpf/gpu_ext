@@ -12,7 +12,9 @@ comparisons and four-panel scheduling figure, discussion additions and
 typography repairs. The abstract/introduction now distinguish policy benefits
 from the measured mechanism cost. A fresh three-pass LaTeX/BibTeX build succeeds
 without undefined references/citations, and the two scheduling/memory figures
-were rendered and inspected. The draft is **18 total pages, with conclusion on
+were rendered and inspected. The checked source draft is pushed as paper commit
+`b5e2f25`; its [build review](paper/asplos-27-rebuttal/revision-build-review.md)
+records the remaining issues. The draft is **18 total pages, with conclusion on
 page 16**, exceeding the working original-body-plus-two-page target. Further
 condensation and a fresh final build are needed; this is not closure of missing safety tests, Table 1,
 disk measurements, agent-log release, or final figure-expansion work. See
@@ -40,8 +42,8 @@ disk measurements, agent-log release, or final figure-expansion work. See
 | Experiment | Status and next action |
 | --- | --- |
 | FineMoE dynamic prefetch | **Complete:** 20 cells, five blocks. [Report](../workloads/finemoe/results-performance.md) retains reduced unused transfers versus all-positive, a throughput loss versus demand-only, and unresolved BPF/C difference. Integrate the bounded result; no favorable-result rerun is required. |
-| Hummingbird idle scheduling | **Complete:** full 50-cell comparison and [independent raw audit](../workloads/hummingbird/raw-audit.md). C/BPF both lose roughly 19–20% background goodput to fixed GPreempt; all results and incomplete-coverage control requests are retained. Full raw publication is queued at the next untimed gap. |
-| POD-Attention device task choice | **Five-arm preflight 04 passed:** actual device-BPF choices cover all 3,328 CTAs, all 14 bridge calls checked, output error versus original zero, and clean teardown. The unchanged-runtime five-block/ten-shape full comparison is next. Strict verifier enforcement is not claimed. Earlier failures and the interrupted preflight 03 are retained. |
+| Hummingbird idle scheduling | **Complete and published (`2658e0e`):** full 50-cell raw comparison and [independent audit](../workloads/hummingbird/raw-audit.md). C/BPF both lose roughly 19–20% background goodput to fixed GPreempt; all results and incomplete-coverage control requests are retained. |
+| POD-Attention device task choice | **Five-arm preflight 04 passed and published (`2658e0e`):** actual device-BPF choices cover all 3,328 CTAs, all 14 bridge calls checked, output error versus original zero, and clean teardown. [Independent review](../workloads/pod-attention/preflight-575-04-review.md) passed. The unchanged-runtime five-block/ten-shape full comparison is running. Strict verifier enforcement is not claimed. Earlier failures and the interrupted preflight 03 are retained. |
 
 These additional experiments do not replace safety, local-disk, Table 1,
 artifact-release or paper-integration commitments. A negative but valid result

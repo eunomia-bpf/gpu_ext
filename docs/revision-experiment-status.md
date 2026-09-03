@@ -54,7 +54,7 @@ and BurstGPT, and BPF/fixed ratios are 0.80685 and 0.79693. BPF/C is about
 The BurstGPT equal-timeslice control misses 317 in-window LC completions;
 its conditional p99 cannot support a headline protection speedup. These
 results bound the conservative single-in-flight port, not the original full
-Hummingbird system. Full raw publication is queued at the next untimed gap. See the
+Hummingbird system. The full raw bundle is committed and pushed in `2658e0e`. See the
 [current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
 FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;
 the full original Qwen model has now completed a normal 73-request reference
@@ -104,7 +104,8 @@ The launcher now avoids preloading the BPF agent into the CPU-affinity wrapper;
 engine 2 covered 3,328 CTA task choices, with exactly-once prefill/decode coverage,
 14 verified bridge calls and zero output difference versus original FP16 FA.
 All five cells passed cleanup; the runtime inventory remains unchanged.
-The full five-block/ten-shape comparison is next. Strict device verification
+The full five-block/ten-shape comparison started at 11:05 UTC in `full-575-01`.
+Preflight raw evidence is committed and pushed in `2658e0e`. Strict device verification
 remains a separate missing result; the performance runtime has it disabled.
 
 The 09:04 UTC reboot restored stock 575 modules, as configured. The completed
@@ -122,7 +123,8 @@ the scheduling figure, calibrated headline attribution, discussion topics and
 typographic repairs. A fresh three-pass LaTeX/BibTeX build and two-figure
 render check passed, without undefined references/citations. The draft is
 18 total pages with conclusion on page 16, so condensation and a fresh final
-build remain necessary before claiming paper integration complete.
+build remain necessary before claiming paper integration complete. The checked
+draft source is committed and pushed as paper revision `b5e2f25`.
 The [source-backed safety audit](revision-safety-design.md) exposes a substantive
 remaining implementation gap: the current device experiment runtime has GPU
 verification disabled, and the separate strict verifier does not yet model

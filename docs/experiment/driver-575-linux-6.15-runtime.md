@@ -221,3 +221,40 @@ one per role, with zero identity, setter or mapping errors. Cleanup left zero
 UVM references, no struct-ops attachment and no new Xid. This proves accepted,
 persistent firmware requests for these canaries, not a measured scheduling
 quantum or a full comparative performance result.
+
+## Unexpected reboot and restoration of the verified runtime
+
+The machine booted unexpectedly at 2026-09-03 01:37:41 UTC. The preceding boot's
+journal ends at 01:36:29 UTC without a recorded shutdown, panic, Xid or OOM;
+there was no new pstore record. The cause remains unknown. These observations
+do not establish that a GPU experiment caused the reboot. As intended by the
+temporary-loading setup, boot restored stock 575.57.08 on Linux 6.15.11, with
+live core/UVM BTF sizes of 121,803/261,943 bytes rather than the custom revision.
+
+Read-only holder and login-session checks found only the automatic GDM greeter
+(UID 120, Xorg PID 2881) and nvidia-persistenced (root, PID 2002) holding NVIDIA
+devices. GDM session c1 was explicitly classified as a greeter; user sessions
+were remote SSH sessions, not a local desktop. Only gdm.service and
+nvidia-persistenced.service were stopped to restore exclusive experiment state.
+SSH, Codex, systemd-logind and the i915 display/framebuffer were not stopped.
+
+At 01:46:10–12 UTC, ordinary bounded module removal and loading restored the
+same `849ea75d` staging directory, including DRM `modeset=1` and UVM. Live
+core/UVM BTF sizes returned to 125,993/268,940 bytes, and repeated idle checks
+confirmed 400 W, 2 MiB and 0% GPU utilization. Official GDRCopy v2.5.2 was loaded
+without the unnecessary parameter from the earlier attempt; its initialization
+log confirmed persistent mapping by default. `/dev/gdrdrv` was restored with
+major 507, mode 0600 and UID/GID 1000. No boot files or `/lib/modules` files were
+changed, and no forced unload or further reboot was used.
+
+Both original and BPF post-boot context canaries passed the actual GSP-completion
+check, again observing LC 1,000,000 us and BE 1 us before the first kernel.
+Their records are under `workloads/xsched/raw/` in
+`gpreempt-context-original-849ea75d-postboot-20260903-0147/` and
+`gpreempt-context-bpf-849ea75d-postboot-20260903-0147/`. Fresh XSched calibration
+selected 9,511,106 repetitions for 79.968544 ms; the native, XSched, gpubpf and
+bpftime HPF preflights all passed. Calibration and preflight records are in
+`calibration-persistent-575-20260903/` and
+`preflight-persistent-575-20260903/` under the same raw directory. These checks
+re-establish runtime readiness after the reboot; they are not the full paired
+performance comparison or evidence that the original GDR transport is supported.

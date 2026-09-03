@@ -377,6 +377,16 @@ policy errors. A clean loader exit or host-shadow counter alone is insufficient.
 All raw request samples, telemetry, cell outcomes and partial/failed blocks are
 retained; only five complete paired blocks set `formal_5_block_complete=true`.
 
+`analyze_three_way.py CAMPAIGN_DIRECTORY --output NEW_RESULT.json` independently
+re-parses retained request samples, checks numerical/engagement records,
+commands, environments, telemetry and cleanup, and uses only complete paired
+blocks. It reports geometric paired ratios and 95% block-bootstrap intervals.
+The interval is omitted for one block; a near-one point estimate is not an
+equivalence claim. The explicit `host_mapped` variant retains its compatibility
+label and never becomes an original-GDR result through analysis. Config A's
+100 requests/s per role also caps observed throughput: near 100 requests/s on
+this RTX 5090 workload is not evidence of a saturated-throughput advantage.
+
 The nine CPU-only runner tests include count/tolerance/zero-engagement rejection,
 balanced ordering, partial-block rejection and actual cleanup of an owned CPU
 orphan after its group leader exits. None is a GPU performance result.

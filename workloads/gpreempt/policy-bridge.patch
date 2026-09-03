@@ -1,0 +1,187 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -134,1 +134,12 @@
++set(GPREEMPT_ARTIFACT_DIR "" CACHE PATH "Local comparison instrumentation")
++set(GPREEMPT_BRIDGE_DIR "" CACHE PATH "gpubpf extension bridge directory")
++if(NOT EXISTS "${GPREEMPT_ARTIFACT_DIR}/client_checks.h" OR
++   NOT EXISTS "${GPREEMPT_BRIDGE_DIR}/.output/libgpreempt_bridge.so")
++    message(FATAL_ERROR "Build the gpreempt extension bridge and set both comparison paths")
++endif()
++include_directories("${GPREEMPT_ARTIFACT_DIR}" "${GPREEMPT_BRIDGE_DIR}")
++add_library(gpreempt_policy_bridge SHARED IMPORTED)
++set_target_properties(gpreempt_policy_bridge PROPERTIES IMPORTED_LOCATION
++    "${GPREEMPT_BRIDGE_DIR}/.output/libgpreempt_bridge.so")
++
+ foreach(CLIENT_SOURCE ${CLIENT_SOURCES})
+@@ -148,1 +159,6 @@
+ endforeach()
++foreach(GPREEMPT_CLIENT baseclient gpreemptclient gpreemptclient_wo)
++    if(TARGET ${GPREEMPT_CLIENT})
++        target_link_libraries(${GPREEMPT_CLIENT} gpreempt_policy_bridge)
++    endif()
++endforeach()
+diff --git a/src/common-clients/baseclient.cpp b/src/common-clients/baseclient.cpp
+--- a/src/common-clients/baseclient.cpp
++++ b/src/common-clients/baseclient.cpp
+@@ -1,1 +1,3 @@
+ #include "disb.h"
++#include "client_checks.h"
++#include "gpreempt_bridge.h"
+@@ -26,1 +28,2 @@
+         preprocess_time = config["preprocess_time"].asUInt64();
++        gpreempt_artifact::validate_config(priority, preprocess_time);
+@@ -46,1 +49,2 @@
+         bind_core(cores.fetch_add(1));
++        checks.begin_timed();
+@@ -64,1 +68,3 @@
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE));
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+@@ -90,1 +96,1 @@
+-        executor->execute(stream);
++        CHECK_STATUS(executor->execute(stream));
+@@ -101,1 +107,1 @@
+-    virtual void postprocess() override {}
++    virtual void postprocess() override { checks.check(output, output_size); }
+@@ -103,1 +109,2 @@
+ private:
++    gpreempt_artifact::OutputCheck checks;
+@@ -130,1 +137,5 @@
+ int main(int argc, char** argv)
+ {
++    if (gpreempt_bpf_enabled() != 0) {
++        std::cerr << "native baseclient cannot be labeled as the BPF arm" << std::endl;
++        return 1;
++    }
+diff --git a/src/cuda-clients/gpreemptclient_wo.cpp b/src/cuda-clients/gpreemptclient_wo.cpp
+--- a/src/cuda-clients/gpreemptclient_wo.cpp
++++ b/src/cuda-clients/gpreemptclient_wo.cpp
+@@ -1,1 +1,3 @@
+ #include "disb.h"
++#include "client_checks.h"
++#include "gpreempt_bridge.h"
+@@ -29,1 +31,2 @@
+         preprocess_time = config["preprocess_time"].asUInt64();
++        gpreempt_artifact::validate_config(priority, preprocess_time);
+@@ -62,1 +65,3 @@
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE));
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+@@ -83,10 +88,15 @@
+         if(g_ctx[priority] == nullptr) {
+-            GPUCtxCreate(&g_ctx[priority], 0, dev);
+-            NvContext nvctx;
++            CHECK_EQ(gpreempt_ctx_begin(priority), 0);
++            ASSERT_CUDA_ERROR(GPUCtxCreate(&g_ctx[priority], 0, dev));
++            NvContext nvctx{};
+             nvctx.hClient = util_gettid();
+-            NVRMCHECK(NvRmQuery(&nvctx));
+-            if(set_priority(nvctx, priority)){
++            CHECK_EQ(NvRmQuery(&nvctx), NV_OK);
++            if(!gpreempt_bpf_enabled() && set_priority(nvctx, priority)){
+                 LOG(ERROR) << "Failed to set priority";
+                 exit(-1);
+             }
++            CHECK_EQ(gpreempt_ctx_register(reinterpret_cast<gp_u64>(g_ctx[priority]),
++                                           nvctx.hClient, nvctx.hObject, priority), 0);
++            CHECK_EQ(gpreempt_ctx_end(), 0);
+         }
+@@ -99,1 +109,3 @@
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE)); 
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+@@ -106,1 +118,2 @@
+         mtx.unlock();
++        checks.begin_timed();
+@@ -124,1 +137,1 @@
+-        executor->execute(stream);
++        CHECK_STATUS(executor->execute(stream));
+@@ -135,2 +148,3 @@
+-    virtual void postprocess() override {}
++    virtual void postprocess() override { checks.check(output, output_size); }
+ private:
++    gpreempt_artifact::OutputCheck checks;
+diff --git a/src/cuda-clients/gpreemptclient.cpp b/src/cuda-clients/gpreemptclient.cpp
+--- a/src/cuda-clients/gpreemptclient.cpp
++++ b/src/cuda-clients/gpreemptclient.cpp
+@@ -16,1 +16,3 @@
+ #include "block.h"
++#include "client_checks.h"
++#include "gpreempt_bridge.h"
+@@ -123,1 +125,2 @@
+         preprocess_time = config["preprocess_time"].asUInt64();
++        gpreempt_artifact::validate_config(priority, preprocess_time);
+@@ -156,1 +159,3 @@
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE));
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+@@ -177,10 +182,15 @@
+         if(g_ctx[priority] == nullptr) {
+-            GPUCtxCreate(&g_ctx[priority], 0, dev);
+-            NvContext nvctx;
++            CHECK_EQ(gpreempt_ctx_begin(priority), 0);
++            ASSERT_CUDA_ERROR(GPUCtxCreate(&g_ctx[priority], 0, dev));
++            NvContext nvctx{};
+             nvctx.hClient = util_gettid();
+-            NVRMCHECK(NvRmQuery(&nvctx));
+-            if(set_priority(nvctx, priority)){
++            CHECK_EQ(NvRmQuery(&nvctx), NV_OK);
++            if(!gpreempt_bpf_enabled() && set_priority(nvctx, priority)){
+                 LOG(ERROR) << "Failed to set priority";
+                 exit(-1);
+             }
++            CHECK_EQ(gpreempt_ctx_register(reinterpret_cast<gp_u64>(g_ctx[priority]),
++                                           nvctx.hClient, nvctx.hObject, priority), 0);
++            CHECK_EQ(gpreempt_ctx_end(), 0);
+         }
+@@ -200,1 +210,3 @@
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE)); 
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+@@ -212,1 +224,2 @@
+         initialized = 1;
++        checks.begin_timed();
+@@ -219,5 +232,10 @@
+     virtual void preprocess() override {
+-        if(priority == 0 && initialized) {
++        const int action = gpreempt_hint_decide(GP_PREPROCESS, priority, 0, 0,
++                                                initialized, reserve_preempt);
++        CHECK_GE(action, 0);
++        if(action & GP_RESET)
++            *(int*)(gdr_stop.cpu_map) = 0;
++        if(action & (GP_HINT | GP_BLOCK)) {
+             DeamonHint *hint;
+-            *(int*)(gdr_stop.cpu_map) = 0;
+-            if(reserve_preempt){
++            if(action & GP_HINT){
+@@ -252,7 +270,8 @@
+     virtual void infer() override
+     {
+-        if(!priority && initialized) {
+-            executor->execute(stream);
++        const int action = gpreempt_hint_decide(GP_INFER, priority, 0, 0,
++                                                initialized, reserve_preempt);
++        CHECK_GE(action, 0);
++        CHECK_STATUS(executor->execute(stream));
++        if(action & GP_RELEASE) {
+             end_blocking_stream(&gdr_stop);
+-        } else {
+-            executor->execute(stream);
+         }
+@@ -270,2 +289,3 @@
+-    virtual void postprocess() override {}
++    virtual void postprocess() override { checks.check(output, output_size); }
+ private:
++    gpreempt_artifact::OutputCheck checks;
+@@ -315,1 +335,9 @@
+-        while(hints.size() && system_clock::now() > hints.begin()->t) {
++        while(hints.size()) {
++            const auto now_ns = std::chrono::duration_cast<nanoseconds>(
++                system_clock::now().time_since_epoch()).count();
++            const auto deadline_ns = std::chrono::duration_cast<nanoseconds>(
++                hints.begin()->t.time_since_epoch()).count();
++            const int action = gpreempt_hint_decide(GP_DUE, GP_LC, now_ns, deadline_ns,
++                                                    1, reserve_preempt);
++            CHECK_GE(action, 0);
++            if (!(action & GP_BLOCK)) break;

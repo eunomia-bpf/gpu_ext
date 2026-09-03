@@ -159,3 +159,45 @@ config A's 60 seconds, 100 requests/s per role, 200 µs preprocessing and graphs
 initialize identical deterministic input in all three cells and verify outputs
 against isolated native execution. Role-to-TSG and hint bridges for the BPF cell
 are separate work, not implied by this compatibility build.
+
+## Integrated BPF policy and common numerical instrumentation
+
+`policy-bridge.patch` is an additional, explicit comparison patch after the
+compatibility patch. Build it only outside timed GPU measurements:
+
+```bash
+make -C ../../extension -f gpreempt.mk bridge
+make build-bridge JOBS=4 CPUSET=8-15
+make test-cpu
+deps/tvm-venv/bin/python -B test_model_export.py
+```
+
+The three client sources have passed CPU-only syntax checks against the real
+bridge header. The bridge-integrated client binaries have not yet been rebuilt
+or run. Once this patch is applied, all three DNN clients require the exported
+full `reference.f32` and initialize exactly the input formula above, including
+after context reinitialization. Every output is finite-checked and compared
+elementwise with `atol=1e-6`, `rtol=1e-4`; `GPREEMPT_VALIDATION` records total and
+timed checked requests separately. The original 10 warmups and 100 standalone
+samples still precede the timed phase. Numerical checks are in the same
+postprocess position in every arm and their overhead is included consistently.
+This comparison patch intentionally covers the FP32 DNN cells; zero-output
+graph/scientific workloads are rejected rather than labeled numerically valid.
+
+Both full-policy arms use the same strong-linked bridge and original CUDA/GDR
+actuators. Default `GPREEMPT_POLICY=original` runs the original C decisions and
+the narrow compatibility timeslice ioctl. `GPREEMPT_POLICY=bpf` requires the
+loader's unique `GPREEMPT_BPF_MAPS` directory and absolute `GPREEMPT_HINT_CODE`
+bytecode path; missing engagement is fatal, and this arm skips the original C
+`set_priority`. Context begin/register/end surrounds each new role context,
+while the original initial primary-context warmup remains unchanged. Native
+`baseclient` retains its single-context stream priorities and rejects a BPF
+label. `_wo` remains a distinct timeslice-only ablation, not the full policy.
+
+For full GPreempt, PREPROCESS still resets the GDR flag and reserves the hint
+at preprocessing minus 100 µs; DUE uses the same `system_clock` domain and strict
+`>` comparison. The selected BLOCK action enqueues the same two blocking kernels.
+INFER still enqueues the model before releasing the flag. Role values outside
+0/1 and preprocessing of 100 µs or less are explicitly rejected in all three
+clients. The source-level bridge and CPU tests establish wiring and decision
+agreement, not GPU actuation or scheduling performance.

@@ -5,14 +5,15 @@ CPUSET ?= 8-15
 HOST_CC ?= /usr/bin/gcc-13
 HOST_CXX ?= /usr/bin/g++-13
 FRESH ?=
+BRIDGE ?= 0
 UPSTREAM := $(abspath deps/upstream)
 BUILD := $(abspath build/ninja)
 
-.PHONY: all prepare configure build test-cpu gdrcopy-driver prepare-tvm configure-tvm build-tvm
+.PHONY: all prepare configure build build-bridge test-cpu gdrcopy-driver prepare-tvm configure-tvm build-tvm
 all: build
 
 prepare:
-	bash ./prepare.sh
+	bash ./prepare.sh $(if $(filter 1,$(BRIDGE)),--bridge,)
 
 configure: prepare
 	taskset -c $(CPUSET) env -u MAKEFLAGS -u MFLAGS cmake $(FRESH) -G Ninja -S $(UPSTREAM) -B $(BUILD) \
@@ -20,11 +21,15 @@ configure: prepare
 		-DCMAKE_CUDA_HOST_COMPILER=$(HOST_CXX) \
 		-DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=$(CUDA_HOME)/bin/nvcc \
 		-DCUDA_TOOLKIT_ROOT_DIR=$(CUDA_HOME) -DCMAKE_CUDA_ARCHITECTURES=$(CUDA_ARCH) \
-		-DGPREEMPT_CUDA_ARCH=$(CUDA_ARCH) -DWITH_GFLAGS=OFF -DBUILD_TESTING=OFF
+		-DGPREEMPT_CUDA_ARCH=$(CUDA_ARCH) -DWITH_GFLAGS=OFF -DBUILD_TESTING=OFF \
+		-DGPREEMPT_ARTIFACT_DIR=$(CURDIR) -DGPREEMPT_BRIDGE_DIR=$(abspath ../../extension)
 
 build: configure
 	taskset -c $(CPUSET) env -u MAKEFLAGS -u MFLAGS cmake --build $(BUILD) --target \
 		gpreempt baseclient gpreemptclient gpreemptclient_wo block_cubin test-basic -j$(JOBS)
+
+build-bridge:
+	$(MAKE) build BRIDGE=1
 
 test-cpu: prepare
 	mkdir -p $(BUILD)
@@ -35,6 +40,8 @@ test-cpu: prepare
 	bash -n prepare.sh
 	python3 -B run_smoke.py --help
 	python3 -B test_smoke.py
+	taskset -c $(CPUSET) $(HOST_CXX) -std=c++17 -O1 test_client_checks.cpp -o $(BUILD)/test-client-checks
+	taskset -c $(CPUSET) $(BUILD)/test-client-checks
 
 # Root-owned dependency checkout, official v2.5 (bda1f60); build only, never load.
 gdrcopy-driver:

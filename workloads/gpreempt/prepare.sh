@@ -18,13 +18,22 @@ if [[ "$actual_revision" != "$revision" ]]; then
     echo "Expected upstream revision $revision, found $actual_revision" >&2
     exit 1
 fi
-patch_file="$workload_dir/compatibility.patch"
-if git -C "$source_dir" apply --recount --unidiff-zero --reverse --check "$patch_file" 2>/dev/null; then
-    echo "Compatibility patch already present"
-else
-    git -C "$source_dir" apply --recount --unidiff-zero --check "$patch_file"
-    git -C "$source_dir" apply --recount --unidiff-zero "$patch_file"
+patch_files=(compatibility.patch)
+if [[ ${1:-} == --bridge ]]; then
+    patch_files+=(policy-bridge.patch)
+elif [[ $# -ne 0 ]]; then
+    echo "Usage: $0 [--bridge]" >&2
+    exit 1
 fi
+for patch_name in "${patch_files[@]}"; do
+    patch_file="$workload_dir/$patch_name"
+    if git -C "$source_dir" apply --recount --unidiff-zero --reverse --check "$patch_file" 2>/dev/null; then
+        echo "$patch_name already present"
+    else
+        git -C "$source_dir" apply --recount --unidiff-zero --check "$patch_file"
+        git -C "$source_dir" apply --recount --unidiff-zero "$patch_file"
+    fi
+done
 # Override only this clone's transport; preserve upstream .gitmodules and pins.
 git -C "$source_dir" submodule init
 git -C "$source_dir" config submodule.third_party/jsoncpp.url https://github.com/open-source-parsers/jsoncpp.git

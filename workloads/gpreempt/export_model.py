@@ -81,7 +81,8 @@ def worker(args) -> None:
         raise RuntimeError("missing real kernel launch metadata from original TVM recorder")
     (args.output / "host.json").write_text(json.dumps(host, indent=2) + "\n")
     reference = module.get_output(0).numpy()
-    if list(reference.shape) != spec["output_shape"] or not np.isfinite(reference).all():
+    if (list(reference.shape) != spec["output_shape"] or str(reference.dtype) != "float32"
+            or not np.isfinite(reference).all()):
         raise RuntimeError("isolated native output is nonfinite or has an unexpected shape")
     with (args.output / "reference.f32").open("xb") as stream:
         stream.write(reference.astype("<f4", copy=False).tobytes(order="C"))

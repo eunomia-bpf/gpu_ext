@@ -220,10 +220,17 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
         command.append('--preflight')
     name = f'pod_attention_{os.getpid()}_{time.monotonic_ns()}' if arm == 'pod_bpf' else None
     segment = Path('/dev/shm') / name if name else None
+    target_env = environment(arm, extraction, name)
+    launch_env = dict(target_env)
+    preload = launch_env.pop('LD_PRELOAD', None)
+    if preload:
+        # Pin the wrapper before loading any agent. Preloading taskset would
+        # initialize bpftime before its main/affinity/exec, then again in Python.
+        command[3:3] = ['/usr/bin/env', 'LD_PRELOAD=' + preload]
     client = loader = telemetry = before = identity = None
     streams, cleanup = [], []
     result = dict(status='failed', numeric_protocol=bench.NUMERIC_PROTOCOL, **specification, command=command, timeout_seconds=TIMEOUT,
-                  environment=environment(arm, extraction, name), private_segment=name)
+                  environment=target_env, launch_environment=launch_env, private_segment=name)
     try:
         require_no_build()
         result['runtime_before'] = file_inventory(runtime_paths)
@@ -257,7 +264,7 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
         streams.append(log)
         started = time.monotonic()
         client = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
-            env=result['environment'], start_new_session=True, cwd=HERE)
+            env=launch_env, start_new_session=True, cwd=HERE)
         while client.poll() is None:
             if time.monotonic() - started >= TIMEOUT:
                 raise TimeoutError('owned operator client exceeded startup/runtime bound')

@@ -1,10 +1,14 @@
 # FineMoE dynamic prefetch sets on the official Qwen execution path
 
-Status: original-model GPU reference passed; **offload-policy results pending**.
+Status: **all 20 formal cells / five paired blocks completed and independently
+audited**. See [the performance report](results-performance.md): dynamic sets
+reduce evicted-unused payload versus all-positive, but demand-only is faster;
+the BPF/C throughput difference is unresolved.
 This is a FineMoE **dynamic-set component experiment**, not a reproduction of
 the entire EuroSys evaluation or a renamed EAMC activation-count heuristic.
 
-FineMoE is in active preparation, with GPU work coordinated by the root lease.
+The following preserves preparation history; completed stages are not rerun.
+GPU work was coordinated by the root lease.
 The original Qwen checkpoint is downloaded (exact source revision and 16-file
 size inventory in `source-inventory.json`), the official extension compiles, and
 the private Transformers 4.49 overlay imports the compiled module. Final CPU
@@ -31,8 +35,8 @@ official `check_native_jit_disabled()` predicate, recording it in every raw
 result's runtime state. This only disables PyTorch's automatic Triton/DSL operator
 overrides, not the independently linked uBPF selector JIT or its engagement gate.
 No Torch source, model mathematics, precision, cohort, budget or tolerance changed.
-**The real history store has passed; no four-arm numerical canary or performance
-cell has passed.**
+**The real history store and four-arm numerical preflight passed before formal
+timing; they are not counted as performance blocks.**
 Normal golden-v3 has now passed 73 requests and nine repeated-output checks;
 its fixed reported absolute tolerance is 0.0 and teardown passed. It is retained
 unchanged as preparation, but its repeat logits were not separately saved.
@@ -70,8 +74,12 @@ head computed all prefill positions while HF 4.49 requested only the last.
 pre-head slice, retaining default-zero full-logit semantics. All 51 CPU tests
 passed; no policy, tolerance or compiled extension changed. Fresh history-v4
 then passed all 64 exact-token requests, full-store and independent cleanup
-checks (18,399 MiB sampled peak). The head-shape repair remains a candidate
-explanation until four-arm preflight-v2 passes its full-logit gate.
+checks (18,399 MiB sampled peak). Four-arm preflight-v2 then passed: all 36 saved
+actual arrays (87,515,136 finite FP32 values) were exactly equal to golden-v4 at
+tolerance 0.0, and all 576 generated tokens matched. The observed prefill
+discrepancy is eliminated on this cohort. C/BPF's complete 122,695-event traces
+matched; actual JIT, downstream admission, copy accounting, common budget and
+cleanup all passed. These numerical canaries are not performance measurements.
 
 ## Research Question
 
@@ -258,14 +266,15 @@ any frozen parameter. No model/precision changes to make a failing cell pass.
 
 ## Execution
 
-Immediate preparation uses official source and normal model cache only; no
+Preparation used official source and normal model cache only; no
 system-wide `setup.sh`, token logging, or shared-environment upgrades. A private
 venv/build is required because the demo constrains Transformers <4.50 while the
-current GPT-OSS environment is newer. Rough cost: 26.67 GiB model download plus
+current GPT-OSS environment is newer. Initial cost estimate: 26.67 GiB model download plus
 roughly another model-sized offload store; 5–30 min download depending on network,
 5–15 min extension build (unverified estimate), then time one real cell before
-quoting the full GPU campaign cost. Host currently has ample RAM/disk; GPU fit
-is still unverified. All GPU work waits for the root-owned exclusive lease.
+quoting the full GPU campaign cost. GPU fit was subsequently verified, and the
+full campaign completed in the recorded 08:31:45–08:59:10 UTC safety window.
+All GPU work used the root-owned exclusive lease.
 
 Planned implementation files: `dynamic-set.patch`, `test_dynamic_set.py`,
 `finemoe_policy.h`, `finemoe_policy.c`, `finemoe_policy.bpf.c`,
@@ -290,14 +299,19 @@ attempts and diagnostic are retained. Normal golden-v4 completed the full
 73-request / 9-repeat protocol and independent two-array numerical audit;
 history-v3 completed the full 64-request real history and store audit. Following
 the retained preflight-v1 discrepancy and Python head-shape compatibility change,
-fresh full history-v4 has also passed. The next run is four-arm preflight-v2.
+fresh full history-v4 and four-arm preflight-v2 also passed independent raw
+and actual-array audits. The five-block formal comparison, `raw/full-v1`, then
+completed all 20 cells; its [report](results-performance.md) records the mixed
+result and the independent analysis path. Next is revision synthesis, not another
+run of these completed output directories.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
 
 The completed diagnostic used `.venv/bin/python -B compare.py --mode golden
 --native-backtrace --output raw/golden-sigill-gdb-01 --timeout 1200`. It cannot be
-reused as a reference. Normal golden-v4 and history-v4 have completed;
-the preflight-v2 and full commands below are not claims those stages passed.
+reused as a reference. Normal golden-v4, history-v4, preflight-v2 and full-v1 have
+completed. The commands below record those executions, not instructions to
+overwrite or restart their existing outputs.
 
 ```sh
 .venv/bin/python -B compare.py --mode golden --output raw/golden-v4

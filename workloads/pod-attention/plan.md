@@ -266,6 +266,17 @@ lease paths and safety/telemetry helpers. `python3 run_study.py preflight --outp
 NEW_DIR --ptx build/ptx-runtime-01` runs five one-shape cells, with three timed
 samples excluded from formal analysis. The coordinator must retain CPU 16 for
 telemetry; clients use CPUs 8–15. All CPU compilation must have ended first.
+Injected clients now launch as `taskset -c 8-15 /usr/bin/env LD_PRELOAD=...`
+followed by the unchanged Python operator command. The wrapper's environment
+omits `LD_PRELOAD`; both launch and target environments are retained and checked
+offline. Previously the agent was preloaded into `taskset`, whose intercepted
+`__libc_start_main` initialized the agent before taskset could pin CPUs or exec
+Python. In `raw/preflight-575-03`, only `official_streams` completed; the BPF
+client was observed still named `taskset` after SHM initialization, with no
+operator result. The subsequent host reboot at 09:04 UTC interrupted the run;
+the reboot's cause is unknown. This is not a demonstrated client timeout or
+BPF operator failure. The attempt remains incomplete; the corrected launch
+needs a fresh full five-arm preflight.
 `python3 run_study.py full --output NEW_DIR --ptx build/ptx-runtime-01 --preflight
 PASSED_DIR` requires that complete five-arm preflight with unchanged runtime
 files. Each cell checks the campaign's original file inventory; a live loader

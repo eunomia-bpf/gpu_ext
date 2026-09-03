@@ -1,0 +1,279 @@
+{
+  "arm": "finemoe-c",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/bin/python",
+    "-B",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py",
+    "--stage",
+    "cell",
+    "--data",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/dataset-mtbench-v1.json",
+    "--output",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/raw/full-v1/block-02/finemoe-c",
+    "--offload",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/qwen-offload-cache",
+    "--golden",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/raw/golden-v4/stage",
+    "--history",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/raw/history-v4/stage",
+    "--arm",
+    "finemoe-c"
+  ],
+  "diagnostic": false,
+  "environment": {
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "FINEMOE_EXCLUSIVE_LEASE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "MKL_NUM_THREADS": "4",
+    "OMP_NUM_THREADS": "4",
+    "PYTORCH_ALLOC_CONF": "expandable_segments:True",
+    "TOKENIZERS_PARALLELISM": "false",
+    "TORCH_DISABLE_NATIVE_JIT": "1",
+    "TRANSFORMERS_OFFLINE": "1"
+  },
+  "environment_removed_names": [],
+  "runtime_before": {
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/build/finemoe_policy.bin": {
+      "bytes": 2048,
+      "mtime_ns": 1788417530690562232,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/build/finemoe_policy.bin"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/build/libfinemoe_policy.so": {
+      "bytes": 58824,
+      "mtime_ns": 1788417530645561204,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/build/libfinemoe_policy.so"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/compare.py": {
+      "bytes": 30195,
+      "mtime_ns": 1788422487113307644,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/compare.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/memory/memory_pool.cpp": {
+      "bytes": 5627,
+      "mtime_ns": 1788417748855547957,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/memory/memory_pool.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/model/model_topology.cpp": {
+      "bytes": 26722,
+      "mtime_ns": 1788418693593650422,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/model/model_topology.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/prefetch/archer_prefetch_handle.cpp": {
+      "bytes": 16528,
+      "mtime_ns": 1788418693593650422,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/prefetch/archer_prefetch_handle.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/prefetch/task_scheduler.cpp": {
+      "bytes": 23392,
+      "mtime_ns": 1788418693593650422,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/prefetch/task_scheduler.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/python/py_archer_prefetch.cpp": {
+      "bytes": 6848,
+      "mtime_ns": 1788419366616884672,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/core/python/py_archer_prefetch.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/__init__.py": {
+      "bytes": 101,
+      "mtime_ns": 1788415386715706361,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/common/__init__.py": {
+      "bytes": 24,
+      "mtime_ns": 1788415386716139858,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/common/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/common/constants.py": {
+      "bytes": 839,
+      "mtime_ns": 1788415386716156845,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/common/constants.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/__init__.py": {
+      "bytes": 244,
+      "mtime_ns": 1788415386716156845,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/devicemap_manager.py": {
+      "bytes": 2179,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/devicemap_manager.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/expert_executor.py": {
+      "bytes": 3638,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/expert_executor.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/expert_prefetcher.py": {
+      "bytes": 2768,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/distributed/expert_prefetcher.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/entrypoints/__init__.py": {
+      "bytes": 29,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/entrypoints/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/entrypoints/big_modeling.py": {
+      "bytes": 8215,
+      "mtime_ns": 1788415386716284723,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/entrypoints/big_modeling.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/__init__.py": {
+      "bytes": 170,
+      "mtime_ns": 1788415386716284723,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/expert_entry.py": {
+      "bytes": 321,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/expert_entry.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/expert_prefetcher.py": {
+      "bytes": 3744,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/expert_prefetcher.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/expert_tracer.py": {
+      "bytes": 7880,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/memory/expert_tracer.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/__init__.py": {
+      "bytes": 195,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/model_utils.py": {
+      "bytes": 757,
+      "mtime_ns": 1788415386716442656,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/model_utils.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/modeling_qwen/__init__.py": {
+      "bytes": 2069,
+      "mtime_ns": 1788415386716442656,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/modeling_qwen/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/modeling_qwen/configuration_qwen2_moe.py": {
+      "bytes": 8901,
+      "mtime_ns": 1788415386716491780,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/modeling_qwen/configuration_qwen2_moe.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/modeling_qwen/modeling_qwen2_moe.py": {
+      "bytes": 83353,
+      "mtime_ns": 1788423252490180711,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/models/modeling_qwen/modeling_qwen2_moe.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/ops/__init__.py": {
+      "bytes": 0,
+      "mtime_ns": 1788415386716491780,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/ops/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/ops/prefetch/__init__.py": {
+      "bytes": 0,
+      "mtime_ns": 1788415386716767243,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/ops/prefetch/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/ops/prefetch/prefetch_op.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 58219416,
+      "mtime_ns": 1788419631000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/ops/prefetch/prefetch_op.cpython-312-x86_64-linux-gnu.so"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/runtime/__init__.py": {
+      "bytes": 40,
+      "mtime_ns": 1788415386716767243,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/runtime/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/runtime/model_offload.py": {
+      "bytes": 43448,
+      "mtime_ns": 1788415999664904495,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/runtime/model_offload.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/__init__.py": {
+      "bytes": 172,
+      "mtime_ns": 1788415386716818186,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/arguments.py": {
+      "bytes": 1193,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/arguments.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/checkpoints.py": {
+      "bytes": 3393,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/checkpoints.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/config.py": {
+      "bytes": 2015,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/config.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/hf_config.py": {
+      "bytes": 2034,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/FineMoE-EuroSys26/finemoe/utils/hf_config.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_copy_ledger.h": {
+      "bytes": 5240,
+      "mtime_ns": 1788417748853547911,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_copy_ledger.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_runtime_safety.h": {
+      "bytes": 1014,
+      "mtime_ns": 1788418693592650400,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_runtime_safety.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py": {
+      "bytes": 18193,
+      "mtime_ns": 1788422439181255985,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/policy_runtime.py": {
+      "bytes": 9325,
+      "mtime_ns": 1788416950624329590,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/policy_runtime.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/source-inventory.json": {
+      "bytes": 2357,
+      "mtime_ns": 1788418371007407091,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/source-inventory.json"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py": {
+      "bytes": 119398,
+      "mtime_ns": 1788397543651737512,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py"
+    }
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 7001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 50.88,
+      "sm_clock_mhz": 1995,
+      "temperature_c": 45,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788425075582245147,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "stage": "cell",
+  "status": "running"
+}

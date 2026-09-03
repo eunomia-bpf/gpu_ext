@@ -63,6 +63,10 @@ def fixture(root):
             safety_before={'timestamp_ns': 1000 + 100 * number, 'gpu': {'driver': '575.57.08'}},
             safety_after={'timestamp_ns': 1010 + 100 * number, 'gpu': {'driver': '575.57.08'}},
             telemetry={'synthetic': True})
+        execution['launch_environment'] = dict(execution['environment'])
+        preload = execution['launch_environment'].pop('LD_PRELOAD', None)
+        if preload:
+            execution['command'][3:3] = ['/usr/bin/env', 'LD_PRELOAD=' + preload]
         if arm == 'pod_bpf':
             execution.update(private_segment_removed=True,
                 loader_environment=run.environment(arm, Path('/fixture/ptx'), name, True),
@@ -149,6 +153,20 @@ class AuditTests(unittest.TestCase):
         for update in (dict(cleanup_errors=['surviving CUDA process']), dict(runtime_after={'changed': True}),
                        dict(numeric_protocol='v1')):
             write(path, {**original, **update})
+            with self.assertRaises(ValueError):
+                audit.audit_campaign(self.campaign)
+
+    def test_reject_wrapper_injection_or_changed_target_command(self):
+        path = self.campaign / 'block-01-pod_bpf/execution.json'
+        original = audit.read_json(path)
+        changes = (lambda e: e['launch_environment'].update(LD_PRELOAD=e['environment']['LD_PRELOAD']),
+                   lambda e: e['command'].__delitem__(slice(3, 5)),
+                   lambda e: e['command'].__setitem__(4, 'LD_PRELOAD=wrong.so'),
+                   lambda e: e['command'].__setitem__(2, '0-7'))
+        for change in changes:
+            value = json.loads(json.dumps(original))
+            change(value)
+            write(path, value)
             with self.assertRaises(ValueError):
                 audit.audit_campaign(self.campaign)
 

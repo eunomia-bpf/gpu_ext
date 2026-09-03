@@ -209,6 +209,10 @@ class CoordinatorTests(unittest.TestCase):
                 process.stdin = SimpleNamespace(close=close)
                 return process
             events.append('client start')
+            self.assertNotIn('LD_PRELOAD', kwargs['env'])
+            self.assertEqual(command[:5], ['taskset', '-c', '8-15', '/usr/bin/env',
+                                          f'LD_PRELOAD={run.BRIDGE}:{run.AGENT}'])
+            self.assertEqual(command[5], str(run.PYTHON))
             (cell / 'operator.json').write_text(json.dumps(report()))
             return Process('client', 0)
         def stop(process):
@@ -254,6 +258,10 @@ class CoordinatorTests(unittest.TestCase):
             self.assertLess(events.index('client stop'), events.index('loader stdin close'))
             self.assertLess(events.index('loader stdin close'), events.index('loader stop'))
             self.assertEqual(execution['status'], 'passed')
+            self.assertNotIn('LD_PRELOAD', execution['launch_environment'])
+            self.assertEqual(execution['environment']['LD_PRELOAD'], f'{run.BRIDGE}:{run.AGENT}')
+            self.assertEqual({**execution['launch_environment'], 'LD_PRELOAD': f'{run.BRIDGE}:{run.AGENT}'},
+                             execution['environment'])
             self.assertTrue(execution['private_segment_removed'])
             self.assertFalse(segment.exists())
 

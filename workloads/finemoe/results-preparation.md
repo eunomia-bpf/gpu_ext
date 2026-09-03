@@ -1,8 +1,11 @@
 # FineMoE preparation: original-model reference and retained failures
 
-The original-model GPU reference has passed. FineMoE offload-policy numerical
-correctness and performance remain unestablished. Earlier attempts below are
-retained chronologically; the latest successful stage is at the end.
+The original-model reference, four-arm numerical preflight and all **20 formal
+performance cells** have passed independent audit. The completed
+[performance report](results-performance.md) records fewer evicted-unused bytes
+than all-positive but lower throughput than demand-only, with no resolved BPF/C
+throughput difference. Earlier attempts below remain chronological preparation
+history; their failed or dependency-only status is unchanged.
 
 `raw/golden-v1/stage/worker.log` records the original full BF16 Qwen checkpoint
 failing while loading its seventh of eight shards. The worker exited 1 before
@@ -278,3 +281,44 @@ Xid/kernel abnormality. This is the final current history reference for
 prefill-logit discrepancy is fixed; the unchanged zero-tolerance four-arm
 numerical preflight remains required. Earlier history and failed preflight
 artifacts are retained unchanged.
+
+## Numerical preflight v2: all four real arms independently passed
+
+`raw/preflight-v2` completed its full four-arm block normally, using golden-v4,
+history-v4 and the unchanged absolute tolerance 0.0. Each arm completed its
+disjoint warmup and eight held-out requests. Independent comparison of all 36
+retained actual arrays found **87,515,136 finite float32 values exactly equal to
+HF**, maximum absolute error 0.0 throughout, with all 576 generated token IDs
+matching. Thus the common head-shape compatibility change removed the observed
+prefill discrepancy on this complete frozen numerical cohort; no tolerance was
+widened and no failed record was reused as a passing cell.
+
+The complete C/BPF captured event lists were identical, 122,695 events each,
+including original full-probability inputs, selected masks, real engine candidate
+sets and real enqueue calls. In the eight-request evaluation window, each dynamic
+arm made 21,048 selector calls and 104,614 actual enqueue calls; BPF executed
+21,048 real JIT calls with the same number of independent oracle checks, while
+C executed no JIT calls. The all-positive control admitted all 60 experts for
+each of its 21,048 rows (1,262,880 real enqueue calls). Demand-only made zero
+speculative copies. The dynamic arms actually observed cardinalities 4 through
+50; this is an observed outcome, not a required favorable-result gate.
+
+Actual speculative copy completions from evaluation start through post-window drain:
+14,655 for BPF, 14,608 for C and 33,149 for all-positive. Useful, evicted-unused
+and resident-unused partitions were independently rebuilt and passed conservation
+checks; substantial unused prefetch remains. All arms used the same
+16,834,658,304-byte pool capacity, with no overcommit, copy error or compute-release
+synchronization error. Runtime/reference inventories, launch/environment records,
+request timestamps, non-overlapping arm windows, raw telemetry and clean teardown
+all passed. Across the four arms there were 1,621 telemetry samples, no disallowed
+throttling, sampled GPU-memory peaks from 17,785 to 19,145 MiB, and peak
+temperatures from 43 to 48 C. Each cleanup returned to GPU 15 MiB, no compute
+process, UVM 0 and no Xid/kernel abnormality.
+
+This is numerical/mechanism qualification, **not a performance comparison**:
+preflight retains full logits and shadow/capture work that formal runs disable.
+The subsequent frozen five-block, four-arm `raw/full-v1` completed all 20 cells
+and is reported [separately](results-performance.md), including its independent
+raw-analysis command. No preflight block is counted as formal timing. The next
+step is revision synthesis with the observed demand-only loss disclosed;
+all earlier failures remain preserved.

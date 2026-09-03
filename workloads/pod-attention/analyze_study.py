@@ -72,12 +72,18 @@ def audit_execution(directory, arm, block, runtime, report):
             'execution belongs to another arm/block')
     require(execution.get('runtime_before') == runtime == execution.get('runtime_after'),
             'runtime differs from the fixed campaign inventory')
-    command = execution.get('command', [])
-    require(len(command) == 11 and command[:3] == ['taskset', '-c', '8-15']
-            and Path(command[4]).name == 'bench.py' and command[5:10] == ['--arm', arm, '--block', str(block), '--output']
-            and Path(command[10]).name == 'operator.json' and Path(command[10]).parent.name == directory.name,
-            'not the formal fixed operator command')
     env = execution.get('environment', {})
+    launch_env = execution.get('launch_environment')
+    require(launch_env == {key: value for key, value in env.items() if key != 'LD_PRELOAD'},
+            'wrapper inherited injection or target environment was not retained')
+    command = execution.get('command', [])
+    injection = ['/usr/bin/env', 'LD_PRELOAD=' + env['LD_PRELOAD']] if 'LD_PRELOAD' in env else []
+    operator = command[3 + len(injection):]
+    require(command[:3] == ['taskset', '-c', '8-15'] and command[3:3 + len(injection)] == injection
+            and len(operator) == 8 and Path(operator[1]).name == 'bench.py'
+            and operator[2:7] == ['--arm', arm, '--block', str(block), '--output']
+            and Path(operator[7]).name == 'operator.json' and Path(operator[7]).parent.name == directory.name,
+            'not the formal fixed operator command')
     require(env.get('CUDA_VISIBLE_DEVICES') == '0' and env.get('OMP_NUM_THREADS') == '1'
             and env.get('MKL_NUM_THREADS') == '1' and env.get('OPENBLAS_NUM_THREADS') == '1',
             'client GPU/CPU environment differs')

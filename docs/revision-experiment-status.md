@@ -1,5 +1,9 @@
 # ASPLOS 2027 revision experiment handoff
 
+The [completion checklist](revision-completion-checklist.md) tracks the full
+author/shepherd commitments separately from experiment completion. The
+[verbatim comments](revision-shepherd-comment.md) remain the scope authority.
+
 ## User-confirmed objective — 2026-09-03
 
 The user confirmed that **correctly implementing the existing policies in BPF
@@ -15,8 +19,8 @@ hardware, transport, or headline performance numbers.
 The user now requests a meaningful GPreempt/native difference for **both**
 original C and BPF, plus experiments on FineMoE's dynamic prefetch sets,
 Hummingbird's idle-interval scheduling and POD-Attention's device-local task
-selection. The 45-cell GPreempt study is completed and pushed; the other three
-experiments remain open.
+selection. The 45-cell GPreempt study is completed and pushed. FineMoE's
+20-cell comparison is also complete; Hummingbird and POD remain open.
 
 GPreempt satisfies that bounded comparison: all three prespecified loads have
 original-C/native and BPF/native foreground-response paired 95% intervals
@@ -24,9 +28,8 @@ strictly below one. Under continuous BE supply, C/native reduces LC p99 by
 9.61% [6.46%, 11.91%], and BPF/native by 10.81% [9.91%, 11.70%], with the
 background-throughput cost disclosed below. This does not mean BPF beats C.
 
-The other three items remain **in progress**, not reproduced. Their source and
-algorithm checks run in parallel; GPU correctness and timing remain exclusive.
-FineMoE must measure actual useful/unused transfers, Hummingbird must test
+Source and algorithm checks run in parallel; GPU correctness and timing remain
+exclusive. FineMoE has measured actual useful/unused transfers; Hummingbird must test
 background recovery with foreground protection, and POD-Attention must execute
 a BPF-returned task choice on the device. Builds, trace-only replay and host-JIT
 callbacks alone cannot close those respective requirements. The existing
@@ -53,9 +56,19 @@ generation configuration resolved the observed history token failure: all 64
 requests and the actual 1,000-entry history store now pass independent audit.
 The first BPF numerical warmup then matched all 16 tokens, but 155 prefill
 logits differed by up to 0.03125 from the original model; all 15 decode steps
-were exact. The strict zero-tolerance gate stopped the run. LM-head input-shape
-compatibility is under investigation; four-arm correctness, transfer comparison
-and timing remain open. See the [preparation record](../workloads/finemoe/results-preparation.md).
+were exact. The strict zero-tolerance gate stopped the run. Matching the original
+model's LM-head input shape then removed the discrepancy: fresh history-v4 passed
+all 64 requests, and four-arm preflight-v2 independently passed all 36 saved arrays
+(87,515,136 finite FP32 values, zero difference). The complete C/BPF decision and
+downstream-admission traces also matched. All 20 formal cells / five paired
+blocks passed independent raw analysis, including 160 measured requests and
+2,560 exact tokens. Throughput medians are demand-only 5.1713, all-positive
+3.6228, native C 4.4994 and BPF 4.5144 token/s. Relative to all-positive, BPF
+reduces completed evicted-unused payload by 60.41% and improves throughput by
+24.64%; it remains 12.62% slower than demand-only. BPF/C paired throughput is
+1.002107 [0.998266, 1.005226], not a superiority or equivalence result. See the
+[formal report](../workloads/finemoe/results-performance.md) and retained
+[preparation record](../workloads/finemoe/results-preparation.md).
 The original complete LMSYS dataset requires
 access approval, so the same 64/8/1 split uses public LMSYS MT-Bench first-turn
 inputs instead, with the dataset difference explicitly recorded. POD's real
@@ -66,8 +79,23 @@ and oversized units are partitioned with all entry bodies retained and explicit
 state-independence checks. The complete original fused/FlashAttention builds
 and final linked six-packet extraction have passed. The first GPU attempt
 stopped while checking original FlashAttention against its FP32 reference,
-before running POD/BPF; its fixed numerical threshold remains unchanged.
-Device BPF engagement, numerical checks and timing are still open.
+before running POD/BPF. A retained full-prefill diagnosis found one threshold
+exceedance among 33,554,432 outputs. Its actual saved row agrees with an
+independent numerical model of the original intermediate FP16 probability
+conversion, not just final-output rounding. A disclosed protocol revision now
+reports this additional full-FP32 characterization separately,
+while preserving the official FA-to-fused output threshold and rerunning all
+five arms. Both original failures remain failures. The third preflight completed
+only the original-streams cell before the host reboot at 09:04 UTC interrupted
+BPF initialization. Its cause is unknown; it is not a completed BPF experiment.
+The launcher now avoids preloading the BPF agent into the CPU-affinity wrapper;
+37 CPU tests pass. Device BPF engagement, numerical checks and timing remain open.
+
+The 09:04 UTC reboot restored stock 575 modules, as configured. The completed
+FineMoE campaign ended at 08:59:10 UTC and was not interrupted. Hummingbird's
+remaining four non-native arms require the separately staged custom context/
+timeslice interface; a matching driver version alone does not establish readiness.
+Restore and validate the previously used runtime before starting a new full batch.
 
 All three original scoped comparisons are complete, including the unchanged
 full XSched campaign. The subsequent literature search identifies useful,

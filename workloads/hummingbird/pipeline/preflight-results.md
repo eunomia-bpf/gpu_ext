@@ -27,7 +27,7 @@ or pool them with the old 50-cell campaign. Only these newly generated,
 non-cache raw files were reassigned from root to the repository user for
 publication; their content and runtime inventories were unchanged.
 
-Next: after all heavy preparation stops, run the frozen **40-cell** randomized
-five-block comparison with this exact runtime/profile and audited preflight.
-The old conservative port's 19–20% gap remains unexplained by formal ablation
-until that full comparison finishes; preflight engagement is not a speedup claim.
+Subsequent execution: the frozen **40-cell** randomized five-block comparison
+has now completed with this exact runtime/profile and audited preflight. See
+the [separate formal report](results-575-20260903.md); preflight engagement is
+not a speedup claim and these short cells are not pooled with formal results.

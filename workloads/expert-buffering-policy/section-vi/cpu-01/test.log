@@ -1,0 +1,19 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'
+llvm-objcopy --dump-section .text=build/eb_policy.bin build/policy.bpf.o
+taskset -c 17 /usr/bin/python3 -B test_policy.py
+test_deterministic_tie_and_u64_order (__main__.PolicyTest.test_deterministic_tie_and_u64_order) ... ok
+test_eligibility_and_bounded_no_victim (__main__.PolicyTest.test_eligibility_and_bounded_no_victim) ... ok
+test_epoch_cohort_and_changed_residency_rejected_by_host_oracle (__main__.PolicyTest.test_epoch_cohort_and_changed_residency_rejected_by_host_oracle) ... ok
+test_fixed_seed_batch_sequences (__main__.PolicyTest.test_fixed_seed_batch_sequences) ... ok
+test_fixed_seed_snapshots (__main__.PolicyTest.test_fixed_seed_snapshots) ... ok
+test_inactive_first_then_lifo_within_class (__main__.PolicyTest.test_inactive_first_then_lifo_within_class) ... ok
+test_invalid_contexts (__main__.PolicyTest.test_invalid_contexts) ... ok
+test_missing_program_is_error_not_native_fallback (__main__.PolicyTest.test_missing_program_is_error_not_native_fallback) ... ok
+test_paper_example_and_hit_does_not_refresh_lifo (__main__.PolicyTest.test_paper_example_and_hit_does_not_refresh_lifo) ... ok
+native_decisions=2131 real_ubpf_jit_decisions=2131
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.095s
+
+OK
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'

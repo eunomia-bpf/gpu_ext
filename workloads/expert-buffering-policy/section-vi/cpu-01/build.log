@@ -1,0 +1,7 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'
+mkdir -p build
+taskset -c 17 /usr/bin/gcc-13 -std=c11 -O2 -fPIC -Wall -Wextra -Werror -c policy.c -o build/policy.o
+taskset -c 17 /usr/bin/g++-13 -std=c++17 -O2 -fPIC -shared -Wl,--build-id=none -Wall -Wextra -Werror -I/home/yunwei37/workspace/gpu/bpftime/third_party/ubpf/vm/inc -I/home/yunwei37/workspace/gpu/bpftime/build/vm/compat/ubpf-vm/ubpf/vm jit_bridge.cpp build/policy.o /home/yunwei37/workspace/gpu/bpftime/build/vm/compat/ubpf-vm/ubpf/lib/libubpf.a -o build/libeb_policy.so
+taskset -c 17 clang -O2 -target bpf -mcpu=v3 -fno-builtin -Wall -Wextra -Werror -c policy.c -o build/policy.bpf.o
+llvm-objcopy --dump-section .text=build/eb_policy.bin build/policy.bpf.o
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'

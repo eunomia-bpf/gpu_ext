@@ -78,6 +78,9 @@ def validate_activation(mode, state):
     for key in ("prefetch_completed", "prefetch_bytes", "eviction_selections"):
         if dispatcher[key] <= 0:
             raise base.GateError(f"paper dispatcher did not engage {key}")
+    if dispatcher["prefetch_completed"] != (dispatcher["prefetch_hits"] +
+            dispatcher["prefetch_wasted"] + dispatcher["prefetch_unused_resident"]):
+        raise base.GateError("completed prefetch accounting does not conserve first-use/eviction/residency")
     if controller["rank_mismatches"] or controller["match_mismatches"] or dispatcher["eviction_mismatches"]:
         raise base.GateError("same-snapshot native/BPF policy mismatch")
     if mode == "paper-bpf" and not (

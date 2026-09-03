@@ -1,8 +1,11 @@
 # Expert Buffering Section VI: whole-expert policy port
 
 Status (2026-09-03): independent integer selector built; nine CPU tests passed
-with 2,131 native and 2,131 actual host-uBPF JIT decisions. No GPU adapter or Section VI performance
-campaign has run. The older 20-cell page-profile experiment is an analogue,
+with 2,131 native and 2,131 actual host-uBPF JIT decisions. The subsequent
+[real three-arm GPU preflight](correctness-results-575-01.md) now passes,
+including all 27 full logits arrays and 20,182 live-input JIT/native checks.
+The 15-cell Section VI performance campaign remains pending.
+The older 20-cell page-profile experiment is an analogue,
 not evidence that this algorithm has been reproduced.
 
 The subsequent [adapter state interface](adapter-step-a.md) now passes 1,432
@@ -12,12 +15,12 @@ provides epoch/cohort/residency and status validation for the C++ worker.
 61 fake-device control checks plus eight source/cleanup tests. Actual node
 locking, copy completion and eviction are wired in the private patch. The
 [19-unit offloader build and exact-path import](adapter-build-01.md) now pass;
-the adapter is not yet validated on a real CUDA workload.
+the adapter now also passes the separate real CUDA preflight linked above.
 The same-worker [Step C correctness/performance source](correctness-plan.md)
 is now prepared for three exact-logit preflight arms and a separately gated
 15-cell timed matrix. Its shadow build, six bridge tests and eight controller
-tests pass ([logs](step-c-cpu-01/execution.md)); the real GPU gates remain
-unclosed. [OpenCode's completed read-only review](opencode-review.md) reports
+tests pass ([logs](step-c-cpu-01/execution.md)); the three real correctness
+cells now pass, but performance is not complete. [OpenCode's completed read-only review](opencode-review.md) reports
 no blockers; it does not replace the required GPU execution.
 
 Scope: this independent policy, real host-uBPF path, CPU oracle and private

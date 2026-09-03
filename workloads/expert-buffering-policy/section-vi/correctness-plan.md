@@ -3,8 +3,9 @@
 2026-09-03: the new shadow build and CPU tests pass after the unrelated HB
 timing window closed: six bridge tests (five actual host-uBPF decisions) and
 eight controller/mode tests, including analyzer AST coverage. Original logs
-are in [step-c-cpu-01](step-c-cpu-01/execution.md). **The three real GPU
-preflight gates and 15-cell performance matrix have not completed.** The prior private
+are in [step-c-cpu-01](step-c-cpu-01/execution.md). The subsequent
+[three-arm real GPU preflight](correctness-results-575-01.md) and independent
+27-array audit now pass. **The 15-cell performance matrix remains pending.** The prior private
 offloader build/import passed separately (`4438d62`, 59,238,064 bytes); this
 step does not modify its source tree, `State`, or the accepted Step B patch.
 

@@ -1,0 +1,165 @@
+{
+  "complete": true,
+  "scope": "three-arm real exact-output and engagement preflight, not performance",
+  "original_reference_and_model_unchanged": true,
+  "same_94_entry_runtime": true,
+  "capacity": 16,
+  "arrays_recomputed": 27,
+  "compared_logits": 65636352,
+  "generated_tokens": 432,
+  "all_exact_equal": true,
+  "live_native_jit_final_counts_match": true,
+  "arms": [
+    {
+      "arm": "fifo",
+      "requests": 9,
+      "generated_tokens": 144,
+      "retained_logits": {
+        "absolute_tolerance": 0.0,
+        "arrays_recomputed": 9,
+        "compared_logits": 21878784,
+        "exact_equal": true
+      },
+      "eb_delta": {
+        "admissions": 13304,
+        "decisions": 17959,
+        "evictions": 13304,
+        "jit_calls": 0
+      },
+      "eb_total": {
+        "admissions": 15039,
+        "decisions": 20182,
+        "evictions": 14655,
+        "jit_calls": 0,
+        "registered_layers": 24,
+        "resident_sparse_bytes": 6643777536
+      },
+      "shadow": null,
+      "pool_capacity_bytes": 16834658304,
+      "demand_copy_bytes": 230179209216,
+      "decoding_configuration": {
+        "checkpoint_fields": {
+          "do_sample": true,
+          "eos_token_id": [
+            151645,
+            151643
+          ],
+          "pad_token_id": 151643,
+          "repetition_penalty": 1.05,
+          "temperature": 0.7,
+          "top_k": 20,
+          "top_p": 0.8
+        },
+        "explicit_overrides": {
+          "do_sample": false,
+          "max_new_tokens": 16,
+          "min_new_tokens": 16,
+          "pad_token_id": 151643
+        }
+      },
+      "engine_cleanup_returned": true
+    },
+    {
+      "arm": "native",
+      "requests": 9,
+      "generated_tokens": 144,
+      "retained_logits": {
+        "absolute_tolerance": 0.0,
+        "arrays_recomputed": 9,
+        "compared_logits": 21878784,
+        "exact_equal": true
+      },
+      "eb_delta": {
+        "admissions": 11595,
+        "decisions": 17959,
+        "evictions": 11595,
+        "jit_calls": 0
+      },
+      "eb_total": {
+        "admissions": 13312,
+        "decisions": 20182,
+        "evictions": 12928,
+        "jit_calls": 0,
+        "registered_layers": 24,
+        "resident_sparse_bytes": 6643777536
+      },
+      "shadow": null,
+      "pool_capacity_bytes": 16834658304,
+      "demand_copy_bytes": 200610938880,
+      "decoding_configuration": {
+        "checkpoint_fields": {
+          "do_sample": true,
+          "eos_token_id": [
+            151645,
+            151643
+          ],
+          "pad_token_id": 151643,
+          "repetition_penalty": 1.05,
+          "temperature": 0.7,
+          "top_k": 20,
+          "top_p": 0.8
+        },
+        "explicit_overrides": {
+          "do_sample": false,
+          "max_new_tokens": 16,
+          "min_new_tokens": 16,
+          "pad_token_id": 151643
+        }
+      },
+      "engine_cleanup_returned": true
+    },
+    {
+      "arm": "bpf",
+      "requests": 9,
+      "generated_tokens": 144,
+      "retained_logits": {
+        "absolute_tolerance": 0.0,
+        "arrays_recomputed": 9,
+        "compared_logits": 21878784,
+        "exact_equal": true
+      },
+      "eb_delta": {
+        "admissions": 11595,
+        "decisions": 17959,
+        "evictions": 11595,
+        "jit_calls": 17959
+      },
+      "eb_total": {
+        "admissions": 13312,
+        "decisions": 20182,
+        "evictions": 12928,
+        "jit_calls": 20182,
+        "registered_layers": 24,
+        "resident_sparse_bytes": 6643777536
+      },
+      "shadow": {
+        "checks": 20182,
+        "jit_calls": 20182,
+        "mismatches": 0
+      },
+      "pool_capacity_bytes": 16834658304,
+      "demand_copy_bytes": 200610938880,
+      "decoding_configuration": {
+        "checkpoint_fields": {
+          "do_sample": true,
+          "eos_token_id": [
+            151645,
+            151643
+          ],
+          "pad_token_id": 151643,
+          "repetition_penalty": 1.05,
+          "temperature": 0.7,
+          "top_k": 20,
+          "top_p": 0.8
+        },
+        "explicit_overrides": {
+          "do_sample": false,
+          "max_new_tokens": 16,
+          "min_new_tokens": 16,
+          "pad_token_id": 151643
+        }
+      },
+      "engine_cleanup_returned": true
+    }
+  ]
+}

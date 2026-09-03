@@ -4,6 +4,8 @@ Status: **all three enhanced real canaries passed** on driver stage `849ea75d`,
 including finite numerics, two full nonstream requests and one full SSE request
 per mode, exact same-frontend outputs, and actual policy engagement. See the
 [three-mode preflight record](raw/paper-v3-575/preflight-849ea75d/README.md).
+The subsequent exact-ABI bulk-packing optimization also passed its own
+[enhanced BPF canary](raw/paper-v3-575/canary-bpf-packed-849ea75d-01/README.md).
 The repeated three-arm comparison remains unfinished; **no paired performance
 or completed-reproduction claim yet**. This replaces the stopped generic-policy
 campaign, whose diagnostic data remain in [results-575.md](results-575.md).

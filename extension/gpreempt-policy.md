@@ -1,4 +1,4 @@
-# GPReempt BPF policy arm: implemented, runtime persistence failure identified
+# GPReempt BPF policy arm: persistent timeslice canary validated
 
 This arm implements GPReempt decisions from upstream `249ee3e` rather
 than calling a timeslice-only program a full port. The original CUDA executor,
@@ -47,8 +47,9 @@ The actual `task_init` BPF callback sees the engine already assigned by 575:
 Only these GR engines receive LC 1,000,000 us or BE 1 us. Other engines preserve
 native settings; engine zero is rejected. The current 575 minimum-timeslice HAL
 returns zero, so the validator does not clamp a requested 1 us to a larger
-minimum. Actual GSP acceptance was observed, but CUDA subsequently reset both
-roles to 2,048 us before execution; init-only actuation is not yet equivalent.
+minimum. Init-only GSP acceptance was subsequently overwritten by CUDA's
+2,048-us default. The validated control-boundary callback described below
+preserves both intended timeslices through that later request.
 
 The ioctl-return probe publishes a handle record only when both the syscall and
 NV status succeed and the returned handle is nonzero. The owned driver query
@@ -153,11 +154,11 @@ must independently check all of the following:
    removal of the owned pins. Keep failed canaries and unsuccessful arms.
 
 The real canary and failed historical runs are recorded in
-`gpreempt_context_smoke.md`. Corrected BPF identity/registration/numerics pass,
-but strict firmware evidence rejects the CUDA 2,048-us overwrite. No GPReempt
+`gpreempt_context_smoke.md`. Corrected BPF identity/registration/numerics and
+strict final firmware timeslice checks pass on `849ea75d`. No GPReempt
 performance comparison or complete original-GDR reproduction is claimed.
 
-### Control-boundary repair (CPU-built, fresh runtime validation pending)
+### Control-boundary repair (real two-context validation passed)
 
 The optional `on_timeslice_control` callback keeps the policy value when CUDA
 submits its later default. GP matches the captured RM handles, composite TSG,
@@ -172,6 +173,10 @@ decisions, not completed hardware actions. Both role counters must be nonzero
 with total equal to their sum, setter errors zero, and the real GSP completion
 canary must still confirm the final timeslices. All original failed evidence
 remains; this repair does not retroactively make any earlier run valid.
+The fresh actual-GSP canary confirms LC 1,000,000 → 1,000,000 and BE 1 → 1,
+with one control decision per role and zero failures. Unmarked native contexts
+still send 2,048 us. These are firmware completion statuses, not measured
+physical quantum or full-workload performance.
 The XSched process-name timeslice program implements the same callback using
 its existing all-engine process semantics, separately from its GR-only
 RM-handle preemption targets.

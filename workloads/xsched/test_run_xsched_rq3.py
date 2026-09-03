@@ -80,6 +80,19 @@ class RunnerTests(unittest.TestCase):
             runner.validate_gpubpf_engagement(
                 "gpubpf_interleave", timeslice.replace("interleave_mismatch: 0", "interleave_mismatch: 1"), preempt, 5)
 
+    def test_new_runtime_requires_persistent_control_engagement(self):
+        preempt = "\n".join(f"{key}: {value}" for key, value in {
+            "uprobe_hit": 120, "preempt_ok": 8, "preempt_err": 0, "skipped": 80,
+            "cooldown_skip": 38, "targets_hit": 8, "tsg_captured": 4, "active_targets": 4,
+        }.items())
+        timeslice = "timeslice_mod: 20\ncontrol_override: 6\nsetter_error: 0"
+        self.assertEqual(runner.validate_gpubpf_engagement(
+            "gpubpf", timeslice, preempt, 5, require_persistent=True)["control_override"], 6)
+        for bad in (timeslice.replace("control_override: 6", "control_override: 0"),
+                    timeslice.replace("setter_error: 0", "setter_error: 1")):
+            with self.assertRaisesRegex(RuntimeError, "persistent"):
+                runner.validate_gpubpf_engagement("gpubpf", bad, preempt, 5, require_persistent=True)
+
     def test_clock_offset_is_bounded(self):
         before = {"offset_ns": -300000000, "uncertainty_ns": 3000}
         after = {"offset_ns": -300010000, "uncertainty_ns": 4000}

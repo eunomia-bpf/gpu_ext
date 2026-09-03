@@ -164,8 +164,14 @@ def admission(require_runtime: bool, configs: tuple[str, ...] = CONFIGS) -> dict
             checks["nvidia_btf_probe_rc"] = btf.returncode
             checks["has_nv_gpu_sched_ops"] = "STRUCT 'nv_gpu_sched_ops'" in btf.stdout
             checks["has_preempt_kfunc"] = "FUNC 'bpf_nv_gpu_preempt_tsg'" in btf.stdout
+            checks["has_timeslice_control_kfunc"] = "FUNC 'bpf_nv_gpu_override_timeslice'" in btf.stdout
+            checks["has_timeslice_control_callback"] = "'on_timeslice_control'" in btf.stdout
             if not checks["has_nv_gpu_sched_ops"] or not checks["has_preempt_kfunc"]:
                 errors.append("NVIDIA BTF lacks nv_gpu_sched_ops or bpf_nv_gpu_preempt_tsg")
+            if any(config in GPUBPF_CONFIGS for config in configs) and not (
+                checks["has_timeslice_control_kfunc"] and checks["has_timeslice_control_callback"]
+            ):
+                errors.append("persistent driver arm requires the validated timeslice-control callback/kfunc")
             checks["safety"] = shared.safety_snapshot()
             shared.validate_pre_server_safety(checks["safety"])
         except Exception as exc:  # admission must preserve the concrete failure
@@ -434,7 +440,7 @@ def parse_final_counters(text: str, names: tuple[str, ...]) -> dict[str, int]:
 
 
 def validate_gpubpf_engagement(config: str, timeslice_text: str,
-                               preempt_text: str, tasks: int) -> dict[str, int]:
+                               preempt_text: str, tasks: int, *, require_persistent: bool = False) -> dict[str, int]:
     result = parse_final_counters(timeslice_text, ("timeslice_mod",))
     result.update(parse_final_counters(preempt_text, (
         "uprobe_hit", "preempt_ok", "preempt_err", "skipped", "cooldown_skip",
@@ -442,6 +448,10 @@ def validate_gpubpf_engagement(config: str, timeslice_text: str,
     )))
     if result["timeslice_mod"] < 6:
         raise RuntimeError("gpubpf did not modify timeslices for all six processes")
+    if require_persistent:
+        result.update(parse_final_counters(timeslice_text, ("control_override", "setter_error")))
+        if result["control_override"] < 6 or result["setter_error"] != 0:
+            raise RuntimeError("persistent gpubpf control callback did not engage cleanly for six processes")
     if result["preempt_ok"] == 0 or result["preempt_err"] != 0:
         raise RuntimeError("gpubpf preemption engagement gate failed")
     if result["active_targets"] != 4 or result["tsg_captured"] != 4:
@@ -586,7 +596,8 @@ def execute_round(config: str, run_dir: Path, reps: int, tasks: int, blocks: int
     elif config in GPUBPF_CONFIGS:
         timeslice_text = "\n".join(policies[0].stdout_lines + policies[0].stderr_lines)
         preempt_text = "\n".join(policies[1].stdout_lines + policies[1].stderr_lines)
-        engagement = validate_gpubpf_engagement(config, timeslice_text, preempt_text, tasks)
+        engagement = validate_gpubpf_engagement(config, timeslice_text, preempt_text, tasks,
+                                               require_persistent=True)
 
     result = {
         "config": config, "reps": reps, "tasks_per_stream": tasks, "blocks": blocks,
@@ -906,6 +917,7 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
             "40 LC samples/cell means nearest-rank P99 is the sample maximum"
         ) if args.phase == "pilot" else None,
         "kernel_target_ms": 80, "xsched_level": 1,
+        "gpubpf_timeslice_actuation": "task_init plus validated persistent control callback; old init-only results remain separate",
         "candidate_policy_differences": {
             "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
             "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",

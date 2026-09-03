@@ -1,9 +1,9 @@
 # Two-context / real GSP timeslice canary
 
-On 2026-09-03 UTC the original two-context path passed real GSP-completion,
-numerical and negative-case checks. The BPF path passed those context checks
-but **failed the final timeslice gate**: CUDA overwrote both requested values
-with 2,048 us before kernel execution. This is a transport/policy correctness
+On 2026-09-03 UTC both original and corrected BPF two-context paths passed
+real GSP-completion, numerical and negative-case checks on driver `849ea75d`.
+The earlier init-only BPF failure is retained: CUDA overwrote both requested
+values with 2,048 us before kernel execution. This is a transport/policy correctness
 canary, not GPReempt performance or its GDRCopy actuator test.
 
 ## Build
@@ -152,13 +152,17 @@ Raw evidence is under `workloads/xsched/raw/`:
 | `gpreempt-context-bpf-20260903-0042` | Context/numerical pass, policy fails two shadow mismatches; grpID-only map could confuse GR and CE runlists. |
 | `gpreempt-context-original-e7d46fa5-20260903-0106` | Full canary pass: each role default 2,048 us then explicit original 1,000,000 / 1 us, real GSP statuses zero. |
 | `gpreempt-context-bpf-e7d46fa5-20260903-0107` | Corrected composite identity: two clean GR registrations/destructions, two matching binds, zero policy errors. **Fails firmware gate:** requested 1,000,000 / 1 us is subsequently overwritten by CUDA's 2,048 us for both roles. |
+| `gpreempt-context-original-849ea75d-20260903-0120` | Original path passes on the new control-hook driver; final real GSP values 1,000,000 / 1 us. |
+| `gpreempt-context-bpf-849ea75d-20260903-0121` | Persistent BPF path passes: actual GSP records 1,000,000 → 1,000,000 for LC and 1 → 1 for BE before execution. Two unmarked native contexts remain at 2,048 us. |
 
 Each executed client checks all 2,048 outputs and all 17 negative cases. All
-five attempts finish with zero UVM references, empty struct_ops and no Xid.
+seven attempts finish with zero UVM references, empty struct_ops and no Xid.
 The failed BPF result is retained; successful bind shadow counters do not
-override contradictory firmware evidence. Init-only timeslice actuation needs
-a later validated BPF decision/actuator path before this arm can be timed as
-an equivalent policy. No physical quantum, interleave, full hint actuator or
+override contradictory firmware evidence. The final BPF run has exactly two
+successful control-boundary decisions (one per role), two registrations and
+destructions, two matching binds, and zero setter/map/scope/registration errors.
+The validated control hook resolves the earlier init-only persistence failure.
+No physical quantum, interleave, full hint actuator or
 performance result is claimed here.
 
 `--rpc-observer off` (wrapper) / `--context-only` (offline checker) is an explicit

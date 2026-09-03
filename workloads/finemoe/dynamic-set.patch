@@ -1,0 +1,32 @@
+diff --git a/finemoe/runtime/model_offload.py b/finemoe/runtime/model_offload.py
+--- a/finemoe/runtime/model_offload.py
++++ b/finemoe/runtime/model_offload.py
+@@ -212,11 +212,13 @@ class ExpertMapMatcher():
+ 
+     @torch.inference_mode()
+     def _select_by_cumsum(self, probs: torch.Tensor, threshold: torch.Tensor, top_k: int):
+-        vals, idx = torch.sort(probs, dim=-1, descending=True)
++        vals, idx = torch.sort(probs, dim=-1, descending=True, stable=True)
+         csum = vals.cumsum(-1)
+         th = threshold.view(-1, 1) if threshold.ndim == 1 else threshold
+         has_pos = vals.gt(0).any(-1)
+-        k = (csum <= th).sum(-1)
++        # Eq. 8: include the first expert whose prefix reaches the threshold.
++        # Stable ties retain the original expert order in every backend.
++        k = (csum < th).sum(-1) + 1
+         k_nonzero = torch.clamp(k, min=top_k, max=vals.size(-1))
+         k = torch.where(has_pos, k_nonzero, torch.zeros_like(k))
+         ar = torch.arange(vals.size(-1), device=probs.device).unsqueeze(0)
+@@ -248,7 +250,11 @@ class ExpertMapMatcher():
+         decay = self._layer_decay_weights(
+             layer_start, layer_end).unsqueeze(-1)
+         prefetch_priority_map = prefetch_priority_map * decay
+-        prefetch_priority_map[layer_start:layer_end] += 1e-6
++        # The downstream prefetcher admits priority > 0. Do not re-enable
++        # experts that the confidence-dependent set excluded.
++        selected = prefetch_priority_map > 0
++        prefetch_priority_map = torch.where(
++            selected, prefetch_priority_map + 1e-6, prefetch_priority_map)
+         return prefetch_priority_map, expert_prob_map
+ 
+     @torch.inference_mode()

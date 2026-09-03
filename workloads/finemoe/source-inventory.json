@@ -1,0 +1,48 @@
+{
+  "artifact": {
+    "url": "https://github.com/IntelliSys-Lab/FineMoE-EuroSys26",
+    "source_revision": "5c584686da077676e3854a363832e9e7b973a054",
+    "local_path": "deps/FineMoE-EuroSys26"
+  },
+  "model": {
+    "repository": "Qwen/Qwen1.5-MoE-A2.7B-Chat",
+    "source_revision": "ec052fda178e241c7c443468d2fa1db6618996be",
+    "snapshot": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen1.5-MoE-A2.7B-Chat/snapshots/ec052fda178e241c7c443468d2fa1db6618996be",
+    "dtype": "bfloat16",
+    "index_tensor_bytes": 28631568384,
+    "files": [
+      {"name": "config.json", "bytes": 920},
+      {"name": "configuration.json", "bytes": 38},
+      {"name": "generation_config.json", "bytes": 248},
+      {"name": "merges.txt", "bytes": 1671839},
+      {"name": "model-00001-of-00008.safetensors", "bytes": 3999614664},
+      {"name": "model-00002-of-00008.safetensors", "bytes": 3999385424},
+      {"name": "model-00003-of-00008.safetensors", "bytes": 3988628968},
+      {"name": "model-00004-of-00008.safetensors", "bytes": 3999386088},
+      {"name": "model-00005-of-00008.safetensors", "bytes": 3988629648},
+      {"name": "model-00006-of-00008.safetensors", "bytes": 3999386104},
+      {"name": "model-00007-of-00008.safetensors", "bytes": 3988629648},
+      {"name": "model-00008-of-00008.safetensors", "bytes": 668484400},
+      {"name": "model.safetensors.index.json", "bytes": 416452},
+      {"name": "tokenizer.json", "bytes": 7028015},
+      {"name": "tokenizer_config.json", "bytes": 1289},
+      {"name": "vocab.json", "bytes": 2776833}
+    ]
+  },
+  "dataset": {
+    "repository": "lm-sys/FastChat",
+    "source_revision": "b494d0c6b4e7935f1764f8439e75da3e66beccc7",
+    "url": "https://github.com/lm-sys/FastChat/blob/b494d0c6b4e7935f1764f8439e75da3e66beccc7/fastchat/llm_judge/data/mt_bench/question.jsonl",
+    "local_path": "deps/FastChat-mt-bench/question.jsonl",
+    "bytes": 48929,
+    "source_questions": 80,
+    "unique_max16_token_inputs": 80,
+    "frozen_split": "64 history / 8 held out / 1 warmup; seed 20260903",
+    "deviation": "Public MT-Bench first turns replace gated LMSYS-Chat-1M; no LMSYS distribution or MT-Bench quality claim"
+  },
+  "paper": {
+    "url": "https://intellisys.haow.us/assets/pdf/Hanfei_FineMoE_EuroSys26.pdf",
+    "local_path": "../../docs/reference/2026-yu-finemoe.pdf",
+    "bytes": 1335925
+  }
+}

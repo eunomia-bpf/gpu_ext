@@ -1,0 +1,26 @@
+diff --git a/finemoe/models/modeling_qwen/modeling_qwen2_moe.py b/finemoe/models/modeling_qwen/modeling_qwen2_moe.py
+--- a/finemoe/models/modeling_qwen/modeling_qwen2_moe.py
++++ b/finemoe/models/modeling_qwen/modeling_qwen2_moe.py
+@@ -871,7 +871,10 @@ class SyncQwen2MoeSparseMoeBlock(nn.Module):
+             )
+ 
+         input_trajs = []
+-        for trace_entry in self.expert_tracer.trace.values():
++        # A completed request may remain in the tracing archive. Match only
++        # the active sequence IDs, in their current batch order.
++        for seq_id in self.seq_id_list:
++            trace_entry = self.expert_tracer.trace[seq_id]
+             chosen_iters = trace_entry.iters[-1:]
+             input_trajs.append(torch.stack(
+                 [it["probs"][:self.layer_id+1] for it in chosen_iters], dim=0))
+@@ -899,6 +902,10 @@ class SyncQwen2MoeSparseMoeBlock(nn.Module):
+         for expert_idx in range(self.num_experts):
+             expert_layer = self.experts[expert_idx]
+             idx, top_x = torch.where(expert_mask[expert_idx])
++            # Even a zero-row invocation runs offload pre-hooks. Do not turn
++            # unrouted experts into demand loads or apparent prefetch hits.
++            if top_x.numel() == 0:
++                continue
+ 
+             # Index the correct hidden states and compute the expert hidden state for
+             # the current expert. We need to make sure to multiply the output hidden

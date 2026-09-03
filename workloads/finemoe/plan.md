@@ -1,0 +1,269 @@
+# FineMoE dynamic prefetch sets on the official Qwen execution path
+
+Status: source inspection and scoped preparation; **no new GPU result yet**.
+This is a FineMoE **dynamic-set component experiment**, not a reproduction of
+the entire EuroSys evaluation or a renamed EAMC activation-count heuristic.
+
+FineMoE is in active CPU preparation, with GPU work coordinated by the root lease.
+The original Qwen checkpoint is downloaded (exact source revision and 16-file
+size inventory in `source-inventory.json`), the official extension compiles, and
+the private Transformers 4.49 overlay imports the compiled module. Final CPU
+build05 passed: `build/offload-build-05.log` is 69,335 bytes; the private offload
+extension is 58,219,416 bytes and advertises runtime revision
+`dynamic-set-safety-20260903-v2`. Both standalone C++ safety/accounting tests and
+all 35 Python protocol, author-method, native and actual-JIT tests passed.
+Import/API checks confirmed CUDA was not initialized. Replayable
+`dynamic-set.patch`, `common-runtime.patch`, `copy-accounting.patch`, and
+`build-compat.patch` preserve the author source and common safety/instrumentation
+changes. **No numerical GPU canary, history store, or performance cell exists.**
+
+## Research Question
+
+RQ1, verbatim from `docs/paper/tex/eval.tex`: “How much performance gain can
+\sys's programmable memory and scheduling policies provide on oversubscribed
+single-tenant workloads?” The uncertainty is whether FineMoE's probability- and
+confidence-dependent set can reduce real unused expert transfers while a
+matched host-BPF implementation preserves its decisions, correctness, and
+application performance. The existing GPT-OSS EAMC waste motivates this question
+but is **not** a comparable baseline for Qwen.
+
+## Paper-Value Admission
+
+Supporting expressibility and performance evidence: a different published
+policy, with full routing-probability and embedding inputs absent from the old
+count-based EAMC bridge. The load-bearing objection is that moving a small
+selector into BPF may either not control actual transfers or cost more than it
+saves. Actual copies and end-to-end generation distinguish those explanations.
+A win supports a bounded application-aware policy port, not kernel-UVM or full
+FineMoE equivalence; a loss or mixed result remains evidence and limits the claim.
+An EAMC top-K tweak is cheaper but does not test this published algorithm.
+
+## Expected And Alternative Outcomes
+
+Expected: dynamic sets admit fewer candidates and unused bytes than the matched
+all-positive control; C and BPF agree. Competing explanations: demand misses
+offset saved bytes, confidence is poorly calibrated, or shared Python search /
+host-copy overhead dominates. Fewer selector outputs without fewer completed
+copies is not success. No useful-byte or latency improvement is guaranteed.
+
+## Published Precedent And Real Assets
+
+- [FineMoE, EuroSys 2026, author PDF](https://intellisys.haow.us/assets/pdf/Hanfei_FineMoE_EuroSys26.pdf),
+  local `docs/reference/2026-yu-finemoe.pdf` (1,335,925 bytes).
+- [Official demo](https://github.com/IntelliSys-Lab/FineMoE-EuroSys26), ordinary
+  upstream revision `5c584686da077676e3854a363832e9e7b973a054`, cloned in ignored
+  `deps/FineMoE-EuroSys26/`. Reuse its Qwen forward, full router probabilities,
+  original token embeddings, ExpertMapStore/search, and real expert loader.
+- Original model `Qwen/Qwen1.5-MoE-A2.7B-Chat`: BF16, 24 layers, 60 experts/layer,
+  K=4; official weight index declares 28,631,568,384 bytes across eight shards.
+  The model is not replaced by a smaller one. The demo's >=48 GB recommendation
+  is not proof that a smaller explicit expert cache cannot run on this 32 GB GPU.
+- Paper PDF pp. 7–9 (§4.1–4.3, Eq. 6–8): full per-token L×J softmax probabilities;
+  cosine semantic / observed-prefix trajectory match; delta=clip(1−score,0,1);
+  descending-probability **smallest prefix whose sum >= delta and size >= K**.
+  Empty history means no prediction; invalid inputs fail closed, demand remains live.
+- Existing `../moe-infinity/paper_policy.py` consumes routed expert counts, not
+  these inputs. Reuse its host-JIT linkage and accounting *patterns*, not its
+  history, model, prediction scores, or past numerical goldens.
+
+### Source audit and required scope
+
+The inspected official source has two direct selector-to-executor defects:
+
+1. `finemoe/runtime/model_offload.py:219` counts cumulative sums <= delta without
+   adding the crossing expert; e.g. [.4,.3,.2,.1], delta=.8, K=1 selects .7 mass.
+2. The same file, line 251, adds 1e-6 to **all** experts in target layers;
+   `finemoe/memory/expert_prefetcher.py:74–98` then uses `priority > 0` and enqueues
+   all of them. A selector-only unit test would miss this second defect.
+
+Replayable `dynamic-set.patch` fixes these two, with direct corrected-Python
+oracle tests through the real prefetcher's candidate/queue calls. Preserve the
+unmodified upstream revision; do not present buggy execution as a strong baseline.
+
+Other differences are disclosed, held common, and not silently called repaired:
+the demo uses d=6 instead of the paper's profiled d=3, linear rather than reciprocal
+distance priority (`model_offload.py:227–235`), synchronous Python search calls
+from model forward, and integer-truncated probability×frequency eviction keys
+(`core/prefetch/task_scheduler.cpp:291–303`). The first experiment freezes d=6
+and the shared demo executor, so it isolates Eq. 6–8 rather than all §4.5 behavior.
+The common runtime patch repairs current-sequence trajectory lookup: model lines
+873–887 iterate **all retained traces**, while `finish_entry()` does not remove
+them. It now looks up the current sequence IDs in batch order. Zero-routed expert
+modules are skipped, so their offload hooks cannot load unused weights and count
+them as demand. GPU numerical/IO preflight remains required.
+
+The common executor also retains acquired-node lock ownership until release and
+waits for the real Torch CUDA compute stream before unlocking a used node. Queued
+tasks no longer unlock mutexes they do not own. The sole GPU copy worker checks
+space immediately before H2D: speculative eviction protects the prediction set;
+demand may evict a predicted but unlocked/non-executing node using the original
+eviction ordering. If no space exists, demand fails explicitly, never silently
+exceeds the 0.5 pool budget. The pool allocator enforces that bound as a final
+guard. Record pool capacity/resident/peak bytes and total GPU HBM separately.
+These are shared safety and budget repairs, not BPF algorithm improvements.
+Dense incoming bytes are reserved before applying a configured sparse cap;
+sparse incoming bytes are reserved inside that cap. A common mutex now protects
+demand transfer completion and readiness publication, preventing condition-variable
+lost wakeups even though the readiness flag itself is atomic.
+
+## Comparison
+
+Four matched arms, two main baselines and one explicitly labeled ablation:
+
+| Arm | Role | Behavior |
+|---|---|---|
+| demand-only | baseline / sanity | Same model and executor; no speculative enqueue. |
+| all-positive | prefetch-set ablation | Same predicted maps, target layers, priorities, cache; all positive probabilities admitted. |
+| finemoe-c | algorithm baseline | Correct Eq. 6–8 selector in native C, checked against corrected Python oracle. |
+| finemoe-bpf | proposed mechanism | Same bounded input and outputs, actual host uBPF/bpftime JIT; no native fallback. |
+
+The all-positive control answers unused-transfer reduction; demand-only shows
+whether prefetching pays at all; C isolates the BPF mechanism cost. Search/store,
+GPU→host input materialization, deterministic ties, executor, eviction, copy
+streams, request order, cache bytes, and diagnostics remain common. BPF selects
+the candidate set, not embeddings, GPU search, CUDA memcpy, or all cache runtime.
+Use explicit expert IDs and separate selection masks; a zero/epsilon score must
+not turn an unselected expert into a queued candidate. The implemented ABI keeps
+the exact original FP32 probability and delta bit patterns, stably sorts expert
+IDs, and accumulates the prefix in **sequential binary64**, not the original
+FP32 `torch.cumsum`. C uses hardware double; BPF executes software positive-double
+addition and all sort/prefix decisions. An independent Python-float oracle checks
+both. This numerical convention is disclosed, not presented as unchanged demo
+arithmetic or quantization. `policy_runtime.py` preserves selected zero-valued
+experts needed for minimum K using the explicit bit mask. CPU tests also observe
+the actual author's prefetcher calls reaching the engine API; those calls do not
+by themselves prove completed copies.
+
+## Workloads And Metrics
+
+Use the original BF16 model, batch 1, at most 16 input and exactly 16 generated
+tokens (demo truncation protocol). The official included LMSYS demo file contains
+only 64 prompts, and CPU tokenization finds only 56 unique 16-token inputs.
+Duplicate raw IDs are 3, 4, 13, 14, 27, 31, 37, and 52 (zero-based).
+The full official LMSYS-Chat-1M is gated (unauthorized file access returned 401;
+its page requires login/contact-sharing terms). No terms were accepted, no user
+tokens read, and no cohort was shrunk. With explicit root approval, use the
+[official public MT-Bench first-turn questions](https://github.com/lm-sys/FastChat/blob/b494d0c6b4e7935f1764f8439e75da3e66beccc7/fastchat/llm_judge/data/mt_bench/question.jsonl)
+at source revision `b494d0c6b4e7935f1764f8439e75da3e66beccc7` (48,929 bytes).
+All 80 first turns are unique after the original Qwen tokenizer's 16-token
+truncation. `dataset-mtbench-v1.json` freezes seed 20260903, exact question/token
+IDs, **64 history / 8 evaluation / 1 disjoint warmup** and seven unused rows.
+This is an explicit dataset deviation: neither LMSYS's natural request
+distribution nor MT-Bench answer quality is reproduced. Store capacity is 1000,
+filled by real history-token trajectories, and history is frozen offline.
+No online A→B→A
+claim follows from this offline run. Reset model/cache per arm, import identical
+store, warm up on a disjoint prompt, then measure the same eight requests.
+
+Initial cache configuration: `device_memory_ratio=0.5`, not the demo's 0.9;
+record the resolved sparse-cache byte budget and dense/KV allocation. All arms
+must use the same resolved budget, actually offload, and stay below available
+HBM. If this does not fit, report the concrete allocation limit before changing
+any frozen parameter. No model/precision changes to make a failing cell pass.
+
+- Primary application metric: generated tokens / wall time from first measured
+  request submission through last verified completion, including policy/search
+  and input-transfer overhead. TTFT and per-output-token latency are secondary.
+- Mechanism metrics: candidate mask cardinality and cumulative mass; downstream
+  admitted/enqueued/started/completed/canceled copies; completed payload bytes
+  classified as **first demand use**, **evicted unused**, or **still resident unused**.
+  These classes must conserve completed speculative bytes; canceled-before-copy
+  bytes are separate, and end-of-window residency is not called waste. Drain
+  in-flight copies before closing accounting. Both application begin/end and
+  copy lifecycle use the same native steady clock: report byte partitions at
+  application end separately from the post-window completed bytes and the final
+  drained snapshot. Report drain duration, CPU cost and throughput including
+  drain as well as primary application throughput; never label tail copies as
+  in-window. Use copy-generation IDs and actual tensor byte sizes. All-60 dynamic
+  sets or zero completed speculative copies are valid observed negative outcomes,
+  not reasons to discard a cell with real selector/JIT/API engagement.
+- Also record demand-copy bytes/wait, cache hit/miss, peak HBM, and per-arm CPU
+  time. Logical payload bytes are not measured PCIe traffic or copy-time savings.
+- Correctness: same BF16 checkpoint; deterministic greedy output token IDs and
+  per-step numerical/logit comparison to the original Transformers full-model
+  no-offload/no-prefetch golden. Absolute tolerance is frozen from that original
+  HF model's same-arm repeated logits, before any offload-policy arm runs; the
+  common offload demand-only arm must satisfy it too. It is not relaxed after
+  BPF or another arm fails. All routed
+  experts must execute exactly once as required, with no dropped requests/tokens.
+  CPU oracle→C→JIT parity includes threshold crossings, ties, delta 0/1, zero
+  histories, out-of-range/NaN inputs, and masks actually passed to enqueue.
+- Five randomized complete paired blocks, seed 20260903; show every cell, median,
+  paired geometric-mean ratios and 10,000 paired bootstrap 95% percentile CIs.
+  A CI crossing 1 is inconclusive, not a formal equivalence claim.
+
+## Planned Runs
+
+| Run group | Role | Workload | Arms | Repetitions | Decision |
+|---|---|---|---|---:|---|
+| CPU | dependency | Paper boundaries + real-method downstream call capture | Python/C/JIT | deterministic cases | Exact algorithm/engagement parity. |
+| preflight | dependency | Full 64/8/1 cohort, original real Qwen | four above | 1 each | Memory, numerical, copy-accounting and nontrivial dynamic set. |
+| full | supporting | frozen store, 8 held-out prompts | four above | 5 paired blocks | Useful/unused-byte and latency/throughput tradeoff. |
+
+## Execution
+
+Immediate preparation uses official source and normal model cache only; no
+system-wide `setup.sh`, token logging, or shared-environment upgrades. A private
+venv/build is required because the demo constrains Transformers <4.50 while the
+current GPT-OSS environment is newer. Rough cost: 26.67 GiB model download plus
+roughly another model-sized offload store; 5–30 min download depending on network,
+5–15 min extension build (unverified estimate), then time one real cell before
+quoting the full GPU campaign cost. Host currently has ample RAM/disk; GPU fit
+is still unverified. All GPU work waits for the root-owned exclusive lease.
+
+Planned implementation files: `dynamic-set.patch`, `test_dynamic_set.py`,
+`finemoe_policy.h`, `finemoe_policy.c`, `finemoe_policy.bpf.c`,
+`finemoe_policy_bridge.cpp`, `prepare.py`, and a thin `compare.py` that calls the
+official `MoE.generate`/forward path, not a replacement inference engine. The
+existing project lease/telemetry, ordinary Git revisions/file inventories,
+and simple completed-cell files are reused; no new experiment-control framework.
+
+Exact immediate CPU command:
+`CUDA_VISIBLE_DEVICES='' taskset -c 8 .venv/bin/python -B -m unittest -v test_dynamic_set.py test_policy_runtime.py test_finemoe_policy.py`
+from this directory. Patch replay is `git -C deps/FineMoE-EuroSys26 apply --check
+../../dynamic-set.patch` on the clean pinned source, then apply once.
+The completed CPU data freeze was `.venv/bin/python -B prepare.py --output
+dataset-mtbench-v1.json`. `inference.py` calls the original Transformers full-model
+golden and the actual author `MoE.generate` path; `compare.py` is the thin
+lease/safety/telemetry controller. Its staged preparation creates a real original
+model golden and same-arm repeat tolerance, then the full 64-request history,
+then all four numerical/oracle/copy-accounting canaries. Formal runs disable
+full-logit transfer and shadow comparisons, retain exact golden token checks,
+and use fresh processes with the same store/warmup. No GPU stage has run yet.
+
+Exact staged GPU commands, **only while the root grants the exclusive window**:
+
+```sh
+.venv/bin/python -B compare.py --mode golden --output raw/golden-v1
+.venv/bin/python -B compare.py --mode history --golden raw/golden-v1/stage --output raw/history-v1
+.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v1/stage --history raw/history-v1/stage --output raw/preflight-v1
+.venv/bin/python -B compare.py --mode full --golden raw/golden-v1/stage --history raw/history-v1/stage --preflight raw/preflight-v1 --output raw/full-v1
+```
+
+The parent controller must retain its ordinary affinity (it runs telemetry on
+CPU 16); only its worker is pinned to CPUs 8–11. Each output directory is unique.
+Any failed stage remains on disk and prevents later success; no numerical
+tolerance is widened for an arm. The completed final CPU rebuild was
+`taskset -c 8-11 .venv/bin/python -B build_offload.py --log build/offload-build-05.log`
+(explicit g++-13, MAX_JOBS=2); future rebuilds require a new log and must not
+overlap another GPU timing window.
+The small standalone tests use g++-13 on `test_copy_ledger.cpp` and
+`test_runtime_safety.cpp`; `test_compare.py` independently rechecks raw lifecycle
+and actual-input selector records without loading any CUDA model.
+
+Raw requests, token IDs, timestamp events, candidate/copy accounting, runtime
+inventory, configs, source revisions and all failures belong in the exact new
+raw directory. Interrupted/incomplete paired blocks do not count or mix with
+completed ones; keep failures and restart the whole affected block.
+
+## Interpretation And Reproducibility Notes
+
+Positive: fewer unused **completed** bytes, preserved correct output, and no
+unaccounted application regression, with C/BPF parity. Mixed: byte reduction but
+lower throughput, or no reduction in demand stall; report both. If demand-only
+wins, report that speculation does not pay in this workload. If C beats BPF,
+report mechanism overhead. Planned figure: unused/useful/resident bytes alongside
+application throughput, with all five raw points and no cross-model speedup claim.
+This remains a FineMoE dynamic-set component port on the official Qwen demo,
+not full FineMoE/EuroSys reproduction, not a kernel-UVM execution result, and
+not evidence that selected experts necessarily equal the actually routed K.

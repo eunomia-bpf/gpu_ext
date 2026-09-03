@@ -11,6 +11,126 @@ import run_xsched_rq3 as runner
 
 
 class RunnerTests(unittest.TestCase):
+    def resume_fixture(self, root):
+        protocol = {"phase": "full", "repetitions": 10,
+                    "schedule": runner.fixed_schedule(("native", "xsched", "bpftime_hpf", "gpubpf"), 10)}
+        checks = {key: {"test_value": 1} for key in runner.FROZEN_ADMISSION_FIELDS}
+        (root / "protocol.json").write_text(json.dumps(protocol))
+        (root / "admission.json").write_text(json.dumps(checks))
+        (root / "pause-01.json").write_text(json.dumps({"state": "paused_after_complete_block", "completed_blocks": 1}))
+        for role in ("lc", "be"):
+            for i in range(3):
+                (root / f"control-{role}-{i}").mkdir()
+        for index, config in enumerate(protocol["schedule"][0]):
+            directory = root / f"block-00-{index}-{config}"
+            directory.mkdir()
+            (directory / "result.json").write_text(json.dumps({"block": 0, "order_index": index, "config": config}))
+        return protocol, checks
+
+    def test_full_resume_audits_all_controls_and_completed_block(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            protocol, checks = self.resume_fixture(root)
+            with mock.patch.object(runner, "audit_saved_cell") as audit:
+                self.assertEqual(runner.validate_resume(root, protocol, checks), 1)
+                self.assertEqual(audit.call_count, 10)
+            with mock.patch.object(runner, "audit_saved_cell", side_effect=RuntimeError("raw sample invalid")):
+                with self.assertRaisesRegex(RuntimeError, "raw sample invalid"):
+                    runner.validate_resume(root, protocol, checks)
+
+    def test_resume_rejects_metadata_protocol_partial_and_failed_changes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            protocol, checks = self.resume_fixture(root)
+            changed = dict(checks, runner_file={"test_value": 2})
+            with self.assertRaisesRegex(RuntimeError, "metadata changed"):
+                runner.validate_resume(root, protocol, changed)
+            with self.assertRaisesRegex(RuntimeError, "protocol/schedule"):
+                runner.validate_resume(root, dict(protocol, repetitions=5), checks)
+            with mock.patch.object(runner, "audit_saved_cell"):
+                (root / "block-01-0-native").mkdir()
+                with self.assertRaisesRegex(RuntimeError, "partial"):
+                    runner.validate_resume(root, protocol, checks)
+                (root / "failure.json").write_text('{"error":"synthetic failure"}')
+                with self.assertRaisesRegex(RuntimeError, "failed/interrupted"):
+                    runner.validate_resume(root, protocol, checks)
+
+    def test_resume_rejects_reordered_completed_cells(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            protocol, checks = self.resume_fixture(root)
+            name = protocol["schedule"][0][0]
+            (root / f"block-00-0-{name}" / "result.json").write_text(json.dumps({"block": 0, "order_index": 1, "config": name}))
+            with mock.patch.object(runner, "audit_saved_cell"):
+                with self.assertRaisesRegex(RuntimeError, "randomized order"):
+                    runner.validate_resume(root, protocol, checks)
+
+    def test_fixed_schedule_is_full_and_deterministic(self):
+        configs = ("native", "xsched", "bpftime_hpf", "gpubpf")
+        schedule = runner.fixed_schedule(configs, 10)
+        self.assertEqual(len(schedule), 10)
+        self.assertTrue(all(set(order) == set(configs) and len(order) == 4 for order in schedule))
+        self.assertEqual(schedule, runner.fixed_schedule(configs, 10))
+
+    def test_saved_raw_worker_failure_not_hidden_by_cell_summary(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for phase in ("before", "after"):
+                (root / f"safety-{phase}.json").write_text('{}')
+            clock = {"offset_ns": 0, "uncertainty_ns": 1}
+            (root / "result.json").write_text(json.dumps({"clock_calibration": clock,
+                "clock_calibration_after": clock, "clock_error": runner.validate_clock_pair(clock, clock)}))
+            (root / "be1.json").write_text(json.dumps({"returncode": 2}))
+            with mock.patch.object(runner.shared, "validate_pre_server_safety"), \
+                 mock.patch.object(runner.shared, "validate_post_server_safety"):
+                with self.assertRaisesRegex(RuntimeError, "saved worker failed"):
+                    runner.audit_saved_cell(root, {"tasks_per_stream": 50, "blocks": 340, "threads": 256}, "native")
+
+    def test_saved_raw_timestamp_argv_and_numerics_are_checked(self):
+        for damage, expected_error in (("clock", "sample clock/order"), ("argv", "command differs"),
+                                       ("values", "dimensions/identity")):
+            with self.subTest(damage=damage), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                for phase in ("before", "after"):
+                    (root / f"safety-{phase}.json").write_text('{}')
+                clock = {"offset_ns": 2, "uncertainty_ns": 1}
+                (root / "result.json").write_text(json.dumps({"clock_calibration": clock,
+                    "clock_calibration_after": clock, "clock_error": runner.validate_clock_pair(clock, clock)}))
+                sample = {"submit_ns": 12, "submit_cupti_ns": 10, "entry_ns": 13, "exit_ns": 14}
+                if damage == "clock": sample["submit_ns"] = 11
+                record = {"event": "result", "role": "be", "process_id": 1, "clock_offset_ns": 2,
+                          "outputs_validated": 3 if damage == "values" else 4,
+                          "samples": [sample] * 4}
+                argv = ["taskset", "-c", ",".join(map(str, runner.allowed_cpus(10)[2:])),
+                        str(runner.HERE / "build" / "bench_be"), "be", "1", "4", "1", "100", "1", "1", "1", "2"]
+                if damage == "argv": argv[2] = "999"
+                (root / "be1.json").write_text(json.dumps({"returncode": 0, "command": argv,
+                    "stdout": [json.dumps({"event": "ready", "role": "be", "process_id": 1, "streams": 4, "tasks": 1}), json.dumps(record)]}))
+                with mock.patch.object(runner.shared, "validate_pre_server_safety"), \
+                     mock.patch.object(runner.shared, "validate_post_server_safety"):
+                    with self.assertRaisesRegex(RuntimeError, expected_error):
+                        runner.audit_saved_cell(root, {"tasks_per_stream": 1, "blocks": 1, "threads": 1, "reps": 100}, "native")
+
+    def test_isolated_role_cannot_be_changed_under_another_directory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "control-lc-0"
+            root.mkdir()
+            for phase in ("before", "after"):
+                (root / f"safety-{phase}.json").write_text('{}')
+            clock = {"offset_ns": 0, "uncertainty_ns": 1}
+            (root / "result.json").write_text(json.dumps({"control": "isolated-be",
+                "clock_calibration": clock, "clock_calibration_after": clock,
+                "clock_error": runner.validate_clock_pair(clock, clock)}))
+            with mock.patch.object(runner.shared, "validate_pre_server_safety"), \
+                 mock.patch.object(runner.shared, "validate_post_server_safety"):
+                with self.assertRaisesRegex(RuntimeError, "role differs from directory"):
+                    runner.audit_saved_cell(root, {"tasks_per_stream": 50, "blocks": 340, "threads": 256})
+
+    def test_runtime_environment_filters_credentials_and_keeps_execution_settings(self):
+        self.assertEqual(runner.runtime_environment({"API_KEY": "must-not-record", "PATH": "/bin",
+            "LD_LIBRARY_PATH": "/xsched", "XSCHED_AUTO_XQUEUE": "ON", "CUDA_MODULE_LOADING": "LAZY"}),
+            {"LD_LIBRARY_PATH": "/xsched", "XSCHED_AUTO_XQUEUE": "ON", "CUDA_MODULE_LOADING": "LAZY"})
+
     def test_bpftime_uses_identical_worker_environment(self):
         for role in ("lc", "be"):
             self.assertEqual(runner.workload_env("xsched", role), runner.workload_env("bpftime_hpf", role))

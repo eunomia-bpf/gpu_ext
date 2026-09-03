@@ -112,6 +112,10 @@ def admission(require_runtime: bool, configs: tuple[str, ...] = CONFIGS) -> dict
         EXTENSION / "gpu_sched_set_timeslices.h", EXTENSION / "Makefile",
     ]
     checks: dict[str, Any] = {
+        "runner_file": file_metadata(Path(__file__)),
+        "shared_safety_runner": file_metadata(Path(shared.__file__)),
+        "nvidia_btf_file": file_metadata(Path("/sys/kernel/btf/nvidia")),
+        "uvm_btf_file": file_metadata(Path("/sys/kernel/btf/nvidia_uvm")),
         "kernel": os.uname().release,
         "driver": driver_version(),
         "gpu_processes": gpu_processes(),
@@ -119,6 +123,10 @@ def admission(require_runtime: bool, configs: tuple[str, ...] = CONFIGS) -> dict
         "xsched_diff": actual_xsched_diff,
         "xsched_diff_matches_reviewed_patch": actual_xsched_diff == expected_xsched_diff,
         "workload_file": file_metadata(workload),
+        "workload_source": file_metadata(HERE / "priority_workload.cu"),
+        "worker_entrypoints": {role: file_metadata(HERE / "build" / f"bench_{role}") for role in ("lc", "be")},
+        "xserver_file": file_metadata(XSCHED_OUTPUT / "bin" / "xserver"),
+        "cuda_driver_library": file_metadata(Path("/usr/lib/x86_64-linux-gnu/libcuda.so")),
         "reviewed_patch_file": file_metadata(HERE / "xsched-engagement.patch"),
         "gpubpf_binaries": {
             "uprobe_preempt_multi": file_metadata(EXTENSION / "uprobe_preempt_multi"),
@@ -129,7 +137,7 @@ def admission(require_runtime: bool, configs: tuple[str, ...] = CONFIGS) -> dict
         },
         "xsched_runtime_files": {
             name: file_metadata(XSCHED_OUTPUT / "lib" / name)
-            for name in ("libpreempt.so", "libhalcuda.so", "libshimcuda.so")
+            for name in ("libpreempt.so", "libhalcuda.so", "libshimcuda.so", "libcuda.so")
         },
     }
     errors: list[str] = []
@@ -184,6 +192,7 @@ def admission(require_runtime: bool, configs: tuple[str, ...] = CONFIGS) -> dict
 class ManagedProcess:
     def __init__(self, name: str, command: list[str], env: dict[str, str], cpu: int | list[int]):
         self.name = name
+        self.runtime_environment = runtime_environment(env)
         self.stdout_lines: list[str] = []
         self.stderr_lines: list[str] = []
         self.events: queue.Queue[dict[str, Any]] = queue.Queue()
@@ -265,6 +274,14 @@ def base_env() -> dict[str, str]:
     for key in ("LD_PRELOAD", "LD_LIBRARY_PATH", "GPUBPF_HPF_CODE"):
         env.pop(key, None)
     return env
+
+
+def runtime_environment(env: dict[str, str]) -> dict[str, str]:
+    """Only runtime-affecting, non-credential settings; never dump all env."""
+    keys = {"LD_PRELOAD", "LD_LIBRARY_PATH", "GPUBPF_HPF_CODE", "OMP_NUM_THREADS",
+            "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NVIDIA_VISIBLE_DEVICES"}
+    return {key: value for key, value in env.items()
+            if key in keys or key.startswith(("XSCHED_", "CUDA_", "CUPTI_"))}
 
 
 def parse_configs(text: str) -> tuple[str, ...]:
@@ -426,6 +443,7 @@ def write_process_log(path: Path, process: ManagedProcess) -> None:
     path.write_text(json.dumps({
         "name": process.name, "command": process.proc.args, "returncode": process.proc.returncode,
         "stdout": process.stdout_lines, "stderr": process.stderr_lines,
+        "runtime_environment": process.runtime_environment,
     }, indent=2) + "\n")
 
 
@@ -692,6 +710,7 @@ def execute_isolated(role: str, run_dir: Path, reps: int, tasks: int, blocks: in
         "control": f"isolated-{role}", "samples": len(latencies),
         "outputs_validated": result["outputs_validated"],
         "completion_host_ns": result["completion_host_ns"],
+        "release_ns": release_ns,
         "clock_calibration": clock,
         "clock_calibration_after": clock_after,
         "clock_error": validate_clock_pair(clock, clock_after),
@@ -707,6 +726,170 @@ def bootstrap_ci(values: list[float], seed: int, draws: int = 10000) -> list[flo
     means = [statistics.mean(rng.choice(values) for _ in values) for _ in range(draws)]
     means.sort()
     return [means[int(0.025 * draws)], means[int(0.975 * draws)]]
+
+
+def fixed_schedule(configs: tuple[str, ...], repetitions: int) -> list[list[str]]:
+    rng = random.Random(SEED)
+    schedule = []
+    for _ in range(repetitions):
+        order = list(configs)
+        rng.shuffle(order)
+        schedule.append(order)
+    return schedule
+
+
+FROZEN_ADMISSION_FIELDS = (
+    "kernel", "driver", "xsched_commit", "xsched_diff", "workload_file",
+    "gpubpf_binaries", "gpubpf_source_files", "xsched_runtime_files", "bpftime_hpf_files",
+    "runner_file", "shared_safety_runner", "nvidia_btf_file", "uvm_btf_file", "workload_source",
+    "worker_entrypoints", "xserver_file", "cuda_driver_library",
+)
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text())
+
+
+def audit_saved_cell(directory: Path, protocol: dict[str, Any], config: str | None = None) -> None:
+    """Recheck raw output/clock/metrics/engagement/safety, not a saved pass flag."""
+    before, after = (read_json(directory / f"safety-{phase}.json") for phase in ("before", "after"))
+    shared.validate_pre_server_safety(before)
+    shared.validate_post_server_safety(before, after)
+    result = read_json(directory / "result.json")
+    clock = validate_clock_pair(result["clock_calibration"], result["clock_calibration_after"])
+    if clock != result["clock_error"]:
+        raise RuntimeError(f"saved clock validation differs: {directory.name}")
+    isolated = config is None
+    role = None
+    if isolated:
+        match = re.fullmatch(r"control-(lc|be)-[0-2]", directory.name)
+        if not match or result["control"] != f"isolated-{match.group(1)}":
+            raise RuntimeError(f"isolated control role differs from directory: {directory.name}")
+        role = match.group(1)
+    names = [f"isolated-{role}"] if isolated else [f"{kind}{i}" for kind, n in (("be", 4), ("lc", 2)) for i in range(1, n + 1)]
+    processes, outputs = [], []
+    expected_samples = 4 * protocol["tasks_per_stream"]
+    expected_values = expected_samples * protocol["blocks"] * protocol["threads"]
+    for name in names:
+        process = read_json(directory / f"{name}.json")
+        if process["returncode"] != 0:
+            raise RuntimeError(f"saved worker failed: {directory.name}/{name}")
+        rows = [json.loads(line) for line in process["stdout"] if line.startswith('{')]
+        ready = [r for r in rows if r.get("event") == "ready"]
+        records = [r for r in rows if r.get("event") == "result"]
+        expected_role = role if isolated else name[:2]
+        expected_id = 1 if isolated else int(name[2:])
+        if len(ready) != 1 or len(records) != 1:
+            raise RuntimeError(f"missing raw worker events: {directory.name}/{name}")
+        record = records[0]
+        if (ready[0]["streams"] != 4 or ready[0]["tasks"] != protocol["tasks_per_stream"] or
+                ready[0]["role"] != expected_role or ready[0]["process_id"] != expected_id or
+                record["role"] != expected_role or record["process_id"] != expected_id or
+                record["outputs_validated"] != expected_values or len(record["samples"]) != expected_samples or
+                record["clock_offset_ns"] != result["clock_calibration"]["offset_ns"]):
+            raise RuntimeError(f"raw worker dimensions/identity differ: {directory.name}/{name}")
+        # Verify the actual recorded argv retained the frozen workload shape.
+        expected_tail = [expected_role, str(expected_id), "4", str(protocol["tasks_per_stream"]),
+                         str(protocol["reps"]), str(protocol["blocks"]), str(protocol["threads"]),
+                         "1" if not isolated and expected_role == "be" else "0", str(record["clock_offset_ns"])]
+        worker_cpus = protocol.get("worker_cpus", allowed_cpus(10)[2:])
+        cpu_mask = str(protocol.get("isolated_cpu", allowed_cpus(1)[0])) if isolated else ",".join(map(str, worker_cpus))
+        expected_command = ["taskset", "-c", cpu_mask, str(HERE / "build" / f"bench_{expected_role}")] + expected_tail
+        if process["command"] != expected_command:
+            raise RuntimeError(f"raw worker command differs: {directory.name}/{name}")
+        if "worker_environments" in protocol:
+            expected_env = protocol["worker_environments"]["native" if isolated else config][expected_role]
+            if process.get("runtime_environment") != expected_env:
+                raise RuntimeError(f"raw worker runtime environment differs: {directory.name}/{name}")
+        for sample in record["samples"]:
+            if not (sample["submit_ns"] == sample["submit_cupti_ns"] + record["clock_offset_ns"] and
+                    sample["submit_ns"] <= sample["entry_ns"] <= sample["exit_ns"]):
+                raise RuntimeError(f"invalid raw sample clock/order: {directory.name}/{name}")
+        processes.append(process)
+        outputs.append(record)
+    if isolated:
+        if result["samples"] != expected_samples or result["outputs_validated"] != expected_values:
+            raise RuntimeError(f"invalid isolated control: {directory.name}")
+        p99 = percentile([(s["exit_ns"] - s["submit_ns"]) / 1000 for s in outputs[0]["samples"]], .99)
+        rate = expected_samples / ((outputs[0]["completion_host_ns"] - result["release_ns"]) / 1e9)
+        if not (math.isclose(result["p99_us"], p99, rel_tol=1e-12) and
+                math.isclose(result["throughput_kernels_s"], rate, rel_tol=1e-12)):
+            raise RuntimeError(f"raw isolated metrics differ: {directory.name}")
+        return
+    if any(result[field] != protocol[field] for field in ("reps", "tasks_per_stream", "blocks", "threads")):
+        raise RuntimeError(f"saved cell workload differs: {directory.name}")
+    lc = [(sample["entry_ns"] - sample["submit_ns"]) / 1000 for row in outputs if row["role"] == "lc" for sample in row["samples"]]
+    be = [row for row in outputs if row["role"] == "be"]
+    expected = {"lc_p99_us": percentile(lc, .99), "lc_mean_us": statistics.mean(lc),
+                "lc_p50_us": percentile(lc, .50), "lc_p95_us": percentile(lc, .95),
+                "be_throughput_kernels_s": (4 * expected_samples) /
+                ((max(row["completion_host_ns"] for row in be) - result["be_release_ns"]) / 1e9)}
+    if (result["lc_samples"] != 2 * expected_samples or result["be_completed"] != 4 * expected_samples or
+            result["outputs_validated_per_process"] != expected_values or
+            result["lc_release_ns"] - result["all_be_running_ns"] < 5_000_000):
+        raise RuntimeError(f"raw sample count/release mismatch: {directory.name}")
+    if any(not math.isclose(result[name], value, rel_tol=1e-12, abs_tol=1e-6) for name, value in expected.items()):
+        raise RuntimeError(f"raw metrics differ from summary: {directory.name}")
+    def policy_log(name):
+        process = read_json(directory / f"{name}.json")
+        if process["returncode"] not in (0, -signal.SIGTERM, -signal.SIGINT):
+            raise RuntimeError(f"saved policy exited unexpectedly: {directory.name}/{name}")
+        return "\n".join(process["stdout"] + process["stderr"])
+    if config in GPUBPF_CONFIGS:
+        actual = validate_gpubpf_engagement(config, policy_log("timeslice"), policy_log("preempt"),
+                                            protocol["tasks_per_stream"], require_persistent=True)
+        if actual != result["engagement"]:
+            raise RuntimeError(f"saved driver engagement differs: {directory.name}")
+    elif config in XSCHED_CONFIGS:
+        server = policy_log("xserver")
+        if server.count("set priority 1") < 8 or server.count("set priority 0") < 16:
+            raise RuntimeError(f"saved priority setup incomplete: {directory.name}")
+        raw_queues = set()
+        for process in processes:
+            matches = re.findall(r"XSCHED_AUDIT pid=(\d+) xqueue=(\d+) level=(\d+) threshold=(\d+) batch=(\d+) suspend_ok=(\d+) resume_ok=(\d+)", "\n".join(process["stderr"]))
+            parsed = [tuple(map(int, row)) for row in matches]
+            settings = (1, 16, 8) if process["name"].startswith("lc") else (1, 4, 2)
+            if len(parsed) != 4 or any(row[2:5] != settings for row in parsed):
+                raise RuntimeError(f"saved XQueue audit incomplete: {directory.name}")
+            if process["name"].startswith("be") and any(row[5] <= 0 or row[6] <= 0 for row in parsed):
+                raise RuntimeError(f"saved BE XQueue did not suspend/resume: {directory.name}")
+            raw_queues.update(row[:2] for row in parsed)
+        if len(raw_queues) != 24:
+            raise RuntimeError(f"saved queue identities not unique: {directory.name}")
+        if config == "bpftime_hpf" and validate_bpftime_hpf_engagement(server) != result["engagement"]["bpftime_hpf"]:
+            raise RuntimeError(f"saved JIT decisions differ: {directory.name}")
+
+
+def validate_resume(root: Path, protocol: dict[str, Any], checks: dict[str, Any]) -> int:
+    if read_json(root / "protocol.json") != json.loads(json.dumps(protocol)):
+        raise RuntimeError("resume protocol/schedule differs; refusing overwrite")
+    original = read_json(root / "admission.json")
+    for field in FROZEN_ADMISSION_FIELDS:
+        if original.get(field) != checks.get(field):
+            raise RuntimeError(f"resume source/binary/runtime metadata changed: {field}")
+    failures = list(root.glob("**/failure.json"))
+    markers = sorted(root.glob("pause-*.json"))
+    if failures or not markers:
+        raise RuntimeError("resume requires a clean explicit block-boundary pause, not a failed/interrupted run")
+    marker = read_json(markers[-1])
+    completed = marker["completed_blocks"]
+    if marker.get("state") != "paused_after_complete_block" or not 0 < completed < protocol["repetitions"]:
+        raise RuntimeError("invalid completed-block pause marker")
+    expected_dirs = {f"control-{role}-{i}" for role in ("lc", "be") for i in range(3)}
+    for name in sorted(expected_dirs):
+        audit_saved_cell(root / name, protocol)
+    for block, order in enumerate(protocol["schedule"][:completed]):
+        for index, config in enumerate(order):
+            name = f"block-{block:02d}-{index}-{config}"
+            expected_dirs.add(name)
+            record = read_json(root / name / "result.json")
+            if (record["block"], record["order_index"], record["config"]) != (block, index, config):
+                raise RuntimeError(f"saved randomized order differs: {name}")
+            audit_saved_cell(root / name, protocol, config)
+    actual_dirs = {path.name for path in root.iterdir() if path.is_dir()}
+    if actual_dirs != expected_dirs:
+        raise RuntimeError("partial, unexpected or extra block directories prevent resume")
+    return completed
 
 
 def classify_comparison(latency_ci: list[float], throughput_ci: list[float]) -> str:
@@ -838,6 +1021,10 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument("--configs", type=parse_configs, default=CONFIGS,
                         help="comma-separated independent configurations; default preserves the original three")
+    parser.add_argument("--stop-after-blocks", type=int,
+                        help="full only: pause after this many new complete paired blocks; total stays ten")
+    parser.add_argument("--resume", action="store_true",
+                        help="full only: continue an explicitly paused, unchanged campaign after raw audit")
     args = parser.parse_args()
     if args.tasks is None:
         args.tasks = {"pilot": 5, "preflight": 2}.get(args.phase, 50)
@@ -845,6 +1032,12 @@ def main() -> int:
         parser.error("workload dimensions and timeout must be positive")
     if args.reps is not None and args.reps < 1:
         parser.error("--reps must be positive")
+    if (args.resume or args.stop_after_blocks is not None) and args.phase != "full":
+        parser.error("block-boundary pause/resume is supported only for full campaigns")
+    if args.resume and not args.output:
+        parser.error("--resume requires the original --output directory")
+    if args.stop_after_blocks is not None and not 1 <= args.stop_after_blocks <= REPETITIONS:
+        parser.error("--stop-after-blocks must be between 1 and 10")
     if args.phase == "build":
         subprocess.run(["make", "-C", str(HERE)], check=True)
         current_diff = run(["git", "-C", str(XSCHED), "diff", "--", "preempt"]).stdout
@@ -902,8 +1095,9 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
         return 0
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     root = args.output or RAW / f"{args.phase}-{timestamp}"
-    root.mkdir(parents=True, exist_ok=False)
-    (root / "admission.json").write_text(json.dumps(checks, indent=2) + "\n")
+    if not args.resume:
+        root.mkdir(parents=True, exist_ok=False)
+        (root / "admission.json").write_text(json.dumps(checks, indent=2) + "\n")
     repetitions = {"pilot": 5, "preflight": 1}.get(args.phase, REPETITIONS)
     protocol = {
         "phase": args.phase, "repetitions": repetitions, "seed": SEED,
@@ -918,13 +1112,23 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
         ) if args.phase == "pilot" else None,
         "kernel_target_ms": 80, "xsched_level": 1,
         "gpubpf_timeslice_actuation": "task_init plus validated persistent control callback; old init-only results remain separate",
+        "schedule": fixed_schedule(args.configs, repetitions),
+        "worker_cpus": allowed_cpus(10)[2:], "isolated_cpu": allowed_cpus(1)[0],
+        "worker_environments": {config: {role: runtime_environment(workload_env(config, role))
+                                  for role in ("lc", "be")} for config in set(args.configs) | {"native"}},
         "candidate_policy_differences": {
             "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
             "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",
             "bpftime_hpf": "same upstream XSched frontend/Level-1 actuator; HPF decisions run in bpftime ubpf-jit, not driver-only BPF",
         } if any(config not in CONFIGS for config in args.configs) else {},
     }
-    (root / "protocol.json").write_text(json.dumps(protocol, indent=2) + "\n")
+    start_block = 0
+    if args.resume:
+        start_block = validate_resume(root, protocol, checks)
+        with (root / f"resume-admission-{start_block:02d}.json").open("x") as stream:
+            json.dump(checks, stream, indent=2)
+    else:
+        (root / "protocol.json").write_text(json.dumps(protocol, indent=2) + "\n")
 
     if args.phase == "preflight":
         results = []
@@ -936,15 +1140,14 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
             results.append(result)
             print(json.dumps(result), flush=True)
     else:
-        rng = random.Random(SEED)
-        if args.phase == "full":
+        if args.phase == "full" and not start_block:
             for role in ("lc", "be"):
                 for repetition in range(3):
                     execute_isolated(role, root / f"control-{role}-{repetition}", args.reps,
                                      args.tasks, args.blocks, args.threads, args.timeout)
-        for block in range(repetitions):
-            order = list(args.configs)
-            rng.shuffle(order)
+        for block, order in enumerate(protocol["schedule"]):
+            if block < start_block:
+                continue
             for order_index, config in enumerate(order):
                 result = execute_round(config, root / f"block-{block:02d}-{order_index}-{config}",
                                        args.reps, args.tasks, args.blocks, args.threads, args.timeout)
@@ -952,6 +1155,16 @@ def execute_phase(args: argparse.Namespace, checks: dict[str, Any]) -> int:
                 result_path = root / f"block-{block:02d}-{order_index}-{config}" / "result.json"
                 result_path.write_text(json.dumps(result, indent=2) + "\n")
                 print(json.dumps(result), flush=True)
+            if (args.stop_after_blocks is not None and block + 1 < repetitions and
+                    block + 1 - start_block >= args.stop_after_blocks):
+                for index, config in enumerate(order):
+                    audit_saved_cell(root / f"block-{block:02d}-{index}-{config}", protocol, config)
+                marker = {"state": "paused_after_complete_block", "completed_blocks": block + 1,
+                          "total_required_blocks": repetitions, "paused_at_ns": time.time_ns()}
+                with (root / f"pause-{block + 1:02d}.json").open("x") as stream:
+                    json.dump(marker, stream, indent=2)
+                print(json.dumps(marker), flush=True)
+                return 0
         print(json.dumps(analyze(root), indent=2))
     return 0
 

@@ -1,0 +1,547 @@
+{
+  "arm": "bpf",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/bin/python",
+    "-B",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/inference_eb.py",
+    "--source",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02",
+    "--data",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/dataset-mtbench-v1.json",
+    "--golden",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/raw/golden-v4/stage",
+    "--offload",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/qwen-offload-cache",
+    "--output",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-correctness-02/bpf",
+    "--arm",
+    "bpf",
+    "--capacity",
+    "16",
+    "--check-logits"
+  ],
+  "diagnostic": false,
+  "environment": {
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "EB_SECTION_VI_ARM": "bpf",
+    "EB_SECTION_VI_BYTECODE": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/eb_policy.bin",
+    "EB_SECTION_VI_CAPACITY": "16",
+    "EB_SECTION_VI_CORRECTNESS_ONLY": "1",
+    "EB_SECTION_VI_LIBRARY": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/libeb_shadow.so",
+    "EB_SECTION_VI_REAL_LIBRARY": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/libeb_policy.so",
+    "EB_SECTION_VI_UNTIMED_SHADOW": "1",
+    "FINEMOE_EXCLUSIVE_LEASE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "MKL_NUM_THREADS": "4",
+    "OMP_NUM_THREADS": "4",
+    "PYTORCH_ALLOC_CONF": "expandable_segments:True",
+    "TOKENIZERS_PARALLELISM": "false",
+    "TORCH_DISABLE_NATIVE_JIT": "1",
+    "TRANSFORMERS_OFFLINE": "1"
+  },
+  "environment_removed_names": [],
+  "runtime_before": {
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/analyze_results.py": {
+      "bytes": 5729,
+      "mtime_ns": 1788446140451841042,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/analyze_results.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/eb_policy.bin": {
+      "bytes": 744,
+      "mtime_ns": 1788440835868610484,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/eb_policy.bin"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/libeb_policy.so": {
+      "bytes": 58768,
+      "mtime_ns": 1788437533184362273,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/libeb_policy.so"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/libeb_shadow.so": {
+      "bytes": 17520,
+      "mtime_ns": 1788451142432329109,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/libeb_shadow.so"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_thread.cpp": {
+      "bytes": 1447,
+      "mtime_ns": 1788415386714329671,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_thread.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_thread.h": {
+      "bytes": 629,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_thread.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_threadpool.cpp": {
+      "bytes": 972,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_threadpool.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_threadpool.h": {
+      "bytes": 475,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_threadpool.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_utils.cpp": {
+      "bytes": 3471,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_utils.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_utils.h": {
+      "bytes": 728,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_aio_utils.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_prio_aio_handle.cpp": {
+      "bytes": 7135,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_prio_aio_handle.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_prio_aio_handle.h": {
+      "bytes": 2352,
+      "mtime_ns": 1788416606345510682,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_prio_aio_handle.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_handle.cpp": {
+      "bytes": 6649,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_handle.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_handle.h": {
+      "bytes": 1961,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_handle.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_index.cpp": {
+      "bytes": 4858,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_index.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_index.h": {
+      "bytes": 1356,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/aio/archer_tensor_index.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/pytorch.h": {
+      "bytes": 995,
+      "mtime_ns": 1788415386714355391,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/pytorch.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/status.h": {
+      "bytes": 996,
+      "mtime_ns": 1788415386714615218,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/status.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/time.h": {
+      "bytes": 711,
+      "mtime_ns": 1788415386714615218,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/time.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/types.h": {
+      "bytes": 335,
+      "mtime_ns": 1788415386714615218,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/common/types.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/adapter_live.inc": {
+      "bytes": 10612,
+      "mtime_ns": 1788441905243066283,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/adapter_live.inc"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/adapter_state.cpp": {
+      "bytes": 9680,
+      "mtime_ns": 1788440951926387212,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/adapter_state.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/adapter_state.h": {
+      "bytes": 2134,
+      "mtime_ns": 1788440716927535696,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/adapter_state.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/policy.h": {
+      "bytes": 1351,
+      "mtime_ns": 1788437335983727612,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/eb_section_vi/policy.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/host_caching_allocator.cpp": {
+      "bytes": 3760,
+      "mtime_ns": 1788415386714615218,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/host_caching_allocator.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/host_caching_allocator.h": {
+      "bytes": 4313,
+      "mtime_ns": 1788415386714702133,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/host_caching_allocator.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/memory_pool.cpp": {
+      "bytes": 5627,
+      "mtime_ns": 1788417748855547957,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/memory_pool.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/memory_pool.h": {
+      "bytes": 2768,
+      "mtime_ns": 1788415386714702133,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/memory_pool.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/stream_pool.cpp": {
+      "bytes": 345,
+      "mtime_ns": 1788415386714702133,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/stream_pool.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/stream_pool.h": {
+      "bytes": 1235,
+      "mtime_ns": 1788415386714702133,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/memory/stream_pool.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/model/model_topology.cpp": {
+      "bytes": 26722,
+      "mtime_ns": 1788418693593650422,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/model/model_topology.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/model/model_topology.h": {
+      "bytes": 6576,
+      "mtime_ns": 1788418693592650400,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/model/model_topology.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_dispatcher.cpp": {
+      "bytes": 16709,
+      "mtime_ns": 1788415386714893581,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_dispatcher.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_dispatcher.h": {
+      "bytes": 3170,
+      "mtime_ns": 1788415386714997488,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_dispatcher.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_module.cpp": {
+      "bytes": 8639,
+      "mtime_ns": 1788415386714997488,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_module.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_module.h": {
+      "bytes": 3766,
+      "mtime_ns": 1788415386714997488,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/parallel/expert_module.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/archer_prefetch_handle.cpp": {
+      "bytes": 17340,
+      "mtime_ns": 1788442593943612208,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/archer_prefetch_handle.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/archer_prefetch_handle.h": {
+      "bytes": 3011,
+      "mtime_ns": 1788442593943544573,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/archer_prefetch_handle.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_scheduler.cpp": {
+      "bytes": 24153,
+      "mtime_ns": 1788442593943493629,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_scheduler.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_scheduler.h": {
+      "bytes": 4935,
+      "mtime_ns": 1788442593943351289,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_scheduler.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_thread.cpp": {
+      "bytes": 1391,
+      "mtime_ns": 1788415386715139191,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_thread.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_thread.h": {
+      "bytes": 471,
+      "mtime_ns": 1788415386715139191,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/prefetch/task_thread.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/python/py_archer_prefetch.cpp": {
+      "bytes": 7410,
+      "mtime_ns": 1788442593943662786,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/python/py_archer_prefetch.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/archer_tensor_tracer.cpp": {
+      "bytes": 5108,
+      "mtime_ns": 1788415386715139191,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/archer_tensor_tracer.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/archer_tensor_tracer.h": {
+      "bytes": 837,
+      "mtime_ns": 1788415386715339604,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/archer_tensor_tracer.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/model_topology.cpp": {
+      "bytes": 25626,
+      "mtime_ns": 1788415386715339604,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/model_topology.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/model_topology.h": {
+      "bytes": 6293,
+      "mtime_ns": 1788415386715339604,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/trace/model_topology.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/archer_logger.cpp": {
+      "bytes": 1973,
+      "mtime_ns": 1788415386715339604,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/archer_logger.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/archer_logger.h": {
+      "bytes": 3499,
+      "mtime_ns": 1788415386715497414,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/archer_logger.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/cuda_utils.cpp": {
+      "bytes": 1175,
+      "mtime_ns": 1788415386715497414,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/cuda_utils.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/cuda_utils.h": {
+      "bytes": 457,
+      "mtime_ns": 1788415386715497414,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/cuda_utils.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/noncopyable.h": {
+      "bytes": 1271,
+      "mtime_ns": 1788415386715497414,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/noncopyable.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/simple_object_pool.h": {
+      "bytes": 2845,
+      "mtime_ns": 1788415386715497414,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/core/utils/simple_object_pool.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/__init__.py": {
+      "bytes": 101,
+      "mtime_ns": 1788415386715706361,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/common/__init__.py": {
+      "bytes": 24,
+      "mtime_ns": 1788415386716139858,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/common/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/common/constants.py": {
+      "bytes": 839,
+      "mtime_ns": 1788415386716156845,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/common/constants.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/__init__.py": {
+      "bytes": 244,
+      "mtime_ns": 1788415386716156845,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/devicemap_manager.py": {
+      "bytes": 2179,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/devicemap_manager.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/expert_executor.py": {
+      "bytes": 3638,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/expert_executor.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/expert_prefetcher.py": {
+      "bytes": 2768,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/distributed/expert_prefetcher.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/entrypoints/__init__.py": {
+      "bytes": 29,
+      "mtime_ns": 1788415386716198515,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/entrypoints/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/entrypoints/big_modeling.py": {
+      "bytes": 8215,
+      "mtime_ns": 1788415386716284723,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/entrypoints/big_modeling.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/__init__.py": {
+      "bytes": 170,
+      "mtime_ns": 1788415386716284723,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/expert_entry.py": {
+      "bytes": 321,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/expert_entry.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/expert_prefetcher.py": {
+      "bytes": 3744,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/expert_prefetcher.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/expert_tracer.py": {
+      "bytes": 7880,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/memory/expert_tracer.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/__init__.py": {
+      "bytes": 195,
+      "mtime_ns": 1788415386716344341,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/model_utils.py": {
+      "bytes": 757,
+      "mtime_ns": 1788415386716442656,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/model_utils.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/modeling_qwen/__init__.py": {
+      "bytes": 2069,
+      "mtime_ns": 1788415386716442656,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/modeling_qwen/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/modeling_qwen/configuration_qwen2_moe.py": {
+      "bytes": 8901,
+      "mtime_ns": 1788415386716491780,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/modeling_qwen/configuration_qwen2_moe.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/modeling_qwen/modeling_qwen2_moe.py": {
+      "bytes": 83822,
+      "mtime_ns": 1788442593943887713,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/models/modeling_qwen/modeling_qwen2_moe.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/ops/__init__.py": {
+      "bytes": 0,
+      "mtime_ns": 1788415386716491780,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/ops/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/ops/prefetch/__init__.py": {
+      "bytes": 0,
+      "mtime_ns": 1788415386716767243,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/ops/prefetch/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/ops/prefetch/prefetch_op.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 59238064,
+      "mtime_ns": 1788443132000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/ops/prefetch/prefetch_op.cpython-312-x86_64-linux-gnu.so"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/runtime/__init__.py": {
+      "bytes": 40,
+      "mtime_ns": 1788415386716767243,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/runtime/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/runtime/model_offload.py": {
+      "bytes": 44563,
+      "mtime_ns": 1788442593944073671,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/runtime/model_offload.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/__init__.py": {
+      "bytes": 172,
+      "mtime_ns": 1788415386716818186,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/__init__.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/arguments.py": {
+      "bytes": 1193,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/arguments.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/checkpoints.py": {
+      "bytes": 3393,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/checkpoints.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/config.py": {
+      "bytes": 2015,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/config.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/hf_config.py": {
+      "bytes": 2034,
+      "mtime_ns": 1788415386716947377,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build/stage-check-02/finemoe/utils/hf_config.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build_adapter.py": {
+      "bytes": 5980,
+      "mtime_ns": 1788453980035968568,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/build_adapter.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/correctness.py": {
+      "bytes": 25523,
+      "mtime_ns": 1788446371568135757,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/correctness.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/inference_eb.py": {
+      "bytes": 9319,
+      "mtime_ns": 1788445880291856363,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/inference_eb.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/shadow_bridge.cpp": {
+      "bytes": 6319,
+      "mtime_ns": 1788443385312491267,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/shadow_bridge.cpp"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/analyze_results.py": {
+      "bytes": 25269,
+      "mtime_ns": 1788422763478386327,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/analyze_results.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/compare.py": {
+      "bytes": 30195,
+      "mtime_ns": 1788422487113307644,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/compare.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/dataset-mtbench-v1.json": {
+      "bytes": 26155,
+      "mtime_ns": 1788417648578650317,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/dataset-mtbench-v1.json"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_copy_ledger.h": {
+      "bytes": 5240,
+      "mtime_ns": 1788417748853547911,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_copy_ledger.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_runtime_safety.h": {
+      "bytes": 1014,
+      "mtime_ns": 1788418693592650400,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/finemoe_runtime_safety.h"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py": {
+      "bytes": 18193,
+      "mtime_ns": 1788422439181255985,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/policy_runtime.py": {
+      "bytes": 9325,
+      "mtime_ns": 1788416950624329590,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/policy_runtime.py"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/source-inventory.json": {
+      "bytes": 2357,
+      "mtime_ns": 1788418371007407091,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/source-inventory.json"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py": {
+      "bytes": 119398,
+      "mtime_ns": 1788397543651737512,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py"
+    }
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 810,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 17.65,
+      "sm_clock_mhz": 41,
+      "temperature_c": 50,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788454716065840190,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "stage": "cell",
+  "status": "running"
+}

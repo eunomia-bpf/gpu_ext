@@ -1,0 +1,63 @@
+{
+  "complete": true,
+  "kind": "root_actual_raw_and_current_runtime_reaudit",
+  "campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi/raw/575-section-vi-correctness-02",
+  "runtime_entries": 94,
+  "numerical_audits": {
+    "bpf": {
+      "absolute_tolerance": 0.0,
+      "arrays_recomputed": 9,
+      "compared_logits": 21878784,
+      "exact_equal": true
+    },
+    "fifo": {
+      "absolute_tolerance": 0.0,
+      "arrays_recomputed": 9,
+      "compared_logits": 21878784,
+      "exact_equal": true
+    },
+    "native": {
+      "absolute_tolerance": 0.0,
+      "arrays_recomputed": 9,
+      "compared_logits": 21878784,
+      "exact_equal": true
+    }
+  },
+  "total_compared_values": 65636352,
+  "last_native_drained_ns": 28520747486409,
+  "arms": {
+    "fifo": {
+      "eb_after": {
+        "admissions": 15039,
+        "decisions": 20182,
+        "evictions": 14655,
+        "jit_calls": 0,
+        "registered_layers": 24,
+        "resident_sparse_bytes": 6643777536
+      },
+      "correctness_generated_tokens": 144
+    },
+    "native": {
+      "eb_after": {
+        "admissions": 13312,
+        "decisions": 20182,
+        "evictions": 12928,
+        "jit_calls": 0,
+        "registered_layers": 24,
+        "resident_sparse_bytes": 6643777536
+      },
+      "correctness_generated_tokens": 144
+    },
+    "bpf": {
+      "eb_after": {
+        "admissions": 13312,
+        "decisions": 20182,
+        "evictions": 12928,
+        "jit_calls": 20182,
+        "registered_layers": 24,
+        "resident_sparse_bytes": 6643777536
+      },
+      "correctness_generated_tokens": 144
+    }
+  }
+}

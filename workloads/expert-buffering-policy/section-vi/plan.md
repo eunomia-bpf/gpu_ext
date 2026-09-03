@@ -2,9 +2,11 @@
 
 Status (2026-09-03): independent integer selector built; nine CPU tests passed
 with 2,131 native and 2,131 actual host-uBPF JIT decisions. The subsequent
-[real three-arm GPU preflight](correctness-results-575-01.md) now passes,
+[fresh real three-arm GPU preflight](correctness-results-575-02.md) now passes,
 including all 27 full logits arrays and 20,182 live-input JIT/native checks.
-The 15-cell Section VI performance campaign remains pending.
+The 15-cell Section VI performance campaign remains pending. Full attempt 01
+was stopped for CPU interference and is [retained but excluded](full-01-abandoned.md);
+preflight 02 validates the repaired cleanup helper before a fresh full attempt.
 The older 20-cell page-profile experiment is an analogue,
 not evidence that this algorithm has been reproduced.
 

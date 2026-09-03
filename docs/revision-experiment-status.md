@@ -48,7 +48,11 @@ and nine exact repeated-output checks. All 18 saved original/repeated FP32
 arrays passed independent numerical recomputation with zero error. Preparation
 required a common allocator setting and disabling optional PyTorch DSL overrides, not the separate uBPF
 policy JIT. Earlier OOM/SIGILL and diagnostic records remain retained; the
-precise fatal-signal cause is not established. FineMoE
+precise fatal-signal cause is not established. The first real offload history
+attempts failed on one generated token in their first request. A missing
+checkpoint generation configuration is confirmed in that loader (including
+repetition penalty 1.0 instead of 1.05); a same-configuration retry must still
+establish whether it resolves the observed failure. FineMoE
 offload correctness, history, actual transfers and four-arm timing are still
 open; see the [preparation record](../workloads/finemoe/results-preparation.md).
 The original complete LMSYS dataset requires

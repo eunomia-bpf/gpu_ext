@@ -79,3 +79,34 @@ on this new protocol: calibration 5–15 seconds, four-arm preflight roughly
 blocks roughly 5–7 minutes each, and the entire campaign roughly 55–70 minutes.
 Natural pauses and their fresh admissions are recorded; they do not change
 the predetermined order, kernel count, sample count or selected results.
+
+## Post-reboot admission and preflight completed
+
+The restored `849ea75d` driver passed both fresh strict real-GSP canaries under
+`raw/gpreempt-context-{original,bpf}-849ea75d-postboot-20260903-0147/`. Each
+checks 2,048 integer outputs and 17 negative cases, with the last completed
+LC/BE GSP values still 1,000,000/1 us before execution. Cleanup passed.
+
+The new isolated calibration is retained in
+[`raw/calibration-persistent-575-20260903/calibration.json`](raw/calibration-persistent-575-20260903/calibration.json):
+**`frozen_reps = 9511106`**, producing a 79.968544 ms kernel. Use that value in
+the full commands above; do not reuse the old pilot calibration.
+
+All four arms passed the new
+[`raw/preflight-persistent-575-20260903/`](raw/preflight-persistent-575-20260903/)
+preflight with those repetitions. Each cell has 48 kernels and 4,177,920
+validated output values. Both XSched frontends observed suspend/resume on all
+16 BE queues; the BPF frontend executed 105 JIT calls and 1,489 queue decisions.
+The driver BPF arm observed 20 initialization modifications, six persistent
+control overrides, four BE targets and eight successful preemptions, with
+zero setter/preemption errors. The independent raw audit also passed all four
+cells, including worker commands, sample clock conversion, numerical counts,
+engagement and pre/post safety.
+
+This remains a **two-kernel-per-stream preflight**, not a completed full
+comparison. Its 16 LC samples make p99 the sample maximum; the four-arm ten-block
+campaign and all six full isolated controls are still required and have not
+been replaced by these short cells. In particular, the short driver-BPF cell
+reduced LC delay but also reduced BE throughput, so no full-performance win is
+inferred. The GPU was then released for the separately recorded GPreempt
+five-block campaign; XSched full has not yet started.

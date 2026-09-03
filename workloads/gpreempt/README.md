@@ -218,6 +218,15 @@ old init-only implementation from passing when CUDA subsequently writes its
 2048 µs default. These are accepted BPF **request** counters, not independent
 proof of firmware actuation; the coordinator's real GSP canary remains distinct.
 
+The full five-block, 15-cell comparison subsequently completed with all raw
+audits passing. BPF/original-C LC p99 has paired geometric ratio 1.002575
+(95% interval [1.001278, 1.003740]): a small measured latency cost, not a BPF win
+or a formal equivalence claim. Median BE throughput is 100 requests/s for all
+three arms at the fixed offered rate. See
+[the complete result and transport limitations](results-575-host-mapped-20260903.md).
+This completes the explicit host-mapped compatibility comparison, not the
+unsupported original GDRCopy transport.
+
 ## Model assets and fair cells still required
 
 The official checkout contains only `model/makefile`, not ready model assets.

@@ -1,0 +1,303 @@
+{
+  "runner_file": {
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/run_xsched_rq3.py",
+    "exists": true,
+    "bytes": 60872,
+    "device": 66305,
+    "inode": 92447891,
+    "mtime_ns": 1788399207176605261,
+    "ctime_ns": 1788399207176605261
+  },
+  "shared_safety_runner": {
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py",
+    "exists": true,
+    "bytes": 119398,
+    "device": 66305,
+    "inode": 92448857,
+    "mtime_ns": 1788397543651737512,
+    "ctime_ns": 1788397543651737512
+  },
+  "nvidia_btf_file": {
+    "path": "/sys/kernel/btf/nvidia",
+    "exists": true,
+    "bytes": 125993,
+    "device": 24,
+    "inode": 84865,
+    "mtime_ns": 1788399972072910642,
+    "ctime_ns": 1788399972072910642
+  },
+  "uvm_btf_file": {
+    "path": "/sys/kernel/btf/nvidia_uvm",
+    "exists": true,
+    "bytes": 268940,
+    "device": 24,
+    "inode": 89169,
+    "mtime_ns": 1788399972072979219,
+    "ctime_ns": 1788399972072979219
+  },
+  "kernel": "6.15.11-061511-generic",
+  "driver": "575.57.08",
+  "gpu_processes": [],
+  "xsched_commit": "f49289f0220931df78de948ed841ecbaf960a919",
+  "xsched_diff": "diff --git a/preempt/include/xsched/preempt/xqueue/async_xqueue.h b/preempt/include/xsched/preempt/xqueue/async_xqueue.h\n--- a/preempt/include/xsched/preempt/xqueue/async_xqueue.h\n+++ b/preempt/include/xsched/preempt/xqueue/async_xqueue.h\n@@ -39,6 +39,8 @@ private:\n \n     std::atomic_bool suspended_ = { false };\n     std::atomic_bool terminated_ = { false };\n+    std::atomic<uint64_t> audit_suspend_count_ = { 0 };\n+    std::atomic<uint64_t> audit_resume_count_ = { 0 };\n \n     // The index of HwCommand starts from 1.\n     std::atomic<int64_t> next_hw_cmd_idx_ = { 1 };\ndiff --git a/preempt/src/xqueue/async_xqueue.cpp b/preempt/src/xqueue/async_xqueue.cpp\n--- a/preempt/src/xqueue/async_xqueue.cpp\n+++ b/preempt/src/xqueue/async_xqueue.cpp\n@@ -1,3 +1,6 @@\n+#include <cstdio>\n+#include <unistd.h>\n+\n #include \"xsched/utils/xassert.h\"\n #include \"xsched/preempt/sched/agent.h\"\n #include \"xsched/preempt/xqueue/xqueue.h\"\n@@ -39,6 +42,13 @@ AsyncXQueue::~AsyncXQueue()\n     cmd_buf_->Enqueue(destroy_command);\n     destroy_command->Wait();\n     SchedAgent::SendEvent(std::make_shared<XQueueDestroyEvent>(kHandle));\n+    std::fprintf(stderr,\n+        \"XSCHED_AUDIT pid=%d xqueue=%llu level=%d threshold=%lld batch=%lld suspend_ok=%llu resume_ok=%llu\\n\",\n+        static_cast<int>(getpid()), static_cast<unsigned long long>(kHandle),\n+        static_cast<int>(level_), static_cast<long long>(launch_worker_->GetThreshold()),\n+        static_cast<long long>(launch_worker_->GetBatchSize()),\n+        static_cast<unsigned long long>(audit_suspend_count_.load()),\n+        static_cast<unsigned long long>(audit_resume_count_.load()));\n }\n \n void AsyncXQueue::Submit(std::shared_ptr<HwCommand> hw_cmd)\n@@ -96,6 +106,7 @@ void AsyncXQueue::Suspend(int64_t flags)\n     // Will not suspend if it is already suspended.\n     bool expected = false;\n     if (!suspended_.compare_exchange_strong(expected, true)) return;\n+    audit_suspend_count_.fetch_add(1, std::memory_order_relaxed);\n \n     if (flags & kQueueSuspendFlagWaitIdle) {\n         // Wait for all HwCommands to be completed,\n@@ -117,6 +128,7 @@ void AsyncXQueue::Resume(int64_t flags)\n     // Will not resume if it is not suspended.\n     bool expected = true;\n     if (!suspended_.compare_exchange_strong(expected, false)) return;\n+    audit_resume_count_.fetch_add(1, std::memory_order_relaxed);\n \n     if (level_ == kPreemptLevelBlock) {\n         // Should not clear the command log because when the XQueue is suspended without\n",
+  "xsched_diff_matches_reviewed_patch": true,
+  "workload_file": {
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/priority_workload",
+    "exists": true,
+    "bytes": 1054184,
+    "device": 66305,
+    "inode": 92419371,
+    "mtime_ns": 1788257567189298457,
+    "ctime_ns": 1788257567193298544
+  },
+  "workload_source": {
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/priority_workload.cu",
+    "exists": true,
+    "bytes": 14119,
+    "device": 66305,
+    "inode": 92447884,
+    "mtime_ns": 1788257557260084475,
+    "ctime_ns": 1788257557260084475
+  },
+  "worker_entrypoints": {
+    "lc": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_lc",
+      "exists": true,
+      "bytes": 1054184,
+      "device": 66305,
+      "inode": 92419371,
+      "mtime_ns": 1788257567189298457,
+      "ctime_ns": 1788257567193298544
+    },
+    "be": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_be",
+      "exists": true,
+      "bytes": 1054184,
+      "device": 66305,
+      "inode": 92419371,
+      "mtime_ns": 1788257567189298457,
+      "ctime_ns": 1788257567193298544
+    }
+  },
+  "xserver_file": {
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "exists": true,
+    "bytes": 1418856,
+    "device": 66305,
+    "inode": 92411544,
+    "mtime_ns": 1788169122000000000,
+    "ctime_ns": 1788169125030350399
+  },
+  "cuda_driver_library": {
+    "path": "/usr/lib/x86_64-linux-gnu/libcuda.so",
+    "exists": true,
+    "bytes": 92316728,
+    "device": 66308,
+    "inode": 32245883,
+    "mtime_ns": 1748071922000000000,
+    "ctime_ns": 1788387961159609984
+  },
+  "reviewed_patch_file": {
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/xsched-engagement.patch",
+    "exists": true,
+    "bytes": 2540,
+    "device": 66305,
+    "inode": 92447978,
+    "mtime_ns": 1788168693598047951,
+    "ctime_ns": 1788168693598047951
+  },
+  "gpubpf_binaries": {
+    "uprobe_preempt_multi": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/uprobe_preempt_multi",
+      "exists": true,
+      "bytes": 1591592,
+      "device": 66305,
+      "inode": 92418543,
+      "mtime_ns": 1788398377188287658,
+      "ctime_ns": 1788398377188603187
+    },
+    "gpu_sched_set_timeslices": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices",
+      "exists": true,
+      "bytes": 1539992,
+      "device": 66305,
+      "inode": 92418472,
+      "mtime_ns": 1788398328911247603,
+      "ctime_ns": 1788398328911257759
+    }
+  },
+  "gpubpf_source_files": {
+    "extension/uprobe_preempt_multi.c": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/uprobe_preempt_multi.c",
+      "exists": true,
+      "bytes": 13574,
+      "device": 66305,
+      "inode": 92442509,
+      "mtime_ns": 1773951983348750039,
+      "ctime_ns": 1786245713504589217
+    },
+    "extension/uprobe_preempt_multi.bpf.c": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/uprobe_preempt_multi.bpf.c",
+      "exists": true,
+      "bytes": 9259,
+      "device": 66305,
+      "inode": 92418630,
+      "mtime_ns": 1788398376789278580,
+      "ctime_ns": 1788398376789278580
+    },
+    "extension/gpu_sched_set_timeslices.c": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices.c",
+      "exists": true,
+      "bytes": 9322,
+      "device": 66305,
+      "inode": 92442368,
+      "mtime_ns": 1788398034230533071,
+      "ctime_ns": 1788398034230533071
+    },
+    "extension/gpu_sched_set_timeslices.bpf.c": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices.bpf.c",
+      "exists": true,
+      "bytes": 6729,
+      "device": 66305,
+      "inode": 92418437,
+      "mtime_ns": 1788398318555954946,
+      "ctime_ns": 1788398318555954946
+    },
+    "extension/gpu_sched_set_timeslices.h": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices.h",
+      "exists": true,
+      "bytes": 3214,
+      "device": 66305,
+      "inode": 92442369,
+      "mtime_ns": 1788397930908221829,
+      "ctime_ns": 1788397930908221829
+    },
+    "extension/Makefile": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/Makefile",
+      "exists": true,
+      "bytes": 11605,
+      "device": 66305,
+      "inode": 92442325,
+      "mtime_ns": 1788386314630634413,
+      "ctime_ns": 1788386314630634413
+    }
+  },
+  "xsched_runtime_files": {
+    "libpreempt.so": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib/libpreempt.so",
+      "exists": true,
+      "bytes": 786704,
+      "device": 66305,
+      "inode": 92411501,
+      "mtime_ns": 1788169112000000000,
+      "ctime_ns": 1788169125028201601
+    },
+    "libhalcuda.so": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib/libhalcuda.so",
+      "exists": true,
+      "bytes": 536640,
+      "device": 66305,
+      "inode": 92411556,
+      "mtime_ns": 1788169113000000000,
+      "ctime_ns": 1788169125032331043
+    },
+    "libshimcuda.so": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib/libshimcuda.so",
+      "exists": true,
+      "bytes": 822960,
+      "device": 66305,
+      "inode": 92411593,
+      "mtime_ns": 1788169119000000000,
+      "ctime_ns": 1788169125034923810
+    },
+    "libcuda.so": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib/libcuda.so",
+      "exists": true,
+      "bytes": 822960,
+      "device": 66305,
+      "inode": 92411593,
+      "mtime_ns": 1788169119000000000,
+      "ctime_ns": 1788169125034923810
+    }
+  },
+  "bpftime_hpf_files": {
+    "build/xserver-bpftime": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/xserver-bpftime",
+      "exists": true,
+      "bytes": 9525256,
+      "device": 66305,
+      "inode": 92421812,
+      "mtime_ns": 1788391123782801204,
+      "ctime_ns": 1788391123784334152
+    },
+    "build/bpftime_hpf.bin": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bpftime_hpf.bin",
+      "exists": true,
+      "bytes": 392,
+      "device": 66305,
+      "inode": 92421811,
+      "mtime_ns": 1788390973709643967,
+      "ctime_ns": 1788390973709673010
+    },
+    "bpftime_hpf.cpp": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/bpftime_hpf.cpp",
+      "exists": true,
+      "bytes": 4105,
+      "device": 66305,
+      "inode": 92421808,
+      "mtime_ns": 1788391123202783634,
+      "ctime_ns": 1788391123202783634
+    },
+    "bpftime_hpf.bpf.c": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/bpftime_hpf.bpf.c",
+      "exists": true,
+      "bytes": 969,
+      "device": 66305,
+      "inode": 92421807,
+      "mtime_ns": 1788390973209489798,
+      "ctime_ns": 1788390973209489798
+    },
+    "bpftime_hpf.h": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/bpftime_hpf.h",
+      "exists": true,
+      "bytes": 374,
+      "device": 66305,
+      "inode": 92421806,
+      "mtime_ns": 1788390973209489798,
+      "ctime_ns": 1788390973209489798
+    }
+  },
+  "nvidia_btf_probe_rc": 0,
+  "has_nv_gpu_sched_ops": true,
+  "has_preempt_kfunc": true,
+  "has_timeslice_control_kfunc": true,
+  "has_timeslice_control_callback": true,
+  "safety": {
+    "timestamp_ns": 1788400094583299680,
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "gpu": {
+      "index": 0,
+      "name": "NVIDIA GeForce RTX 5090",
+      "driver": "575.57.08",
+      "memory_used_mib": 2,
+      "memory_total_mib": 32607,
+      "temperature_c": 45,
+      "sm_clock_mhz": 22,
+      "memory_clock_mhz": 405,
+      "power_w": 12.29,
+      "utilization_gpu_percent": 0,
+      "compute_apps": []
+    },
+    "uvm_refcount": 0,
+    "struct_ops": {
+      "maps": [],
+      "links": []
+    },
+    "dmesg_abnormal": [],
+    "journal_abnormal": [],
+    "xids": []
+  },
+  "errors": [],
+  "admitted": true
+}

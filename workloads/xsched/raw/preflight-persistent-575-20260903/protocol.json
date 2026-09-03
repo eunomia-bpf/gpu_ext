@@ -1,0 +1,110 @@
+{
+  "phase": "preflight",
+  "repetitions": 1,
+  "seed": 1797,
+  "tasks_per_stream": 2,
+  "streams_per_process": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "configs": [
+    "native",
+    "xsched",
+    "bpftime_hpf",
+    "gpubpf"
+  ],
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "timeout_seconds_per_cell": 180.0,
+  "full_50_kernel_10_block_protocol": false,
+  "short_budget_difference": null,
+  "kernel_target_ms": 80,
+  "xsched_level": 1,
+  "gpubpf_timeslice_actuation": "task_init plus validated persistent control callback; old init-only results remain separate",
+  "schedule": [
+    [
+      "gpubpf",
+      "native",
+      "xsched",
+      "bpftime_hpf"
+    ]
+  ],
+  "worker_cpus": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "isolated_cpu": 0,
+  "worker_environments": {
+    "gpubpf": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9"
+      }
+    },
+    "bpftime_hpf": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+      }
+    },
+    "native": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9"
+      }
+    },
+    "xsched": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+      }
+    }
+  },
+  "candidate_policy_differences": {
+    "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
+    "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",
+    "bpftime_hpf": "same upstream XSched frontend/Level-1 actuator; HPF decisions run in bpftime ubpf-jit, not driver-only BPF"
+  }
+}

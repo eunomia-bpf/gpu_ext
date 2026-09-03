@@ -1,0 +1,149 @@
+{
+  "arms": {
+    "bpf_gpreempt": {
+      "resnet152_be": {
+        "max_completed_requests": 5996,
+        "median_p99_latency_us": 6277.9,
+        "median_throughput_rps": 99.93333333333334,
+        "min_completed_requests": 5996
+      },
+      "vgg_rt": {
+        "max_completed_requests": 5999,
+        "median_p99_latency_us": 1417.417,
+        "median_throughput_rps": 99.98333333333333,
+        "min_completed_requests": 5999
+      }
+    },
+    "native": {
+      "resnet152_be": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 4839.113,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      },
+      "vgg_rt": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 1415.108,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      }
+    },
+    "original_gpreempt": {
+      "resnet152_be": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 6257.886,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      },
+      "vgg_rt": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 1413.692,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      }
+    }
+  },
+  "arrival_or_drop_counts_inferred": false,
+  "ci_method": "percentile bootstrap of paired blocks, geometric ratios, 10000 draws",
+  "comparison_variant": "host_mapped_compatibility",
+  "complete": false,
+  "equivalence_claimed": false,
+  "flag_transport": "host_mapped",
+  "incomplete_cells": [
+    {
+      "arm": "native",
+      "block": 1
+    },
+    {
+      "arm": "native",
+      "block": 2
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 2
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 2
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 3
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 3
+    },
+    {
+      "arm": "native",
+      "block": 3
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 4
+    },
+    {
+      "arm": "native",
+      "block": 4
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 4
+    }
+  ],
+  "latency_definition": "nearest-rank p99 of the original six recorded service stages, not arrival-to-completion",
+  "original_gdr_transport": false,
+  "paired": {
+    "bpf_gpreempt/native:resnet152_be:throughput_rps": {
+      "block_ratios": [
+        0.9993333333333334
+      ],
+      "direction": "higher is better",
+      "geometric_ratio": 0.9993333333333334,
+      "paired_block_bootstrap_ci95": null
+    },
+    "bpf_gpreempt/native:vgg_rt:p99_latency_us": {
+      "block_ratios": [
+        1.0016316775822056
+      ],
+      "direction": "lower is better",
+      "geometric_ratio": 1.0016316775822056,
+      "paired_block_bootstrap_ci95": null
+    },
+    "bpf_gpreempt/original_gpreempt:resnet152_be:throughput_rps": {
+      "block_ratios": [
+        0.9993333333333334
+      ],
+      "direction": "higher is better",
+      "geometric_ratio": 0.9993333333333334,
+      "paired_block_bootstrap_ci95": null
+    },
+    "bpf_gpreempt/original_gpreempt:vgg_rt:p99_latency_us": {
+      "block_ratios": [
+        1.002634944528228
+      ],
+      "direction": "lower is better",
+      "geometric_ratio": 1.002634944528228,
+      "paired_block_bootstrap_ci95": null
+    },
+    "original_gpreempt/native:resnet152_be:throughput_rps": {
+      "block_ratios": [
+        1.0
+      ],
+      "direction": "higher is better",
+      "geometric_ratio": 1.0,
+      "paired_block_bootstrap_ci95": null
+    },
+    "original_gpreempt/native:vgg_rt:p99_latency_us": {
+      "block_ratios": [
+        0.9989993696594183
+      ],
+      "direction": "lower is better",
+      "geometric_ratio": 0.9989993696594183,
+      "paired_block_bootstrap_ci95": null
+    }
+  },
+  "rejected_cells": [],
+  "required_blocks": 5,
+  "valid_paired_blocks": 1
+}

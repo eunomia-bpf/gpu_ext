@@ -1,0 +1,148 @@
+{
+  "arm": "original_gpreempt",
+  "command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/ninja/gpreemptclient",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/575-host-mapped-three-way-01/config-A.json",
+    "--flag-transport",
+    "host_mapped"
+  ],
+  "comparison_variant": "host_mapped_compatibility",
+  "engagement": {
+    "backend": "original-c",
+    "bridge": {
+      "backend": "original-c",
+      "block": "6000",
+      "due": "29013975",
+      "ended": "0",
+      "errors": "0",
+      "hint": "6000",
+      "infer": "12220",
+      "preprocess": "12220",
+      "registered": "0",
+      "release": "6000",
+      "reset": "6000",
+      "scopes": "0"
+    },
+    "flag_cleanup": {
+      "slots": "1",
+      "status": "passed",
+      "transport": "host_mapped"
+    },
+    "flag_transport": {
+      "original_gdr": "0",
+      "portable": "1",
+      "transport": "host_mapped"
+    }
+  },
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "GPREEMPT_POLICY": "original",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output:/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/ninja:/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/gdrcopy-2.5.2/src:/usr/local/cuda-12.9/lib64:/usr/local/lib",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin"
+  },
+  "flag_transport": "host_mapped",
+  "gdrdrv_module_version": "2.5",
+  "metrics": {
+    "resnet152_be": {
+      "completed_requests": 6000,
+      "mean_latency_us": 5381.796383000001,
+      "nominal_schedule_rps": 100,
+      "numerics": {
+        "atol": 1e-06,
+        "checked": 6110,
+        "max_absolute_error": 0,
+        "rtol": 0.0001,
+        "task": "resnet152_be",
+        "timed_checked": 6000
+      },
+      "observed_arrivals": null,
+      "observed_drops": null,
+      "p99_latency_us": 6257.886,
+      "throughput_rps": 100.0
+    },
+    "vgg_rt": {
+      "completed_requests": 6000,
+      "mean_latency_us": 1402.3683811666667,
+      "nominal_schedule_rps": 100,
+      "numerics": {
+        "atol": 1e-06,
+        "checked": 6110,
+        "max_absolute_error": 0,
+        "rtol": 0.0001,
+        "task": "vgg_rt",
+        "timed_checked": 6000
+      },
+      "observed_arrivals": null,
+      "observed_drops": null,
+      "p99_latency_us": 1413.692,
+      "throughput_rps": 100.0
+    }
+  },
+  "process_wall_seconds": 67.65102166200006,
+  "returncode": 0,
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 135.89,
+      "sm_clock_mhz": 2910,
+      "temperature_c": 46,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788400405558215055,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 12.5,
+      "sm_clock_mhz": 22,
+      "temperature_c": 42,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788400336901139188,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "status": "passed",
+  "telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2910.0,
+    "mean_power_w": 175.90682352941175,
+    "min_sm_clock_mhz": 22.0,
+    "peak_memory_mib": 2754.0,
+    "peak_temperature_c": 49.0,
+    "samples": 340,
+    "throttled": false
+  },
+  "timeout_seconds": 240
+}

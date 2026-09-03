@@ -1,0 +1,41 @@
+{
+  "name": "be4",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_be",
+    "be",
+    "4",
+    "4",
+    "2",
+    "9511106",
+    "340",
+    "256",
+    "1",
+    "468799"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":4,\"streams\":4,\"tasks\":2}",
+    "{\"event\":\"running\",\"role\":\"be\",\"process_id\":4,\"host_ns\":666542987586,\"stream0_task0_active\":true}",
+    "{\"event\":\"result\",\"role\":\"be\",\"process_id\":4,\"completion_host_ns\":669323709337,\"outputs_validated\":696320,\"samples\":[{\"submit_ns\":1788400126836375148,\"submit_cupti_ns\":1788400126835906349,\"entry_ns\":1788400127464151520,\"exit_ns\":1788400128988567520},{\"submit_ns\":1788400127464171860,\"submit_cupti_ns\":1788400127463703061,\"entry_ns\":1788400129701123936,\"exit_ns\":1788400130244800128},{\"submit_ns\":1788400126836639950,\"submit_cupti_ns\":1788400126836171151,\"entry_ns\":1788400126841227328,\"exit_ns\":1788400128405095136},{\"submit_ns\":1788400127464193186,\"submit_cupti_ns\":1788400127463724387,\"entry_ns\":1788400129701123584,\"exit_ns\":1788400130244851104},{\"submit_ns\":1788400126836645338,\"submit_cupti_ns\":1788400126836176539,\"entry_ns\":1788400126841226336,\"exit_ns\":1788400127481054048},{\"submit_ns\":1788400127464194983,\"submit_cupti_ns\":1788400127463726184,\"entry_ns\":1788400127481331680,\"exit_ns\":1788400128432082912},{\"submit_ns\":1788400126836649996,\"submit_cupti_ns\":1788400126836181197,\"entry_ns\":1788400126841225408,\"exit_ns\":1788400127481075680},{\"submit_ns\":1788400127464195998,\"submit_cupti_ns\":1788400127463727199,\"entry_ns\":1788400127824161984,\"exit_ns\":1788400129100650336}],\"min_queue_ns\":4575412,\"max_queue_ns\":2236952076,\"clock_offset_ns\":468799}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 33603 @ 18:48:46.329781] using global scheduler",
+    "XSCHED_AUDIT pid=33603 xqueue=9458502641459255760 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=33603 xqueue=9458502641462562624 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=33603 xqueue=9458502641462564752 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1",
+    "XSCHED_AUDIT pid=33603 xqueue=9458502641462566736 level=1 threshold=4 batch=2 suspend_ok=1 resume_ok=1"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "XSCHED_SCHEDULER": "GLB",
+    "XSCHED_AUTO_XQUEUE": "ON",
+    "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+    "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+    "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+    "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+  }
+}

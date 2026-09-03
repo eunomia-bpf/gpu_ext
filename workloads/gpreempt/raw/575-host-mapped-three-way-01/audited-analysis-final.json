@@ -1,0 +1,150 @@
+{
+  "arms": {
+    "bpf_gpreempt": {
+      "resnet152_be": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 6268.993,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 5996
+      },
+      "vgg_rt": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 1419.397,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 5999
+      }
+    },
+    "native": {
+      "resnet152_be": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 4819.063,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      },
+      "vgg_rt": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 1414.351,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      }
+    },
+    "original_gpreempt": {
+      "resnet152_be": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 6245.411,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      },
+      "vgg_rt": {
+        "max_completed_requests": 6000,
+        "median_p99_latency_us": 1415.13,
+        "median_throughput_rps": 100.0,
+        "min_completed_requests": 6000
+      }
+    }
+  },
+  "arrival_or_drop_counts_inferred": false,
+  "ci_method": "percentile bootstrap of paired blocks, geometric ratios, 10000 draws",
+  "comparison_variant": "host_mapped_compatibility",
+  "complete": true,
+  "equivalence_claimed": false,
+  "flag_transport": "host_mapped",
+  "incomplete_cells": [],
+  "latency_definition": "nearest-rank p99 of the original six recorded service stages, not arrival-to-completion",
+  "original_gdr_transport": false,
+  "paired": {
+    "bpf_gpreempt/native:resnet152_be:throughput_rps": {
+      "block_ratios": [
+        0.9993333333333334,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "direction": "higher is better",
+      "geometric_ratio": 0.9998666310968822,
+      "paired_block_bootstrap_ci95": [
+        0.9995999466500675,
+        1.0
+      ]
+    },
+    "bpf_gpreempt/native:vgg_rt:p99_latency_us": {
+      "block_ratios": [
+        1.0016316775822056,
+        1.0031027558485466,
+        1.0034776902423141,
+        1.008141149215128,
+        1.0035677140964299
+      ],
+      "direction": "lower is better",
+      "geometric_ratio": 1.0039818085928713,
+      "paired_block_bootstrap_ci95": [
+        1.0023876590267444,
+        1.0062160164667506
+      ]
+    },
+    "bpf_gpreempt/original_gpreempt:resnet152_be:throughput_rps": {
+      "block_ratios": [
+        0.9993333333333334,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "direction": "higher is better",
+      "geometric_ratio": 0.9998666310968822,
+      "paired_block_bootstrap_ci95": [
+        0.9995999466500675,
+        1.0
+      ]
+    },
+    "bpf_gpreempt/original_gpreempt:vgg_rt:p99_latency_us": {
+      "block_ratios": [
+        1.002634944528228,
+        1.0042900652236897,
+        1.0037438586712804,
+        1.0019907727471535,
+        1.0002205648150497
+      ],
+      "direction": "lower is better",
+      "geometric_ratio": 1.0025750237794855,
+      "paired_block_bootstrap_ci95": [
+        1.0012782729238874,
+        1.0037403764447657
+      ]
+    },
+    "original_gpreempt/native:resnet152_be:throughput_rps": {
+      "block_ratios": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "direction": "higher is better",
+      "geometric_ratio": 1.0,
+      "paired_block_bootstrap_ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "original_gpreempt/native:vgg_rt:p99_latency_us": {
+      "block_ratios": [
+        0.9989993696594183,
+        0.9988177625008382,
+        0.9997348243511859,
+        1.0061381567927137,
+        1.0033464111808172
+      ],
+      "direction": "lower is better",
+      "geometric_ratio": 1.0014031716131155,
+      "paired_block_bootstrap_ci95": [
+        0.9990737597833003,
+        1.0041116442397526
+      ]
+    }
+  },
+  "rejected_cells": [],
+  "required_blocks": 5,
+  "valid_paired_blocks": 5
+}

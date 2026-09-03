@@ -1,0 +1,27 @@
+{
+  "name": "calibration-1",
+  "command": [
+    "taskset",
+    "-c",
+    "0",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/priority_workload",
+    "lc",
+    "1",
+    "1",
+    "1",
+    "8991803",
+    "340",
+    "256",
+    "0",
+    "487427"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"lc\",\"process_id\":1,\"streams\":1,\"tasks\":1}",
+    "{\"event\":\"result\",\"role\":\"lc\",\"process_id\":1,\"completion_host_ns\":635358688117,\"outputs_validated\":87040,\"samples\":[{\"submit_ns\":1788400096203489294,\"submit_cupti_ns\":1788400096203001867,\"entry_ns\":1788400096203574400,\"exit_ns\":1788400096279206432}],\"min_queue_ns\":85106,\"max_queue_ns\":85106,\"clock_offset_ns\":487427}"
+  ],
+  "stderr": [],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9"
+  }
+}

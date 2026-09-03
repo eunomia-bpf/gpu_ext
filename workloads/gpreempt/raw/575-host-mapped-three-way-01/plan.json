@@ -1,0 +1,82 @@
+{
+  "arrival_and_drop_counts": "not instrumented; do not infer exact drops from 6000 minus completions",
+  "cell_timeout_seconds": 240,
+  "comparison_variant": "host_mapped_compatibility",
+  "config": {
+    "tasks": [
+      {
+        "client": {
+          "batch_size": 1,
+          "model_name": "vgg",
+          "name": "vgg_rt",
+          "preprocess_time": 200,
+          "priority": 0,
+          "tfs_grpc_addr": "localhost:8500",
+          "triton_grpc_addr": "localhost:8001",
+          "use_cuda_graph": true
+        },
+        "id": "vgg_rt",
+        "load": {
+          "frequency": 100,
+          "priority": 0,
+          "type": "periodic"
+        }
+      },
+      {
+        "client": {
+          "batch_size": 1,
+          "model_name": "resnet152",
+          "name": "resnet152_be",
+          "preprocess_time": 200,
+          "priority": 1,
+          "tfs_grpc_addr": "localhost:8500",
+          "triton_grpc_addr": "localhost:8001",
+          "use_cuda_graph": true
+        },
+        "id": "resnet152_be",
+        "load": {
+          "frequency": 100,
+          "priority": 0,
+          "type": "periodic"
+        }
+      }
+    ],
+    "time": 60
+  },
+  "cooldown_seconds": 10,
+  "flag_transport": "host_mapped",
+  "formal_required_blocks": 5,
+  "gdrcopy_directory": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/gdrcopy-2.5.2",
+  "load_semantics": "periodic newest-only: skip stale slots, standalone-latency phase offset; last admitted request may finish after cutoff",
+  "orders": [
+    [
+      "native",
+      "bpf_gpreempt",
+      "original_gpreempt"
+    ],
+    [
+      "original_gpreempt",
+      "bpf_gpreempt",
+      "native"
+    ],
+    [
+      "native",
+      "original_gpreempt",
+      "bpf_gpreempt"
+    ],
+    [
+      "bpf_gpreempt",
+      "original_gpreempt",
+      "native"
+    ],
+    [
+      "bpf_gpreempt",
+      "native",
+      "original_gpreempt"
+    ]
+  ],
+  "p99_definition": "nearest rank over original six-stage service latency; not arrival-to-completion",
+  "privilege": "all three clients and loader run as root; no permission changes",
+  "seed": 20260902,
+  "timed_seconds_per_cell": 60
+}

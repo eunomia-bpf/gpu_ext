@@ -1,0 +1,27 @@
+{
+  "name": "lc2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bench_lc",
+    "lc",
+    "2",
+    "4",
+    "2",
+    "9511106",
+    "340",
+    "256",
+    "0",
+    "454371"
+  ],
+  "returncode": 0,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"lc\",\"process_id\":2,\"streams\":4,\"tasks\":2}",
+    "{\"event\":\"result\",\"role\":\"lc\",\"process_id\":2,\"completion_host_ns\":676304146951,\"outputs_validated\":696320,\"samples\":[{\"submit_ns\":1788400136747204809,\"submit_cupti_ns\":1788400136746750438,\"entry_ns\":1788400136751318816,\"exit_ns\":1788400136898972160},{\"submit_ns\":1788400136750745949,\"submit_cupti_ns\":1788400136750291578,\"entry_ns\":1788400136951523744,\"exit_ns\":1788400137156017824},{\"submit_ns\":1788400136750732993,\"submit_cupti_ns\":1788400136750278622,\"entry_ns\":1788400136751319648,\"exit_ns\":1788400136898644384},{\"submit_ns\":1788400136750748627,\"submit_cupti_ns\":1788400136750294256,\"entry_ns\":1788400136898647968,\"exit_ns\":1788400137080363392},{\"submit_ns\":1788400136750738364,\"submit_cupti_ns\":1788400136750283993,\"entry_ns\":1788400136894430592,\"exit_ns\":1788400137075069088},{\"submit_ns\":1788400136750750792,\"submit_cupti_ns\":1788400136750296421,\"entry_ns\":1788400137075072928,\"exit_ns\":1788400137225516832},{\"submit_ns\":1788400136750742163,\"submit_cupti_ns\":1788400136750287792,\"entry_ns\":1788400136751492256,\"exit_ns\":1788400136990039424},{\"submit_ns\":1788400136750752997,\"submit_cupti_ns\":1788400136750298626,\"entry_ns\":1788400137036318016,\"exit_ns\":1788400137192784960}],\"min_queue_ns\":586655,\"max_queue_ns\":324322136,\"clock_offset_ns\":454371}"
+  ],
+  "stderr": [],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9"
+  }
+}

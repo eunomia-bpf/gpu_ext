@@ -1,0 +1,405 @@
+diff --git a/setup.py b/setup.py
+--- a/setup.py
++++ b/setup.py
+@@ -31,6 +31,7 @@
+ 
+ # ninja build does not work unless include_dirs are abs path
+ this_dir = os.path.dirname(os.path.abspath(__file__))
++pod_experiment_dir = Path(os.environ.get("POD_EXPERIMENT_DIR", Path(__file__).resolve().parents[3]))
+ 
+ PACKAGE_NAME = "pod_attn"
+ 
+@@ -88,7 +89,8 @@
+ 
+ # We want this even if SKIP_CUDA_BUILD because when we run python setup.py sdist we want the .hpp
+ # files included in the source distribution, in case the user compiles from source.
+-subprocess.run(["git", "submodule", "update", "--init", "csrc/cutlass"])
++if not (Path(this_dir) / "csrc/cutlass/include/cute/tensor.hpp").is_file():
++    raise RuntimeError("Official CUTLASS headers are missing; restore the pinned source archive")
+ 
+ if not SKIP_CUDA_BUILD:
+     print("\n\ntorch.__version__  = {}\n\n".format(torch.__version__))
+@@ -112,14 +114,10 @@
+                 "POD-Attention is only supported on CUDA 11.6 and above.  "
+                 "Note: make sure nvcc has a supported version by running nvcc -V."
+             )
+-    # cc_flag.append("-gencode")
+-    # cc_flag.append("arch=compute_75,code=sm_75")
+-    cc_flag.append("-gencode")
+-    cc_flag.append("arch=compute_80,code=sm_80")
+-    if CUDA_HOME is not None:
+-        if bare_metal_version >= Version("11.8"):
+-            cc_flag.append("-gencode")
+-            cc_flag.append("arch=compute_90,code=sm_90")
++    if CUDA_HOME is None or bare_metal_version < Version("12.9"):
++        raise RuntimeError("The scoped RTX 5090 POD port requires CUDA >= 12.9")
++    # Retain PTX for the typed device-BPF adapter. No sm_100-only instructions.
++    cc_flag = ["--keep-device-functions", "-gencode", "arch=compute_120,code=[sm_120,compute_120]"]
+ 
+     # HACK: The compiler flag -D_GLIBCXX_USE_CXX11_ABI is set to be the same as
+     # torch._C._GLIBCXX_USE_CXX11_ABI
+@@ -131,6 +129,7 @@
+             name="fused_attn",
+             sources=[
+                 "pod_attn/fused_api.cpp",
++                str(pod_experiment_dir / "pod_runtime.cu"),
+                 #"pod_attn/truefused_fwd_hdim128_fp16_sm80.cu",
+                 #"pod_attn/truefused_fwd_hdim128_fp16_split_sm80.cu",
+                 "pod_attn/truefused_fwd_hdim128_fp16_fo8_sm80.cu",
+@@ -187,6 +186,7 @@
+             },
+             include_dirs=[
+                 Path(this_dir) / "csrc" / "cutlass" / "include",
++                pod_experiment_dir,
+             ],
+         )
+     )
+diff --git a/pod_attn/fused_api.cpp b/pod_attn/fused_api.cpp
+--- a/pod_attn/fused_api.cpp
++++ b/pod_attn/fused_api.cpp
+@@ -2,6 +2,7 @@
+ #include "static_switch.h"
+ // fused_api_setup needs flash.h to be included prior!
+ #include "fused_api_setup.h"
++#include "pod_runtime.h"
+ 
+ void run_fused_mha_fwd(Flash_fwd_params &params, cudaStream_t stream, bool force_split_kernel=false) {
+     /*FP16_SWITCH(!params.is_bf16, [&] {
+@@ -88,7 +89,8 @@
+     // bool is_sm75 = dprops->major == 7 && dprops->minor == 5;
+     bool is_sm8x = dprops->major == 8 && dprops->minor >= 0;
+     bool is_sm90 = dprops->major == 9 && dprops->minor == 0;
+-    TORCH_CHECK(is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
++    bool is_sm120 = dprops->major == 12 && dprops->minor == 0;
++    TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
+     // We will support Turing in the near future
+     // TORCH_CHECK(is_sm90 || is_sm8x || is_sm75, "FlashAttention only supports Turing GPUs or newer.");
+     // Do checks and stuff for prefill inputs
+@@ -100,7 +102,7 @@
+     TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+                 "FlashAttention only support fp16 and bf16 data type");
+     if (q_dtype == torch::kBFloat16) {
+-        TORCH_CHECK(is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
++        TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
+     }
+     TORCH_CHECK(kcache.dtype() == q_dtype, "query and key must have the same dtype");
+     TORCH_CHECK(vcache.dtype() == q_dtype, "query and value must have the same dtype");
+@@ -313,7 +315,8 @@
+     // bool is_sm75 = dprops->major == 7 && dprops->minor == 5;
+     bool is_sm8x = dprops->major == 8 && dprops->minor >= 0;
+     bool is_sm90 = dprops->major == 9 && dprops->minor == 0;
+-    TORCH_CHECK(is_sm90 || is_sm8x, "PODAttention only supports Ampere GPUs or newer.");
++    bool is_sm120 = dprops->major == 12 && dprops->minor == 0;
++    TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "PODAttention only supports Ampere GPUs or newer.");
+     TORCH_CHECK(fused_params == 8 || fused_params == 10 || fused_params == 9 || 
+         fused_params == 11 || fused_params == 15 || fused_params == 64, 
+         "Invalid fused_params value, need 8, 9, 10, 11, 15, or 64");
+@@ -491,4 +494,6 @@
+     m.doc() = "FusedAttention";
+     m.def("fused_fwd_kvcache", &mha_fused_fwd_kvcache, "Fused forward pass, with KV-cache");
+     m.def("true_fused_fwd_kvcache", &mha_true_fused_fwd_kvcache, "Fused forward pass, with KV-cache");
++    m.def("pod_configure", &pod_configure, "Select inline/CUDA/device-BPF mode and diagnostics");
++    m.def("pod_last_launch", &pod_last_launch, "Last real POD launch metadata/counters/contexts/errors");
+ }
+diff --git a/pod_attn/flash_api.cpp b/pod_attn/flash_api.cpp
+--- a/pod_attn/flash_api.cpp
++++ b/pod_attn/flash_api.cpp
+@@ -360,7 +360,8 @@
+     // bool is_sm75 = dprops->major == 7 && dprops->minor == 5;
+     bool is_sm8x = dprops->major == 8 && dprops->minor >= 0;
+     bool is_sm90 = dprops->major == 9 && dprops->minor == 0;
+-    TORCH_CHECK(is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
++    bool is_sm120 = dprops->major == 12 && dprops->minor == 0;
++    TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
+     // We will support Turing in the near future
+     // TORCH_CHECK(is_sm90 || is_sm8x || is_sm75, "FlashAttention only supports Turing GPUs or newer.");
+ 
+@@ -368,7 +369,7 @@
+     TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+                 "FlashAttention only support fp16 and bf16 data type");
+     if (q_dtype == torch::kBFloat16) {
+-        TORCH_CHECK(is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
++        TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
+     }
+     TORCH_CHECK(k.dtype() == q_dtype, "query and key must have the same dtype");
+     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
+@@ -557,7 +558,8 @@
+     // bool is_sm75 = dprops->major == 7 && dprops->minor == 5;
+     bool is_sm8x = dprops->major == 8 && dprops->minor >= 0;
+     bool is_sm90 = dprops->major == 9 && dprops->minor == 0;
+-    TORCH_CHECK(is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
++    bool is_sm120 = dprops->major == 12 && dprops->minor == 0;
++    TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
+     // We will support Turing in the near future
+     // TORCH_CHECK(is_sm90 || is_sm8x || is_sm75, "FlashAttention only supports Turing GPUs or newer.");
+ 
+@@ -565,7 +567,7 @@
+     TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+                 "FlashAttention only support fp16 and bf16 data type");
+     if (q_dtype == torch::kBFloat16) {
+-        TORCH_CHECK(is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
++        TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
+     }
+     TORCH_CHECK(k.dtype() == q_dtype, "query and key must have the same dtype");
+     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
+@@ -834,7 +836,8 @@
+     bool is_sm8x = dprops->major == 8 && dprops->minor >= 0;
+     bool is_sm80 = dprops->major == 8 && dprops->minor == 0;
+     bool is_sm90 = dprops->major == 9 && dprops->minor == 0;
+-    TORCH_CHECK(is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
++    bool is_sm120 = dprops->major == 12 && dprops->minor == 0;
++    TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
+     // We will support Turing in the near future
+     // TORCH_CHECK(is_sm90 || is_sm8x || is_sm75, "FlashAttention only supports Turing GPUs or newer.");
+ 
+@@ -845,7 +848,7 @@
+     TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+                 "FlashAttention only support fp16 and bf16 data type");
+     if (q_dtype == torch::kBFloat16) {
+-        TORCH_CHECK(is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
++        TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
+     }
+     TORCH_CHECK(k.dtype() == q_dtype, "query and key must have the same dtype");
+     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
+@@ -1070,7 +1073,8 @@
+     bool is_sm8x = dprops->major == 8 && dprops->minor >= 0;
+     bool is_sm80 = dprops->major == 8 && dprops->minor == 0;
+     bool is_sm90 = dprops->major == 9 && dprops->minor == 0;
+-    TORCH_CHECK(is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
++    bool is_sm120 = dprops->major == 12 && dprops->minor == 0;
++    TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
+     // We will support Turing in the near future
+     // TORCH_CHECK(is_sm90 || is_sm8x || is_sm75, "FlashAttention only supports Turing GPUs or newer.");
+     bool is_dropout = p_dropout > 0.0;
+@@ -1080,7 +1084,7 @@
+     TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+                 "FlashAttention only support fp16 and bf16 data type");
+     if (q_dtype == torch::kBFloat16) {
+-        TORCH_CHECK(is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
++        TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
+     }
+     TORCH_CHECK(k.dtype() == q_dtype, "query and key must have the same dtype");
+     TORCH_CHECK(v.dtype() == q_dtype, "query and value must have the same dtype");
+@@ -1316,7 +1320,8 @@
+     // bool is_sm75 = dprops->major == 7 && dprops->minor == 5;
+     bool is_sm8x = dprops->major == 8 && dprops->minor >= 0;
+     bool is_sm90 = dprops->major == 9 && dprops->minor == 0;
+-    TORCH_CHECK(is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
++    bool is_sm120 = dprops->major == 12 && dprops->minor == 0;
++    TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "FlashAttention only supports Ampere GPUs or newer.");
+     // We will support Turing in the near future
+     // TORCH_CHECK(is_sm90 || is_sm8x || is_sm75, "FlashAttention only supports Turing GPUs or newer.");
+ 
+@@ -1324,7 +1329,7 @@
+     TORCH_CHECK(q_dtype == torch::kFloat16 || q_dtype == torch::kBFloat16,
+                 "FlashAttention only support fp16 and bf16 data type");
+     if (q_dtype == torch::kBFloat16) {
+-        TORCH_CHECK(is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
++        TORCH_CHECK(is_sm120 || is_sm90 || is_sm8x, "bfloat16 is only supported on Ampere GPUs or newer");
+     }
+     TORCH_CHECK(kcache.dtype() == q_dtype, "query and key must have the same dtype");
+     TORCH_CHECK(vcache.dtype() == q_dtype, "query and value must have the same dtype");
+diff --git a/pod_attn/fused_fwd_kernel.h b/pod_attn/fused_fwd_kernel.h
+--- a/pod_attn/fused_fwd_kernel.h
++++ b/pod_attn/fused_fwd_kernel.h
+@@ -17,6 +17,8 @@
+ #include "mask.h"
+ #include "dropout.h"
+ #include "rotary.h"
++#include "selector_cuda.cuh"
++#include "launch_abi.h"
+ 
+ // Primary header is compatible with pre-C++11, collective algorithm headers require C++11
+ #include <cooperative_groups.h>
+@@ -1409,7 +1411,8 @@
+     bool Is_local_p, bool Is_local_d, bool Has_alibi, bool Is_even_MN_p, bool Is_even_K_p, bool Is_even_MN_d, bool Is_even_K_d,
+     bool Is_softcap, bool Return_softmax, bool PrefillIsSplit, bool DecodeIsSplit, bool DecodeAppend_KV, int FusedOp, 
+     bool UseSplitPrefill, bool UseSplitDecode, typename Params>
+-inline __device__ void compute_fused_tb_attn(const Params &prefill_params, const Params &decode_params, int *tbAssign) {
++inline __device__ void compute_fused_tb_attn(const Params &prefill_params, const Params &decode_params,
++                                           int *tbAssign, PodLaunchView launch) {
+     // We want the fwd and bwd to generate the same dropout pattern (RNG), without restricting
+     // them to have the same number of threads or have to traverse the attention matrix
+     // in the same order.
+@@ -1442,54 +1445,59 @@
+     int op = 0;
+     int linear_block_id;
+     if(threadIdx.x == 0) {
+-        // SM-aware threadblock scheduler code
+-        // Find out which SM this threadblock is scheduled on
+-        int num_SMs;
+-        // WARNING: nsmid has only been tested on A100, and matches SM count
+-        // No guarantee this will work on other GPUs
+-        asm volatile("mov.u32 %0, %nsmid;" : "=r"(num_SMs));
+-        asm volatile("mov.u32 %0, %smid;" : "=r"(linear_block_id));
++        unsigned observed_bound, smid;
++        asm volatile("mov.u32 %0, %%nsmid;" : "=r"(observed_bound));
++        asm volatile("mov.u32 %0, %%smid;" : "=r"(smid));
+         const int prefill_slots = (prefill_blocks + blk_factor_p - 1) / blk_factor_p;
+         const int decode_slots = (decode_blocks + blk_factor_d - 1) / blk_factor_d;
+-        
+-        if constexpr(FusedOp & 1) {
+-            if(prefill_slots <= decode_slots) {
+-                // Total tags = (decode + prefill) / min(decode, prefill)
+-                // = 1 + decode / prefill; when prefill < decode
+-                const int total_tags = decode_slots / prefill_slots + 1;
+-                // For this SM, what's the next operation we want to run?
+-                op = (atomicAdd(&tbAssign[linear_block_id], 1) % total_tags);
+-                if(op > 0) {
+-                    op = 1;
+-                }
+-            } else {
+-                // Total tags = (decode + prefill) / min(decode, prefill)
+-                // = 1 + prefill / decode; when decode < prefill
+-                const int pref_tags = prefill_slots / decode_slots;
+-                
+-                // For this SM, what's the next operation we want to run?
+-                op = (atomicAdd(&tbAssign[linear_block_id], 1) % (pref_tags + 1));
+-                if(op < pref_tags) {
+-                    op = 0;
+-                } else {
+-                    op = 1;
+-                }
+-            }
++        PodSelectorContext local{};
++        local.counters = reinterpret_cast<pod_u64>(tbAssign);
++        local.abi_version = POD_ABI_VERSION;
++        local.nsmid = launch.nsmid;
++        local.smid = smid;
++        local.prefill_slots = prefill_slots;
++        local.decode_slots = decode_slots;
++        local.proportional = FusedOp & 1;
++        local.grid_ctas = launch.grid_ctas;
++        local.out_op = local.out_cta = POD_UNSET;
++        bool valid = observed_bound == launch.nsmid && smid < launch.nsmid &&
++                     blockIdx.x < launch.grid_ctas && launch.mode <= 2;
++        if (valid && launch.mode == 0) {
++            // Original proportional ticket / global claim / fallback algorithm,
++            // inlined into the attention leader, with the common bounds checks.
++            pod_select_policy(&local, sizeof(local), POD_ENGINE_CUDA);
++        } else if (valid) {
++            auto *context = &launch.contexts[blockIdx.x];
++            *context = local;
++            pod_device_selector(context, sizeof(*context));
++            // Device PTX rewriting may change the callee's outputs. Volatile
++            // reads prevent CUDA interprocedural constant propagation from
++            // replacing the consumed decision/engine with native constants.
++            volatile auto *returned = context;
++            local.out_op = returned->out_op;
++            local.out_cta = returned->out_cta;
++            local.status = returned->status;
++            local.engine = returned->engine;
++            local.ticket = returned->ticket;
++            local.first_op = returned->first_op;
++            local.first_claim = returned->first_claim;
++            local.fallback_claim = returned->fallback_claim;
++        }
++        const unsigned expected_engine = launch.mode == 2 ? POD_ENGINE_BPF : POD_ENGINE_CUDA;
++        valid = valid && local.engine == expected_engine && local.status == POD_WORK &&
++                local.out_op <= 1 && local.out_cta <
++                (local.out_op == 0 ? unsigned(prefill_slots) : unsigned(decode_slots));
++        // The physical grid is exactly prefill_slots + decode_slots: every
++        // launched CTA must receive one valid slot. Sub-CTA tails remain below.
++        if (!valid) {
++            atomicAdd(launch.errors, 1u);
++            op = -1;
++            linear_block_id = 0;
+         } else {
+-            op = atomicAdd(&tbAssign[linear_block_id], 1) % 2;
+-        }
+-
+-        // Get the next blockId for that operation
+-        linear_block_id = atomicAdd(&tbAssign[num_SMs + op], 1);
+-        // If the blockId obtained exceeds the max blockIds for that op, switch to the other op
+-        if(op == 0 && linear_block_id >= prefill_slots) {
+-            linear_block_id = atomicAdd(&tbAssign[num_SMs + 1], 1);
+-            op = !op;
+-        } else if (op == 1 && linear_block_id >= decode_slots) {
+-            op = !op;
+-            linear_block_id = atomicAdd(&tbAssign[num_SMs + 0], 1);
++            op = local.out_op;
++            linear_block_id = local.out_cta;
+         }
+-        // Write the blockId and operation to shared memory
++        if (launch.trace) launch.contexts[blockIdx.x] = local;
+         ((int*)smem_)[0] = linear_block_id;
+         ((int*)smem_)[1] = op;
+     }
+@@ -1501,6 +1509,7 @@
+     // Sync to force all threads to wait
+     __syncthreads();
+ 
++    if (op < 0) return; // uniform CTA exit after both original barriers
+     if(op == 0) {
+         char *smem_map = smem_;
+         // Remap to logical threadblock from real threadblock, if needed
+diff --git a/pod_attn/fused_fwd_launch_template.h b/pod_attn/fused_fwd_launch_template.h
+--- a/pod_attn/fused_fwd_launch_template.h
++++ b/pod_attn/fused_fwd_launch_template.h
+@@ -5,6 +5,7 @@
+ #pragma once
+ 
+ #include <ATen/cuda/CUDAContext.h>
++#include "pod_runtime.h"
+ 
+ #include "static_switch.h"
+ #include "flash.h"
+@@ -54,7 +55,7 @@
+     bool Is_softcap, bool Return_softmax, bool PrefillIsSplit, bool DecodeIsSplit, 
+     bool DecodeAppend_KV, int FusedOp, bool UseSplitPrefill, bool UseSplitDecode>
+ __global__ void true_fused_tb_fwd_kernel(KERNEL_PARAM_MODIFIER const Flash_fwd_params prefill_params, 
+-    KERNEL_PARAM_MODIFIER const Flash_fwd_params decode_params, int *tbAssign) {
++    KERNEL_PARAM_MODIFIER const Flash_fwd_params decode_params, int *tbAssign, PodLaunchView launch) {
+     #if defined(ARCH_SUPPORTS_FLASH)
+         static_assert(!(Is_causal_p && Is_local_p)); // Enforce constraints
+         static_assert(!(Is_causal_d && Is_local_d)); // Enforce constraints
+@@ -63,7 +64,7 @@
+             Is_even_MN_p, Is_even_K_p, Is_even_MN_d, Is_even_K_d, Is_softcap, 
+             Return_softmax, PrefillIsSplit, DecodeIsSplit, DecodeAppend_KV, FusedOp,
+             UseSplitPrefill, UseSplitDecode>
+-            (prefill_params, decode_params, tbAssign);
++            (prefill_params, decode_params, tbAssign, launch);
+     #else
+         FLASH_UNSUPPORTED_ARCH
+     #endif
+@@ -403,11 +404,7 @@
+                                 // If return_softmax, set IsEvenMNConst to false to reduce number of templates
+                                 // If head dim > 128, set IsEvenMNConst to false to reduce number of templates
+                                 // If Is_local, set Is_causal to false
+-                                    // Can we preallocate this somewhere? Seems kinda clunky doing it here.
+                                     auto numSMs = at::cuda::getCurrentDeviceProperties()->multiProcessorCount;
+-                                    int *tbAssign = nullptr;
+-                                    cudaMalloc(&tbAssign, sizeof(int) * (numSMs + 2));
+-                                    cudaMemset(tbAssign, 0, sizeof(int) * (numSMs + 2));
+                                     
+                                     static constexpr int num_threads = Kernel_traits_prefill::kNThreads > Kernel_traits_decode::kNThreads ? 
+                                        Kernel_traits_prefill::kNThreads : Kernel_traits_decode::kNThreads;
+@@ -416,6 +413,8 @@
+                                     static constexpr int blk_factor_d = num_threads / Kernel_traits_decode::kNThreads;
+                                     // Persistent threads
+                                     if constexpr(fused_op & 128) {
++                                        TORCH_CHECK(false, "persistent POD path is outside this device-selector experiment");
++                                        int *tbAssign = nullptr;
+                                         // 2 TB per SM
+                                         int grid = numSMs * (256 / num_threads);
+                                         size_t smem_size = max(Kernel_traits_prefill::kSmemSize * blk_factor_p, Kernel_traits_decode::kSmemSize * blk_factor_d);
+@@ -443,7 +442,11 @@
+                                             C10_CUDA_CHECK(cudaFuncSetAttribute(
+                                                 kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size));
+                                         }
+-                                        kernel<<<grid, num_threads, smem_size, stream>>>(prefill_params, decode_params, tbAssign);
++                                        auto workspace = pod_workspace(grid.x, num_blocks_prefill, num_blocks_decode,
++                                            blk_factor_p, blk_factor_d, smem_size, num_threads, fused_op, stream);
++                                        auto *tbAssign = workspace.counters.template data_ptr<int>();
++                                        kernel<<<grid, num_threads, smem_size, stream>>>(prefill_params, decode_params,
++                                                                                     tbAssign, workspace.view);
+                                     }
+                                     C10_CUDA_KERNEL_LAUNCH_CHECK();
+                                 //});
+@@ -613,4 +616,4 @@
+             // run_flash_fwd<Flash_fwd_kernel_traits<Headdim, 128, 32, 4, true, true, T>, Is_dropout, Is_causal>(params, stream);
+         }
+     //});
+-}
+\ No newline at end of file
++}

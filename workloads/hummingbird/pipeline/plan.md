@@ -83,8 +83,14 @@ revision `995bc62`. CPU 17 tests pass: 1,048 actual-JIT semantic/parity cases,
 19 rejected synthetic profiles, two actual runtime-wrapper JIT cases, and
 bound/reuse/retirement/order/drain/error ring checks. See `cpu-tests-01.log`.
 Root source review and independent rerun of both targets pass; the private
-client's `--help` also succeeds without GPU initialization. OpenCode
-consultation and the private runner are still pending.
+client's `--help` also succeeds without GPU initialization. Core committed and
+pushed as `51abaf2`. The private runner/analyzer now implement eight preflight
+cells and 40 full cells; nine synthetic CPU tests pass, including corrupt
+retirement/JIT/CTA records, incomplete matrices and unexercised depth 2. Source
+patch-application checks pass. Root runner review, independent nine-test rerun,
+and CLI help check pass. OpenCode's full
+consultation and the accepted/rejected suggestions are retained in
+[opencode-review.md](opencode-review.md) and [opencode-final.md](opencode-final.md).
 All real preflight and performance values remain **PENDING**.
 
 CPU-only preparation/build entrypoints (no CUDA-kernel rebuild):
@@ -92,9 +98,42 @@ CPU-only preparation/build entrypoints (no CUDA-kernel rebuild):
 ```bash
 make -C workloads/hummingbird/pipeline -j1 test-cpu HB_CPUSET=17
 make -C workloads/hummingbird/pipeline -j1 core HB_CPUSET=17
+make -C workloads/hummingbird/pipeline -j1 test-runner HB_CPUSET=17
 ```
 
 These targets write only `pipeline/build/`, reusing the existing split cubin
 and native libraries without modifying them. The private client defaults to
 bound 1; `--lp-inflight-bound 2` is the explicit ablation. Do not invoke the
 client on a workload until root admits the new exclusive real-GPU preflight.
+
+## Root-only next execution
+
+The coordinator must retain normal CPU affinity so the inherited telemetry
+worker can use CPU 16; do not wrap GPU runs in the CPU-17 preparation taskset.
+The client preserves the original LC/BE/LP worker affinities. The existing
+GPU0 and struct-ops lease inodes, clean explicit environment, exact 575.57.08
+driver gate, continuous telemetry, before/after safety and owned process-group
+cleanup are reused unchanged. No build occurs inside the run.
+
+From the repository root, after admission (these commands have **not** run):
+
+```bash
+sudo python3 -B workloads/hummingbird/pipeline/run_study.py preflight \
+  --output workloads/hummingbird/pipeline/raw/preflight-575-01 \
+  --profile workloads/hummingbird/raw/small-pattern-575-01/profile-selected.json \
+  --slo-ns 1811879
+python3 -B workloads/hummingbird/pipeline/analyze_study.py \
+  workloads/hummingbird/pipeline/raw/preflight-575-01
+sudo python3 -B workloads/hummingbird/pipeline/run_study.py full \
+  --output workloads/hummingbird/pipeline/raw/full-575-01 \
+  --profile workloads/hummingbird/raw/small-pattern-575-01/profile-selected.json \
+  --slo-ns 1811879 \
+  --preflight workloads/hummingbird/pipeline/raw/preflight-575-01
+```
+
+Every directory must be new and below `pipeline/raw/`; failures are preserved.
+Full admission requires all eight independently audited private preflight
+cells, the same runtime inventory/profile, and observed peak 2 in every depth-2
+cell. Original ten-cell preflight, source/runtime drift, smoke-only evidence or
+an unexercised pipeline cannot admit full. Formal results retain all 40 cells;
+`causal_interpretation_ready` additionally requires actual depth-2 exposure.

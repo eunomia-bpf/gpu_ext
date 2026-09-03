@@ -1,0 +1,496 @@
+--- a/run_study.py
++++ b/run_study.py
+@@ -3,7 +3,6 @@
+ from __future__ import annotations
+ 
+ import argparse
+-import copy
+ import json
+ import math
+ import os
+@@ -15,17 +14,59 @@
+ import sys
+ import time
+ 
+-HERE = Path(__file__).resolve().parent
++HERE = Path(__file__).resolve().parents[3]
++PRIVATE_BUILD = HERE / 'pipeline/build'
+ sys.path.insert(0, str(HERE.parent / 'gpreempt'))
+ import run_load_study as gp
+-from analyze_three_way import estimate_ratios
+ from analyze_load_study import policy_action_coverage
+ 
+ base, safety = gp.original, gp.safety
+-ARMS = ('native', 'fixed', 'timeslice_control', 'idle_c', 'idle_bpf')
++ARMS = ('idle_c_d1', 'idle_bpf_d1', 'idle_c_d2', 'idle_bpf_d2')
+ SCENARIOS = ('periodic', 'burstgpt')
+ SEED = 20260903
+ NS = 1_000_000_000
++FROZEN_PROFILE = HERE / 'raw/small-pattern-575-01/profile-selected.json'
++SLO_NS = 1_811_879
++
++
++def arm_settings(label):
++    if label not in ARMS:
++        raise ValueError('unknown fixed pipeline arm')
++    arm, bound = label.rsplit('_d', 1)
++    return arm, int(bound)
++
++
++def runtime_paths():
++    paths = [PRIVATE_BUILD / name for name in ('hummingbird_client', 'idle_policy.bin')]
++    paths += [HERE / 'build/resnet152-split/mod.cubin']
++    paths += [gp.BUILD / name for name in ('libexecutor.so', 'libworkloads.so', 'libgpreempt.so', 'block.cubin')]
++    paths += [PRIVATE_BUILD / 'src' / name for name in (
++        'run_study.py', 'idle_policy.c', 'idle_policy.h', 'idle_executor.cpp',
++        'idle_executor.h', 'hummingbird_client.cpp')]
++    paths += [HERE / 'pipeline/pipeline_events.h']
++    return paths
++
++
++def runtime_inventory():
++    return {str(path): {'bytes': path.stat().st_size, 'mtime_ns': path.stat().st_mtime_ns}
++            for path in runtime_paths()}
++
++
++def validate_preflight(path, profile):
++    from analyze_study import analyze
++    reviewed = analyze(path)
++    expected = {(s['block'], s['scenario'], s['arm']) for s in orders('preflight')}
++    cells = reviewed['cells']
++    actual = {(s['block'], s['scenario'], s['arm']) for s in cells}
++    if (reviewed['complete'] is not True or reviewed['mode'] != 'preflight'
++            or len(cells) != 8 or actual != expected
++            or reviewed['runtime_inventory'] != runtime_inventory()
++            or json.loads((path / 'profile-frozen.json').read_text()) != profile):
++        raise RuntimeError('private preflight incomplete, invalid, or runtime/profile changed')
++    if any(c['engagement']['executor']['max_lp_inflight'] != 2
++           for c in cells if c['arm'].endswith('_d2')):
++        raise RuntimeError('preflight retained but depth 2 was not exercised; no causal full run admitted')
++    return reviewed
+ 
+ 
+ def config(scenario, seconds, isolated=False):
+@@ -152,7 +193,7 @@
+     return {'metrics': metrics, 'report': report, 'loads': sources['loads']}
+ 
+ 
+-def engagement(log, arm, measured, profile=None):
++def engagement(log, arm, measured, profile=None, inflight_bound=1):
+     if arm == 'fixed':
+         result = base.check_engagement('original_gpreempt', log, '', 'host_mapped')
+         result['per_request_coverage'] = policy_action_coverage(
+@@ -189,12 +230,28 @@
+         be_count = measured['metrics'][base.TASKS[1]]['started']
+         if (executor['requests_accepted'] != be_count or executor['requests_completed'] != be_count
+                 or hp['hp_enqueues'] != lc_count or hp['hp_completions'] != lc_count
+-                or executor['decisions'] <= 0 or executor['max_lp_inflight'] != 1
+-                or executor['completion_fence'] != 'event-query-before-next-launch'
++                or executor['decisions'] <= 0 or type(inflight_bound) is not int or inflight_bound not in (1, 2)
++                or type(executor['max_lp_inflight']) is not int
++                or not 1 <= executor['max_lp_inflight'] <= inflight_bound
++                or type(setup.get('configured_lp_inflight_bound')) is not int
++                or setup['configured_lp_inflight_bound'] != inflight_bound
++                or type(executor['configured_lp_inflight_bound']) is not int
++                or executor['configured_lp_inflight_bound'] != inflight_bound
++                or executor['completion_fence'] != ('event-query-before-next-launch' if inflight_bound == 1
++                                                    else 'bounded-kernel-tick-event-ring')
+                 or executor['split_launches'] + executor['whole_launches'] <= 0
+                 or executor['small_launches'] + executor['large_launches'] != executor['split_launches'] + executor['whole_launches']
+                 or executor['jit_decisions'] != (executor['decisions'] if arm == 'idle_bpf' else 0)):
+             raise ValueError('real scheduling, completion, or JIT engagement mismatch')
++        issued = gp.integer(executor.get('lp_events_issued'), 'events issued', 1)
++        retired = gp.integer(executor.get('lp_events_retired'), 'events retired', 1)
++        outstanding = gp.integer(executor.get('lp_outstanding_at_report'), 'final outstanding')
++        overlap = gp.integer(executor.get('lp_overlap_launches'), 'overlapped host issues')
++        if (issued != retired or issued != executor['split_launches'] + executor['whole_launches']
++                or outstanding != 0 or overlap > issued or (inflight_bound == 1 and overlap)
++                or (executor['max_lp_inflight'] == 2) != (overlap > 0)
++                or executor.get('lp_bound_semantics') != 'host-issued-unretired-events-not-device-queue-occupancy'):
++            raise ValueError('LP event retirement/reuse/bound evidence disagrees')
+         if profile is None:
+             raise ValueError('idle engagement needs the actual frozen profile')
+         ctas = sum(math.prod(k['grid']) for k in profile['kernels'] if k['name'] != 'nop')
+@@ -215,25 +272,27 @@
+     return result
+ 
+ 
+-def run_cell(directory, cfg, arm, profile, slo_ns, timeout):
++def run_cell(directory, cfg, arm, profile, slo_ns, timeout, inflight_bound=1):
+     directory.mkdir(parents=True, exist_ok=False)
+     config_path = directory / 'config.json'
+     safety.atomic_write_json(config_path, cfg)
+     if arm == 'fixed':
+         command = [str(HERE / 'build/fixed_client'), str(config_path), 'true', '--flag-transport', 'host_mapped']
+     else:
+-        command = [str(HERE / 'build/hummingbird_client'), str(config_path), '--mode', arm]
++        command = [str(PRIVATE_BUILD / 'hummingbird_client'), str(config_path), '--mode', arm,
++                   '--lp-inflight-bound', str(inflight_bound)]
+         if arm.startswith('idle_'):
+             command += ['--profile', str(profile), '--split-cubin', str(HERE / 'build/resnet152-split/mod.cubin')]
+             if arm == 'idle_bpf':
+-                command += ['--bpf-program', str(HERE / 'build/idle_policy.bin')]
++                command += ['--bpf-program', str(PRIVATE_BUILD / 'idle_policy.bin')]
+     result = execute(directory, command, timeout)
+     try:
+         log = (directory / 'client.log').read_text()
+         measured = measurement(log, cfg, slo_ns)
+         result['engagement'] = engagement(log, arm, measured,
+-                                          json.loads(profile.read_text()) if arm.startswith('idle_') else None)
+-        result.update(arm=arm, metrics=measured['metrics'])
++                                          json.loads(profile.read_text()) if arm.startswith('idle_') else None,
++                                          inflight_bound)
++        result.update(arm=arm, lp_inflight_bound=inflight_bound, metrics=measured['metrics'])
+         safety.atomic_write_json(directory / 'request-report.json', measured['report'])
+         safety.atomic_write_json(directory / 'arrival-report.json', measured['loads'])
+         result['status'] = 'passed'
+@@ -251,12 +310,7 @@
+     streams = []
+     env = gp.environment('original_gpreempt', Path('/sys/fs/bpf/unused-hummingbird'))
+     result = {'status': 'failed', 'command': command, 'environment': env, 'timeout_seconds': timeout}
+-    binaries = [HERE / 'build' / name for name in ('hummingbird_client', 'fixed_client', 'hummingbird_profile',
+-                                                  'idle_policy.bin', 'resnet152-split/mod.cubin')]
+-    binaries += [gp.BUILD / name for name in ('libexecutor.so', 'libworkloads.so', 'libgpreempt.so', 'block.cubin')]
+-    def inventory():
+-        return {str(path): {'bytes': path.stat().st_size, 'mtime_ns': path.stat().st_mtime_ns}
+-                for path in binaries}
++    inventory = runtime_inventory
+     try:
+         result['runtime_before'] = inventory()
+         before = safety.safety_snapshot()
+@@ -310,117 +364,74 @@
+ 
+ 
+ def orders(mode):
++    if mode not in ('preflight', 'full'):
++        raise ValueError('only the fixed private preflight or full matrix is allowed')
+     rng = random.Random(SEED)
+     result = []
+-    for block in range(5 if mode in ('full', 'small-calibration') else 1):
+-        scenarios = list(SCENARIOS) if mode in ('full', 'preflight') else ['periodic']
++    for block in range(5 if mode == 'full' else 1):
++        scenarios = list(SCENARIOS)
+         rng.shuffle(scenarios)
+         for scenario in scenarios:
+-            arms = list(('none', 'input', 'output', 'both') if mode == 'small-calibration' else ARMS)
++            arms = list(ARMS)
+             rng.shuffle(arms)
+             result.extend({'block': block, 'scenario': scenario, 'arm': arm} for arm in arms)
+     return result
+ 
+ 
+-def choose_small_patterns(results):
+-    groups = {(r['block'], r['variant']): r for r in results}
+-    expected = {(b, v) for b in range(5) for v in ('none', 'input', 'output', 'both')}
+-    if len(results) != 20 or set(groups) != expected:
+-        raise ValueError('small-pattern decision needs all five complete four-way blocks')
+-    passed, estimates = [], {}
+-    for variant in ('input', 'output', 'both'):
+-        ratios, engaged, coverage = [], True, True
+-        for block in range(5):
+-            candidate, reference = groups[block, variant], groups[block, 'none']
+-            for row in (candidate, reference):
+-                coverage &= row['metrics'][base.TASKS[0]]['completion_coverage'] == 1
+-            above = candidate['metrics'][base.TASKS[0]]['response_p99_ns']
+-            below = reference['metrics'][base.TASKS[0]]['response_p99_ns']
+-            ratios.append(above / below if above is not None and below else None)
+-            counters = candidate['engagement']['executor']
+-            for pattern in ('input', 'output') if variant == 'both' else (variant,):
+-                engaged &= counters[f'{pattern}_small_launches'] > 0
+-        estimate = (estimate_ratios(ratios, draws=10000) if None not in ratios else
+-                    {'geometric_ratio': None, 'paired_block_bootstrap_ci95': None,
+-                     'unavailable_reason': 'no completed foreground request in a paired cell'})
+-        ok = coverage and engaged and estimate['paired_block_bootstrap_ci95'] is not None and estimate['paired_block_bootstrap_ci95'][1] <= 1.01
+-        estimates[variant] = {**estimate, 'full_coverage': coverage, 'actual_pattern_launches': engaged, 'eligible': ok}
+-        if ok:
+-            passed.append(variant)
+-    selected = ('both' if {'input', 'output', 'both'} <= set(passed) else
+-                next((name for name in ('input', 'output') if name in passed), 'none'))
+-    return selected, estimates
+-
+ 
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument('mode', choices=('profile', 'calibrate', 'small-calibration', 'preflight', 'full'))
++    parser.add_argument('mode', choices=('preflight', 'full'))
+     parser.add_argument('--output', type=Path, required=True)
+     parser.add_argument('--profile', type=Path)
+     parser.add_argument('--slo-ns', type=int)
+     parser.add_argument('--cell-timeout', type=int, default=240)
++    parser.add_argument('--preflight', type=Path)
+     args = parser.parse_args()
+     if os.geteuid() != 0:
+         parser.error('actual runs use the same root privilege for all arms')
+-    if args.mode not in ('profile', 'calibrate') and (args.profile is None or not args.slo_ns or args.slo_ns < 0):
++    if args.profile is None or not args.slo_ns or args.slo_ns < 0:
+         parser.error('comparison needs the frozen --profile and positive isolated --slo-ns')
+     if args.cell_timeout < 90:
+         parser.error('client timeout must allow setup and drain')
++    if args.slo_ns != SLO_NS or json.loads(args.profile.read_text()) != json.loads(FROZEN_PROFILE.read_text()):
++        parser.error('this ablation keeps the original frozen profile and SLO')
++    if args.mode == 'full':
++        if args.preflight is None:
++            parser.error('full requires the eight-cell private --preflight')
++        validate_preflight(args.preflight, json.loads(args.profile.read_text()))
+     output = args.output.resolve()
++    if not output.is_relative_to(HERE / 'pipeline/raw'):
++        parser.error('private outputs must be new directories below pipeline/raw/')
+     output.mkdir(parents=True, exist_ok=False)
+     def interrupted(signum, _frame):
+         raise InterruptedError(f'signal {signum}; cleaning owned processes')
+     signal.signal(signal.SIGTERM, interrupted)
+     lease = base.Leases()
+     try:
+-        if args.mode == 'profile':
+-            execute(output, [str(HERE / 'build/hummingbird_profile'), '--split-cubin',
+-                            str(HERE / 'build/resnet152-split/mod.cubin'), '--output', str(output / 'profile.json')],
+-                    args.cell_timeout)
+-            print(f'PROFILE {output / "profile.json"}', flush=True)
+-            return
+-        if args.mode == 'calibrate':
+-            result = run_cell(output / 'isolated-lc', config('periodic', 60, True), 'native', None, None, args.cell_timeout)
+-            lc = result['metrics'][base.TASKS[0]]
+-            if lc['completion_coverage'] != 1:
+-                raise RuntimeError('isolated LC did not complete every offered request')
+-            print(f'ISOLATED_SLO_NS {lc["response_p99_ns"]}', flush=True)
+-            return
+         profile = json.loads(args.profile.read_text())
+-        profiles = {}
+-        variants = ('none', 'input', 'output', 'both') if args.mode == 'small-calibration' else ('frozen',)
+-        for variant in variants:
+-            value = copy.deepcopy(profile)
+-            if variant != 'frozen':
+-                value.update(small_input_enabled=variant in ('input', 'both'),
+-                             small_output_enabled=variant in ('output', 'both'))
+-            profiles[variant] = output / f'profile-{variant}.json'
+-            safety.atomic_write_json(profiles[variant], value)
++        profile_path = output / 'profile-frozen.json'
++        safety.atomic_write_json(profile_path, profile)
+         sequence = orders(args.mode)
+         safety.atomic_write_json(output / 'run-order.json', {'mode': args.mode, 'seed': SEED, 'orders': sequence,
+-                                                          'slo_ns': args.slo_ns, 'source_profile': str(args.profile.resolve())})
++                                                          'slo_ns': args.slo_ns, 'source_profile': str(args.profile.resolve()),
++                                                          'preflight': str(args.preflight.resolve()) if args.preflight else None})
+         safety.atomic_write_json(output / 'model-assets.json', base.model_assets())
+         results = []
+         for index, spec in enumerate(sequence):
+-            variant = spec['arm'] if args.mode == 'small-calibration' else 'frozen'
+-            arm = 'idle_c' if args.mode == 'small-calibration' else spec['arm']
++            arm, inflight_bound = arm_settings(spec['arm'])
+             seconds = 60 if args.mode == 'full' else 10
+             print(f'START {index + 1}/{len(sequence)} {spec}', flush=True)
+             result = run_cell(output / f'block-{spec["block"]:02d}' / spec['scenario'] / spec['arm'],
+-                              config(spec['scenario'], seconds), arm, profiles[variant], args.slo_ns, args.cell_timeout)
+-            result.update(block=spec['block'], scenario=spec['scenario'], variant=variant)
++                              config(spec['scenario'], seconds), arm, profile_path, args.slo_ns, args.cell_timeout,
++                              inflight_bound)
++            result.update(block=spec['block'], scenario=spec['scenario'], variant='frozen')
+             results.append(result)
+             safety.atomic_write_json(output / 'completed-cells.json', results)
+             print(f'PASS LC_p99_ns={result["metrics"][base.TASKS[0]]["response_p99_ns"]} '
+                   f'BE_rps={result["metrics"][base.TASKS[1]]["goodput_rps"]}', flush=True)
+             if index + 1 < len(sequence):
+                 time.sleep(5)
+-        if args.mode == 'small-calibration':
+-            selected, estimates = choose_small_patterns(results)
+-            chosen = json.loads(profiles[selected].read_text())
+-            safety.atomic_write_json(output / 'small-pattern-results.json', {'selected': selected, 'paired': estimates})
+-            safety.atomic_write_json(output / 'profile-selected.json', chosen)
+-            print(f'SMALL_PATTERNS {selected}', flush=True)
+     finally:
+         lease.close()
+ 
+--- a/analyze_study.py
++++ b/analyze_study.py
+@@ -18,15 +18,14 @@
+ import run_study as runtime
+ from analyze_three_way import estimate_ratios
+ 
+-HERE = Path(__file__).resolve().parent
+-ARMS = ('native', 'fixed', 'timeslice_control', 'idle_c', 'idle_bpf')
++HERE = Path(__file__).resolve().parents[3]
++PRIVATE_BUILD = HERE / 'pipeline/build'
++ARMS = ('idle_c_d1', 'idle_bpf_d1', 'idle_c_d2', 'idle_bpf_d2')
+ SCENARIOS = ('periodic', 'burstgpt')
+-VARIANTS = ('none', 'input', 'output', 'both')
+ LC, BE = 'vgg_rt', 'resnet152_be'
+ NS, SEED, DRAWS = 1_000_000_000, 20260903, 10000
+-PAIRS = (('idle_bpf', 'idle_c'), ('idle_c', 'fixed'), ('idle_bpf', 'fixed'),
+-         ('idle_c', 'timeslice_control'), ('idle_bpf', 'timeslice_control'),
+-         ('timeslice_control', 'fixed'), ('fixed', 'native'))
++PAIRS = (('idle_c_d2', 'idle_c_d1'), ('idle_bpf_d2', 'idle_bpf_d1'),
++         ('idle_bpf_d1', 'idle_c_d1'), ('idle_bpf_d2', 'idle_c_d2'))
+ 
+ 
+ def read(path):
+@@ -72,13 +71,13 @@
+ 
+ 
+ def expected_orders(mode):
+-    require(mode in ('full', 'small-calibration'), 'only full or small-calibration is audited')
++    require(mode in ('full', 'preflight'), 'only private full or preflight is audited')
+     rng, sequence = random.Random(SEED), []
+-    for block in range(5):
+-        scenarios = list(SCENARIOS) if mode == 'full' else ['periodic']
++    for block in range(5 if mode == 'full' else 1):
++        scenarios = list(SCENARIOS)
+         rng.shuffle(scenarios)
+         for scenario in scenarios:
+-            arms = list(ARMS if mode == 'full' else VARIANTS)
++            arms = list(ARMS)
+             rng.shuffle(arms)
+             sequence.extend({'block': block, 'scenario': scenario, 'arm': arm} for arm in arms)
+     return sequence
+@@ -173,27 +172,28 @@
+ 
+ def audit_cell(directory, spec, plan, campaign):
+     result, execution, cfg = (read(directory / name) for name in ('result.json', 'execution.json', 'config.json'))
+-    small = plan['mode'] == 'small-calibration'
+-    arm, variant = ('idle_c', spec['arm']) if small else (spec['arm'], 'frozen')
+-    seconds, profile_path = (10 if small else 60), campaign / f'profile-{variant}.json'
++    arm, bound = spec['arm'].rsplit('_d', 1)
++    bound, variant = int(bound), 'frozen'
++    seconds, profile_path = (10 if plan['mode'] == 'preflight' else 60), campaign / f'profile-{variant}.json'
+     # Config field types are frozen too: bool must not stand in for integer role.
+     expected = expected_config(spec['scenario'], seconds)
+     require(json.dumps(cfg, sort_keys=True) == json.dumps(expected, sort_keys=True), 'config drift')
+     require(result.get('status') == 'passed' and result.get('returncode') == 0 and result.get('arm') == arm
++            and type(result.get('lp_inflight_bound')) is int and result['lp_inflight_bound'] == bound
+             and not any(result.get(k) for k in ('error', 'validation_error', 'cleanup_errors')), 'cell failed or wrong arm')
+     require(execution.get('status') == 'executed'
+             and all(k == 'status' or same(value, result.get(k)) for k, value in execution.items()),
+             'execution record disagrees with result')
+-    command = [str(HERE / 'build' / ('fixed_client' if arm == 'fixed' else 'hummingbird_client')),
++    command = [str(PRIVATE_BUILD / 'hummingbird_client'),
+                str(directory / 'config.json')]
+     if arm == 'fixed':
+         command += ['true', '--flag-transport', 'host_mapped']
+     else:
+-        command += ['--mode', arm]
++        command += ['--mode', arm, '--lp-inflight-bound', str(bound)]
+         if arm.startswith('idle_'):
+             command += ['--profile', str(profile_path), '--split-cubin', str(HERE / 'build/resnet152-split/mod.cubin')]
+             if arm == 'idle_bpf':
+-                command += ['--bpf-program', str(HERE / 'build/idle_policy.bin')]
++                command += ['--bpf-program', str(PRIVATE_BUILD / 'idle_policy.bin')]
+     require(result['command'] == command, 'actual client command differs')
+     require(result['environment'] == runtime.gp.environment('original_gpreempt', Path('/sys/fs/bpf/unused-hummingbird')),
+             'actual runtime environment differs')
+@@ -202,14 +202,16 @@
+     require(same(measured['metrics'], result['metrics']), 'raw metrics differ from cell result')
+     require(same(measured['report'], read(directory / 'request-report.json'))
+             and same(measured['loads'], read(directory / 'arrival-report.json')), 'saved raw reports differ from log')
+-    observed = runtime.engagement(log, arm, measured, read(profile_path) if arm.startswith('idle_') else None)
++    observed = runtime.engagement(log, arm, measured, read(profile_path) if arm.startswith('idle_') else None, bound)
+     require(same(observed, result['engagement']), 'raw engagement differs from cell result')
+     if arm.startswith('idle_'):
+         setup, executor = observed['setup'], observed['executor']
+         require(setup['profile_path'] == str(profile_path) and setup['split_cubin'] == str(HERE / 'build/resnet152-split/mod.cubin')
+-                and setup['bpf_program'] == (str(HERE / 'build/idle_policy.bin') if arm == 'idle_bpf' else '')
+-                and executor['configured_lp_inflight_bound'] == 1, 'actual idle profile or execution bound differs')
++                and setup['bpf_program'] == (str(PRIVATE_BUILD / 'idle_policy.bin') if arm == 'idle_bpf' else '')
++                and executor['configured_lp_inflight_bound'] == bound, 'actual idle profile or execution bound differs')
+     inventory = result['runtime_before']
++    required_paths = {str(path) for path in runtime.runtime_paths()}
++    require(required_paths == set(inventory), 'private executed runtime absent from inventory')
+     require(inventory and same(inventory, result['runtime_after'])
+             and all(integer(item['bytes'], 'binary bytes', 1) and integer(item['mtime_ns'], 'binary mtime', 1)
+                     for item in inventory.values()), 'runtime inventory changed within cell')
+@@ -272,41 +274,26 @@
+             'classification': classification, 'equivalence_claimed': False}
+ 
+ 
+-def small_selection(cells, complete):
+-    by_key = {(c['block'], c['arm']): c for c in cells}
+-    if not complete:
+-        return {'selected': None, 'classification': 'incomplete_campaign'}
+-    estimates = {}
+-    for variant in VARIANTS[1:]:
+-        pairs = [(by_key[b, variant], by_key[b, 'none']) for b in range(5)]
+-        estimate = ratio_estimate([a['metrics'][LC]['response_p99_ns'] for a, _ in pairs],
+-                                  [b['metrics'][LC]['response_p99_ns'] for _, b in pairs])
+-        coverage = all(c['metrics'][LC]['completion_coverage'] == 1 for pair in pairs for c in pair)
+-        engaged = all(a['engagement']['executor'][f'{pattern}_small_launches'] > 0
+-                      for a, _ in pairs for pattern in (('input', 'output') if variant == 'both' else (variant,)))
+-        ci = estimate['paired_block_bootstrap_ci95']
+-        estimates[variant] = {**estimate, 'full_coverage': coverage, 'actual_pattern_launches': engaged,
+-                              'eligible': bool(coverage and engaged and ci is not None and ci[1] <= 1.01)}
+-    eligible = {name for name, value in estimates.items() if value['eligible']}
+-    selected = 'both' if set(VARIANTS[1:]) <= eligible else next((v for v in ('input', 'output') if v in eligible), 'none')
+-    return {'selected': selected, 'paired': estimates}
+-
+ 
+ def analyze(campaign):
+     campaign = campaign.resolve()
+     plan = read(campaign / 'run-order.json')
+     mode, sequence = plan['mode'], expected_orders(plan['mode'])
+-    integer(plan.get('slo_ns'), 'frozen SLO', 1)
++    require(type(plan.get('slo_ns')) is int and plan['slo_ns'] == 1_811_879, 'frozen SLO changed')
+     require(type(plan.get('seed')) is int and plan['seed'] == SEED
+             and plan.get('orders') == sequence, 'randomized matrix differs from frozen plan')
+-    variants = VARIANTS if mode == 'small-calibration' else ('frozen',)
+-    profiles = {v: read(campaign / f'profile-{v}.json') for v in variants}
+-    if mode == 'small-calibration':
+-        common = {k: v for k, v in profiles['none'].items() if k not in ('small_input_enabled', 'small_output_enabled')}
+-        for variant, profile in profiles.items():
+-            require({k: v for k, v in profile.items() if k not in ('small_input_enabled', 'small_output_enabled')} == common
+-                    and profile['small_input_enabled'] is (variant in ('input', 'both'))
+-                    and profile['small_output_enabled'] is (variant in ('output', 'both')), 'calibration profile drift')
++    profiles = {'frozen': read(campaign / 'profile-frozen.json')}
++    require(profiles['frozen'] == read(runtime.FROZEN_PROFILE), 'original frozen profile changed')
++    source_preflight = None
++    if mode == 'full':
++        preflight = Path(plan['preflight'])
++        require(preflight.resolve() != campaign and read(preflight / 'run-order.json')['mode'] == 'preflight',
++                'full lacks its separate eight-cell preflight')
++        source_preflight = analyze(preflight)
++        require(source_preflight['complete'] and read(preflight / 'profile-frozen.json') == profiles['frozen'],
++                'source preflight/profile invalid')
++        require(all(c['engagement']['executor']['max_lp_inflight'] == 2 for c in source_preflight['cells']
++                    if c['arm'].endswith('_d2')), 'source preflight did not exercise bound 2')
+     directories = [campaign / f'block-{s["block"]:02d}' / s['scenario'] / s['arm'] for s in sequence]
+     unexpected = sorted(str(p.relative_to(campaign)) for p in campaign.glob('block-*/*/*') if p.is_dir() and p not in directories)
+     accepted, rejected, pending, inventory, latest = [], [], [], None, 0
+@@ -323,6 +310,8 @@
+         except (OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
+             rejected.append({**spec, 'reason': f'{type(error).__name__}: {error}'})
+     complete = len(accepted) == len(sequence) and not (rejected or unexpected or pending)
++    if source_preflight is not None:
++        require(inventory == source_preflight['runtime_inventory'], 'runtime changed after preflight')
+     output = {'campaign': str(campaign), 'mode': mode, 'required_cells': len(sequence), 'accepted_cells': len(accepted),
+               'complete': complete, 'formal_complete': complete and mode == 'full',
+               'pending': pending, 'rejected': rejected, 'unexpected': unexpected, 'cells': accepted,
+@@ -334,22 +323,18 @@
+                   'slo': 'response <= frozen SLO AND verified < end; denominator is all offered LC requests',
+                   'goodput': 'verified < end divided by configured seconds; zero is retained',
+                   'audit_scope': 'independent raw measurement/matrix/statistics; shared read-only engagement/safety checks',
+-                  'fidelity': 'paper-described scheduling component port; not author binary or full-system reproduction'},
++                  'fidelity': 'completion-fence ablation; host outstanding events are not hardware queue occupancy'},
+               'runtime_inventory': inventory, 'equivalence_claimed': False}
+-    if mode == 'small-calibration':
+-        output['small_patterns'] = small_selection(accepted, complete)
+-        if complete:
+-            saved = read(campaign / 'small-pattern-results.json')
+-            require(same(saved, output['small_patterns']), 'saved small-pattern selection differs from independent raw calculation')
+-            require(same(read(campaign / 'profile-selected.json'), profiles[saved['selected']]), 'selected profile differs')
+-    else:
+-        output['scenarios'] = {}
+-        by_key = {(c['block'], c['scenario'], c['arm']): c for c in accepted}
+-        for scenario in SCENARIOS:
+-            blocks = [b for b in range(5) if all((b, scenario, arm) in by_key for arm in ARMS)]
+-            output['scenarios'][scenario] = {'complete_blocks': blocks, 'paired': {
+-                f'{above}/{below}': paired_comparison([(by_key[b, scenario, above], by_key[b, scenario, below]) for b in blocks], complete)
+-                for above, below in PAIRS}}
++    output['pipeline_exercised'] = complete and all(
++        c['engagement']['executor']['max_lp_inflight'] == 2 for c in accepted if c['arm'].endswith('_d2'))
++    output['causal_interpretation_ready'] = output['formal_complete'] and output['pipeline_exercised']
++    output['scenarios'] = {}
++    by_key = {(c['block'], c['scenario'], c['arm']): c for c in accepted}
++    for scenario in SCENARIOS:
++        blocks = [b for b in range(5) if all((b, scenario, arm) in by_key for arm in ARMS)]
++        output['scenarios'][scenario] = {'complete_blocks': blocks, 'paired': {
++            f'{above}/{below}': paired_comparison([(by_key[b, scenario, above], by_key[b, scenario, below]) for b in blocks], complete)
++            for above, below in PAIRS}}
+     return output
+ 
+ 

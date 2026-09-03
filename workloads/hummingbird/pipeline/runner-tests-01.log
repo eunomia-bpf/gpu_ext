@@ -1,0 +1,14 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline'
+taskset -c 17 python3 -B prepare.py
+completion-fence.patch reverse application check passed
+error: corrupt patch at /home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/runner.patch:495
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/prepare.py", line 46, in <module>
+    prepare()
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/prepare.py", line 38, in prepare
+    subprocess.run(command + ['--check', str(patch)], check=True)
+  File "/usr/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', '-C', '/home/yunwei37/workspace/gpu/gpu_ext', 'apply', '--directory=workloads/hummingbird/pipeline/build/src', '--check', '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/runner.patch']' returned non-zero exit status 128.
+make: *** [Makefile:5: prepare] Error 1
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline'

@@ -1,0 +1,20 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline'
+taskset -c 17 python3 -B prepare.py
+completion-fence.patch reverse application check passed
+runner.patch reverse application check passed
+taskset -c 17 python3 -B test_pipeline_study.py -v
+test_bound_two_not_exercised_is_retained_not_falsely_engaged (__main__.PipelineStudyTests.test_bound_two_not_exercised_is_retained_not_falsely_engaged) ... ok
+test_campaign_completeness_preflight_link_and_unexercised_status (__main__.PipelineStudyTests.test_campaign_completeness_preflight_link_and_unexercised_status) ... ok
+test_event_bound_drain_cta_and_jit_corruption_rejected (__main__.PipelineStudyTests.test_event_bound_drain_cta_and_jit_corruption_rejected) ... ok
+test_fixed_matrix_and_independent_config (__main__.PipelineStudyTests.test_fixed_matrix_and_independent_config) ... ok
+test_native_and_actual_jit_evidence_all_bounds (__main__.PipelineStudyTests.test_native_and_actual_jit_evidence_all_bounds) ... ok
+test_nonpositive_pairs_are_not_dropped (__main__.PipelineStudyTests.test_nonpositive_pairs_are_not_dropped) ... ok
+test_original_request_arithmetic_and_corruption_checks_preserved (__main__.PipelineStudyTests.test_original_request_arithmetic_and_corruption_checks_preserved) ... ok
+test_preflight_admission_requires_all_eight_runtime_profile_and_exposure (__main__.PipelineStudyTests.test_preflight_admission_requires_all_eight_runtime_profile_and_exposure) ... ok
+test_private_paths_not_old_client (__main__.PipelineStudyTests.test_private_paths_not_old_client) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.087s
+
+OK
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline'

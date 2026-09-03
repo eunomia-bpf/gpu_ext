@@ -82,8 +82,9 @@ the recorded run Git revisions are not rewritten after the fact.
 
 ## Built-only GSP scheduling propagation fix
 
-The sibling `gpu_ext-kernel-575` source now contains commit `363416c4` on
-`test-sched`. **This build has not been staged or loaded.** The experiments
+The sibling `gpu_ext-kernel-575` source now contains commit `363416c4` and the
+subsequent GPreempt transport commit `e3bb2938` on `test-sched`.
+**This build has not been staged or loaded.** The experiments
 above and the ongoing MoE campaign still use the staged/loaded `28b1d30c`
 modules; updating source does not update the running driver.
 
@@ -97,7 +98,7 @@ the original error is retained and a failed cleanup RPC is reported.
 
 The CPU-only build succeeded using the command above, restricted to CPUs 8–15
 while MoE owned the GPU. The resulting local `kernel-open/nvidia.ko` is
-30,109,912 bytes with version `575.57.08` and vermagic for
+30,110,912 bytes after the transport addition, with version `575.57.08` and vermagic for
 `6.15.11-061511-generic`. Existing transition-validator tests passed all 12 cases
 and 145 assertions. These tests cover policy validation, **not execution of the
 new GSP RPC or rollback path**. Independent source review found and checked the
@@ -111,3 +112,18 @@ Reading the host shadow fields is not proof of hardware enforcement. Each run
 must end with no UVM references, attached policy, compute client, or new Xid.
 Performance requires a new campaign: this source fix does not revise the
 preserved [negative driver-candidate measurements](../../workloads/xsched/driver-candidates-575-20260902.md).
+
+The `e3bb2938` addition supplies an owned-context query and a narrow transport
+for GPreempt's original 1 us / 1,000,000 us timeslice controls. It retains
+ordinary control authorization, checks the calling process's retained owner
+identity, and rejects ambiguous GR groups instead of choosing one. Its CPU
+helper tests passed four cases and 110 assertions; actual ownership, query,
+GSP control and two-context behavior remain pending hardware canaries. The
+[userspace port](../../workloads/gpreempt/README.md) and
+[BPF policy arm](../../extension/gpreempt-policy.md) use this ABI.
+
+The separate official GDRCopy v2.5 `gdrdrv.ko` dependency has also built for
+this kernel (535,584 bytes), but is not loaded. Neither its build nor the BPF
+hint-decision CPU tests prove GDR pin/map or GPU scheduling on the RTX 5090.
+The running MoE campaign continues on `28b1d30c` without these additions;
+module replacement waits for its complete GPU-lease release.

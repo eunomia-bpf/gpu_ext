@@ -1,5 +1,13 @@
 # Q2 driver safety tests: 575 results and remaining gaps
 
+Live update, 2026-09-03: the replacement
+[invalid-prefetch campaign](prefetch-invalid-575-02/result-review.md) has now
+completed native, legal BYPASS, and invalid-action-99 controls with zero data
+or observer errors and exact old-UVM/service restoration. The pre-run inventory
+below remains useful history, but statements that both live tests are open are
+superseded. Native scheduler-init commit/rejection is the remaining live driver
+transition gap.
+
 Updated 2026-09-03 from the coordinator's
 [completed execution](sched-load-575-02/execution.json) and all seven verifier
 logs. Both commands exited zero: the load-only runner recorded **7 attempts,
@@ -21,16 +29,17 @@ driver operation and does not admit work alongside the current GPU owner.
 
 The existing scheduler/PMM verifier fixtures passed without a rebuild or
 module change. Their source, stored ELF instructions, and current kernel BTF
-match the covered ABI. **Native scheduler-init rejection/commit tests and invalid-prefetch live
-fallback tests do not have a complete existing runnable fixture/runner.**
-Do not substitute a successful workload or load-only result for those tests.
+match the covered ABI. **Native scheduler-init rejection/commit tests still do
+not have a complete existing runnable fixture/runner.** Do not substitute a
+successful workload or load-only result for that test. Invalid-prefetch now has
+separate live evidence linked above.
 
 | Requirement | Existing path and evidence | Missing live evidence / disposition |
 | --- | --- | --- |
 | Scheduler verifier admission/rejection | `extension/revision_sched_verifier` and five `revision_sched_*.bpf.o`; built inputs read a 32-byte context, setters request 100 us and explicit LOW=0, negative stores are at offsets 16 and 32 | **Passed load-only in 02:** current runner also includes two PMM fixtures; observed **7 attempts, 4 admissions, 3 rejections, 7 passes**, not the historical 5/3/2/5 |
 | Shared scheduler/prefetch validator semantics | `../gpu_ext-kernel-575/kernel-open/tests/transition-validator/transition_validator_test`; 12 cases/145 assertions cover scheduler identity/phase, minimum, repeat/conflict, independent fields, and prefetch action/range/translation | **Fresh CPU rerun passed in 02.** It does not execute the native constructor, resource setters, CUDA, or UVM fault path |
 | Native scheduler initialization commit/rejection | Production `../gpu_ext-kernel-575/src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c:329`; `extension/gpu_sched_set_timeslices` supplies ordinary policy requests and callback statistics | No ready bounded negative/positive init-commit matrix. Need actual post-validation/native-setter observations for rejected and independently accepted fields; setter counters alone report recording, not commit |
-| Invalid initial/iterator prefetch output | Production `../gpu_ext-kernel-575/kernel-open/nvidia-uvm/uvm_perf_prefetch.c:100`; same production header is CPU-tested | No invalid-action/range/conflict BPF variant and no live native-fallback oracle found in the existing extension/test paths. Cannot give a truthful ready-to-run completion command |
+| Invalid initial/iterator prefetch output | Production `../gpu_ext-kernel-575/kernel-open/nvidia-uvm/uvm_perf_prefetch.c:100`; same production header is CPU-tested | **Invalid initial action closed for the scoped case:** action 99 produced 41,882 matched policy calls, native effects and completed fallback decisions with zero errors/mismatches in `prefetch-invalid-575-02`. Invalid range/conflict and iterator-specific behavior remain outside this three-cell result. |
 | Valid prefetch control only | `extension/prefetch_none_revision` and its BPF object use the 24-byte decision ABI and request legal `(0,0)` with BYPASS | Available control, but no invalid output and no engagement counter; it runs until signaled. It cannot close invalid-prefetch fallback by itself |
 | Persistent timeslice control | `extension/.output/gpu_sched_timeslice_control_cpu_test` exercises the actual callback with mock helpers; retained context canaries checked 2048 values and 17 negatives | Different boundary (`on_timeslice_control`), not the missing initialization transition test. Existing canaries should not be repeated merely to relabel them as init coverage |
 
@@ -122,10 +131,9 @@ change requires repetition, use a new directory and the same admission rules:
    console/exit code and seven per-fixture logs; require exact 7/4/3/7 totals
    and no attached/pinned state afterward. The runner overwrites log files
    when a directory already exists, hence the explicit new-directory guard.
-4. Keep scheduler-init and invalid-prefetch live rows open. No new runner or
-   policy was written here. Arrange their minimal missing fixtures/oracles
-   before claiming completion; do not launch ad hoc unbounded policies as a
-   substitute.
+4. Keep scheduler-init live execution open. The later invalid-prefetch result
+   supersedes only that row; do not relabel its one-run functional controls as
+   scheduler-init or performance evidence.
 
 From `/home/yunwei37/workspace/gpu/gpu_ext`, after admission, run commands
 separately and stop on any failure:
@@ -143,7 +151,7 @@ No command above installs or replaces modules, attaches a policy, invokes a
 PMM ioctl, or runs the GPU. The unrelated `revision_pmm_ioctl` and
 `uprobe_preempt_multi` artifacts are deliberately excluded.
 
-## Why the two remaining live tests cannot be substituted
+## Why the remaining scheduler-init test cannot be substituted
 
 `gpu_sched_set_timeslices` calls each setter once; its CLI rejects timeslice
 zero and interleave above two. It cannot express the required conflict or
@@ -153,12 +161,8 @@ bind observations, not every native setter result or rollback. Retained
 canaries already showed CUDA overwriting initialization requests with 2048 us
 before the first kernel; later persistent-control success is a separate claim.
 
-For prefetch, `compute_prefetch_region()` routes invalid initial actions or
-regions to native behavior and invalid iterator selections to ignore. Its
-checked translation happens before narrowing. Those are source-backed paths,
-not observed fallback outcomes. The existing `UVM_TEST_SET_PAGE_PREFETCH_POLICY`
-ioctl only enables/disables native prefetch; it does not inject a malformed BPF
-decision. The only dedicated BPF-transition ioctl found is PMM-specific.
-Closing the prefetch row requires actual invalid callback output, a matched
-valid/native control, observed validation/fallback selection, full output
-correctness, and owned cleanup. None is manufactured from the old 610 PMM log.
+For prefetch, the later replacement campaign supplies actual invalid callback
+output, matched native/legal controls, observed validation/fallback phases,
+full output correctness and owned cleanup. It closes invalid initial action 99
+only. Invalid regions, iterator selections, stale-state races and other
+operation-specific outcomes are not manufactured from that result.

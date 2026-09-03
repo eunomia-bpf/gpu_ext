@@ -1,0 +1,130 @@
+{
+  "cells": {
+    "bypass": {
+      "action": 1,
+      "bypass_effects": 131072,
+      "complete": true,
+      "compute_samples": 33,
+      "decisions": 131072,
+      "empty_outputs": 131072,
+      "foreign_compute_pids": [],
+      "native_effects": 0,
+      "native_iterations": 0,
+      "nonempty_outputs": 0,
+      "owned_links_removed": [
+        811,
+        812,
+        813,
+        3499
+      ],
+      "policy_calls": 131072,
+      "setter_ok": 131072,
+      "target_kernel_ms_functional_only": 403.902,
+      "target_mismatches": 0
+    },
+    "invalid99": {
+      "action": 99,
+      "bypass_effects": 0,
+      "complete": true,
+      "compute_samples": 32,
+      "decisions": 41882,
+      "empty_outputs": 0,
+      "foreign_compute_pids": [],
+      "native_effects": 41882,
+      "native_iterations": 418820,
+      "nonempty_outputs": 41882,
+      "owned_links_removed": [
+        822,
+        823,
+        824,
+        3538
+      ],
+      "policy_calls": 41882,
+      "setter_ok": 41882,
+      "target_kernel_ms_functional_only": 276.854,
+      "target_mismatches": 0
+    },
+    "native": {
+      "action": 0,
+      "bypass_effects": 0,
+      "complete": true,
+      "compute_samples": 30,
+      "decisions": 42053,
+      "empty_outputs": 0,
+      "foreign_compute_pids": [],
+      "native_effects": 42053,
+      "native_iterations": 420530,
+      "nonempty_outputs": 42053,
+      "owned_links_removed": [
+        800,
+        801,
+        802
+      ],
+      "policy_calls": 0,
+      "setter_ok": 0,
+      "target_kernel_ms_functional_only": 277.335,
+      "target_mismatches": 0
+    }
+  },
+  "claim_scope": "functional controls only; timings are not a performance comparison",
+  "complete": true,
+  "restoration": {
+    "core_matches_admission": true,
+    "diagnostic_loaded": false,
+    "driver": "575.57.08",
+    "holders": {
+      "devices": [
+        "/dev/nvidia-uvm",
+        "/dev/nvidia-uvm-tools"
+      ],
+      "returncode": 1,
+      "stderr": "",
+      "stdout": ""
+    },
+    "kernel": "6.15.11-061511-generic",
+    "parameter_count": 53,
+    "parameters_match_admission": true,
+    "safety": {
+      "dmesg_abnormal": [],
+      "gpu": {
+        "compute_apps": [],
+        "driver": "575.57.08",
+        "index": 0,
+        "memory_clock_mhz": 405,
+        "memory_total_mib": 32607,
+        "memory_used_mib": 15,
+        "name": "NVIDIA GeForce RTX 5090",
+        "power_w": 14.13,
+        "sm_clock_mhz": 22,
+        "temperature_c": 52,
+        "utilization_gpu_percent": 0
+      },
+      "journal_abnormal": [],
+      "power_limit_service": "active",
+      "power_limit_w": 400.0,
+      "struct_ops": {
+        "links": [],
+        "maps": []
+      },
+      "timestamp_ns": 1788477279581493192,
+      "uvm_refcount": 0,
+      "xids": []
+    },
+    "services": {
+      "gdm.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "static"
+      },
+      "nvidia-persistenced.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "enabled"
+      }
+    }
+  }
+}

@@ -6,9 +6,12 @@ Status update, 2026-09-03: the source diagnosis below describes the pre-repair
 interface and is preserved as a historical audit. Later production paths use
 a shared validator; the [575 execution](sched-load-575-02/execution.json)
 passed 12 CPU cases/145 assertions and seven kernel load-only fixtures
-(4 admissions, 3 rejections). No policy was attached. These results do not
-execute native scheduler-init commits or live invalid-prefetch fallback;
-those tests remain open. See [current boundaries](driver-test-readiness.md).
+(4 admissions, 3 rejections). No policy was attached. The subsequent
+[replacement prefetch run](prefetch-invalid-575-02/result-review.md) executes
+native, legal BYPASS and invalid-action-99 controls and observes native fallback
+for every invalid request. Native scheduler-init commits remain open; other
+prefetch invalidity classes remain outside that narrow result. See
+[current boundaries](driver-test-readiness.md).
 
 Disposition: `GAP`. The current production paths do not expose a shared
 transition-validation seam that can satisfy the frozen numeric, stale, and

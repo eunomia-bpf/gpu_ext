@@ -3,6 +3,12 @@
 Date: 2026-09-03. This is a read-only review of the next experiment, not a
 measurement or driver admission result.
 
+Status update: the reviewed design was implemented without the rejected
+address fields, and the replacement
+[`prefetch-invalid-575-02`](prefetch-invalid-575-02/result-review.md) campaign
+completed all three live controls and restoration. The text below remains the
+pre-run review rather than a post-hoc result verdict.
+
 Three independent audits ranked the live invalid-prefetch fallback above
 another completed-baseline rerun. It directly addresses Q2's transition-safety
 concern and is distinct from the existing strict SIMT rejection and PMM reorder

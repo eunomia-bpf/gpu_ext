@@ -1,0 +1,1410 @@
+{
+  "arguments": {
+    "candidate": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia-uvm.ko",
+    "output": "/home/yunwei37/workspace/gpu/gpu_ext/docs/experiment/revision-safety/prefetch-invalid-575-02",
+    "restore": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia-uvm.ko",
+    "stage": "/opt/gpubpf/modules/575.57.08/prefetch-diagnostic-0c109956-6.15.11"
+  },
+  "candidate_load": {
+    "argv": [
+      "sudo",
+      "-n",
+      "insmod",
+      "/opt/gpubpf/modules/575.57.08/prefetch-diagnostic-0c109956-6.15.11/nvidia-uvm.ko",
+      "uvm_ats_mode=1",
+      "uvm_block_cpu_to_cpu_copy_with_ce=0",
+      "uvm_channel_gpfifo_loc=auto",
+      "uvm_channel_gpput_loc=auto",
+      "uvm_channel_num_gpfifo_entries=1024",
+      "uvm_channel_pushbuffer_loc=auto",
+      "uvm_conf_computing_channel_iv_rotation_limit=2147483648",
+      "uvm_cpu_chunk_allocation_sizes=2166784",
+      "uvm_debug_enable_push_acquire_info=0",
+      "uvm_debug_enable_push_desc=0",
+      "uvm_debug_prints=0",
+      "uvm_disable_hmm=N",
+      "uvm_downgrade_force_membar_sys=1",
+      "uvm_enable_builtin_tests=0",
+      "uvm_enable_debug_procfs=0",
+      "uvm_enable_va_space_mm=1",
+      "uvm_exp_gpu_cache_peermem=0",
+      "uvm_exp_gpu_cache_sysmem=0",
+      "uvm_fault_force_sysmem=0",
+      "uvm_force_prefetch_fault_support=0",
+      "uvm_global_oversubscription=1",
+      "uvm_leak_checker=0",
+      "uvm_peer_copy=phys",
+      "uvm_perf_access_counter_batch_count=256",
+      "uvm_perf_access_counter_migration_enable=-1",
+      "uvm_perf_access_counter_threshold=256",
+      "uvm_perf_fault_batch_count=256",
+      "uvm_perf_fault_coalesce=1",
+      "uvm_perf_fault_max_batches_per_service=20",
+      "uvm_perf_fault_max_throttle_per_service=5",
+      "uvm_perf_fault_replay_policy=2",
+      "uvm_perf_fault_replay_update_put_ratio=50",
+      "uvm_perf_map_remote_on_eviction=1",
+      "uvm_perf_map_remote_on_native_atomics_fault=0",
+      "uvm_perf_migrate_cpu_preunmap_block_order=2",
+      "uvm_perf_migrate_cpu_preunmap_enable=1",
+      "uvm_perf_pma_batch_nonpinned_order=6",
+      "uvm_perf_prefetch_enable=1",
+      "uvm_perf_prefetch_min_faults=1",
+      "uvm_perf_prefetch_threshold=51",
+      "uvm_perf_reenable_prefetch_faults_lapse_msec=1000",
+      "uvm_perf_thrashing_enable=1",
+      "uvm_perf_thrashing_epoch=2000",
+      "uvm_perf_thrashing_lapse_usec=500",
+      "uvm_perf_thrashing_max_resets=4",
+      "uvm_perf_thrashing_nap=1",
+      "uvm_perf_thrashing_pin=300",
+      "uvm_perf_thrashing_pin_threshold=10",
+      "uvm_perf_thrashing_threshold=3",
+      "uvm_release_asserts=1",
+      "uvm_release_asserts_dump_stack=0",
+      "uvm_release_asserts_set_global_error=0"
+    ],
+    "loaded": {
+      "btf": {
+        "ctime_ns": 1788477161498361815,
+        "device": 24,
+        "gid": 0,
+        "inode": 169518,
+        "mode": 292,
+        "mtime_ns": 1788477161498361815,
+        "path": "/sys/kernel/btf/nvidia_uvm",
+        "size_bytes": 269623,
+        "uid": 0
+      },
+      "diagnostic_present": true,
+      "interface": {
+        "decision_size": 24,
+        "gpu_mem_ops_members": [
+          "gpu_test_trigger",
+          "gpu_page_prefetch",
+          "gpu_page_prefetch_iter",
+          "gpu_block_activate",
+          "gpu_block_access",
+          "gpu_evict_prepare"
+        ],
+        "region_size": 4,
+        "required_functions": [
+          "bpf_gpu_request_reorder",
+          "bpf_gpu_set_prefetch_region",
+          "uvm_bpf_call_gpu_page_prefetch"
+        ]
+      },
+      "version": "575.57.08"
+    },
+    "parameters": {
+      "uvm_ats_mode": "1",
+      "uvm_block_cpu_to_cpu_copy_with_ce": "0",
+      "uvm_channel_gpfifo_loc": "auto",
+      "uvm_channel_gpput_loc": "auto",
+      "uvm_channel_num_gpfifo_entries": "1024",
+      "uvm_channel_pushbuffer_loc": "auto",
+      "uvm_conf_computing_channel_iv_rotation_limit": "2147483648",
+      "uvm_cpu_chunk_allocation_sizes": "2166784",
+      "uvm_debug_enable_push_acquire_info": "0",
+      "uvm_debug_enable_push_desc": "0",
+      "uvm_debug_prints": "0",
+      "uvm_disable_hmm": "N",
+      "uvm_downgrade_force_membar_sys": "1",
+      "uvm_enable_builtin_tests": "0",
+      "uvm_enable_debug_procfs": "0",
+      "uvm_enable_va_space_mm": "1",
+      "uvm_exp_gpu_cache_peermem": "0",
+      "uvm_exp_gpu_cache_sysmem": "0",
+      "uvm_fault_force_sysmem": "0",
+      "uvm_force_prefetch_fault_support": "0",
+      "uvm_global_oversubscription": "1",
+      "uvm_leak_checker": "0",
+      "uvm_page_table_location": "(null)",
+      "uvm_peer_copy": "phys",
+      "uvm_perf_access_counter_batch_count": "256",
+      "uvm_perf_access_counter_migration_enable": "-1",
+      "uvm_perf_access_counter_threshold": "256",
+      "uvm_perf_fault_batch_count": "256",
+      "uvm_perf_fault_coalesce": "1",
+      "uvm_perf_fault_max_batches_per_service": "20",
+      "uvm_perf_fault_max_throttle_per_service": "5",
+      "uvm_perf_fault_replay_policy": "2",
+      "uvm_perf_fault_replay_update_put_ratio": "50",
+      "uvm_perf_map_remote_on_eviction": "1",
+      "uvm_perf_map_remote_on_native_atomics_fault": "0",
+      "uvm_perf_migrate_cpu_preunmap_block_order": "2",
+      "uvm_perf_migrate_cpu_preunmap_enable": "1",
+      "uvm_perf_pma_batch_nonpinned_order": "6",
+      "uvm_perf_prefetch_enable": "1",
+      "uvm_perf_prefetch_min_faults": "1",
+      "uvm_perf_prefetch_threshold": "51",
+      "uvm_perf_reenable_prefetch_faults_lapse_msec": "1000",
+      "uvm_perf_thrashing_enable": "1",
+      "uvm_perf_thrashing_epoch": "2000",
+      "uvm_perf_thrashing_lapse_usec": "500",
+      "uvm_perf_thrashing_max_resets": "4",
+      "uvm_perf_thrashing_nap": "1",
+      "uvm_perf_thrashing_pin": "300",
+      "uvm_perf_thrashing_pin_threshold": "10",
+      "uvm_perf_thrashing_threshold": "3",
+      "uvm_release_asserts": "1",
+      "uvm_release_asserts_dump_stack": "0",
+      "uvm_release_asserts_set_global_error": "0"
+    }
+  },
+  "complete": true,
+  "completion_linearization": {
+    "commit_point_ns": 1788477194016966380,
+    "original_handlers_restored_before_unblock": true,
+    "prepublish_signals": [],
+    "publish_window_signals": [],
+    "signals_blocked_ns": 1788477193996595705
+  },
+  "final": {
+    "core": {
+      "btf": {
+        "ctime_ns": 1788474059575085591,
+        "device": 24,
+        "gid": 0,
+        "inode": 88365,
+        "mode": 292,
+        "mtime_ns": 1788474059575085591,
+        "path": "/sys/kernel/btf/nvidia",
+        "size_bytes": 125993,
+        "uid": 0
+      },
+      "required_interface_names": [
+        "nv_gpu_sched_ops",
+        "bpf_nv_gpu_preempt_tsg"
+      ],
+      "version": "575.57.08"
+    },
+    "holders": {
+      "devices": [
+        "/dev/nvidia-uvm",
+        "/dev/nvidia-uvm-tools"
+      ],
+      "returncode": 1,
+      "stderr": "",
+      "stdout": ""
+    },
+    "loaded_uvm": {
+      "btf": {
+        "ctime_ns": 1788477189820437147,
+        "device": 24,
+        "gid": 0,
+        "inode": 170125,
+        "mode": 292,
+        "mtime_ns": 1788477189820437147,
+        "path": "/sys/kernel/btf/nvidia_uvm",
+        "size_bytes": 268940,
+        "uid": 0
+      },
+      "diagnostic_present": false,
+      "interface": {
+        "decision_size": 24,
+        "gpu_mem_ops_members": [
+          "gpu_test_trigger",
+          "gpu_page_prefetch",
+          "gpu_page_prefetch_iter",
+          "gpu_block_activate",
+          "gpu_block_access",
+          "gpu_evict_prepare"
+        ],
+        "region_size": 4,
+        "required_functions": [
+          "bpf_gpu_request_reorder",
+          "bpf_gpu_set_prefetch_region",
+          "uvm_bpf_call_gpu_page_prefetch"
+        ]
+      },
+      "version": "575.57.08"
+    },
+    "safety": {
+      "dmesg_abnormal": [],
+      "gpu": {
+        "compute_apps": [],
+        "driver": "575.57.08",
+        "index": 0,
+        "memory_clock_mhz": 405,
+        "memory_total_mib": 32607,
+        "memory_used_mib": 15,
+        "name": "NVIDIA GeForce RTX 5090",
+        "power_w": 15.87,
+        "sm_clock_mhz": 30,
+        "temperature_c": 52,
+        "utilization_gpu_percent": 0
+      },
+      "journal_abnormal": [],
+      "power_limit_service": "active",
+      "power_limit_w": 400.0,
+      "struct_ops": {
+        "links": [],
+        "maps": []
+      },
+      "timestamp_ns": 1788477193556096739,
+      "uvm_refcount": 0,
+      "xids": []
+    },
+    "services": {
+      "gdm.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "static"
+      },
+      "nvidia-persistenced.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "enabled"
+      }
+    }
+  },
+  "finalization_errors": [],
+  "finished_ns": 1788477193996609368,
+  "initial": {
+    "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+    "candidate": {
+      "depends": [
+        "nvidia"
+      ],
+      "diagnostic_present": true,
+      "interface": {
+        "decision_size": 24,
+        "gpu_mem_ops_members": [
+          "gpu_test_trigger",
+          "gpu_page_prefetch",
+          "gpu_page_prefetch_iter",
+          "gpu_block_activate",
+          "gpu_block_access",
+          "gpu_evict_prepare"
+        ],
+        "region_size": 4,
+        "required_functions": [
+          "bpf_gpu_request_reorder",
+          "bpf_gpu_set_prefetch_region",
+          "uvm_bpf_call_gpu_page_prefetch"
+        ]
+      },
+      "inventory": {
+        "ctime_ns": 1788470546608169081,
+        "device": 66305,
+        "gid": 1000,
+        "inode": 92298858,
+        "mode": 436,
+        "mtime_ns": 1788470546608169081,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia-uvm.ko",
+        "size_bytes": 61919280,
+        "uid": 1000
+      },
+      "name": "nvidia_uvm",
+      "parameter_names": [
+        "uvm_ats_mode",
+        "uvm_block_cpu_to_cpu_copy_with_ce",
+        "uvm_channel_gpfifo_loc",
+        "uvm_channel_gpput_loc",
+        "uvm_channel_num_gpfifo_entries",
+        "uvm_channel_pushbuffer_loc",
+        "uvm_conf_computing_channel_iv_rotation_limit",
+        "uvm_cpu_chunk_allocation_sizes",
+        "uvm_debug_enable_push_acquire_info",
+        "uvm_debug_enable_push_desc",
+        "uvm_debug_prints",
+        "uvm_disable_hmm",
+        "uvm_downgrade_force_membar_sys",
+        "uvm_enable_builtin_tests",
+        "uvm_enable_debug_procfs",
+        "uvm_enable_va_space_mm",
+        "uvm_exp_gpu_cache_peermem",
+        "uvm_exp_gpu_cache_sysmem",
+        "uvm_fault_force_sysmem",
+        "uvm_force_prefetch_fault_support",
+        "uvm_global_oversubscription",
+        "uvm_leak_checker",
+        "uvm_page_table_location",
+        "uvm_peer_copy",
+        "uvm_perf_access_counter_batch_count",
+        "uvm_perf_access_counter_migration_enable",
+        "uvm_perf_access_counter_threshold",
+        "uvm_perf_fault_batch_count",
+        "uvm_perf_fault_coalesce",
+        "uvm_perf_fault_max_batches_per_service",
+        "uvm_perf_fault_max_throttle_per_service",
+        "uvm_perf_fault_replay_policy",
+        "uvm_perf_fault_replay_update_put_ratio",
+        "uvm_perf_map_remote_on_eviction",
+        "uvm_perf_map_remote_on_native_atomics_fault",
+        "uvm_perf_migrate_cpu_preunmap_block_order",
+        "uvm_perf_migrate_cpu_preunmap_enable",
+        "uvm_perf_pma_batch_nonpinned_order",
+        "uvm_perf_prefetch_enable",
+        "uvm_perf_prefetch_min_faults",
+        "uvm_perf_prefetch_threshold",
+        "uvm_perf_reenable_prefetch_faults_lapse_msec",
+        "uvm_perf_thrashing_enable",
+        "uvm_perf_thrashing_epoch",
+        "uvm_perf_thrashing_lapse_usec",
+        "uvm_perf_thrashing_max_resets",
+        "uvm_perf_thrashing_nap",
+        "uvm_perf_thrashing_pin",
+        "uvm_perf_thrashing_pin_threshold",
+        "uvm_perf_thrashing_threshold",
+        "uvm_release_asserts",
+        "uvm_release_asserts_dump_stack",
+        "uvm_release_asserts_set_global_error"
+      ],
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+      "version": "575.57.08"
+    },
+    "core": {
+      "btf": {
+        "ctime_ns": 1788474059575085591,
+        "device": 24,
+        "gid": 0,
+        "inode": 88365,
+        "mode": 292,
+        "mtime_ns": 1788474059575085591,
+        "path": "/sys/kernel/btf/nvidia",
+        "size_bytes": 125993,
+        "uid": 0
+      },
+      "required_interface_names": [
+        "nv_gpu_sched_ops",
+        "bpf_nv_gpu_preempt_tsg"
+      ],
+      "version": "575.57.08"
+    },
+    "kernel": "6.15.11-061511-generic",
+    "live_uvm": {
+      "btf": {
+        "ctime_ns": 1788474059575157583,
+        "device": 24,
+        "gid": 0,
+        "inode": 92669,
+        "mode": 292,
+        "mtime_ns": 1788474059575157583,
+        "path": "/sys/kernel/btf/nvidia_uvm",
+        "size_bytes": 268940,
+        "uid": 0
+      },
+      "diagnostic_present": false,
+      "interface": {
+        "decision_size": 24,
+        "gpu_mem_ops_members": [
+          "gpu_test_trigger",
+          "gpu_page_prefetch",
+          "gpu_page_prefetch_iter",
+          "gpu_block_activate",
+          "gpu_block_access",
+          "gpu_evict_prepare"
+        ],
+        "region_size": 4,
+        "required_functions": [
+          "bpf_gpu_request_reorder",
+          "bpf_gpu_set_prefetch_region",
+          "uvm_bpf_call_gpu_page_prefetch"
+        ]
+      },
+      "version": "575.57.08"
+    },
+    "local_sessions": [
+      {
+        "Active": "yes",
+        "Class": "user",
+        "Id": "16",
+        "Name": "yunwei37",
+        "Remote": "yes",
+        "Seat": "",
+        "Service": "sshd",
+        "State": "closing",
+        "Type": "tty",
+        "User": "1000"
+      },
+      {
+        "Active": "yes",
+        "Class": "user",
+        "Id": "7",
+        "Name": "yunwei37",
+        "Remote": "yes",
+        "Seat": "",
+        "Service": "sshd",
+        "State": "closing",
+        "Type": "tty",
+        "User": "1000"
+      },
+      {
+        "Active": "yes",
+        "Class": "greeter",
+        "Id": "c9",
+        "Name": "gdm",
+        "Remote": "no",
+        "Seat": "seat0",
+        "Service": "gdm-launch-environment",
+        "State": "active",
+        "Type": "x11",
+        "User": "120"
+      }
+    ],
+    "parameters": {
+      "uvm_ats_mode": "1",
+      "uvm_block_cpu_to_cpu_copy_with_ce": "0",
+      "uvm_channel_gpfifo_loc": "auto",
+      "uvm_channel_gpput_loc": "auto",
+      "uvm_channel_num_gpfifo_entries": "1024",
+      "uvm_channel_pushbuffer_loc": "auto",
+      "uvm_conf_computing_channel_iv_rotation_limit": "2147483648",
+      "uvm_cpu_chunk_allocation_sizes": "2166784",
+      "uvm_debug_enable_push_acquire_info": "0",
+      "uvm_debug_enable_push_desc": "0",
+      "uvm_debug_prints": "0",
+      "uvm_disable_hmm": "N",
+      "uvm_downgrade_force_membar_sys": "1",
+      "uvm_enable_builtin_tests": "0",
+      "uvm_enable_debug_procfs": "0",
+      "uvm_enable_va_space_mm": "1",
+      "uvm_exp_gpu_cache_peermem": "0",
+      "uvm_exp_gpu_cache_sysmem": "0",
+      "uvm_fault_force_sysmem": "0",
+      "uvm_force_prefetch_fault_support": "0",
+      "uvm_global_oversubscription": "1",
+      "uvm_leak_checker": "0",
+      "uvm_page_table_location": "(null)",
+      "uvm_peer_copy": "phys",
+      "uvm_perf_access_counter_batch_count": "256",
+      "uvm_perf_access_counter_migration_enable": "-1",
+      "uvm_perf_access_counter_threshold": "256",
+      "uvm_perf_fault_batch_count": "256",
+      "uvm_perf_fault_coalesce": "1",
+      "uvm_perf_fault_max_batches_per_service": "20",
+      "uvm_perf_fault_max_throttle_per_service": "5",
+      "uvm_perf_fault_replay_policy": "2",
+      "uvm_perf_fault_replay_update_put_ratio": "50",
+      "uvm_perf_map_remote_on_eviction": "1",
+      "uvm_perf_map_remote_on_native_atomics_fault": "0",
+      "uvm_perf_migrate_cpu_preunmap_block_order": "2",
+      "uvm_perf_migrate_cpu_preunmap_enable": "1",
+      "uvm_perf_pma_batch_nonpinned_order": "6",
+      "uvm_perf_prefetch_enable": "1",
+      "uvm_perf_prefetch_min_faults": "1",
+      "uvm_perf_prefetch_threshold": "51",
+      "uvm_perf_reenable_prefetch_faults_lapse_msec": "1000",
+      "uvm_perf_thrashing_enable": "1",
+      "uvm_perf_thrashing_epoch": "2000",
+      "uvm_perf_thrashing_lapse_usec": "500",
+      "uvm_perf_thrashing_max_resets": "4",
+      "uvm_perf_thrashing_nap": "1",
+      "uvm_perf_thrashing_pin": "300",
+      "uvm_perf_thrashing_pin_threshold": "10",
+      "uvm_perf_thrashing_threshold": "3",
+      "uvm_release_asserts": "1",
+      "uvm_release_asserts_dump_stack": "0",
+      "uvm_release_asserts_set_global_error": "0"
+    },
+    "restore": {
+      "depends": [
+        "nvidia"
+      ],
+      "diagnostic_present": false,
+      "interface": {
+        "decision_size": 24,
+        "gpu_mem_ops_members": [
+          "gpu_test_trigger",
+          "gpu_page_prefetch",
+          "gpu_page_prefetch_iter",
+          "gpu_block_activate",
+          "gpu_block_access",
+          "gpu_evict_prepare"
+        ],
+        "region_size": 4,
+        "required_functions": [
+          "bpf_gpu_request_reorder",
+          "bpf_gpu_set_prefetch_region",
+          "uvm_bpf_call_gpu_page_prefetch"
+        ]
+      },
+      "inventory": {
+        "ctime_ns": 1788398391479299025,
+        "device": 66308,
+        "gid": 0,
+        "inode": 3014683,
+        "mode": 420,
+        "mtime_ns": 1788398391477612797,
+        "path": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia-uvm.ko",
+        "size_bytes": 61914016,
+        "uid": 0
+      },
+      "name": "nvidia_uvm",
+      "parameter_names": [
+        "uvm_ats_mode",
+        "uvm_block_cpu_to_cpu_copy_with_ce",
+        "uvm_channel_gpfifo_loc",
+        "uvm_channel_gpput_loc",
+        "uvm_channel_num_gpfifo_entries",
+        "uvm_channel_pushbuffer_loc",
+        "uvm_conf_computing_channel_iv_rotation_limit",
+        "uvm_cpu_chunk_allocation_sizes",
+        "uvm_debug_enable_push_acquire_info",
+        "uvm_debug_enable_push_desc",
+        "uvm_debug_prints",
+        "uvm_disable_hmm",
+        "uvm_downgrade_force_membar_sys",
+        "uvm_enable_builtin_tests",
+        "uvm_enable_debug_procfs",
+        "uvm_enable_va_space_mm",
+        "uvm_exp_gpu_cache_peermem",
+        "uvm_exp_gpu_cache_sysmem",
+        "uvm_fault_force_sysmem",
+        "uvm_force_prefetch_fault_support",
+        "uvm_global_oversubscription",
+        "uvm_leak_checker",
+        "uvm_page_table_location",
+        "uvm_peer_copy",
+        "uvm_perf_access_counter_batch_count",
+        "uvm_perf_access_counter_migration_enable",
+        "uvm_perf_access_counter_threshold",
+        "uvm_perf_fault_batch_count",
+        "uvm_perf_fault_coalesce",
+        "uvm_perf_fault_max_batches_per_service",
+        "uvm_perf_fault_max_throttle_per_service",
+        "uvm_perf_fault_replay_policy",
+        "uvm_perf_fault_replay_update_put_ratio",
+        "uvm_perf_map_remote_on_eviction",
+        "uvm_perf_map_remote_on_native_atomics_fault",
+        "uvm_perf_migrate_cpu_preunmap_block_order",
+        "uvm_perf_migrate_cpu_preunmap_enable",
+        "uvm_perf_pma_batch_nonpinned_order",
+        "uvm_perf_prefetch_enable",
+        "uvm_perf_prefetch_min_faults",
+        "uvm_perf_prefetch_threshold",
+        "uvm_perf_reenable_prefetch_faults_lapse_msec",
+        "uvm_perf_thrashing_enable",
+        "uvm_perf_thrashing_epoch",
+        "uvm_perf_thrashing_lapse_usec",
+        "uvm_perf_thrashing_max_resets",
+        "uvm_perf_thrashing_nap",
+        "uvm_perf_thrashing_pin",
+        "uvm_perf_thrashing_pin_threshold",
+        "uvm_perf_thrashing_threshold",
+        "uvm_release_asserts",
+        "uvm_release_asserts_dump_stack",
+        "uvm_release_asserts_set_global_error"
+      ],
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+      "version": "575.57.08"
+    },
+    "safety": {
+      "dmesg_abnormal": [],
+      "gpu": {
+        "compute_apps": [],
+        "driver": "575.57.08",
+        "index": 0,
+        "memory_clock_mhz": 405,
+        "memory_total_mib": 32607,
+        "memory_used_mib": 15,
+        "name": "NVIDIA GeForce RTX 5090",
+        "power_w": 13.01,
+        "sm_clock_mhz": 22,
+        "temperature_c": 51,
+        "utilization_gpu_percent": 0
+      },
+      "journal_abnormal": [],
+      "power_limit_service": "active",
+      "power_limit_w": 400.0,
+      "struct_ops": {
+        "links": [],
+        "maps": []
+      },
+      "timestamp_ns": 1788477154486655262,
+      "uvm_refcount": 0,
+      "xids": []
+    },
+    "services": {
+      "gdm.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "static"
+      },
+      "nvidia-persistenced.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "enabled"
+      }
+    }
+  },
+  "leases": [
+    {
+      "device": 66308,
+      "gid": 0,
+      "inode": 54525959,
+      "mode": 420,
+      "path": "/tmp/gpubpf-revision-gpu0.lock",
+      "uid": 0
+    },
+    {
+      "device": 66308,
+      "gid": 0,
+      "inode": 54525960,
+      "mode": 420,
+      "path": "/tmp/gpubpf-revision-struct-ops.lock",
+      "uid": 0
+    }
+  ],
+  "recovery_errors": [],
+  "restored": true,
+  "runtime_state": {
+    "candidate_loaded": false,
+    "cells_completed": [
+      "native",
+      "bypass",
+      "invalid99"
+    ],
+    "destructive_started": true,
+    "last_insert": "restore",
+    "old_restored": true,
+    "old_unloaded": true,
+    "services_restored": true
+  },
+  "staged_candidate": {
+    "depends": [
+      "nvidia"
+    ],
+    "diagnostic_present": true,
+    "interface": {
+      "decision_size": 24,
+      "gpu_mem_ops_members": [
+        "gpu_test_trigger",
+        "gpu_page_prefetch",
+        "gpu_page_prefetch_iter",
+        "gpu_block_activate",
+        "gpu_block_access",
+        "gpu_evict_prepare"
+      ],
+      "region_size": 4,
+      "required_functions": [
+        "bpf_gpu_request_reorder",
+        "bpf_gpu_set_prefetch_region",
+        "uvm_bpf_call_gpu_page_prefetch"
+      ]
+    },
+    "inventory": {
+      "ctime_ns": 1788477154948213023,
+      "device": 66308,
+      "gid": 0,
+      "inode": 3014688,
+      "mode": 420,
+      "mtime_ns": 1788477154947213000,
+      "path": "/opt/gpubpf/modules/575.57.08/prefetch-diagnostic-0c109956-6.15.11/nvidia-uvm.ko",
+      "size_bytes": 61919280,
+      "uid": 0
+    },
+    "name": "nvidia_uvm",
+    "parameter_names": [
+      "uvm_ats_mode",
+      "uvm_block_cpu_to_cpu_copy_with_ce",
+      "uvm_channel_gpfifo_loc",
+      "uvm_channel_gpput_loc",
+      "uvm_channel_num_gpfifo_entries",
+      "uvm_channel_pushbuffer_loc",
+      "uvm_conf_computing_channel_iv_rotation_limit",
+      "uvm_cpu_chunk_allocation_sizes",
+      "uvm_debug_enable_push_acquire_info",
+      "uvm_debug_enable_push_desc",
+      "uvm_debug_prints",
+      "uvm_disable_hmm",
+      "uvm_downgrade_force_membar_sys",
+      "uvm_enable_builtin_tests",
+      "uvm_enable_debug_procfs",
+      "uvm_enable_va_space_mm",
+      "uvm_exp_gpu_cache_peermem",
+      "uvm_exp_gpu_cache_sysmem",
+      "uvm_fault_force_sysmem",
+      "uvm_force_prefetch_fault_support",
+      "uvm_global_oversubscription",
+      "uvm_leak_checker",
+      "uvm_page_table_location",
+      "uvm_peer_copy",
+      "uvm_perf_access_counter_batch_count",
+      "uvm_perf_access_counter_migration_enable",
+      "uvm_perf_access_counter_threshold",
+      "uvm_perf_fault_batch_count",
+      "uvm_perf_fault_coalesce",
+      "uvm_perf_fault_max_batches_per_service",
+      "uvm_perf_fault_max_throttle_per_service",
+      "uvm_perf_fault_replay_policy",
+      "uvm_perf_fault_replay_update_put_ratio",
+      "uvm_perf_map_remote_on_eviction",
+      "uvm_perf_map_remote_on_native_atomics_fault",
+      "uvm_perf_migrate_cpu_preunmap_block_order",
+      "uvm_perf_migrate_cpu_preunmap_enable",
+      "uvm_perf_pma_batch_nonpinned_order",
+      "uvm_perf_prefetch_enable",
+      "uvm_perf_prefetch_min_faults",
+      "uvm_perf_prefetch_threshold",
+      "uvm_perf_reenable_prefetch_faults_lapse_msec",
+      "uvm_perf_thrashing_enable",
+      "uvm_perf_thrashing_epoch",
+      "uvm_perf_thrashing_lapse_usec",
+      "uvm_perf_thrashing_max_resets",
+      "uvm_perf_thrashing_nap",
+      "uvm_perf_thrashing_pin",
+      "uvm_perf_thrashing_pin_threshold",
+      "uvm_perf_thrashing_threshold",
+      "uvm_release_asserts",
+      "uvm_release_asserts_dump_stack",
+      "uvm_release_asserts_set_global_error"
+    ],
+    "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+    "version": "575.57.08"
+  },
+  "started_ns": 1788477153073817902,
+  "transitions": [
+    {
+      "name": "lease_acquired",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477153073831567
+    },
+    {
+      "name": "admission",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477154881448418
+    },
+    {
+      "name": "candidate_staged",
+      "path": "/opt/gpubpf/modules/575.57.08/prefetch-diagnostic-0c109956-6.15.11/nvidia-uvm.ko",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477155029836863
+    },
+    {
+      "local_sessions": [
+        {
+          "Active": "yes",
+          "Class": "user",
+          "Id": "16",
+          "Name": "yunwei37",
+          "Remote": "yes",
+          "Seat": "",
+          "Service": "sshd",
+          "State": "closing",
+          "Type": "tty",
+          "User": "1000"
+        },
+        {
+          "Active": "yes",
+          "Class": "user",
+          "Id": "7",
+          "Name": "yunwei37",
+          "Remote": "yes",
+          "Seat": "",
+          "Service": "sshd",
+          "State": "closing",
+          "Type": "tty",
+          "User": "1000"
+        },
+        {
+          "Active": "yes",
+          "Class": "greeter",
+          "Id": "c9",
+          "Name": "gdm",
+          "Remote": "no",
+          "Seat": "seat0",
+          "Service": "gdm-launch-environment",
+          "State": "active",
+          "Type": "x11",
+          "User": "120"
+        }
+      ],
+      "name": "stop_gdm.service",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477155061623888
+    },
+    {
+      "name": "stop_gdm.service",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477155909651180
+    },
+    {
+      "local_sessions": [],
+      "name": "stop_nvidia-persistenced.service",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477155929096772
+    },
+    {
+      "name": "stop_nvidia-persistenced.service",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477156182830183
+    },
+    {
+      "name": "services_stopped_and_idle",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": false,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477157873759791
+    },
+    {
+      "name": "remove_old_started",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": true,
+        "last_insert": "initial",
+        "old_restored": false,
+        "old_unloaded": false,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477157893231656
+    },
+    {
+      "name": "old_removed",
+      "removal": {
+        "holders": {
+          "devices": [
+            "/dev/nvidia-uvm",
+            "/dev/nvidia-uvm-tools"
+          ],
+          "returncode": 1,
+          "stderr": "",
+          "stdout": ""
+        },
+        "pre_remove": {
+          "dmesg_abnormal": [],
+          "gpu": {
+            "compute_apps": [],
+            "driver": "575.57.08",
+            "index": 0,
+            "memory_clock_mhz": 405,
+            "memory_total_mib": 32607,
+            "memory_used_mib": 2,
+            "name": "NVIDIA GeForce RTX 5090",
+            "power_w": 13.08,
+            "sm_clock_mhz": 22,
+            "temperature_c": 51,
+            "utilization_gpu_percent": 0
+          },
+          "journal_abnormal": [],
+          "power_limit_service": "active",
+          "power_limit_w": 400.0,
+          "struct_ops": {
+            "links": [],
+            "maps": []
+          },
+          "timestamp_ns": 1788477160873204887,
+          "uvm_refcount": 0,
+          "xids": []
+        },
+        "quiet": {
+          "dmesg_abnormal": [],
+          "gpu": {
+            "compute_apps": [],
+            "driver": "575.57.08",
+            "index": 0,
+            "memory_clock_mhz": 405,
+            "memory_total_mib": 32607,
+            "memory_used_mib": 2,
+            "name": "NVIDIA GeForce RTX 5090",
+            "power_w": 13.11,
+            "sm_clock_mhz": 21,
+            "temperature_c": 51,
+            "utilization_gpu_percent": 0
+          },
+          "journal_abnormal": [],
+          "power_limit_service": "active",
+          "power_limit_w": 400.0,
+          "struct_ops": {
+            "links": [],
+            "maps": []
+          },
+          "timestamp_ns": 1788477159163957324,
+          "uvm_refcount": 0,
+          "xids": []
+        }
+      },
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": true,
+        "last_insert": "none",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477161397375019
+    },
+    {
+      "name": "insert_candidate_started",
+      "path": "/opt/gpubpf/modules/575.57.08/prefetch-diagnostic-0c109956-6.15.11/nvidia-uvm.ko",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477161417189323
+    },
+    {
+      "name": "candidate_loaded",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477161533821135
+    },
+    {
+      "name": "cell_native",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477161552673837
+    },
+    {
+      "name": "cell_native",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477169646582459
+    },
+    {
+      "name": "cell_bypass",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477169657269848
+    },
+    {
+      "name": "cell_bypass",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477177969202253
+    },
+    {
+      "name": "cell_invalid99",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477177980501308
+    },
+    {
+      "name": "cell_invalid99",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477186096584894
+    },
+    {
+      "name": "recovery_started",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477186107576406
+    },
+    {
+      "name": "recovery_validate_restore_artifact",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477186138634053
+    },
+    {
+      "name": "recovery_validate_candidate_artifact",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477186175577372
+    },
+    {
+      "name": "recovery_validate_staged_artifact",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477186211819610
+    },
+    {
+      "name": "recovery_classify_uvm",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477186222741721
+    },
+    {
+      "name": "recovery_remove_candidate",
+      "runtime_state": {
+        "candidate_loaded": true,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "candidate",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477189683449074
+    },
+    {
+      "name": "recovery_candidate_absent",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "none",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477189702901509
+    },
+    {
+      "name": "recovery_insert_old_started",
+      "path": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia-uvm.ko",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "started",
+      "timestamp_ns": 1788477189713307316
+    },
+    {
+      "name": "recovery_insert_old",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": false,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477189845686521
+    },
+    {
+      "name": "recovery_old_quiet",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": true,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477191580207173
+    },
+    {
+      "name": "recovery_read_services",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": true,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477191607601393
+    },
+    {
+      "name": "recovery_start_nvidia-persistenced.service",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": true,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477191852725724
+    },
+    {
+      "name": "recovery_start_gdm.service",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": true,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477192127149819
+    },
+    {
+      "name": "recovery_validate_services",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": true,
+        "old_unloaded": true,
+        "services_restored": false
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477192152739117
+    },
+    {
+      "name": "recovery_final_validation",
+      "runtime_state": {
+        "candidate_loaded": false,
+        "cells_completed": [
+          "native",
+          "bypass",
+          "invalid99"
+        ],
+        "destructive_started": true,
+        "last_insert": "restore",
+        "old_restored": true,
+        "old_unloaded": true,
+        "services_restored": true
+      },
+      "status": "passed",
+      "timestamp_ns": 1788477193976454310
+    }
+  ]
+}

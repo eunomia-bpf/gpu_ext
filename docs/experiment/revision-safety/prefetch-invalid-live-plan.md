@@ -1,6 +1,9 @@
 # Q2 live invalid-prefetch fallback plan
 
-Status: admitted next experiment; no live result yet. The earlier
+Status update, 2026-09-03: the replacement
+[`prefetch-invalid-575-02`](prefetch-invalid-575-02/result-review.md) campaign
+completed all three controls and exact old-runtime restoration. This document
+preserves the pre-run plan and acceptance boundary. The earlier
 [`prefetch-invalid-575-01`](prefetch-invalid-575-01/results.md) attempt remains
 a closed admission failure with zero completed controls.
 

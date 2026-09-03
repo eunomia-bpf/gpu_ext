@@ -279,11 +279,15 @@ verification. Results must retain their actual execution-domain labels.
    driver. The [575 run](experiment/revision-safety/sched-load-575-02/execution.json)
    now records all seven scheduler/PMM load-only outcomes (4 admissions,
    3 rejections) and the shared-header CPU validator's 12 cases/145 assertions.
-   Neither result executes native initialization commits or live prefetch
-   fallback. The actual custom BTF types were checked; no module reload or
-   policy attachment was needed for the load-only suite.
-4. Retain live prefetch invalid-output/fallback evidence rather than treating
-   offline build success as that test.
+   Neither result executes native initialization commits. The actual custom BTF
+   types were checked; no module reload or policy attachment was needed for the
+   load-only suite.
+4. Preserve the completed
+   [live invalid-prefetch controls](experiment/revision-safety/prefetch-invalid-575-02/result-review.md):
+   native, legal BYPASS and invalid action 99 all close their counter equations,
+   with zero data mismatch and exact old-runtime restoration. This closes the
+   scoped initial-action fallback test, not invalid regions, iterator behavior,
+   stale-state races, performance, or universal transition semantics.
 5. Correct the historical taxonomy wording and narrow the four partial rows;
    recover/release the original session corpus before claiming transcript
    replayability. No unavailable transcript has been reconstructed here.

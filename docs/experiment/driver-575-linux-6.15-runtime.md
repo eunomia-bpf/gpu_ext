@@ -183,3 +183,41 @@ tests passed 12 cases and 145 assertions. The new core module is 30,112,976 byte
 live NVIDIA BTF is 125,410 bytes and UVM BTF is 268,940 bytes. These build/load
 facts do not yet prove firmware timeslice acceptance or physical scheduling
 quantum; the new observer/context canary must supply its own runtime evidence.
+
+## Persistent decisions at the authorized timeslice-control boundary
+
+The `e7d46fa5` hardware canaries exposed an important failure: CUDA subsequently
+submitted 2,048 us and overwrote both BPF initialization values before the
+workload's first kernel. Initialization counters and a matching driver shadow
+were therefore insufficient evidence of an effective policy. The original C
+setter, called after context creation, passed this same final-GSP-value check.
+
+At 2026-09-03 01:19:51–53 UTC, ordinary bounded reload installed `849ea75d`
+from `/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/`. The new core
+module is 30,120,600 bytes; the other four staged module sizes are unchanged.
+Live core/UVM BTF sizes are 125,993/268,940 bytes. No boot files or prior staging
+directories were overwritten. The first reload omitted DRM `modeset=1`, so
+400 W immediately reverted to 575 W at idle; no experiment was admitted in that
+state. Reloading only DRM with `modeset=1` restored the prior 2 MiB idle state
+and persistent 400 W readings. An unnecessary GDR parameter was reported as
+unknown and ignored; the official module explicitly reported that persistent
+mapping was in use. `/dev/gdrdrv` retained major 507, mode 0600 and UID/GID 1000.
+
+The appended optional scheduling callback runs inside the already authorized,
+locked native RM timeslice-control handler. Its trusted kfunc records a bounded
+decision; it does not call RM or sleep in BPF. The original physical RPC executes
+after leaving the callback's RCU section, and retains its status propagation.
+Incoming values outside the supported policy domain retain native behavior;
+an invalid caller request is not made valid by the policy. Identity includes
+RM handles, runlist, engine, hardware group, GPU and phase. Existing policies
+without this callback preserve the native path. The GPreempt policy additionally
+restricts decisions to the owned process and graphics-engine context roles.
+
+The new original and BPF context canaries both passed on this loaded revision.
+Each checked 2,048 integer outputs and 17 negative cases. Direct post-RPC
+observations recorded LC 1,000,000 us and BE 1 us after the later CUDA controls;
+unmarked native contexts retained 2,048 us. BPF reported two runtime overrides,
+one per role, with zero identity, setter or mapping errors. Cleanup left zero
+UVM references, no struct-ops attachment and no new Xid. This proves accepted,
+persistent firmware requests for these canaries, not a measured scheduling
+quantum or a full comparative performance result.

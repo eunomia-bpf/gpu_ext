@@ -272,6 +272,23 @@ def command(args, stage, output, arm=None):
     return result
 
 
+def child_environment(inherited=None):
+    env = dict(os.environ if inherited is None else inherited)
+    removed = []
+    # Never record the inherited value. PyTorch's legacy alias can override the
+    # canonical setting, so suppress it identically in preparation and all arms.
+    if "PYTORCH_CUDA_ALLOC_CONF" in env:
+        del env["PYTORCH_CUDA_ALLOC_CONF"]
+        removed.append("PYTORCH_CUDA_ALLOC_CONF")
+    changes = {"CUDA_VISIBLE_DEVICES": "0", "FINEMOE_EXCLUSIVE_LEASE": "1",
+               "CUBLAS_WORKSPACE_CONFIG": ":4096:8", "OMP_NUM_THREADS": "4",
+               "MKL_NUM_THREADS": "4", "TOKENIZERS_PARALLELISM": "false",
+               "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
+               "PYTORCH_ALLOC_CONF": "expandable_segments:True"}
+    env.update(changes)
+    return env, changes, removed
+
+
 def durable_artifacts(directory):
     # Writers have exited; preserve raw logs/numerics before the final result commit.
     for path in directory.rglob("*"):
@@ -285,13 +302,11 @@ def run_stage(args, stage, directory, frozen, data, arm=None):
     before = base.safety_snapshot()
     base.validate_pre_server_safety(before)
     require(inventory() == frozen, "runtime files changed before child launch")
-    env_changes = {"CUDA_VISIBLE_DEVICES": "0", "FINEMOE_EXCLUSIVE_LEASE": "1",
-                   "CUBLAS_WORKSPACE_CONFIG": ":4096:8", "OMP_NUM_THREADS": "4",
-                   "MKL_NUM_THREADS": "4", "TOKENIZERS_PARALLELISM": "false",
-                   "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
+    env, env_changes, removed_names = child_environment()
     cmd = command(args, stage, directory, arm)
     result = {"status": "running", "stage": stage, "arm": arm, "command": cmd,
-              "environment": env_changes, "safety_before": before, "runtime_before": frozen}
+              "environment": env_changes, "environment_removed_names": removed_names,
+              "safety_before": before, "runtime_before": frozen}
     base.atomic_write_json(directory / "launch.json", result)
     process = telemetry = stream = None
     error = None
@@ -299,7 +314,7 @@ def run_stage(args, stage, directory, frozen, data, arm=None):
         telemetry, stream, telemetry_path = base.start_gpu_telemetry(directory)
         with (directory / "worker.log").open("x") as log:
             process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
-                                       env={**os.environ, **env_changes}, start_new_session=True, cwd=HERE)
+                                       env=env, start_new_session=True, cwd=HERE)
             print(json.dumps({"stage": stage, "arm": arm, "pid": process.pid, "directory": str(directory)}), flush=True)
             result["returncode"] = process.wait(timeout=args.timeout)
         require(result["returncode"] == 0, f"real {stage}/{arm} child failed: {result['returncode']}")

@@ -43,8 +43,12 @@ verified inside their windows. It has not established throughput recovery;
 the 50-cell performance matrix remains pending. See the
 [current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
 FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;
-the full original Qwen weights are downloaded, but model GPU correctness and
-transfer results remain open. The original complete LMSYS dataset requires
+the full original Qwen weights are downloaded. The first full-model golden
+attempt failed during loading, before any request, with 4.97 GiB of PyTorch
+reservation unused; cleanup passed. A common allocator-only retry keeps the
+model, precision, cohort and budget unchanged. Model correctness and transfer
+results remain open; see the [retained failure](../workloads/finemoe/results-preparation.md).
+The original complete LMSYS dataset requires
 access approval, so the same 64/8/1 split uses public LMSYS MT-Bench first-turn
 inputs instead, with the dataset difference explicitly recorded. POD's real
 attention device-call ABI has been retained through compilation; full linking,

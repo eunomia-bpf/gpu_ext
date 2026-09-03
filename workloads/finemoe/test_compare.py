@@ -146,6 +146,19 @@ class CompareTests(unittest.TestCase):
         args.mode = "full"
         self.assertNotIn("--check-logits", compare.command(args, "cell", Path("out"), "finemoe-bpf"))
 
+    def test_common_allocator_environment_suppresses_legacy_alias(self):
+        inherited = {"PYTORCH_CUDA_ALLOC_CONF": "legacy-fixture-do-not-record",
+                     "PYTORCH_ALLOC_CONF": "old-fixture", "PATH": "/fixture/bin"}
+        child, recorded, removed = compare.child_environment(inherited)
+        self.assertEqual(child["PYTORCH_ALLOC_CONF"], "expandable_segments:True")
+        self.assertEqual(recorded["PYTORCH_ALLOC_CONF"], "expandable_segments:True")
+        self.assertNotIn("PYTORCH_CUDA_ALLOC_CONF", child)
+        self.assertEqual(removed, ["PYTORCH_CUDA_ALLOC_CONF"])
+        self.assertEqual(child["PATH"], inherited["PATH"])
+        self.assertEqual(inherited["PYTORCH_CUDA_ALLOC_CONF"], "legacy-fixture-do-not-record")
+        self.assertNotIn("legacy-fixture-do-not-record", str(recorded))
+        self.assertEqual(compare.child_environment({})[2], [])
+
 
 if __name__ == "__main__":
     unittest.main()

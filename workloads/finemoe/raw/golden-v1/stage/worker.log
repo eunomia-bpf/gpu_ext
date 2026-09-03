@@ -1,0 +1,29 @@
+Loading checkpoint shards:   0%|          | 0/8 [00:00<?, ?it/s]Loading checkpoint shards:  12%|█▎        | 1/8 [00:00<00:06,  1.14it/s]Loading checkpoint shards:  25%|██▌       | 2/8 [00:01<00:04,  1.36it/s]Loading checkpoint shards:  38%|███▊      | 3/8 [00:02<00:03,  1.44it/s]Loading checkpoint shards:  50%|█████     | 4/8 [00:02<00:02,  1.47it/s]Loading checkpoint shards:  62%|██████▎   | 5/8 [00:03<00:02,  1.48it/s]Loading checkpoint shards:  75%|███████▌  | 6/8 [00:04<00:01,  1.48it/s][W903 00:15:39.498372668 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 20971520 bytes (free: 15335424, total: 33669316608).
+[W903 00:15:39.498537665 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 20971520 bytes (free: 15335424, total: 33669316608).
+Loading checkpoint shards:  75%|███████▌  | 6/8 [00:04<00:01,  1.27it/s]
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py", line 278, in <module>
+    main()
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py", line 274, in main
+    worker(args)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/inference.py", line 138, in worker
+    model = AutoModelForCausalLM.from_pretrained(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/models/auto/auto_factory.py", line 564, in from_pretrained
+    return model_class.from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py", line 262, in _wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py", line 4319, in from_pretrained
+    ) = cls._load_pretrained_model(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py", line 4897, in _load_pretrained_model
+    new_error_msgs, offload_index, state_dict_index = _load_state_dict_into_meta_model(
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/modeling_utils.py", line 896, in _load_state_dict_into_meta_model
+    set_module_tensor_to_device(model, param_name, param_device, **set_module_kwargs)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/accelerate/utils/modeling.py", line 353, in set_module_tensor_to_device
+    new_value = value.to(device, non_blocking=non_blocking)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 31.36 GiB of which 14.62 MiB is free. Including non-PyTorch memory, this process has 31.32 GiB memory in use. Of the allocated memory 25.77 GiB is allocated by PyTorch, and 4.97 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

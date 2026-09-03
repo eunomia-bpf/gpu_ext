@@ -14,13 +14,10 @@ import threading
 
 import numpy as np
 
+from paper_policy_buffers import RankEntry, packed_select
+
 
 EPSILON = 1e-8
-
-
-class RankEntry(ctypes.Structure):
-    _fields_ = [("identity", ctypes.c_uint64), ("score_bits", ctypes.c_uint64),
-                ("ordinal", ctypes.c_uint32), ("reserved", ctypes.c_uint32)]
 
 
 def native_rank(scores: np.ndarray) -> list[int]:
@@ -49,22 +46,7 @@ class JitRanker:
             raise RuntimeError("BPF rank JIT initialization failed; no fallback")
 
     def __call__(self, identities: list[int], scores: np.ndarray) -> list[int]:
-        scores = np.ascontiguousarray(scores, dtype=np.float64)
-        if len(identities) != len(scores):
-            raise ValueError("rank identity/score length mismatch")
-        entries = (RankEntry * len(scores))()
-        for i, bits in enumerate(scores.view(np.uint64)):
-            entries[i] = RankEntry(identities[i], int(bits), i, 0)
-        indices = (ctypes.c_uint32 * len(scores))()
-        count = ctypes.c_uint32()
-        rc = self.run(
-            entries, len(scores), indices, len(scores), ctypes.byref(count))
-        if rc != 0 or count.value > len(scores):
-            raise RuntimeError("BPF rank execution failed; no fallback")
-        result = list(indices[:count.value])
-        if len(set(result)) != len(result) or any(i >= len(scores) for i in result):
-            raise RuntimeError("BPF rank returned invalid indices")
-        return result
+        return packed_select(self.run, identities, scores)
 
 
 class JitMatcher(JitRanker):

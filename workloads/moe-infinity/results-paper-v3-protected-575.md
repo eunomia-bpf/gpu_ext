@@ -196,6 +196,49 @@ executor has no complete five-block paired campaign for a controlled comparison.
 Avoid attributing the entire baseline gap to BPF execution, or interpreting
 protection-counter activity as elimination of cache churn.
 
+## Why the baseline is faster: observations and unresolved causes
+
+Across all five blocks, pooled expert-cache hit rates were **84.241% baseline,
+87.231% native paper policy, and 87.278% BPF**. Better hit rate therefore did not
+translate into higher throughput. Median per-cell measured process CPU-time
+deltas were **77.69 / 107.78 / 107.54 seconds**, respectively. These accumulate
+work across threads; they are neither critical-path durations nor JIT-only costs.
+Sampled GPU-memory peaks span **31,872–31,880 MiB** across the arms, providing no
+evidence that the baseline used substantially more memory. Short-lived extra
+residency need not appear in the 0.2-second telemetry samples.
+
+There is nevertheless a concrete execution-path difference in
+`deps/MoE-Infinity/core/parallel/expert_dispatcher.cpp`. On a full-cache miss,
+lines 760–782 permit only prediction-off, multi-token prefill to use one temporary
+overload slot per GPU. Lines 877–881 do not charge that slot to the cache ledger
+or insert it into the resident-cache set; lines 905 and 1029–1035 arrange removal
+after computation and release the slot. Both paper arms instead evict residents
+until the strict budget admits the requested expert. Thus the same 0.75 setting
+does not guarantee identical residency or replacement behavior. The temporary
+slot could preserve existing hot experts, but is not a large permanent cache.
+
+The existing counters do not record overload uses, bytes, waits, or phase-specific
+hit/miss counts; none of the five baseline logs retains the DEBUG overload
+messages. Their absence does not prove the branch was unused. Consequently,
+neither its actual trigger count nor its contribution to the baseline advantage
+is established. This remains a deployment comparison, not a pure policy-cost
+experiment with identical executors.
+
+Source inspection also identifies unprofiled common costs in both paper arms:
+`paper_policy.py:173` constructs two default arrays for every `setdefault` call,
+even when the request already exists; `distributed/expert_executor.py:218–221`
+computes predictions and converts all reuse scores before enqueueing current
+demand; dispatcher lines 626–631 make the sole fetch worker wait for each issued
+prefetch's CUDA event. Queued demand fetches cannot bypass that transfer.
+The `distributed/` path is relative to `deps/MoE-Infinity/moe_infinity/`.
+These are concrete work/synchronization sites, not measured explanations of the
+CPU or throughput gap. This inspection found no concrete cosine, decay, or
+ranking-direction error; unused-prefetch bytes are not wasted-time measurements.
+
+The next causal test should toggle prefetch on/off with the **same executor,
+cache budget, overload setting and eviction policy**, recording prefill/decode
+hit/miss, temporary-slot use, and demand-versus-prefetch copy/wait counters.
+
 ## Limits and replay
 
 This campaign covers one GPU, model, memory setting, concurrency level, fixed

@@ -1,19 +1,22 @@
 # MoE-Infinity revision baseline
 
-Active work: the [explicit paper-v3 activation-aware port](activation-aware-port.md)
-previously passed three-mode enhanced canaries: finite numerics, full nonstream
-and SSE same-frontend exact outputs, actual EAMC matching/prefetch ranking/
-score-based eviction, zero shadow mismatches and clean teardown. Evidence is
-in [the 849ea75d preflight record](raw/paper-v3-575/preflight-849ea75d/README.md).
-The first repeated campaign was interrupted by a reboot and has **zero complete
-paired blocks**; see [the raw recovery audit](recovery-20260903-013741.md).
-A subsequent source audit identified missing upstream prediction-set protection
-in the shared prefetch executor. Both paper arms now implement that protection
-and reject stale unissued work. The rebuilt store passed
-[fresh three-mode enhanced real canaries](raw/paper-v3-575/preflight-protected-849ea75d/README.md),
-including actual protection, epoch/copy accounting and independent raw-data
-audit. The new five-block performance campaign is running in
-`raw/paper-v3-575/timing-849ea75d-02-postboot`; the interrupted cells are not reused.
+Completed: **five paired blocks, all 15 cells independently raw-audited** for the
+[explicit paper-v3 activation-aware port](activation-aware-port.md).
+Median throughput is **11.1900 token/s BPF**, **11.2233 native paper policy**,
+and **11.8964 prediction-off baseline**, all using the same MoE frontend.
+BPF/native paired throughput ratio is **0.996540** (95% CI 0.989239–1.005508),
+not a formal equivalence proof. Both paper arms have lower throughput but lower
+first-visible-text latency than the baseline. See the
+[complete results and limitations](results-paper-v3-protected-575.md).
+
+The BPF selectors execute in the host ubpf JIT; this is not the old kernel-UVM
+stride/LFU program or reproduction of the authors' original hardware/model
+numbers. The shared executor includes prediction-set protection and stale-task
+epochs, validated by
+[fresh three-mode real canaries](raw/paper-v3-575/preflight-protected-849ea75d/README.md).
+The preceding reboot-interrupted campaign remains at zero complete paired
+blocks and is never pooled with this result; see
+[the retained recovery audit](recovery-20260903-013741.md).
 
 Current status: the generic host-stride/LFU campaign was **stopped on user
 instruction** after one paired block because it does not reproduce MoE-Infinity's

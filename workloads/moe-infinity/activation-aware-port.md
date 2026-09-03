@@ -1,24 +1,22 @@
 # MoE-Infinity activation-aware policy: explicit paper-v3 port
 
-Status: **earlier three-mode enhanced real canaries passed** on driver stage `849ea75d`,
-including finite numerics, two full nonstream requests and one full SSE request
-per mode, exact same-frontend outputs, and actual policy engagement. See the
-[three-mode preflight record](raw/paper-v3-575/preflight-849ea75d/README.md).
-The subsequent exact-ABI bulk-packing optimization also passed its own
-[enhanced BPF canary](raw/paper-v3-575/canary-bpf-packed-849ea75d-01/README.md).
-The first repeated comparison was interrupted by a reboot and has **zero valid
-paired blocks**; [the recovery audit](recovery-20260903-013741.md) rejects the
-damaged native raw responses. Prediction-set protection and stale-task epochs
-were subsequently added to the common executor as described below. That update
-was rebuilt and passed fresh [three-mode enhanced real canaries](raw/paper-v3-575/preflight-protected-849ea75d/README.md)
-on 2026-09-03: finite numerics, exact nonstream/SSE outputs, actual prediction-set
-protection, stale-task rejection, three JIT selectors and clean teardown. Their
-retained raw responses, telemetry and final JIT logs also passed independent
-CPU-only audit. A fresh five-block three-mode timed campaign is now running;
-the earlier interrupted results are not reused.
-There is **no paired performance or completed-reproduction claim yet**.
-This replaces the stopped generic-policy
-campaign, whose diagnostic data remain in [results-575.md](results-575.md).
+Status: **five complete paired blocks, all 15 cells passed independent raw
+audit**, on driver stage `849ea75d`. The
+[full results](results-paper-v3-protected-575.md) report median throughput of
+11.1900 / 11.2233 / 11.8964 token/s for BPF / paper-native / prediction-off.
+BPF/native paired ratio is 0.996540 (95% CI 0.989239–1.005508); this is not
+formal equivalence. The paper algorithm trades lower throughput for lower
+first-visible-text latency relative to the same-frontend baseline. The result
+does not establish a pure JIT cost or reproduction of the authors' original
+hardware/model numbers.
+
+The measured executor includes prediction-set protection and stale-task epochs,
+validated by [fresh three-mode real canaries](raw/paper-v3-575/preflight-protected-849ea75d/README.md):
+finite numerics, exact nonstream/SSE outputs, actual protection, three JIT
+selectors with same-snapshot shadow checks, and clean teardown. Timing disables
+the shadow oracle. The [reboot-interrupted earlier campaign](recovery-20260903-013741.md)
+remains at zero valid pairs and is not reused. The stopped generic stride/LFU
+campaign is also separate; its diagnostics remain in [results-575.md](results-575.md).
 
 The target is [arXiv:2401.14361v3](https://arxiv.org/abs/2401.14361), dated
 2025-03-12, specifically sections 4.3–4.7, Algorithm 1, and appendix B.1.

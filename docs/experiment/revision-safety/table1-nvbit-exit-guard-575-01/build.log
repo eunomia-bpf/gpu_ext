@@ -1,0 +1,8 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability'
+nvcc -ccbin=g++-13 -D_FORCE_INLINES -dc -c -std=c++14 -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -Xptxas -cloning=no \
+	-Xcompiler -Wall -arch=sm_120 -O3 -Xcompiler -fPIC observability.cu -o observability.o
+nvcc -ccbin=g++-13 -D_FORCE_INLINES -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -Xptxas -astoolspatch --keep-device-functions \
+	-arch=sm_120 -Xcompiler -Wall -Xcompiler -fPIC -c inject_funcs.cu -o inject_funcs.o
+nvcc -ccbin=g++-13 -D_FORCE_INLINES -arch=sm_120 -O3 observability.o inject_funcs.o -L/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -lnvbit -L /usr/local/cuda-12.9/lib64 \
+	-lcuda -lcudart_static -shared -o observability.so
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability'

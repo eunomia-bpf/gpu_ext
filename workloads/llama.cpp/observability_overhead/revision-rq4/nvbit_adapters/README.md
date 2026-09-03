@@ -4,10 +4,11 @@ These adapters implement the three RQ4 observability tasks on the official
 NVBit 1.8 core. They deliberately instrument only the exact mangled kernel in
 `OBS_TARGET_SYMBOL` and do not enable related functions.
 
-- `kernelretsnoop`: inject before every `EXIT`, emit one record per logical
+- `kernelretsnoop`: inject before every `EXIT`, check its execution predicate,
+  emit one record per actually exiting logical
   thread through NVBit's device-to-host channel, and count records with nonzero
   `%globaltimer` timestamps on the host.
-- `threadhist`: inject before every `EXIT`, increment the full
+- `threadhist`: inject before every `EXIT`, check its execution predicate, increment the full
   configured logical-thread array, and report its nonzero entries and total at
   context termination. Per-thread increments match gpubpf's non-atomic semantics.
 - `launchlate`: pass the host CUDA launch-callback timestamp through NVBit's
@@ -33,6 +34,11 @@ For code-path diagnosis, `OBS_TRACE_LAUNCHES=1` reports up to 256 distinct
 mangled launch symbols and `OBS_TRACE_TARGET_FAMILY=1` reports distinct
 `rope_norm` variants. These switches do not relax the exact-symbol engagement
 gate and are disabled in experiment runs.
+
+The 2026-09-03 [predicate repair](../nvbit-exit-predicate-repair.md) fixes the
+custom adapter's previously omitted guard argument. Its sm_120 build passes;
+new GPU measurements are pending. The old preflight's 901,120 NVBit events
+must not be treated as an independently established correct exit count.
 
 On driver 610.43.02, a pp=32 diagnostic loaded this adapter and completed the
 real RTX 5090 llama.cpp workload, but received no launch callback. The official

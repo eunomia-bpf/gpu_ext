@@ -23,8 +23,9 @@ static __device__ __forceinline__ uint32_t launch_hist_bin(uint64_t delta_ns) {
 }
 
 extern "C" __device__ __noinline__ void observe_exit(
-    uint32_t mode, uint64_t channel_ptr, uint64_t counters_ptr,
+    int predicate, uint32_t mode, uint64_t channel_ptr, uint64_t counters_ptr,
     uint32_t counter_count) {
+    if (!predicate) return;
     if (mode == OBS_KERNELRETSNOOP) {
         exit_record_t record = {
             static_cast<uint64_t>(blockIdx.x),

@@ -124,6 +124,9 @@ static void instrument_selected(CUcontext ctx, CUfunction func,
         }
         exits++;
         nvbit_insert_call(instruction, "observe_exit", IPOINT_BEFORE);
+        // The injected call runs even when a predicated EXIT is not taken.
+        // Count actual exits, matching the predicate-preserving PTX retprobe.
+        nvbit_add_call_arg_guard_pred_val(instruction);
         nvbit_add_call_arg_const_val32(instruction, mode);
         nvbit_add_call_arg_const_val64(
             instruction, reinterpret_cast<uint64_t>(state->channel_dev));

@@ -48,13 +48,14 @@ and nine exact repeated-output checks. All 18 saved original/repeated FP32
 arrays passed independent numerical recomputation with zero error. Preparation
 required a common allocator setting and disabling optional PyTorch DSL overrides, not the separate uBPF
 policy JIT. Earlier OOM/SIGILL and diagnostic records remain retained; the
-precise fatal-signal cause is not established. The first real offload history
-attempts failed on one generated token in their first request. A missing
-checkpoint generation configuration is confirmed in that loader (including
-repetition penalty 1.0 instead of 1.05); a same-configuration retry must still
-establish whether it resolves the observed failure. FineMoE
-offload correctness, history, actual transfers and four-arm timing are still
-open; see the [preparation record](../workloads/finemoe/results-preparation.md).
+precise fatal-signal cause is not established. Loading the missing checkpoint
+generation configuration resolved the observed history token failure: all 64
+requests and the actual 1,000-entry history store now pass independent audit.
+The first BPF numerical warmup then matched all 16 tokens, but 155 prefill
+logits differed by up to 0.03125 from the original model; all 15 decode steps
+were exact. The strict zero-tolerance gate stopped the run. LM-head input-shape
+compatibility is under investigation; four-arm correctness, transfer comparison
+and timing remain open. See the [preparation record](../workloads/finemoe/results-preparation.md).
 The original complete LMSYS dataset requires
 access approval, so the same 64/8/1 split uses public LMSYS MT-Bench first-turn
 inputs instead, with the dataset difference explicitly recorded. POD's real
@@ -62,8 +63,11 @@ attention device-call ABI has been retained through compilation. All four
 required numerical translation units now have CPU-validated adapter paths
 within the existing transport limit; only unreferenced helpers are removed,
 and oversized units are partitioned with all entry bodies retained and explicit
-state-independence checks. Full linking, device BPF engagement, numerical checks
-and timing are still open.
+state-independence checks. The complete original fused/FlashAttention builds
+and final linked six-packet extraction have passed. The first GPU attempt
+stopped while checking original FlashAttention against its FP32 reference,
+before running POD/BPF; its fixed numerical threshold remains unchanged.
+Device BPF engagement, numerical checks and timing are still open.
 
 All three original scoped comparisons are complete, including the unchanged
 full XSched campaign. The subsequent literature search identifies useful,

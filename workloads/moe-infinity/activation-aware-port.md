@@ -10,8 +10,12 @@ The first repeated comparison was interrupted by a reboot and has **zero valid
 paired blocks**; [the recovery audit](recovery-20260903-013741.md) rejects the
 damaged native raw responses. Prediction-set protection and stale-task epochs
 were subsequently added to the common executor as described below. That update
-is being rebuilt and needs fresh real three-mode canaries before timing; the
-earlier successful canaries do not establish its runtime correctness.
+was rebuilt and passed fresh [three-mode enhanced real canaries](raw/paper-v3-575/preflight-protected-849ea75d/README.md)
+on 2026-09-03: finite numerics, exact nonstream/SSE outputs, actual prediction-set
+protection, stale-task rejection, three JIT selectors and clean teardown. Their
+retained raw responses, telemetry and final JIT logs also passed independent
+CPU-only audit. A fresh five-block three-mode timed campaign is now running;
+the earlier interrupted results are not reused.
 There is **no paired performance or completed-reproduction claim yet**.
 This replaces the stopped generic-policy
 campaign, whose diagnostic data remain in [results-575.md](results-575.md).

@@ -9,9 +9,11 @@ The first repeated campaign was interrupted by a reboot and has **zero complete
 paired blocks**; see [the raw recovery audit](recovery-20260903-013741.md).
 A subsequent source audit identified missing upstream prediction-set protection
 in the shared prefetch executor. Both paper arms now implement that protection
-and reject stale unissued work. The updated store is being rebuilt and requires
-fresh real canaries before a new five-block performance campaign; the earlier
-canaries do not validate this executor change.
+and reject stale unissued work. The rebuilt store passed
+[fresh three-mode enhanced real canaries](raw/paper-v3-575/preflight-protected-849ea75d/README.md),
+including actual protection, epoch/copy accounting and independent raw-data
+audit. The new five-block performance campaign is running in
+`raw/paper-v3-575/timing-849ea75d-02-postboot`; the interrupted cells are not reused.
 
 Current status: the generic host-stride/LFU campaign was **stopped on user
 instruction** after one paired block because it does not reproduce MoE-Infinity's

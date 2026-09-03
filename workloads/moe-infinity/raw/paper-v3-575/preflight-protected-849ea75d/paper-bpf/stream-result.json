@@ -1,0 +1,362 @@
+{
+  "activation": {
+    "algorithm": "arxiv-2401.14361v3-reimplementation",
+    "controller": {
+      "aborted_requests": 0,
+      "active_request_traces": 0,
+      "bpf_match_calls": 4608,
+      "completed_requests": 3,
+      "eamc_entries": 6,
+      "eamc_replacements": 0,
+      "iterations": 192,
+      "match_mismatches": 0,
+      "matched_predictions": 4608,
+      "predictions": 6912,
+      "prefetch_candidates_selected": 2325862,
+      "rank_calls": 6912,
+      "rank_mismatches": 0,
+      "routed_layers": 6912
+    },
+    "dispatcher": {
+      "bpf_eviction_calls": 12623,
+      "eviction_mismatches": 0,
+      "eviction_selections": 12623,
+      "evictions": 12623,
+      "mode": 2,
+      "prefetch_bytes": 53674672128,
+      "prefetch_completed": 4052,
+      "prefetch_copy_started": 4052,
+      "prefetch_hits": 2442,
+      "prefetch_no_victim": 0,
+      "prefetch_prediction_epoch": 13830,
+      "prefetch_protected_candidates": 0,
+      "prefetch_protected_resident_skips": 3098326,
+      "prefetch_stale_discarded": 2,
+      "prefetch_submitted": 2325862,
+      "prefetch_unused_resident": 8,
+      "prefetch_victim_recheck_rejected": 0,
+      "prefetch_wasted": 1602,
+      "prefetch_wasted_bytes": 21220835328
+    },
+    "features": "shared-float64-EAMC-cosine-and-probability",
+    "mode": "paper-bpf"
+  },
+  "after": {
+    "metrics": {
+      "moe_engine_steps_total": 192.0,
+      "moe_kv_cache_free_blocks": 128.0,
+      "moe_kv_cache_total_blocks": 128.0,
+      "moe_queue_depth": 0.0,
+      "moe_requests_cancelled": 0.0,
+      "moe_requests_completed": 3.0,
+      "moe_tokens_generated_total": 192.0
+    },
+    "revision": {
+      "engine_generated_tokens": 192,
+      "engine_steps": 192,
+      "expert_cache_accesses": 37391,
+      "expert_cache_hits": 26914,
+      "expert_cache_misses": 10477,
+      "exposed_fetch_seconds_total": 0.05994206201967245,
+      "kv_cache_num_blocks": 128
+    }
+  },
+  "before": {
+    "metrics": {
+      "moe_engine_steps_total": 128.0,
+      "moe_kv_cache_free_blocks": 128.0,
+      "moe_kv_cache_total_blocks": 128.0,
+      "moe_queue_depth": 0.0,
+      "moe_requests_cancelled": 0.0,
+      "moe_requests_completed": 2.0,
+      "moe_tokens_generated_total": 128.0
+    },
+    "revision": {
+      "engine_generated_tokens": 128,
+      "engine_steps": 128,
+      "expert_cache_accesses": 24785,
+      "expert_cache_hits": 16186,
+      "expert_cache_misses": 8599,
+      "exposed_fetch_seconds_total": 0.04643427901373798,
+      "kv_cache_num_blocks": 128
+    }
+  },
+  "stream": {
+    "done_ns": 2266753542187,
+    "e2e_ms": 6112.727498,
+    "eof_ns": 2266753580078,
+    "finish_reason": "length",
+    "first_text_ns": 2262310732282,
+    "frames": [
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2262310732282
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2263353358516
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2264401371640
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2265444437756
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266500197796
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266741810863
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266742061740
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266742543196
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266742815806
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266743045424
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266743255545
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266743460131
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266743661973
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266743871486
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266744064827
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266744255809
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266744443379
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266744631575
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266744821333
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266745009426
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266745193791
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266745394199
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266745569015
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266745841608
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266746033736
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266746227546
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266746428411
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266746618222
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266746808754
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266746997559
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266747180994
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266747362797
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266747544669
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266747728051
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266747913854
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266748097820
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266748277624
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266748458394
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266748639608
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266748821231
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266749003893
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266749256743
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266749450723
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266749639680
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266749829474
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266750027189
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266750214145
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266750397125
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266750580426
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266750763408
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266750951065
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266751145761
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266751331500
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266751525311
+      },
+      {
+        "payload_bytes": 165,
+        "timestamp_ns": 2266751705934
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266751890038
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266752078444
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266752266586
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266752447168
+      },
+      {
+        "payload_bytes": 162,
+        "timestamp_ns": 2266752685728
+      },
+      {
+        "payload_bytes": 166,
+        "timestamp_ns": 2266752872031
+      },
+      {
+        "payload_bytes": 164,
+        "timestamp_ns": 2266753053569
+      },
+      {
+        "payload_bytes": 163,
+        "timestamp_ns": 2266753234980
+      },
+      {
+        "payload_bytes": 192,
+        "timestamp_ns": 2266753416309
+      },
+      {
+        "done": true,
+        "timestamp_ns": 2266753542187
+      }
+    ],
+    "raw_sse_bytes": 11019,
+    "start_ns": 2260640852580,
+    "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+    "ttft_ms": 1669.879702,
+    "usage": null
+  },
+  "token_delta": {
+    "engine_generated_tokens": 64,
+    "metric_generated_tokens": 64.0
+  }
+}

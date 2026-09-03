@@ -35,7 +35,9 @@ GPreempt runtime, driver, paper submodule and unrelated work remain untouched.
 The next real-GPU dependency is now complete: Hummingbird's split-model/copy
 calibration verified 23 ResNet152 and 102 VGG19 outputs, and an isolated
 60-second LC reference verified all 6,000 offered requests. Its SLO is fixed
-at 1,811,879 ns. The 20-cell small-bubble qualification is running; the 50-cell
+at 1,811,879 ns. All 20 small-bubble qualification cells passed independent raw
+audit; output-copy admission qualified, while input admission did not actually
+engage and remains disabled. The five-arm preflight is running; the 50-cell
 performance matrix remains pending. See the
 [current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
 FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;

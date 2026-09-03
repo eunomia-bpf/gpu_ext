@@ -1,0 +1,124 @@
+{
+  "resnet152": {
+    "inventory": {
+      "host.json": {
+        "bytes": 121968,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/resnet152/host.json"
+      },
+      "mod.cu": {
+        "bytes": 299940,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/resnet152/mod.cu"
+      },
+      "mod.cubin": {
+        "bytes": 345848,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/resnet152/mod.cubin"
+      },
+      "mod.json": {
+        "bytes": 194180,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/resnet152/mod.json"
+      },
+      "mod.params": {
+        "bytes": 333542946,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/resnet152/mod.params"
+      },
+      "reference.f32": {
+        "bytes": 4000,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/resnet152/reference.f32"
+      }
+    },
+    "specification": {
+      "architecture": "sm_120",
+      "dtype": "float32",
+      "files": {
+        "host.json": 121968,
+        "mod.cu": 299940,
+        "mod.cubin": 345848,
+        "mod.json": 194180,
+        "mod.params": 333542946,
+        "reference.f32": 4000
+      },
+      "generator": "tvm.relay.testing",
+      "host_metadata": "original GPreempt recorder after one real CUDA execution",
+      "input_formula": "((element_index % 257) - 128) / 128.0",
+      "input_shape": [
+        1,
+        3,
+        224,
+        224
+      ],
+      "layers": 152,
+      "model": "resnet152",
+      "output_shape": [
+        1,
+        1000
+      ],
+      "parameter_seed": 0,
+      "pretrained_weights": false,
+      "recorded_kernels": 307,
+      "reference_elements": 1000,
+      "reference_kind": "isolated native TVM CUDA execution; not a model-accuracy claim",
+      "tvm_revision": "513c2be0c3b853a3b77de729f0ea75d448ee3c37"
+    }
+  },
+  "vgg": {
+    "inventory": {
+      "host.json": {
+        "bytes": 21575,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/vgg/host.json"
+      },
+      "mod.cu": {
+        "bytes": 775550,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/vgg/mod.cu"
+      },
+      "mod.cubin": {
+        "bytes": 374672,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/vgg/mod.cubin"
+      },
+      "mod.json": {
+        "bytes": 24570,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/vgg/mod.json"
+      },
+      "mod.params": {
+        "bytes": 657588855,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/vgg/mod.params"
+      },
+      "reference.f32": {
+        "bytes": 4000,
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/upstream/model/vgg/reference.f32"
+      }
+    },
+    "specification": {
+      "architecture": "sm_120",
+      "dtype": "float32",
+      "files": {
+        "host.json": 21575,
+        "mod.cu": 775550,
+        "mod.cubin": 374672,
+        "mod.json": 24570,
+        "mod.params": 657588855,
+        "reference.f32": 4000
+      },
+      "generator": "tvm.relay.testing",
+      "host_metadata": "original GPreempt recorder after one real CUDA execution",
+      "input_formula": "((element_index % 257) - 128) / 128.0",
+      "input_shape": [
+        1,
+        3,
+        224,
+        224
+      ],
+      "layers": 19,
+      "model": "vgg",
+      "output_shape": [
+        1,
+        1000
+      ],
+      "parameter_seed": 0,
+      "pretrained_weights": false,
+      "recorded_kernels": 55,
+      "reference_elements": 1000,
+      "reference_kind": "isolated native TVM CUDA execution; not a model-accuracy claim",
+      "tvm_revision": "513c2be0c3b853a3b77de729f0ea75d448ee3c37"
+    }
+  }
+}

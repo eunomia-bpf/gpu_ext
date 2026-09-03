@@ -1,6 +1,8 @@
 # Hummingbird idle-interval scheduling — implementation proposal
 
-Prepared 2026-09-03 UTC. No Hummingbird GPU experiment has run. The completed
+Prepared 2026-09-03 UTC. Calibration and all 20 small-pattern qualification cells
+have passed; the performance matrix remains open. See [current results](results-575-20260903.md).
+The completed
 [GPreempt 45-cell study](../gpreempt/results-load-study-575-20260903.md), its
 source/build trees and results remain frozen. Root independent review admitted
 this implementation and the calibration protocol below; no further user

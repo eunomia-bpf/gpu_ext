@@ -122,7 +122,7 @@ observation/action and missing-primitive text.
 
 | Paper | Year | Result | Closest in-tree policy | Boundary |
 |---|---:|---|---|---|
-| [GPREEMPT](https://www.usenix.org/conference/atc25/presentation/fan) | 2025 | `ANALOGUE` | timeslice + whole-TSG preempt | [575 port pending](../../../driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md); missing role-to-TSG, hint and blocking-kernel protocol |
+| [GPREEMPT](https://www.usenix.org/conference/atc25/presentation/fan) | 2025 | `ANALOGUE` | driver intent; full hybrid port pending runtime validation | [Original clients](../../../../workloads/gpreempt/README.md) and [BPF role/hint bridge](../../../../extension/gpreempt-policy.md) built/CPU-tested; GSP, GDR and model H2H remain pending |
 | [GCAPS](https://arxiv.org/abs/2406.05221) | 2024 | `PARTIAL` | timeslice + whole-TSG preempt | No GPU-segment feed or real-time admission guarantee |
 | [XSched](https://www.usenix.org/conference/osdi25/presentation/shen) | 2025 | `PARTIAL` | timeslice + whole-TSG preempt | No XQueue/cross-XPU command suspend-resume runtime |
 | [REEF](https://www.usenix.org/conference/osdi22/presentation/han) | 2022 | `PARTIAL` | whole-TSG preempt | No kernel kill/restore, padding, or request mapping |
@@ -182,9 +182,16 @@ existing program.
 replaces an absolute “infeasible” interpretation with **575/Blackwell port
 pending, comparison not completed**. The official artifact still targets
 550.120/sm_80, and its patch fails the read-only check on the 575 tree; those
-negative results remain recorded. Basic wrapper and `sm_120` blocking-kernel
-compilation succeeded, but no GPreempt driver or workload was run. Our present
-BPF implementation remains an analogue, not an equivalent full-system port.
+negative results remain recorded. The complete original clients and `sm_120`
+blocking kernel now compile, and the separate 575 transport/GSP driver builds
+at `e3bb2938`; neither that driver nor a GPreempt workload has run on the GPU.
+The new hybrid kernel-BPF + bpftime-JIT bridge implements explicit role-to-GR
+mapping and the original hint/block/release decisions. Its real JIT matched
+101,536 CPU decisions, and its mocked kernel-policy checks passed 77 cases.
+These are implementation checks, not full-system equivalence or performance
+results. Original CUDA/GDR actuators remain unchanged. Model export, real GSP
+acceptance, GDR pin/map, two-context engagement and paired H2H are still pending;
+the classification is not promoted on CPU evidence alone.
 The separate historical paper feasibility table is retained unchanged.
 
 ## bpftime routes and local checks

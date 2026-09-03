@@ -4,6 +4,7 @@ JOBS ?= 4
 CPUSET ?= 8-15
 HOST_CC ?= /usr/bin/gcc-13
 HOST_CXX ?= /usr/bin/g++-13
+GDRCOPY_DIR ?= $(CURDIR)/deps/gdrcopy-2.5.2
 FRESH ?=
 BRIDGE ?= 0
 UPSTREAM := $(abspath deps/upstream)
@@ -43,13 +44,13 @@ test-cpu: prepare
 	taskset -c $(CPUSET) $(HOST_CXX) -std=c++17 -O1 test_client_checks.cpp -o $(BUILD)/test-client-checks
 	taskset -c $(CPUSET) $(BUILD)/test-client-checks
 
-# Root-owned dependency checkout, official v2.5 (bda1f60); build only, never load.
+# Official v2.5.2 (c91ad9f); build only, never install or load.
 gdrcopy-driver:
-	taskset -c $(CPUSET) $(MAKE) -C deps/gdrcopy driver -j$(JOBS) \
+	taskset -c $(CPUSET) $(MAKE) -C $(GDRCOPY_DIR) driver -j$(JOBS) \
 		CUDA=$(CUDA_HOME) \
 		NVIDIA_SRC_DIR=/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia \
 		NVIDIA_IS_OPENSOURCE=y KVER=6.15.11-061511-generic \
-		CC=/usr/bin/gcc-14 HAVE_VM_FLAGS_SET=y
+		CC=/usr/bin/gcc-14
 
 prepare-tvm: prepare
 	bash ./prepare_tvm.sh

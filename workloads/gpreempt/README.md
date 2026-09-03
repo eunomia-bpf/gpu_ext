@@ -64,33 +64,46 @@ mean that the running kernel implements this ABI.
 
 ## GDRCopy dependency: build, do not install/load automatically
 
-The driver owner prepared official GDRCopy v2.5 at revision `bda1f60` in
-`deps/gdrcopy`, without vendor edits. Rebuild with:
+The current dependency is official GDRCopy v2.5.2 at revision `c91ad9f`, in
+the independent `deps/gdrcopy-2.5.2` checkout, without vendor edits. The
+[official changelog](https://github.com/NVIDIA/gdrcopy/blob/v2.5.2/CHANGELOG.md)
+adds Blackwell support in 2.5.1 and fixes the Linux 6.15 conftest in 2.5.2.
+Rebuild only during a coordinated non-measurement window:
 
 ```bash
-# Only for a new checkout where deps/gdrcopy does not yet exist:
-git clone --branch v2.5 --depth 1 https://github.com/NVIDIA/gdrcopy.git deps/gdrcopy
+# Only where deps/gdrcopy-2.5.2 does not yet exist:
+git clone --branch v2.5.2 --depth 1 https://github.com/NVIDIA/gdrcopy.git deps/gdrcopy-2.5.2
 make gdrcopy-driver JOBS=4 CPUSET=8-15
+taskset -c 8-15 make -C deps/gdrcopy-2.5.2 exes -j2 CUDA=/usr/local/cuda-12.9 \
+  CC=/usr/bin/gcc-13 CXX=/usr/bin/g++-13 NVCCFLAGS='-arch=sm_120 -ccbin /usr/bin/g++-13'
 ```
 
 The exact build uses CUDA 12.9, the 575 driver's `kernel-open/nvidia` headers,
-Linux `6.15.11-061511-generic`, GCC 14, and `HAVE_VM_FLAGS_SET=y`. Its default
-conftest incorrectly selected `n`, causing a duplicate helper and read-only
-`vm_flags` errors; this kernel's `include/linux/mm.h:995` provides
-`vm_flags_set`, so the explicit `y` matches the inspected API. The successful
-build produced `gdrdrv.ko` (535,584 bytes), version 2.5 with the 6.15.11 vermagic.
+Linux `6.15.11-061511-generic`, and GCC 14. Its unmodified conftest correctly
+selected `HAVE_VM_FLAGS_SET=y`; no override is needed. The successful build
+produced `gdrdrv.ko` (534,936 bytes), module/API version 2.5 with the 6.15.11
+vermagic. The release revision, not that unchanged API version, identifies 2.5.2.
 It has not been loaded by this workflow. Never load `nv-p2p-dummy.ko` (a link
 stub), and do not use the upstream install/load script's device deletion or
 world-writable defaults. Module loading and exact device-node ownership are
 handled separately by the driver owner.
 
-`make -C deps/gdrcopy exes -j4 CUDA=/usr/local/cuda-12.9` also completed without
-GPU execution: official `sanity` is 196,480 bytes, `pplat` is 1,284,824 bytes,
-and the private `libgdrapi.so.2.5` is 26,464 bytes. This is dependency readiness,
+The executable build also completed without GPU execution: official
+`gdrcopy_sanity` is 196,480 bytes, `gdrcopy_pplat` is 1,100,488 bytes and contains
+an sm_120 cubin, and the private `libgdrapi.so.2.5` is 26,464 bytes. All builds
+finished in the MoE campaign's existing cooldown windows. This is dependency readiness,
 not evidence that pin/map works on this GPU. After a separately coordinated
 module load, official `sanity -t basic_cumemalloc` and
 `sanity -t data_validation_cumemalloc` are candidate bounded checks; the local
 finite smoke below additionally tests the compatibility query/timeslice path.
+
+The earlier v2.5 `bda1f60` checkout/build is retained at `deps/gdrcopy`.
+Its conftest incorrectly selected `n`, causing duplicate-helper/read-only
+`vm_flags` errors; the explicitly inspected `HAVE_VM_FLAGS_SET=y` workaround
+built a 535,584-byte module. The new release supersedes that workaround without
+altering the historical build or editing vendor source. Official support lists
+data-center/professional RTX GPUs; it does not by itself establish that GeForce
+RTX 5090 pin/map succeeds. The original finite GDRCopy path still must run.
 
 ## Finite smoke, only after the driver owner releases a GPU slot
 

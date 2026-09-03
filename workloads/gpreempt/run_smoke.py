@@ -40,7 +40,7 @@ def run(output: Path) -> dict:
                 stdout=stream, stderr=subprocess.STDOUT, start_new_session=True,
                 env={"PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
                      "LANG": "C.UTF-8", "CUDA_VISIBLE_DEVICES": "0",
-                     "LD_LIBRARY_PATH": f"{HERE / 'deps/gdrcopy/src'}:/usr/local/cuda-12.9/lib64:/usr/local/lib"})
+                     "LD_LIBRARY_PATH": f"{HERE / 'deps/gdrcopy-2.5.2/src'}:/usr/local/cuda-12.9/lib64:/usr/local/lib"})
             result["returncode"] = process.wait(timeout=30)
         log = (output / "smoke.log").read_text(errors="replace")
         facts = {

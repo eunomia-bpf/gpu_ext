@@ -122,8 +122,10 @@ GSP control and two-context behavior remain pending hardware canaries. The
 [userspace port](../../workloads/gpreempt/README.md) and
 [BPF policy arm](../../extension/gpreempt-policy.md) use this ABI.
 
-The separate official GDRCopy v2.5 `gdrdrv.ko` dependency has also built for
-this kernel (535,584 bytes), but is not loaded. Neither its build nor the BPF
+The separate official GDRCopy v2.5.2 `c91ad9f` dependency has also built for
+this kernel (534,936-byte `gdrdrv.ko`), but is not loaded. Its unmodified
+conftest correctly detects the 6.15 `vm_flags_set` API. The earlier v2.5
+535,584-byte build remains in its separate checkout. Neither build nor the BPF
 hint-decision CPU tests prove GDR pin/map or GPU scheduling on the RTX 5090.
 The running MoE campaign continues on `28b1d30c` without these additions;
 module replacement waits for its complete GPU-lease release.

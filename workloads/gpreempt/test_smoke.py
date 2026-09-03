@@ -33,6 +33,8 @@ class SmokeTests(unittest.TestCase):
         def start(argv, **kwargs):
             self.assertTrue(kwargs["start_new_session"])
             self.assertEqual(set(kwargs["env"]), {"PATH", "LANG", "CUDA_VISIBLE_DEVICES", "LD_LIBRARY_PATH"})
+            self.assertTrue(kwargs["env"]["LD_LIBRARY_PATH"].startswith(
+                str(smoke.HERE / "deps/gdrcopy-2.5.2/src") + ":"))
             self.assertEqual(argv[:3], ["taskset", "-c", "8-15"])
             kwargs["stdout"].write("PASS set priority\nPASS GDRcopy flag roundtrip\n"
                 "PASS all (finite smoke only; not scheduling performance)\n")

@@ -4,6 +4,7 @@ set -euo pipefail
 hb_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 hb_upstream="$hb_root/../gpreempt/deps/upstream"
 hb_copy="$hb_root/build/disb-src"
+hb_apply=(git -C "$hb_root/../.." apply -p3 --directory=workloads/hummingbird/build/disb-src)
 if [[ ! -d "$hb_copy" ]]; then
     mkdir -p "$hb_root/build"
     cp -a -- "$hb_upstream/third_party/disb" "$hb_copy"
@@ -11,10 +12,10 @@ if [[ ! -d "$hb_copy" ]]; then
     if [[ -f "$hb_copy/.git" ]]; then
         mv -- "$hb_copy/.git" "$hb_root/build/disb-source-git-pointer.txt"
     fi
-    patch --batch --forward -p3 -d "$hb_copy" --dry-run < "$hb_root/trace-fifo.patch"
-    patch --batch --forward -p3 -d "$hb_copy" < "$hb_root/trace-fifo.patch"
+    "${hb_apply[@]}" --check "$hb_root/trace-fifo.patch"
+    "${hb_apply[@]}" "$hb_root/trace-fifo.patch"
 else
-    patch --batch --reverse -p3 -d "$hb_copy" --dry-run < "$hb_root/trace-fifo.patch"
+    "${hb_apply[@]}" --reverse --check "$hb_root/trace-fifo.patch"
 fi
 taskset -c "${HB_CPUSET:-16-17}" cmake -S "$hb_copy" -B "$hb_root/build/disb-trace" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=/usr/bin/gcc-13 \

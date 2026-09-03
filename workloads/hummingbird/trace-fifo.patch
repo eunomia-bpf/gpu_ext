@@ -1,22 +1,19 @@
 diff --git a/third_party/disb/include/benchmark.h b/third_party/disb/include/benchmark.h
 --- a/third_party/disb/include/benchmark.h
 +++ b/third_party/disb/include/benchmark.h
-@@ -37,6 +37,7 @@
+@@ -37,4 +37,5 @@
  #include <json/json.h>
  #ifdef GPREEMPT_LOAD_STUDY
  #include "load_study_measurement.h"
 +#include "trace_schedule.h"
  #endif
- 
- #define WARMUP_TIME                         10
-@@ -57,6 +58,7 @@
+@@ -57,5 +58,6 @@
  #ifdef GPREEMPT_LOAD_STUDY
      std::shared_ptr<gpreempt_load_study::CommonStart> studyStart;
      int64_t studyIntervalNs = 0;
 +    std::vector<int64_t> studyOffsetsNs;
      int64_t studyVerifiedReadyNs = 0;
  #endif
- 
 diff --git a/third_party/disb/src/benchmark.cpp b/third_party/disb/src/benchmark.cpp
 --- a/third_party/disb/src/benchmark.cpp
 +++ b/third_party/disb/src/benchmark.cpp

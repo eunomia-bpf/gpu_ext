@@ -1,0 +1,2364 @@
+{
+  "block_end_ns": 6245748670210,
+  "block_start_ns": 6201752207025,
+  "config": "moe_infinity_075",
+  "duration_s": 43.996463185,
+  "engagement_after": {
+    "moe": {
+      "metrics": {
+        "moe_engine_steps_total": 576.0,
+        "moe_kv_cache_free_blocks": 128.0,
+        "moe_kv_cache_total_blocks": 128.0,
+        "moe_queue_depth": 0.0,
+        "moe_requests_cancelled": 0.0,
+        "moe_requests_completed": 9.0,
+        "moe_tokens_generated_total": 576.0
+      },
+      "revision": {
+        "engine_generated_tokens": 576,
+        "engine_steps": 576,
+        "expert_cache_accesses": 110327,
+        "expert_cache_hits": 90485,
+        "expert_cache_misses": 19842,
+        "exposed_fetch_seconds_total": 0.14548756398471596,
+        "kv_cache_num_blocks": 128
+      }
+    },
+    "process_io": {
+      "cpu_time_s": 139.89,
+      "members": [
+        {
+          "affinity": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "cpu_ticks": 13989,
+          "pid": 174360,
+          "read_bytes": 70087741440,
+          "write_bytes": 16384
+        }
+      ],
+      "read_bytes": 70087741440,
+      "write_bytes": 16384
+    }
+  },
+  "engagement_before": {
+    "moe": {
+      "metrics": {
+        "moe_engine_steps_total": 64.0,
+        "moe_kv_cache_free_blocks": 128.0,
+        "moe_kv_cache_total_blocks": 128.0,
+        "moe_queue_depth": 0.0,
+        "moe_requests_cancelled": 0.0,
+        "moe_requests_completed": 1.0,
+        "moe_tokens_generated_total": 64.0
+      },
+      "revision": {
+        "engine_generated_tokens": 64,
+        "engine_steps": 64,
+        "expert_cache_accesses": 12179,
+        "expert_cache_hits": 8163,
+        "expert_cache_misses": 4016,
+        "exposed_fetch_seconds_total": 0.03686683398700552,
+        "kv_cache_num_blocks": 128
+      }
+    },
+    "process_io": {
+      "cpu_time_s": 61.94,
+      "members": [
+        {
+          "affinity": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "cpu_ticks": 6194,
+          "pid": 174360,
+          "read_bytes": 70087741440,
+          "write_bytes": 12288
+        }
+      ],
+      "read_bytes": 70087741440,
+      "write_bytes": 12288
+    }
+  },
+  "engagement_delta": {
+    "metrics_delta": {
+      "steps": 512,
+      "tokens": 512
+    },
+    "moe_delta": {
+      "engine_generated_tokens": 512,
+      "engine_steps": 512,
+      "expert_cache_accesses": 98148,
+      "expert_cache_hits": 82322,
+      "expert_cache_misses": 15826
+    },
+    "process_tree_cpu_time_s": 77.94999999999999,
+    "read_bytes": 0,
+    "steady_state_direct_io_claimed": false
+  },
+  "gpu_telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2910.0,
+    "mean_power_w": 221.48726872246695,
+    "min_sm_clock_mhz": 2857.0,
+    "peak_memory_mib": 31876.0,
+    "peak_temperature_c": 54.0,
+    "samples": 227,
+    "throttled": false
+  },
+  "identity": {
+    "models": {
+      "data": [
+        {
+          "created": 1788394423,
+          "id": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+          "object": "model",
+          "owned_by": "torchmoe",
+          "parent": null,
+          "permission": [],
+          "root": null
+        }
+      ],
+      "object": "list"
+    }
+  },
+  "monitor_ready": null,
+  "output_throughput_tokens_per_s": 11.637299067588675,
+  "prompt_order": [
+    4,
+    5,
+    3,
+    8,
+    2,
+    1,
+    7,
+    6
+  ],
+  "requests": [
+    {
+      "done_ns": 6207290536669,
+      "e2e_ms": 5538.249478,
+      "eof_ns": 6207290574261,
+      "finish_reason": "length",
+      "first_text_ns": 6203723094480,
+      "frames": [
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6203723094480
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6204567464616
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6205411287581
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6206246946744
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207085441022
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207278784663
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207279012442
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207279250475
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207279474075
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207279690635
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207279894416
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207280101519
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207280358665
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207280555697
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207280750355
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207280946546
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207281137793
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207281330958
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207281521190
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207281710147
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207281916813
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207282092021
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207282279979
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207282468706
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207282658534
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207282844422
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207283030207
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207283220522
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207283415027
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207283675995
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207283873247
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207284062699
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207284251042
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207284436303
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207284620374
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207284808080
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207285002986
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207285197288
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207285381091
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207285563783
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207285743543
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207285922993
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207286102809
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207286285728
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207286464156
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207286645570
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207286825756
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207287003914
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207287567181
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207287868921
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207287976534
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207288170053
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207288453194
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207288643887
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6207288846818
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207288932304
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207289116433
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207289306354
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207289491586
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6207289675567
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6207289858399
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6207290040954
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6207290226617
+        },
+        {
+          "payload_bytes": 192,
+          "timestamp_ns": 6207290409048
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6207290536669
+        }
+      ],
+      "raw_sse_bytes": 11019,
+      "start_ns": 6201752324783,
+      "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "ttft_ms": 1970.769697,
+      "usage": null
+    },
+    {
+      "done_ns": 6212755213533,
+      "e2e_ms": 5452.187648,
+      "eof_ns": 6212755249104,
+      "finish_reason": "length",
+      "first_text_ns": 6209564422685,
+      "frames": [
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6209564422685
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6210397432733
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6211216181648
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212037834816
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212741945724
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212742552367
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212743035528
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212743654182
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212744055077
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212744552410
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212744916942
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212745121122
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212745510191
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212745830918
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212746024860
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212746219669
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212746397872
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212746580530
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212746773556
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212746961164
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212747158955
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212747330419
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212747509696
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212747687080
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212747866775
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212748043327
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212748225276
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212748418961
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212748600894
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212748784476
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212748960963
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212749159372
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212749407529
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212749592335
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212749775775
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212749954942
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212750136695
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212750314320
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212750493444
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212750670947
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212750847304
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212751025017
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212751206270
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212751383613
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212751561515
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212751737986
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212751925882
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212752103798
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212752280032
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212752456309
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212752661252
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212752928170
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212753112700
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212753304152
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6212753489259
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212753673631
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212753856043
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212754038219
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212754212191
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6212754390405
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6212754564328
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6212754738821
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6212754913411
+        },
+        {
+          "payload_bytes": 192,
+          "timestamp_ns": 6212755087956
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6212755213533
+        }
+      ],
+      "raw_sse_bytes": 11019,
+      "start_ns": 6207303061456,
+      "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "ttft_ms": 2261.361229,
+      "usage": null
+    },
+    {
+      "done_ns": 6218190390861,
+      "e2e_ms": 5422.729606,
+      "eof_ns": 6218190424649,
+      "finish_reason": "length",
+      "first_text_ns": 6214645054275,
+      "frames": [
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6214645054275
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6215487728856
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6216324780948
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6217142602996
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6217983463702
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218178869847
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218179179320
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218179501910
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218179801126
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218180000261
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218180354830
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218180554439
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218180745244
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218180941256
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218181127550
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218181381392
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218181567871
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218181753034
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218181938572
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218182125500
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218182322273
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218182491693
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218182669173
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218182847656
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218183028256
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218183215603
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218183410770
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218183594728
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218183773012
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218183952485
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218184136300
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218184318796
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218184495031
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218184673660
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218184915542
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218185098964
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218185278791
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218185454418
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218185629101
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218185811658
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218185993905
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218186172476
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218186346470
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218186520049
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218186692350
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218186864039
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218187035954
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218187209189
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218187380775
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218187552469
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218187722716
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218187892243
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218188068427
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218188422613
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218188616394
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6218188804271
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218188998777
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218189187259
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6218189374526
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218189565539
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6218189734613
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6218189914117
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6218190091582
+        },
+        {
+          "payload_bytes": 190,
+          "timestamp_ns": 6218190266449
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6218190390861
+        }
+      ],
+      "raw_sse_bytes": 11030,
+      "start_ns": 6212767695043,
+      "text": " way to the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `",
+      "ttft_ms": 1877.359232,
+      "usage": null
+    },
+    {
+      "done_ns": 6223706429442,
+      "e2e_ms": 5503.685548,
+      "eof_ns": 6223706462084,
+      "finish_reason": "length",
+      "first_text_ns": 6220189104560,
+      "frames": [
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6220189104560
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6221018095320
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6221844073223
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6222676771666
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223502687869
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223695249086
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223695483692
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223695797242
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223695868385
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223696281110
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223696303569
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223696602125
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223696702480
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223696902620
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223697102298
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223697295655
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223697491215
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223697689241
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223697883932
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223698080487
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223698373491
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223698554830
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223698742154
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223698927560
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223699113928
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223699297576
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223699477447
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223699659149
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223699855288
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223700039305
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223700220283
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223700405013
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223700588651
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223700771207
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223700958404
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223701139731
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223701315177
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223701490907
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223701666545
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223701915003
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223702116572
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223702303468
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223702483156
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223702664137
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223702842953
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223703023764
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223703201674
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223703377966
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223703553130
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223703731938
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223703908145
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223704084930
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223704260655
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223704431984
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6223704606004
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223704781164
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223704966301
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223705144145
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223705394315
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6223705579726
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6223705762646
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6223705942418
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6223706128081
+        },
+        {
+          "payload_bytes": 192,
+          "timestamp_ns": 6223706306779
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6223706429442
+        }
+      ],
+      "raw_sse_bytes": 11020,
+      "start_ns": 6218202776536,
+      "text": " ... ) = 0. This is a new List of the `a^2. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "ttft_ms": 1986.328024,
+      "usage": null
+    },
+    {
+      "done_ns": 6228925492267,
+      "e2e_ms": 5206.994545,
+      "eof_ns": 6228925527110,
+      "finish_reason": "length",
+      "first_text_ns": 6225430707692,
+      "frames": [
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6225430707692
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6226233600969
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6227069160750
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6227898779985
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228733640922
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228914378690
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228914632251
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228914852217
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228915164113
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228915182670
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228915468159
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228915721912
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228915740534
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228915905713
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228916102206
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228916291795
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228916581068
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228916778400
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228916973460
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228917164285
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228917376196
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228917554858
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228917740842
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228917917862
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228918104596
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228918289832
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228918474190
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228918656278
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228918836704
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228919036026
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228919217310
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228919395528
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228919575984
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228919755763
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228919939880
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228920186776
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228920372290
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228920556703
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228920738207
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228920918119
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228921104143
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228921287998
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228921467257
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228921647205
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228921827476
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228922016952
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228922209119
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228922399326
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228922575812
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228922751655
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228922927503
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228923103981
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228923284763
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228923473813
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6228923726111
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228923917249
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228924108821
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228924290866
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228924470431
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6228924649577
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6228924827566
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6228925008525
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6228925189553
+        },
+        {
+          "payload_bytes": 192,
+          "timestamp_ns": 6228925369178
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6228925492267
+        }
+      ],
+      "raw_sse_bytes": 11019,
+      "start_ns": 6223718532565,
+      "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "ttft_ms": 1712.175127,
+      "usage": null
+    },
+    {
+      "done_ns": 6234616045713,
+      "e2e_ms": 5678.084713,
+      "eof_ns": 6234616080066,
+      "finish_reason": "length",
+      "first_text_ns": 6231066066006,
+      "frames": [
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6231066066006
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6231908219886
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6232745700313
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6233578275937
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234412340898
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234604804658
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234605039890
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234605252541
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234605456574
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234605657693
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234605851364
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234606050086
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234606230806
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234606521945
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234606712800
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234606895821
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234607087075
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234607286914
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234607475350
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234607661892
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234607847848
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234608019738
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234608202005
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234608385369
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234608566223
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234608745719
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234608926399
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234609105665
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234609297095
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234609472484
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234609648725
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234609825175
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234610168684
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234610368323
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234610553006
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234610737585
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234610919302
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234611112206
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234611303886
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234611484397
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234611661428
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234611838401
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234612021147
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234612212552
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234612401921
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234612581791
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234612757025
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234612935456
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234613111403
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234613284928
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234613460846
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234613710625
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234613895898
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234614077579
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6234614270014
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234614464911
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234614644232
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234614823275
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234615007707
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6234615188877
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6234615381541
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6234615561908
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6234615741028
+        },
+        {
+          "payload_bytes": 192,
+          "timestamp_ns": 6234615922025
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6234616045713
+        }
+      ],
+      "raw_sse_bytes": 11019,
+      "start_ns": 6228937995353,
+      "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "ttft_ms": 2128.070653,
+      "usage": null
+    },
+    {
+      "done_ns": 6240297289736,
+      "e2e_ms": 5668.897557,
+      "eof_ns": 6240297325111,
+      "finish_reason": "length",
+      "first_text_ns": 6236791807029,
+      "frames": [
+        {
+          "payload_bytes": 174,
+          "timestamp_ns": 6236791807029
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6237626873470
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6238449469873
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6239275169262
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240092891798
+        },
+        {
+          "payload_bytes": 168,
+          "timestamp_ns": 6240285785448
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240286050231
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240286553880
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240286788494
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240287048603
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240287259109
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240287459969
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240287659477
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240287959621
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240288148870
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240288345702
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240288530834
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240288716673
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240288892764
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240289074765
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240289273451
+        },
+        {
+          "payload_bytes": 168,
+          "timestamp_ns": 6240289442622
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240289622617
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240289800643
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240289982990
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240290166544
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240290369755
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240290551390
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240290734916
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240290915421
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240291096130
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240291274046
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240291520132
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240291701469
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240291884210
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240292070357
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240292258694
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240292438788
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240292619986
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240292796663
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240292974188
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240293155941
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240293345120
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240293528189
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240293704515
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240293883079
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240294057128
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240294234973
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240294410231
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240294585424
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240294767411
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240295014152
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240295196401
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240295391567
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6240295569776
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6240295747555
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6240295928235
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240296107281
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240296284319
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240296461821
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6240296640156
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240296818177
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6240296993618
+        },
+        {
+          "payload_bytes": 189,
+          "timestamp_ns": 6240297167239
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6240297289736
+        }
+      ],
+      "raw_sse_bytes": 11040,
+      "start_ns": 6234628427554,
+      "text": "<|endoftext|>```csharp\n        # 0. This is a new List of the `csharp\n        # 0. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a) = 0.",
+      "ttft_ms": 2163.379475,
+      "usage": null
+    },
+    {
+      "done_ns": 6245748637810,
+      "e2e_ms": 5439.056811,
+      "eof_ns": 6245748670210,
+      "finish_reason": "length",
+      "first_text_ns": 6242226253493,
+      "frames": [
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6242226253493
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6243058856252
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6243895541213
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6244730427485
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245545203510
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245736920317
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245737181283
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245737437429
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245737643198
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245737830569
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245738057602
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245738249470
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245738446908
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245738730434
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245738921436
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245739108454
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245739293309
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245739478644
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245739663640
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245739849742
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245740042648
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245740211900
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245740393786
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245740576556
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245740759693
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245740940868
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245741120207
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245741297932
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245741490648
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245741666909
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245741844107
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245742022684
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245742263364
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245742439344
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245742617424
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245742798399
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245742974329
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245743308405
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245743596867
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245743877457
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245744324164
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245744670848
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245744722524
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245745044569
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245745075098
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245745416698
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245745441908
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245745602551
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245746002489
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245746021425
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245746142522
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245746381443
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245746571147
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245746748671
+        },
+        {
+          "payload_bytes": 165,
+          "timestamp_ns": 6245746923711
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245747099957
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245747279726
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245747457884
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245747647571
+        },
+        {
+          "payload_bytes": 162,
+          "timestamp_ns": 6245747819440
+        },
+        {
+          "payload_bytes": 166,
+          "timestamp_ns": 6245747996713
+        },
+        {
+          "payload_bytes": 164,
+          "timestamp_ns": 6245748169808
+        },
+        {
+          "payload_bytes": 163,
+          "timestamp_ns": 6245748342252
+        },
+        {
+          "payload_bytes": 192,
+          "timestamp_ns": 6245748516241
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6245748637810
+        }
+      ],
+      "raw_sse_bytes": 11019,
+      "start_ns": 6240309613399,
+      "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "ttft_ms": 1916.640094,
+      "usage": null
+    }
+  ],
+  "secondary": {
+    "max_e2e_ms": 5678.084713,
+    "max_ttft_ms": 2261.361229,
+    "median_e2e_ms": 5477.936598,
+    "median_ttft_ms": 1978.5488605,
+    "p95_ttft_ms": 2227.0676151000002
+  },
+  "verified_output_tokens": 512,
+  "warmup": {
+    "e2e_ms": 6541.615548,
+    "end_ns": 6200313745316,
+    "finish_reason": "length",
+    "start_ns": 6193772129768,
+    "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+    "usage": {
+      "completion_tokens": 64,
+      "prompt_tokens": 512,
+      "total_tokens": 576
+    }
+  }
+}

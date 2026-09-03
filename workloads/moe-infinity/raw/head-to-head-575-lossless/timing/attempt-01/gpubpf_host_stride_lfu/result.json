@@ -1,0 +1,2449 @@
+{
+  "block_end_ns": 6718253041559,
+  "block_start_ns": 6403872617642,
+  "config": "gpubpf_host_stride_lfu",
+  "duration_s": 314.380423917,
+  "engagement_after": {
+    "evictions": null,
+    "policy": {
+      "event": "engagement",
+      "eviction_prepares": 349528,
+      "lfu_accesses": 37922559,
+      "lfu_activations": 365814,
+      "lfu_reorder_requests": 148131,
+      "lfu_sampled_updates": 148131,
+      "page_fault_calls": 141094763,
+      "pid": 178889,
+      "prefetches_issued": 1968337,
+      "stride_detections": 1504315
+    },
+    "process_io": {
+      "cpu_time_s": 388.87,
+      "members": [
+        {
+          "affinity": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "cpu_ticks": 38887,
+          "pid": 179246,
+          "read_bytes": 31789953024,
+          "write_bytes": 81920
+        }
+      ],
+      "read_bytes": 31789953024,
+      "write_bytes": 81920
+    }
+  },
+  "engagement_before": {
+    "evictions": null,
+    "policy": {
+      "event": "engagement",
+      "eviction_prepares": 34568,
+      "lfu_accesses": 5206015,
+      "lfu_activations": 50370,
+      "lfu_reorder_requests": 20334,
+      "lfu_sampled_updates": 20334,
+      "page_fault_calls": 18068651,
+      "pid": 178889,
+      "prefetches_issued": 292688,
+      "stride_detections": 249467
+    },
+    "process_io": {
+      "cpu_time_s": 75.12,
+      "members": [
+        {
+          "affinity": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "cpu_ticks": 7512,
+          "pid": 179246,
+          "read_bytes": 31636062208,
+          "write_bytes": 40960
+        }
+      ],
+      "read_bytes": 31636062208,
+      "write_bytes": 40960
+    }
+  },
+  "engagement_delta": {
+    "completed_evictions_claimed": false,
+    "eviction_delta": null,
+    "policy_delta": {
+      "eviction_prepares": 314960,
+      "lfu_accesses": 32716544,
+      "lfu_activations": 315444,
+      "lfu_reorder_requests": 127797,
+      "lfu_sampled_updates": 127797,
+      "page_fault_calls": 123026112,
+      "prefetches_issued": 1675649,
+      "stride_detections": 1254848
+    },
+    "process_tree_cpu_time_s": 313.75,
+    "read_bytes": 153890816
+  },
+  "gpu_telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2925.0,
+    "mean_power_w": 114.00565906210393,
+    "min_sm_clock_mhz": 2887.0,
+    "peak_memory_mib": 32108.0,
+    "peak_temperature_c": 46.0,
+    "samples": 1578,
+    "throttled": false
+  },
+  "identity": {
+    "detokenize_matches_prompt": true,
+    "models": {
+      "data": [
+        {
+          "created": 1788394585,
+          "id": "gpt-oss-120b",
+          "meta": {
+            "n_ctx_train": 131072,
+            "n_embd": 2880,
+            "n_params": 116829156672,
+            "n_vocab": 201088,
+            "size": 63374323968,
+            "vocab_type": 2
+          },
+          "object": "model",
+          "owned_by": "llamacpp"
+        }
+      ],
+      "models": [
+        {
+          "capabilities": [
+            "completion"
+          ],
+          "description": "",
+          "details": {
+            "families": [
+              ""
+            ],
+            "family": "",
+            "format": "gguf",
+            "parameter_size": "",
+            "parent_model": "",
+            "quantization_level": ""
+          },
+          "digest": "",
+          "model": "gpt-oss-120b",
+          "modified_at": "",
+          "name": "gpt-oss-120b",
+          "parameters": "",
+          "size": "",
+          "tags": [
+            ""
+          ],
+          "type": "model"
+        }
+      ],
+      "object": "list"
+    },
+    "total_slots": 1
+  },
+  "monitor_ready": null,
+  "output_throughput_tokens_per_s": 1.6286001323516692,
+  "prompt_order": [
+    4,
+    5,
+    3,
+    8,
+    2,
+    1,
+    7,
+    6
+  ],
+  "requests": [
+    {
+      "done_ns": 6452846563724,
+      "e2e_ms": 48972.430584,
+      "eof_ns": 6452846861898,
+      "finish_reason": "length",
+      "first_text_ns": 6428182053028,
+      "frames": [
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6428182053028
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6428755461285
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6429453401671
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6429895231393
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6430622204742
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6431153387087
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6431703886614
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6432175725704
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6432576391378
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6432957244357
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6433439811581
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6433997564423
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6434461542155
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6435073687843
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6435542810485
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6435914614907
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6436127185087
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6436445932621
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6436752697188
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6437215628869
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6437517815929
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6437702609855
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6437960245292
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6438257661996
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6438737991007
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6439180342864
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6439816236330
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6440222796367
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6440820800087
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6441357260872
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6441789284960
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6442304829552
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6442723097354
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6443160918957
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6443735729380
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6444209973180
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6444812053431
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6445166701184
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6445441226699
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6445721042443
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6445883051464
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6446118614345
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6446341155583
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6446931913076
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6447442965819
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6447859730953
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6448479415987
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6448840118459
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6449125218710
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6449337066377
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6450103598244
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6450255683784
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6450408341807
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6450585579107
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6450794179011
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6451219431686
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6451497695077
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6451776510975
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6451855353454
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6451995381780
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6452184288172
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6452609935075
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6452740897260
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6452836188270
+        },
+        {
+          "payload_bytes": 564,
+          "timestamp_ns": 6452846495830
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6452846563724
+        }
+      ],
+      "raw_sse_bytes": 16036,
+      "start_ns": 6403874431314,
+      "text": "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+      "ttft_ms": 24307.621714,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "done_ns": 6485671765706,
+      "e2e_ms": 32820.044869,
+      "eof_ns": 6485671776101,
+      "finish_reason": "length",
+      "first_text_ns": 6469776287483,
+      "frames": [
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6469776287483
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6470396610134
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6471154300682
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6471505545290
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6471681686465
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6472009120975
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6472106340075
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6472239083740
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6472534879868
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6472801974135
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6473170055386
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6473492659371
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6473750755471
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6474082085195
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6474381659302
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6474676199733
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6474911922525
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6475130656094
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6475419597562
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6475765444115
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6475937185351
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6476170397541
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6476266134811
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6476453009721
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6476769087999
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6477016134583
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6477416298714
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6477697877200
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6478054297514
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6478512889596
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6478837286734
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6479153049932
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6479495186419
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6479592303456
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6479755912017
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6480114244289
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6480466186309
+        },
+        {
+          "payload_bytes": 241,
+          "timestamp_ns": 6480700785602
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6480902374952
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6481165603336
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6481448571181
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6481796243662
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6482019515034
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6482349127416
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6482605148884
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6482735117627
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6482973179008
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6483122480031
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6483258480435
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6483352244167
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6483394752503
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6483424523505
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6483497307260
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6483739739326
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6483881060583
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6484040390772
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6484211640380
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6484528657251
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6484704077156
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6484758868796
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6484891001096
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6485168032100
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6485412662710
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6485632551117
+        },
+        {
+          "payload_bytes": 554,
+          "timestamp_ns": 6485642045699
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6485671765706
+        }
+      ],
+      "raw_sse_bytes": 16129,
+      "start_ns": 6452851731232,
+      "text": "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative reviews from Amazon product listings.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Features:**\n- **Risk-Free Methods:**",
+      "ttft_ms": 16924.556251,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "done_ns": 6518159465758,
+      "e2e_ms": 32474.341833,
+      "eof_ns": 6518159476940,
+      "finish_reason": "length",
+      "first_text_ns": 6501699869565,
+      "frames": [
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6501699869565
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6502119999060
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6502696981254
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6503270377835
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6503820353564
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6504370313730
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6504628513001
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6504855981569
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6505219831329
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6505445750459
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6505608535766
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6505837322792
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6506173845565
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6506411860574
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6506830090847
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6507025659504
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6507279488941
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6507527919902
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6507815781693
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6508032871164
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6508347211382
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6508654578723
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6508826970769
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6509182604629
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6509430642374
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6509518429685
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6509793177940
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6510034070026
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6510351179360
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6510527417407
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6510699624245
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6510887261948
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6511047013038
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6511168457966
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6511295455966
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6511543970749
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6511807172885
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6512091770828
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6512203559074
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6512518661171
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6512797663596
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6513050399358
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6513247769070
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6513453657533
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6513733244976
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6513884329248
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6514118955910
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6514351961476
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6514635402383
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6515175554997
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6515479377349
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6515764620417
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6516031627207
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6516229907122
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6516473310479
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6516649988977
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6516773409965
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6516947764474
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6517105995517
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6517287598919
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6517534599700
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6517757624728
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6517972056633
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6518148931625
+        },
+        {
+          "payload_bytes": 565,
+          "timestamp_ns": 6518159410622
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6518159465758
+        }
+      ],
+      "raw_sse_bytes": 16102,
+      "start_ns": 6485685135107,
+      "text": " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+      "ttft_ms": 16014.734458,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "done_ns": 6548944129385,
+      "e2e_ms": 30771.195147,
+      "eof_ns": 6548944141372,
+      "finish_reason": "length",
+      "first_text_ns": 6544816494369,
+      "frames": [
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6544816494369
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6544969763251
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545089005268
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545188362344
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545226916561
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545346170683
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545386095826
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545420937525
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545447683567
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545475358078
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545524863801
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545562566671
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545589187873
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545593457443
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545608521779
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545624716854
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545641066339
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545656884208
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545663951072
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545676113765
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545692570679
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545709374524
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545738424112
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545754695434
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545769945346
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545786856627
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545791066696
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545795185133
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545799315177
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545827170419
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545844037213
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545848214196
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545876024790
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545892523376
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545896557775
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545912199081
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545916648118
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545920800600
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545924954580
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545929150449
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545933237961
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545937523014
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545964278213
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6545992335555
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546007846772
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546012245848
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546016558022
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546020658271
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546024621515
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546040010381
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546159584629
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546199323200
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546283776860
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546367297955
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546408433862
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546436758217
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546477052648
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546505814322
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6546534009119
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6546632379006
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6546974710781
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6547618975114
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6548491290132
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6548933393957
+        },
+        {
+          "payload_bytes": 565,
+          "timestamp_ns": 6548944068284
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6548944129385
+        }
+      ],
+      "raw_sse_bytes": 16087,
+      "start_ns": 6518172946225,
+      "text": " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ......\"\n\nThe search results show",
+      "ttft_ms": 26643.548144,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "done_ns": 6580079416207,
+      "e2e_ms": 31122.500759,
+      "eof_ns": 6580079430799,
+      "finish_reason": "length",
+      "first_text_ns": 6571505493281,
+      "frames": [
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6571505493281
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6571911518586
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6572165756122
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6572222869216
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6572311554444
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6572567550494
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6572703522296
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6573054292176
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6573388320115
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6573516504374
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6573654922518
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6573793708036
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6573999103712
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6574237110710
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6574401264687
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6574502676052
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6574591449183
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6574708221128
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6574881815789
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6575079584629
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6575346771741
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6575501708988
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6575631596237
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6575764122538
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6575902230874
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6575977542359
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6576184822476
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6576369435837
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6576476219769
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6576623957359
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6576784270192
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6576875591214
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6577058454395
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6577082653583
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6577214393420
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6577312026978
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6577363724251
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6577413283698
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6577551800403
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6577703174981
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6577846243671
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6577948648913
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6577987673395
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6578055220831
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6578105279445
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6578198814772
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6578281065768
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6578327712112
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6578383498549
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6578488410839
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6578803402140
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6578980284545
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6579202311207
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6579304767380
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6579421409707
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6579476564660
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6579545009030
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6579596857159
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6579780397771
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6579815818769
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6579893056493
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6579950027649
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6580031325749
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6580062236425
+        },
+        {
+          "payload_bytes": 564,
+          "timestamp_ns": 6580079354624
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6580079416207
+        }
+      ],
+      "raw_sse_bytes": 16149,
+      "start_ns": 6548956930040,
+      "text": "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+      "ttft_ms": 22548.563241,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "done_ns": 6632845505950,
+      "e2e_ms": 52761.380242,
+      "eof_ns": 6632845525964,
+      "finish_reason": "length",
+      "first_text_ns": 6611507996535,
+      "frames": [
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6611507996535
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6612263812325
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6612937494618
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6613735965073
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6614376865529
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6615089801311
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6615412930424
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6615633022135
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6616081397844
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6616500173486
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6616839201019
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6617093128642
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6617695014796
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6617953806681
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6618200739777
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6618483691962
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6618793772270
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6619252495025
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6619642337344
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6620144315830
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6620497055435
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6620971604302
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6621487833937
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6621882624139
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6622267736158
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6622607578689
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6623069976372
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6623555568473
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6623892440329
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6624226640970
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6624460373078
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6624691985312
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6625018838618
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6625332000528
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6625701165852
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6626165733064
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6626567001706
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6626961884164
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6627273137231
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6627553492431
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6627835737873
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6628108930593
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6628349692507
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6628901910393
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6629018379112
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6629339412643
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6629499394447
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6629701668398
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6629834928299
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6630098529093
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6630220931135
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6630414509727
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6630664359568
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6630977550802
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6631041200184
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6631163049609
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6631337135735
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6631486405942
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6631611268554
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6631930196405
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6632075304352
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6632300163113
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6632504527999
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6632836164053
+        },
+        {
+          "payload_bytes": 562,
+          "timestamp_ns": 6632845445500
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6632845505950
+        }
+      ],
+      "raw_sse_bytes": 16118,
+      "start_ns": 6580084145722,
+      "text": "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+      "ttft_ms": 31423.850813,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "done_ns": 6682946746650,
+      "e2e_ms": 50088.122355,
+      "eof_ns": 6682946757887,
+      "finish_reason": "length",
+      "first_text_ns": 6659058432623,
+      "frames": [
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6659058432623
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6659288711543
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6659973849407
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6660682691641
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6661098176546
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6661767370792
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6662337949918
+        },
+        {
+          "payload_bytes": 245,
+          "timestamp_ns": 6662867150111
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6663495716970
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6664202509510
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6664637637217
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6665036559426
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6665396072845
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6665757580152
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6666114068685
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6666749676410
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6667379568195
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6667676950456
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6668084831206
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6668815516350
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6669234269920
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6669671910890
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6670061183426
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6670479638727
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6670836509721
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6671268416657
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6671589178574
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6671844237242
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6672143764095
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6672361253857
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6672598632139
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6673012504942
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6673528862789
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6673802790681
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6673998541768
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6674193494825
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6674376755104
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6674550716923
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6674672497651
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6674758153544
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6674877452196
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6675264556719
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6675761434633
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6676054483642
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6676292353656
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6676596714346
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6677177988330
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6677847083702
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6678104584444
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6678444963684
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6678751032716
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6679032884507
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6679390560061
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6679639747172
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6680079712198
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6680389588281
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6681172583540
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6681381356641
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6681638393520
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6681813398333
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6682065611407
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6682187231646
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6682531717230
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6682939940388
+        },
+        {
+          "payload_bytes": 564,
+          "timestamp_ns": 6682946712913
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6682946746650
+        }
+      ],
+      "raw_sse_bytes": 16121,
+      "start_ns": 6632858635532,
+      "text": "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800\n\n    def init_catalog(self, product_info):\n        for product in product_info",
+      "ttft_ms": 26199.797091,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "done_ns": 6718253030088,
+      "e2e_ms": 35293.327153,
+      "eof_ns": 6718253041559,
+      "finish_reason": "length",
+      "first_text_ns": 6699747706570,
+      "frames": [
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6699747706570
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6700459743048
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6701246101470
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6701952712170
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6702486686782
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6702780849531
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6703195414778
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6703704493457
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6704014993761
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6704202174106
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6704320782635
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6704584013165
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6705383593250
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6705954575711
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6706374943926
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6706607660630
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6706989013083
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6707228283674
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6707416839551
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6707803184125
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6708194908472
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6708408630404
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6708617447217
+        },
+        {
+          "payload_bytes": 243,
+          "timestamp_ns": 6708840026912
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6708965199848
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6709101491290
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6709245920014
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6709344563930
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6709447770989
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6709726558728
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6710026661793
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6710306114073
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6710459349574
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6710559090122
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6711116845810
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6711460373498
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6711780511450
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6712020730159
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6712638783103
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6712965813282
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6713262637010
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6713392561390
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6713676831598
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6713906083940
+        },
+        {
+          "payload_bytes": 238,
+          "timestamp_ns": 6714125564197
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6714498369724
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6714656089638
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6714894196985
+        },
+        {
+          "payload_bytes": 241,
+          "timestamp_ns": 6715112126182
+        },
+        {
+          "payload_bytes": 243,
+          "timestamp_ns": 6715323703622
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6715545052035
+        },
+        {
+          "payload_bytes": 239,
+          "timestamp_ns": 6715761624755
+        },
+        {
+          "payload_bytes": 234,
+          "timestamp_ns": 6715944822717
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6716237299733
+        },
+        {
+          "payload_bytes": 233,
+          "timestamp_ns": 6716529864486
+        },
+        {
+          "payload_bytes": 231,
+          "timestamp_ns": 6716896149889
+        },
+        {
+          "payload_bytes": 243,
+          "timestamp_ns": 6717090013087
+        },
+        {
+          "payload_bytes": 240,
+          "timestamp_ns": 6717241063794
+        },
+        {
+          "payload_bytes": 232,
+          "timestamp_ns": 6717384585862
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6717499849409
+        },
+        {
+          "payload_bytes": 237,
+          "timestamp_ns": 6717799292145
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6718012266087
+        },
+        {
+          "payload_bytes": 236,
+          "timestamp_ns": 6718094417763
+        },
+        {
+          "payload_bytes": 235,
+          "timestamp_ns": 6718245763289
+        },
+        {
+          "payload_bytes": 560,
+          "timestamp_ns": 6718253000535
+        },
+        {
+          "done": true,
+          "timestamp_ns": 6718253030088
+        }
+      ],
+      "raw_sse_bytes": 16149,
+      "start_ns": 6682959714406,
+      "text": "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+      "ttft_ms": 16787.992164,
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    }
+  ],
+  "secondary": {
+    "max_e2e_ms": 52761.380242,
+    "max_ttft_ms": 31423.850813,
+    "median_e2e_ms": 34056.686011,
+    "median_ttft_ms": 23428.092477500002,
+    "p95_ttft_ms": 29750.744878849997
+  },
+  "verified_output_tokens": 512,
+  "warmup": {
+    "e2e_ms": 46143.167155,
+    "end_ns": 6402399968214,
+    "finish_reason": "length",
+    "start_ns": 6356256801059,
+    "text": "\n\n\n\nSure, here's an example of a customer success story that follows the guidelines you provided:\n\nTitle: \"From Unexpected Downtime to Seamless Operations: How Turbit Helped a Wind Farm Operator Identify and Resolve a Complex Issue\"\n\nKeywords: root cause, normal behavior, Turbit alarm, analysis, communication, solution",
+    "usage": {
+      "completion_tokens": 64,
+      "prompt_tokens": 512,
+      "total_tokens": 576
+    }
+  }
+}

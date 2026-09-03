@@ -1,0 +1,43 @@
+{
+  "reason": "user-directed algorithm correction",
+  "instruction": "Stop generic host-stride plus sampled-LFU repetitions; reproduce the actual MoE-Infinity activation-aware algorithm instead.",
+  "completed_diagnostic_blocks": 1,
+  "target_five_block_experiment_completed": false,
+  "moe_infinity_algorithm_reproduced": false,
+  "interrupted_attempt": 2,
+  "interrupted_configuration": "llama_uvm",
+  "owned_runner_pid": 174219,
+  "requested_stop_signal": "SIGINT",
+  "owned_server_pid": 202144,
+  "server_returncode_after_cleanup": -6,
+  "post_cleanup_gate_passed": false,
+  "observed_at_utc": "2026-09-03T00:31:53Z",
+  "post_cleanup_observation": {
+    "gpu_memory_mib": 2,
+    "gpu_utilization_percent": 100,
+    "gpu_power_w": 104.57,
+    "uvm_refcount": 0,
+    "struct_ops_empty": true,
+    "new_xid_observed": false
+  },
+  "lease_holder_pid_after_runner_exit": 206669,
+  "recovery_owner": "root coordinator; no further CUDA runs authorized by this campaign",
+  "later_recovery": {
+    "observed_at_utc": "2026-09-03T00:36:42Z",
+    "method": "ordinary module unload/load; no force or reboot",
+    "driver_source_commit": "e3bb2938",
+    "driver_stage": "/opt/gpubpf/modules/575.57.08/gpreempt-e3bb2938-6.15.11",
+    "gpu_memory_mib": 2,
+    "gpu_utilization_percent": 0,
+    "gpu_power_w": 10.49,
+    "uvm_refcount": 0,
+    "compute_clients": [],
+    "does_not_retroactively_pass_interrupted_cell": true
+  },
+  "additional_kernel_warning": {
+    "observed_at_utc": "2026-09-03T00:20:46Z",
+    "message": "NVRM: Going over RM unhandled interrupt threshold (IRQ 217)",
+    "timing_context": "old generic BPF cell; cause not established",
+    "found_by": "root coordinator wider journal inspection"
+  }
+}

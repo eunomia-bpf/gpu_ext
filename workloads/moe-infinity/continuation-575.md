@@ -1,5 +1,10 @@
 # MoE-Infinity four-cell continuation on 575
 
+**Superseded by user-directed algorithm correction. Do not resume these run
+commands.** One diagnostic block was retained before stopping the generic
+host-stride/LFU policy. It does not implement MoE-Infinity's activation-aware
+algorithm. See [retained results and recovery](results-575.md).
+
 Current protocol: `proposal-3-revision-10-575-lossless-stream`, recorded before
 any accepted 575 performance block. Revisions 8 and 9 retain their real
 compiler-load, connection, and streaming failures; see the investigations below.

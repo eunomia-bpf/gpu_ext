@@ -1,15 +1,23 @@
 # MoE-Infinity revision baseline
 
-Current 575 execution entrypoint and status: [continuation-575.md](continuation-575.md).
+Current status: the generic host-stride/LFU campaign was **stopped on user
+instruction** after one paired block because it does not reproduce MoE-Infinity's
+activation-aware algorithm. Do not resume its five-block sequence. Its retained
+diagnostic results and stop/cleanup status are in [results-575.md](results-575.md).
+Historical execution details: [continuation-575.md](continuation-575.md).
 The first real 575 warm-up exposed a Triton CUDA 13.1 module-load crash;
 pinning its Blackwell assembler to CUDA 12.9 and isolating the compile cache
-completed the identical diagnostic request. The new four-cell correctness
-and five-block timing sequence still must finish. The historical 610 protocol
-and failures below are retained, not reused as 575 performance samples.
+fixed that diagnostic. A subsequent transport repair prevents lost streaming
+tokens. Four-cell correctness and the additional full MoE stream/nonstream
+parity check passed; only one diagnostic timing block completed before the
+user-directed algorithm correction.
+The historical 610 protocol and retained failed 575 attempts are not reused
+as current performance samples.
 
 This directory stages the MoE research-system baseline named in revision R1.
-Upstream dependencies and build products remain under ignored `deps/`; raw
-experiment outputs will be kept under ignored `raw/`.
+Upstream dependencies and build products remain under ignored `deps/`; large
+raw artifacts remain ignored. Small correctness/failure evidence is explicitly
+committed under `raw/`, without model weights or derived expert tensor stores.
 
 Current preparation pins EfficientMoE/MoE-Infinity commit
 `b766f8f1f6379fac6cd23594713ba6f4c7650ad9`. Its source exposes an explicit

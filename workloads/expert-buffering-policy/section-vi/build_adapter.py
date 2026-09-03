@@ -32,21 +32,19 @@ def group_members(pgid):
 
 def stop_owned(process):
     for sig, seconds in ((signal.SIGTERM, 3), (signal.SIGKILL, 3)):
-        process.poll()
-        if not group_members(process.pid):
-            process.wait(timeout=1)
+        if process.poll() is not None and not group_members(process.pid):
             return
         try:
             os.killpg(process.pid, sig)
         except ProcessLookupError:
-            continue
+            pass  # An empty group does not yet establish that the leader reaped.
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
-            process.poll()
-            if not group_members(process.pid):
-                process.wait(timeout=1)
+            if process.poll() is not None and not group_members(process.pid):
                 return
             time.sleep(0.05)
+    if process.poll() is not None and not group_members(process.pid):
+        return
     raise RuntimeError(f"owned build group {process.pid} survived cleanup")
 
 

@@ -1,0 +1,1069 @@
+{
+  "timestamp": "20260903_053130",
+  "phase": "preflight",
+  "params": {
+    "phase": "preflight",
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "llama_cli": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "bpftime_build_dir": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575",
+    "nvbit_root": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "runs": 1,
+    "pp": 32,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "timeout_s": 300,
+    "probe_startup_s": 3.0,
+    "gpu_thread_count": 8192,
+    "threadhist_gpu_thread_count": 1048576,
+    "uprobe_binary": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+    "uprobe_symbol_hint": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "uvm": false,
+    "no_warmup": false,
+    "cuda_graphs_disabled": true,
+    "schedule_seed": 1797,
+    "bootstrap_samples": 10000,
+    "expected_driver": "575.57.08",
+    "worker_cpus": "8-15",
+    "telemetry_cpu": 16,
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "launch_environment": {
+      "PATH": "/usr/local/cuda-12.9/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "LD_LIBRARY_PATH": null,
+      "CUDA_VISIBLE_DEVICES": null,
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "provenance": {
+    "gpu_ext_git": "f614ce2",
+    "bpftime_git": "d6316fa",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 2, 0, 12.84",
+      "compute_apps": ""
+    },
+    "driver": "575.57.08",
+    "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+    "nvbit_driver_supported": true,
+    "cuda_ptx": {
+      "libggml_cuda": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+      "has_ptx": true,
+      "ptx_count": 120,
+      "cuobjdump_returncode": 0
+    },
+    "model_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+      "exists": true,
+      "bytes": 668788096,
+      "device": 66305,
+      "inode": 92561303,
+      "mtime_ns": 1772776302766880924,
+      "ctime_ns": 1786245720455318115
+    },
+    "llama_bench_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+      "exists": true,
+      "bytes": 527880,
+      "device": 66305,
+      "inode": 92556388,
+      "mtime_ns": 1783383234718689913,
+      "ctime_ns": 1786245718135780259
+    },
+    "llama_cli_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+      "exists": true,
+      "bytes": 2716232,
+      "device": 66305,
+      "inode": 92556389,
+      "mtime_ns": 1772776388902529402,
+      "ctime_ns": 1786245718138989568
+    },
+    "libggml_cuda_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so",
+      "exists": true,
+      "bytes": 48833696,
+      "device": 66305,
+      "inode": 92556385,
+      "mtime_ns": 1783383226290119050,
+      "ctime_ns": 1786245718129982510
+    },
+    "bpftime_agent_file": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/agent/libbpftime-agent.so",
+      "exists": true,
+      "bytes": 242969576,
+      "device": 66305,
+      "inode": 92304724,
+      "mtime_ns": 1788437376096674692,
+      "ctime_ns": 1788437376097229414
+    },
+    "bpftime_syscall_server_file": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/syscall-server/libbpftime-syscall-server.so",
+      "exists": true,
+      "bytes": 237938808,
+      "device": 66305,
+      "inode": 92304718,
+      "mtime_ns": 1788437376026673042,
+      "ctime_ns": 1788437376027571348
+    },
+    "nvbit_artifact_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit-Linux-x86_64-1.8.tar.bz2",
+      "exists": true,
+      "bytes": 937918,
+      "device": 66305,
+      "inode": 92705477,
+      "mtime_ns": 1788164260417865281,
+      "ctime_ns": 1788164260417865281
+    },
+    "source_manifest": {
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/run_revision_rq4.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/run_revision_rq4.py",
+        "exists": true,
+        "bytes": 49642,
+        "device": 66305,
+        "inode": 92705562,
+        "mtime_ns": 1788438689771746267,
+        "ctime_ns": 1788438689771746267
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/run_observability_overhead.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/run_observability_overhead.py",
+        "exists": true,
+        "bytes": 30176,
+        "device": 66305,
+        "inode": 92561305,
+        "mtime_ns": 1788260008996758255,
+        "ctime_ns": 1788260008996758255
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_three_way.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_three_way.py",
+        "exists": true,
+        "bytes": 24757,
+        "device": 66305,
+        "inode": 92419114,
+        "mtime_ns": 1788398187107976594,
+        "ctime_ns": 1788398187107976594
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_smoke.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_smoke.py",
+        "exists": true,
+        "bytes": 4724,
+        "device": 66305,
+        "inode": 92422258,
+        "mtime_ns": 1788396752511627295,
+        "ctime_ns": 1788396752511627295
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py",
+        "exists": true,
+        "bytes": 119398,
+        "device": 66305,
+        "inode": 92448857,
+        "mtime_ns": 1788397543651737512,
+        "ctime_ns": 1788397543651737512
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/Makefile": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/Makefile",
+        "exists": true,
+        "bytes": 1363,
+        "device": 66305,
+        "inode": 92705557,
+        "mtime_ns": 1788164902142365002,
+        "ctime_ns": 1788164902142365002
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/common.h": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/common.h",
+        "exists": true,
+        "bytes": 382,
+        "device": 66305,
+        "inode": 92705553,
+        "mtime_ns": 1788209045888600983,
+        "ctime_ns": 1788209045888600983
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/inject_funcs.cu": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/inject_funcs.cu",
+        "exists": true,
+        "bytes": 2990,
+        "device": 66305,
+        "inode": 92705554,
+        "mtime_ns": 1788165692768997023,
+        "ctime_ns": 1788165692768997023
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/observability.cu": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/observability.cu",
+        "exists": true,
+        "bytes": 12666,
+        "device": 66305,
+        "inode": 92705556,
+        "mtime_ns": 1788259166221006711,
+        "ctime_ns": 1788259166221006711
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/tool_func/flush_channel.cu": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/tool_func/flush_channel.cu",
+        "exists": true,
+        "bytes": 118,
+        "device": 66305,
+        "inode": 92705555,
+        "mtime_ns": 1788209045888600983,
+        "ctime_ns": 1788209045888600983
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/Makefile": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/Makefile",
+        "exists": true,
+        "bytes": 4779,
+        "device": 66305,
+        "inode": 92300832,
+        "mtime_ns": 1788437100048055353,
+        "ctime_ns": 1788437100048055353
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c",
+        "exists": true,
+        "bytes": 1218,
+        "device": 66305,
+        "inode": 92300834,
+        "mtime_ns": 1788437197475436153,
+        "ctime_ns": 1788437197475436153
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.c",
+        "exists": true,
+        "bytes": 2537,
+        "device": 66305,
+        "inode": 92300835,
+        "mtime_ns": 1788437197476436177,
+        "ctime_ns": 1788437197476436177
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/Makefile": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/Makefile",
+        "exists": true,
+        "bytes": 4775,
+        "device": 66305,
+        "inode": 92300886,
+        "mtime_ns": 1788437100048869900,
+        "ctime_ns": 1788437100048869900
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.bpf.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.bpf.c",
+        "exists": true,
+        "bytes": 861,
+        "device": 66305,
+        "inode": 92300888,
+        "mtime_ns": 1788437100048869900,
+        "ctime_ns": 1788437100048869900
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.c",
+        "exists": true,
+        "bytes": 3248,
+        "device": 66305,
+        "inode": 92300889,
+        "mtime_ns": 1788437315368239885,
+        "ctime_ns": 1788437315368239885
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/launchlate/Makefile": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/launchlate/Makefile",
+        "exists": true,
+        "bytes": 4775,
+        "device": 66305,
+        "inode": 92300846,
+        "mtime_ns": 1788437100048298396,
+        "ctime_ns": 1788437100048298396
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/launchlate/launchlate.bpf.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/launchlate/launchlate.bpf.c",
+        "exists": true,
+        "bytes": 4545,
+        "device": 66305,
+        "inode": 92300848,
+        "mtime_ns": 1788437197476436177,
+        "ctime_ns": 1788437197476436177
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/launchlate/launchlate.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/launchlate/launchlate.c",
+        "exists": true,
+        "bytes": 7500,
+        "device": 66305,
+        "inode": 92300849,
+        "mtime_ns": 1788437197477436201,
+        "ctime_ns": 1788437197477436201
+      }
+    }
+  },
+  "schedule": {
+    "1": [
+      "nvbit_kernelretsnoop",
+      "gpubpf_kernelretsnoop",
+      "nvbit_launchlate",
+      "gpubpf_launchlate",
+      "baseline",
+      "nvbit_threadhist",
+      "gpubpf_threadhist"
+    ]
+  },
+  "correctness": {
+    "baseline": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/baseline/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788438725933167051,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 49,
+                "sm_clock_mhz": 22,
+                "memory_clock_mhz": 405,
+                "power_w": 12.59,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788438727789934037,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 50,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 51.14,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 5,
+              "peak_memory_mib": 559.0,
+              "peak_temperature_c": 50.0,
+              "mean_power_w": 13.430000000000001,
+              "min_sm_clock_mhz": 22.0,
+              "max_sm_clock_mhz": 1132.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          }
+        }
+      ]
+    },
+    "gpubpf_kernelretsnoop": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "[2026-09-03 05:32:15.713] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.714] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:15.715] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:32:16.110] [info] [bpftime_shm_internal.cpp:1074] Registered shared memory with CUDA: addr=0x7d9db345b000 size=1048576000\n[2026-09-03 05:32:16.110] [info] [bpftime_shm_internal.cpp:859] Global shm constructed. shm_open_type 1 for rq4_335074_12478137184131\n[2026-09-03 05:32:16.110] [info] [bpftime_shm_internal.cpp:48] Global shm initialized\nExtracting PTX file and ptxas options    1: temp.1.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    2: temp.2.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    3: temp.3.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    4: temp.4.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    5: temp.5.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    6: temp.6.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    7: temp.7.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    8: temp.8.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    9: temp.9.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   10: temp.10.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   11: temp.11.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   12: temp.12.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   13: temp.13.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   14: temp.14.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   15: temp.15.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   16: temp.16.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   17: temp.17.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   18: temp.18.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   19: temp.19.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   20: temp.20.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   21: temp.21.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   22: temp.22.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   23: temp.23.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   24: temp.24.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   25: temp.25.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   26: temp.26.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   27: temp.27.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   28: temp.28.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   29: temp.29.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   30: temp.30.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   31: temp.31.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   32: temp.32.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   33: temp.33.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   34: temp.34.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   35: temp.35.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   36: temp.36.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   37: temp.37.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   38: temp.38.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   39: temp.39.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   40: temp.40.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   41: temp.41.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   42: temp.42.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   43: temp.43.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   44: temp.44.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   45: temp.45.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   46: temp.46.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   47: temp.47.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   48: temp.48.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   49: temp.49.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   50: temp.50.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   51: temp.51.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   52: temp.52.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   53: temp.53.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   54: temp.54.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   55: temp.55.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   56: temp.56.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   57: temp.57.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   58: temp.58.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   59: temp.59.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   60: temp.60.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   61: temp.61.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   62: temp.62.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   63: temp.63.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   64: temp.64.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   65: temp.65.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   66: temp.66.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   67: temp.67.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   68: temp.68.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   69: temp.69.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   70: temp.70.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   71: temp.71.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   72: temp.72.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   73: temp.73.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   74: temp.74.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   75: temp.75.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   76: temp.76.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   77: temp.77.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   78: temp.78.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   79: temp.79.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   80: temp.80.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   81: temp.81.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   82: temp.82.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   83: temp.83.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   84: temp.84.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   85: temp.85.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   86: temp.86.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   87: temp.87.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   88: temp.88.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   89: temp.89.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   90: temp.90.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   91: temp.91.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   92: temp.92.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   93: temp.93.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   94: temp.94.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   95: temp.95.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   96: temp.96.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   97: temp.97.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   98: temp.98.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   99: temp.99.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  100: temp.100.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  101: temp.101.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  102: temp.102.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  103: temp.103.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  104: temp.104.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  105: temp.105.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  106: temp.106.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  107: temp.107.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  108: temp.108.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  109: temp.109.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  110: temp.110.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  111: temp.111.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  112: temp.112.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  113: temp.113.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  114: temp.114.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  115: temp.115.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  116: temp.116.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  117: temp.117.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  118: temp.118.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  119: temp.119.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  120: temp.120.sm_120.ptx -arch=sm_120\n[2026-09-03 05:32:20.335] [info] [core.cpp:321] [ptxpass] kretprobe: matched=1, in=375367, out=378171\n\nDeterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 24279,
+          "log": "correctness/gpubpf_kernelretsnoop/attempt_01/llama_cli.log",
+          "valid": false,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788438732011002653,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 2910,
+                "memory_clock_mhz": 14001,
+                "power_w": 94.58,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788438841231787319,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 1545,
+                "memory_clock_mhz": 7001,
+                "power_w": 47.71,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 541,
+              "peak_memory_mib": 5755.0,
+              "peak_temperature_c": 53.0,
+              "mean_power_w": 29.09362292051756,
+              "min_sm_clock_mhz": 21.0,
+              "max_sm_clock_mhz": 2910.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 3
+            }
+          },
+          "probe": {
+            "sample_count": 16384,
+            "nonzero_timestamps": 16384
+          },
+          "matches_baseline": false
+        }
+      ]
+    },
+    "nvbit_kernelretsnoop": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/nvbit_kernelretsnoop/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788438728608878421,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 50,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 60.94,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788438731207439508,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 2910,
+                "memory_clock_mhz": 14001,
+                "power_w": 102.6,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 9,
+              "peak_memory_mib": 1462.0,
+              "peak_temperature_c": 52.0,
+              "mean_power_w": 53.80111111111111,
+              "min_sm_clock_mhz": 622.0,
+              "max_sm_clock_mhz": 2910.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 901120,
+            "nonzero_timestamps": 901120,
+            "selected_launches": 220
+          },
+          "matches_baseline": true
+        }
+      ]
+    },
+    "gpubpf_threadhist": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.054] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.055] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:36:02.246] [info] [bpftime_shm_internal.cpp:1074] Registered shared memory with CUDA: addr=0x7fca1085b000 size=209715200\n[2026-09-03 05:36:02.246] [info] [bpftime_shm_internal.cpp:859] Global shm constructed. shm_open_type 1 for rq4_335074_12704476956591\n[2026-09-03 05:36:02.246] [info] [bpftime_shm_internal.cpp:48] Global shm initialized\nExtracting PTX file and ptxas options    1: temp.1.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    2: temp.2.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    3: temp.3.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    4: temp.4.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    5: temp.5.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    6: temp.6.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    7: temp.7.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    8: temp.8.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    9: temp.9.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   10: temp.10.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   11: temp.11.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   12: temp.12.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   13: temp.13.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   14: temp.14.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   15: temp.15.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   16: temp.16.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   17: temp.17.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   18: temp.18.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   19: temp.19.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   20: temp.20.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   21: temp.21.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   22: temp.22.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   23: temp.23.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   24: temp.24.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   25: temp.25.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   26: temp.26.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   27: temp.27.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   28: temp.28.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   29: temp.29.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   30: temp.30.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   31: temp.31.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   32: temp.32.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   33: temp.33.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   34: temp.34.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   35: temp.35.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   36: temp.36.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   37: temp.37.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   38: temp.38.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   39: temp.39.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   40: temp.40.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   41: temp.41.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   42: temp.42.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   43: temp.43.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   44: temp.44.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   45: temp.45.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   46: temp.46.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   47: temp.47.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   48: temp.48.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   49: temp.49.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   50: temp.50.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   51: temp.51.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   52: temp.52.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   53: temp.53.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   54: temp.54.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   55: temp.55.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   56: temp.56.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   57: temp.57.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   58: temp.58.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   59: temp.59.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   60: temp.60.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   61: temp.61.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   62: temp.62.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   63: temp.63.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   64: temp.64.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   65: temp.65.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   66: temp.66.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   67: temp.67.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   68: temp.68.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   69: temp.69.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   70: temp.70.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   71: temp.71.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   72: temp.72.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   73: temp.73.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   74: temp.74.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   75: temp.75.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   76: temp.76.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   77: temp.77.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   78: temp.78.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   79: temp.79.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   80: temp.80.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   81: temp.81.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   82: temp.82.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   83: temp.83.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   84: temp.84.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   85: temp.85.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   86: temp.86.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   87: temp.87.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   88: temp.88.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   89: temp.89.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   90: temp.90.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   91: temp.91.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   92: temp.92.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   93: temp.93.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   94: temp.94.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   95: temp.95.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   96: temp.96.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   97: temp.97.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   98: temp.98.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   99: temp.99.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  100: temp.100.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  101: temp.101.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  102: temp.102.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  103: temp.103.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  104: temp.104.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  105: temp.105.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  106: temp.106.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  107: temp.107.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  108: temp.108.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  109: temp.109.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  110: temp.110.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  111: temp.111.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  112: temp.112.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  113: temp.113.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  114: temp.114.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  115: temp.115.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  116: temp.116.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  117: temp.117.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  118: temp.118.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  119: temp.119.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  120: temp.120.sm_120.ptx -arch=sm_120\n[2026-09-03 05:36:06.067] [info] [core.cpp:321] [ptxpass] kretprobe: matched=1, in=375367, out=376814\n\nDeterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 24278,
+          "log": "correctness/gpubpf_threadhist/attempt_01/llama_cli.log",
+          "valid": false,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788438958348808822,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 52,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 62.03,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788439067324499929,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 63.7,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 540,
+              "peak_memory_mib": 5767.0,
+              "peak_temperature_c": 53.0,
+              "mean_power_w": 29.45087037037037,
+              "min_sm_clock_mhz": 21.0,
+              "max_sm_clock_mhz": 2775.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 720896,
+            "nonzero_threads": 22528,
+            "configured_entries": 1048576,
+            "readback_entries": 1048576,
+            "readback_bytes": 8388608,
+            "readback_complete": 1
+          },
+          "matches_baseline": false
+        }
+      ]
+    },
+    "nvbit_threadhist": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/nvbit_threadhist/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788438955290224813,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 2910,
+                "memory_clock_mhz": 14001,
+                "power_w": 94.57,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788438957525949820,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 52,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 63.35,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 7,
+              "peak_memory_mib": 1388.0,
+              "peak_temperature_c": 53.0,
+              "mean_power_w": 74.33714285714287,
+              "min_sm_clock_mhz": 735.0,
+              "max_sm_clock_mhz": 2910.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 901120,
+            "nonzero_threads": 22528,
+            "selected_launches": 220
+          },
+          "matches_baseline": true
+        }
+      ]
+    },
+    "gpubpf_launchlate": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.565] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.566] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.567] [warning] [bpftime_vm_compat.hpp:251] VM factory for name: llvm already registered, overwriting\n[2026-09-03 05:34:08.714] [info] [bpftime_shm_internal.cpp:1074] Registered shared memory with CUDA: addr=0x7c31f3a33000 size=52428800\n[2026-09-03 05:34:08.714] [info] [bpftime_shm_internal.cpp:859] Global shm constructed. shm_open_type 1 for rq4_335074_12590988738310\n[2026-09-03 05:34:08.714] [info] [bpftime_shm_internal.cpp:48] Global shm initialized\nExtracting PTX file and ptxas options    1: temp.1.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    2: temp.2.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    3: temp.3.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    4: temp.4.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    5: temp.5.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    6: temp.6.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    7: temp.7.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    8: temp.8.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options    9: temp.9.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   10: temp.10.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   11: temp.11.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   12: temp.12.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   13: temp.13.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   14: temp.14.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   15: temp.15.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   16: temp.16.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   17: temp.17.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   18: temp.18.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   19: temp.19.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   20: temp.20.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   21: temp.21.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   22: temp.22.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   23: temp.23.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   24: temp.24.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   25: temp.25.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   26: temp.26.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   27: temp.27.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   28: temp.28.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   29: temp.29.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   30: temp.30.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   31: temp.31.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   32: temp.32.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   33: temp.33.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   34: temp.34.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   35: temp.35.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   36: temp.36.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   37: temp.37.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   38: temp.38.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   39: temp.39.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   40: temp.40.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   41: temp.41.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   42: temp.42.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   43: temp.43.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   44: temp.44.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   45: temp.45.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   46: temp.46.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   47: temp.47.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   48: temp.48.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   49: temp.49.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   50: temp.50.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   51: temp.51.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   52: temp.52.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   53: temp.53.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   54: temp.54.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   55: temp.55.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   56: temp.56.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   57: temp.57.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   58: temp.58.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   59: temp.59.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   60: temp.60.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   61: temp.61.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   62: temp.62.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   63: temp.63.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   64: temp.64.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   65: temp.65.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   66: temp.66.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   67: temp.67.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   68: temp.68.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   69: temp.69.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   70: temp.70.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   71: temp.71.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   72: temp.72.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   73: temp.73.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   74: temp.74.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   75: temp.75.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   76: temp.76.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   77: temp.77.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   78: temp.78.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   79: temp.79.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   80: temp.80.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   81: temp.81.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   82: temp.82.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   83: temp.83.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   84: temp.84.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   85: temp.85.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   86: temp.86.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   87: temp.87.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   88: temp.88.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   89: temp.89.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   90: temp.90.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   91: temp.91.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   92: temp.92.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   93: temp.93.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   94: temp.94.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   95: temp.95.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   96: temp.96.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   97: temp.97.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   98: temp.98.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options   99: temp.99.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  100: temp.100.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  101: temp.101.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  102: temp.102.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  103: temp.103.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  104: temp.104.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  105: temp.105.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  106: temp.106.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  107: temp.107.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  108: temp.108.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  109: temp.109.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  110: temp.110.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  111: temp.111.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  112: temp.112.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  113: temp.113.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  114: temp.114.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  115: temp.115.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  116: temp.116.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  117: temp.117.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  118: temp.118.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  119: temp.119.sm_120.ptx -arch=sm_120\nExtracting PTX file and ptxas options  120: temp.120.sm_120.ptx -arch=sm_120\n[2026-09-03 05:34:12.548] [info] [core.cpp:321] [ptxpass] kprobe_entry: matched=1, in=375367, out=383560\n\nDeterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 24280,
+          "log": "correctness/gpubpf_launchlate/attempt_01/llama_cli.log",
+          "valid": false,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788438844855586439,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 58.63,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788438954463085750,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 2910,
+                "memory_clock_mhz": 14001,
+                "power_w": 98.75,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 543,
+              "peak_memory_mib": 5761.0,
+              "peak_temperature_c": 54.0,
+              "mean_power_w": 29.558508287292817,
+              "min_sm_clock_mhz": 22.0,
+              "max_sm_clock_mhz": 2910.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 0,
+            "host_launches": 0,
+            "device_entries": 0,
+            "queue_underflows": 220,
+            "queue_overflows": 0,
+            "clock_errors": 0
+          },
+          "matches_baseline": false
+        }
+      ]
+    },
+    "nvbit_launchlate": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/nvbit_launchlate/attempt_01/llama_cli.log",
+          "valid": false,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788438842060766655,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 170,
+                "memory_clock_mhz": 7001,
+                "power_w": 39.84,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788438844040694518,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 2,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 65.13,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 6,
+              "peak_memory_mib": 1388.0,
+              "peak_temperature_c": 51.0,
+              "mean_power_w": 27.345,
+              "min_sm_clock_mhz": 170.0,
+              "max_sm_clock_mhz": 690.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 0,
+            "clock_errors": 220,
+            "histogram": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "histogram_sum": 0,
+            "selected_launches": 220
+          },
+          "matches_baseline": true
+        }
+      ]
+    }
+  },
+  "artifacts": {
+    "nvbit_tool": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-03/nvbit_tool_build/observability.so",
+      "exists": true,
+      "bytes": 3183016,
+      "device": 66305,
+      "inode": 94385587,
+      "mtime_ns": 1788438692156382373,
+      "ctime_ns": 1788438692156393706
+    },
+    "gpubpf_kernelretsnoop": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-03/gpubpf_tool_build/kernelretsnoop/kernelretsnoop",
+      "exists": true,
+      "bytes": 1534776,
+      "device": 66305,
+      "inode": 94385700,
+      "mtime_ns": 1788438703185450174,
+      "ctime_ns": 1788438703185460936
+    },
+    "gpubpf_threadhist": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-03/gpubpf_tool_build/threadhist/threadhist",
+      "exists": true,
+      "bytes": 1535688,
+      "device": 66305,
+      "inode": 94385813,
+      "mtime_ns": 1788438714134131220,
+      "ctime_ns": 1788438714134142648
+    },
+    "gpubpf_launchlate": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-03/gpubpf_tool_build/launchlate/launchlate",
+      "exists": true,
+      "bytes": 1551728,
+      "device": 66305,
+      "inode": 94385926,
+      "mtime_ns": 1788438725179498375,
+      "ctime_ns": 1788438725179902386
+    }
+  },
+  "configs": {
+    "baseline": {
+      "runs": []
+    },
+    "gpubpf_kernelretsnoop": {
+      "runs": []
+    },
+    "nvbit_kernelretsnoop": {
+      "runs": []
+    },
+    "gpubpf_threadhist": {
+      "runs": []
+    },
+    "nvbit_threadhist": {
+      "runs": []
+    },
+    "gpubpf_launchlate": {
+      "runs": []
+    },
+    "nvbit_launchlate": {
+      "runs": []
+    }
+  },
+  "summary": {
+    "configs": [
+      {
+        "config": "baseline",
+        "valid_blocks": 0,
+        "attempts": 0,
+        "pp_tok_s_geomean": null
+      },
+      {
+        "config": "gpubpf_kernelretsnoop",
+        "valid_blocks": 0,
+        "attempts": 0,
+        "pp_tok_s_geomean": null
+      },
+      {
+        "config": "nvbit_kernelretsnoop",
+        "valid_blocks": 0,
+        "attempts": 0,
+        "pp_tok_s_geomean": null
+      },
+      {
+        "config": "gpubpf_threadhist",
+        "valid_blocks": 0,
+        "attempts": 0,
+        "pp_tok_s_geomean": null
+      },
+      {
+        "config": "nvbit_threadhist",
+        "valid_blocks": 0,
+        "attempts": 0,
+        "pp_tok_s_geomean": null
+      },
+      {
+        "config": "gpubpf_launchlate",
+        "valid_blocks": 0,
+        "attempts": 0,
+        "pp_tok_s_geomean": null
+      },
+      {
+        "config": "nvbit_launchlate",
+        "valid_blocks": 0,
+        "attempts": 0,
+        "pp_tok_s_geomean": null
+      }
+    ],
+    "comparisons": [
+      {
+        "task": "kernelretsnoop",
+        "paired_blocks": 0,
+        "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+        "paired": [],
+        "bootstrap": null
+      },
+      {
+        "task": "threadhist",
+        "paired_blocks": 0,
+        "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+        "paired": [],
+        "bootstrap": null
+      },
+      {
+        "task": "launchlate",
+        "paired_blocks": 0,
+        "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+        "paired": [],
+        "bootstrap": null
+      }
+    ]
+  }
+}

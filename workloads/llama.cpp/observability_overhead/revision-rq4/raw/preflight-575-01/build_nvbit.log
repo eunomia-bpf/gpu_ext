@@ -1,0 +1,10 @@
+$ make CXX=g++ NVBIT_ROOT=/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64 ARCH=sm_120
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-01/nvbit_tool_build
+# started: 2026-09-03T05:28:22
+
+## output
+nvcc -ccbin=g++ -D_FORCE_INLINES -arch=sm_120 -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -O3 -fatbin tool_func/flush_channel.cu -o tool_func/flush_channel.fatbin
+make: nvcc: No such file or directory
+make: *** [Makefile:26: tool_func/flush_channel.fatbin] Error 127
+
+# exit: 2

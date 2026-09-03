@@ -1,0 +1,27 @@
+libbpf: loading object 'kernelretsnoop_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 144, link 1, flags 0, type=2
+libbpf: elf: section(3) kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 208, link 0, flags 6, type=1
+libbpf: sec 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': found program 'cuda__retprobe' at insn offset 0 (0 bytes), code size 26 insns (208 bytes)
+libbpf: elf: section(4) .maps, size 32, link 0, flags 3, type=1
+libbpf: elf: section(5) license, size 4, link 0, flags 3, type=1
+libbpf: license of kernelretsnoop_bpf is GPL
+libbpf: elf: section(6) .relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 16, link 2, flags 40, type=9
+libbpf: elf: section(7) .BTF, size 1104, link 0, flags 0, type=1
+libbpf: elf: section(8) .BTF.ext, size 256, link 0, flags 0, type=1
+libbpf: looking for externs among 6 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'rb': at sec_idx 4, offset 0.
+libbpf: map 'rb': found type = 1527.
+libbpf: map 'rb': found key [8], sz = 4.
+libbpf: map 'rb': found value [12], sz = 1024.
+libbpf: map 'rb': found max_entries = 16.
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': collecting relocation for section(3) 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli'
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #0: insn #18 against 'rb'
+libbpf: prog 'cuda__retprobe': found map 0 (rb, sec 4, off 0) for insn #18
+libbpf: object 'kernelretsnoop_': failed (-95) to create BPF token from '/sys/fs/bpf', skipping optional step...
+libbpf: map 'rb': created successfully, fd=16
+[2026-09-03 05:32:28][warning][337173] Calling original ioctl: 8 3223340586 130454826509936
+Total events collected: 8192
+Nonzero timestamps: 8192
+Total events collected: 16384
+Nonzero timestamps: 16384

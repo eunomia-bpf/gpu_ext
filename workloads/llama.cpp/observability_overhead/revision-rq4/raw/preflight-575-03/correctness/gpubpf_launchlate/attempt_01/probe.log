@@ -1,0 +1,84 @@
+libbpf: loading object 'launchlate_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 480, link 1, flags 0, type=2
+libbpf: elf: section(3) uprobe, size 448, link 0, flags 6, type=1
+libbpf: sec 'uprobe': found program 'uprobe_cuda_launch' at insn offset 0 (0 bytes), code size 56 insns (448 bytes)
+libbpf: elf: section(4) kprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 968, link 0, flags 6, type=1
+libbpf: sec 'kprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': found program 'cuda__probe' at insn offset 0 (0 bytes), code size 121 insns (968 bytes)
+libbpf: elf: section(5) .maps, size 128, link 0, flags 3, type=1
+libbpf: elf: section(6) license, size 4, link 0, flags 3, type=1
+libbpf: license of launchlate_bpf is GPL
+libbpf: elf: section(7) .reluprobe, size 80, link 2, flags 40, type=9
+libbpf: elf: section(8) .relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 96, link 2, flags 40, type=9
+libbpf: elf: section(9) .BTF, size 3885, link 0, flags 0, type=1
+libbpf: elf: section(10) .BTF.ext, size 1288, link 0, flags 0, type=1
+libbpf: looking for externs among 20 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'queue_state': at sec_idx 5, offset 0.
+libbpf: map 'queue_state': found type = 2.
+libbpf: map 'queue_state': found key [8], sz = 4.
+libbpf: map 'queue_state': found value [12], sz = 8.
+libbpf: map 'queue_state': found max_entries = 5.
+libbpf: map 'launch_times': at sec_idx 5, offset 32.
+libbpf: map 'launch_times': found type = 2.
+libbpf: map 'launch_times': found key [8], sz = 4.
+libbpf: map 'launch_times': found value [12], sz = 8.
+libbpf: map 'launch_times': found max_entries = 4096.
+libbpf: map 'time_histogram': at sec_idx 5, offset 64.
+libbpf: map 'time_histogram': found type = 1503.
+libbpf: map 'time_histogram': found key [8], sz = 4.
+libbpf: map 'time_histogram': found value [12], sz = 8.
+libbpf: map 'time_histogram': found max_entries = 10.
+libbpf: map 'clock_offset': at sec_idx 5, offset 96.
+libbpf: map 'clock_offset': found type = 2.
+libbpf: map 'clock_offset': found key [8], sz = 4.
+libbpf: map 'clock_offset': found value [30], sz = 8.
+libbpf: map 'clock_offset': found max_entries = 32.
+libbpf: sec '.reluprobe': collecting relocation for section(3) 'uprobe'
+libbpf: sec '.reluprobe': relo #0: insn #7 against 'clock_offset'
+libbpf: prog 'uprobe_cuda_launch': found map 3 (clock_offset, sec 5, off 96) for insn #7
+libbpf: sec '.reluprobe': relo #1: insn #16 against 'queue_state'
+libbpf: prog 'uprobe_cuda_launch': found map 0 (queue_state, sec 5, off 0) for insn #16
+libbpf: sec '.reluprobe': relo #2: insn #26 against 'queue_state'
+libbpf: prog 'uprobe_cuda_launch': found map 0 (queue_state, sec 5, off 0) for insn #26
+libbpf: sec '.reluprobe': relo #3: insn #37 against 'queue_state'
+libbpf: prog 'uprobe_cuda_launch': found map 0 (queue_state, sec 5, off 0) for insn #37
+libbpf: sec '.reluprobe': relo #4: insn #50 against 'launch_times'
+libbpf: prog 'uprobe_cuda_launch': found map 1 (launch_times, sec 5, off 32) for insn #50
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': collecting relocation for section(4) 'kprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli'
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #0: insn #32 against 'queue_state'
+libbpf: prog 'cuda__probe': found map 0 (queue_state, sec 5, off 0) for insn #32
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #1: insn #38 against 'queue_state'
+libbpf: prog 'cuda__probe': found map 0 (queue_state, sec 5, off 0) for insn #38
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #2: insn #50 against 'queue_state'
+libbpf: prog 'cuda__probe': found map 0 (queue_state, sec 5, off 0) for insn #50
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #3: insn #61 against 'launch_times'
+libbpf: prog 'cuda__probe': found map 1 (launch_times, sec 5, off 32) for insn #61
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #4: insn #75 against 'queue_state'
+libbpf: prog 'cuda__probe': found map 0 (queue_state, sec 5, off 0) for insn #75
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #5: insn #113 against 'time_histogram'
+libbpf: prog 'cuda__probe': found map 2 (time_histogram, sec 5, off 64) for insn #113
+libbpf: object 'launchlate_bpf': failed (-95) to create BPF token from '/sys/fs/bpf', skipping optional step...
+libbpf: map 'queue_state': created successfully, fd=16
+libbpf: map 'launch_times': created successfully, fd=17
+libbpf: map 'time_histogram': created successfully, fd=18
+libbpf: map 'clock_offset': created successfully, fd=19
+libbpf: elf: symbol address match for '_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli' in '/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4': 0x221730
+[2026-09-03 05:34:21][warning][339101] Calling original ioctl: 8 3223340586 129936901641840
+[2026-09-03 05:35:53][warning][339096] Calling original ioctl: 8 3223340586 140721060334512
+Clock calibration: REALTIME - MONOTONIC = 1788426254534699399 ns
+  MONOTONIC: 12591.217130832
+  REALTIME:  1788438845.751830231
+Attaching uprobe: binary_path='/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4', func_name='_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli' (auto-resolved from ELF)
+
+Monitoring CUDA kernel launch latency (uprobe: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4:_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli)... Hit Ctrl-C to end.
+
+05:35:53  Launch Latency Distribution:
+latency         : count    distribution
+Total samples: 0
+Host launches: 0
+Device entries: 0
+Queue underflows: 220
+Queue overflows: 0
+Clock errors: 0
+[2026-09-03 05:35:53][warning][339096] Calling original ioctl: 9 34 140721060344256
+[2026-09-03 05:35:53][warning][339096] Calling original ioctl: 8 3222292009 140721060344416

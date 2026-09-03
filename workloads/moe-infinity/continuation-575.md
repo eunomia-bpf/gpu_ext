@@ -1,8 +1,8 @@
 # MoE-Infinity four-cell continuation on 575
 
-Current protocol: `proposal-3-revision-9-575-cuda129`, recorded before any 575
-performance result. Revision 8's first warm-up and the following diagnostic
-failure are preserved; see the compiler-load investigation below.
+Current protocol: `proposal-3-revision-10-575-lossless-stream`, recorded before
+any accepted 575 performance block. Revisions 8 and 9 retain their real
+compiler-load, connection, and streaming failures; see the investigations below.
 
 The user requested automatic completion of the actual MoE-Infinity, XSched,
 and LMCache comparisons, explicitly including gpubpf. This continuation uses
@@ -51,15 +51,13 @@ Commands from this directory:
 .venv/bin/python -m unittest -q test_offline.py test_575_head_to_head.py
 .venv/bin/python run_575_head_to_head.py admit
 .venv/bin/python run_575_head_to_head.py preflight \
-  --output raw/head-to-head-575-cuda129/preflight \
-  --expert-store raw/head-to-head-575/preflight/expert-store
+  --output raw/head-to-head-575-lossless/preflight \
+  --expert-store raw/head-to-head-575/preflight/expert-store \
+  --reuse-llama-from raw/head-to-head-575-cuda129/preflight
 .venv/bin/python run_575_head_to_head.py run \
-  --preflight raw/head-to-head-575-cuda129/preflight \
-  --output raw/head-to-head-575-cuda129/timing --max-blocks 2
-# Continue the same frozen sequence, without rerunning accepted blocks:
-.venv/bin/python run_575_head_to_head.py run \
-  --preflight raw/head-to-head-575-cuda129/preflight \
-  --output raw/head-to-head-575-cuda129/timing --max-blocks 5
+  --preflight raw/head-to-head-575-lossless/preflight \
+  --output raw/head-to-head-575-lossless/timing --max-blocks 5
+.venv/bin/python audit_575_results.py
 ```
 
 The two-block stage is a time-budgeted preliminary checkpoint, not full
@@ -141,3 +139,36 @@ correctness cell while retaining all failures. It does not skip any of the
 four configurations or admit an incomplete correctness pass. Added diagnostics
 record failed-request elapsed time and the server exit status before and after
 owned cleanup; server arguments, requests, model, and policy are unchanged.
+
+The complete retry passed all 16 UVM responses with exact paired outputs and
+normal process exit. The remaining N-CMoE32 control also passed. This does not
+establish the original disconnect's cause.
+
+## Lossless streaming repair
+
+Revision 9's first timed MoE cell failed the unchanged exact-text gate on its
+second request (prompt 5). The raw SSE contains 63 token frames: it omits the
+leading `\n\n` token while preserving every subsequent character of the
+nonstreaming golden. The preceding request delivered all 64 token frames.
+The failed attempt remains under `raw/head-to-head-575-cuda129/timing` and is
+not counted as a performance sample.
+
+The official completion adapter repeatedly used
+`wait_for(to_thread(next(stream)), timeout=0.1)`. Cancelling that wait does not
+stop the worker thread from consuming the next event. A CPU regression using
+the real StreamManager and a delayed first token reproduces concurrent calls
+to `next()` in the original adapter. The measurement wrapper now retains and
+shields one pending read across disconnect polls. On disconnect or cancellation
+it aborts the request, wakes the stream condition, joins the pending read, and
+closes the generator. Tests cover delayed first-token preservation, exclusive
+iteration, and worker/task cleanup on both disconnect and cancellation.
+
+Revision 10 keeps the exact-output oracle and requires all 64 MoE token frames
+plus DONE. It reruns the full two-pass MoE correctness workload and an additional
+eight-stream parity check in the frozen first-block prompt order. The three
+llama correctness cells are reused only after rereading all responses and
+cleanup records, verifying unchanged argv/environment, and confirming that the
+only changed runtime file is the MoE measurement wrapper. The native kernels,
+model, sampling, expert policy, BPF policy, prompt schedule, and measured work
+are unchanged. This is an explicitly disclosed server transport repair, not
+a new performance strategy or relaxed numerical-correctness criterion.

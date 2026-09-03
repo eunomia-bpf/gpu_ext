@@ -18,11 +18,11 @@ from typing import Any
 
 import run_moe_head_to_head as base
 
-PROTOCOL = "proposal-3-revision-9-575-cuda129"
+PROTOCOL = "proposal-3-revision-10-575-lossless-stream"
 DRIVER = "575.57.08"
 KERNEL = "6.15.11-061511-generic"
 MODULES = Path("/opt/gpubpf/modules") / DRIVER / KERNEL
-DEFAULT_OUTPUT = base.HERE / "raw/head-to-head-575-cuda129"
+DEFAULT_OUTPUT = base.HERE / "raw/head-to-head-575-lossless"
 
 
 def read_json(path: Path) -> Any:
@@ -72,7 +72,8 @@ def run_cell(config: str, directory: Path, port: int, prompts: dict[str, Any],
     try:
         if prompt_order is None:
             result = base.run_correctness_config(config, directory, port, prompts,
-                                                  current_deployment=True, offload_dir=store)
+                                                  current_deployment=True, offload_dir=store,
+                                                  stream_parity=config == "moe_infinity_075")
         else:
             result = base.run_measured_config(config, directory, port, prompts,
                                                prompt_order, goldens,
@@ -115,7 +116,9 @@ def validate_saved_correctness(path: Path, result: dict[str, Any]) -> None:
 
 
 def preflight(output: Path, port: int, expert_store: Path | None = None, *,
-              resume: bool = False) -> dict[str, Any]:
+              resume: bool = False, reuse_llama_from: Path | None = None) -> dict[str, Any]:
+    if resume and reuse_llama_from:
+        raise base.GateError("choose continuation or transport-repair inheritance, not both")
     admitted = require_admission(port)
     if resume:
         result = read_json(output / "preflight-result.json")
@@ -156,9 +159,39 @@ def preflight(output: Path, port: int, expert_store: Path | None = None, *,
             "expert_store": str(expert_store),
             "triton_compiler_version": admitted["triton_compiler_version"],
         }
+        if reuse_llama_from:
+            previous = read_json(reuse_llama_from / "preflight-result.json")
+            if (previous.get("protocol") != "proposal-3-revision-9-575-cuda129"
+                    or previous.get("status") != "passed"):
+                raise base.GateError("transport repair requires the complete revision-9 preflight")
+            base.require_runtime_continuity(
+                {k: v for k, v in previous["runtime_files"].items() if k != "revision_server"},
+                {k: v for k, v in runtime.items() if k != "revision_server"})
+            result["cell_directories"] = {}
+            for config in base.CONFIGS:
+                if config == "moe_infinity_075":
+                    continue
+                cell = reuse_llama_from / previous.get("cell_directories", {}).get(config, config)
+                saved = previous["results"][config]
+                validate_saved_correctness(cell, saved)
+                launch = read_json(cell / "launch.json")
+                expected, _ = base.server_command(config, port, cell, Path(previous["expert_store"]))
+                if (launch["argv"] != expected or launch["environment"] !=
+                        base.controlled_environment(config, cuda129_triton=True)):
+                    raise base.GateError(f"llama command/environment changed: {config}")
+                result["results"][config] = saved
+                result["cell_directories"][config] = os.path.relpath(cell, output)
+            result["transport_repair_inheritance"] = {
+                "source_preflight": str(reuse_llama_from.absolute()),
+                "reused_complete_cells": list(result["results"]),
+                "changed_runtime_files": ["revision_server"],
+                "moe_correctness_and_stream_parity_rerun": True,
+            }
+            result["row_chunking_numerical_gate"] = previous["row_chunking_numerical_gate"]
+            result["numerical_safety"] = previous["numerical_safety"]
     base.atomic_write_json(output / "preflight-result.json", result)
     try:
-        if not resume:
+        if not resume and not reuse_llama_from:
             before = admitted["safety"]
             result["row_chunking_numerical_gate"] = base.run_row_chunking_numerical_gate()
             result["numerical_safety"] = base.wait_for_post_server_safety(before)
@@ -197,6 +230,9 @@ def load_preflight(path: Path) -> dict[str, Any]:
         if (len(passes) != 2 or any(len(part) != 8 for part in passes)
                 or any(a["text"] != b["text"] for a, b in zip(*passes))):
             raise base.GateError(f"incomplete exact two-pass correctness: {config}")
+    parity = result["results"]["moe_infinity_075"].get("stream_parity", {})
+    if len(parity.get("requests", [])) != 8 or parity.get("verified_output_tokens") != 512:
+        raise base.GateError("MoE full stream/nonstream parity is required after the transport repair")
     return result
 
 
@@ -292,6 +328,8 @@ def main() -> int:
                         help="reuse generated disk tensor data, never live process cache state")
     parser.add_argument("--resume-preflight", action="store_true",
                         help="retain failures and revalidate saved complete cells before continuation")
+    parser.add_argument("--reuse-llama-from", type=Path,
+                        help="revalidate unchanged llama cells after the MoE-only streaming repair")
     parser.add_argument("--port", type=int, default=18080)
     parser.add_argument("--max-blocks", type=int, choices=(1, 2, 3, 4, 5), default=5,
                         help="fixed staged stopping point; fewer than five remains preliminary")
@@ -306,7 +344,8 @@ def main() -> int:
     lease = base.LeaseSet.acquire()
     try:
         result = (preflight(args.output, args.port, args.expert_store,
-                            resume=args.resume_preflight) if args.action == "preflight" else
+                            resume=args.resume_preflight, reuse_llama_from=args.reuse_llama_from)
+                  if args.action == "preflight" else
                   full_schedule(args.output, args.preflight, args.port, args.max_blocks))
         print(json.dumps(result, indent=2), flush=True)
         return 0

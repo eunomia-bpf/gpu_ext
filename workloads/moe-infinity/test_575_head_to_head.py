@@ -9,9 +9,27 @@ from unittest.mock import patch
 
 import run_575_head_to_head as current
 import run_moe_head_to_head as base
+import audit_575_results as audit
 
 
 class CurrentStackTests(unittest.TestCase):
+    def test_raw_sse_audit_rejects_saved_text_and_usage_drift(self):
+        payload = {"choices": [{"text": "test", "finish_reason": "length"}],
+                   "usage": {"prompt_tokens": 512, "completion_tokens": 64}}
+        raw = b"data: " + json.dumps(payload).encode() + b"\n\ndata: [DONE]\n\n"
+        request = {"text": "test", "usage": payload["usage"], "raw_sse_bytes": len(raw),
+                   "frames": [{}, {}], "start_ns": 0, "first_text_ns": 1,
+                   "done_ns": 2, "eof_ns": 3, "ttft_ms": 0.000001, "e2e_ms": 0.000003}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "request.sse"
+            path.write_bytes(raw)
+            audit.audit_stream(path, request, "test", "llama_uvm")
+            with self.assertRaises(base.GateError):
+                audit.audit_stream(path, request, "altered", "llama_uvm")
+            path.write_bytes(raw.replace(b'"completion_tokens": 64', b'"completion_tokens": 63'))
+            with self.assertRaises(base.GateError):
+                audit.audit_stream(path, request, "test", "llama_uvm")
+
     def test_correctness_resume_rechecks_raw_responses_and_saved_result(self):
         response = {"choices": [{"text": "test", "finish_reason": "length"}],
                     "usage": {"prompt_tokens": 512, "completion_tokens": 64}}

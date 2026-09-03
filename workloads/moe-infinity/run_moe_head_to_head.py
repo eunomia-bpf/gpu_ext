@@ -1717,7 +1717,8 @@ def require_no_new_xids(before: list[str]) -> dict[str, int]:
 def run_correctness_config(config: str, run_dir: Path, port: int,
                            prompts: dict[str, Any], *,
                            current_deployment: bool = False,
-                           offload_dir: Path | None = None) -> dict[str, Any]:
+                           offload_dir: Path | None = None,
+                           stream_parity: bool = False) -> dict[str, Any]:
     run_dir.mkdir(parents=True, exist_ok=False)
     policy = None
     policy_log = None
@@ -1883,6 +1884,24 @@ def run_correctness_config(config: str, run_dir: Path, port: int,
             "warmup": warmup, "goldens": [item["text"] for item in passes[0]],
             "passes": passes, "engagement": engagement,
         }
+        if stream_parity:
+            if config != "moe_infinity_075":
+                raise GateError("the transport repair only changes MoE streaming")
+            order = json.loads(SCHEDULE.read_text())["attempts"][0]["prompt_order"]
+            before = engagement_snapshot(config, port, run_dir, server.pid,
+                                         current_deployment=True)
+            streamed = [streamed_completion(
+                config, port, prompts["records"][prompt]["prompt_token_ids"],
+                result["goldens"][prompt - 1],
+                run_dir / f"parity-{sequence:02d}-prompt-{prompt}.sse",
+            ) for sequence, prompt in enumerate(order, 1)]
+            after = engagement_snapshot(config, port, run_dir, server.pid,
+                                        current_deployment=True)
+            result["stream_parity"] = {
+                "prompt_order": order, "requests": streamed, "verified_output_tokens": 512,
+                "engagement_delta": validate_measured_engagement(
+                    config, before, after, current_deployment=True),
+            }
         atomic_write_json(run_dir / "result.json", result)
         return result
     finally:
@@ -2290,6 +2309,8 @@ def streamed_completion(config: str, port: int, token_ids: list[int],
         )
     if text != golden_text:
         raise GateError("streamed visible output differs from correctness-smoke golden")
+    if config == "moe_infinity_075" and len(frames) != 65:
+        raise GateError(f"MoE stream must deliver all 64 token frames plus DONE, observed {len(frames)}")
     if config != "moe_infinity_075":
         if not isinstance(usage, dict) or int(usage.get("completion_tokens", -1)) != 64:
             raise GateError(f"llama stream token accounting mismatch: {usage}")

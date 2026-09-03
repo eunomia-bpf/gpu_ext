@@ -28,11 +28,13 @@ diff --git a/moe_infinity/entrypoints/openai/revision_server.py b/moe_infinity/e
 new file mode 100644
 --- /dev/null
 +++ b/moe_infinity/entrypoints/openai/revision_server.py
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,140 @@
 +"""Measurement-only entrypoint for the approved RTX 5090 revision run."""
 +
 +from __future__ import annotations
 +
++import asyncio
++import json
 +import os
 +from typing import Any
 +
@@ -43,6 +45,56 @@ new file mode 100644
 +
 +
 +torch.set_num_threads(8)
++
++
++async def lossless_completion_events(*, request_id, created, model_name, stream, raw_request):
++    """Do not cancel a token-consuming worker when merely polling disconnects."""
++    runtime, manager = server._ensure_runtime_ready()
++    state = manager._require_stream(request_id)
++    pending = None
++    finished = False
++    try:
++        while True:
++            if await raw_request.is_disconnected():
++                return
++            if pending is None:
++                pending = asyncio.create_task(asyncio.to_thread(server._next_stream_event, stream))
++            try:
++                event = await asyncio.wait_for(asyncio.shield(pending), timeout=0.1)
++            except asyncio.TimeoutError:
++                continue
++            pending = None
++            if event is None:
++                finished = True
++                return
++            if event == "data: [DONE]\n\n":
++                finished = True
++                yield event
++                return
++            if not event.startswith("data: "):
++                continue
++            payload = json.loads(event[len("data: "):])
++            choices = payload.get("choices", [])
++            choice = choices[0] if choices else {}
++            delta = choice.get("delta", {})
++            yield server._make_completion_stream_chunk(
++                request_id=request_id, created=created, model_name=model_name,
++                token_text=delta.get("content", "") if isinstance(delta, dict) else "",
++                finish_reason=choice.get("finish_reason"),
++            )
++    finally:
++        if not finished:
++            runtime.abort_request(request_id)
++        # abort_request alone does not wake StreamManager's condition waiter.
++        with state.condition:
++            state.finished = True
++            state.condition.notify_all()
++        if pending is not None:
++            await asyncio.shield(pending)
++        stream.close()
++
++
++server._completion_event_generator = lossless_completion_events
 +
 +
 +def _unavailable(message: str) -> JSONResponse:

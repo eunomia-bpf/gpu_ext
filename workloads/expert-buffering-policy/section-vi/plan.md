@@ -5,6 +5,11 @@ with 2,131 native and 2,131 actual host-uBPF JIT decisions. No GPU adapter or Se
 campaign has run. The older 20-cell page-profile experiment is an analogue,
 not evidence that this algorithm has been reproduced.
 
+The subsequent [adapter state interface](adapter-step-a.md) now passes 1,432
+CPU checks, including 650 additional native/actual-JIT paired decisions. It
+provides epoch/cohort/residency and status validation for the future C++ worker;
+real node locks, CUDA copy completion and live eviction are not yet connected.
+
 Scope: add only this independent policy, real host-uBPF path and CPU oracle;
 do not change the old page-profile policy or the frozen FineMoE runtime.
 The smallest acceptable change implements victim decisions and their tests;

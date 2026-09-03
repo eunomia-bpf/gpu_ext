@@ -1,0 +1,5 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'
+taskset -c 17 /usr/bin/g++-13 -std=c++17 -O2 -Wall -Wextra -Werror -Wl,--build-id=none adapter_state.cpp test_adapter_state.cpp -ldl -o build/test_adapter_state
+taskset -c 17 ./build/test_adapter_state ./build/libeb_policy.so ./build/eb_policy.bin
+adapter_state_checks=1432 paired_native_decisions=650 actual_bpf_jit_decisions=650
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'

@@ -9,7 +9,7 @@ BPF_CLANG ?= clang
 OBJCOPY ?= llvm-objcopy
 CPUSET ?= 17
 
-.PHONY: policy test
+.PHONY: policy test test-adapter
 policy: build/libeb_policy.so build/eb_policy.bin
 
 build:
@@ -29,3 +29,9 @@ build/eb_policy.bin: build/policy.bpf.o
 
 test: policy
 	taskset -c $(CPUSET) /usr/bin/python3 -B test_policy.py
+
+build/test_adapter_state: adapter_state.cpp adapter_state.h test_adapter_state.cpp policy.h | build
+	taskset -c $(CPUSET) $(CXX) -std=c++17 -O2 -Wall -Wextra -Werror -Wl,--build-id=none adapter_state.cpp test_adapter_state.cpp -ldl -o $@
+
+test-adapter: policy build/test_adapter_state
+	taskset -c $(CPUSET) ./build/test_adapter_state ./build/libeb_policy.so ./build/eb_policy.bin

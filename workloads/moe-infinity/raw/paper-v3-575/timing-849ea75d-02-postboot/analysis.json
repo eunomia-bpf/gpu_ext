@@ -1,0 +1,55 @@
+{
+  "complete": true,
+  "invalid_block_numbers": [],
+  "modes": {
+    "native-off": {
+      "e2e_median_ms": 5348.876435,
+      "final_drain_s": 0.015671647,
+      "first_text_ttft_median_ms": 1975.941635,
+      "output_throughput_tokens_per_s": 11.896381319588324
+    },
+    "paper-bpf": {
+      "e2e_median_ms": 5713.3452645,
+      "final_drain_s": 0.01597058,
+      "first_text_ttft_median_ms": 1535.957289,
+      "output_throughput_tokens_per_s": 11.190011932356887
+    },
+    "paper-native": {
+      "e2e_median_ms": 5695.3570015000005,
+      "final_drain_s": 0.016006516,
+      "first_text_ttft_median_ms": 1513.4446535,
+      "output_throughput_tokens_per_s": 11.223298711823125
+    }
+  },
+  "paired": {
+    "paper-bpf/native-off": {
+      "geometric_throughput_ratio": 0.9307864530465668,
+      "interpretation": "ratio > 1 favors numerator",
+      "paired_block_bootstrap_ci95": [
+        0.9253802228827521,
+        0.9369417793905298
+      ]
+    },
+    "paper-bpf/paper-native": {
+      "geometric_throughput_ratio": 0.9965400686879274,
+      "interpretation": "ratio > 1 favors numerator",
+      "paired_block_bootstrap_ci95": [
+        0.9892391599036797,
+        1.005508347063953
+      ]
+    },
+    "paper-native/native-off": {
+      "geometric_throughput_ratio": 0.9340180914873462,
+      "interpretation": "ratio > 1 favors numerator",
+      "paired_block_bootstrap_ci95": [
+        0.9218583768496841,
+        0.944075127217266
+      ]
+    }
+  },
+  "primary": "512 tokens / full eight-request wall window including final prefetch drain",
+  "protocol": "paper-v3-same-frontend-paired-1",
+  "required_blocks": 5,
+  "ttft_definition": "first nonempty text, not first model token",
+  "valid_blocks": 5
+}

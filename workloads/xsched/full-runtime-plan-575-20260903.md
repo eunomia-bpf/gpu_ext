@@ -1,7 +1,9 @@
 # Full XSched four-arm execution, after persistent-timeslice repair
 
-This is the ready execution protocol, **not a full-performance result**. The
-completed five-block/five-kernel pilots remain separate. Driver `849ea75d`
+This is the frozen protocol for the **completed full campaign**. All ten
+four-arm blocks and six isolated controls passed the independent raw audit;
+see [full results](performance-full-575-20260903.md). The completed
+five-block/five-kernel pilots remain separate. Driver `849ea75d`
 has passed original and BPF two-context real-GSP canaries: final LC/BE values
 are preserved through CUDA's default control; unmarked native contexts remain
 unchanged. That canary does not measure XSched contention performance.
@@ -42,8 +44,10 @@ at least 5 ms. Failed/partial cells are retained and invalidate their campaign.
 
 ## Commands after the coordinator grants the GPU slot
 
-No rebuild is required. Replace `FROZEN_REPS` below with the newly generated
-`calibration.json` value, not the old pilot's repetitions.
+These are the retained execution instructions. The completed run used
+`FROZEN_REPS=9511106` from its new calibration and ran uninterrupted, without
+`--stop-after-blocks`. Future repeats must use new output paths and their own
+fresh calibration, not overwrite the retained records.
 
 ```sh
 python3 -B workloads/xsched/run_xsched_rq3.py calibrate --configs native,xsched,bpftime_hpf,gpubpf --output workloads/xsched/raw/calibration-persistent-575-20260903 --timeout 120
@@ -103,10 +107,14 @@ zero setter/preemption errors. The independent raw audit also passed all four
 cells, including worker commands, sample clock conversion, numerical counts,
 engagement and pre/post safety.
 
-This remains a **two-kernel-per-stream preflight**, not a completed full
-comparison. Its 16 LC samples make p99 the sample maximum; the four-arm ten-block
-campaign and all six full isolated controls are still required and have not
-been replaced by these short cells. In particular, the short driver-BPF cell
+These records remain a **two-kernel-per-stream preflight**, not the full
+comparison. Their 16 LC samples make p99 the sample maximum; the subsequently
+completed four-arm ten-block campaign and all six full isolated controls were
+not replaced by these short cells. In particular, the short driver-BPF cell
 reduced LC delay but also reduced BE throughput, so no full-performance win is
 inferred. The GPU was then released for the separately recorded GPreempt
-five-block campaign; XSched full has not yet started.
+five-block campaign and the full MoE campaign. XSched full then completed all
+forty mixed cells and six isolated controls with no restart or omitted block.
+Its [independent raw audit](raw/full-persistent-575-20260903/independent-raw-audit.json)
+and [full result](performance-full-575-20260903.md) supersede the former pending
+status; historical checkpoint files still describe only their earlier stage.

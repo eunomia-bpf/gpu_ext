@@ -1,0 +1,325 @@
+{
+  "protocol": {
+    "phase": "full",
+    "repetitions": 10,
+    "seed": 1797,
+    "tasks_per_stream": 50,
+    "streams_per_process": 4,
+    "lc_processes": 2,
+    "be_processes": 4,
+    "configs": [
+      "native",
+      "xsched",
+      "bpftime_hpf",
+      "gpubpf"
+    ],
+    "reps": 9511106,
+    "blocks": 340,
+    "threads": 256,
+    "timeout_seconds_per_cell": 900.0,
+    "full_50_kernel_10_block_protocol": true,
+    "short_budget_difference": null,
+    "kernel_target_ms": 80,
+    "xsched_level": 1,
+    "gpubpf_timeslice_actuation": "task_init plus validated persistent control callback; old init-only results remain separate",
+    "schedule": [
+      [
+        "gpubpf",
+        "native",
+        "xsched",
+        "bpftime_hpf"
+      ],
+      [
+        "bpftime_hpf",
+        "gpubpf",
+        "native",
+        "xsched"
+      ],
+      [
+        "gpubpf",
+        "bpftime_hpf",
+        "native",
+        "xsched"
+      ],
+      [
+        "native",
+        "xsched",
+        "gpubpf",
+        "bpftime_hpf"
+      ],
+      [
+        "xsched",
+        "bpftime_hpf",
+        "native",
+        "gpubpf"
+      ],
+      [
+        "native",
+        "gpubpf",
+        "xsched",
+        "bpftime_hpf"
+      ],
+      [
+        "xsched",
+        "gpubpf",
+        "native",
+        "bpftime_hpf"
+      ],
+      [
+        "native",
+        "bpftime_hpf",
+        "xsched",
+        "gpubpf"
+      ],
+      [
+        "gpubpf",
+        "bpftime_hpf",
+        "xsched",
+        "native"
+      ],
+      [
+        "bpftime_hpf",
+        "xsched",
+        "gpubpf",
+        "native"
+      ]
+    ],
+    "worker_cpus": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "isolated_cpu": 0,
+    "worker_environments": {
+      "native": {
+        "lc": {
+          "CUDA_HOME": "/usr/local/cuda-12.9"
+        },
+        "be": {
+          "CUDA_HOME": "/usr/local/cuda-12.9"
+        }
+      },
+      "xsched": {
+        "lc": {
+          "CUDA_HOME": "/usr/local/cuda-12.9",
+          "XSCHED_SCHEDULER": "GLB",
+          "XSCHED_AUTO_XQUEUE": "ON",
+          "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+          "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+          "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+          "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+          "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+        },
+        "be": {
+          "CUDA_HOME": "/usr/local/cuda-12.9",
+          "XSCHED_SCHEDULER": "GLB",
+          "XSCHED_AUTO_XQUEUE": "ON",
+          "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+          "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+          "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+          "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+          "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+        }
+      },
+      "gpubpf": {
+        "lc": {
+          "CUDA_HOME": "/usr/local/cuda-12.9"
+        },
+        "be": {
+          "CUDA_HOME": "/usr/local/cuda-12.9"
+        }
+      },
+      "bpftime_hpf": {
+        "lc": {
+          "CUDA_HOME": "/usr/local/cuda-12.9",
+          "XSCHED_SCHEDULER": "GLB",
+          "XSCHED_AUTO_XQUEUE": "ON",
+          "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+          "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+          "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+          "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+          "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+        },
+        "be": {
+          "CUDA_HOME": "/usr/local/cuda-12.9",
+          "XSCHED_SCHEDULER": "GLB",
+          "XSCHED_AUTO_XQUEUE": "ON",
+          "XSCHED_AUTO_XQUEUE_LEVEL": "1",
+          "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+          "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+          "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+          "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/lib:"
+        }
+      }
+    },
+    "candidate_policy_differences": {
+      "gpubpf_nocooldown": "old timeslices, every LC cuLaunchKernel preempts all four BE GR targets; cooldown=0",
+      "gpubpf_interleave": "old timeslices and 100 us preemption cooldown; LC interleave=2, BE interleave=0, verified at bind",
+      "bpftime_hpf": "same upstream XSched frontend/Level-1 actuator; HPF decisions run in bpftime ubpf-jit, not driver-only BPF"
+    }
+  },
+  "complete_blocks": 10,
+  "configs": {
+    "native": {
+      "lc_p99_median_us": 76878036.205,
+      "lc_p99_mean_ci95": [
+        76738549.2709,
+        77042101.9334
+      ],
+      "be_throughput_median": 10.237739295149744,
+      "be_throughput_mean_ci95": [
+        10.208956251415167,
+        10.247998023159896
+      ],
+      "lc_samples_per_cell": 400,
+      "be_kernels_per_cell": 800,
+      "lc_p99_is_sample_maximum": false,
+      "lc_mean_us_median": 37920651.72305626,
+      "lc_p50_us_median": 37781645.341,
+      "lc_p95_us_median": 73211383.458
+    },
+    "xsched": {
+      "lc_p99_median_us": 26978371.7205,
+      "lc_p99_mean_ci95": [
+        26654013.1102,
+        27194502.552100003
+      ],
+      "be_throughput_median": 10.149674090559861,
+      "be_throughput_mean_ci95": [
+        10.144904636755463,
+        10.159350550043715
+      ],
+      "lc_samples_per_cell": 400,
+      "be_kernels_per_cell": 800,
+      "lc_p99_is_sample_maximum": false,
+      "lc_mean_us_median": 13943368.2278,
+      "lc_p50_us_median": 13889519.2535,
+      "lc_p95_us_median": 25741145.3475
+    },
+    "bpftime_hpf": {
+      "lc_p99_median_us": 27250205.207999997,
+      "lc_p99_mean_ci95": [
+        26909276.5898,
+        27509260.9983
+      ],
+      "be_throughput_median": 10.161645954717926,
+      "be_throughput_mean_ci95": [
+        10.154139567828063,
+        10.167312629886094
+      ],
+      "lc_samples_per_cell": 400,
+      "be_kernels_per_cell": 800,
+      "lc_p99_is_sample_maximum": false,
+      "lc_mean_us_median": 14210941.74302,
+      "lc_p50_us_median": 14248506.067,
+      "lc_p95_us_median": 25986382.266
+    },
+    "gpubpf": {
+      "lc_p99_median_us": 22169128.023500003,
+      "lc_p99_mean_ci95": [
+        22153087.5636,
+        22171517.3639
+      ],
+      "be_throughput_median": 6.137262318864153,
+      "be_throughput_mean_ci95": [
+        6.131257073528264,
+        6.143467576584275
+      ],
+      "lc_samples_per_cell": 400,
+      "be_kernels_per_cell": 800,
+      "lc_p99_is_sample_maximum": false,
+      "lc_mean_us_median": 11051707.28460125,
+      "lc_p50_us_median": 11000232.2795,
+      "lc_p95_us_median": 21142421.6175
+    }
+  },
+  "paired": {
+    "gpubpf_vs_native": {
+      "lc_p99_delta_us_mean_ci95": [
+        -54876912.7669,
+        -54579573.27459999
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.40113015897054194,
+        -0.39883332599951665
+      ]
+    },
+    "gpubpf_vs_xsched": {
+      "lc_p99_delta_us_mean_ci95": [
+        -5039399.2153,
+        -4494553.309300002
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.39623050565364215,
+        -0.3946566728016325
+      ]
+    },
+    "bpftime_hpf_vs_native": {
+      "lc_p99_delta_us_mean_ci95": [
+        -49964991.4724,
+        -49379769.8002
+      ],
+      "be_throughput_relative_mean_ci95": [
+        -0.008205353381374236,
+        -0.004957966030831029
+      ]
+    },
+    "bpftime_hpf_vs_xsched": {
+      "lc_p99_delta_us_mean_ci95": [
+        -109086.54670000002,
+        642367.0813999992
+      ],
+      "be_throughput_relative_mean_ci95": [
+        0.0002981793964490054,
+        0.001476066206399207
+      ]
+    },
+    "bpftime_hpf_vs_gpubpf": {
+      "lc_p99_delta_us_mean_ci95": [
+        4754327.537400001,
+        5343612.9156
+      ],
+      "be_throughput_relative_mean_ci95": [
+        0.6538857536750047,
+        0.6570818813200213
+      ]
+    }
+  },
+  "xsched_scope": "upstream Level-1 HPF on sm_120; not XSched paper Level-3 reproduction",
+  "isolated_controls": {
+    "lc": {
+      "repetitions": 3,
+      "samples_per_cell": 200,
+      "completion_p99_median_us": 11187937.322,
+      "throughput_median_kernels_s": 17.754306024965782
+    },
+    "be": {
+      "repetitions": 3,
+      "samples_per_cell": 200,
+      "completion_p99_median_us": 11191749.989,
+      "throughput_median_kernels_s": 17.746078557074373
+    }
+  },
+  "be_noninferiority_margin": -0.05,
+  "predeclared_decision": {
+    "classification": "mixed",
+    "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
+    "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
+    "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
+    "inconclusive_rule": "all remaining combinations"
+  },
+  "candidate_decisions": {
+    "bpftime_hpf": {
+      "classification": "inconclusive",
+      "positive_rule": "LC paired-difference CI upper < 0 and BE relative-throughput CI lower >= -0.05",
+      "mixed_rule": "LC CI upper < 0 and BE relative-throughput CI upper < -0.05",
+      "negative_rule": "LC CI lower >= 0, or BE CI upper < -0.05 without established LC improvement",
+      "inconclusive_rule": "all remaining combinations"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # XSched revision baseline
 
-This directory stages the R1 scheduling baseline named in the ASPLOS'27
+This directory contains the R1 scheduling baseline named in the ASPLOS'27
 revision plan. The evaluated configuration must be described as **XSched
 Level-1 on sm_120**: current upstream falls back to `CudaQueueLv1` for unknown
 CUDA architectures, while its Level-2 guardian and Level-3 trap handlers do
@@ -11,23 +11,26 @@ record rather than vendored into gpu_ext.
 
 ## Current status
 
-- **The full workload remains pending:** the user requested completion of
-  all three systems. The [continuation plan](plan.md#full-workload-continuation)
-  restores 50 kernels/stream, ten randomized blocks, and six isolated controls,
-  with native/original XSched/driver BPF/same-frontend BPF HPF shown separately.
-  It follows MoE's exclusive GPU campaign and a canary for the built-only GSP
-  propagation fix; the completed pilots below are not relabeled as this run.
-- [BPF HPF on the same XSched frontend now has repeated performance data](bpftime-hpf-performance-575-20260902.md):
+- **The full workload is complete:** ten randomized four-arm blocks,
+  50 kernels/stream, and six isolated controls; all forty mixed cells and all
+  six controls passed an independent raw audit. [Full results](performance-full-575-20260903.md)
+  separate successful same-policy HPF execution from performance advantage:
+  LC entry-p99 medians are 26.978 s for original XSched and 27.250 s for BPF
+  HPF, with a paired-difference interval crossing zero. Their BE rates are
+  10.150 and 10.162 kernels/s. The separate driver BPF policy reduces LC delay
+  but sacrifices about 39.5% BE throughput relative to XSched. These are
+  Level-1/sm_120 results, not Level-3 reproduction or a universal BPF win.
+- **Historical pilot:** [BPF HPF on the same XSched frontend](bpftime-hpf-performance-575-20260902.md):
   all 15 paired cells passed; median LC P99/max was 3695.408 ms versus
   original XSched's 3936.093 ms, with a paired interval crossing zero.
   The actual BPF/JIT policy matches upstream HPF in 158,769 tested decisions
   and uses its unchanged Level-1 actuator. This demonstrates bounded policy
   expressibility, not a driver-only BPF win or Level-3 reproduction.
-- [Two driver-policy improvements were also measured](driver-candidates-575-20260902.md):
+- **Historical pilot:** [two driver-policy improvements](driver-candidates-575-20260902.md):
   disabling the preemption cooldown and requesting differentiated interleave.
   All 25 five-configuration cells completed; neither reached XSched's LC
   latency. Original and candidate outcomes are preserved separately.
-- **A real repeated three-way performance campaign is complete:** five
+- **Historical three-way pilot:** five
   randomized blocks, native/original XSched/our gpubpf, all 15 cells valid.
   [Measured results](performance-575-20260902.md) show lower LC tail latency
   for XSched and modestly higher BE throughput for gpubpf versus XSched.
@@ -48,7 +51,7 @@ record rather than vendored into gpu_ext.
   UVM, struct-ops, and kernel/Xid observations before and after its owned
   processes. It never stops an unrelated process.
 
-## Three-way measured comparison
+## Historical three-way pilot
 
 `pilot` is a frozen short-budget **performance** campaign: five complete
 seeded randomized blocks of native CUDA, original upstream XSched Level-1

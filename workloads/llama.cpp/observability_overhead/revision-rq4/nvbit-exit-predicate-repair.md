@@ -1,7 +1,10 @@
 # NVBit exit predicate repair — 2026-09-03
 
-Status: source corrected and sm_120 adapter rebuilt. No post-repair GPU result
-yet. This is a bug in our custom adapter, not evidence of an NVBit core defect.
+Status: source corrected and sm_120 adapter rebuilt. The subsequent
+[three-cell GPU diagnostic](targeted-diagnostic-results.md) observes equal
+720,896-event / 22,528-nonzero-slot histograms, while BPF's separate remaining
+stdout pollution still fails the overall check. This is a bug in our custom
+adapter, not evidence of an NVBit core defect.
 
 The adapter inserted `observe_exit` before each SASS `EXIT`, without passing
 the instruction's guard predicate. That does not distinguish a taken exit

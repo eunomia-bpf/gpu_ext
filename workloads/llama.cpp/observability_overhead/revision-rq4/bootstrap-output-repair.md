@@ -1,8 +1,10 @@
 # Table 1 bootstrap-output repair and diagnostic review — 2026-09-03
 
-Status: actual private runtime rebuilt; CPU output checks pass. **No new GPU
-preflight or performance cells have run after this repair.** The failed seven-arm
-[preflight 03](preflight-575-results.md) remains unchanged.
+Status: actual private runtime rebuilt; CPU output checks pass. The new
+[three-cell untimed diagnostic](targeted-diagnostic-results.md) retains one
+PTX-pass stdout failure despite matching histogram counts. No performance
+cells ran. The failed seven-arm [preflight 03](preflight-575-results.md) remains
+unchanged.
 
 ## Implemented small step
 
@@ -24,7 +26,7 @@ registration. Console/file/unset logger modes each preserve exact
 checks logger routing, not CUDA attachment or whole-application correctness.
 The original test output is [bootstrap-cpu.log](../../../../docs/experiment/revision-safety/table1-runtime-build-575-03/bootstrap-cpu.log).
 
-## Targeted untimed entry point — prepared, not yet run
+## Targeted untimed entry point
 
 [`run_targeted_diagnostic.py`](run_targeted_diagnostic.py) reuses the existing
 `run_correctness_cell`, private loader/segment, owned cleanup, safety telemetry
@@ -67,12 +69,13 @@ diagnostic checks passed; exit 2 preserves a failed check/count disagreement.
 The original full seven-arm correctness and performance gates are unchanged.
 
 Root-only launch examples from the repository root, after exclusive GPU
-admission; these commands have **not** been run as part of this preparation:
+admission. The first has now run as recorded above; launchlate has not.
+Keep the coordinator's normal affinity for the CPU-16 telemetry worker:
 
 ```sh
 sudo -n env PATH=/usr/local/cuda-12.9/bin:/usr/sbin:/usr/bin:/sbin:/bin \
   CUDA_HOME=/usr/local/cuda-12.9 \
-  taskset -c 17 python3 -B \
+  python3 -B \
   workloads/llama.cpp/observability_overhead/revision-rq4/run_targeted_diagnostic.py \
   --task threadhist \
   --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575 \
@@ -81,7 +84,7 @@ sudo -n env PATH=/usr/local/cuda-12.9/bin:/usr/sbin:/usr/bin:/sbin:/bin \
 
 sudo -n env PATH=/usr/local/cuda-12.9/bin:/usr/sbin:/usr/bin:/sbin:/bin \
   CUDA_HOME=/usr/local/cuda-12.9 \
-  taskset -c 17 python3 -B \
+  python3 -B \
   workloads/llama.cpp/observability_overhead/revision-rq4/run_targeted_diagnostic.py \
   --task launchlate \
   --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575 \

@@ -34,6 +34,7 @@ static unsigned int link_id(struct bpf_link *link)
 static int final_metrics(struct fixture_bpf *skel, unsigned int action)
 {
     int cpus = libbpf_num_possible_cpus(), ok = 1, first = 1;
+    unsigned int program_count = 0;
     unsigned int key = 0;
     unsigned long long frame_key;
     struct prefetch_metrics total = {}, *per_cpu;
@@ -53,12 +54,16 @@ static int final_metrics(struct fixture_bpf *skel, unsigned int action)
     errno = 0;
     int empty_frames = bpf_map_get_next_key(bpf_map__fd(skel->maps.frames), NULL,
                                            &frame_key) < 0 && errno == ENOENT;
-    ok = empty_frames && total.mask_enter > 0 && total.wrapper_enter > 0 &&
-         total.mask_enter == total.mask_exit &&
+    ok = empty_frames && total.wrapper_enter > 0 &&
          total.wrapper_enter == total.wrapper_exit &&
          total.wrapper_exit == total.decisions_complete &&
+         total.selected_events == total.wrapper_exit &&
+         total.finished_events == total.wrapper_exit &&
+         total.diagnostic_calls == total.selected_events + total.finished_events &&
          total.wrapper_exit == total.returned_default + total.returned_bypass + total.returned_invalid99 &&
-         total.mask_exit == total.empty_masks + total.nonempty_masks;
+         total.wrapper_exit == total.region_noop_default + total.region_apply &&
+         total.wrapper_exit == total.native_effects + total.bypass_effects &&
+         total.wrapper_exit == total.empty_outputs + total.nonempty_outputs;
     ok &= (action == 0 ? total.returned_default : action == 1 ?
            total.returned_bypass : total.returned_invalid99) == total.wrapper_exit;
     if (action == 0)
@@ -67,16 +72,25 @@ static int final_metrics(struct fixture_bpf *skel, unsigned int action)
         ok &= total.policy_calls == total.wrapper_exit &&
               total.setter_ok == total.policy_calls;
     if (action == 1)
-        ok &= total.bypass_decisions == total.wrapper_exit &&
-              total.native_decisions == 0 && total.range_calls == 0 &&
-              total.nonempty_masks == 0;
+        ok &= total.region_apply == total.wrapper_exit &&
+              total.region_noop_default == 0 &&
+              total.bypass_effects == total.wrapper_exit &&
+              total.native_effects == 0 && total.native_completions == 0 &&
+              total.native_iterations == 0 && total.empty_outputs == total.wrapper_exit;
+    else if (action == 0)
+        ok &= total.region_noop_default == total.wrapper_exit &&
+              total.region_apply == 0 && total.native_effects == total.wrapper_exit &&
+              total.bypass_effects == 0 && total.native_completions == total.wrapper_exit &&
+              total.native_iterations >= total.wrapper_exit;
     else
-        ok &= total.native_decisions == total.wrapper_exit &&
-              total.bypass_decisions == 0 && total.range_calls >= total.wrapper_exit;
+        ok &= total.region_apply == total.wrapper_exit &&
+              total.region_noop_default == 0 && total.native_effects == total.wrapper_exit &&
+              total.bypass_effects == 0 && total.native_completions == total.wrapper_exit &&
+              total.native_iterations >= total.wrapper_exit;
     ok &= !(total.map_errors || total.nesting_errors || total.missing_frame ||
-            total.identity_errors || total.order_errors || total.read_errors ||
+            total.order_errors || total.read_errors ||
             total.request_errors || total.action_errors || total.traversal_errors ||
-            total.iterator_calls || total.mask_bounds_errors);
+            total.state_errors || total.phase_errors || total.output_errors);
     printf("{\"event\":\"final_metrics\",\"action\":%u,\"empty_frames\":%s,",
            action, empty_frames ? "true" : "false");
 #define PRINT(name) printf("\"" #name "\":%llu,", total.name);
@@ -86,32 +100,39 @@ static int final_metrics(struct fixture_bpf *skel, unsigned int action)
     bpf_object__for_each_program(program, skel->obj) {
         struct bpf_prog_info info = {};
         unsigned int size = sizeof(info);
+        unsigned long long expected_runs;
+        const char *name = bpf_program__name(program);
+
         if (bpf_obj_get_info_by_fd(bpf_program__fd(program), &info, &size)) {
             ok = 0;
             continue;
         }
         if (info.recursion_misses)
             ok = 0;
+        if (!strcmp(name, "wrapper_enter"))
+            expected_runs = total.wrapper_enter;
+        else if (!strcmp(name, "wrapper_exit"))
+            expected_runs = total.wrapper_exit;
+        else if (!strcmp(name, "diagnostic_enter"))
+            expected_runs = total.diagnostic_calls;
+        else if (!strcmp(name, "gpu_page_prefetch"))
+            expected_runs = total.policy_calls;
+        else {
+            expected_runs = 0;
+            ok = 0;
+        }
+        if (info.run_cnt != expected_runs)
+            ok = 0;
         printf("%s{\"name\":\"%s\",\"id\":%u,\"run_count\":%llu,"
                "\"recursion_misses\":%llu}", first ? "" : ",",
-               bpf_program__name(program), info.id,
+               name, info.id,
                (unsigned long long)info.run_cnt,
                (unsigned long long)info.recursion_misses);
         first = 0;
+        program_count++;
     }
-    printf("],\"mask_samples\":[");
-    first = 1;
-    for (int cpu = 0; cpu < cpus; cpu++) {
-        struct prefetch_metrics *m = &per_cpu[cpu];
-        if (!m->mask_exit)
-            continue;
-        printf("%s{\"cpu\":%d,\"first\":%llu,\"outer\":%llu,\"bitmap\":[",
-               first ? "" : ",", cpu, m->sample_first, m->sample_outer);
-        for (int i = 0; i < 8; i++)
-            printf("%s%llu", i ? "," : "", m->sample_bitmap[i]);
-        printf("]}");
-        first = 0;
-    }
+    if (program_count != 4)
+        ok = 0;
     printf("],\"valid\":%s}\n", ok ? "true" : "false");
     free(per_cpu);
     return !ok;

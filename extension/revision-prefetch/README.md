@@ -1,147 +1,106 @@
-# Q2: invalid initial-prefetch action, 575 preparation
+# Q2 live invalid-prefetch fallback fixture
 
-Status: **actual 575 loader admission failed; all three functional controls
-remain unexecuted.** [Attempt01](../../docs/experiment/revision-safety/prefetch-invalid-575-01/results.md)
-stopped before releasing the initialized target because `range_enter`'s
-structure-returning target is unsupported by fentry (`-EINVAL`, zero processed
-instructions). Cleanup completed without recorded failure; this supplies no
-invalid99 callback, native-fallback, mask, or numerical-correctness evidence.
+Status: **driver and observer CPU gates pass; live module admission and all
+three functional controls remain open.** The closed
+[`attempt01`](../../docs/experiment/revision-safety/prefetch-invalid-575-01/results.md)
+has zero completed controls because its structure-return fentry target was
+rejected before the target was released. Never resume or overwrite it.
 
-The three synthetic record-gate tests and first independent single-CPU build passed on
-2026-09-03; see the
-[execution record](../../docs/experiment/revision-safety/prefetch-invalid-cpu-575-01-EXpHQx/execution.md).
-Two additional cleanup regressions subsequently passed (five synthetic tests
-total); [attempt02](../../docs/experiment/revision-safety/prefetch-invalid-cpu-575-02-h6EPh2/execution.md)
-retains both successful runs. This supports the existing Q2/RQ2 containment
-claim, not a new performance claim.
-The hypothesis is that an actual callback return of 99, with a legal empty
-region request, executes native tree traversal after validation and leaves
-the managed-memory target numerically correct.
+The hypothesis is that a valid callback returning unsupported action `99`, with
+a legal empty `(0,0)` request, is routed by the production initial-prefetch
+validator to native traversal and leaves a real managed-memory target
+numerically correct. This fixture is functional instrumentation, never a timing
+benchmark.
 
-## Existing observation seam and evidence boundary
+## Address-free observation chain
 
-The 575 source is `../gpu_ext-kernel-575/` relative to the repository root.
-Relevant production locations are
-`kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c:346`,
-`kernel-open/nvidia-uvm/uvm_perf_prefetch.c:103,368`, and
-`kernel-open/common/inc/nv-gpu-transition-validator.h:271,296,336`.
-Action 99 is rejected; `(0,0)` is legal, deliberately isolating action rejection.
+Kernel revision `0c109956` adds one read-only diagnostic hook around the
+existing decision path. Its 88-byte context contains only copied action,
+request, bounds, validation/effect, output-region, phase, and native-traversal
+scalars. It contains no pointer or address-derived token and does not change
+policy dispatch, validation, branching, actuation, or return values. The
+reviewed source/build record is
+[`prefetch-driver-build-575-01`](../../docs/experiment/revision-safety/prefetch-driver-build-575-01/execution.md).
 
-Existing 575 build inspection found `compute_prefetch_region` inlined, but
-`compute_prefetch_mask` and `uvm_perf_prefetch_bitmap_tree_iter_get_range` retain
-BTF, function-entry instrumentation, and actual calls from the native branch.
-Attempt01 demonstrated that these properties do **not** establish live
-attachment admission: the `get_range` STRUCT return was rejected during object
-load, before the attachment loop. The retained fixture uses named fentry/fexit
-attachments only, no instruction offsets, notrace bypass, or driver patch.
-It correctly stopped before target release; do not retry unchanged inputs or
-replace this failed observation with a callback counter.
+The BPF fixture uses exactly three tracing programs and one optional struct_ops
+program:
 
-The observer correlates one active `compute_prefetch_mask` frame per task,
-checks the same bitmap-tree identity at every wrapper/range event, and counts
-range calls only **after the actual wrapper return** and before the next
-wrapper entry or mask return. Under this fixture's actions, post-return range
-calls demonstrate execution of the existing native traversal: BYPASS has no
-traversal; ENTER_LOOP is never submitted and its wrapper is separately watched.
-The actual final output mask is read at mask-function exit, with bounds checked
-and bounded samples retained. This is the compute function's output, before its
-caller removes demanded/thrashing pages, not the final migration mask. It is
-not reconstructed from the requested region.
-If admitted, this would observe native-branch execution, not the local validator
-enum directly, and would not establish completed DMA or physical PCIe bytes.
-Attempt01 produced none of these observations.
-Task/tree identity prevents cross-frame association but is not target-TGID or
-VA-space attribution. Counters describe the globally observed exclusive window;
-do not claim that this observer independently attributes every callback to the
-managed target. A foreign client invalidates the assumed exclusive control.
+- wrapper entry creates one frame keyed by the complete `pid_tgid`;
+- wrapper exit copies the actual return, request and maximum region;
+- diagnostic SELECTED verifies validation/effect and stores stable scalars;
+- diagnostic FINISHED compares those scalars, verifies actual output bounds and
+  traversal completion, then deletes the frame;
+- the fixed policy requests `(0,0)` and returns only 1 or 99.
 
-## Fixed controls and acceptance
+It does not attach to `get_range`, `compute_prefetch_mask`, or the iterator
+wrapper, and it persists no tree, mask, stack, output, or context address. This
+removes the failed structure-return attachment and the earlier address exposure.
+Full `pid_tgid` ordering plus one outstanding frame per task replaces pointer
+correlation. It still cannot attribute callbacks to a target VA space, so an
+otherwise exclusive GPU window and a fail-closed compute-process sampler are
+required. The sampler proves an empty pre-target sample, target-only samples at
+pause, attachment-ready, and post-release points, plus an empty sample after
+target exit and loader detachment. Consecutive samples across that lifecycle
+may be at most one second apart; each query duration and the idle, start, and
+finish gaps between adjacent queries are bounded separately. A lifecycle point
+accepts only a query that started after that point, so a query spanning release
+or detachment is stale. Cross-process ordering uses the system monotonic clock;
+wall time is informational only. This is bounded sampled
+exclusivity, not proof against a client whose entire lifetime falls between two
+samples.
 
-| Mode | Attached policy | Required wrapper result | Required per-decision traversal |
-| --- | --- | --- | --- |
-| `native` | none; observers only | 0, no request | at least one real range call |
-| `bypass` | legal `(0,0)` | 1, attempted, no conflict | zero; every final mask empty |
-| `invalid99` | legal `(0,0)` | 99, attempted, no conflict | at least one real range call |
+## Fixed controls and gates
 
-One fresh 8 GiB / 64 KiB managed target per mode, fixed order native, bypass,
-invalid99. This is a bounded functional control, not repeated performance data.
-The existing `uvm_fault_stream --wait-for-monitor` initializes every expected
-GPU-read region on the CPU before observers/policy attach, excluding the
-preferred-location first-touch shortcut. Each run checks all 131,072 values.
-Do not require identical native/invalid masks or callback counts across fresh
-processes: GPU fault batching can differ.
+Each mode runs a fresh 8 GiB / 64 KiB `uvm_fault_stream` process and verifies
+all 131,072 values:
 
-All retained runs require nonzero matched wrapper decisions; policy calls equal
-wrapper returns in the two BPF modes and zero in native; every decision satisfies
-the table; entry/exit and decision totals reconcile; no iterator callback,
-map failure, nesting, missing frame, identity mismatch, read failure, out-of-bound
-mask, or unexpected action/request; empty active-frame map after target exit;
-zero program recursion misses; all six observer links actually attached.
-There is no ring buffer to drop records: aggregate counters cover all observed
-events, while mask samples are explicitly illustrative. A failed attachment,
-nonzero error, missing final metrics, timeout, or incomplete cleanup invalidates
-the cell and stops the three-cell sequence.
-An owned `BPF_ENABLE_STATS` descriptor enables actual program run-count and
-recursion-miss accounting for this functional run and is closed on loader exit.
+| Mode | Selected evidence | Finished evidence |
+| --- | --- | --- |
+| Native | action 0, no request, `NOOP_DEFAULT`, `NATIVE` | completed=1 and iterations>0 |
+| BYPASS | action 1, legal `(0,0)`, `APPLY`, `BYPASS` | completed=0, iterations=0, output `(0,0)` |
+| Invalid99 | action 99, legal `(0,0)`, `APPLY`, `NATIVE` | completed=1, iterations>0, output empty or within copied bounds |
 
-## Interface and next executable steps
+`APPLY` describes region validation, not acceptance of action 99. The iteration
+value counts native loop-body entries, not every helper call in traversal
+macros. The output is `compute_prefetch_region`'s actual return, not the final
+filtered prefetch mask, completed DMA, or PCIe traffic.
 
-Only this new directory is written: `fixture.bpf.c`, `fixture.h`, `loader.c`,
-`Makefile`, `run_safety.py`, `test_offline.py`, and this runbook. Existing driver, legal control,
-target, shared safety helpers, and old 610 evidence stay unchanged. The loader
-follows `../prefetch_none_revision.c`; the runner reuses the project leases,
-owned process-group cleanup and safety checks, rather than adding a new control
-framework. Loader modes are fixed; there is no arbitrary invalid-action CLI.
+Every decision must follow wrapper-enter → wrapper-exit → SELECTED → FINISHED.
+Counts, program run counts and output classifications must reconcile exactly;
+all frames must be deleted; recursion misses and all observer error counters
+must be zero. Native has no policy calls, while both BPF modes require one
+policy call and successful region setter per wrapper. A missing/duplicate phase,
+unexpected effect, illegal output, absent traversal, attachment failure, foreign
+compute PID, numerical error, Xid, timeout, surviving owned process/link, or
+module/service restoration failure rejects the cell and stops the campaign.
 
-The admitted CPU preparation ran these commands successfully; repeat only in a
-new coordinated CPU window if the source changes:
+## Current executable preparation
+
+The current CPU commands pass:
 
 ```sh
 taskset -c 17 python3 -B extension/revision-prefetch/test_offline.py
 taskset -c 17 make -C extension/revision-prefetch -j1
 ```
 
-The following attempt01 command was run and failed at loader admission. It is
-retained for provenance, **not a ready next-run command**; do not reuse its
-output directory:
+Evidence is retained in
+[`prefetch-observer-cpu-575-03`](../../docs/experiment/revision-safety/prefetch-observer-cpu-575-03/execution.md).
+`run_safety.py` itself never reloads a module. It requires Linux 6.15.11,
+driver 575.57.08, the loaded diagnostic BTF/prototype, both existing lease
+inodes, 400 W, prefetch enabled, no preexisting compute client/UVM reference or
+struct_ops link, CPUs 8–17, and a fresh output directory. Before release it
+requires all three monitors alive, a GPU-telemetry sample, and a fresh
+target-only compute sample; after exit it requires the bounded lifecycle and
+tail sample above. Any monitor error, foreign sampled PID, or sampling gap
+rejects the cell.
 
-```sh
-sudo -n python3 extension/revision-prefetch/run_safety.py \
-  --output docs/experiment/revision-safety/prefetch-invalid-575-01
-```
+SIGINT and SIGTERM are queued by a non-throwing handler. Body checkpoints turn
+the first queued signal into cancellation, but owned target, loader, link,
+monitor, stream, and safety cleanup remains non-interruptible; the signal is
+propagated only after the incomplete execution record is written.
 
-The coordinator must have CPUs 8–16 available; only the target is pinned to
-8–15, telemetry to 16. Require the recorded 575.57.08 custom ABI, Linux
-6.15.11-061511-generic, prefetch enabled, both existing leases, 400 W, no
-foreign compute process/policy, and no preexisting/new kernel abnormality.
-Capture actual boot/version/BTF evidence, argv, paths/sizes, attach IDs,
-continuous telemetry, final metrics and full target readback. No module change,
-global pkill, global detach, or shared-memory deletion is part of these commands.
-Target group must be gone before detaching its policy/observers; preserve those
-processes and fail if an owned target survives bounded cleanup.
-Use the existing lock-file inodes with the root coordinator; never chmod or
-replace locks to obtain admission. The first SIGINT/TERM aborts and ignores
-repeated interrupts until owned cleanup and evidence writing finish. Before/after
-path, size, and mtime inventories must match; no file-content digest is used.
-Cleanup requires both a reaped leader and an empty owned process group, retaining
-the prior 8/5/5-second INT/TERM/KILL grace periods. Every monitor is attempted
-even when another fails; each PID, return code and error is retained, and any
-failure rejects the cell. The CPU regressions do not prove real signal behavior.
-
-Expected GPU occupation is three short fault kernels plus CPU initialization
-and bounded admission/cleanup. Each cell allows 60 s to reach the initialization
-pause, 30 s for observer setup, and 60 s after release; these are independent
-failure bounds, not a measured duration or a performance target.
-The existing UVM-tools migration monitor is an optional later downstream
-cross-check; its successful 610 records do not prove 575 compatibility.
-
-The next step is a **separately, independently reviewed** read-only, noinline
-Kbuild diagnostic with a void return and a pointer to a driver-filled const
-context. Emit phases after initial-effect selection and completed native
-traversal, carrying copied scalar action/result/effect/bounds/selected region
-and invocation correlation. It must not change policy dispatch or actuation.
-That would touch only
-`uvm_bpf_struct_ops.h/.c` and `uvm_perf_prefetch.c`, retain actuator semantics,
-and require a new driver build/reload admission. It is not implemented here;
-the existing type gate is not bypassed, and the Q2 live-prefetch requirement
-remains open.
+Do not invoke the runner against the currently loaded pre-diagnostic module.
+The next step is an owned lifecycle wrapper that stages the built diagnostic
+module, proves refcount-zero replacement and live fentry admission, runs
+native/BYPASS/invalid99 once each, and restores the prior module and services
+before writing a campaign-level completion record.

@@ -60,7 +60,7 @@ interface, not a substitute for the tracing verifier's write restrictions.
 
 | Phase | Actual evidence | Fields not yet meaningful |
 | --- | --- | --- |
-| SELECTED | Original-width raw action/request, original region-validation result, selected initial effect, legal bounds, page and invocation identity | Returned region; native completion |
+| SELECTED | Original-width raw action/request, original region-validation result, selected initial effect, and legal bounds | Returned region; native completion |
 | FINISHED | Same immutable selection evidence plus the actual narrowed return region and native-loop completion/iteration count | No final hint or DMA result exists here |
 
 `initial_region_result` is copied before the native branch can reuse

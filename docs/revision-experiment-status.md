@@ -1,5 +1,21 @@
 # ASPLOS 2027 revision experiment handoff
 
+## User-confirmed objective — 2026-09-03
+
+The user confirmed that **correctly implementing the existing policies in BPF
+and recording their measured performance is sufficient**; outperforming the
+original policy is not a completion requirement. Each comparison must still
+show baseline, native policy, and actual BPF execution, with correctness,
+engagement, raw results, and implementation/compatibility limits retained.
+Reproducing an algorithm does not imply reproducing the paper's original
+hardware, transport, or headline performance numbers.
+
+MoE-Infinity and GPreempt have complete scoped comparisons below. Finish the
+unchanged full XSched campaign next. Only after all three are complete, inspect
+additional interesting research directions and papers, prioritizing useful
+questions that can be tested cheaply. Do not add competing GPU work to the
+current XSched timing window. Record and push scoped findings and changes.
+
 ## Current execution update — 2026-09-03 02:44 UTC
 
 This section supersedes the dated August 31 execution state below. The active

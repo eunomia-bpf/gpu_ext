@@ -48,6 +48,18 @@ BOOTSTRAP_SAMPLES = 10000
 EXPECTED_DRIVER = "575.57.08"
 SHM_ROOT = Path("/dev/shm")
 CLIENT_CPUS = "8-15"
+EXPECTED_GPU_THREAD_SLOTS = 22528
+MIN_RING_ENTRIES_PER_THREAD = 256
+EXIT_RECORD_BYTES = 56
+CORRECTNESS_EXIT_EVENTS = 720896
+CORRECTNESS_EXIT_LAUNCHES = 220
+CORRECTNESS_EXIT_COORDINATES = 22528
+CORRECTNESS_MULTIPLICITY_220 = 1024
+CORRECTNESS_MULTIPLICITY_44 = 1024
+CORRECTNESS_MULTIPLICITY_22 = 20480
+KERNELRETSNOOP_SHM_MEMORY_MB = 1000
+EXPECTED_NORMALIZED_STDOUT = "Deterministic tests are essential\n> EOF by user"
+EXPECTED_NORMALIZED_STDOUT_BYTES = 47
 
 
 class OwnedCleanupError(RuntimeError):
@@ -230,7 +242,8 @@ def segment_identity(path: Path) -> tuple[int, int, int]:
 
 @contextmanager
 def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: Path,
-                  *, diagnostic_log_level: str | None = None):
+                  *, diagnostic_log_level: str | None = None,
+                  exact_exit_oracle: bool = False):
     """Keep an owned loader alive until its direct CUDA client has returned."""
     name = f"rq4_{os.getpid()}_{time.monotonic_ns()}"
     segment = SHM_ROOT / name
@@ -244,6 +257,15 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
     env["BPFTIME_GLOBAL_SHM_NAME"] = name
     command, loader_env = target_launch(command, env)
     target_env = {**core.agent_env(args, run_dir, tool), "BPFTIME_GLOBAL_SHM_NAME": name}
+    if tool == "kernelretsnoop":
+        exit_environment = {
+            "BPFTIME_MAP_GPU_THREAD_COUNT": str(args.gpu_thread_count),
+            "BPFTIME_SHM_MEMORY_MB": str(KERNELRETSNOOP_SHM_MEMORY_MB),
+            "BPFTIME_KERNELRETSNOOP_EXACT_ORACLE": "1" if exact_exit_oracle else "0",
+        }
+        env.update(exit_environment)
+        loader_env.update(exit_environment)
+        target_env.update(exit_environment)
     if diagnostic_log_level is not None:
         if diagnostic_log_level != "info":
             raise ValueError("the optional untimed diagnostic logging level is info")
@@ -329,6 +351,41 @@ def patch_launchlate_clock(directory: Path) -> None:
 
 def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
     result = core.parse_probe_samples(tool, text)
+    if tool == "kernelretsnoop":
+        labels = {
+            "sample_count": "Total events collected",
+            "nonzero_timestamps": "Nonzero timestamps",
+            "requested_thread_slots": "Requested thread slots",
+            "allocated_thread_slots": "Allocated thread slots",
+            "entries_per_thread": "Ring entries per thread",
+            "record_bytes": "Record bytes",
+            "committed_events": "Committed events",
+            "runtime_collected_events": "Runtime collected events",
+            "oob_drops": "OOB drops",
+            "full_drops": "Full drops",
+            "bad_size_drops": "Bad-size drops",
+            "other_drops": "Other drops",
+            "dirty_slots": "Dirty slots",
+            "pending_events": "Pending events",
+            "final_drain_events": "Final drain events",
+            "second_drain_events": "Second drain events",
+            "cartesian_launches": "Cartesian launches",
+            "cartesian_coordinates": "Cartesian coordinates",
+            "cartesian_complete": "Cartesian complete",
+            "multiplicity_220": "Coordinate multiplicity 220",
+            "multiplicity_44": "Coordinate multiplicity 44",
+            "multiplicity_22": "Coordinate multiplicity 22",
+            "other_multiplicity": "Coordinate multiplicity other",
+            "segment_mismatches": "Coordinate segment mismatches",
+            "unique_coordinates": "Unique coordinates",
+            "oracle_enabled": "Multiplicity oracle enabled",
+            "oracle_total_events": "Multiplicity oracle total events",
+            "oracle_passed": "Multiplicity oracle passed",
+            "collector_gate_passed": "Collector gate passed",
+        }
+        for key, label in labels.items():
+            values = re.findall(rf"^{re.escape(label)}:\s*(\d+)$", text, re.MULTILINE)
+            result[key] = int(values[-1]) if values else -1
     if tool == "threadhist":
         for key, label in (("configured_entries", "Configured thread entries"),
                            ("readback_entries", "Readback entries"),
@@ -372,6 +429,12 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         NVBIT_SOURCE_DIR / "inject_funcs.cu",
         NVBIT_SOURCE_DIR / "observability.cu",
         NVBIT_SOURCE_DIR / "tool_func/flush_channel.cu",
+        args.bpftime_root / "runtime/include/bpf_attach_ctx.hpp",
+        args.bpftime_root / "runtime/include/bpftime_gpu_ringbuf.h",
+        args.bpftime_root / "runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.cpp",
+        args.bpftime_root / "runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.hpp",
+        args.bpftime_root / "runtime/syscall-server/syscall_server_main.cpp",
+        args.bpftime_root / "attach/nv_attach_impl/trampoline/default_trampoline.cu",
     ]
     for tool in TASKS:
         spec = core.TOOLS[tool]
@@ -403,6 +466,9 @@ def defining_params(args: argparse.Namespace) -> dict[str, Any]:
         "probe_startup_s": args.probe_startup_s,
         "gpu_thread_count": args.gpu_thread_count,
         "threadhist_gpu_thread_count": args.threadhist_gpu_thread_count,
+        "kernelretsnoop_shm_memory_mb": KERNELRETSNOOP_SHM_MEMORY_MB,
+        "kernelretsnoop_correctness_exact_oracle": True,
+        "kernelretsnoop_timing_exact_oracle": False,
         "uprobe_binary": str(args.uprobe_binary),
         "uprobe_symbol_hint": args.uprobe_symbol_hint,
         "uvm": args.uvm,
@@ -491,13 +557,19 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
     }
 
 
-def nvbit_probe_valid(tool: str, probe: dict[str, Any]) -> bool:
+def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
+                      expected_exit_events: int | None = None,
+                      expected_exit_launches: int | None = None) -> bool:
     samples = int(probe.get("sample_count", 0))
     selected = int(probe.get("selected_launches", 0))
     if samples <= 0 or selected <= 0:
         return False
     if tool == "kernelretsnoop":
-        return int(probe.get("nonzero_timestamps", 0)) == samples
+        return (
+            int(probe.get("nonzero_timestamps", 0)) == samples
+            and (expected_exit_events is None or samples == expected_exit_events)
+            and (expected_exit_launches is None or selected == expected_exit_launches)
+        )
     if tool == "threadhist":
         return int(probe.get("nonzero_threads", 0)) > 0
     return (
@@ -541,12 +613,60 @@ def run_nvbit_once(
 
 
 def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
-                      expected_thread_count: int | None = None) -> bool:
+                      expected_thread_count: int | None = None,
+                      expected_exit_events: int | None = None,
+                      expected_exit_launches: int | None = None,
+                      expected_exit_coordinates: int | None = None,
+                      exact_exit_oracle: bool = False) -> bool:
     samples = int(probe.get("sample_count", 0))
     if samples <= 0:
         return False
     if tool == "kernelretsnoop":
-        return int(probe.get("nonzero_timestamps", 0)) == samples
+        requested = int(probe.get("requested_thread_slots", -1))
+        launches = int(probe.get("cartesian_launches", -1))
+        coordinates = int(probe.get("cartesian_coordinates", -1))
+        unique_coordinates = int(probe.get("unique_coordinates", -1))
+        multiplicity_coordinates = sum(int(probe.get(key, -1)) for key in (
+            "multiplicity_220", "multiplicity_44", "multiplicity_22",
+            "other_multiplicity",
+        ))
+        generic_valid = (
+            expected_thread_count is not None
+            and requested == expected_thread_count
+            and int(probe.get("allocated_thread_slots", -1)) == requested
+            and int(probe.get("entries_per_thread", -1)) >= MIN_RING_ENTRIES_PER_THREAD
+            and int(probe.get("record_bytes", -1)) == EXIT_RECORD_BYTES
+            and int(probe.get("committed_events", -1))
+            == int(probe.get("runtime_collected_events", -2))
+            == int(probe.get("nonzero_timestamps", -3))
+            == samples
+            and all(int(probe.get(key, -1)) == 0 for key in (
+                "oob_drops", "full_drops", "bad_size_drops", "other_drops",
+                "dirty_slots", "pending_events", "second_drain_events",
+            ))
+            and int(probe.get("final_drain_events", -1)) >= 0
+            and int(probe.get("final_drain_events", -1)) <= samples
+            and int(probe.get("cartesian_complete", -1)) == 1
+            and int(probe.get("collector_gate_passed", -1)) == 1
+            and launches > 0
+            and coordinates > 0
+            and coordinates == unique_coordinates == multiplicity_coordinates
+            and int(probe.get("oracle_enabled", -1)) == int(exact_exit_oracle)
+            and int(probe.get("oracle_total_events", -1)) == samples
+            and int(probe.get("oracle_passed", -1)) == int(exact_exit_oracle)
+            and (expected_exit_events is None or samples == expected_exit_events)
+            and (expected_exit_launches is None or launches == expected_exit_launches)
+            and (expected_exit_coordinates is None or coordinates == expected_exit_coordinates)
+        )
+        if not generic_valid or not exact_exit_oracle:
+            return generic_valid
+        return (
+            int(probe.get("multiplicity_220", -1)) == CORRECTNESS_MULTIPLICITY_220
+            and int(probe.get("multiplicity_44", -1)) == CORRECTNESS_MULTIPLICITY_44
+            and int(probe.get("multiplicity_22", -1)) == CORRECTNESS_MULTIPLICITY_22
+            and int(probe.get("other_multiplicity", -1)) == 0
+            and int(probe.get("segment_mismatches", -1)) == 0
+        )
     if tool == "threadhist":
         return (int(probe.get("nonzero_threads", 0)) > 0
                 and expected_thread_count is not None and expected_thread_count > 0
@@ -684,7 +804,8 @@ def run_correctness_cell(
         system, tool = config.split("_", 1)
         if system == "gpubpf":
             probe_context = private_probe(tool, args, tool_dirs[tool], run_dir,
-                                          diagnostic_log_level=diagnostic_log_level)
+                                          diagnostic_log_level=diagnostic_log_level,
+                                          exact_exit_oracle=tool == "kernelretsnoop")
         else:
             env.update(
                 {
@@ -716,7 +837,7 @@ def run_correctness_cell(
         "normalized_stdout": output,
         "stdout_bytes": len(output.encode()),
         "log": str((run_dir / "llama_cli.log").relative_to(output_dir)),
-        "valid": completed.returncode == 0 and bool(output),
+        "valid": completed.returncode == 0 and output == EXPECTED_NORMALIZED_STDOUT,
         "safety": safety_record,
     }
     if tool is not None:
@@ -725,12 +846,34 @@ def run_correctness_cell(
             probe_text = probe_log.read_text(errors="replace") if probe_log.exists() else ""
             result["probe"] = parse_gpubpf(tool, probe_text)
             result["valid"] = bool(result["valid"]) and gpubpf_probe_valid(
-                tool, result["probe"], expected_thread_count=args.threadhist_gpu_thread_count
+                tool,
+                result["probe"],
+                expected_thread_count=(
+                    args.gpu_thread_count if tool == "kernelretsnoop"
+                    else args.threadhist_gpu_thread_count
+                ),
+                expected_exit_events=(
+                    CORRECTNESS_EXIT_EVENTS if tool == "kernelretsnoop" else None
+                ),
+                expected_exit_launches=(
+                    CORRECTNESS_EXIT_LAUNCHES if tool == "kernelretsnoop" else None
+                ),
+                expected_exit_coordinates=(
+                    CORRECTNESS_EXIT_COORDINATES if tool == "kernelretsnoop" else None
+                ),
+                exact_exit_oracle=tool == "kernelretsnoop",
             )
         else:
             result["probe"] = parse_nvbit(tool, completed.stderr)
             result["valid"] = bool(result["valid"]) and nvbit_probe_valid(
-                tool, result["probe"]
+                tool,
+                result["probe"],
+                expected_exit_events=(
+                    CORRECTNESS_EXIT_EVENTS if tool == "kernelretsnoop" else None
+                ),
+                expected_exit_launches=(
+                    CORRECTNESS_EXIT_LAUNCHES if tool == "kernelretsnoop" else None
+                ),
             )
     return result
 
@@ -1001,14 +1144,50 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
     system, tool = config.split("_", 1)
     if system == "gpubpf":
         run_dir = output_dir / f"{tool}_run_{run_id:02d}"
-        with private_probe(tool, args, tool_dirs[tool], run_dir) as env:
+        with private_probe(
+            tool, args, tool_dirs[tool], run_dir, exact_exit_oracle=False
+        ) as env:
             result = run_bench(tool, run_id, args, output_dir, env_extra=env)
         result["probe"] = parse_gpubpf(tool, (run_dir / "probe.log").read_text(errors="replace"))
         result["probe_log"] = str((run_dir / "probe.log").relative_to(output_dir))
         result["valid"] = bool(result.get("valid")) and gpubpf_probe_valid(
-            tool, result["probe"], expected_thread_count=args.threadhist_gpu_thread_count)
+            tool,
+            result["probe"],
+            expected_thread_count=(
+                args.gpu_thread_count if tool == "kernelretsnoop"
+                else args.threadhist_gpu_thread_count
+            ),
+            exact_exit_oracle=False,
+        )
         return result
     return run_nvbit_once(tool, run_id, args, output_dir)
+
+
+def reconcile_kernelret_block(state: dict[str, Any], block: int) -> None:
+    """Reject a timed pair unless both collectors observed the same exits."""
+    gpubpf = valid_run_for_block(state, "gpubpf_kernelretsnoop", block)
+    nvbit = valid_run_for_block(state, "nvbit_kernelretsnoop", block)
+    if not (gpubpf and nvbit):
+        return
+    gpubpf_probe = gpubpf.get("probe", {})
+    nvbit_probe = nvbit.get("probe", {})
+    matched = (
+        gpubpf_probe.get("sample_count") == nvbit_probe.get("sample_count")
+        and gpubpf_probe.get("cartesian_launches")
+        == nvbit_probe.get("selected_launches")
+    )
+    comparison = {
+        "matched": matched,
+        "gpubpf_events": gpubpf_probe.get("sample_count"),
+        "nvbit_events": nvbit_probe.get("sample_count"),
+        "gpubpf_launches": gpubpf_probe.get("cartesian_launches"),
+        "nvbit_launches": nvbit_probe.get("selected_launches"),
+    }
+    for run in (gpubpf, nvbit):
+        run["kernelret_pair"] = comparison
+        if not matched:
+            run["valid"] = False
+            run["pairing_error"] = "gpubpf/NVBit exit events or selected launches differ"
 
 
 def validate(args: argparse.Namespace) -> None:
@@ -1017,6 +1196,13 @@ def validate(args: argparse.Namespace) -> None:
         raise FileNotFoundError(args.llama_cli)
     if not NVBIT_ROOT.exists():
         raise FileNotFoundError(NVBIT_ROOT)
+    if ("kernelretsnoop" in args.tools
+            and args.gpu_thread_count != EXPECTED_GPU_THREAD_SLOTS):
+        raise ValueError(
+            f"kernelretsnoop is fixed to {EXPECTED_GPU_THREAD_SLOTS} GPU thread slots"
+        )
+    if len(EXPECTED_NORMALIZED_STDOUT.encode()) != EXPECTED_NORMALIZED_STDOUT_BYTES:
+        raise RuntimeError("the deterministic correctness oracle is not 47 bytes")
     if args.phase == "preflight" and (args.runs != 1 or args.pp != 32):
         raise ValueError("preflight is fixed to --runs 1 --pp 32")
     if args.phase == "full" and (args.runs != 10 or args.pp != 512):
@@ -1031,11 +1217,11 @@ def main() -> int:
     parser.add_argument("--model", type=Path, default=core.DEFAULT_MODEL)
     parser.add_argument("--llama-bench", type=Path, default=core.DEFAULT_LLAMA_BENCH)
     parser.add_argument("--llama-cli", type=Path)
-    parser.add_argument("--bpftime-root", type=Path, default=core.DEFAULT_BPFTIME_ROOT)
+    parser.add_argument("--bpftime-root", type=Path, required=True)
     parser.add_argument(
         "--bpftime-build-dir",
         type=Path,
-        default=Path("/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503"),
+        required=True,
     )
     parser.add_argument("--target-symbol", default=core.DEFAULT_TARGET_SYMBOL)
     parser.add_argument("--runs", type=int)
@@ -1044,7 +1230,7 @@ def main() -> int:
     parser.add_argument("--n-gpu-layers", type=int, default=99)
     parser.add_argument("--timeout-s", type=int, default=300)
     parser.add_argument("--probe-startup-s", type=float, default=3.0)
-    parser.add_argument("--gpu-thread-count", type=int, default=8192)
+    parser.add_argument("--gpu-thread-count", type=int, required=True)
     parser.add_argument("--threadhist-gpu-thread-count", type=int, default=1048576)
     parser.add_argument("--uprobe-binary", type=Path, default=core.DEFAULT_LAUNCH_STUB_LIBRARY)
     parser.add_argument("--uprobe-symbol-hint", default=core.DEFAULT_TARGET_SYMBOL)
@@ -1200,6 +1386,8 @@ def run_campaign(args: argparse.Namespace) -> int:
             run["block"] = block
             run["attempt"] = attempt
             state["configs"][config]["runs"].append(run)
+            if config in ("gpubpf_kernelretsnoop", "nvbit_kernelretsnoop"):
+                reconcile_kernelret_block(state, block)
             write_state(output_dir, state)
 
     write_state(output_dir, state)

@@ -17,7 +17,7 @@ client/loader exit and its type, owner and inode checks pass. Before/after
 kernel/GPU safety and fixed 400 W state are checked for every cell. A private
 launchlate source-copy repair records GPU-before-host clock errors instead of
 clamping them to zero; both systems require explicit zero-error counters.
-Twenty-four lightweight CPU tests pass, including a real interrupted CPU
+Thirty-nine lightweight CPU tests pass, including a real interrupted CPU
 child-group cleanup check. CPU build/diagnostic helpers now use bounded owned
 teardown without changing the shared legacy harness. If CUDA-client cleanup
 cannot confirm exit, the runner retains that client's loader and private
@@ -37,6 +37,24 @@ build/CPU evidence only, not real histogram engagement. Use both
 `--bpftime-root /home/yunwei37/workspace/gpu/bpftime-table1-575` and
 `--bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575`
 for the fresh 575 preflight and subsequent full run.
+
+The formal runner is wired to the repaired lossless exit collector but no new
+GPU result is claimed yet. It fixes the exit channel at 22,528 thread slots,
+requires at least 256 records per slot and parses the collector's terminal
+allocation, record-size, commit/readback, drop, dirty, pending, drain and
+Cartesian-coverage fields. Deterministic correctness requires 720,896 records,
+all with nonzero timestamps, across 220 launches and 22,528 unique coordinates.
+The exact multiplicity oracle requires 1,024 coordinates observed 220 times,
+1,024 observed 44 times and 20,480 observed 22 times, with no other
+multiplicity or segment mismatch; the matching NVBit arm must report the same
+total and 220 selected launches. This oracle is enabled only for the fixed
+correctness cell. Timed
+pp=32/pp=512 cells do not reuse those fixed correctness counts: each gpubpf cell
+must instead be internally lossless and Cartesian-complete, then match its
+NVBit partner's event and launch counts in that repetition block. The runner
+also requires the known 47-byte normalized deterministic output and explicit
+22,528-slot, 1,000 MiB shared-memory, source and build arguments, preventing an
+accidental return to the unrelated default bpftime checkout.
 
 Retained preflight 01 stopped before GPU execution because sudo's PATH lacked
 `nvcc`; use an explicit `/usr/local/cuda-12.9/bin` PATH for the coordinator.
@@ -89,7 +107,7 @@ earlier diagnostics, and use fresh 575 preflight/full directories.
 ## Workloads And Metrics
 - Real workloads or tasks: llama.cpp prefill of TinyLlama 1.1B Q4_K_M on the RTX 5090 using the existing paper harness, prompt length 512 and generation length 0.
 - Primary metrics: Prefill throughput (tokens/s) and percent degradation versus interleaved no-probe baseline; geometric mean across completed repetitions.
-- Correctness check or ground truth: Before timing, the no-probe control and all six instrumented configurations must produce exactly the same normalized stdout from an untimed deterministic `llama-cli` generation (`--seed 1797 --temp 0`, fixed prompt and eight generated tokens); the short normalized output is preserved verbatim, and every instrumented correctness run must also engage its probe. Each timed run must finish successfully, report the configured prompt length, produce non-zero samples for the exact selected symbol, and pass the checks the collectors can independently establish: all transferred exit records have nonzero timestamps; the final logical-thread histogram has at least one nonzero slot and a positive total; or the launch correlation has no overflow/underflow, matching host/device/sample counts, and non-negative latency bins. The payload includes block/thread coordinates, but the current collector does not independently reconstruct launch dimensions and therefore does not claim to validate their bounds. The histogram total is derived from its slots and is not described as an independent event count. The llama-bench JSON must contain one prompt result with finite positive throughput. Zero-sample or exact-output-mismatched runs are invalid, not zero-overhead wins.
+- Correctness check or ground truth: Before timing, the no-probe control and all six instrumented configurations must produce the exact 47-byte normalized output `Deterministic tests are essential\n> EOF by user` from an untimed deterministic `llama-cli` generation (`--seed 1797 --temp 0`, fixed prompt and eight generated tokens); the output is preserved verbatim, and every instrumented correctness run must also engage its probe. The exit-record correctness arms additionally require 720,896 nonzero-timestamp events and 220 selected launches in both systems; gpubpf must report 22,528 requested/allocated slots, at least 256 entries per slot, a 56-byte record, identical committed/runtime-collected/host-collected counts, zero drop/error/dirty/pending/second-drain counters, and 22,528 complete unique coordinates. Its correctness-only multiplicity oracle requires the exact 1,024-at-220, 1,024-at-44 and 20,480-at-22 coordinate segments, no other multiplicity, no segment mismatch, and explicit oracle enabled/total/passed fields. Each timed run must finish successfully, report the configured prompt length, produce non-zero samples for the exact selected symbol, and pass the same generic internal lossless and Cartesian-completeness gates with the exact oracle disabled; timed multiplicities and event totals are not hard-coded. Each timed gpubpf/NVBit exit pair must agree on events and launches within its repetition block. The final logical-thread histogram must have at least one nonzero slot and a positive total; launch correlation must have no overflow/underflow, matching host/device/sample counts, and non-negative latency bins. The histogram total is derived from its slots and is not described as an independent event count. The llama-bench JSON must contain one prompt result with finite positive throughput. Zero-sample, count-mismatched, or exact-output-mismatched runs are invalid, not zero-overhead wins.
 - Repetitions, seeds, and uncertainty: 10 randomized/interleaved repetition blocks, each containing the no-probe control and the six instrumented cells. Report per-run values, geometric mean, paired per-block overhead, and a fixed-seed (`1797`) paired bootstrap 95% confidence interval for the primary effect `NVBit overhead - gpubpf overhead` for each task. Preserve failure and exclusion counts. The workload is deterministic and has no application random seed.
 - Cost estimate when material: To be revised from real pp=32 preflight timing on the supported stack. The command timeout and any no-progress threshold will be set from those observations, not predeclared from unsupported-driver diagnostics.
 
@@ -105,7 +123,7 @@ earlier diagnostics, and use fresh 575 preflight/full directories.
 | launch | baseline | same | matched custom NVBit launch-latency adapter | 10 | Head-to-head result for Table 1 |
 
 ## Execution
-- Authoritative command or workflow: From `gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4`, build checking is `make -C nvbit_adapters/observability CXX=g++ NVBIT_ROOT="$PWD/deps/nvbit_release_x86_64" ARCH=sm_120`; the real seven-cell preflight is `python run_revision_rq4.py --phase preflight --output-dir raw/preflight-<timestamp>`; and the paper-facing experiment is `python run_revision_rq4.py --phase full --output-dir raw/full-<timestamp>`. To resume missing or invalid cells without overwriting prior attempts, repeat the same command and output directory with `--resume`. The runner fixes preflight to pp=32 and one block, full execution to pp=512 and 10 blocks, schedule seed 1797, CUDA graphs off, the CUDA-enabled `bpftime/build-cuda-pr503`, and the pinned NVBit root.
+- Authoritative command or workflow: From `gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4`, build checking is `make -C nvbit_adapters/observability CXX=g++ NVBIT_ROOT="$PWD/deps/nvbit_release_x86_64" ARCH=sm_120`. Both experiment entries require `--bpftime-root /home/yunwei37/workspace/gpu/bpftime-table1-575 --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575 --gpu-thread-count 22528`: append those arguments to `python run_revision_rq4.py --phase preflight --output-dir raw/preflight-<timestamp>` or `python run_revision_rq4.py --phase full --output-dir raw/full-<timestamp>`. The runner passes `BPFTIME_SHM_MEMORY_MB=1000` to the private exit collector and enables `BPFTIME_KERNELRETSNOOP_EXACT_ORACLE=1` only for deterministic correctness; timed cells explicitly use `0`. To resume missing or invalid cells without overwriting prior attempts, repeat the same command and output directory with `--resume`. The runner fixes preflight to pp=32 and one block, full execution to pp=512 and 10 blocks, exit collection to 22,528 thread slots, schedule seed 1797, CUDA graphs off, and the pinned NVBit root.
 - Real preflight case: On the supported 575.x stack, first pass the deterministic exact-output control for all seven paths, then run one pp=32 timing cell for every distinct path: no probe, all three corrected gpubpf tools, and all three matched custom NVBit adapters, on the actual llama.cpp binaries and model. The earlier diagnostic admission at `raw/preflight-20260831_013158/admission.json` observed driver 610 and two external SGLang processes, so it is not an official preflight attempt and no process was terminated. The current runner rejects driver 610 for both official preflight and full execution.
 - Full completion rule: All seven planned configurations reach terminal status with 10 valid repetitions on the same RTX 5090 under an officially supported NVBit 575.x driver stack. Otherwise the experiment remains incomplete/inconclusive. Diagnostics on driver 610 cannot complete the paper comparison. No partial prefix is treated as the experiment result.
 - Raw-result path: `workloads/llama.cpp/observability_overhead/revision-rq4/raw/<timestamp>/`.

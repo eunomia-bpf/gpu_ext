@@ -15,6 +15,72 @@ from unittest.mock import Mock, patch
 import run_revision_rq4 as runner
 
 
+def lossless_exit_log(**overrides):
+    values = {
+        "requested": 22528,
+        "allocated": 22528,
+        "entries": 256,
+        "record_bytes": 56,
+        "committed": 720896,
+        "collected": 720896,
+        "runtime_collected": 720896,
+        "nonzero": 720896,
+        "oob": 0,
+        "full": 0,
+        "bad_size": 0,
+        "other": 0,
+        "dirty": 0,
+        "pending": 0,
+        "final_drain": 720896,
+        "second_drain": 0,
+        "launches": 220,
+        "coordinates": 22528,
+        "cartesian_complete": 1,
+        "multiplicity_220": 1024,
+        "multiplicity_44": 1024,
+        "multiplicity_22": 20480,
+        "other_multiplicity": 0,
+        "segment_mismatches": 0,
+        "unique_coordinates": 22528,
+        "oracle_enabled": 1,
+        "oracle_total_events": 720896,
+        "oracle_passed": 1,
+        "collector_gate": 1,
+    }
+    values.update(overrides)
+    return "\n".join((
+        f"Requested thread slots: {values['requested']}",
+        f"Allocated thread slots: {values['allocated']}",
+        f"Ring entries per thread: {values['entries']}",
+        f"Record bytes: {values['record_bytes']}",
+        f"Committed events: {values['committed']}",
+        f"Total events collected: {values['collected']}",
+        f"Runtime collected events: {values['runtime_collected']}",
+        f"Nonzero timestamps: {values['nonzero']}",
+        f"OOB drops: {values['oob']}",
+        f"Full drops: {values['full']}",
+        f"Bad-size drops: {values['bad_size']}",
+        f"Other drops: {values['other']}",
+        f"Dirty slots: {values['dirty']}",
+        f"Pending events: {values['pending']}",
+        f"Final drain events: {values['final_drain']}",
+        f"Second drain events: {values['second_drain']}",
+        f"Cartesian launches: {values['launches']}",
+        f"Cartesian coordinates: {values['coordinates']}",
+        f"Cartesian complete: {values['cartesian_complete']}",
+        f"Coordinate multiplicity 220: {values['multiplicity_220']}",
+        f"Coordinate multiplicity 44: {values['multiplicity_44']}",
+        f"Coordinate multiplicity 22: {values['multiplicity_22']}",
+        f"Coordinate multiplicity other: {values['other_multiplicity']}",
+        f"Coordinate segment mismatches: {values['segment_mismatches']}",
+        f"Unique coordinates: {values['unique_coordinates']}",
+        f"Multiplicity oracle enabled: {values['oracle_enabled']}",
+        f"Multiplicity oracle total events: {values['oracle_total_events']}",
+        f"Multiplicity oracle passed: {values['oracle_passed']}",
+        f"Collector gate passed: {values['collector_gate']}",
+    ))
+
+
 class OfflineTests(unittest.TestCase):
     def test_correctness_keeps_generated_token_output_enabled(self):
         command = runner.llama_cli_cmd(SimpleNamespace(
@@ -161,7 +227,9 @@ class OfflineTests(unittest.TestCase):
             self.assertIs(runner.core.run_cmd, runner.run_cmd_owned)
             events.append("campaign")
             return 2
-        with (patch.dict(os.environ, {}, clear=True), patch.object(runner.sys, "argv", ["runner"]),
+        argv = ["runner", "--bpftime-root", "/source", "--bpftime-build-dir", "/build",
+                "--gpu-thread-count", "22528"]
+        with (patch.dict(os.environ, {}, clear=True), patch.object(runner.sys, "argv", argv),
               patch.object(runner, "validate"),
               patch.object(runner.shared, "Leases", side_effect=lambda: events.append("lease") or lease),
               patch.object(runner, "run_campaign", side_effect=campaign)):
@@ -173,7 +241,9 @@ class OfflineTests(unittest.TestCase):
     def test_main_restores_cpu_helper_and_lease_on_interrupt(self):
         lease = Mock()
         original = runner.core.run_cmd
-        with (patch.dict(os.environ, {}, clear=True), patch.object(runner.sys, "argv", ["runner"]),
+        argv = ["runner", "--bpftime-root", "/source", "--bpftime-build-dir", "/build",
+                "--gpu-thread-count", "22528"]
+        with (patch.dict(os.environ, {}, clear=True), patch.object(runner.sys, "argv", argv),
               patch.object(runner, "validate"), patch.object(runner.shared, "Leases", return_value=lease),
               patch.object(runner, "run_campaign", side_effect=KeyboardInterrupt("campaign interrupted"))):
             with self.assertRaises(KeyboardInterrupt):
@@ -364,6 +434,40 @@ class OfflineTests(unittest.TestCase):
                 self.assertEqual(popen.call_count, int(defect != "preexisting"))
                 self.assertEqual(stop.call_count, int(defect != "preexisting"))
 
+    def test_exit_probe_sets_exact_oracle_only_for_correctness(self):
+        for exact in (True, False):
+            with self.subTest(exact=exact), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                segment = root / f"rq4_{os.getpid()}_123"
+                process = Mock(pid=98765, returncode=0)
+                process.poll.return_value = None
+                def start(*args, **kwargs):
+                    segment.write_text("owned loader state")
+                    return process
+                args = SimpleNamespace(probe_startup_s=0, gpu_thread_count=22528)
+                with (patch.object(runner, "SHM_ROOT", root),
+                      patch.object(runner.time, "monotonic_ns", return_value=123),
+                      patch.object(runner.core, "probe_env", return_value={}),
+                      patch.object(runner.core, "agent_env", return_value={}),
+                      patch.object(runner.subprocess, "Popen", side_effect=start) as popen,
+                      patch.object(runner.shared, "stop_owned"),
+                      patch.object(runner.shared, "group_members", return_value=[])):
+                    with runner.private_probe(
+                        "kernelretsnoop", args, root, root / "cell",
+                        exact_exit_oracle=exact,
+                    ) as target_env:
+                        self.assertEqual(
+                            target_env["BPFTIME_KERNELRETSNOOP_EXACT_ORACLE"],
+                            "1" if exact else "0",
+                        )
+                loader_env = popen.call_args.kwargs["env"]
+                self.assertEqual(loader_env["BPFTIME_MAP_GPU_THREAD_COUNT"], "22528")
+                self.assertEqual(loader_env["BPFTIME_SHM_MEMORY_MB"], "1000")
+                self.assertEqual(
+                    loader_env["BPFTIME_KERNELRETSNOOP_EXACT_ORACLE"],
+                    "1" if exact else "0",
+                )
+
     def test_clock_patch_matches_real_source_without_modifying_it(self):
         source = runner.core.DEFAULT_BPFTIME_ROOT / "example/gpu/launchlate"
         originals = {name: (source / name).read_text() for name in ("launchlate.c", "launchlate.bpf.c")}
@@ -385,19 +489,163 @@ class OfflineTests(unittest.TestCase):
                      clock_errors=0, histogram_sum=2, queue_underflows=0, queue_overflows=0,
                      host_launches=2, device_entries=2, configured_entries=4,
                      readback_entries=4, readback_bytes=32, readback_complete=1)
-        gpubpf_check = lambda tool, data: runner.gpubpf_probe_valid(
-            tool, data, expected_thread_count=4)
-        for check in (gpubpf_check, runner.nvbit_probe_valid):
-            for tool in runner.TASKS:
-                self.assertTrue(check(tool, probe))
-                self.assertFalse(check(tool, {**probe, "sample_count": 0}))
-            self.assertFalse(check("launchlate", {**probe, "clock_errors": 1}))
-            self.assertFalse(check("launchlate", {key: value for key, value in probe.items() if key != "clock_errors"}))
+        gpubpf_probes = {tool: probe for tool in runner.TASKS}
+        gpubpf_probes["kernelretsnoop"] = runner.parse_gpubpf(
+            "kernelretsnoop", lossless_exit_log())
+        for tool, tool_probe in gpubpf_probes.items():
+            expected_threads = (runner.EXPECTED_GPU_THREAD_SLOTS
+                                if tool == "kernelretsnoop" else 4)
+            self.assertTrue(runner.gpubpf_probe_valid(
+                tool, tool_probe, expected_thread_count=expected_threads,
+                exact_exit_oracle=tool == "kernelretsnoop"))
+            self.assertFalse(runner.gpubpf_probe_valid(
+                tool, {**tool_probe, "sample_count": 0},
+                expected_thread_count=expected_threads,
+                exact_exit_oracle=tool == "kernelretsnoop"))
+            self.assertTrue(runner.nvbit_probe_valid(tool, probe))
+            self.assertFalse(runner.nvbit_probe_valid(
+                tool, {**probe, "sample_count": 0}))
+        for check in (
+            lambda data: runner.gpubpf_probe_valid(
+                "launchlate", data, expected_thread_count=4),
+            lambda data: runner.nvbit_probe_valid("launchlate", data),
+        ):
+            self.assertFalse(check({**probe, "clock_errors": 1}))
+            self.assertFalse(check({key: value for key, value in probe.items() if key != "clock_errors"}))
         text = "Total samples: 2\nHost launches: 2\nDevice entries: 2\nQueue underflows: 0\nQueue overflows: 0\nClock errors: 0\n"
         self.assertTrue(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text)))
         for label in ("Clock errors: 0\n", "Queue underflows: 0\n", "Queue overflows: 0\n"):
             self.assertFalse(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text.replace(label, ""))))
         self.assertEqual(runner.parse_nvbit("launchlate", "NVBIT launchlate samples=2")["clock_errors"], -1)
+
+    def test_lossless_exit_parser_and_correctness_oracle_are_fail_closed(self):
+        probe = runner.parse_gpubpf("kernelretsnoop", lossless_exit_log())
+        self.assertTrue(runner.gpubpf_probe_valid(
+            "kernelretsnoop", probe,
+            expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
+            expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+            expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
+            exact_exit_oracle=True,
+        ))
+        for key in (
+            "sample_count", "nonzero_timestamps", "requested_thread_slots",
+            "allocated_thread_slots", "entries_per_thread", "record_bytes",
+            "committed_events", "runtime_collected_events", "oob_drops",
+            "full_drops", "bad_size_drops", "other_drops", "dirty_slots",
+            "pending_events", "final_drain_events", "second_drain_events",
+            "cartesian_launches", "cartesian_coordinates", "cartesian_complete",
+            "multiplicity_220", "multiplicity_44", "multiplicity_22",
+            "other_multiplicity", "segment_mismatches", "unique_coordinates",
+            "oracle_enabled", "oracle_total_events", "oracle_passed",
+            "collector_gate_passed",
+        ):
+            with self.subTest(key=key):
+                if key == "final_drain_events":
+                    bad_value = -1
+                elif key in ("cartesian_complete", "oracle_enabled", "oracle_passed",
+                             "collector_gate_passed"):
+                    bad_value = 0
+                else:
+                    bad_value = 1
+                broken = {**probe, key: bad_value}
+                self.assertFalse(runner.gpubpf_probe_valid(
+                    "kernelretsnoop", broken,
+                    expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+                    expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
+                    expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+                    expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
+                    exact_exit_oracle=True,
+                ))
+
+        # Preserve the bin counts while moving them to the wrong coordinate
+        # segments: the collector exposes this separately from count equality.
+        swapped_segment = {**probe, "segment_mismatches": 2}
+        self.assertFalse(runner.gpubpf_probe_valid(
+            "kernelretsnoop", swapped_segment,
+            expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
+            expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+            expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
+            exact_exit_oracle=True,
+        ))
+
+        nvbit = runner.parse_nvbit(
+            "kernelretsnoop",
+            "NVBIT selected_launches=220\n"
+            "NVBIT kernelretsnoop events=720896 nonzero_timestamps=720896\n",
+        )
+        self.assertTrue(runner.nvbit_probe_valid(
+            "kernelretsnoop", nvbit,
+            expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
+            expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+        ))
+        self.assertFalse(runner.nvbit_probe_valid(
+            "kernelretsnoop", {**nvbit, "selected_launches": 175},
+            expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
+            expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+        ))
+
+    def test_timed_exit_gate_accepts_accounted_nonuniform_multiplicity(self):
+        text = lossless_exit_log(
+            committed=40, collected=40, runtime_collected=40, nonzero=40,
+            final_drain=8, launches=5, coordinates=6,
+            multiplicity_220=0, multiplicity_44=0, multiplicity_22=0,
+            other_multiplicity=6, segment_mismatches=6,
+            unique_coordinates=6, oracle_enabled=0,
+            oracle_total_events=40, oracle_passed=0,
+        )
+        probe = runner.parse_gpubpf("kernelretsnoop", text)
+        # Timed workloads need complete coordinate accounting, but their
+        # nonuniform multiplicities need not satisfy the llama-cli oracle.
+        self.assertNotEqual(5 * 6, 40)
+        self.assertTrue(runner.gpubpf_probe_valid(
+            "kernelretsnoop", probe,
+            expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            exact_exit_oracle=False,
+        ))
+        self.assertFalse(runner.gpubpf_probe_valid(
+            "kernelretsnoop", {**probe, "oracle_enabled": 1},
+            expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            exact_exit_oracle=False,
+        ))
+
+    def test_timed_exit_pairs_require_equal_events_and_launches(self):
+        for field in (None, "events", "launches"):
+            with self.subTest(field=field):
+                gpubpf = {"block": 1, "valid": True,
+                           "probe": {"sample_count": 40, "cartesian_launches": 5}}
+                nvbit = {"block": 1, "valid": True,
+                         "probe": {"sample_count": 40, "selected_launches": 5}}
+                if field == "events":
+                    nvbit["probe"]["sample_count"] = 39
+                if field == "launches":
+                    nvbit["probe"]["selected_launches"] = 4
+                state = {"configs": {
+                    "gpubpf_kernelretsnoop": {"runs": [gpubpf]},
+                    "nvbit_kernelretsnoop": {"runs": [nvbit]},
+                }}
+                runner.reconcile_kernelret_block(state, 1)
+                self.assertEqual(gpubpf["valid"], field is None)
+                self.assertEqual(nvbit["valid"], field is None)
+                self.assertEqual(gpubpf["kernelret_pair"]["matched"], field is None)
+
+    def test_correctness_requires_the_exact_47_byte_oracle(self):
+        self.assertEqual(len(runner.EXPECTED_NORMALIZED_STDOUT.encode()), 47)
+        args = SimpleNamespace(uvm=False, timeout_s=1, llama_cli=Path("/llama-cli"),
+                               model=Path("/model"), n_gpu_layers=99)
+        for output, valid in ((runner.EXPECTED_NORMALIZED_STDOUT, True),
+                              (runner.EXPECTED_NORMALIZED_STDOUT + "!", False)):
+            with (tempfile.TemporaryDirectory() as tmp,
+                  patch.object(runner, "idle_gpu_or_error"),
+                  patch.object(runner.core, "nvidia_smi_snapshot", return_value={}),
+                  patch.object(runner, "cell_safety", return_value=runner.nullcontext({})),
+                  patch.object(runner, "run_cli_separate", return_value=SimpleNamespace(
+                      returncode=0, stdout=output, stderr=""))):
+                result = runner.run_correctness_cell(
+                    "baseline", 1, args, Path(tmp), {})
+            self.assertEqual(result["valid"], valid)
+            self.assertEqual(result["stdout_bytes"], len(output.encode()))
 
     def test_threadhist_full_width_readback_including_zero_tail(self):
         sentinel = (1 << 64) - 1

@@ -76,6 +76,29 @@ $(OUTPUT)/revision_pmm_hidden_write.bpf.o $(OUTPUT)/revision_pmm_reorder_setter.
 $(OUTPUT)/eviction_2q_approx.bpf.o $(OUTPUT)/prefetch_delta_markov.bpf.o: safe_policy_models.h
 ALL_APPS += revision_sched_verifier
 
+# Separate opt-in scheduler-init request matrix. These objects do not change
+# the seven existing load-only fixtures and no target attaches a policy.
+REVISION_INIT_FIXTURES = no_request legal invalid_interleave duplicate conflict \
+	independent_interleave independent_timeslice
+REVISION_INIT_OBJECTS = $(addprefix $(OUTPUT)/revision_init_,$(addsuffix .bpf.o,$(REVISION_INIT_FIXTURES)))
+$(REVISION_INIT_OBJECTS): revision_init_fixture.bpf.h revision_init_requests.h
+REVISION_INIT_DRIVER ?= ../../gpu_ext-kernel-575
+REVISION_INIT_DRIVER_INC = $(REVISION_INIT_DRIVER)/kernel-open/common/inc
+
+.PHONY: revision_init_fixtures test_revision_init_fixtures
+revision_init_fixtures: $(REVISION_INIT_OBJECTS)
+
+test_revision_init_fixtures: $(OUTPUT)/revision_init_cpu_test
+	$(call msg,TEST,$<)
+	$(Q)$<
+
+$(OUTPUT)/revision_init_cpu_test: revision_init_cpu_test.c revision_init_requests.h \
+		$(REVISION_INIT_DRIVER_INC)/nv-gpu-transition-validator.h \
+		$(REVISION_INIT_DRIVER_INC)/nvtypes.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -std=c11 -I$(REVISION_INIT_DRIVER_INC) $< \
+		$(ALL_LDFLAGS) -Wl,--build-id=none -o $@
+
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
 BZS_APPS :=

@@ -1,0 +1,32 @@
+Filters: [strict-counter]
+Randomness seeded to: 1643439957
+[2026-09-03 04:39:27.903] [info] [nv_attach_impl.cpp:356] Starting nv_attach_impl
+[2026-09-03 04:39:27.903] [info] [nv_attach_impl.cpp:590] Parsing bundled libraries: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so:/home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so:/home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-03 04:39:27.903] [info] [nv_attach_impl.cpp:596] Found path: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so, executing..
+[2026-09-03 04:39:27.914] [info] [nv_attach_impl.cpp:625] Retrived config of /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[2026-09-03 04:39:27.914] [info] [nv_attach_impl.cpp:596] Found path: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so, executing..
+[2026-09-03 04:39:27.925] [info] [nv_attach_impl.cpp:625] Retrived config of /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[2026-09-03 04:39:27.925] [info] [nv_attach_impl.cpp:596] Found path: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so, executing..
+[2026-09-03 04:39:27.933] [info] [nv_attach_impl.cpp:625] Retrived config of /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-03 04:39:27.943] [error] [nv_attach_impl.cpp:242] GPU eBPF verification failed for cuda__count_return: Warp-Uniform Branch Conditions at instruction 1: branch predicate is lane-varying
+ (mode=STRICT, hook_created=0)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bpftime_nv_attach_tests is a Catch2 v3.4.0 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+GPU strict counter admission and rejection
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-r5/attach/nv_attach_impl/test/nv_attach_impl_tests.cpp:124
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-r5/attach/nv_attach_impl/test/nv_attach_impl_tests.cpp:179: FAILED:
+  REQUIRE_FALSE( impl.is_enabled() )
+with expansion:
+  !true
+
+===============================================================================
+test cases: 1 | 1 failed
+assertions: 5 | 4 passed | 1 failed
+

@@ -1,0 +1,94 @@
+{
+  "complete": true,
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "arm": "official_serial",
+  "model": "llama-3-8b",
+  "decode_batch": 32,
+  "seed": 20260936,
+  "phase": "prefill",
+  "comparison": "official FlashAttention vs full-FP32 reference, before this shape tested operator",
+  "scope": "entire prefill output",
+  "output_shape": [
+    1,
+    8192,
+    32,
+    128
+  ],
+  "checked_elements": 33554432,
+  "exceeding_elements": 1,
+  "max_abs_error": 0.0013279914855957031,
+  "mean_abs_error": 7.537930187767016e-06,
+  "rms_error": 1.3161790097770346e-05,
+  "max_error_coordinate": [
+    0,
+    1,
+    19,
+    7
+  ],
+  "kv_head": 4,
+  "query_index": 1,
+  "query_length": 8192,
+  "valid_kv": 8192,
+  "effective_keys": 2,
+  "causal": true,
+  "head_dim": 128,
+  "scale": 0.08838834764831845,
+  "atol": 0.001,
+  "rtol": 1e-05,
+  "precision": {
+    "actual_fp16": 3.23046875,
+    "reference_fp32": 3.2291407585144043,
+    "adjacent_fp16_lower": 3.228515625,
+    "adjacent_fp16_upper": 3.232421875,
+    "nearest_fp16_to_reference": 3.228515625,
+    "actual_is_nearest_fp16": false,
+    "minimum_fp16_absolute_error": 0.0006251335144042969,
+    "actual_absolute_error": 0.0013279914855957031,
+    "fixed_allowed_error": 0.001032291407585144,
+    "nearest_fp16_satisfies_fixed_tolerance": true
+  },
+  "arrays": {
+    "q": {
+      "filename": "q.npy",
+      "dtype": "float16",
+      "shape": [
+        128
+      ],
+      "bytes": 384
+    },
+    "k": {
+      "filename": "k.npy",
+      "dtype": "float16",
+      "shape": [
+        2,
+        128
+      ],
+      "bytes": 640
+    },
+    "v": {
+      "filename": "v.npy",
+      "dtype": "float16",
+      "shape": [
+        2,
+        128
+      ],
+      "bytes": 640
+    },
+    "actual": {
+      "filename": "actual.npy",
+      "dtype": "float16",
+      "shape": [
+        128
+      ],
+      "bytes": 384
+    },
+    "fp32_reference": {
+      "filename": "fp32_reference.npy",
+      "dtype": "float32",
+      "shape": [
+        128
+      ],
+      "bytes": 640
+    }
+  }
+}

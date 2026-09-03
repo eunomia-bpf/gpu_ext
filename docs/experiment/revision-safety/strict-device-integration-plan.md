@@ -1,6 +1,21 @@
 # Q2: minimal strict-verifier/device integration
 
-Status, 2026-09-03: the minimal integration code and 11 offline Python tests
+## Completed execution update — 2026-09-03
+
+The independent combined build and two fresh-process strict positive/negative
+pairs **passed**, after correcting a fixture assumption, the syscall-name
+parser and a real per-thread map readback-size defect. Both positive cells
+verify and execute 32,768 callbacks; both negatives reject the intended
+lane-varying branch before policy-hook creation and retain zero counters.
+All application outputs and owned cleanup pass. See the
+[result and retained failures](../../../workloads/bpftime-device-smoke/results-strict-575-20260903.md).
+R5 source is `ea9907d`; the performance runtime remains unchanged. Twelve
+Python tests and 28 + 6 + 5 C++ assertions pass. This completes only the narrow
+counter path, not strict POD or the remaining native driver-transition tests.
+
+## Historical preparation record
+
+Preparation status, before execution on 2026-09-03: the minimal integration code and 11 offline Python tests
 are complete; all 11 tests passed on CPU 17, including a finite CPU orphan
 cleanup test. The C++/BPF changes have **not been compiled or run**, and no
 strict GPU evidence exists yet. No configuration, installation, GPU run or
@@ -184,7 +199,7 @@ taskset -c 17 ../bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/test/bp
   '[strict-counter]'
 taskset -c 17 ../bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/test/bpftime_nv_attach_tests \
   'GPU verifier mode controls attach rejection'
-taskset -c 17 python3 -B workloads/bpftime-device-smoke/run_smoke.py --strict \
+sudo -n taskset -c 17 python3 -B workloads/bpftime-device-smoke/run_smoke.py --strict \
   --runtime-build ../bpftime-r5/build-r5-strict-device \
   --output workloads/bpftime-device-smoke/raw/575-r5-strict-01
 ```
@@ -193,6 +208,8 @@ Require every command to succeed before continuing. The final command creates
 fresh `positive/` and `negative/` cells, each with its own logs, result file,
 private segment and safety checks. Build failures or a different verifier
 diagnostic remain failures; neither has been ruled out by the offline tests.
+The final runner uses `sudo -n` because the existing shared lease files are
+root-owned; do not change their permissions or acquire a second outer lease.
 
 | Cell | Required evidence |
 | --- | --- |

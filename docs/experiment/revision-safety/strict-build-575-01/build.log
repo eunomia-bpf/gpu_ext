@@ -1,0 +1,536 @@
+[1/277] Creating directories for 'FridaGum'
+[2/277] Creating directories for 'ubpf'
+[3/277] Creating directories for 'libbpf'
+[4/277] No download step for 'libbpf'
+[5/277] No download step for 'ubpf'
+[6/277] No update step for 'libbpf'
+[7/277] No update step for 'ubpf'
+[8/277] No patch step for 'libbpf'
+[9/277] No patch step for 'ubpf'
+[10/277] Performing configure step for 'libbpf'
+[11/277] Performing configure step for 'ubpf'
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pow in m
+-- Looking for pow in m - found
+-- Configuring done (0.8s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/vm/compat/ubpf-vm/ubpf
+[12/277] Performing download step (verify and extract) for 'FridaGum'
+-- verifying file...
+     file='/home/yunwei37/workspace/gpu/bpftime-r5/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+-- verifying file... done
+-- extracting...
+     src='/home/yunwei37/workspace/gpu/bpftime-r5/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+     dst='/home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/FridaGum-prefix/src/FridaGum'
+-- extracting... [tar xfz]
+-- extracting... [analysis]
+-- extracting... [rename]
+-- extracting... [clean up]
+-- extracting... done
+[13/277] No update step for 'FridaGum'
+[14/277] No patch step for 'FridaGum'
+[15/277] No configure step for 'FridaGum'
+[16/277] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/file_sinks.cpp.o
+[17/277] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/async.cpp.o
+[18/277] No build step for 'FridaGum'
+[19/277] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_json.cpp.o
+[20/277] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_map.cpp.o
+[21/277] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_parse.cpp.o
+[22/277] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_type_data.cpp.o
+[23/277] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_write.cpp.o
+[24/277] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/cfg.cpp.o
+[25/277] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/stdout_sinks.cpp.o
+[26/277] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/color_sinks.cpp.o
+[27/277] Performing build step for 'libbpf'
+  MKDIR    /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs
+  MKDIR    /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs
+  INSTALL  bpf.h libbpf.h btf.h libbpf_common.h libbpf_legacy.h bpf_helpers.h bpf_helper_defs.h bpf_tracing.h bpf_endian.h bpf_core_read.h skel_internal.h libbpf_version.h usdt.bpf.h
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/bpf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/btf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/libbpf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/libbpf_errno.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/netlink.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/nlattr.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/str_error.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/libbpf_probes.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/bpf_prog_linfo.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/btf_dump.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/hashmap.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/ringbuf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/strset.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/linker.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/gen_loader.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/relo_core.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/usdt.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/zip.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/elf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/features.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/btf_iter.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/staticobjs/btf_relocate.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/btf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/bpf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/netlink.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/nlattr.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/libbpf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/libbpf_errno.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/libbpf_probes.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/bpf_prog_linfo.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/str_error.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/btf_dump.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/ringbuf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/hashmap.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/strset.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/linker.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/gen_loader.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/relo_core.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/usdt.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/zip.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/elf.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/btf_iter.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/features.o
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/sharedobjs/btf_relocate.o
+  INSTALL  /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.pc
+  AR       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.a
+  CC       /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.so.1.7.0
+  INSTALL  /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.a /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.so /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.so.1 /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.so.1.7.0
+[28/277] No install step for 'libbpf'
+[29/277] Completed 'libbpf'
+[30/277] No install step for 'FridaGum'
+[31/277] Performing build step for 'ubpf'
+[1/6] Building C object vm/CMakeFiles/ubpf.dir/ubpf_jit.c.o
+[2/6] Building C object vm/CMakeFiles/ubpf.dir/ubpf_loader.c.o
+[3/6] Building C object vm/CMakeFiles/ubpf.dir/ubpf_vm.c.o
+[4/6] Building C object vm/CMakeFiles/ubpf.dir/ubpf_jit_arm64.c.o
+[5/6] Building C object vm/CMakeFiles/ubpf.dir/ubpf_jit_x86_64.c.o
+[6/6] Linking C static library lib/libubpf.a
+[32/277] No install step for 'ubpf'
+[33/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_cfg.cpp.o
+[34/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_files.cpp.o
+[35/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_marshal.cpp.o
+[36/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_ostream.cpp.o
+[37/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_unmarshal.cpp.o
+[38/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_parse.cpp.o
+[39/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/config.cpp.o
+[40/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/assertions.cpp.o
+[41/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/bitset_domain.cpp.o
+[42/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/array_domain.cpp.o
+In file included from /home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/./external/radix_tree/radix_tree.hpp:9,
+                 from /home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/src/crab/array_domain.cpp:11:
+/home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/./external/radix_tree/radix_tree_it.hpp:12:35: warning: ‘template<class _Category, class _Tp, class _Distance, class _Pointer, class _Reference> struct std::iterator’ is deprecated [-Wdeprecated-declarations]
+   12 | class radix_tree_it : public std::iterator<std::forward_iterator_tag, std::pair<K, T> > {
+      |                                   ^~~~~~~~
+In file included from /usr/include/c++/13/bits/stl_algobase.h:65,
+                 from /usr/include/c++/13/algorithm:60,
+                 from /home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/src/crab/array_domain.cpp:4:
+/usr/include/c++/13/bits/stl_iterator_base_types.h:127:34: note: declared here
+  127 |     struct _GLIBCXX17_DEPRECATED iterator
+      |                                  ^~~~~~~~
+[43/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/ebpf_domain.cpp.o
+[44/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/fwd_analyzer.cpp.o
+[45/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/interval.cpp.o
+[46/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/thresholds.cpp.o
+[47/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/split_dbm.cpp.o
+[48/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/var_factory.cpp.o
+[49/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/wto.cpp.o
+[50/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab_utils/debug.cpp.o
+[51/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab_utils/stats.cpp.o
+[52/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab_verifier.cpp.o
+[53/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/linux/gpl/spec_prototypes.cpp.o
+[54/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/ebpf_yaml.cpp.o
+[55/277] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/linux/linux_platform.cpp.o
+[56/277] Completed 'ubpf'
+[57/277] Linking CXX static library bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/liblibbtf.a
+[58/277] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/bundled_fmtlib_format.cpp.o
+[59/277] Completed 'FridaGum'
+[60/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/bpftime-verifier.cpp.o
+[61/277] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/spdlog.cpp.o
+[62/277] Linking CXX static library third_party/spdlog/libspdlog.a
+[63/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/platform-impl.cpp.o
+[64/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/gpu_platform.cpp.o
+[65/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/simt_safety_check.cpp.o
+[66/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/gpu_verifier.cpp.o
+[67/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/uniformity_analysis.cpp.o
+[68/277] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/vm.cpp.o
+[69/277] Linking CXX static library bpftime-verifier/ebpf-verifier/libebpfverifier.a
+[70/277] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/compiler_utils.cpp.o
+[71/277] Building CXX object attach/nv_attach_impl/pass/ptxpass_core/CMakeFiles/ptxpass_core.dir/src/nv_attach_impl_register_guard_patcher.cpp.o
+[72/277] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/llvm_jit_context.cpp.o
+[73/277] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/compiler.cpp.o
+[74/277] Linking CXX static library vm/compat/llvm-vm/libllvmbpf_vm.a
+[75/277] Linking CXX static library bpftime-verifier/libbpftime-verifier.a
+[76/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/catch_chronometer.cpp.o
+[77/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_benchmark_function.cpp.o
+[78/277] Building CXX object attach/nv_attach_impl/ptx_compiler/CMakeFiles/nv_attach_impl_ptx_compiler.dir/ptx_compiler.cpp.o
+[79/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_run_for_at_least.cpp.o
+[80/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generator_exception.cpp.o
+[81/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_stats.cpp.o
+[82/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators.cpp.o
+[83/277] Building CXX object attach/nv_attach_impl/pass/ptxpass_kprobe_entry/CMakeFiles/ptxpass_kprobe_entry.dir/main.cpp.o
+[84/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_common_base.cpp.o
+[85/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_compact.cpp.o
+[86/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators_random.cpp.o
+[87/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_automake.cpp.o
+[88/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_cumulative_base.cpp.o
+[89/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_event_listener.cpp.o
+[90/277] Building CXX object attach/nv_attach_impl/pass/ptxpass_core/CMakeFiles/ptxpass_core.dir/src/core.cpp.o
+[91/277] Linking CXX static library attach/nv_attach_impl/pass/ptxpass_core/libptxpass_core.a
+[92/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_console.cpp.o
+[93/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_multi.cpp.o
+[94/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_registrars.cpp.o
+[95/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_streaming_base.cpp.o
+[96/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_junit.cpp.o
+[97/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_helpers.cpp.o
+[98/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_sonarqube.cpp.o
+[99/277] Building CXX object attach/nv_attach_impl/pass/ptxpass_kretprobe/CMakeFiles/ptxpass_kretprobe.dir/main.cpp.o
+[100/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_capture.cpp.o
+[101/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_tap.cpp.o
+[102/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_generatortracker.cpp.o
+[103/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_exception.cpp.o
+[104/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_config.cpp.o
+[105/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_registry_hub.cpp.o
+[106/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter_factory.cpp.o
+[107/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_testcase.cpp.o
+[108/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_teamcity.cpp.o
+[109/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_assertion_result.cpp.o
+[110/277] Building CXX object vm/compat/llvm-vm/CMakeFiles/bpftime_llvm_vm_obj.dir/compat_llvm.cpp.o
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/llvm-vm/compat_llvm.cpp:82:63: warning: constructor priorities from 0 to 100 are reserved for the implementation [-Wprio-ctor-dtor]
+   82 | __attribute__((constructor(0))) void register_llvm_vm_factory()
+      |                                                               ^
+[111/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_xml.cpp.o
+[112/277] Building CXX object attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/CMakeFiles/ptxpass_kprobe_memcapture.dir/main.cpp.o
+[113/277] Building CXX object vm/compat/ubpf-vm/CMakeFiles/bpftime_ubpf_vm_obj.dir/compat_ubpf.cpp.o
+[114/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter.cpp.o
+[115/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_approx.cpp.o
+[116/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_get_random_seed.cpp.o
+[117/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_tag_alias_autoregistrar.cpp.o
+[118/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_timer.cpp.o
+[119/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_totals.cpp.o
+[120/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_message.cpp.o
+[121/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_registry_hub.cpp.o
+[122/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_version.cpp.o
+[123/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_translate_exception.cpp.o
+[124/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_case_insensitive_comparisons.cpp.o
+[125/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_test_case_info.cpp.o
+[126/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_commandline.cpp.o
+[127/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_config.cpp.o
+[128/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_context.cpp.o
+[129/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debugger.cpp.o
+[130/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_test_spec.cpp.o
+[131/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debug_console.cpp.o
+[132/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enum_values_registry.cpp.o
+[133/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_errno_guard.cpp.o
+[134/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_assertion_handler.cpp.o
+[135/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_tostring.cpp.o
+[136/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_floating_point_helpers.cpp.o
+[137/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enforce.cpp.o
+[138/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_getenv.cpp.o
+[139/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_console_colour.cpp.o
+[140/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_exception_translator_registry.cpp.o
+[141/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_decomposer.cpp.o
+[142/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_leak_detector.cpp.o
+[143/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/catch_session.cpp.o
+[144/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_message_info.cpp.o
+[145/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_istream.cpp.o
+[146/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_number_generator.cpp.o
+[147/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_fatal_condition_handler.cpp.o
+[148/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_polyfills.cpp.o
+[149/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_parse_numbers.cpp.o
+[150/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_result_type.cpp.o
+[151/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_spec_parser.cpp.o
+[152/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_output_redirect.cpp.o
+[153/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_lazy_expr.cpp.o
+[154/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reusable_string_stream.cpp.o
+[155/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_singletons.cpp.o
+[156/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_source_line_info.cpp.o
+[157/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_clara.cpp.o
+[158/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_startup_exception_registry.cpp.o
+[159/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_seed_generation.cpp.o
+[160/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_string_manip.cpp.o
+[161/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stringref.cpp.o
+[162/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stdstreams.cpp.o
+[163/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_list.cpp.o
+[164/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_info_hasher.cpp.o
+[165/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_section.cpp.o
+[166/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_failure_exception.cpp.o
+[167/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_spec_parser.cpp.o
+[168/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_tag_alias_registry.cpp.o
+[169/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_registry.cpp.o
+[170/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_uncaught_exceptions.cpp.o
+[171/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_tracker.cpp.o
+[172/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_registry.cpp.o
+[173/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_wildcard_pattern.cpp.o
+[174/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_run_context.cpp.o
+[175/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_textflow.cpp.o
+[176/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_xmlwriter.cpp.o
+[177/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_registry_impl.cpp.o
+[178/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers.cpp.o
+[179/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_container_properties.cpp.o
+[180/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_exception.cpp.o
+[181/277] Linking CXX static library vm/compat/llvm-vm/libbpftime_llvm_vm.a
+[182/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_predicate.cpp.o
+[182/277] Generating syscall_id_list.h
+[184/277] Linking CXX static library vm/compat/ubpf-vm/libbpftime_ubpf_vm.a
+[185/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_quantifiers.cpp.o
+[186/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_floating_point.cpp.o
+[187/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/internal/catch_matchers_impl.cpp.o
+[188/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_templated.cpp.o
+[189/277] Building CXX object vm/vm-core/CMakeFiles/bpftime_vm.dir/src/ebpf-vm.cpp.o
+[190/277] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_utils.cpp.o
+[191/277] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_private_data.cpp.o
+[192/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_string.cpp.o
+[193/277] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_elf_introspect.cpp.o
+[194/277] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_impl_frida_setup.cpp.o
+[195/277] Linking CXX static library _deps/catch2-build/src/libCatch2.a
+[196/277] Linking CXX shared library attach/nv_attach_impl/ptx_compiler/libnv_attach_impl_ptx_compiler.so
+[197/277] Linking CXX static library vm/vm-core/libbpftime_vm.a
+[198/277] Building CXX object _deps/catch2-build/src/CMakeFiles/Catch2WithMain.dir/catch2/internal/catch_main.cpp.o
+[199/277] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_fatbin_record.cpp.o
+[200/277] Linking CXX shared library attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[201/277] Linking CXX shared library attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[202/277] Linking CXX shared library attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[203/277] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_internal_attach_entry.cpp.o
+[204/277] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_attach_entry.cpp.o
+[205/277] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_register_conversion.cpp.o
+[206/277] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_uprobe_attach_impl.cpp.o
+[207/277] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_attach_utils.cpp.o
+[208/277] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_attach_private_data.cpp.o
+[209/277] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_impl_patcher.cpp.o
+[210/277] Building CXX object attach/syscall_trace_attach_impl/CMakeFiles/bpftime_syscall_trace_attach_impl.dir/src/syscall_trace_attach_private_data.cpp.o
+[211/277] Building CXX object attach/syscall_trace_attach_impl/CMakeFiles/bpftime_syscall_trace_attach_impl.dir/src/syscall_trace_attach_impl.cpp.o
+[212/277] Building CXX object attach/syscall_trace_attach_impl/CMakeFiles/bpftime_syscall_trace_attach_impl.dir/src/syscall_table.cpp.o
+[213/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/prog_handler.cpp.o
+[214/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/memfd_handler.cpp.o
+[215/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/epoll_handler.cpp.o
+[216/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/handler_manager.cpp.o
+[217/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/perf_event_handler.cpp.o
+[218/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/attach/bpf_attach_ctx.cpp.o
+[219/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/map_handler.cpp.o
+[220/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_shm.cpp.o
+[221/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_config.cpp.o
+[222/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/platform_utils.cpp.o
+[223/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_prog.cpp.o
+[224/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/ufunc.cpp.o
+[225/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_shm_json.cpp.o
+[226/277] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_impl.cpp.o
+[227/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/fix_hash_map.cpp.o
+[228/277] Linking CXX static library attach/nv_attach_impl/libbpftime_nv_attach_impl.a
+[229/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_helper.cpp.o
+[230/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_shm_internal.cpp.o
+[231/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/array_map.cpp.o
+[232/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/ringbuf_map.cpp.o
+[233/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/perf_event_array_map.cpp.o
+[234/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/var_hash_map.cpp.o
+[235/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/per_cpu_array_map.cpp.o
+[236/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/prog_array.cpp.o
+[237/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/queue.cpp.o
+[238/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/stack_trace_map.cpp.o
+[239/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/per_cpu_hash_map.cpp.o
+[240/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/stack.cpp.o
+[241/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/bloom_filter.cpp.o
+[242/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/lru_var_hash_map.cpp.o
+[243/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/lpm_trie_map.cpp.o
+[244/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_gdrcopy.cpp.o
+[245/277] Building CXX object runtime/CMakeFiles/runtime.dir/extension/extension_helper.cpp.o
+[246/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/attach/bpf_attach_ctx_cuda.cpp.o
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/src/attach/bpf_attach_ctx_cuda.cpp: In lambda function:
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/src/attach/bpf_attach_ctx_cuda.cpp:126:38: warning: variable ‘start_time’ set but not used [-Wunused-but-set-variable]
+  126 |                                 auto start_time =
+      |                                      ^~~~~~~~~~
+[247/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_ringbuf_map.cpp.o
+[248/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_shared_array_map.cpp.o
+[249/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_shared_hash_map.cpp.o
+[250/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_per_thread_array_map.cpp.o
+[251/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_shared_array_host_map.cpp.o
+[252/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime_verifier_tests.dir/test/simple.cpp.o
+[253/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu_kernel_shared/array_map_kernel_gpu.cpp.o
+[254/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/array_map_kernel_user.cpp.o
+[255/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime_verifier_tests.dir/test/map.cpp.o
+[256/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_array_host_map.cpp.o
+[257/277] Linking CXX static library _deps/catch2-build/src/libCatch2Main.a
+[258/277] Linking CXX static library attach/frida_uprobe_attach_impl/libbpftime_frida_uprobe_attach_impl.a
+[259/277] Linking CXX static library attach/syscall_trace_attach_impl/libbpftime_syscall_trace_attach_impl.a
+[260/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/percpu_array_map_kernel_user.cpp.o
+[261/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/perf_event_array_kernel_user.cpp.o
+[262/277] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/hash_map_kernel_user.cpp.o
+[263/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime_verifier_tests.dir/test/non_kernel_helper.cpp.o
+[264/277] Linking CXX static library runtime/libruntime.a
+[265/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime_verifier_tests.dir/test/gpu_revision_safety_test.cpp.o
+[266/277] Building CXX object bpftime-verifier/CMakeFiles/bpftime_verifier_tests.dir/test/gpu_verifier_test.cpp.o
+[267/277] Building CXX object runtime/syscall-server/CMakeFiles/bpftime-syscall-server.dir/syscall_server_main.cpp.o
+[268/277] Building CXX object attach/nv_attach_impl/test/CMakeFiles/bpftime_nv_attach_tests.dir/test_register_guard.cpp.o
+[269/277] Building CXX object attach/nv_attach_impl/test/CMakeFiles/bpftime_nv_attach_tests.dir/nv_attach_impl_tests.cpp.o
+[270/277] Linking CXX executable bpftime-verifier/bpftime_verifier_tests
+[271/277] Building CXX object runtime/syscall-server/CMakeFiles/bpftime-syscall-server.dir/syscall_server_utils.cpp.o
+[272/277] Building CXX object runtime/agent/CMakeFiles/bpftime-agent.dir/agent.cpp.o
+[273/277] Building CXX object attach/nv_attach_impl/test/CMakeFiles/bpftime_nv_attach_tests.dir/test_ptxpass.cpp.o
+[274/277] Building CXX object runtime/syscall-server/CMakeFiles/bpftime-syscall-server.dir/syscall_context.cpp.o
+[275/277] Linking CXX shared library runtime/agent/libbpftime-agent.so
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/llvm-jit/src/ebpf_inst.h:27:8: warning: type ‘struct ebpf_inst’ violates the C++ One Definition Rule [-Wodr]
+   27 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:22:8: note: a different type is defined in another translation unit
+   22 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/llvm-jit/src/ebpf_inst.h:28:17: note: the first difference of corresponding definitions is field ‘opcode’
+   28 |         uint8_t opcode;
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:23:17: note: a field with different name is defined in another translation unit
+   23 |         uint8_t code; /* opcode */
+      |                 ^
+[276/277] Linking CXX executable attach/nv_attach_impl/test/bpftime_nv_attach_tests
+[277/277] Linking CXX shared library runtime/syscall-server/libbpftime-syscall-server.so
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/perf_event.h:392:8: warning: type ‘struct perf_event_attr’ violates the C++ One Definition Rule [-Wodr]
+  392 | struct perf_event_attr {
+      |        ^
+/usr/include/linux/perf_event.h:389:8: note: a different type is defined in another translation unit
+  389 | struct perf_event_attr {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/perf_event.h:527:9: note: the first difference of corresponding definitions is field ‘<anonymous>’
+  527 |         union {
+      |         ^
+/usr/include/linux/perf_event.h:514:17: note: a field with different name is defined in another translation unit
+  514 |         __u32   __reserved_3;
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:6652:8: warning: type ‘struct bpf_map_info’ violates the C++ One Definition Rule [-Wodr]
+ 6652 | struct bpf_map_info {
+      |        ^
+/usr/include/linux/bpf.h:6495:8: note: a different type is defined in another translation unit
+ 6495 | struct bpf_map_info {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:6667:15: note: the first difference of corresponding definitions is field ‘btf_vmlinux_id’
+ 6667 |         __u32 btf_vmlinux_id;
+      |               ^
+/usr/include/linux/bpf.h:6510:16: note: a field with different name is defined in another translation unit
+ 6510 |         __u32 :32;      /* alignment pad */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1485:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1485 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/usr/include/linux/bpf.h:1399:16: note: a different type is defined in another translation unit
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1517:25: note: the first difference of corresponding definitions is field ‘value_type_btf_obj_fd’
+ 1517 |                 __s32   value_type_btf_obj_fd;  /* fd pointing to a BTF
+      |                         ^
+/usr/include/linux/bpf.h:1399:16: note: a type with different number of fields is defined in another translation unit
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1554:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1554 |         struct { /* anonymous struct used by BPF_PROG_LOAD command */
+      |                ^
+/usr/include/linux/bpf.h:1456:16: note: a different type is defined in another translation unit
+ 1456 |         struct { /* anonymous struct used by BPF_PROG_LOAD command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1597:33: note: the first difference of corresponding definitions is field ‘prog_token_fd’
+ 1597 |                 __s32           prog_token_fd;
+      |                                 ^
+/usr/include/linux/bpf.h:1456:16: note: a type with different number of fields is defined in another translation unit
+ 1456 |         struct { /* anonymous struct used by BPF_PROG_LOAD command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1663:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1663 |         struct { /* anonymous struct used by BPF_*_GET_*_ID */
+      |                ^
+/usr/include/linux/bpf.h:1551:16: note: a different type is defined in another translation unit
+ 1551 |         struct { /* anonymous struct used by BPF_*_GET_*_ID */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1673:33: note: the first difference of corresponding definitions is field ‘fd_by_id_token_fd’
+ 1673 |                 __s32           fd_by_id_token_fd;
+      |                                 ^
+/usr/include/linux/bpf.h:1551:16: note: a type with different number of fields is defined in another translation unit
+ 1551 |         struct { /* anonymous struct used by BPF_*_GET_*_ID */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1705:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1705 |         struct { /* anonymous struct used by BPF_RAW_TRACEPOINT_OPEN command */
+      |                ^
+/usr/include/linux/bpf.h:1592:16: note: a different type is defined in another translation unit
+ 1592 |         struct { /* anonymous struct used by BPF_RAW_TRACEPOINT_OPEN command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1708:34: note: the first difference of corresponding definitions is field ‘<anonymous>’
+ 1708 |                 __u32           :32;
+      |                                  ^
+/usr/include/linux/bpf.h:1592:16: note: a type with different number of fields is defined in another translation unit
+ 1592 |         struct { /* anonymous struct used by BPF_RAW_TRACEPOINT_OPEN command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1712:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1712 |         struct { /* anonymous struct for BPF_BTF_LOAD */
+      |                ^
+/usr/include/linux/bpf.h:1597:16: note: a different type is defined in another translation unit
+ 1597 |         struct { /* anonymous struct for BPF_BTF_LOAD */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1723:33: note: the first difference of corresponding definitions is field ‘btf_flags’
+ 1723 |                 __u32           btf_flags;
+      |                                 ^
+/usr/include/linux/bpf.h:1597:16: note: a type with different number of fields is defined in another translation unit
+ 1597 |         struct { /* anonymous struct for BPF_BTF_LOAD */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1757:23: warning: type ‘union <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1757 |                 union {
+      |                       ^
+/usr/include/linux/bpf.h:1637:23: note: a different type is defined in another translation unit
+ 1637 |                 union {
+      |                       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1821:27: note: the first difference of corresponding definitions is field ‘cgroup’
+ 1821 |                         } cgroup;
+      |                           ^
+/usr/include/linux/bpf.h:1637:23: note: a type with different number of fields is defined in another translation unit
+ 1637 |                 union {
+      |                       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1746:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1746 |         struct { /* struct used by BPF_LINK_CREATE command */
+      |                ^
+/usr/include/linux/bpf.h:1626:16: note: a different type is defined in another translation unit
+ 1626 |         struct { /* struct used by BPF_LINK_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1757:17: note: the first difference of corresponding definitions is field ‘<anonymous>’
+ 1757 |                 union {
+      |                 ^
+/usr/include/linux/bpf.h:1637:17: note: a field of same name but different type is defined in another translation unit
+ 1637 |                 union {
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1757:23: note: type ‘union <anon>’ itself violates the C++ One Definition Rule
+ 1757 |                 union {
+      |                       ^
+/usr/include/linux/bpf.h:1637:23: note: the incompatible type is defined here
+ 1637 |                 union {
+      |                       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1484:7: warning: type ‘union bpf_attr’ violates the C++ One Definition Rule [-Wodr]
+ 1484 | union bpf_attr {
+      |       ^
+/usr/include/linux/bpf.h:1398:7: note: a different type is defined in another translation unit
+ 1398 | union bpf_attr {
+      |       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1485:9: note: the first difference of corresponding definitions is field ‘<anonymous>’
+ 1485 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |         ^
+/usr/include/linux/bpf.h:1399:9: note: a field of same name but different type is defined in another translation unit
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |         ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1485:16: note: type ‘struct <anon>’ itself violates the C++ One Definition Rule
+ 1485 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/usr/include/linux/bpf.h:1399:16: note: the incompatible type is defined here
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:22:8: warning: type ‘struct ebpf_inst’ violates the C++ One Definition Rule [-Wodr]
+   22 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/src/ebpf_vm_isa.hpp:12:8: note: a different type is defined in another translation unit
+   12 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:23:17: note: the first difference of corresponding definitions is field ‘code’
+   23 |         uint8_t code; /* opcode */
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/src/ebpf_vm_isa.hpp:13:18: note: a field with different name is defined in another translation unit
+   13 |     std::uint8_t opcode;
+      |                  ^

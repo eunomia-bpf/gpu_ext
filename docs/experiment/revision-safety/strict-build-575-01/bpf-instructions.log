@@ -1,0 +1,42 @@
+
+workloads/bpftime-device-smoke/.output/probe.bpf.o:	file format elf64-bpf
+
+Disassembly of section kretprobe/_Z9vectorAddPKfS0_Pfi:
+
+0000000000000000 <cuda__count_return>:
+       0:	b7 01 00 00 00 00 00 00	r1 = 0x0
+       1:	63 1a fc ff 00 00 00 00	*(u32 *)(r10 - 0x4) = r1
+       2:	bf a2 00 00 00 00 00 00	r2 = r10
+       3:	07 02 00 00 fc ff ff ff	r2 += -0x4
+       4:	18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00	r1 = 0x0 ll
+       6:	85 00 00 00 01 00 00 00	call 0x1
+       7:	15 00 03 00 00 00 00 00	if r0 == 0x0 goto +0x3 <LBB0_2>
+       8:	79 01 00 00 00 00 00 00	r1 = *(u64 *)(r0 + 0x0)
+       9:	07 01 00 00 01 00 00 00	r1 += 0x1
+      10:	7b 10 00 00 00 00 00 00	*(u64 *)(r0 + 0x0) = r1
+
+0000000000000058 <LBB0_2>:
+      11:	b7 00 00 00 00 00 00 00	r0 = 0x0
+      12:	95 00 00 00 00 00 00 00	exit
+
+workloads/bpftime-device-smoke/.output/probe-negative.bpf.o:	file format elf64-bpf
+
+Disassembly of section kretprobe/_Z9vectorAddPKfS0_Pfi:
+
+0000000000000000 <cuda__count_return>:
+       0:	85 00 00 00 ff 01 00 00	call 0x1ff
+       1:	55 00 0b 00 00 00 00 00	if r0 != 0x0 goto +0xb <LBB0_3>
+       2:	b7 01 00 00 00 00 00 00	r1 = 0x0
+       3:	63 1a fc ff 00 00 00 00	*(u32 *)(r10 - 0x4) = r1
+       4:	bf a2 00 00 00 00 00 00	r2 = r10
+       5:	07 02 00 00 fc ff ff ff	r2 += -0x4
+       6:	18 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00	r1 = 0x0 ll
+       8:	85 00 00 00 01 00 00 00	call 0x1
+       9:	15 00 03 00 00 00 00 00	if r0 == 0x0 goto +0x3 <LBB0_3>
+      10:	79 01 00 00 00 00 00 00	r1 = *(u64 *)(r0 + 0x0)
+      11:	07 01 00 00 01 00 00 00	r1 += 0x1
+      12:	7b 10 00 00 00 00 00 00	*(u64 *)(r0 + 0x0) = r1
+
+0000000000000068 <LBB0_3>:
+      13:	b7 00 00 00 00 00 00 00	r0 = 0x0
+      14:	95 00 00 00 00 00 00 00	exit

@@ -12,13 +12,13 @@ import run_smoke as smoke
 
 
 POSITIVE = (
-    "GPU eBPF verification accepted: mode=STRICT program=cuda__count_return "
+    "GPU eBPF verification accepted: mode=STRICT program=cuda__count_ret "
     "attach=kretprobe/_Z9vectorAddPKfS0_Pfi instructions=13\n"
-    "GPU eBPF verified map: program=cuda__count_return fd=17 "
+    "GPU eBPF verified map: program=cuda__count_ret fd=17 "
     "type=1502 key_size=4 value_size=8 max_entries=1\n"
 )
 NEGATIVE = (
-    "GPU eBPF verification failed for cuda__count_return: "
+    "GPU eBPF verification failed for cuda__count_ret: "
     "branch predicate is lane-varying (mode=STRICT, hook_created=0)\n"
     "GPU verifier rejected handler 18\n"
     "Failed to initialize attach context, exiting..\n"
@@ -33,6 +33,14 @@ class StrictEvidenceTests(unittest.TestCase):
                      POSITIVE.replace("mode=STRICT", "mode=WARNING"), POSITIVE + NEGATIVE):
             with self.subTest(text=text), self.assertRaises(RuntimeError):
                 smoke.require_strict_verdict(text, False)
+
+    def test_matches_exact_syscall_name_not_elf_name_or_prefix(self):
+        self.assertEqual(smoke.KERNEL_PROGRAM_NAME, "cuda__count_ret")
+        for name in ("cuda__count_return", "cuda__count_re", "cuda__other_ret"):
+            with self.subTest(name=name), self.assertRaises(RuntimeError):
+                smoke.require_strict_verdict(POSITIVE.replace("cuda__count_ret", name), False)
+            with self.subTest(name=name), self.assertRaises(RuntimeError):
+                smoke.require_strict_verdict(NEGATIVE.replace("cuda__count_ret", name), True)
 
     def test_negative_requires_specific_rejection_and_propagation(self):
         smoke.require_strict_verdict(NEGATIVE, True)

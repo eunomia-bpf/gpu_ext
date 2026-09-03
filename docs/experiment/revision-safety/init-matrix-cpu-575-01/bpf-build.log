@@ -1,0 +1,57 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/extension'
+Skipping sched_ext apps; set SCX_INCLUDE_DIR to a kernel tools/sched_ext include tree and ensure ../vmlinux/x86/scx/vmlinux.h exists: sched_gpu_baseline sched_gpu_minimal sched_gpu_serving sched_gpu_xcoord sched_gpu_xcoord_noad sched_gpu_coord 
+  BPF      .output/revision_init_no_request.bpf.o
+In file included from revision_init_no_request.bpf.c:3:
+./revision_init_fixture.bpf.h:84:66: error: redefinition of parameter 'ctx'
+   84 | int BPF_PROG(revision_init_request, struct nv_gpu_task_init_ctx *ctx)
+      |                                                                  ^
+./revision_init_fixture.bpf.h:84:5: note: previous declaration is here
+   84 | int BPF_PROG(revision_init_request, struct nv_gpu_task_init_ctx *ctx)
+      |     ^
+.output/bpf/bpf_tracing.h:675:32: note: expanded from macro 'BPF_PROG'
+  675 | ____##name(unsigned long long *ctx, ##args);                                \
+      |                                ^
+In file included from revision_init_no_request.bpf.c:3:
+./revision_init_fixture.bpf.h:84:66: error: redefinition of parameter 'ctx'
+   84 | int BPF_PROG(revision_init_request, struct nv_gpu_task_init_ctx *ctx)
+      |                                                                  ^
+./revision_init_fixture.bpf.h:84:5: note: previous declaration is here
+   84 | int BPF_PROG(revision_init_request, struct nv_gpu_task_init_ctx *ctx)
+      |     ^
+.output/bpf/bpf_tracing.h:684:32: note: expanded from macro 'BPF_PROG'
+  684 | ____##name(unsigned long long *ctx, ##args)
+      |                                ^
+In file included from revision_init_no_request.bpf.c:3:
+./revision_init_fixture.bpf.h:84:66: warning: omitting the parameter name in a function definition is a C23 extension [-Wc23-extensions]
+   84 | int BPF_PROG(revision_init_request, struct nv_gpu_task_init_ctx *ctx)
+      |                                                                  ^
+./revision_init_fixture.bpf.h:95:21: error: member reference base type 'unsigned long long' is not a structure or union
+   95 |     key.tsg_id = ctx->tsg_id;
+      |                  ~~~^ ~~~~~~
+./revision_init_fixture.bpf.h:96:25: error: member reference base type 'unsigned long long' is not a structure or union
+   96 |     key.runlist_id = ctx->runlist_id;
+      |                      ~~~^ ~~~~~~~~~~
+./revision_init_fixture.bpf.h:97:31: error: member reference base type 'unsigned long long' is not a structure or union
+   97 |     initial.input.tsg_id = ctx->tsg_id;
+      |                            ~~~^ ~~~~~~
+./revision_init_fixture.bpf.h:98:36: error: member reference base type 'unsigned long long' is not a structure or union
+   98 |     initial.input.engine_type = ctx->engine_type;
+      |                                 ~~~^ ~~~~~~~~~~~
+./revision_init_fixture.bpf.h:99:42: error: member reference base type 'unsigned long long' is not a structure or union
+   99 |     initial.input.default_timeslice = ctx->default_timeslice;
+      |                                       ~~~^ ~~~~~~~~~~~~~~~~~
+./revision_init_fixture.bpf.h:100:43: error: member reference base type 'unsigned long long' is not a structure or union
+  100 |     initial.input.default_interleave = ctx->default_interleave;
+      |                                        ~~~^ ~~~~~~~~~~~~~~~~~~
+./revision_init_fixture.bpf.h:101:35: error: member reference base type 'unsigned long long' is not a structure or union
+  101 |     initial.input.runlist_id = ctx->runlist_id;
+      |                                ~~~^ ~~~~~~~~~~
+./revision_init_fixture.bpf.h:116:57: warning: incompatible pointer types passing 'unsigned long long *' to parameter of type 'struct nv_gpu_task_init_ctx *' [-Wincompatible-pointer-types]
+  116 |     revision_init_issue_requests(REVISION_INIT_FIXTURE, ctx, &record->requests);
+      |                                                         ^~~
+./revision_init_requests.h:29:65: note: passing argument to parameter 'ctx' here
+   29 |     enum revision_init_case which, struct nv_gpu_task_init_ctx *ctx,
+      |                                                                 ^
+2 warnings and 9 errors generated.
+make: *** [Makefile:206: .output/revision_init_no_request.bpf.o] Error 1
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/extension'

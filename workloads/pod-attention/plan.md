@@ -10,9 +10,16 @@ all 14 launch-bridge calls and 81,920-byte dynamic-shared-memory requirements
 were checked. Owned loader/segment cleanup and safety passed. The BPF process
 took 269.81 seconds end to end, including initialization and the preflight;
 this is not an isolated startup-cost measurement or operator latency.
-The unchanged runtime passes the full-study preflight check. The five-block,
-ten-shape formal study is next, not yet complete. The performance runtime has
-GPU verification disabled; these results do not establish strict admission.
+The unchanged runtime subsequently completed all five blocks and ten shapes:
+250 operator cells in 25 arm processes. The [full report](results-575-20260903.md)
+and [independent audit](raw-audit.md) reconcile every cell and all 180 paired
+comparisons. All hard full-output FP16 comparisons pass (maximum difference
+0.00006103515625); the separately recorded FP32 threshold exceedances remain
+visible. BPF/CUDA operator latency is 0.51–1.18% higher in nine shapes and
+0.44% lower in Llama / 192. Whole-process median BPF wall time is 295.63 s,
+versus 12.01–14.01 s for the controls, not an isolated startup measurement.
+The performance runtime has GPU verification disabled; these results do not
+establish strict admission or full serving-system reproduction.
 
 The earlier failed/interrupted attempts and the preparation record below are
 retained. Their statements about untested paths describe those earlier stages.

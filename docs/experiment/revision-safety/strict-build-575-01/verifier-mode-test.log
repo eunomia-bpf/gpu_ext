@@ -1,0 +1,23 @@
+Filters: "GPU verifier mode controls attach rejection"
+Randomness seeded to: 2988446076
+[2026-09-03 04:40:31.713] [info] [nv_attach_impl.cpp:356] Starting nv_attach_impl
+[2026-09-03 04:40:31.714] [info] [nv_attach_impl.cpp:590] Parsing bundled libraries: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so:/home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so:/home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-03 04:40:31.714] [info] [nv_attach_impl.cpp:596] Found path: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so, executing..
+[2026-09-03 04:40:31.724] [info] [nv_attach_impl.cpp:625] Retrived config of /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[2026-09-03 04:40:31.724] [info] [nv_attach_impl.cpp:596] Found path: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so, executing..
+[2026-09-03 04:40:31.734] [info] [nv_attach_impl.cpp:625] Retrived config of /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[2026-09-03 04:40:31.734] [info] [nv_attach_impl.cpp:596] Found path: /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so, executing..
+[2026-09-03 04:40:31.742] [info] [nv_attach_impl.cpp:625] Retrived config of /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-03 04:40:31.750] [error] [nv_attach_impl.cpp:242] GPU eBPF verification failed for cuda__verifier_mode_test: 0: invalid helper function id
+ (mode=STRICT, hook_created=0)
+[2026-09-03 04:40:31.750] [warning] [nv_attach_impl.cpp:247] GPU eBPF verification failed for cuda__verifier_mode_test: 0: invalid helper function id
+; continuing
+[2026-09-03 04:40:31.750] [info] [nv_attach_impl.cpp:298] Cached shared_mem_ptr at 7ffde6386d2c
+[2026-09-03 04:40:31.750] [info] [nv_attach_impl.cpp:301] Recorded pass /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so for func verifier_mode_test
+[2026-09-03 04:40:32.019] [info] [nv_attach_impl.cpp:173] nv_attach_impl: last entry detached; disabling CUDA launch replacement
+[2026-09-03 04:40:32.019] [info] [nv_attach_impl.cpp:267] Skipping GPU eBPF verification for cuda__verifier_mode_test
+[2026-09-03 04:40:32.019] [info] [nv_attach_impl.cpp:301] Recorded pass /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so for func verifier_mode_test
+[2026-09-03 04:40:32.019] [info] [nv_attach_impl.cpp:173] nv_attach_impl: last entry detached; disabling CUDA launch replacement
+===============================================================================
+All tests passed (5 assertions in 1 test case)
+

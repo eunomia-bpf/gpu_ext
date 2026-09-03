@@ -1,0 +1,94 @@
+{
+  "complete": true,
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "arm": "pod_inline",
+  "model": "yi-6b",
+  "decode_batch": 192,
+  "seed": 20262096,
+  "phase": "prefill",
+  "comparison": "official FlashAttention vs full-FP32 reference, before this shape tested operator",
+  "scope": "entire prefill output",
+  "output_shape": [
+    1,
+    8192,
+    32,
+    128
+  ],
+  "checked_elements": 33554432,
+  "exceeding_elements": 1,
+  "max_abs_error": 0.0010986328125,
+  "mean_abs_error": 7.56794928052896e-06,
+  "rms_error": 1.3122758763421084e-05,
+  "max_error_coordinate": [
+    0,
+    1,
+    23,
+    19
+  ],
+  "kv_head": 2,
+  "query_index": 1,
+  "query_length": 8192,
+  "valid_kv": 8192,
+  "effective_keys": 2,
+  "causal": true,
+  "head_dim": 128,
+  "scale": 0.08838834764831845,
+  "atol": 0.001,
+  "rtol": 1e-05,
+  "precision": {
+    "actual_fp16": 2.20703125,
+    "reference_fp32": 2.2081298828125,
+    "adjacent_fp16_lower": 2.205078125,
+    "adjacent_fp16_upper": 2.208984375,
+    "nearest_fp16_to_reference": 2.208984375,
+    "actual_is_nearest_fp16": false,
+    "minimum_fp16_absolute_error": 0.0008544921875,
+    "actual_absolute_error": 0.0010986328125,
+    "fixed_allowed_error": 0.001022081298828125,
+    "nearest_fp16_satisfies_fixed_tolerance": true
+  },
+  "arrays": {
+    "q": {
+      "filename": "q.npy",
+      "dtype": "float16",
+      "shape": [
+        128
+      ],
+      "bytes": 384
+    },
+    "k": {
+      "filename": "k.npy",
+      "dtype": "float16",
+      "shape": [
+        2,
+        128
+      ],
+      "bytes": 640
+    },
+    "v": {
+      "filename": "v.npy",
+      "dtype": "float16",
+      "shape": [
+        2,
+        128
+      ],
+      "bytes": 640
+    },
+    "actual": {
+      "filename": "actual.npy",
+      "dtype": "float16",
+      "shape": [
+        128
+      ],
+      "bytes": 384
+    },
+    "fp32_reference": {
+      "filename": "fp32_reference.npy",
+      "dtype": "float32",
+      "shape": [
+        128
+      ],
+      "bytes": 640
+    }
+  }
+}

@@ -22,6 +22,10 @@ safety = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = safety
 SPEC.loader.exec_module(safety)
 
+# libbpf's BPF_PROG_LOAD name field is BPF_OBJ_NAME_LEN (16 bytes including
+# NUL); the ELF function name stays longer. Match the exact recorded ABI name.
+KERNEL_PROGRAM_NAME = "cuda__count_return"[:15]
+
 
 def events(path: Path) -> list[dict]:
     result = []
@@ -50,8 +54,8 @@ def runtime_configuration(build: Path, strict: bool) -> dict[str, str]:
 
 
 def require_strict_verdict(log: str, negative: bool) -> None:
-    accepted = "GPU eBPF verification accepted: mode=STRICT program=cuda__count_return"
-    rejected = "GPU eBPF verification failed for cuda__count_return:"
+    accepted = f"GPU eBPF verification accepted: mode=STRICT program={KERNEL_PROGRAM_NAME}"
+    rejected = f"GPU eBPF verification failed for {KERNEL_PROGRAM_NAME}:"
     if "Skipping GPU eBPF verification" in log or "; continuing" in log:
         raise RuntimeError("verification bypass is not strict evidence")
     if negative:
@@ -63,7 +67,7 @@ def require_strict_verdict(log: str, negative: bool) -> None:
             raise RuntimeError("rejected object was admitted or attached")
     else:
         admission = re.escape(accepted + " attach=kretprobe/_Z9vectorAddPKfS0_Pfi instructions=") + r"[1-9][0-9]*(?=\s|$)"
-        map_record = (r"GPU eBPF verified map: program=cuda__count_return fd=[0-9]+ "
+        map_record = (rf"GPU eBPF verified map: program={re.escape(KERNEL_PROGRAM_NAME)} fd=[0-9]+ "
                       r"type=1502 key_size=4 value_size=8 max_entries=1(?=\s|$)")
         if rejected in log or not re.search(admission, log) or not re.search(map_record, log):
             raise RuntimeError("missing strict admission of the actual return counter and map")

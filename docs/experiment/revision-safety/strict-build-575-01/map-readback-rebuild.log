@@ -1,0 +1,176 @@
+[1/17] Performing build step for 'libbpf'
+  INSTALL  bpf.h libbpf.h btf.h libbpf_common.h libbpf_legacy.h bpf_helpers.h bpf_helper_defs.h bpf_tracing.h bpf_endian.h bpf_core_read.h skel_internal.h libbpf_version.h usdt.bpf.h
+  INSTALL  /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.pc
+  INSTALL  /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.a /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.so /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.so.1 /home/yunwei37/workspace/gpu/bpftime-r5/build-r5-strict-device/libbpf/libbpf/libbpf.so.1.7.0
+[2/17] No install step for 'libbpf'
+[3/17] Completed 'libbpf'
+[4/17] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/platform-impl.cpp.o
+[5/17] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/perf_event_array_kernel_user.cpp.o
+[6/17] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_helper.cpp.o
+[7/17] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/array_map_kernel_user.cpp.o
+[8/17] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/percpu_array_map_kernel_user.cpp.o
+[9/17] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/hash_map_kernel_user.cpp.o
+[10/17] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu_kernel_shared/array_map_kernel_gpu.cpp.o
+[11/17] Building CXX object runtime/syscall-server/CMakeFiles/bpftime-syscall-server.dir/syscall_context.cpp.o
+[12/17] Linking CXX static library bpftime-verifier/libbpftime-verifier.a
+[13/17] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/map_handler.cpp.o
+[14/17] Linking CXX executable attach/nv_attach_impl/test/bpftime_nv_attach_tests
+[15/17] Linking CXX static library runtime/libruntime.a
+[16/17] Linking CXX shared library runtime/syscall-server/libbpftime-syscall-server.so
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/perf_event.h:392:8: warning: type ‘struct perf_event_attr’ violates the C++ One Definition Rule [-Wodr]
+  392 | struct perf_event_attr {
+      |        ^
+/usr/include/linux/perf_event.h:389:8: note: a different type is defined in another translation unit
+  389 | struct perf_event_attr {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/perf_event.h:527:9: note: the first difference of corresponding definitions is field ‘<anonymous>’
+  527 |         union {
+      |         ^
+/usr/include/linux/perf_event.h:514:17: note: a field with different name is defined in another translation unit
+  514 |         __u32   __reserved_3;
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:6652:8: warning: type ‘struct bpf_map_info’ violates the C++ One Definition Rule [-Wodr]
+ 6652 | struct bpf_map_info {
+      |        ^
+/usr/include/linux/bpf.h:6495:8: note: a different type is defined in another translation unit
+ 6495 | struct bpf_map_info {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:6667:15: note: the first difference of corresponding definitions is field ‘btf_vmlinux_id’
+ 6667 |         __u32 btf_vmlinux_id;
+      |               ^
+/usr/include/linux/bpf.h:6510:16: note: a field with different name is defined in another translation unit
+ 6510 |         __u32 :32;      /* alignment pad */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1485:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1485 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/usr/include/linux/bpf.h:1399:16: note: a different type is defined in another translation unit
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1517:25: note: the first difference of corresponding definitions is field ‘value_type_btf_obj_fd’
+ 1517 |                 __s32   value_type_btf_obj_fd;  /* fd pointing to a BTF
+      |                         ^
+/usr/include/linux/bpf.h:1399:16: note: a type with different number of fields is defined in another translation unit
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1554:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1554 |         struct { /* anonymous struct used by BPF_PROG_LOAD command */
+      |                ^
+/usr/include/linux/bpf.h:1456:16: note: a different type is defined in another translation unit
+ 1456 |         struct { /* anonymous struct used by BPF_PROG_LOAD command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1597:33: note: the first difference of corresponding definitions is field ‘prog_token_fd’
+ 1597 |                 __s32           prog_token_fd;
+      |                                 ^
+/usr/include/linux/bpf.h:1456:16: note: a type with different number of fields is defined in another translation unit
+ 1456 |         struct { /* anonymous struct used by BPF_PROG_LOAD command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1663:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1663 |         struct { /* anonymous struct used by BPF_*_GET_*_ID */
+      |                ^
+/usr/include/linux/bpf.h:1551:16: note: a different type is defined in another translation unit
+ 1551 |         struct { /* anonymous struct used by BPF_*_GET_*_ID */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1673:33: note: the first difference of corresponding definitions is field ‘fd_by_id_token_fd’
+ 1673 |                 __s32           fd_by_id_token_fd;
+      |                                 ^
+/usr/include/linux/bpf.h:1551:16: note: a type with different number of fields is defined in another translation unit
+ 1551 |         struct { /* anonymous struct used by BPF_*_GET_*_ID */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1705:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1705 |         struct { /* anonymous struct used by BPF_RAW_TRACEPOINT_OPEN command */
+      |                ^
+/usr/include/linux/bpf.h:1592:16: note: a different type is defined in another translation unit
+ 1592 |         struct { /* anonymous struct used by BPF_RAW_TRACEPOINT_OPEN command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1708:34: note: the first difference of corresponding definitions is field ‘<anonymous>’
+ 1708 |                 __u32           :32;
+      |                                  ^
+/usr/include/linux/bpf.h:1592:16: note: a type with different number of fields is defined in another translation unit
+ 1592 |         struct { /* anonymous struct used by BPF_RAW_TRACEPOINT_OPEN command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1712:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1712 |         struct { /* anonymous struct for BPF_BTF_LOAD */
+      |                ^
+/usr/include/linux/bpf.h:1597:16: note: a different type is defined in another translation unit
+ 1597 |         struct { /* anonymous struct for BPF_BTF_LOAD */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1723:33: note: the first difference of corresponding definitions is field ‘btf_flags’
+ 1723 |                 __u32           btf_flags;
+      |                                 ^
+/usr/include/linux/bpf.h:1597:16: note: a type with different number of fields is defined in another translation unit
+ 1597 |         struct { /* anonymous struct for BPF_BTF_LOAD */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1757:23: warning: type ‘union <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1757 |                 union {
+      |                       ^
+/usr/include/linux/bpf.h:1637:23: note: a different type is defined in another translation unit
+ 1637 |                 union {
+      |                       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1821:27: note: the first difference of corresponding definitions is field ‘cgroup’
+ 1821 |                         } cgroup;
+      |                           ^
+/usr/include/linux/bpf.h:1637:23: note: a type with different number of fields is defined in another translation unit
+ 1637 |                 union {
+      |                       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1746:16: warning: type ‘struct <anon>’ violates the C++ One Definition Rule [-Wodr]
+ 1746 |         struct { /* struct used by BPF_LINK_CREATE command */
+      |                ^
+/usr/include/linux/bpf.h:1626:16: note: a different type is defined in another translation unit
+ 1626 |         struct { /* struct used by BPF_LINK_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1757:17: note: the first difference of corresponding definitions is field ‘<anonymous>’
+ 1757 |                 union {
+      |                 ^
+/usr/include/linux/bpf.h:1637:17: note: a field of same name but different type is defined in another translation unit
+ 1637 |                 union {
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1757:23: note: type ‘union <anon>’ itself violates the C++ One Definition Rule
+ 1757 |                 union {
+      |                       ^
+/usr/include/linux/bpf.h:1637:23: note: the incompatible type is defined here
+ 1637 |                 union {
+      |                       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1484:7: warning: type ‘union bpf_attr’ violates the C++ One Definition Rule [-Wodr]
+ 1484 | union bpf_attr {
+      |       ^
+/usr/include/linux/bpf.h:1398:7: note: a different type is defined in another translation unit
+ 1398 | union bpf_attr {
+      |       ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1485:9: note: the first difference of corresponding definitions is field ‘<anonymous>’
+ 1485 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |         ^
+/usr/include/linux/bpf.h:1399:9: note: a field of same name but different type is defined in another translation unit
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |         ^
+/home/yunwei37/workspace/gpu/bpftime-r5/runtime/syscall-server/../../third_party/libbpf/include/uapi/linux/bpf.h:1485:16: note: type ‘struct <anon>’ itself violates the C++ One Definition Rule
+ 1485 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/usr/include/linux/bpf.h:1399:16: note: the incompatible type is defined here
+ 1399 |         struct { /* anonymous struct used by BPF_MAP_CREATE command */
+      |                ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:22:8: warning: type ‘struct ebpf_inst’ violates the C++ One Definition Rule [-Wodr]
+   22 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/src/ebpf_vm_isa.hpp:12:8: note: a different type is defined in another translation unit
+   12 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:23:17: note: the first difference of corresponding definitions is field ‘code’
+   23 |         uint8_t code; /* opcode */
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/bpftime-verifier/ebpf-verifier/src/ebpf_vm_isa.hpp:13:18: note: a field with different name is defined in another translation unit
+   13 |     std::uint8_t opcode;
+      |                  ^
+[17/17] Linking CXX shared library runtime/agent/libbpftime-agent.so
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/llvm-jit/src/ebpf_inst.h:27:8: warning: type ‘struct ebpf_inst’ violates the C++ One Definition Rule [-Wodr]
+   27 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:22:8: note: a different type is defined in another translation unit
+   22 | struct ebpf_inst {
+      |        ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/llvm-jit/src/ebpf_inst.h:28:17: note: the first difference of corresponding definitions is field ‘opcode’
+   28 |         uint8_t opcode;
+      |                 ^
+/home/yunwei37/workspace/gpu/bpftime-r5/vm/compat/include/ebpf_inst.h:23:17: note: a field with different name is defined in another translation unit
+   23 |         uint8_t code; /* opcode */
+      |                 ^

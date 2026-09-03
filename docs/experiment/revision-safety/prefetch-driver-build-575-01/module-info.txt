@@ -1,0 +1,61 @@
+filename:       /home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia-uvm.ko
+version:        575.57.08
+supported:      external
+license:        Dual MIT/GPL
+depends:        nvidia
+name:           nvidia_uvm
+retpoline:      Y
+vermagic:       6.15.11-061511-generic SMP preempt mod_unload modversions
+parm:           uvm_conf_computing_channel_iv_rotation_limit:ulong
+parm:           uvm_ats_mode:Set to 0 to disable ATS (Address Translation Services). Any other value is ignored. Has no effect unless the platform supports ATS. (int)
+parm:           uvm_perf_prefetch_enable:uint
+parm:           uvm_perf_prefetch_threshold:uint
+parm:           uvm_perf_prefetch_min_faults:uint
+parm:           uvm_perf_thrashing_enable:uint
+parm:           uvm_perf_thrashing_threshold:uint
+parm:           uvm_perf_thrashing_pin_threshold:uint
+parm:           uvm_perf_thrashing_lapse_usec:uint
+parm:           uvm_perf_thrashing_nap:uint
+parm:           uvm_perf_thrashing_epoch:uint
+parm:           uvm_perf_thrashing_pin:uint
+parm:           uvm_perf_thrashing_max_resets:uint
+parm:           uvm_perf_map_remote_on_native_atomics_fault:uint
+parm:           uvm_disable_hmm:Force-disable HMM functionality in the UVM driver. Default: false (HMM is enabled if possible). However, even with uvm_disable_hmm=false, HMM will not be enabled if is not supported in this driver build configuration, or if ATS settings conflict with HMM. (bool)
+parm:           uvm_perf_migrate_cpu_preunmap_enable:int
+parm:           uvm_perf_migrate_cpu_preunmap_block_order:uint
+parm:           uvm_global_oversubscription:Enable (1) or disable (0) global oversubscription support. (int)
+parm:           uvm_perf_pma_batch_nonpinned_order:uint
+parm:           uvm_cpu_chunk_allocation_sizes:OR'ed value of all CPU chunk allocation sizes. (uint)
+parm:           uvm_leak_checker:Enable uvm memory leak checking. 0 = disabled, 1 = count total bytes allocated and freed, 2 = per-allocation origin tracking. (int)
+parm:           uvm_force_prefetch_fault_support:uint
+parm:           uvm_debug_enable_push_desc:Enable push description tracking (uint)
+parm:           uvm_debug_enable_push_acquire_info:Enable push acquire information tracking (uint)
+parm:           uvm_page_table_location:Set the location for UVM-allocated page tables. Choices are: vid, sys. (charp)
+parm:           uvm_perf_access_counter_migration_enable:Whether access counters will trigger migrations.Valid values: <= -1 (default policy), 0 (off), >= 1 (on) (int)
+parm:           uvm_perf_access_counter_batch_count:uint
+parm:           uvm_perf_access_counter_threshold:Number of remote accesses on a region required to trigger a notification.Valid values: [1, 65535] (uint)
+parm:           uvm_perf_reenable_prefetch_faults_lapse_msec:uint
+parm:           uvm_perf_fault_batch_count:uint
+parm:           uvm_perf_fault_replay_policy:uint
+parm:           uvm_perf_fault_replay_update_put_ratio:uint
+parm:           uvm_perf_fault_max_batches_per_service:uint
+parm:           uvm_perf_fault_max_throttle_per_service:uint
+parm:           uvm_perf_fault_coalesce:uint
+parm:           uvm_fault_force_sysmem:Force (1) using sysmem storage for pages that faulted. Default: 0. (int)
+parm:           uvm_perf_map_remote_on_eviction:int
+parm:           uvm_block_cpu_to_cpu_copy_with_ce:Use GPU CEs for CPU-to-CPU migrations. (int)
+parm:           uvm_exp_gpu_cache_peermem:Force caching for mappings to peer memory. This is an experimental parameter that may cause correctness issues if used. (uint)
+parm:           uvm_exp_gpu_cache_sysmem:Force caching for mappings to system memory. This is an experimental parameter that may cause correctness issues if used. (uint)
+parm:           uvm_downgrade_force_membar_sys:Force all TLB invalidation downgrades to use MEMBAR_SYS (uint)
+parm:           uvm_channel_num_gpfifo_entries:uint
+parm:           uvm_channel_gpfifo_loc:charp
+parm:           uvm_channel_gpput_loc:charp
+parm:           uvm_channel_pushbuffer_loc:charp
+parm:           uvm_enable_va_space_mm:Set to 0 to disable UVM from using mmu_notifiers to create an association between a UVM VA space and a process. This will also disable pageable memory access via either ATS or HMM. (int)
+parm:           uvm_enable_debug_procfs:Enable debug procfs entries in /proc/driver/nvidia-uvm (int)
+parm:           uvm_peer_copy:Choose the addressing mode for peer copying, options: phys [default] or virt. Valid for Ampere+ GPUs. (charp)
+parm:           uvm_debug_prints:Enable uvm debug prints. (int)
+parm:           uvm_enable_builtin_tests:Enable the UVM built-in tests. (This is a security risk) (int)
+parm:           uvm_release_asserts:Enable uvm asserts included in release builds. (int)
+parm:           uvm_release_asserts_dump_stack:dump_stack() on failed UVM release asserts. (int)
+parm:           uvm_release_asserts_set_global_error:Set UVM global fatal error on failed release asserts. (int)

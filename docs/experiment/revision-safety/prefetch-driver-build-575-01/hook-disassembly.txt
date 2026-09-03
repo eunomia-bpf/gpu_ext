@@ -1,0 +1,25 @@
+
+kernel-open/nvidia-uvm.ko:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+00000000000062b0 <uvm_bpf_prefetch_diagnostic>:
+    62b0:	e8 00 00 00 00       	call   62b5 <uvm_bpf_prefetch_diagnostic+0x5>
+			62b1: R_X86_64_PLT32	__fentry__-0x4
+    62b5:	55                   	push   %rbp
+    62b6:	48 89 e5             	mov    %rsp,%rbp
+    62b9:	48 85 ff             	test   %rdi,%rdi
+    62bc:	74 00                	je     62be <uvm_bpf_prefetch_diagnostic+0xe>
+    62be:	5d                   	pop    %rbp
+    62bf:	31 ff                	xor    %edi,%edi
+    62c1:	e9 00 00 00 00       	jmp    62c6 <uvm_bpf_prefetch_diagnostic+0x16>
+			62c2: R_X86_64_PLT32	__x86_return_thunk-0x4
+
+Disassembly of section .altinstr_replacement:
+
+Disassembly of section .text.unlikely:
+
+Disassembly of section .exit.text:
+
+Disassembly of section .init.text:

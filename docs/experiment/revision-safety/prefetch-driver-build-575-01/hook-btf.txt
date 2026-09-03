@@ -1,0 +1,71 @@
+2781-[887] TYPEDEF 'nv_gpu_pmm_snapshot_t' type_id=886
+2782-[888] STRUCT 'uvm_bpf_prefetch_decision' size=24 vlen=1
+2783-	'request' type_id=883 bits_offset=0
+2784-[889] TYPEDEF 'uvm_bpf_prefetch_decision_t' type_id=888
+2785:[890] STRUCT 'uvm_bpf_prefetch_diagnostic_ctx' size=88 vlen=14
+2786-	'raw_action' type_id=879 bits_offset=0
+2787-	'requested_first' type_id=62 bits_offset=64
+2788-	'requested_outer' type_id=62 bits_offset=128
+2789-	'max_first' type_id=62 bits_offset=192
+2790-	'max_outer' type_id=62 bits_offset=256
+2791-	'output_first' type_id=62 bits_offset=320
+2792-	'output_outer' type_id=62 bits_offset=384
+2793-	'phase' type_id=61 bits_offset=448
+2794-	'request_attempted' type_id=61 bits_offset=480
+2795-	'request_conflict' type_id=61 bits_offset=512
+2796-	'initial_region_result' type_id=61 bits_offset=544
+2797-	'initial_effect' type_id=61 bits_offset=576
+2798-	'native_iterations' type_id=61 bits_offset=608
+2799-	'native_completed' type_id=61 bits_offset=640
+2800-[891] CONST '(anon)' type_id=890
+2801-[892] STRUCT 'uvm_bpf_pmm_decision_ctx' size=72 vlen=4
+2802-	'pmm' type_id=893 bits_offset=0
+2803-	'root_chunk' type_id=551 bits_offset=64
+--
+5686-[2095] STRUCT '(anon)' size=16 vlen=2
+5687-	'first' type_id=62 bits_offset=0
+5688-	'outer' type_id=62 bits_offset=64
+5689-[2096] TYPEDEF 'nv_gpu_transition_region_t' type_id=2095
+5690:[2097] ENUM 'uvm_bpf_prefetch_diagnostic_phase' encoding=UNSIGNED size=4 vlen=2
+5691-	'UVM_BPF_PREFETCH_DIAG_SELECTED' val=1
+5692-	'UVM_BPF_PREFETCH_DIAG_FINISHED' val=2
+5693-[2098] PTR '(anon)' type_id=2086
+5694-[2099] PTR '(anon)' type_id=2088
+5695-[2100] PTR '(anon)' type_id=2091
+5696-[2101] PTR '(anon)' type_id=2090
+5697-[2102] PTR '(anon)' type_id=2096
+5698-[2103] PTR '(anon)' type_id=2094
+5699-[2104] ARRAY '(anon)' type_id=5463 index_type_id=8 nr_elems=150
+5700-[2105] CONST '(anon)' type_id=2104
+5701-[2106] ENUM '(anon)' encoding=UNSIGNED size=4 vlen=3
+5702-	'UVM_ATS_SERVICE_TYPE_FAULTS' val=0
+5703-	'UVM_ATS_SERVICE_TYPE_ACCESS_COUNTERS' val=1
+5704-	'UVM_ATS_SERVICE_TYPE_COUNT' val=2
+5705-[2107] TYPEDEF 'uvm_ats_service_type_t' type_id=2106
+5706-[2108] PTR '(anon)' type_id=764
+5707-[2109] ENUM 'UvmCslOperation' encoding=UNSIGNED size=4 vlen=2
+5708-	'UVM_CSL_OPERATION_ENCRYPT' val=0
+--
+8795-	'decision' type_id=913
+8796-[3545] FUNC 'uvm_bpf_call_gpu_page_prefetch_iter' type_id=3544 linkage=static
+8797-[3546] FUNC_PROTO '(anon)' ret_type_id=0 vlen=1
+8798-	'ctx' type_id=914
+8799:[3547] FUNC 'uvm_bpf_prefetch_diagnostic' type_id=3546 linkage=static
+8800-[3548] FUNC 'uvm_bpf_struct_ops_exit' type_id=5503 linkage=static
+8801-[3549] FUNC 'uvm_bpf_struct_ops_init' type_id=5502 linkage=static
+8802-[3550] FUNC_PROTO '(anon)' ret_type_id=408 vlen=2
+8803-	'manager' type_id=453
+8804-	'pool_type_mask' type_id=61
+8805-[3551] FUNC 'uvm_channel_any_of_type' type_id=3550 linkage=static
+8806-[3552] FUNC_PROTO '(anon)' ret_type_id=63 vlen=2
+8807-	'channel' type_id=408
+8808-	'push' type_id=450
+8809-[3553] FUNC 'uvm_channel_begin_push' type_id=3552 linkage=static
+8810-[3554] FUNC_PROTO '(anon)' ret_type_id=63 vlen=1
+8811-	'channel' type_id=408
+8812-[3555] FUNC 'uvm_channel_check_errors' type_id=3554 linkage=static
+8813-[3556] FUNC 'uvm_channel_end_push' type_id=2787 linkage=static
+8814-[3557] FUNC_PROTO '(anon)' ret_type_id=61 vlen=1
+8815-	'channel' type_id=408
+8816-[3558] FUNC 'uvm_channel_get_available_gpfifo_entries' type_id=3557 linkage=static
+8817-[3559] FUNC_PROTO '(anon)' ret_type_id=481 vlen=1

@@ -34,6 +34,7 @@ struct pending_alloc {
 	__u64 nvos21_ptr;
 	__u32 hRoot;
 	__u32 engine_type;
+	__u32 status_offset;
 	__u64 tsg_id;
 	__u8 has_engine;
 };
@@ -314,6 +315,7 @@ int capture_ioctl_entry(struct pt_regs *ctx)
 	unsigned int cmd = (unsigned int)PT_REGS_PARM2(ctx);
 	unsigned long i_arg = PT_REGS_PARM3(ctx);
 	unsigned int nr = cmd & 0xFF;
+	__u32 size = (cmd >> 16) & 0x3fff;
 	__u64 nvos21_ptr = 0;
 	__u32 hClass = 0;
 	__u32 hRoot = 0;
@@ -323,23 +325,24 @@ int capture_ioctl_entry(struct pt_regs *ctx)
 	if (nr == NV_ESC_IOCTL_XFER_NR) {
 		__u32 inner_cmd = 0;
 
-		bpf_probe_read_user(&inner_cmd, sizeof(inner_cmd), (void *)i_arg);
-		if (inner_cmd != NV_ESC_RM_ALLOC)
+		if (size != 16 || bpf_probe_read_user(&inner_cmd, sizeof(inner_cmd), (void *)i_arg) ||
+		    bpf_probe_read_user(&size, sizeof(size), (void *)(i_arg + 4)) ||
+		    inner_cmd != NV_ESC_RM_ALLOC)
 			return 0;
 
-		bpf_probe_read_user(&nvos21_ptr, sizeof(nvos21_ptr),
-				    (void *)(i_arg + 8));
+		if (bpf_probe_read_user(&nvos21_ptr, sizeof(nvos21_ptr), (void *)(i_arg + 8)))
+			return 0;
 	} else if (nr == NV_ESC_RM_ALLOC) {
 		nvos21_ptr = i_arg;
 	} else {
 		return 0;
 	}
 
-	if (!nvos21_ptr)
+	if (!nvos21_ptr || (size != 32 && size != 48))
 		return 0;
 
-	bpf_probe_read_user(&hClass, sizeof(hClass), (void *)(nvos21_ptr + 12));
-	if (hClass != TSG_CLASS_A06C)
+	if (bpf_probe_read_user(&hClass, sizeof(hClass), (void *)(nvos21_ptr + 12)) ||
+	    hClass != TSG_CLASS_A06C)
 		return 0;
 
 	if (!current_comm_matches_be()) {
@@ -347,10 +350,12 @@ int capture_ioctl_entry(struct pt_regs *ctx)
 		return 0;
 	}
 
-	bpf_probe_read_user(&hRoot, sizeof(hRoot), (void *)nvos21_ptr);
+	if (bpf_probe_read_user(&hRoot, sizeof(hRoot), (void *)nvos21_ptr) || !hRoot)
+		return 0;
 
 	pa.nvos21_ptr = nvos21_ptr;
 	pa.hRoot = hRoot;
+	pa.status_offset = size == 32 ? 28 : 40;
 	pa.has_engine = 0;
 
 	bpf_map_update_elem(&pending_map, &pid_tgid, &pa, BPF_ANY);
@@ -368,9 +373,9 @@ int capture_engine_type(struct pt_regs *ctx)
 		return 0;
 
 	init_ctx = (void *)PT_REGS_PARM1(ctx);
-	bpf_probe_read_kernel(&pa->tsg_id, sizeof(pa->tsg_id), init_ctx);
-	bpf_probe_read_kernel(&pa->engine_type, sizeof(pa->engine_type),
-			      init_ctx + 8);
+	if (bpf_probe_read_kernel(&pa->tsg_id, sizeof(pa->tsg_id), init_ctx) ||
+	    bpf_probe_read_kernel(&pa->engine_type, sizeof(pa->engine_type), init_ctx + 8))
+		return 0;
 	pa->has_engine = 1;
 
 	return 0;
@@ -386,6 +391,7 @@ int capture_ioctl_exit(struct pt_regs *ctx)
 	__u32 engine_type;
 	__u8 has_engine;
 	__u32 hObjectNew = 0;
+	__u32 status_offset, nvstatus = ~0U;
 
 	if (!pa)
 		return 0;
@@ -394,15 +400,16 @@ int capture_ioctl_exit(struct pt_regs *ctx)
 	hRoot = pa->hRoot;
 	engine_type = pa->engine_type;
 	has_engine = pa->has_engine;
+	status_offset = pa->status_offset;
 
 	bpf_map_delete_elem(&pending_map, &pid_tgid);
 
-	bpf_probe_read_user(&hObjectNew, sizeof(hObjectNew),
-			    (void *)(nvos21_ptr + 8));
-	if (hObjectNew == 0)
+	if (PT_REGS_RC(ctx) != 0 ||
+	    bpf_probe_read_user(&nvstatus, sizeof(nvstatus), (void *)(nvos21_ptr + status_offset)) || nvstatus ||
+	    bpf_probe_read_user(&hObjectNew, sizeof(hObjectNew), (void *)(nvos21_ptr + 8)) || !hObjectNew)
 		return 0;
 
-	if (!has_engine || engine_type != 1) {
+	if (!has_engine || engine_type < 1 || engine_type > 8) {
 		inc_stat(STAT_TSG_FILTERED);
 		return 0;
 	}

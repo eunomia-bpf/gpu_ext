@@ -168,7 +168,8 @@ def run_checked(
     return result.stdout.strip()
 
 
-def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False) -> dict[str, Any]:
+def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False,
+                 *, paper_activation: bool = False) -> dict[str, Any]:
     actual = run_checked(["git", "rev-parse", "HEAD"], repo)
     if actual != expected:
         raise GateError(f"{repo}: expected commit {expected}, found {actual}")
@@ -184,17 +185,21 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False)
             "M core/python/py_archer_prefetch.cpp",
             "?? moe_infinity/entrypoints/openai/revision_server.py",
         }
+        if paper_activation:
+            expected_status.update({"M moe_infinity/distributed/expert_executor.py",
+                                    "?? core/parallel/revision_fetch_queue.h"})
         normalized_status = {line.lstrip() for line in status}
         if normalized_status != expected_status:
             raise GateError(
                 f"{repo}: repaired source file set mismatch: expected "
                 f"{sorted(expected_status)}, found {sorted(normalized_status)}"
             )
-        for patch_name in (
+        patches = ("paper-activation.patch",) if paper_activation else (
             "instrumentation.patch",
             "row-chunking.patch",
             "deterministic-accumulation.patch",
-        ):
+        )
+        for patch_name in patches:
             patch = HERE / patch_name
             run_checked(
                 [

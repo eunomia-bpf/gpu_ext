@@ -1,5 +1,6 @@
 """Synthetic CPU-only audit fixtures; no attention workload or GPU is executed."""
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
@@ -21,7 +22,15 @@ def fixture(root):
     campaign, preflight = root / 'full', root / 'preflight'
     campaign.mkdir()
     preflight.mkdir()
-    runtime = {'fixture-runtime': {'bytes': 1, 'mtime_ns': 2}}
+    extraction = Path('/fixture/ptx')
+    runtime_paths = [run.HERE / name for name in ('bench.py', 'run_study.py', 'build/pod-loader',
+        'build/selector.bpf.o', 'build/selector.bin', 'build/libpod_ptx_adapter.so',
+        'build/libpod_launch_bridge.so', 'build/python/fused_attn.cpython-312-x86_64-linux-gnu.so',
+        'build/python/flash_attn_og.cpython-312-x86_64-linux-gnu.so')]
+    runtime_paths += [run.AGENT, run.SERVER, extraction / 'inventory.json', extraction / 'exact-kernels.txt']
+    runtime_paths += [extraction / 'device' / f'packet-{i}.ptx' for i in range(6)]
+    # These are recorded-path fixtures only: no live binary is read or built.
+    runtime = {str(path): {'bytes': 1, 'mtime_ns': 2} for path in runtime_paths}
     write(preflight / 'manifest.json', dict(complete=True, mode='preflight', numeric_protocol=bench.NUMERIC_PROTOCOL,
         order=run.orders('preflight'), runtime=runtime))
     for item in run.orders('preflight'):
@@ -34,7 +43,7 @@ def fixture(root):
     write(campaign / 'manifest.json', dict(complete=True, mode='full', excluded_from_formal=False,
         numeric_protocol=bench.NUMERIC_PROTOCOL, order=order, completed=order, seed=20260903,
         lease_paths=['/tmp/gpubpf-revision-gpu0.lock', '/tmp/gpubpf-revision-struct-ops.lock'],
-        runtime=runtime, preflight=str(preflight)))
+        runtime=runtime, preflight=str(preflight), ptx=str(extraction)))
     for number, item in enumerate(order):
         arm, block = item['arm'], item['block']
         directory = campaign / f'block-{block:02d}-{arm}'
@@ -57,7 +66,7 @@ def fixture(root):
         name = f'pod_attention_123_{number}' if arm == 'pod_bpf' else None
         execution = dict(status='passed', numeric_protocol=bench.NUMERIC_PROTOCOL, arm=arm, block=block,
             returncode=0, runtime_before=runtime, runtime_after=runtime, private_segment=name,
-            command=['taskset', '-c', '8-15', '/fixture/python', '/fixture/bench.py', '--arm', arm,
+            command=['taskset', '-c', '8-15', str(run.PYTHON), str(run.HERE / 'bench.py'), '--arm', arm,
                      '--block', str(block), '--output', str(directory / 'operator.json')],
             environment=run.environment(arm, Path('/fixture/ptx'), name),
             safety_before={'timestamp_ns': 1000 + 100 * number, 'gpu': {'driver': '575.57.08'}},
@@ -70,7 +79,8 @@ def fixture(root):
         if arm == 'pod_bpf':
             execution.update(private_segment_removed=True,
                 loader_environment=run.environment(arm, Path('/fixture/ptx'), name, True),
-                loader_command=['/fixture/pod-loader', '/fixture/selector.bpf.o', '/fixture/exact-kernels.txt'])
+                loader_command=[str(run.HERE / 'build/pod-loader'), str(run.HERE / 'build/selector.bpf.o'),
+                                str(extraction / 'exact-kernels.txt')])
             (directory / 'loader.log').write_text('POD_LOADER_READY kernels=6\nPOD_LOADER_CLOSED\n')
         write(directory / 'execution.json', execution)
         (directory / 'gpu-telemetry.csv').write_text('synthetic CPU fixture, not telemetry\n')
@@ -99,13 +109,31 @@ class AuditTests(unittest.TestCase):
         self.assertTrue(result['formal_complete'])
         self.assertEqual(result['operator_cells'], 250)
         self.assertEqual(result['raw_cuda_event_observations'], 25000)
+        self.assertEqual(result['raw_host_wall_observations'], 25000)
         self.assertEqual(len(result['fp32_characterizations']), 250)
         self.assertEqual(len(result['results']), 10)
+        self.assertIn('Python path follows the recorded workload layout but its binary/version was not inventoried', result['audit_scope'])
         ratio = result['results'][0]['comparisons']['device_bpf_vs_original_inline']
         self.assertAlmostEqual(ratio['geometric_mean_ratio'], 3.2 / 3.0)
         for value in ratio['confidence_interval_95']:
             self.assertAlmostEqual(value, 3.2 / 3.0)
         self.assertTrue(ratio['lower_is_better'])
+        shape = result['results'][0]
+        expected_wall = {arm: [value * (1 + block / 100) + 1 for block in range(1, 6)]
+                         for arm, value in VALUES.items()}
+        self.assertEqual(set(shape['cell_mean_host_wall_ms']), set(expected_wall))
+        for arm, values in expected_wall.items():
+            for actual, expected in zip(shape['cell_mean_host_wall_ms'][arm], values):
+                self.assertAlmostEqual(actual, expected)
+            self.assertAlmostEqual(shape['mean_of_five_cell_means_host_wall_ms'][arm], sum(values) / 5)
+        wall_ratio = shape['host_wall_comparisons']['device_bpf_vs_original_inline']
+        expected_ratios = [a / b for a, b in zip(expected_wall['pod_bpf'], expected_wall['pod_inline'])]
+        for actual, expected in zip(wall_ratio['block_ratios'], expected_ratios):
+            self.assertAlmostEqual(actual, expected)
+        self.assertAlmostEqual(wall_ratio['geometric_mean_ratio'], math.exp(sum(math.log(x) for x in expected_ratios) / 5))
+        self.assertLess(wall_ratio['geometric_mean_ratio'], ratio['geometric_mean_ratio'])
+        self.assertEqual(wall_ratio['blocks'], 5)
+        self.assertTrue(wall_ratio['lower_is_better'])
 
     def test_reject_preflight_old_protocol_and_failed_campaign(self):
         path = self.campaign / 'manifest.json'
@@ -131,12 +159,27 @@ class AuditTests(unittest.TestCase):
     def test_does_not_trust_producer_mean_or_drop_bad_sample(self):
         path = self.first()
         original = audit.read_json(path)
-        for field, value in (('mean_cuda_ms', .01), ('samples', original['cells'][0]['samples'][:-1])):
+        for field, value in (('mean_cuda_ms', .01), ('mean_host_wall_ms', .01),
+                             ('samples', original['cells'][0]['samples'][:-1])):
             report = json.loads(json.dumps(original))
             report['cells'][0][field] = value
             write(path, report)
             with self.assertRaises(ValueError):
                 audit.audit_campaign(self.campaign)
+
+    def test_reject_missing_or_nonpositive_host_wall_observation(self):
+        path = self.first()
+        original = audit.read_json(path)
+        for value in (None, 0, -1, float('nan'), float('inf')):
+            with self.subTest(value=value):
+                report = json.loads(json.dumps(original))
+                if value is None:
+                    del report['cells'][0]['samples'][0]['host_wall_ms']
+                else:
+                    report['cells'][0]['samples'][0]['host_wall_ms'] = value
+                write(path, report)
+                with self.assertRaises((KeyError, ValueError)):
+                    audit.audit_campaign(self.campaign)
 
     def test_reaudits_recorded_preflight(self):
         preflight = Path(audit.read_json(self.campaign / 'manifest.json')['preflight'])
@@ -169,6 +212,81 @@ class AuditTests(unittest.TestCase):
             write(path, value)
             with self.assertRaises(ValueError):
                 audit.audit_campaign(self.campaign)
+
+    def test_reject_same_basename_uninventoried_runtime_paths(self):
+        path = self.campaign / 'block-01-pod_bpf/execution.json'
+        original = audit.read_json(path)
+        for defect in ('python', 'bench', 'agent', 'bridge', 'adapter', 'ptx',
+                       'loader', 'selector', 'exact kernels', 'server'):
+            with self.subTest(defect=defect):
+                value = json.loads(json.dumps(original))
+                if defect in ('python', 'bench'):
+                    index = 5 if defect == 'python' else 6
+                    value['command'][index] = '/unrecorded/' + Path(value['command'][index]).name
+                elif defect in ('agent', 'bridge'):
+                    libraries = value['environment']['LD_PRELOAD'].split(':')
+                    index = 1 if defect == 'agent' else 0
+                    libraries[index] = '/unrecorded/' + Path(libraries[index]).name
+                    value['environment']['LD_PRELOAD'] = ':'.join(libraries)
+                    value['command'][4] = 'LD_PRELOAD=' + value['environment']['LD_PRELOAD']
+                elif defect in ('adapter', 'ptx'):
+                    key = 'BPFTIME_PTXPASS_LIBRARIES' if defect == 'adapter' else 'BPFTIME_CUDA_LATE_PTX_DIR'
+                    value['environment'][key] = '/unrecorded/' + Path(value['environment'][key]).name
+                    value['launch_environment'][key] = value['environment'][key]
+                elif defect == 'server':
+                    value['loader_environment']['LD_PRELOAD'] = '/unrecorded/libbpftime-syscall-server.so'
+                else:
+                    index = {'loader': 0, 'selector': 1, 'exact kernels': 2}[defect]
+                    value['loader_command'][index] = '/unrecorded/' + Path(value['loader_command'][index]).name
+                write(path, value)
+                with self.assertRaises(ValueError):
+                    audit.audit_campaign(self.campaign)
+
+    def test_reject_missing_inventory_path_or_wrong_recorded_ptx(self):
+        path = self.campaign / 'manifest.json'
+        original = audit.read_json(path)
+        for defect in ('bridge', 'packet', 'ptx'):
+            with self.subTest(defect=defect):
+                value = json.loads(json.dumps(original))
+                if defect == 'ptx':
+                    value['ptx'] = '/unrecorded/ptx'
+                else:
+                    name = 'libpod_launch_bridge.so' if defect == 'bridge' else 'packet-0.ptx'
+                    del value['runtime'][next(p for p in value['runtime'] if Path(p).name == name)]
+                write(path, value)
+                with self.assertRaises(ValueError):
+                    audit.audit_campaign(self.campaign)
+
+    def test_relocated_complete_archive_uses_local_preflight(self):
+        original = audit.read_json(self.campaign / 'manifest.json')
+        relocated = Path(self.directory.name) / 'relocated'
+        relocated.mkdir()
+        old_preflight = Path(original['preflight'])
+        old_preflight.rename(relocated / old_preflight.name)
+        self.campaign.rename(relocated / self.campaign.name)
+        self.campaign = relocated / self.campaign.name
+        with patch.object(run, 'file_inventory', side_effect=AssertionError('must not read current binaries')):
+            audit.audit_campaign(self.campaign)
+        self.assertFalse(old_preflight.exists())
+        self.assertEqual(audit.read_json(self.campaign / 'manifest.json'), original)
+
+    def test_preflight_fallback_only_when_local_copy_is_absent(self):
+        original = audit.read_json(self.campaign / 'manifest.json')
+        relocated = Path(self.directory.name) / 'relocated'
+        relocated.mkdir()
+        self.campaign.rename(relocated / self.campaign.name)
+        self.campaign = relocated / self.campaign.name
+        # Full-only relocation can still use the recorded original preflight.
+        audit.audit_campaign(self.campaign)
+        local = relocated / Path(original['preflight']).name
+        local.mkdir()
+        # A present incomplete copy must not be hidden by the valid original.
+        with self.assertRaises(FileNotFoundError):
+            audit.audit_campaign(self.campaign)
+        original_preflight = audit.read_json(Path(original['preflight']) / 'manifest.json')
+        write(local / 'manifest.json', {**original_preflight, 'complete': False})
+        with self.assertRaises(ValueError):
+            audit.audit_campaign(self.campaign)
 
     def test_reject_overlapping_and_nonpositive_cell_windows(self):
         first, second = run.orders('full')[:2]

@@ -7,8 +7,9 @@ successfully. Every arm matched the original FP16 operator with maximum
 absolute difference zero. The BPF arm actually used device engine 2 for all
 3,328 CTA choices, covering 2,048 prefill and 1,280 decode slots exactly once;
 all 14 launch-bridge calls and 81,920-byte dynamic-shared-memory requirements
-were checked. Owned loader/segment cleanup and safety passed. Initialization
-took 269.81 seconds for the BPF process; it is excluded from operator timing.
+were checked. Owned loader/segment cleanup and safety passed. The BPF process
+took 269.81 seconds end to end, including initialization and the preflight;
+this is not an isolated startup-cost measurement or operator latency.
 The unchanged runtime passes the full-study preflight check. The five-block,
 ten-shape formal study is next, not yet complete. The performance runtime has
 GPU verification disabled; these results do not establish strict admission.

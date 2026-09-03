@@ -8,7 +8,7 @@ worktree creation was performed. Root reviewed the scoped changes, independently
 reran all 11 Python tests, and committed/pushed the R5 changes as `b4b0ba8` on
 `revision/r5-safety-evidence`. This extends the existing
 [Q2 safety work](../../revision-safety-design.md), not the performance
-protocol. HB retains exclusive use of the GPU; the commands below await the
+protocol. The current performance campaign retains exclusive use of the GPU; the commands below await the
 root agent's GPU/build queue slot.
 
 The R5 edits start from commit `36610ee` on the existing branch
@@ -153,25 +153,29 @@ suite as a substitute. The same program/device condition is established by the
 real strict attach call verifying the exact instruction vector that the
 hook stores, rather than by equating a hand-written CPU fixture with an ELF.
 
-Once HB is finished and the existing exclusive leases and safety checks pass,
+Once the current GPU campaign is finished and the existing exclusive leases and safety checks pass,
 run one finite positive/negative pair, each with fresh processes and private
 shared memory:
 
 The following commands are prepared, **not executed**. Run from
-`/home/yunwei37/workspace/gpu/gpu_ext`, after HB and root review, using a new
+`/home/yunwei37/workspace/gpu/gpu_ext`, after the current GPU campaign and root review, using a new
 output directory for every attempt. No install or performance-runtime
 replacement is involved:
 
 ```bash
 taskset -c 17 cmake -S ../bpftime-r5 -B ../bpftime-r5/build-r5-strict-device -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DBPFTIME_ENABLE_UNIT_TESTING=ON \
+  -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++ \
+  -DCMAKE_EXE_LINKER_FLAGS=-Wl,--build-id=none -DLLVM_DIR=/usr/lib/llvm-15/cmake \
   -DENABLE_EBPF_VERIFIER=ON -DBPFTIME_ENABLE_CUDA_ATTACH=ON \
-  -DBPFTIME_LLVM_JIT=ON -DBPFTIME_CUDA_ROOT=/usr/local/cuda-12.9 \
+  -DBPFTIME_LLVM_JIT=ON -DBPFTIME_CUDA_ROOT:PATH=/usr/local/cuda-12.9 \
   -DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG \
   -DFETCHCONTENT_SOURCE_DIR_CATCH2=/home/yunwei37/workspace/gpu/bpftime-r5/third_party/Catch2
 taskset -c 17 cmake --build ../bpftime-r5/build-r5-strict-device --parallel 1 \
   --target bpftime-agent bpftime-syscall-server bpftime_verifier_tests bpftime_nv_attach_tests
-taskset -c 17 make -C workloads/bpftime-device-smoke strict
+taskset -c 17 make -C workloads/bpftime-device-smoke strict \
+  CC='/usr/bin/cc -I../../../bpftime-r5/build-r5-v2/libbpf' \
+  INCLUDES='-I../../../bpftime-r5/build-r5-v2/libbpf -I../../../bpftime-r5/third_party/vmlinux/x86 -I/usr/include/x86_64-linux-gnu'
 taskset -c 17 llvm-objdump -d workloads/bpftime-device-smoke/.output/probe.bpf.o
 taskset -c 17 llvm-objdump -d workloads/bpftime-device-smoke/.output/probe-negative.bpf.o
 taskset -c 17 ../bpftime-r5/build-r5-strict-device/bpftime-verifier/bpftime_verifier_tests \
@@ -223,8 +227,8 @@ POD program, and bypassing that rejection would establish nothing.
 After the counter path closes, POD needs a separately reviewed context/helper
 contract, corresponding verifier transfer rules, and matched bounds,
 provenance, leader, and atomic-protocol positive/negative cases before a
-strict POD device run. None of those changes is authorized or implemented by
-this note. Until then, retain the paper's explicit distinction between the
+strict POD device run. Those ABI/verifier changes are not implemented or
+validated by this counter-path plan. Until then, retain the paper's explicit distinction between the
 strict verifier prototype and verification-disabled performance measurements.
 
 ## 6. Scope inventory and completed offline checks
@@ -247,3 +251,33 @@ passed. The make command was a dry run only. Root reviewed the scoped
 admission/evidence and cleanup changes. C++ tests, BPF compilation, combined
 runtime build, and the strict real-device pair remain pending; this is not
 yet Q2 device-validation closure.
+
+## 7. Read-only build-readiness check, 2026-09-03
+
+R5 is clean at pushed `b4b0ba8`; `build-r5-strict-device` does not yet exist.
+**Resolve the empty `vm/llvm-jit` gitlink (pinned `9ea0180d`) before configure**:
+`vm/compat/llvm-vm/CMakeLists.txt` requires its missing `CMakeLists.txt`.
+Do not copy the dirty main runtime's LLVM source. R5's Frida cache is also
+empty; the required 16.1.2 Gum archive exists in `../bpftime/third_party/frida/`
+(10,625,004 bytes) for coordinator-managed reuse. These four targets do not
+require the Core/CLI target. No dependency preparation was performed here.
+
+CUDA 12.9.1, nvcc, nvPTXCompiler, nvrtc, cudart, LLVM 15/NVPTX, local Catch2
+3.4.0, and the required system headers/libraries are present. CUPTI is under
+CUDA's `targets/x86_64-linux`, already searched by `find_cuda`, not `extras`.
+The make overrides above select existing R5 libbpf headers: the Makefile's
+default `libbpf/libbpf/include` is absent and otherwise falls back to system
+headers. This selects headers, not the old verification-disabled runtime.
+
+All four target names and both preload paths match their CMake definitions.
+Existing smoke `probe`, `vector`, and positive BPF object are present; the
+positive object predates the edited source and the negative object is absent.
+The prepared make step is therefore still required. `--strict` checks all
+three flags and selects both preload libraries from the explicit new build.
+
+`[gpu][revision-safety]` is the pure CPU verifier filter. `[strict-counter]`
+rejects before successful attach/bootstrap, but its constructor loads
+`libcuda.so.1` and installs process-local Frida hooks; it is not a no-CUDA-library
+test. The named mode-controls test also creates a CUDA context. None was run
+during this check; configure, compilation and the positive/negative device
+pair remain unvalidated, with every acceptance gate above unchanged.

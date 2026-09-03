@@ -37,6 +37,56 @@ def read_json(path):
         return json.load(file)
 
 
+def frozen_execution_paths(runtime, recorded_ptx):
+    """Use recorded absolute paths lexically; never inspect current binaries."""
+    require(isinstance(recorded_ptx, str) and Path(recorded_ptx).is_absolute()
+            and '..' not in Path(recorded_ptx).parts, 'missing absolute recorded PTX path')
+    require(all(isinstance(name, str) and Path(name).is_absolute() and '..' not in Path(name).parts
+                for name in runtime), 'runtime inventory needs absolute recorded paths')
+
+    def unique(name):
+        matches = [Path(path) for path in runtime if Path(path).name == name]
+        require(len(matches) == 1, 'missing or ambiguous recorded runtime file: ' + name)
+        return matches[0]
+
+    workload = unique('bench.py').parent
+    extraction = Path(recorded_ptx)
+    paths = dict(bench=workload / 'bench.py', python=workload.parent / 'moe-infinity/.venv/bin/python',
+                 bridge=workload / 'build/libpod_launch_bridge.so', adapter=workload / 'build/libpod_ptx_adapter.so',
+                 loader=workload / 'build/pod-loader', selector=workload / 'build/selector.bpf.o',
+                 agent=unique('libbpftime-agent.so'), server=unique('libbpftime-syscall-server.so'),
+                 ptx=extraction, exact_kernels=extraction / 'exact-kernels.txt')
+    # Python is fixed by the recorded workload layout, but preparation() did
+    # not inventory that interpreter binary/version. Do not claim otherwise.
+    require(all(str(path) in runtime for key, path in paths.items() if key not in ('python', 'ptx'))
+            and str(extraction / 'inventory.json') in runtime,
+            'command/injection paths are missing from the frozen runtime inventory')
+    require(sum(Path(path).parent == extraction / 'device' for path in runtime) == 6,
+            'recorded PTX directory does not contain the six inventoried packets')
+    return paths
+
+
+def recorded_environment(arm, paths, segment, loader=False):
+    env = run.environment(arm, paths['ptx'], segment, loader)
+    if loader:
+        env['LD_PRELOAD'] = str(paths['server'])
+    elif arm == 'pod_bpf':
+        env['LD_PRELOAD'] = f"{paths['bridge']}:{paths['agent']}"
+        env['BPFTIME_PTXPASS_LIBRARIES'] = str(paths['adapter'])
+    elif arm == 'pod_cuda':
+        env['LD_PRELOAD'] = str(paths['bridge'])
+    return env
+
+
+def archived_preflight(directory, recorded):
+    require(isinstance(recorded, str) and Path(recorded).is_absolute()
+            and '..' not in Path(recorded).parts, 'missing absolute recorded preflight path')
+    local = directory.parent / Path(recorded).name
+    # A present but broken/incomplete local archive must fail validation;
+    # never hide it by falling back to a still-present original-machine copy.
+    return local if local.exists() or local.is_symlink() else Path(recorded)
+
+
 def percentile(values, q):
     ordered = sorted(values)
     position = q * (len(ordered) - 1)
@@ -62,7 +112,7 @@ def paired_ratio(numerator, denominator, indices):
                 blocks=5, lower_is_better=True)
 
 
-def audit_execution(directory, arm, block, runtime, report):
+def audit_execution(directory, arm, block, runtime, report, paths):
     execution = read_json(directory / 'execution.json')
     require(execution.get('status') == 'passed' and execution.get('numeric_protocol') == bench.NUMERIC_PROTOCOL
             and not execution.get('error')
@@ -80,7 +130,7 @@ def audit_execution(directory, arm, block, runtime, report):
     injection = ['/usr/bin/env', 'LD_PRELOAD=' + env['LD_PRELOAD']] if 'LD_PRELOAD' in env else []
     operator = command[3 + len(injection):]
     require(command[:3] == ['taskset', '-c', '8-15'] and command[3:3 + len(injection)] == injection
-            and len(operator) == 8 and Path(operator[1]).name == 'bench.py'
+            and len(operator) == 8 and operator[:2] == [str(paths['python']), str(paths['bench'])]
             and operator[2:7] == ['--arm', arm, '--block', str(block), '--output']
             and Path(operator[7]).name == 'operator.json' and Path(operator[7]).parent.name == directory.name,
             'not the formal fixed operator command')
@@ -111,6 +161,9 @@ def audit_execution(directory, arm, block, runtime, report):
                 and len(loader_command) == 3
                 and [Path(x).name for x in loader_command] == ['pod-loader', 'selector.bpf.o', 'exact-kernels.txt'],
                 'wrong syscall-server loader or exact selector input')
+        require(loader_command == [str(paths['loader']), str(paths['selector']), str(paths['exact_kernels'])]
+                and loader_env == recorded_environment(arm, paths, segment, loader=True),
+                'loader command/environment differs from the frozen runtime paths')
         loader_log = loader_path.read_text()
         require(loader_log.count('POD_LOADER_READY kernels=6\n') == 1
                 and loader_log.count('POD_LOADER_CLOSED\n') == 1,
@@ -124,6 +177,8 @@ def audit_execution(directory, arm, block, runtime, report):
         else:
             require(not preloads and env.get('POD_LAUNCH_BRIDGE', 'off') == 'off',
                     'original arm unexpectedly used the launch adapter')
+    require(env == recorded_environment(arm, paths, segment),
+            'actual target environment differs from the frozen runtime/PTX paths')
     log = (directory / 'client.log').read_text()
     require('Traceback (most recent call last)' not in log and 'POD_BRIDGE_FATAL' not in log,
             'client contains a numerical/runtime failure')
@@ -178,9 +233,10 @@ def audit_campaign(directory):
             'campaign did not declare the shared exclusive leases')
     runtime = manifest.get('runtime')
     require(isinstance(runtime, dict) and bool(runtime), 'missing fixed runtime inventory')
+    paths = frozen_execution_paths(runtime, manifest.get('ptx'))
     require(isinstance(manifest.get('preflight'), str) and bool(manifest['preflight']),
             'formal run does not identify its required preflight')
-    run.validate_preflight(Path(manifest['preflight']), runtime)
+    run.validate_preflight(archived_preflight(directory, manifest['preflight']), runtime)
     names = {f"block-{item['block']:02d}-{item['arm']}" for item in expected}
     actual = {path.parent.relative_to(directory).as_posix() for path in directory.rglob('operator.json')}
     require(actual == names, 'missing, duplicate, nested-attempt or unexpected operator cells')
@@ -195,7 +251,7 @@ def audit_campaign(directory):
         # Recompute claims, exactly-once work and 111 bridge launches from the
         # actual saved contexts. The same frozen typed ABI interpreter is used.
         run.validate_report(report, arm, block, False)
-        segment, start, end = audit_execution(cell_dir, arm, block, runtime, report)
+        segment, start, end = audit_execution(cell_dir, arm, block, runtime, report, paths)
         require(previous_end is None or start >= previous_end, 'adjacent formal cell windows overlap or are out of order')
         previous_end = end
         if segment:
@@ -203,7 +259,9 @@ def audit_campaign(directory):
             segments.add(segment)
         for cell in report['cells']:
             shape = (cell['model'], cell['decode_batch'])
-            measurements[shape][arm][block] = statistics.fmean(sample['cuda_ms'] for sample in cell['samples'])
+            measurements[shape][arm][block] = {
+                metric: statistics.fmean(sample[metric] for sample in cell['samples'])
+                for metric in ('cuda_ms', 'host_wall_ms')}
             characterizations.append(dict(block=block, arm=arm, model=shape[0], decode_batch=shape[1],
                 full_phase_statistics=cell['fp32_characterization'], saved_row_fp64=audit_characterization(cell_dir, cell)))
     return manifest, measurements, characterizations
@@ -212,27 +270,34 @@ def audit_campaign(directory):
 def analyze(directory):
     directory = Path(directory)
     manifest, measured, characterizations = audit_campaign(directory)
-    indices = bootstrap_indices()  # One shared whole-block resample across all comparisons/shapes.
+    indices = bootstrap_indices()  # One shared whole-block resample across both metrics/comparisons/shapes.
     results = []
     for model, batch in SHAPES:
-        means = {arm: [measured[(model, batch)][arm][block] for block in range(1, 6)] for arm in bench.ARMS}
-        ratios = {}
+        means = {arm: [measured[(model, batch)][arm][block]['cuda_ms'] for block in range(1, 6)] for arm in bench.ARMS}
+        wall_means = {arm: [measured[(model, batch)][arm][block]['host_wall_ms'] for block in range(1, 6)] for arm in bench.ARMS}
+        ratios, wall_ratios = {}, {}
         for label, numerator, denominator in COMPARISONS:
             ratios[label] = dict(numerator=numerator, denominator=denominator,
                                  **paired_ratio(means[numerator], means[denominator], indices))
+            wall_ratios[label] = dict(numerator=numerator, denominator=denominator,
+                                      **paired_ratio(wall_means[numerator], wall_means[denominator], indices))
         results.append(dict(model=model, decode_batch=batch, cell_mean_cuda_ms=means,
             mean_of_five_cell_means_ms={arm: statistics.fmean(values) for arm, values in means.items()},
-            comparisons=ratios))
+            comparisons=ratios, cell_mean_host_wall_ms=wall_means,
+            mean_of_five_cell_means_host_wall_ms={arm: statistics.fmean(values) for arm, values in wall_means.items()},
+            host_wall_comparisons=wall_ratios))
     return dict(complete=True, formal_complete=True, numeric_protocol=bench.NUMERIC_PROTOCOL,
         arm_processes=25, operator_cells=250,
-        raw_cuda_event_observations=25000, per_cell_observations=100, warmups_per_cell=10,
+        raw_cuda_event_observations=25000, raw_host_wall_observations=25000,
+        per_cell_observations=100, warmups_per_cell=10,
         cell_estimator='arithmetic mean of all 100 unfiltered complete-operator CUDA-event samples',
+        host_wall_cell_estimator='arithmetic mean of all 100 unfiltered synchronized complete-operator host-wall samples',
         ratio_estimator='geometric mean of five paired block cell-mean latency ratios; lower is better',
         uncertainty=dict(method='whole-block percentile bootstrap, linear-interpolated quantiles',
                          draws=DRAWS, seed=SEED, confidence=.95,
                          scope='pointwise intervals; no multiple-comparison adjustment or formal equivalence test'),
         scope='official operator shapes on the recorded sm_120 compatibility build, not the full POD system',
-        audit_scope='raw samples, saved numerical-validation attestations, actual CTA contexts, launch bridge, logs, cleanup and telemetry; no GPU numerical rerun',
+        audit_scope='raw samples, saved numerical-validation attestations, actual CTA contexts, launch bridge, logs, cleanup and telemetry; command/environment paths bind lexically to the recorded runtime/PTX inventory, without reading current binaries; Python path follows the recorded workload layout but its binary/version was not inventoried; no GPU numerical rerun',
         source_preflight=manifest['preflight'], results=results,
         fp32_characterizations=characterizations)
 

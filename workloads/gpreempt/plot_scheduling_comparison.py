@@ -21,6 +21,10 @@ XS_LABELS = ("Native", "Original XSched", "BPF-HPF")
 GP_LABELS = ("Native", "Original C", "BPF-GPreempt")
 MARKERS = ("o", "s", "D")
 COLORS = gp_plot.COLORS
+STYLE = {"font.family": "DejaVu Sans", "font.size": 8,
+         "axes.labelsize": 8, "xtick.labelsize": 7.5, "ytick.labelsize": 7.5,
+         "legend.fontsize": 7.5, "axes.spines.top": False,
+         "axes.spines.right": False, "pdf.fonttype": 42, "ps.fonttype": 42}
 DEFAULT_XS_AUDIT = (Path(__file__).resolve().parents[1] / "xsched/raw/"
                     "full-persistent-575-20260903/independent-raw-audit.json")
 
@@ -156,10 +160,7 @@ def _draw(data: dict, paths: list[Path], width: float) -> None:
     from matplotlib.lines import Line2D
     from matplotlib.ticker import MaxNLocator
 
-    with plt.rc_context({"font.family": "DejaVu Sans", "font.size": 8,
-                         "axes.labelsize": 8, "xtick.labelsize": 7.5, "ytick.labelsize": 7.5,
-                         "legend.fontsize": 7.5, "axes.spines.top": False,
-                         "axes.spines.right": False, "pdf.fonttype": 42, "ps.fonttype": 42}):
+    with plt.rc_context(STYLE):
         figure, axes = plt.subplots(2, 2, figsize=(width, 4.65), sharex="col")
         definitions = ((0, 0, "queue_p99_s", "LC queue-entry p99 (s)", "(a)"),
                        (1, 0, "background_kernels_s", "BE throughput (kernels/s)", "(c)"),

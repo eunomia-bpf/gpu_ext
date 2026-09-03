@@ -86,6 +86,13 @@ does not establish an execution-substrate advantage, disadvantage or equivalence
 
 Every formal throughput cell, in token/s (raw block IDs retained):
 
+The [two-panel result plot](figures/dynamic-set-comparison.pdf) shows all five
+cells per arm for throughput and completed speculative-payload classification.
+It makes the tradeoff visible: less unused speculation than all-positive,
+but lower throughput than demand-only. The [caption](figures/dynamic-set-comparison.caption.md)
+defines its windows and censoring; the [20-row CSV](figures/dynamic-set-comparison.csv)
+preserves exact plotted values. The table below is an exact-value lookup.
+
 | Block | Demand-only | All-positive | Native C | BPF |
 | --- | ---: | ---: | ---: | ---: |
 | 00 | 5.1713 | 3.6070 | 4.4723 | 4.5023 |
@@ -121,6 +128,19 @@ d=6, common executor repairs and binary64 prefix arithmetic limit generalization
 the [plan](plan.md) and [preparation history](results-preparation.md) preserve them.
 Next: incorporate this bounded policy/mechanism result, including the demand-only
 loss, into the revision synthesis; no favorable-result rerun is required.
+
+The planned five-block plot is now available above. CPU-only regeneration to
+a fresh prefix (no GPU imports, numerical preflight rerun, or new measurements):
+
+```sh
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  taskset -c 17 python3 -B plot_results.py --output-prefix /tmp/finemoe-new-figure
+```
+
+Plot verification (2026-09-03): all three focused projection tests and eight
+existing scheduling-plot tests pass. The exported vector PDF is 504 × 205.2 pt
+(7 × 2.85 inches); its PNG was visually inspected. The plot reuses the scheduling
+figure's unchanged style, and no paper float or completed measurement was edited.
 
 The [complete campaign](raw/full-v1/campaign.json), all per-cell raw files in
 [raw/full-v1](raw/full-v1/), and the

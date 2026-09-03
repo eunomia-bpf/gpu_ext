@@ -72,6 +72,9 @@ def validate_activation(mode, state):
             raise base.GateError("native-off unexpectedly enabled policy")
         return
     controller, dispatcher = state["controller"], state["dispatcher"]
+    expected_mode = 2 if mode == "paper-bpf" else 1
+    if dispatcher["mode"] != expected_mode:
+        raise base.GateError("actual dispatcher policy mode differs from requested arm")
     for key in ("matched_predictions", "completed_requests", "prefetch_candidates_selected"):
         if controller[key] <= 0:
             raise base.GateError(f"paper controller did not engage {key}")
@@ -89,12 +92,24 @@ def validate_activation(mode, state):
         raise base.GateError("not all three real BPF programs engaged")
 
 
+def validate_stream_accounting(before, after, streamed):
+    engine_tokens = (after["revision"]["engine_generated_tokens"] -
+                     before["revision"]["engine_generated_tokens"])
+    metric_tokens = (after["metrics"]["moe_tokens_generated_total"] -
+                     before["metrics"]["moe_tokens_generated_total"])
+    if engine_tokens != 64 or metric_tokens != 64:
+        raise base.GateError(f"canary SSE engine/metrics token delta is not 64: {engine_tokens}/{metric_tokens}")
+    if len(streamed["frames"]) != 65 or streamed["finish_reason"] != "length":
+        raise base.GateError("canary SSE must contain 64 token frames plus DONE")
+    return {"engine_generated_tokens": engine_tokens, "metric_generated_tokens": metric_tokens}
+
+
 def canary(mode, output, port, driver_stage=None):
     output.mkdir(parents=True, exist_ok=False)
     lease = base.LeaseSet.acquire()
     before = None
     process = log = telemetry = telemetry_log = None
-    result = {"protocol": "paper-v3-same-frontend-canary-1", "mode": mode,
+    result = {"protocol": "paper-v3-same-frontend-canary-2-stream", "mode": mode,
               "execution_domain": "host-ubpf-jit", "performance_result": False}
     try:
         admission = admit(port, driver_stage)
@@ -121,8 +136,19 @@ def canary(mode, output, port, driver_stage=None):
             state = base.http_json(port, "/revision/activation/drain", {}, timeout=600)
             base.atomic_write_json(output / f"activation-{index}.json", state)
             responses.append(response)
+        emit(f"{mode}: full 512+64 SSE parity request 3/3")
+        before_stream = base.moe_snapshot(port)
+        streamed = base.streamed_completion("moe_infinity_075", port,
+                    records[1]["prompt_token_ids"], old["goldens"][0], output / "stream.sse")
+        state = base.http_json(port, "/revision/activation/drain", {}, timeout=600)
+        after_stream = base.moe_snapshot(port)
+        stream_delta = validate_stream_accounting(before_stream, after_stream, streamed)
+        base.atomic_write_json(output / "stream-result.json", {
+            "stream": streamed, "before": before_stream, "after": after_stream,
+            "token_delta": stream_delta, "activation": state})
         validate_activation(mode, state)
-        result.update(responses=responses, activation=state, exact_old_frontend_outputs=True)
+        result.update(responses=responses, activation=state, exact_old_frontend_outputs=True,
+                      stream=streamed, stream_token_delta=stream_delta)
         base.stop_exact_process(telemetry)
         telemetry_log.close()
         telemetry = telemetry_log = None

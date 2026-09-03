@@ -157,7 +157,11 @@ The canary command, only after the coordinator gives the GPU slot, is:
   --output raw/paper-v3-575/canary-bpf-01
 ```
 
-It runs the finite expert numerical check, then two full 512+64 requests with
-same-snapshot native/BPF verification enabled. Both outputs must match the
-retained same-frontend MoE goldens. This diagnostic is explicitly not a paired
+The current canary revision runs the finite expert numerical check, then two
+full nonstream 512+64 requests and one additional full SSE parity request with
+same-snapshot native/BPF verification enabled. All outputs must match the
+retained same-frontend MoE goldens; the stream must contain 65 frames and both
+engine and metrics counters must increase by exactly 64 tokens. The retained
+first canary above predates this extra SSE request and is not relabelled as
+having run it. This diagnostic is explicitly not a paired
 performance result. Native-off and paper-native require their own canaries too.

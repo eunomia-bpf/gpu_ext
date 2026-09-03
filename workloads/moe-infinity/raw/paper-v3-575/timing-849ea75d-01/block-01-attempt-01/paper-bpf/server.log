@@ -1,0 +1,152 @@
+INFO:     Started server process [304855]
+INFO:     Waiting for application startup.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[WARNING] FlashAttention is not available in the current environment. Using default attention.
+Loading model from offload_path ...
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+GptOssConfig {
+  "architectures": [
+    "GptOssForCausalLM"
+  ],
+  "attention_bias": true,
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "bfloat16",
+  "eos_token_id": 200002,
+  "experts_per_token": 4,
+  "head_dim": 64,
+  "hidden_act": "silu",
+  "hidden_size": 2880,
+  "initial_context_length": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 2880,
+  "layer_types": [
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 131072,
+  "model_type": "gpt_oss",
+  "num_attention_heads": 64,
+  "num_experts_per_tok": 4,
+  "num_hidden_layers": 36,
+  "num_key_value_heads": 8,
+  "num_local_experts": 128,
+  "output_router_logits": false,
+  "pad_token_id": 199999,
+  "quantization_config": {
+    "modules_to_not_convert": [
+      "model.layers.*.self_attn",
+      "model.layers.*.mlp.router",
+      "model.embed_tokens",
+      "lm_head"
+    ],
+    "quant_method": "mxfp4"
+  },
+  "rms_norm_eps": 1e-05,
+  "rope_parameters": {
+    "beta_fast": 32.0,
+    "beta_slow": 1.0,
+    "factor": 32.0,
+    "original_max_position_embeddings": 4096,
+    "rope_theta": 150000,
+    "rope_type": "yarn",
+    "truncate": false
+  },
+  "router_aux_loss_coef": 0.9,
+  "sliding_window": 128,
+  "swiglu_limit": 7.0,
+  "tie_word_embeddings": false,
+  "transformers_version": "5.16.1",
+  "use_cache": true,
+  "vocab_size": 201088
+}
+
+TOPO: 75 stages, 36 sparse
+TOPO: set_topology done
+[20260903 01:33:01.635684Z ][304855 ][INFO  ]Creating I/O thread pool with  6  threads - archer_prio_aio_handle.cpp:234
+[20260903 01:33:01.635691Z ][304855 ][INFO  ]Create ArcherAioThread for thread:  0 - archer_aio_thread.cpp:12
+[20260903 01:33:01.635691Z ][304855 ][INFO  ]Create ArcherAioThread for thread:  1 - archer_aio_thread.cpp:12
+[20260903 01:33:01.635692Z ][304855 ][INFO  ]Create ArcherAioThread for thread:  2 - archer_aio_thread.cpp:12
+[20260903 01:33:01.635692Z ][304855 ][INFO  ]Create ArcherAioThread for thread:  3 - archer_aio_thread.cpp:12
+[20260903 01:33:01.635692Z ][304855 ][INFO  ]Create ArcherAioThread for thread:  4 - archer_aio_thread.cpp:12
+[20260903 01:33:01.635692Z ][304855 ][INFO  ]Create ArcherAioThread for thread:  5 - archer_aio_thread.cpp:12
+[20260903 01:33:01.635791Z ][304855 ][INFO  ]Creating pinned memory pool:  24  chunks of  1024  KB - pinned_memory_pool.cpp:16
+[20260903 01:33:01.637707Z ][304855 ][INFO  ]Loading index file from  /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_index - archer_tensor_handle.cpp:48
+[20260903 01:33:01.652407Z ][304855 ][INFO  ]Index file size  28119 - archer_tensor_handle.cpp:54
+[20260903 01:33:01.652520Z ][304855 ][INFO  ]Device count  1 - archer_prefetch_handle.cpp:48
+[20260903 01:33:01.652521Z ][304855 ][INFO  ]Enabled peer access for all devices - archer_prefetch_handle.cpp:71
+[20260903 01:33:01.899040Z ][304855 ][INFO  ]Moving dense parameters to CPU - model_topology.cpp:633
+38 left37 left36 left35 left34 left33 left32 left31 left30 left29 left28 left27 left26 left25 left24 left23 left22 left21 left20 left19 left18 left17 left16 left15 left14 left13 left12 left11 left10 left9 left8 left7 left6 left5 left4 left3 left2 left1 left
+finished: 39/39
+[20260903 01:33:03.216326Z ][304855 ][INFO  ]Moving sparse parameters to CPU - model_topology.cpp:644
+[20260903 01:33:18.285806Z ][304855 ][INFO  ]Processing partition  0  ( 10236  MB,  4758  tensors) - model_topology.cpp:717
+[20260903 01:33:23.726761Z ][304855 ][INFO  ]Processing partition  1  ( 10235  MB,  4643  tensors) - model_topology.cpp:717
+[20260903 01:33:29.220898Z ][304855 ][INFO  ]Processing partition  2  ( 10234  MB,  4502  tensors) - model_topology.cpp:717
+[20260903 01:33:34.615910Z ][304855 ][INFO  ]Processing partition  3  ( 10233  MB,  4952  tensors) - model_topology.cpp:717
+[20260903 01:33:40.139294Z ][304855 ][INFO  ]Processing partition  4  ( 10215  MB,  4185  tensors) - model_topology.cpp:717
+[20260903 01:33:45.649788Z ][304855 ][INFO  ]Processing partition  5  ( 10235  MB,  4249  tensors) - model_topology.cpp:717
+[20260903 01:33:47.140585Z ][304855 ][INFO  ]Processing partition  6  ( 879  MB,  359  tensors) - model_topology.cpp:717
+moe_expert_policy_ready: backend=ubpf-jit kind=paper_rank abi=1 instructions=214
+moe_expert_policy_ready: backend=ubpf-jit kind=paper_match abi=1 instructions=69
+moe_expert_policy_ready: backend=ubpf-jit kind=paper_scored abi=1 instructions=61
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18230 (Press CTRL+C to quit)
+INFO:     127.0.0.1:36100 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36102 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36114 - "GET /revision/activation HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36118 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43494 - "POST /revision/activation/drain HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43510 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43514 - "GET /revision/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43520 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43522 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54926 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49748 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49750 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44446 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44448 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59314 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59322 - "POST /revision/activation/drain HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59334 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59342 - "GET /revision/stats HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [304855]
+moe_expert_policy_stats: backend=ubpf-jit kind=paper_scored calls=45020 candidates=73305796 selected=45020 no_victim=0 errors=0
+moe_expert_policy_stats: backend=ubpf-jit kind=paper_match calls=18432 candidates=165888 selected=52593 no_victim=0 errors=0
+moe_expert_policy_stats: backend=ubpf-jit kind=paper_rank calls=20736 candidates=46448640 selected=9510469 no_victim=2816 errors=0

@@ -47,7 +47,11 @@ the separate shadow-enabled correctness runs, not inferred from disabled
 mismatch counters in timed runs.
 
 No cell is successful until server teardown, GPU/driver cleanup and log checks
-pass. Partial SSE responses, failed cells and failed block attempts remain on
+pass. After all writers stop, every owned raw artifact and the cell directory
+are synchronized to storage before the successful result is published; this
+flush is outside the measured window. A successful JSON summary alone cannot
+prove that earlier buffered raw writes survived a reboot. Partial SSE responses,
+failed cells and failed block attempts remain on
 disk. A resumed campaign must use the same ordinary source revisions and file
 inventories and re-audit successful blocks against their raw responses and
 counter evidence. Only complete, unique three-configuration blocks contribute

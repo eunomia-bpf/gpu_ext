@@ -12,6 +12,7 @@ import http.client
 import itertools
 import json
 import math
+import os
 from pathlib import Path
 import random
 import signal
@@ -163,6 +164,25 @@ def activation_delta(mode, before, after):
     return {"controller": controller, "dispatcher": dispatcher}
 
 
+def sync_cell_artifacts(output):
+    """Make owned raw evidence durable before publishing a successful cell.
+
+    All writers have already stopped. This happens outside the measured window;
+    an atomic result.json alone cannot make earlier SSE/log/telemetry writes
+    durable across an abrupt reboot.
+    """
+    for path in sorted(output.iterdir()):
+        if path.is_symlink() or not path.is_file():
+            raise base.GateError(f"unexpected artifact in owned cell: {path}")
+        with path.open("rb") as stream:
+            os.fsync(stream.fileno())
+    descriptor = os.open(output, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def run_cell(mode, output, port, prompt_order, driver_stage, expected_runtime=None):
     output.mkdir(parents=True, exist_ok=False)
     result = {"protocol": PROTOCOL, "mode": mode, "passed": False,
@@ -261,6 +281,10 @@ def run_cell(mode, output, port, prompt_order, driver_stage, expected_runtime=No
                 base.validate_log(output / "server.log")
             except BaseException as exc:
                 cleanup_errors.append(f"{type(exc).__name__}: {exc}")
+        try:
+            sync_cell_artifacts(output)
+        except BaseException as exc:
+            cleanup_errors.append(f"raw artifact durability: {type(exc).__name__}: {exc}")
         result["cleanup_errors"] = cleanup_errors
         result["passed"] = failure is None and not cleanup_errors
         base.atomic_write_json(output / "result.json", result)

@@ -224,6 +224,23 @@ class ComparisonTests(unittest.TestCase):
             self.assertIn("cleanup failure", " ".join(result["cleanup_errors"]))
             log.close.assert_called_once()
 
+    def test_raw_artifact_durability_syncs_every_file_and_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            # These are test fixtures, not experiment records.
+            (root / "request.sse").write_bytes(b"data: [DONE]\n\n")
+            (root / "gpu-telemetry.csv").write_text("sample\n")
+            with mock.patch.object(comparison.os, "fsync", wraps=comparison.os.fsync) as sync:
+                comparison.sync_cell_artifacts(root)
+                self.assertEqual(sync.call_count, 3)
+
+    def test_durability_refuses_aliased_or_nested_artifacts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "unexpected-directory").mkdir()
+            with self.assertRaises(comparison.base.GateError):
+                comparison.sync_cell_artifacts(root)
+
 
 if __name__ == "__main__":
     unittest.main()

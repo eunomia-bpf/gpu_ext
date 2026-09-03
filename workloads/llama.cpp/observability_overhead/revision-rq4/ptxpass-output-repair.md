@@ -34,9 +34,10 @@ taskset -c 17 python3 -B runtime-575/test_ptxpass_output.py \
   --output /tmp/table1-ptxpass-cpu-new
 ```
 
-This is a successful actual-plugin CPU regression test, **not a new successful
-GPU diagnostic or performance run**. Repeat the untimed three-arm histogram
-check in a fresh directory before making that claim. The independent
+The subsequent [three-arm histogram diagnostic 02](targeted-diagnostic-results.md)
+also passes exact application stdout and aggregate-count checks on the GPU.
+Neither the CPU regression nor that untimed diagnostic is a performance run.
+The independent
 [host-stub investigation](../../../../docs/experiment/revision-table1-host-stub-diagnosis-20260903.md)
 also finds a possible optimized-away launch hook; it is source diagnosis, not
 a repaired launch-latency path.

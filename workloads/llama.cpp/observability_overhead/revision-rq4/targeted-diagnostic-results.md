@@ -1,5 +1,26 @@
 # Table 1 targeted repair checks — 2026-09-03
 
+## Histogram diagnostic 02: all three selected checks pass
+
+After the [PTX-plugin repair](ptxpass-output-repair.md), the fresh run at
+13:45:25–13:47:21 UTC passes, exit **0**. All three paths preserve exactly the
+same 47-byte normalized application output. NVBit and BPF each report
+**720,896 exit events and 22,528 nonzero slots**; NVBit observes 220 selected
+launches and BPF reads all 1,048,576 entries / 8,388,608 bytes. All three
+safety checks pass, and the owned BPF client/loader/segment cleanup completes.
+
+[diagnostic.json](raw/diagnostic-histogram-575-02/diagnostic.json) and all original
+streams/telemetry are retained. This run used normal coordinator affinity,
+clients on CPUs 8–15 and telemetry on CPU 16, with the existing services active.
+The separate EB CPU build overlapped part of this **untimed correctness** run;
+none of its durations are performance evidence.
+
+This establishes repaired exact stdout and matched aggregate histogram counts
+on the selected real workload. It does not establish per-launch/coordinate
+identity, lossless exit-event transport, valid clock correlation, or completion
+of the seven-arm Table 1 comparison. **No timing cells ran.** Diagnostic 01 and
+the older failed preflights below remain unchanged.
+
 ## Histogram diagnostic 01: counts agree; exact stdout still fails
 
 The fresh three-cell run at 13:33:05–13:35:02 UTC used the rebuilt private

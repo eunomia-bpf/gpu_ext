@@ -1,10 +1,10 @@
 # Table 1 bootstrap-output repair and diagnostic review — 2026-09-03
 
-Status: actual private runtime rebuilt; CPU output checks pass. The new
-[three-cell untimed diagnostic](targeted-diagnostic-results.md) retains one
-PTX-pass stdout failure despite matching histogram counts. No performance
-cells ran. The failed seven-arm [preflight 03](preflight-575-results.md) remains
-unchanged.
+Status: actual private runtime rebuilt; CPU output checks pass. The
+[second three-cell untimed diagnostic](targeted-diagnostic-results.md) now
+passes exact stdout and aggregate counts after the additional PTX-pass fix;
+the first failed diagnostic is retained. No performance cells ran. The failed
+seven-arm [preflight 03](preflight-575-results.md) remains unchanged.
 
 ## Implemented small step
 

@@ -13,6 +13,39 @@ See the [complete results and replay command](results-575-host-mapped-20260903.m
 The preparation history below is retained; its earlier build-only milestones
 do not describe the current completion state.
 
+## New contention / full-response study
+
+The [fixed follow-on plan](load-study-plan.md) tests LC 100 requests/s with
+BE 100, 200, or closed-loop continuous supply. This explicitly changes the old
+newest-only generator to a common-phase FIFO schedule. It measures scheduled
+arrival to synchronized, numerically verified output, not just six service
+stages; all unfinished backlog and window-crossing completions remain visible.
+Build and run separately from the completed config-A experiment:
+
+```bash
+make build-load-study JOBS=4 CPUSET=8-15
+make test-load-study CPUSET=8-15
+python3 -B test_plot_load_study.py
+python3 -B run_load_study.py full --plan
+# Actual runs require an idle GPU and the existing 575 scheduling port.
+sudo -n python3 -B run_load_study.py preflight --output raw/load-study-preflight-01
+sudo -n python3 -B run_load_study.py full --output raw/load-study-full-01
+```
+
+Use new output directories for every attempt; never overwrite or silently retry.
+Preflight is three 10-second cells and is excluded from the 45-cell full study.
+The runner acquires the existing GPU/struct-ops leases and never changes drivers
+or services. It uses `build/load-study`; `build/ninja` and the old runner remain
+untouched. `GPREEMPT_LOAD_STUDY` defaults to OFF for ordinary builds.
+
+The new build explicitly binds worker CUDA contexts, checks graph/stream/sync
+errors in all three arms, records actual native stream priorities, and removes
+the native client's overwritten extra stream. These are scoped correctness and
+measurement changes, not a new GPreempt policy. C and BPF keep identical policy
+inputs and execution order, including the existing host-mapped transport.
+The standalone audit and plotting tools consume raw reports; a successful build
+or preflight alone must not be reported as completed performance measurements.
+
 ## Source and preparation history
 
 Upstream: <https://github.com/thustorage/GPreempt>, pinned to `249ee3e`.

@@ -14,7 +14,10 @@ All three scoped comparisons are now complete, including the unchanged full
 XSched campaign. The requested follow-on work is a literature search for useful,
 interesting questions that can be tested cheaply; it does not relabel a proposed
 component port as a reproduced system. No new GPU experiment has been started.
-Record and push scoped findings and changes.
+The [follow-on survey](background-related-work.md) records seven additional
+papers, their downloaded PDFs and artifact/hardware limits. Its priorities are
+adaptive expert prefetch, idle-interval-aware scheduling and device-local task
+selection; these are proposals, not new measured results.
 
 ## Completed comparisons — 2026-09-03
 

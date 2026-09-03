@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py", line 447, in <module>
+    main()
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py", line 432, in main
+    run_arm(args, result, out)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py", line 329, in run_arm
+    reference_error = max(fp32_reference_check(q_p, k_p, v_p, gold[0], 8192, True, 'prefill'),
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py", line 325, in fp32_reference_check
+    raise RuntimeError(f'attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5; '
+RuntimeError: attention mismatch: max_abs=0.0013279914855957031, fixed atol=1e-3 rtol=1e-5; exceeding=1/33554432; diagnostic=/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/preflight-575-02/block-01-official_streams/fp32-failure-prefill

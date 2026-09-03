@@ -1,0 +1,21 @@
+{
+  "complete": false,
+  "arm": "official_streams",
+  "block": 1,
+  "preflight": true,
+  "cells": [],
+  "torch": "2.13.0+cu129",
+  "torch_cuda": "12.9",
+  "device": "NVIDIA GeForce RTX 5090",
+  "sm_count": 170,
+  "memory_bytes": 33669316608,
+  "shape_order": [
+    [
+      "llama-3-8b",
+      32
+    ]
+  ],
+  "estimator": "arithmetic mean of all timed complete operator CUDA-event latencies",
+  "failure_diagnostic": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/preflight-575-02/block-01-official_streams/fp32-failure-prefill",
+  "error": "RuntimeError: attention mismatch: max_abs=0.0013279914855957031, fixed atol=1e-3 rtol=1e-5; exceeding=1/33554432; diagnostic=/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/preflight-575-02/block-01-official_streams/fp32-failure-prefill"
+}

@@ -1,0 +1,1740 @@
+{
+  "cell_directories": {
+    "llama_ncmoe32": "llama_ncmoe32",
+    "llama_uvm": "llama_uvm-retry-01"
+  },
+  "completed_evictions_claimed": false,
+  "configuration_order": [
+    "moe_infinity_075",
+    "gpubpf_host_stride_lfu",
+    "llama_uvm",
+    "llama_ncmoe32"
+  ],
+  "continuations": [
+    {
+      "admission": {
+        "admitted": true,
+        "errors": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 405,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 2,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 11.03,
+          "sm_clock_mhz": 22,
+          "temperature_c": 41,
+          "utilization_gpu_percent": 0
+        },
+        "kernel": "6.15.11-061511-generic",
+        "llama_source": {
+          "commit": "26836b27ae1ec9d6e94c6b56306cca75c7e86814",
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/llama.cpp",
+          "status": []
+        },
+        "loaded_uvm_interface": {
+          "btf_path": "/sys/kernel/btf/nvidia_uvm",
+          "gpu_mem_ops_members": [
+            "gpu_test_trigger",
+            "gpu_page_prefetch",
+            "gpu_page_prefetch_iter",
+            "gpu_block_activate",
+            "gpu_block_access",
+            "gpu_evict_prepare"
+          ],
+          "required_kfuncs": [
+            "bpf_gpu_request_reorder",
+            "bpf_gpu_set_prefetch_region"
+          ],
+          "version": "575.57.08"
+        },
+        "models": {
+          "all_sizes": {
+            "chat_template.jinja": 16738,
+            "config.json": 2089,
+            "generation_config.json": 177,
+            "model-00000-of-00014.safetensors": 4625017896,
+            "model-00001-of-00014.safetensors": 4115586736,
+            "model-00002-of-00014.safetensors": 4625017888,
+            "model-00003-of-00014.safetensors": 4115586752,
+            "model-00004-of-00014.safetensors": 4625017896,
+            "model-00005-of-00014.safetensors": 4115586696,
+            "model-00006-of-00014.safetensors": 4625017856,
+            "model-00007-of-00014.safetensors": 4060267176,
+            "model-00008-of-00014.safetensors": 4625017896,
+            "model-00009-of-00014.safetensors": 4170906304,
+            "model-00010-of-00014.safetensors": 4625017896,
+            "model-00011-of-00014.safetensors": 4115586752,
+            "model-00012-of-00014.safetensors": 4064660808,
+            "model-00013-of-00014.safetensors": 4625017896,
+            "model-00014-of-00014.safetensors": 4115586736,
+            "model.safetensors.index.json": 54511,
+            "special_tokens_map.json": 98,
+            "tokenizer.json": 27868174,
+            "tokenizer_config.json": 4200
+          },
+          "gguf": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/hf-cache/hub/models--ggml-org--gpt-oss-120b-GGUF/snapshots/238abdd290bb874b90a5da1b4549881b7d05c091/gpt-oss-120b-MXFP4.gguf",
+          "hf_snapshot": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/hf-cache/hub/models--openai--gpt-oss-120b/snapshots/b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+          "model_view": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/model-view/b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+          "view_members": [
+            "chat_template.jinja",
+            "config.json",
+            "generation_config.json",
+            "model-00000-of-00014.safetensors",
+            "model-00001-of-00014.safetensors",
+            "model-00002-of-00014.safetensors",
+            "model-00003-of-00014.safetensors",
+            "model-00004-of-00014.safetensors",
+            "model-00005-of-00014.safetensors",
+            "model-00006-of-00014.safetensors",
+            "model-00007-of-00014.safetensors",
+            "model-00008-of-00014.safetensors",
+            "model-00009-of-00014.safetensors",
+            "model-00010-of-00014.safetensors",
+            "model-00011-of-00014.safetensors",
+            "model-00012-of-00014.safetensors",
+            "model-00013-of-00014.safetensors",
+            "model-00014-of-00014.safetensors",
+            "model.safetensors.index.json",
+            "special_tokens_map.json",
+            "tokenizer.json",
+            "tokenizer_config.json"
+          ]
+        },
+        "moe_source": {
+          "commit": "b766f8f1f6379fac6cd23594713ba6f4c7650ad9",
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity",
+          "status": [
+            "M core/parallel/expert_dispatcher.cpp",
+            " M core/parallel/expert_dispatcher.h",
+            " M core/parallel/expert_module.cpp",
+            " M core/parallel/expert_module.h",
+            " M core/python/py_archer_prefetch.cpp",
+            "?? moe_infinity/entrypoints/openai/revision_server.py"
+          ]
+        },
+        "mount": {
+          "free_bytes": 389980041216,
+          "fstype": "ext4",
+          "source": "/dev/nvme0n1p1",
+          "target": "/home/yunwei37/workspace"
+        },
+        "runtime_files": {
+          "eviction_monitor": {
+            "ctime_ns": 1788183767868391352,
+            "device": 66305,
+            "inode": 92448856,
+            "mtime_ns": 1788183767868383946,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/uvm_eviction_monitor",
+            "size": 29488
+          },
+          "llama_server": {
+            "ctime_ns": 1788284237312835699,
+            "device": 66305,
+            "inode": 92545556,
+            "mtime_ns": 1788284237311621991,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-server",
+            "size": 5218072
+          },
+          "llama_tokenize": {
+            "ctime_ns": 1788259178256473499,
+            "device": 66305,
+            "inode": 92557104,
+            "mtime_ns": 1788259178256276423,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-tokenize",
+            "size": 331064
+          },
+          "moe_engine": {
+            "ctime_ns": 1788219167268232652,
+            "device": 66305,
+            "inode": 92448827,
+            "mtime_ns": 1788219166000000000,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_engine.cpython-312-x86_64-linux-gnu.so",
+            "size": 356864
+          },
+          "moe_kv_cache": {
+            "ctime_ns": 1788219167276681714,
+            "device": 66305,
+            "inode": 92448828,
+            "mtime_ns": 1788219166000000000,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_kv_cache.cpython-312-x86_64-linux-gnu.so",
+            "size": 17253632
+          },
+          "moe_marlin": {
+            "ctime_ns": 1788219167288551688,
+            "device": 66305,
+            "inode": 92448831,
+            "mtime_ns": 1788219167000000000,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_marlin.cpython-312-x86_64-linux-gnu.so",
+            "size": 11950088
+          },
+          "moe_paged_attn": {
+            "ctime_ns": 1788219167277126152,
+            "device": 66305,
+            "inode": 92448829,
+            "mtime_ns": 1788219166000000000,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_paged_attn.cpython-312-x86_64-linux-gnu.so",
+            "size": 590640
+          },
+          "moe_store": {
+            "ctime_ns": 1788219167267818925,
+            "device": 66305,
+            "inode": 92448826,
+            "mtime_ns": 1788219166000000000,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_store.cpython-312-x86_64-linux-gnu.so",
+            "size": 72170104
+          },
+          "moe_v4_fp4": {
+            "ctime_ns": 1788219167282649275,
+            "device": 66305,
+            "inode": 92448830,
+            "mtime_ns": 1788219166000000000,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_v4_fp4.cpython-312-x86_64-linux-gnu.so",
+            "size": 11132056
+          },
+          "numerical_check": {
+            "ctime_ns": 1788218359909948630,
+            "device": 66305,
+            "inode": 92448939,
+            "mtime_ns": 1788218359909948630,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/numerical_row_chunking_check.py",
+            "size": 1734
+          },
+          "policy_loader": {
+            "ctime_ns": 1788283659218087483,
+            "device": 66305,
+            "inode": 92418672,
+            "mtime_ns": 1788283659218078602,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu",
+            "size": 1546888
+          },
+          "policy_object": {
+            "ctime_ns": 1788283659093975055,
+            "device": 66305,
+            "inode": 92448851,
+            "mtime_ns": 1788283659093975055,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/prefetch_stride_lfu.bpf.o",
+            "size": 17520
+          },
+          "python": {
+            "ctime_ns": 1783430326440796472,
+            "device": 66308,
+            "inode": 32245975,
+            "mtime_ns": 1781873160000000000,
+            "path": "/usr/bin/python3.12",
+            "size": 8020928
+          },
+          "revision_server": {
+            "ctime_ns": 1788180148920125565,
+            "device": 66305,
+            "inode": 92448840,
+            "mtime_ns": 1788180148920125565,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/entrypoints/openai/revision_server.py",
+            "size": 2816
+          },
+          "sgl_common_ops": {
+            "ctime_ns": 1788175757518348016,
+            "device": 66305,
+            "inode": 94253442,
+            "mtime_ns": 1788175757518348016,
+            "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/sgl_kernel/sm100/common_ops.abi3.so",
+            "size": 154217768
+          },
+          "triton_ptxas": {
+            "ctime_ns": 1763454731131402467,
+            "device": 66308,
+            "inode": 33427534,
+            "mtime_ns": 1748341045000000000,
+            "path": "/usr/local/cuda-12.9/bin/ptxas",
+            "size": 34931056
+          }
+        },
+        "safety": {
+          "dmesg_abnormal": [],
+          "gpu": {
+            "compute_apps": [],
+            "driver": "575.57.08",
+            "index": 0,
+            "memory_clock_mhz": 405,
+            "memory_total_mib": 32607,
+            "memory_used_mib": 2,
+            "name": "NVIDIA GeForce RTX 5090",
+            "power_w": 11.15,
+            "sm_clock_mhz": 22,
+            "temperature_c": 41,
+            "utilization_gpu_percent": 0
+          },
+          "journal_abnormal": [],
+          "power_limit_service": "active",
+          "power_limit_w": 400.0,
+          "struct_ops": {
+            "links": [],
+            "maps": []
+          },
+          "timestamp_ns": 1788393038007289969,
+          "uvm_refcount": 0,
+          "xids": []
+        },
+        "small_artifacts": {
+          "bootstrap": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/bootstrap-indices.npy",
+          "prompts": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/prompts.json",
+          "required_files": [
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/artifacts-current.json",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/workload-manifest.json",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-server",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-tokenize",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/instrumentation.patch",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/row-chunking.patch",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deterministic-accumulation.patch",
+            "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu.bpf.c",
+            "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu.c",
+            "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/prefetch_stride_lfu.bpf.o",
+            "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/uvm_eviction_monitor",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/uvm_eviction_monitor.c",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/commands.json",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/plan.md",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/repair-plan.md",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/repair-plan-review.md",
+            "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/numerical_row_chunking_check.py",
+            "/usr/bin/python3.12"
+          ],
+          "schedule": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/schedule.json"
+        },
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788393037323470097,
+        "triton_compiler_version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Tue_May_27_02:18:05_PDT_2025\nCuda compilation tools, release 12.9, V12.9.86\nBuild cuda_12.9.r12.9/compiler.36037853_0"
+      },
+      "number": 1,
+      "reused_complete_cells": [
+        "gpubpf_host_stride_lfu",
+        "moe_infinity_075"
+      ],
+      "source_commit": "f8869d188b39b494cef000c4cd503a6cb1c2bec9"
+    }
+  ],
+  "cross_configuration_output_equality_required": false,
+  "driver": "575.57.08",
+  "expert_store": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store",
+  "kernel": "6.15.11-061511-generic",
+  "moe_storage": "buffered NVMe hydration followed by CPU expert offload/cache",
+  "numerical_safety": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 36.68,
+      "sm_clock_mhz": 2407,
+      "temperature_c": 43,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788391642707550141,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "protocol": "proposal-3-revision-9-575-cuda129",
+  "results": {
+    "gpubpf_host_stride_lfu": {
+      "config": "gpubpf_host_stride_lfu",
+      "engagement": {
+        "completed_evictions_claimed": false,
+        "eviction_after": null,
+        "eviction_before": null,
+        "eviction_delta": null,
+        "policy_after": {
+          "event": "engagement",
+          "eviction_prepares": 633717,
+          "lfu_accesses": 66469790,
+          "lfu_activations": 650499,
+          "lfu_reorder_requests": 259642,
+          "lfu_sampled_updates": 259642,
+          "page_fault_calls": 254533217,
+          "pid": 106173,
+          "prefetches_issued": 3471976,
+          "stride_detections": 2608862
+        },
+        "policy_before": {
+          "event": "engagement",
+          "eviction_prepares": 34555,
+          "lfu_accesses": 5209591,
+          "lfu_activations": 50357,
+          "lfu_reorder_requests": 20348,
+          "lfu_sampled_updates": 20348,
+          "page_fault_calls": 18077093,
+          "pid": 106173,
+          "prefetches_issued": 290800,
+          "stride_detections": 249434
+        },
+        "policy_delta": {
+          "eviction_prepares": 599162,
+          "lfu_accesses": 61260199,
+          "lfu_activations": 600142,
+          "lfu_reorder_requests": 239294,
+          "lfu_sampled_updates": 239294,
+          "page_fault_calls": 236456124,
+          "prefetches_issued": 3181176,
+          "stride_detections": 2359428
+        },
+        "process_io_delta": {
+          "read_bytes": 135217152,
+          "write_bytes": 69632
+        }
+      },
+      "goldens": [
+        "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+        "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+        " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+        "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+        "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative reviews from Amazon product listings.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Features:**\n- **Risk-Free Methods:**",
+        "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+        "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800\n\n    def init_catalog(self, product_info):\n        for product in product_info",
+        " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ......\"\n\nThe search results show"
+      ],
+      "identity": {
+        "detokenize_matches_prompt": true,
+        "models": {
+          "data": [
+            {
+              "created": 1788391896,
+              "id": "gpt-oss-120b",
+              "meta": {
+                "n_ctx_train": 131072,
+                "n_embd": 2880,
+                "n_params": 116829156672,
+                "n_vocab": 201088,
+                "size": 63374323968,
+                "vocab_type": 2
+              },
+              "object": "model",
+              "owned_by": "llamacpp"
+            }
+          ],
+          "models": [
+            {
+              "capabilities": [
+                "completion"
+              ],
+              "description": "",
+              "details": {
+                "families": [
+                  ""
+                ],
+                "family": "",
+                "format": "gguf",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": ""
+              },
+              "digest": "",
+              "model": "gpt-oss-120b",
+              "modified_at": "",
+              "name": "gpt-oss-120b",
+              "parameters": "",
+              "size": "",
+              "tags": [
+                ""
+              ],
+              "type": "model"
+            }
+          ],
+          "object": "list"
+        },
+        "total_slots": 1
+      },
+      "monitor_ready": null,
+      "passes": [
+        [
+          {
+            "e2e_ms": 48680.402847,
+            "end_ns": 3762192955445,
+            "finish_reason": "length",
+            "start_ns": 3713512552598,
+            "text": "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 24641.131949,
+            "end_ns": 3786849185951,
+            "finish_reason": "length",
+            "start_ns": 3762208054002,
+            "text": "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 29437.383424,
+            "end_ns": 3816302329249,
+            "finish_reason": "length",
+            "start_ns": 3786864945825,
+            "text": " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 51488.088406,
+            "end_ns": 3867805738042,
+            "finish_reason": "length",
+            "start_ns": 3816317649636,
+            "text": "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 32415.247773,
+            "end_ns": 3900236618727,
+            "finish_reason": "length",
+            "start_ns": 3867821370954,
+            "text": "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative reviews from Amazon product listings.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Features:**\n- **Risk-Free Methods:**",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 43746.481112,
+            "end_ns": 3943997990637,
+            "finish_reason": "length",
+            "start_ns": 3900251509525,
+            "text": "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 50776.305662,
+            "end_ns": 3994788983078,
+            "finish_reason": "length",
+            "start_ns": 3944012677416,
+            "text": "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800\n\n    def init_catalog(self, product_info):\n        for product in product_info",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 22394.380248,
+            "end_ns": 4017198479811,
+            "finish_reason": "length",
+            "start_ns": 3994804099563,
+            "text": " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ......\"\n\nThe search results show",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ],
+        [
+          {
+            "e2e_ms": 48398.895064,
+            "end_ns": 4065613213624,
+            "finish_reason": "length",
+            "start_ns": 4017214318560,
+            "text": "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 24531.183714,
+            "end_ns": 4090160633868,
+            "finish_reason": "length",
+            "start_ns": 4065629450154,
+            "text": "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 29283.256353,
+            "end_ns": 4119461899900,
+            "finish_reason": "length",
+            "start_ns": 4090178643547,
+            "text": " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 51346.306415,
+            "end_ns": 4170823050465,
+            "finish_reason": "length",
+            "start_ns": 4119476744050,
+            "text": "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 32535.781664,
+            "end_ns": 4203377987227,
+            "finish_reason": "length",
+            "start_ns": 4170842205563,
+            "text": "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative reviews from Amazon product listings.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Features:**\n- **Risk-Free Methods:**",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 43574.730517,
+            "end_ns": 4246972075128,
+            "finish_reason": "length",
+            "start_ns": 4203397344611,
+            "text": "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 50917.267485,
+            "end_ns": 4297904912470,
+            "finish_reason": "length",
+            "start_ns": 4246987644985,
+            "text": "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800\n\n    def init_catalog(self, product_info):\n        for product in product_info",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 22311.654018,
+            "end_ns": 4320231964589,
+            "finish_reason": "length",
+            "start_ns": 4297920310571,
+            "text": " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ......\"\n\nThe search results show",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ]
+      ],
+      "warmup": {
+        "e2e_ms": 45797.545715,
+        "end_ns": 3712348029184,
+        "finish_reason": "length",
+        "start_ns": 3666550483469,
+        "text": "\n\n\n\nSure, here's an example of a customer success story that follows the guidelines you provided:\n\nTitle: \"From Unexpected Downtime to Seamless Operations: How Turbit Helped a Wind Farm Operator Identify and Resolve a Complex Issue\"\n\nKeywords: root cause, normal behavior, Turbit alarm, analysis, communication, solution",
+        "usage": {
+          "completion_tokens": 64,
+          "prompt_tokens": 512,
+          "total_tokens": 576
+        }
+      }
+    },
+    "llama_ncmoe32": {
+      "config": "llama_ncmoe32",
+      "engagement": {
+        "process_io_delta": {
+          "read_bytes": 0,
+          "write_bytes": 36864
+        }
+      },
+      "goldens": [
+        "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+        "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+        " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+        "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+        "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative Amazon product reviews.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Points:**\n- Negative reviews can significantly impact sales and",
+        "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+        "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800 # in grams\n\n    def init_catalog(self, product_info):\n        for product",
+        " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ..."
+      ],
+      "identity": {
+        "detokenize_matches_prompt": true,
+        "models": {
+          "data": [
+            {
+              "created": 1788393329,
+              "id": "gpt-oss-120b",
+              "meta": {
+                "n_ctx_train": 131072,
+                "n_embd": 2880,
+                "n_params": 116829156672,
+                "n_vocab": 201088,
+                "size": 63374323968,
+                "vocab_type": 2
+              },
+              "object": "model",
+              "owned_by": "llamacpp"
+            }
+          ],
+          "models": [
+            {
+              "capabilities": [
+                "completion"
+              ],
+              "description": "",
+              "details": {
+                "families": [
+                  ""
+                ],
+                "family": "",
+                "format": "gguf",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": ""
+              },
+              "digest": "",
+              "model": "gpt-oss-120b",
+              "modified_at": "",
+              "name": "gpt-oss-120b",
+              "parameters": "",
+              "size": "",
+              "tags": [
+                ""
+              ],
+              "type": "model"
+            }
+          ],
+          "object": "list"
+        },
+        "total_slots": 1
+      },
+      "monitor_ready": null,
+      "passes": [
+        [
+          {
+            "e2e_ms": 7510.347012,
+            "end_ns": 5115694224336,
+            "finish_reason": "length",
+            "start_ns": 5108183877324,
+            "text": "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 6594.675209,
+            "end_ns": 5122303010854,
+            "finish_reason": "length",
+            "start_ns": 5115708335645,
+            "text": "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 6926.918455,
+            "end_ns": 5129244545101,
+            "finish_reason": "length",
+            "start_ns": 5122317626646,
+            "text": " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7092.429785,
+            "end_ns": 5136351663319,
+            "finish_reason": "length",
+            "start_ns": 5129259233534,
+            "text": "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7103.241025,
+            "end_ns": 5143470080130,
+            "finish_reason": "length",
+            "start_ns": 5136366839105,
+            "text": "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative Amazon product reviews.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Points:**\n- Negative reviews can significantly impact sales and",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7180.978005,
+            "end_ns": 5150665994649,
+            "finish_reason": "length",
+            "start_ns": 5143485016644,
+            "text": "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7570.862214,
+            "end_ns": 5158251797983,
+            "finish_reason": "length",
+            "start_ns": 5150680935769,
+            "text": "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800 # in grams\n\n    def init_catalog(self, product_info):\n        for product",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7330.97696,
+            "end_ns": 5165597433376,
+            "finish_reason": "length",
+            "start_ns": 5158266456416,
+            "text": " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ],
+        [
+          {
+            "e2e_ms": 7579.589204,
+            "end_ns": 5173192169199,
+            "finish_reason": "length",
+            "start_ns": 5165612579995,
+            "text": "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 6720.19956,
+            "end_ns": 5179927495592,
+            "finish_reason": "length",
+            "start_ns": 5173207296032,
+            "text": "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 6929.185682,
+            "end_ns": 5186878658184,
+            "finish_reason": "length",
+            "start_ns": 5179949472502,
+            "text": " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7159.309717,
+            "end_ns": 5194043517787,
+            "finish_reason": "length",
+            "start_ns": 5186884208070,
+            "text": "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7110.421823,
+            "end_ns": 5201168054066,
+            "finish_reason": "length",
+            "start_ns": 5194057632243,
+            "text": "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative Amazon product reviews.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Points:**\n- Negative reviews can significantly impact sales and",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7173.237295,
+            "end_ns": 5208355913799,
+            "finish_reason": "length",
+            "start_ns": 5201182676504,
+            "text": "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7570.479749,
+            "end_ns": 5215940905730,
+            "finish_reason": "length",
+            "start_ns": 5208370425981,
+            "text": "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800 # in grams\n\n    def init_catalog(self, product_info):\n        for product",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7316.271614,
+            "end_ns": 5223271902871,
+            "finish_reason": "length",
+            "start_ns": 5215955631257,
+            "text": " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ...",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ]
+      ],
+      "warmup": {
+        "e2e_ms": 7276.747287,
+        "end_ns": 5107043327161,
+        "finish_reason": "length",
+        "start_ns": 5099766579874,
+        "text": "\n\n\n\nSure, here's an example of a customer success story that follows the guidelines you provided:\n\nTitle: \"From Unexpected Downtime to Seamless Operations: How Turbit Helped a Wind Farm Operator Identify and Resolve a Complex Issue\"\n\nKeywords: root cause, normal behavior, Turbit alarm, analysis, communication, solution",
+        "usage": {
+          "completion_tokens": 64,
+          "prompt_tokens": 512,
+          "total_tokens": 576
+        }
+      }
+    },
+    "llama_uvm": {
+      "config": "llama_uvm",
+      "engagement": {
+        "process_io_delta": {
+          "read_bytes": 12939264,
+          "write_bytes": 40960
+        }
+      },
+      "goldens": [
+        "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+        "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+        " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+        "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+        "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative reviews from Amazon product listings.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Features:**\n- **Risk-Free Methods:**",
+        "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+        "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800\n\n    def init_catalog(self, product_info):\n        for product in product_info",
+        " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ......\"\n\nThe search results show"
+      ],
+      "identity": {
+        "detokenize_matches_prompt": true,
+        "models": {
+          "data": [
+            {
+              "created": 1788393073,
+              "id": "gpt-oss-120b",
+              "meta": {
+                "n_ctx_train": 131072,
+                "n_embd": 2880,
+                "n_params": 116829156672,
+                "n_vocab": 201088,
+                "size": 63374323968,
+                "vocab_type": 2
+              },
+              "object": "model",
+              "owned_by": "llamacpp"
+            }
+          ],
+          "models": [
+            {
+              "capabilities": [
+                "completion"
+              ],
+              "description": "",
+              "details": {
+                "families": [
+                  ""
+                ],
+                "family": "",
+                "format": "gguf",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": ""
+              },
+              "digest": "",
+              "model": "gpt-oss-120b",
+              "modified_at": "",
+              "name": "gpt-oss-120b",
+              "parameters": "",
+              "size": "",
+              "tags": [
+                ""
+              ],
+              "type": "model"
+            }
+          ],
+          "object": "list"
+        },
+        "total_slots": 1
+      },
+      "monitor_ready": null,
+      "passes": [
+        [
+          {
+            "e2e_ms": 12500.535929,
+            "end_ns": 4870087222263,
+            "finish_reason": "length",
+            "start_ns": 4857586686334,
+            "text": "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 6707.382144,
+            "end_ns": 4876802299591,
+            "finish_reason": "length",
+            "start_ns": 4870094917447,
+            "text": "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 8115.541621,
+            "end_ns": 4884928657101,
+            "finish_reason": "length",
+            "start_ns": 4876813115480,
+            "text": " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 13326.437983,
+            "end_ns": 4898270424678,
+            "finish_reason": "length",
+            "start_ns": 4884943986695,
+            "text": "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 10599.262594,
+            "end_ns": 4908885075149,
+            "finish_reason": "length",
+            "start_ns": 4898285812555,
+            "text": "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative reviews from Amazon product listings.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Features:**\n- **Risk-Free Methods:**",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 11372.991999,
+            "end_ns": 4920273863714,
+            "finish_reason": "length",
+            "start_ns": 4908900871715,
+            "text": "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 13111.90675,
+            "end_ns": 4933397000957,
+            "finish_reason": "length",
+            "start_ns": 4920285094207,
+            "text": "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800\n\n    def init_catalog(self, product_info):\n        for product in product_info",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7716.44212,
+            "end_ns": 4941128279104,
+            "finish_reason": "length",
+            "start_ns": 4933411836984,
+            "text": " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ......\"\n\nThe search results show",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ],
+        [
+          {
+            "e2e_ms": 13704.350957,
+            "end_ns": 4954847137661,
+            "finish_reason": "length",
+            "start_ns": 4941142786704,
+            "text": "\n\nHere is the snippet of code that needs to be changed to fix the problem:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nReplace this code with:\n```python\n@app.route('/')\ndef index():\n    return render_template('index.html')\n```\nThis will ensure that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 6598.545523,
+            "end_ns": 4961460749253,
+            "finish_reason": "length",
+            "start_ns": 4954862203730,
+            "text": "\n\nNghiên cứu người dùng là một bước quan trọng trong quá trình phát triển sản phẩm. Nó liên quan đến việc thu thập dữ liệu và thông tin chi tiết về hành vi, sở thích và nhu cầu của người dùng. Dưới đây là một số lý do tại sao nghiên cứu người dùng lại",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 8059.151688,
+            "end_ns": 4969535448768,
+            "finish_reason": "length",
+            "start_ns": 4961476297080,
+            "text": " way\n\n### Chapter Seven: Rule #2 - Be Still So You Can Heal (The Neutral Spine)\n\n#### From Jeremy\n\nLet’s assume that you are beginning to get the big picture. And that you have also begun to identify the “dumb” things that you’ve been doing to wreck your back, and that",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 13220.132189,
+            "end_ns": 4982770434735,
+            "finish_reason": "length",
+            "start_ns": 4969550302546,
+            "text": "\n\nSure! Here's an example of how you could modify the config file to add a new agent with a different route:\n```yaml\nlocalization_point {\n  lat: 37.400011779417845\n  lng: -122.06045590020084\n  alt: -15.419933319",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 10473.121021,
+            "end_ns": 4993259659521,
+            "finish_reason": "length",
+            "start_ns": 4982786538500,
+            "text": "\n\nOkay.\n\nSure! Here’s a concise summary of the content you provided:\n\n**Service Overview:**\n- The service focuses on removing negative reviews from Amazon product listings.\n- It emphasizes a safe, compliant, and legal approach, avoiding risky or unethical tactics.\n\n**Key Features:**\n- **Risk-Free Methods:**",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 11273.81769,
+            "end_ns": 5004550152692,
+            "finish_reason": "length",
+            "start_ns": 4993276335002,
+            "text": "\n\n- Both task-relevant and task-irrelevant features of an object guide attentional selection.\n- Memory-based interference in visual search tasks supports this idea.\n- Gao et al. (2016) presented a colored geometrical shape and instructed participants to memorize its color.\n- Participants performed a visual search task where they",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 12938.605793,
+            "end_ns": 5017507245540,
+            "finish_reason": "length",
+            "start_ns": 5004568639747,
+            "text": "_g\n\nSure! Here's an example implementation in Python:\n```python\nimport json\n\nclass BloodBank:\n    def __init__(self):\n        self.catalog = {}\n        self.inventory = {}\n        self.max_shipment_weight = 1800\n\n    def init_catalog(self, product_info):\n        for product in product_info",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 7675.791527,
+            "end_ns": 5025202016070,
+            "finish_reason": "length",
+            "start_ns": 5017526224543,
+            "text": " ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ......\"\n\nThe search results show",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ]
+      ],
+      "warmup": {
+        "e2e_ms": 12395.376018,
+        "end_ns": 4856437352390,
+        "finish_reason": "length",
+        "start_ns": 4844041976372,
+        "text": "\n\n\n\nSure, here's an example of a customer success story that follows the guidelines you provided:\n\nTitle: \"From Unexpected Downtime to Seamless Operations: How Turbit Helped a Wind Farm Operator Identify and Resolve a Complex Issue\"\n\nKeywords: root cause, normal behavior, Turbit alarm, analysis, communication, solution",
+        "usage": {
+          "completion_tokens": 64,
+          "prompt_tokens": 512,
+          "total_tokens": 576
+        }
+      }
+    },
+    "moe_infinity_075": {
+      "config": "moe_infinity_075",
+      "engagement": {
+        "after": {
+          "metrics": {
+            "moe_engine_steps_total": 1088.0,
+            "moe_kv_cache_free_blocks": 128.0,
+            "moe_kv_cache_total_blocks": 128.0,
+            "moe_queue_depth": 0.0,
+            "moe_requests_cancelled": 0.0,
+            "moe_requests_completed": 17.0,
+            "moe_tokens_generated_total": 1088.0
+          },
+          "revision": {
+            "engine_generated_tokens": 1088,
+            "engine_steps": 1088,
+            "expert_cache_accesses": 208475,
+            "expert_cache_hits": 173112,
+            "expert_cache_misses": 35363,
+            "exposed_fetch_seconds_total": 0.2695186639707572,
+            "kv_cache_num_blocks": 128
+          }
+        },
+        "before": {
+          "metrics": {
+            "moe_engine_steps_total": 64.0,
+            "moe_kv_cache_free_blocks": 128.0,
+            "moe_kv_cache_total_blocks": 128.0,
+            "moe_queue_depth": 0.0,
+            "moe_requests_cancelled": 0.0,
+            "moe_requests_completed": 1.0,
+            "moe_tokens_generated_total": 64.0
+          },
+          "revision": {
+            "engine_generated_tokens": 64,
+            "engine_steps": 64,
+            "expert_cache_accesses": 12179,
+            "expert_cache_hits": 8163,
+            "expert_cache_misses": 4016,
+            "exposed_fetch_seconds_total": 0.049200339015442296,
+            "kv_cache_num_blocks": 128
+          }
+        },
+        "delta": {
+          "engine_generated_tokens": 1024,
+          "engine_steps": 1024,
+          "expert_cache_accesses": 196296,
+          "expert_cache_hits": 164949,
+          "expert_cache_misses": 31347
+        },
+        "metrics_delta": {
+          "steps": 1024,
+          "tokens": 1024
+        },
+        "process_io_delta": {
+          "read_bytes": 0,
+          "write_bytes": 8192
+        },
+        "storage": {
+          "deployment": "buffered NVMe hydration followed by CPU expert offload/cache",
+          "partitions": [
+            {
+              "bytes": 10733903872,
+              "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_param_0"
+            },
+            {
+              "bytes": 10732941312,
+              "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_param_1"
+            },
+            {
+              "bytes": 10731290624,
+              "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_param_2"
+            },
+            {
+              "bytes": 10730954752,
+              "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_param_3"
+            },
+            {
+              "bytes": 10711715840,
+              "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_param_4"
+            },
+            {
+              "bytes": 10732302336,
+              "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_param_5"
+            },
+            {
+              "bytes": 922480640,
+              "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_param_6"
+            }
+          ],
+          "steady_state_direct_io_claimed": false
+        }
+      },
+      "goldens": [
+        "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+        "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+        " way to the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `",
+        "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+        "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+        "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+        "<|endoftext|>```csharp\n        # 0. This is a new List of the `csharp\n        # 0. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a) = 0.",
+        " ... ) = 0. This is a new List of the `a^2. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new"
+      ],
+      "identity": {
+        "models": {
+          "data": [
+            {
+              "created": 1788391696,
+              "id": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+              "object": "model",
+              "owned_by": "torchmoe",
+              "parent": null,
+              "permission": [],
+              "root": null
+            }
+          ],
+          "object": "list"
+        }
+      },
+      "monitor_ready": null,
+      "passes": [
+        [
+          {
+            "e2e_ms": 5534.37292,
+            "end_ns": 3479781741150,
+            "finish_reason": "length",
+            "start_ns": 3474247368230,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5129.357493,
+            "end_ns": 3484926137904,
+            "finish_reason": "length",
+            "start_ns": 3479796780411,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5265.929893,
+            "end_ns": 3490197074557,
+            "finish_reason": "length",
+            "start_ns": 3484931144664,
+            "text": " way to the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5342.193756,
+            "end_ns": 3495553781344,
+            "finish_reason": "length",
+            "start_ns": 3490211587588,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5366.915151,
+            "end_ns": 3500935328722,
+            "finish_reason": "length",
+            "start_ns": 3495568413571,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5288.74486,
+            "end_ns": 3506229598697,
+            "finish_reason": "length",
+            "start_ns": 3500940853837,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5578.758248,
+            "end_ns": 3511815097635,
+            "finish_reason": "length",
+            "start_ns": 3506236339387,
+            "text": "<|endoftext|>```csharp\n        # 0. This is a new List of the `csharp\n        # 0. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a) = 0.",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5420.45701,
+            "end_ns": 3517250351100,
+            "finish_reason": "length",
+            "start_ns": 3511829894090,
+            "text": " ... ) = 0. This is a new List of the `a^2. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ],
+        [
+          {
+            "e2e_ms": 5529.15062,
+            "end_ns": 3522786202617,
+            "finish_reason": "length",
+            "start_ns": 3517257051997,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5154.404892,
+            "end_ns": 3527947349451,
+            "finish_reason": "length",
+            "start_ns": 3522792944559,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5275.183244,
+            "end_ns": 3533240138452,
+            "finish_reason": "length",
+            "start_ns": 3527964955208,
+            "text": " way to the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5373.362806,
+            "end_ns": 3538619919012,
+            "finish_reason": "length",
+            "start_ns": 3533246556206,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5322.491365,
+            "end_ns": 3543957377500,
+            "finish_reason": "length",
+            "start_ns": 3538634886135,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5324.235159,
+            "end_ns": 3549296610609,
+            "finish_reason": "length",
+            "start_ns": 3543972375450,
+            "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5559.622841,
+            "end_ns": 3554871593927,
+            "finish_reason": "length",
+            "start_ns": 3549311971086,
+            "text": "<|endoftext|>```csharp\n        # 0. This is a new List of the `csharp\n        # 0. This is a new List of the `a^2. This is a new List of the `a^2. This is a new List of the `a) = 0.",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          },
+          {
+            "e2e_ms": 5369.257281,
+            "end_ns": 3560255357086,
+            "finish_reason": "length",
+            "start_ns": 3554886099805,
+            "text": " ... ) = 0. This is a new List of the `a^2. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+            "usage": {
+              "completion_tokens": 64,
+              "prompt_tokens": 512,
+              "total_tokens": 576
+            }
+          }
+        ]
+      ],
+      "warmup": {
+        "e2e_ms": 6756.197126,
+        "end_ns": 3473101975053,
+        "finish_reason": "length",
+        "start_ns": 3466345777927,
+        "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+        "usage": {
+          "completion_tokens": 64,
+          "prompt_tokens": 512,
+          "total_tokens": 576
+        }
+      }
+    }
+  },
+  "row_chunking_numerical_gate": {
+    "accumulation": {
+      "arrival_orders": 4,
+      "exact": true,
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "rows": 353
+    },
+    "atol": 0.01,
+    "device": "NVIDIA GeForce RTX 5090",
+    "dtype": "bfloat16",
+    "results": [
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 1,
+        "within_tolerance": true
+      },
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 256,
+        "within_tolerance": true
+      },
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 257,
+        "within_tolerance": true
+      },
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 353,
+        "within_tolerance": true
+      }
+    ],
+    "rtol": 0.01
+  },
+  "runtime_files": {
+    "eviction_monitor": {
+      "ctime_ns": 1788183767868391352,
+      "device": 66305,
+      "inode": 92448856,
+      "mtime_ns": 1788183767868383946,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/uvm_eviction_monitor",
+      "size": 29488
+    },
+    "llama_server": {
+      "ctime_ns": 1788284237312835699,
+      "device": 66305,
+      "inode": 92545556,
+      "mtime_ns": 1788284237311621991,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-server",
+      "size": 5218072
+    },
+    "llama_tokenize": {
+      "ctime_ns": 1788259178256473499,
+      "device": 66305,
+      "inode": 92557104,
+      "mtime_ns": 1788259178256276423,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-tokenize",
+      "size": 331064
+    },
+    "moe_engine": {
+      "ctime_ns": 1788219167268232652,
+      "device": 66305,
+      "inode": 92448827,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_engine.cpython-312-x86_64-linux-gnu.so",
+      "size": 356864
+    },
+    "moe_kv_cache": {
+      "ctime_ns": 1788219167276681714,
+      "device": 66305,
+      "inode": 92448828,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_kv_cache.cpython-312-x86_64-linux-gnu.so",
+      "size": 17253632
+    },
+    "moe_marlin": {
+      "ctime_ns": 1788219167288551688,
+      "device": 66305,
+      "inode": 92448831,
+      "mtime_ns": 1788219167000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_marlin.cpython-312-x86_64-linux-gnu.so",
+      "size": 11950088
+    },
+    "moe_paged_attn": {
+      "ctime_ns": 1788219167277126152,
+      "device": 66305,
+      "inode": 92448829,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_paged_attn.cpython-312-x86_64-linux-gnu.so",
+      "size": 590640
+    },
+    "moe_store": {
+      "ctime_ns": 1788219167267818925,
+      "device": 66305,
+      "inode": 92448826,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_store.cpython-312-x86_64-linux-gnu.so",
+      "size": 72170104
+    },
+    "moe_v4_fp4": {
+      "ctime_ns": 1788219167282649275,
+      "device": 66305,
+      "inode": 92448830,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_v4_fp4.cpython-312-x86_64-linux-gnu.so",
+      "size": 11132056
+    },
+    "numerical_check": {
+      "ctime_ns": 1788218359909948630,
+      "device": 66305,
+      "inode": 92448939,
+      "mtime_ns": 1788218359909948630,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/numerical_row_chunking_check.py",
+      "size": 1734
+    },
+    "policy_loader": {
+      "ctime_ns": 1788283659218087483,
+      "device": 66305,
+      "inode": 92418672,
+      "mtime_ns": 1788283659218078602,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu",
+      "size": 1546888
+    },
+    "policy_object": {
+      "ctime_ns": 1788283659093975055,
+      "device": 66305,
+      "inode": 92448851,
+      "mtime_ns": 1788283659093975055,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/prefetch_stride_lfu.bpf.o",
+      "size": 17520
+    },
+    "python": {
+      "ctime_ns": 1783430326440796472,
+      "device": 66308,
+      "inode": 32245975,
+      "mtime_ns": 1781873160000000000,
+      "path": "/usr/bin/python3.12",
+      "size": 8020928
+    },
+    "revision_server": {
+      "ctime_ns": 1788180148920125565,
+      "device": 66305,
+      "inode": 92448840,
+      "mtime_ns": 1788180148920125565,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/entrypoints/openai/revision_server.py",
+      "size": 2816
+    },
+    "sgl_common_ops": {
+      "ctime_ns": 1788175757518348016,
+      "device": 66305,
+      "inode": 94253442,
+      "mtime_ns": 1788175757518348016,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/sgl_kernel/sm100/common_ops.abi3.so",
+      "size": 154217768
+    },
+    "triton_ptxas": {
+      "ctime_ns": 1763454731131402467,
+      "device": 66308,
+      "inode": 33427534,
+      "mtime_ns": 1748341045000000000,
+      "path": "/usr/local/cuda-12.9/bin/ptxas",
+      "size": 34931056
+    }
+  },
+  "source_commit": "bc4dec87832fc488a4c662021f1d009578e5ae82",
+  "status": "passed",
+  "triton_compiler_version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Tue_May_27_02:18:05_PDT_2025\nCuda compilation tools, release 12.9, V12.9.86\nBuild cuda_12.9.r12.9/compiler.36037853_0"
+}

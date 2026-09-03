@@ -37,6 +37,8 @@ def audit_stream(path, request, golden, config):
     require("".join(texts) == request["text"] == golden, f"SSE output mismatch: {path}")
     require(len(raw) == request["raw_sse_bytes"] and frames == len(request["frames"]),
             f"SSE byte/frame count mismatch: {path}")
+    if config == "moe_infinity_075":
+        require(frames == 65, f"MoE stream lost one of its 64 token frames: {path}")
     if config != "moe_infinity_075":
         require(bool(usages) and usages[-1] == request["usage"], f"SSE usage mismatch: {path}")
         require(usages[-1]["prompt_tokens"] == 512 and usages[-1]["completion_tokens"] == 64,

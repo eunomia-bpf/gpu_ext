@@ -172,3 +172,10 @@ only changed runtime file is the MoE measurement wrapper. The native kernels,
 model, sampling, expert policy, BPF policy, prompt schedule, and measured work
 are unchanged. This is an explicitly disclosed server transport repair, not
 a new performance strategy or relaxed numerical-correctness criterion.
+
+The real revision-10 preflight passed: all 16 repeated nonstreaming responses
+matched, and all eight additional streams matched their exact goldens and
+contained 64 token frames plus DONE. The stream-phase engine counters confirm
+512 generated tokens. The server exited normally and the final GPU/UVM/BPF
+cleanup checks passed. The five-block timing campaign then started with the
+unchanged frozen schedule; preflight durations are not performance results.

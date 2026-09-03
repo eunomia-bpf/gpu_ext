@@ -1,0 +1,299 @@
+{
+  "admitted": true,
+  "errors": [],
+  "gpu": {
+    "compute_apps": [],
+    "driver": "575.57.08",
+    "index": 0,
+    "memory_clock_mhz": 405,
+    "memory_total_mib": 32607,
+    "memory_used_mib": 2,
+    "name": "NVIDIA GeForce RTX 5090",
+    "power_w": 12.01,
+    "sm_clock_mhz": 22,
+    "temperature_c": 45,
+    "utilization_gpu_percent": 0
+  },
+  "kernel": "6.15.11-061511-generic",
+  "llama_source": {
+    "commit": "26836b27ae1ec9d6e94c6b56306cca75c7e86814",
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/llama.cpp",
+    "status": []
+  },
+  "loaded_uvm_interface": {
+    "btf_path": "/sys/kernel/btf/nvidia_uvm",
+    "gpu_mem_ops_members": [
+      "gpu_test_trigger",
+      "gpu_page_prefetch",
+      "gpu_page_prefetch_iter",
+      "gpu_block_activate",
+      "gpu_block_access",
+      "gpu_evict_prepare"
+    ],
+    "required_kfuncs": [
+      "bpf_gpu_request_reorder",
+      "bpf_gpu_set_prefetch_region"
+    ],
+    "version": "575.57.08"
+  },
+  "models": {
+    "all_sizes": {
+      "chat_template.jinja": 16738,
+      "config.json": 2089,
+      "generation_config.json": 177,
+      "model-00000-of-00014.safetensors": 4625017896,
+      "model-00001-of-00014.safetensors": 4115586736,
+      "model-00002-of-00014.safetensors": 4625017888,
+      "model-00003-of-00014.safetensors": 4115586752,
+      "model-00004-of-00014.safetensors": 4625017896,
+      "model-00005-of-00014.safetensors": 4115586696,
+      "model-00006-of-00014.safetensors": 4625017856,
+      "model-00007-of-00014.safetensors": 4060267176,
+      "model-00008-of-00014.safetensors": 4625017896,
+      "model-00009-of-00014.safetensors": 4170906304,
+      "model-00010-of-00014.safetensors": 4625017896,
+      "model-00011-of-00014.safetensors": 4115586752,
+      "model-00012-of-00014.safetensors": 4064660808,
+      "model-00013-of-00014.safetensors": 4625017896,
+      "model-00014-of-00014.safetensors": 4115586736,
+      "model.safetensors.index.json": 54511,
+      "special_tokens_map.json": 98,
+      "tokenizer.json": 27868174,
+      "tokenizer_config.json": 4200
+    },
+    "gguf": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/hf-cache/hub/models--ggml-org--gpt-oss-120b-GGUF/snapshots/238abdd290bb874b90a5da1b4549881b7d05c091/gpt-oss-120b-MXFP4.gguf",
+    "hf_snapshot": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/hf-cache/hub/models--openai--gpt-oss-120b/snapshots/b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+    "model_view": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/model-view/b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+    "view_members": [
+      "chat_template.jinja",
+      "config.json",
+      "generation_config.json",
+      "model-00000-of-00014.safetensors",
+      "model-00001-of-00014.safetensors",
+      "model-00002-of-00014.safetensors",
+      "model-00003-of-00014.safetensors",
+      "model-00004-of-00014.safetensors",
+      "model-00005-of-00014.safetensors",
+      "model-00006-of-00014.safetensors",
+      "model-00007-of-00014.safetensors",
+      "model-00008-of-00014.safetensors",
+      "model-00009-of-00014.safetensors",
+      "model-00010-of-00014.safetensors",
+      "model-00011-of-00014.safetensors",
+      "model-00012-of-00014.safetensors",
+      "model-00013-of-00014.safetensors",
+      "model-00014-of-00014.safetensors",
+      "model.safetensors.index.json",
+      "special_tokens_map.json",
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ]
+  },
+  "moe_source": {
+    "commit": "b766f8f1f6379fac6cd23594713ba6f4c7650ad9",
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity",
+    "status": [
+      "M core/parallel/expert_dispatcher.cpp",
+      " M core/parallel/expert_dispatcher.h",
+      " M core/parallel/expert_module.cpp",
+      " M core/parallel/expert_module.h",
+      " M core/python/py_archer_prefetch.cpp",
+      "?? moe_infinity/entrypoints/openai/revision_server.py"
+    ]
+  },
+  "mount": {
+    "free_bytes": 389597016064,
+    "fstype": "ext4",
+    "source": "/dev/nvme0n1p1",
+    "target": "/home/yunwei37/workspace"
+  },
+  "runtime_files": {
+    "eviction_monitor": {
+      "ctime_ns": 1788183767868391352,
+      "device": 66305,
+      "inode": 92448856,
+      "mtime_ns": 1788183767868383946,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/uvm_eviction_monitor",
+      "size": 29488
+    },
+    "llama_server": {
+      "ctime_ns": 1788284237312835699,
+      "device": 66305,
+      "inode": 92545556,
+      "mtime_ns": 1788284237311621991,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-server",
+      "size": 5218072
+    },
+    "llama_tokenize": {
+      "ctime_ns": 1788259178256473499,
+      "device": 66305,
+      "inode": 92557104,
+      "mtime_ns": 1788259178256276423,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-tokenize",
+      "size": 331064
+    },
+    "moe_engine": {
+      "ctime_ns": 1788219167268232652,
+      "device": 66305,
+      "inode": 92448827,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_engine.cpython-312-x86_64-linux-gnu.so",
+      "size": 356864
+    },
+    "moe_kv_cache": {
+      "ctime_ns": 1788219167276681714,
+      "device": 66305,
+      "inode": 92448828,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_kv_cache.cpython-312-x86_64-linux-gnu.so",
+      "size": 17253632
+    },
+    "moe_marlin": {
+      "ctime_ns": 1788219167288551688,
+      "device": 66305,
+      "inode": 92448831,
+      "mtime_ns": 1788219167000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_marlin.cpython-312-x86_64-linux-gnu.so",
+      "size": 11950088
+    },
+    "moe_paged_attn": {
+      "ctime_ns": 1788219167277126152,
+      "device": 66305,
+      "inode": 92448829,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_paged_attn.cpython-312-x86_64-linux-gnu.so",
+      "size": 590640
+    },
+    "moe_store": {
+      "ctime_ns": 1788219167267818925,
+      "device": 66305,
+      "inode": 92448826,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_store.cpython-312-x86_64-linux-gnu.so",
+      "size": 72170104
+    },
+    "moe_v4_fp4": {
+      "ctime_ns": 1788219167282649275,
+      "device": 66305,
+      "inode": 92448830,
+      "mtime_ns": 1788219166000000000,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/_v4_fp4.cpython-312-x86_64-linux-gnu.so",
+      "size": 11132056
+    },
+    "numerical_check": {
+      "ctime_ns": 1788218359909948630,
+      "device": 66305,
+      "inode": 92448939,
+      "mtime_ns": 1788218359909948630,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/numerical_row_chunking_check.py",
+      "size": 1734
+    },
+    "policy_loader": {
+      "ctime_ns": 1788283659218087483,
+      "device": 66305,
+      "inode": 92418672,
+      "mtime_ns": 1788283659218078602,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu",
+      "size": 1546888
+    },
+    "policy_object": {
+      "ctime_ns": 1788283659093975055,
+      "device": 66305,
+      "inode": 92448851,
+      "mtime_ns": 1788283659093975055,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/prefetch_stride_lfu.bpf.o",
+      "size": 17520
+    },
+    "python": {
+      "ctime_ns": 1783430326440796472,
+      "device": 66308,
+      "inode": 32245975,
+      "mtime_ns": 1781873160000000000,
+      "path": "/usr/bin/python3.12",
+      "size": 8020928
+    },
+    "revision_server": {
+      "ctime_ns": 1788393916281508914,
+      "device": 66305,
+      "inode": 92448840,
+      "mtime_ns": 1788393916281508914,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/moe_infinity/entrypoints/openai/revision_server.py",
+      "size": 4805
+    },
+    "sgl_common_ops": {
+      "ctime_ns": 1788175757518348016,
+      "device": 66305,
+      "inode": 94253442,
+      "mtime_ns": 1788175757518348016,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/sgl_kernel/sm100/common_ops.abi3.so",
+      "size": 154217768
+    },
+    "triton_ptxas": {
+      "ctime_ns": 1763454731131402467,
+      "device": 66308,
+      "inode": 33427534,
+      "mtime_ns": 1748341045000000000,
+      "path": "/usr/local/cuda-12.9/bin/ptxas",
+      "size": 34931056
+    }
+  },
+  "safety": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 12.17,
+      "sm_clock_mhz": 22,
+      "temperature_c": 45,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788394111473718421,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "small_artifacts": {
+    "bootstrap": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/bootstrap-indices.npy",
+    "prompts": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/prompts.json",
+    "required_files": [
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/artifacts-current.json",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/workload-manifest.json",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-server",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build/bin/llama-tokenize",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/instrumentation.patch",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/row-chunking.patch",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deterministic-accumulation.patch",
+      "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu.bpf.c",
+      "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu.c",
+      "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/prefetch_stride_lfu.bpf.o",
+      "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_stride_lfu",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/uvm_eviction_monitor",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/uvm_eviction_monitor.c",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/commands.json",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/plan.md",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/repair-plan.md",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/repair-plan-review.md",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/numerical_row_chunking_check.py",
+      "/usr/bin/python3.12"
+    ],
+    "schedule": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/schedule.json"
+  },
+  "struct_ops": {
+    "links": [],
+    "maps": []
+  },
+  "timestamp_ns": 1788394110698156378,
+  "triton_compiler_version": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Tue_May_27_02:18:05_PDT_2025\nCuda compilation tools, release 12.9, V12.9.86\nBuild cuda_12.9.r12.9/compiler.36037853_0"
+}

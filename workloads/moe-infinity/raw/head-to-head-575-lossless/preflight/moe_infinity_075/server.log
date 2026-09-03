@@ -1,0 +1,163 @@
+INFO:     Started server process [169348]
+INFO:     Waiting for application startup.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[WARNING] FlashAttention is not available in the current environment. Using default attention.
+Loading model from offload_path ...
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+GptOssConfig {
+  "architectures": [
+    "GptOssForCausalLM"
+  ],
+  "attention_bias": true,
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "bfloat16",
+  "eos_token_id": 200002,
+  "experts_per_token": 4,
+  "head_dim": 64,
+  "hidden_act": "silu",
+  "hidden_size": 2880,
+  "initial_context_length": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 2880,
+  "layer_types": [
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 131072,
+  "model_type": "gpt_oss",
+  "num_attention_heads": 64,
+  "num_experts_per_tok": 4,
+  "num_hidden_layers": 36,
+  "num_key_value_heads": 8,
+  "num_local_experts": 128,
+  "output_router_logits": false,
+  "pad_token_id": 199999,
+  "quantization_config": {
+    "modules_to_not_convert": [
+      "model.layers.*.self_attn",
+      "model.layers.*.mlp.router",
+      "model.embed_tokens",
+      "lm_head"
+    ],
+    "quant_method": "mxfp4"
+  },
+  "rms_norm_eps": 1e-05,
+  "rope_parameters": {
+    "beta_fast": 32.0,
+    "beta_slow": 1.0,
+    "factor": 32.0,
+    "original_max_position_embeddings": 4096,
+    "rope_theta": 150000,
+    "rope_type": "yarn",
+    "truncate": false
+  },
+  "router_aux_loss_coef": 0.9,
+  "sliding_window": 128,
+  "swiglu_limit": 7.0,
+  "tie_word_embeddings": false,
+  "transformers_version": "5.16.1",
+  "use_cache": true,
+  "vocab_size": 201088
+}
+
+TOPO: 75 stages, 36 sparse
+TOPO: set_topology done
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55808 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55816 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55824 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55832 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55846 - "GET /revision/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55862 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59368 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59374 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48504 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40474 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40490 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34160 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34162 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51756 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51772 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49114 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49122 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49234 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49240 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53116 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53118 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48098 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48104 - "GET /revision/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48112 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48124 - "GET /revision/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48126 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54450 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54458 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41426 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41442 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32908 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32922 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58510 - "POST /v1/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58522 - "GET /revision/stats HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [169348]
+[20260903 00:08:36.495589Z ][169348 ][INFO  ]Creating I/O thread pool with  6  threads - archer_prio_aio_handle.cpp:234
+[20260903 00:08:36.495596Z ][169348 ][INFO  ]Create ArcherAioThread for thread:  0 - archer_aio_thread.cpp:12
+[20260903 00:08:36.495596Z ][169348 ][INFO  ]Create ArcherAioThread for thread:  1 - archer_aio_thread.cpp:12
+[20260903 00:08:36.495597Z ][169348 ][INFO  ]Create ArcherAioThread for thread:  2 - archer_aio_thread.cpp:12
+[20260903 00:08:36.495597Z ][169348 ][INFO  ]Create ArcherAioThread for thread:  3 - archer_aio_thread.cpp:12
+[20260903 00:08:36.495597Z ][169348 ][INFO  ]Create ArcherAioThread for thread:  4 - archer_aio_thread.cpp:12
+[20260903 00:08:36.495597Z ][169348 ][INFO  ]Create ArcherAioThread for thread:  5 - archer_aio_thread.cpp:12
+[20260903 00:08:36.495697Z ][169348 ][INFO  ]Creating pinned memory pool:  24  chunks of  1024  KB - pinned_memory_pool.cpp:16
+[20260903 00:08:36.497196Z ][169348 ][INFO  ]Loading index file from  /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/preflight/expert-store/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_index - archer_tensor_handle.cpp:48
+[20260903 00:08:36.503163Z ][169348 ][INFO  ]Index file size  28119 - archer_tensor_handle.cpp:54
+[20260903 00:08:36.503256Z ][169348 ][INFO  ]Device count  1 - archer_prefetch_handle.cpp:48
+[20260903 00:08:36.503257Z ][169348 ][INFO  ]Enabled peer access for all devices - archer_prefetch_handle.cpp:71
+[20260903 00:08:36.753680Z ][169348 ][INFO  ]Moving dense parameters to CPU - model_topology.cpp:633
+38 left37 left36 left35 left34 left33 left32 left31 left30 left29 left28 left27 left26 left25 left24 left23 left22 left21 left20 left19 left18 left17 left16 left15 left14 left13 left12 left11 left10 left9 left8 left7 left6 left5 left4 left3 left2 left1 left
+finished: 39/39
+[20260903 00:08:38.068945Z ][169348 ][INFO  ]Moving sparse parameters to CPU - model_topology.cpp:644
+[20260903 00:08:53.341492Z ][169348 ][INFO  ]Processing partition  0  ( 10236  MB,  4758  tensors) - model_topology.cpp:717
+[20260903 00:08:58.710023Z ][169348 ][INFO  ]Processing partition  1  ( 10235  MB,  4643  tensors) - model_topology.cpp:717
+[20260903 00:09:04.031991Z ][169348 ][INFO  ]Processing partition  2  ( 10234  MB,  4502  tensors) - model_topology.cpp:717
+[20260903 00:09:09.386177Z ][169348 ][INFO  ]Processing partition  3  ( 10233  MB,  4952  tensors) - model_topology.cpp:717
+[20260903 00:09:14.726833Z ][169348 ][INFO  ]Processing partition  4  ( 10215  MB,  4185  tensors) - model_topology.cpp:717
+[20260903 00:09:20.069229Z ][169348 ][INFO  ]Processing partition  5  ( 10235  MB,  4249  tensors) - model_topology.cpp:717
+[20260903 00:09:21.508301Z ][169348 ][INFO  ]Processing partition  6  ( 879  MB,  359  tensors) - model_topology.cpp:717

@@ -165,3 +165,31 @@ these extra writes. Four targeted CPU tests cover token-failure evidence,
 numerical-failure evidence, successful array retention and zero extra formal
 writes; all 46 existing and new Python tests passed. No retry or model/extension
 change was part of this diagnostic-evidence patch.
+
+## Retained v2 output identified a missing generation configuration
+
+The storage-only `raw/history-v2` retry again failed question 141, with 0/64
+accepted history requests. Its saved `stage/question-141-result.json` shows 15
+of 16 generated token positions matching HF: the first difference is generated
+token 14 (zero-based 13), expected 29026 versus actual 21321. Token 21321 had
+already occurred earlier in the same prefix. Cleanup passed again; 268 telemetry
+samples peaked at 17,967 MiB and 50 C, with no disallowed throttling or new
+GPU/kernel abnormality.
+
+CPU inspection confirmed a concrete configuration discrepancy: the checkpoint's
+`generation_config.json` specifies `repetition_penalty=1.05`, while the author's
+`_from_config` constructor retains `GenerationConfig.from_model_config` defaults,
+including repetition penalty 1.0. Normal HF `from_pretrained` separately loads
+the checkpoint generation configuration; the author wrapper did not. EOS defaults
+also differed. This missing configuration is established; whether it explains
+the observed token mismatch still requires a real corrected run.
+
+The minimal common repair makes `create_finemoe` load the complete generation
+configuration from the same local checkpoint for history and every offload arm.
+The explicit greedy/16-token overrides, model weights and mathematics, golden-v4
+and frozen tolerance 0.0 remain unchanged. Raw logs/results record selected
+public checkpoint decoding fields separately from the explicit overrides, not
+private library identifiers. Two CPU regressions check the actual local
+configuration and recorded-field boundary; all 48 Python tests passed with no
+CUDA initialization. The next normal run is fresh `raw/history-v3`; no extension
+rebuild or GPU run was performed during this configuration repair.

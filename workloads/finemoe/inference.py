@@ -19,7 +19,7 @@ from run_moe_head_to_head import atomic_write_json
 import numpy as np
 import torch
 import transformers
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, GenerationConfig
 from transformers.generation.streamers import BaseStreamer
 
 from policy_runtime import ARMS, FineMoePolicy
@@ -150,11 +150,25 @@ def create_finemoe(data, offload, online):
     from finemoe import MoE
     if importlib.util.find_spec("flash_attn") is not None:
         raise RuntimeError("unexpected optional flash_attn changes the frozen eager attention path")
-    return MoE(data["model"]["snapshot"], {
+    model = MoE(data["model"]["snapshot"], {
         "offload_path": str(offload), "device_memory_ratio": .5,
         "prefetch_distance": 6, "store_capacity": 1000, "device": "cuda:0",
         "eval_batch_size": 1, "eval_max_length": 16,
         "eval_mode": "online" if online else "offline"})
+    # The author's loader uses _from_config, which does not load the checkpoint's
+    # generation_config.json as the original HF from_pretrained path does.
+    model.model.generation_config = GenerationConfig.from_pretrained(
+        data["model"]["snapshot"], local_files_only=True)
+    return model
+
+
+def decoding_configuration(config):
+    """Only public decoding fields, never private library/cache identifiers."""
+    fields = ("do_sample", "repetition_penalty", "eos_token_id", "pad_token_id",
+              "temperature", "top_k", "top_p")
+    return {"checkpoint_fields": {key: getattr(config, key) for key in fields},
+            "explicit_overrides": {"do_sample": False, "min_new_tokens": 16,
+                                   "max_new_tokens": 16, "pad_token_id": 151643}}
 
 
 def worker(args):
@@ -218,6 +232,8 @@ def worker(args):
     if getattr(prefetch_op, "finemoe_runtime_revision", None) != "dynamic-set-safety-20260903-v2":
         raise RuntimeError("private extension predates the required budget/CV/lifetime repairs")
     model = create_finemoe(data, args.offload, args.stage == "history")
+    decoding = decoding_configuration(model.model.generation_config)
+    print(json.dumps({"stage": "decoding_configuration", **decoding}), flush=True)
     policy = FineMoePolicy("demand-only" if args.stage == "history" else args.arm,
                           shadow=args.check_logits, capture=args.check_logits)
     policy.install(model.engine)
@@ -236,6 +252,7 @@ def worker(args):
         prefetch_op.finemoe_copy_snapshot()  # Drain before declaring the stored history complete.
         atomic_write_json(args.output / "history.json", {
             "status": "passed", "model": data["model"], "data": str(args.data), "runtime_versions": versions,
+            "decoding_configuration": decoding,
             "question_ids": [r["question_id"] for r in data["history"]],
             "store_capacity": 1000, "store_data_size": model.engine.expert_map_store.data_size,
             "requests": records})
@@ -288,6 +305,7 @@ def worker(args):
     result = {"status": "passed", "arm": args.arm, "check_logits": args.check_logits,
               "model": data["model"], "data": str(args.data), "begin_ns": started,
               "runtime_versions": versions,
+              "decoding_configuration": decoding,
               "end_ns": finished, "clock": "perf_counter_ns", "requests": records, "warmup": warmup,
               "application_native_begin_ns": native_started, "application_native_end_ns": native_finished,
               "native_drained_ns": native_drained, "application_clock": "steady_clock",

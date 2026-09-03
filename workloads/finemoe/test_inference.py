@@ -4,12 +4,46 @@ import json
 from pathlib import Path
 import unittest
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest import mock
 
 import inference
 
 
 class InferenceProtocolTests(unittest.TestCase):
+    def test_offload_loads_the_same_checkpoint_generation_config(self):
+        data = json.loads((Path(__file__).parent / "dataset-mtbench-v1.json").read_text())
+        from transformers import AutoConfig, GenerationConfig
+        default = GenerationConfig.from_model_config(
+            AutoConfig.from_pretrained(data["model"]["snapshot"], local_files_only=True))
+        self.assertEqual(default.repetition_penalty, 1.)
+        wrapped = SimpleNamespace(model=SimpleNamespace(generation_config=default))
+        fake_module = SimpleNamespace(MoE=mock.Mock(return_value=wrapped))
+        with mock.patch.dict("sys.modules", {"finemoe": fake_module}), \
+                mock.patch.object(inference.importlib.util, "find_spec", return_value=None), \
+                mock.patch.object(inference.GenerationConfig, "from_pretrained",
+                                  wraps=GenerationConfig.from_pretrained) as load:
+            result = inference.create_finemoe(data, Path("unused-test-cache"), True)
+        load.assert_called_once_with(data["model"]["snapshot"], local_files_only=True)
+        self.assertIs(result, wrapped)
+        self.assertEqual(result.model.generation_config.repetition_penalty, 1.05)
+        self.assertEqual(result.model.generation_config.eos_token_id, [151645, 151643])
+        self.assertEqual(result.model.generation_config.top_p, .8)
+        self.assertFalse(inference.torch.cuda.is_initialized())
+
+    def test_recorded_decoding_fields_distinguish_checkpoint_from_overrides(self):
+        config = SimpleNamespace(do_sample=True, repetition_penalty=1.05,
+                                 eos_token_id=[151645, 151643], pad_token_id=151643,
+                                 temperature=.7, top_k=20, top_p=.8,
+                                 _private_identifier="must not be recorded")
+        recorded = inference.decoding_configuration(config)
+        self.assertEqual(recorded["checkpoint_fields"]["repetition_penalty"], 1.05)
+        self.assertTrue(recorded["checkpoint_fields"]["do_sample"])
+        self.assertEqual(recorded["explicit_overrides"],
+                         {"do_sample": False, "min_new_tokens": 16, "max_new_tokens": 16,
+                          "pad_token_id": 151643})
+        self.assertNotIn("_private_identifier", recorded["checkpoint_fields"])
+
     def retained_fixture(self):
         record = {"question_id": 141, "input_ids": [1, 2], "generated_ids": list(range(16)),
                   "begin_ns": 1, "verified_ready_ns": 20, "token_ready_ns": list(range(2, 18))}

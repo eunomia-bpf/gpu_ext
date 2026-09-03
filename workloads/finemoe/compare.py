@@ -502,6 +502,7 @@ def main():
                     "model_files": model_inventory(), "golden": str(args.golden) if args.golden else None,
                     "reference_files": references,
                     "history": str(args.history) if args.history else None, "valid_blocks": 0,
+                    "preflight": str(args.preflight) if args.preflight else None,
                     "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=HERE, text=True).strip()}
         base.atomic_write_json(args.output / "campaign.json", manifest)
         if args.mode in ("golden", "history"):

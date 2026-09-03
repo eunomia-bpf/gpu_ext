@@ -47,7 +47,14 @@ token gate on its first question (141), before any accepted history request or
 store export; cleanup passed. Its cause is not established. A storage-only patch
 now retains history actual/expected token records and preflight actual logits
 before the existing gates, without changing tolerance or adding formal timing
-writes. All 46 Python regression tests passed; no retry has run under this patch.
+writes. The storage-only patch passed all 46 Python regression tests.
+The retention-only history-v2 retry then exposed a single token difference at
+generated position 14. CPU checks confirmed the author loader omitted the
+checkpoint generation configuration (repetition penalty 1.0 instead of HF's
+1.05, plus different EOS defaults). `create_finemoe` now loads that complete local
+configuration for all offload arms, preserving explicit greedy/16-token settings,
+golden-v4 and tolerance 0.0. All 48 Python tests passed; history-v3 must determine
+whether this confirmed configuration discrepancy explains the failed output.
 
 ## Research Question
 
@@ -275,9 +282,9 @@ the subsequent history/preflight/full commands are not claims those stages passe
 
 ```sh
 .venv/bin/python -B compare.py --mode golden --output raw/golden-v4
-.venv/bin/python -B compare.py --mode history --golden raw/golden-v4/stage --output raw/history-v1
-.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v4/stage --history raw/history-v1/stage --output raw/preflight-v1
-.venv/bin/python -B compare.py --mode full --golden raw/golden-v4/stage --history raw/history-v1/stage --preflight raw/preflight-v1 --output raw/full-v1
+.venv/bin/python -B compare.py --mode history --golden raw/golden-v4/stage --output raw/history-v3
+.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v4/stage --history raw/history-v3/stage --output raw/preflight-v1
+.venv/bin/python -B compare.py --mode full --golden raw/golden-v4/stage --history raw/history-v3/stage --preflight raw/preflight-v1 --output raw/full-v1
 ```
 
 The parent controller must retain its ordinary affinity (it runs telemetry on

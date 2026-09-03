@@ -1,5 +1,6 @@
 """CPU-only coordinator checks; no process in this suite executes CUDA."""
 import json
+import math
 import os
 from pathlib import Path
 import tempfile
@@ -29,7 +30,16 @@ def report(arm='pod_bpf', preflight=True):
                      static_shared_bytes=0, device_optin_bytes=101376)
         diagnostic = dict(metadata=meta, counters=counters, contexts=contexts,
                           audit=bench.audit_decisions(meta, counters, contexts, engine))
-        cells.append(dict(model=name, decode_batch=bs, kv_heads=bench.MODEL_HEADS[name],
+        characterization = {}
+        for phase, shape in (('prefill', [1, 8192, 32, 128]), ('decode', [bs, 1, 32, 128])):
+            characterization[phase] = dict(numeric_protocol=bench.NUMERIC_PROTOCOL, phase=phase,
+                role='characterization_not_cross_precision_pass_gate', finite=True, shape_checked=True,
+                mask='causal_prefix' if phase == 'prefill' else 'valid_kv', output_shape=shape,
+                checked_elements=math.prod(shape), exceeding_elements=0,
+                max_abs_error=0.0003, mean_abs_error=0.00001, rms_error=0.00002,
+                atol=1e-3, rtol=1e-5, diagnostic_directory=None)
+        cells.append(dict(numeric_protocol=bench.NUMERIC_PROTOCOL, fp32_characterization=characterization,
+            model=name, decode_batch=bs, kv_heads=bench.MODEL_HEADS[name],
             query_heads=32, head_dim=128, prefill_batch=1, prefill_length=8192, decode_query_length=1,
             decode_cache_extent=8192, decode_valid_kv=8191, dtype='float16', warmups=10,
             seed=20260904 + (0 if name == 'llama-3-8b' else 1000) + bs, atol=1e-3, rtol=1e-5,
@@ -38,7 +48,8 @@ def report(arm='pod_bpf', preflight=True):
             diagnostic=diagnostic if arm.startswith('pod_') else None,
             launch_bridge=dict(before=before, after=after, expected_launches=11 + len(samples))
                           if arm in ('pod_cuda', 'pod_bpf') else None))
-    return dict(complete=True, arm=arm, block=1, preflight=preflight,
+    return dict(complete=True, numeric_protocol=bench.NUMERIC_PROTOCOL, arm=arm, block=1, preflight=preflight,
+                fp32_characterizations={f"{c['model']}:bs{c['decode_batch']}": c['fp32_characterization'] for c in cells},
                 shape_order=[list(x) for x in bench.shape_order(1, preflight)], cells=cells)
 
 
@@ -113,12 +124,12 @@ class CoordinatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             runtime = {'fixture': {'bytes': 10, 'mtime_ns': 20}}
-            manifest = dict(complete=True, mode='preflight', order=run.orders('preflight'), runtime=runtime)
+            manifest = dict(complete=True, numeric_protocol=bench.NUMERIC_PROTOCOL, mode='preflight', order=run.orders('preflight'), runtime=runtime)
             (root / 'manifest.json').write_text(json.dumps(manifest))
             for item in run.orders('preflight'):
                 cell = root / f"block-01-{item['arm']}"
                 cell.mkdir()
-                (cell / 'execution.json').write_text(json.dumps(dict(status='passed', runtime_before=runtime,
+                (cell / 'execution.json').write_text(json.dumps(dict(status='passed', numeric_protocol=bench.NUMERIC_PROTOCOL, runtime_before=runtime,
                                                                      runtime_after=runtime)))
                 (cell / 'operator.json').write_text(json.dumps(report(item['arm'])))
             run.validate_preflight(root, runtime)
@@ -130,6 +141,28 @@ class CoordinatorTests(unittest.TestCase):
             broken.write_text(json.dumps(value))
             with self.assertRaises(ValueError):
                 run.validate_preflight(root, runtime)
+
+    def test_v1_and_missing_characterization_are_not_admitted(self):
+        for change in (lambda r: r.pop('numeric_protocol'),
+                       lambda r: r['cells'][0]['fp32_characterization'].pop('decode'),
+                       lambda r: r['cells'][0]['fp32_characterization']['prefill'].update(finite=False),
+                       lambda r: r['cells'][0]['fp32_characterization']['prefill'].update(checked_elements=1)):
+            value = report()
+            change(value)
+            with self.assertRaises(ValueError):
+                run.validate_report(value, 'pod_bpf', 1, True)
+
+    def test_v2_characterizes_excess_but_does_not_change_matching_threshold(self):
+        value = report()
+        cell = value['cells'][0]
+        stats = cell['fp32_characterization']['prefill']
+        stats.update(exceeding_elements=1, max_abs_error=.001328,
+                     diagnostic_directory=bench.fp32_diagnostic_name(cell['model'], cell['decode_batch'], 'prefill'))
+        cell['official_max_abs_vs_fp32'] = .001328
+        run.validate_report(value, 'pod_bpf', 1, True)
+        cell['atol'] = .002
+        with self.assertRaises(ValueError):
+            run.validate_report(value, 'pod_bpf', 1, True)
 
     def test_build_guard_is_read_only_and_does_not_kill(self):
         with tempfile.TemporaryDirectory() as directory:

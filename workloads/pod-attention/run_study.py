@@ -118,13 +118,14 @@ def require_no_build():
 
 def validate_report(report, arm, block, preflight):
     expected = bench.shape_order(block, preflight)
-    if (report.get('complete') is not True or 'error' in report or report.get('arm') != arm
+    if (report.get('complete') is not True or report.get('numeric_protocol') != bench.NUMERIC_PROTOCOL
+            or 'error' in report or report.get('arm') != arm
             or report.get('block') != block or report.get('preflight') is not preflight
             or report.get('shape_order') != [list(x) for x in expected]
             or [(c['model'], c['decode_batch']) for c in report.get('cells', [])] != expected):
         raise ValueError('incomplete/wrong operator result or shape order')
     for cell in report['cells']:
-        settings = dict(kv_heads=bench.MODEL_HEADS[cell['model']], query_heads=32, head_dim=128,
+        settings = dict(numeric_protocol=bench.NUMERIC_PROTOCOL, kv_heads=bench.MODEL_HEADS[cell['model']], query_heads=32, head_dim=128,
             prefill_batch=1, prefill_length=8192, decode_query_length=1, decode_cache_extent=8192,
             decode_valid_kv=8191, dtype='float16', warmups=10, atol=1e-3, rtol=1e-5,
             seed=20260904 + (0 if cell['model'] == 'llama-3-8b' else 1000) + cell['decode_batch'])
@@ -141,6 +142,31 @@ def validate_report(report, arm, block, preflight):
         for key in ('max_abs_vs_official', 'official_max_abs_vs_fp32'):
             if not math.isfinite(cell[key]) or cell[key] < 0:
                 raise ValueError('missing actual numerical validation')
+        characterization = cell.get('fp32_characterization', {})
+        if set(characterization) != {'prefill', 'decode'}:
+            raise ValueError('both full-shape FP32 characterizations are required')
+        for phase, shape in (('prefill', [1, 8192, 32, 128]), ('decode', [cell['decode_batch'], 1, 32, 128])):
+            stats = characterization[phase]
+            if (stats.get('numeric_protocol') != bench.NUMERIC_PROTOCOL or stats.get('phase') != phase
+                    or stats.get('role') != 'characterization_not_cross_precision_pass_gate'
+                    or stats.get('finite') is not True or stats.get('shape_checked') is not True
+                    or stats.get('mask') != ('causal_prefix' if phase == 'prefill' else 'valid_kv')
+                    or stats.get('output_shape') != shape or type(stats.get('checked_elements')) is not int
+                    or stats.get('checked_elements') != math.prod(shape)
+                    or type(stats.get('exceeding_elements')) is not int
+                    or not 0 <= stats['exceeding_elements'] <= stats['checked_elements']
+                    or stats.get('atol') != 1e-3 or stats.get('rtol') != 1e-5):
+                raise ValueError('incomplete FP32 characterization or changed reference semantics')
+            for metric in ('max_abs_error', 'mean_abs_error', 'rms_error'):
+                if type(stats.get(metric)) not in (float, int) or not math.isfinite(stats[metric]) or stats[metric] < 0:
+                    raise ValueError('invalid full-shape FP32 error statistics')
+            if stats['mean_abs_error'] > stats['rms_error'] + 1e-15 or stats['rms_error'] > stats['max_abs_error'] + 1e-15:
+                raise ValueError('inconsistent full-shape error statistics')
+            expected_dir = bench.fp32_diagnostic_name(cell['model'], cell['decode_batch'], phase) if stats['exceeding_elements'] else None
+            if stats.get('diagnostic_directory') != expected_dir:
+                raise ValueError('missing/non-unique actual excess-error row diagnostic')
+        if cell['official_max_abs_vs_fp32'] != max(x['max_abs_error'] for x in characterization.values()):
+            raise ValueError('FP32 summary differs from full-phase characterizations')
         if arm.startswith('pod_'):
             diagnostic = cell['diagnostic']
             mode = {'pod_inline': 0, 'pod_cuda': 1, 'pod_bpf': 2}[arm]
@@ -159,6 +185,9 @@ def validate_report(report, arm, block, preflight):
                 raise ValueError('inline baseline unexpectedly used launch injection')
         elif cell['diagnostic'] is not None or cell['launch_bridge'] is not None or cell['fused_params'] is not None:
             raise ValueError('non-fused baseline unexpectedly used POD or injection')
+    scans = {f"{cell['model']}:bs{cell['decode_batch']}": cell['fp32_characterization'] for cell in report['cells']}
+    if report.get('fp32_characterizations') != scans:
+        raise ValueError('checkpointed complete reference scans differ from final cells')
     return report
 
 
@@ -193,7 +222,7 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
     segment = Path('/dev/shm') / name if name else None
     client = loader = telemetry = before = identity = None
     streams, cleanup = [], []
-    result = dict(status='failed', **specification, command=command, timeout_seconds=TIMEOUT,
+    result = dict(status='failed', numeric_protocol=bench.NUMERIC_PROTOCOL, **specification, command=command, timeout_seconds=TIMEOUT,
                   environment=environment(arm, extraction, name), private_segment=name)
     try:
         require_no_build()
@@ -311,12 +340,14 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
 def validate_preflight(directory, current_inventory):
     manifest = json.loads((directory / 'manifest.json').read_text())
     if (manifest.get('complete') is not True or manifest.get('mode') != 'preflight'
+            or manifest.get('numeric_protocol') != bench.NUMERIC_PROTOCOL
             or manifest.get('order') != orders('preflight') or manifest.get('runtime') != current_inventory):
         raise ValueError('formal study requires complete preflight of the unchanged runtime')
     for item in orders('preflight'):
         cell = directory / f"block-{item['block']:02d}-{item['arm']}"
         execution = json.loads((cell / 'execution.json').read_text())
-        if (execution.get('status') != 'passed' or execution.get('cleanup_errors')
+        if (execution.get('status') != 'passed' or execution.get('numeric_protocol') != bench.NUMERIC_PROTOCOL
+                or execution.get('cleanup_errors')
                 or execution.get('runtime_before') != current_inventory
                 or execution.get('runtime_after') != current_inventory):
             raise ValueError('preflight contains failed/incomplete cleanup')
@@ -342,7 +373,7 @@ def main():
     require_no_build()
     output = args.output.resolve()
     output.mkdir(parents=True)
-    manifest = dict(complete=False, mode=args.mode, order=orders(args.mode), seed=20260903,
+    manifest = dict(complete=False, numeric_protocol=bench.NUMERIC_PROTOCOL, mode=args.mode, order=orders(args.mode), seed=20260903,
                     runtime=runtime, ptx=str(extraction), excluded_from_formal=args.mode == 'preflight',
                     preflight=str(args.preflight.resolve()) if args.preflight is not None else None,
                     completed=[], lease_paths=['/tmp/gpubpf-revision-gpu0.lock',

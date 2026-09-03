@@ -26,6 +26,13 @@ CTX_NAMES = ("counters", "abi_version", "nsmid", "smid", "prefill_slots", "decod
              "proportional", "grid_ctas", "out_op", "out_cta", "status", "engine", "ticket",
              "first_op", "first_claim", "fallback_claim", "reserved")
 UNSET = 0xffffffff
+NUMERIC_PROTOCOL = 'pod-fp16-upstream-match-v2'
+
+
+def fp32_diagnostic_name(model, batch, phase):
+    if model not in MODEL_HEADS or batch not in (32, 64, 96, 128, 192) or phase not in ('prefill', 'decode'):
+        raise ValueError('unknown fixed diagnostic shape/phase')
+    return f'fp32-characterization-{model}-bs{batch}-{phase}'
 
 
 def half_precision_evidence(actual, reference):
@@ -54,12 +61,19 @@ def half_precision_evidence(actual, reference):
 
 def save_fp32_failure(directory, metadata, arrays):
     """Save only one real query/head and its effective keys; never overwrite."""
+    if set(arrays) != {'q', 'k', 'v', 'actual', 'fp32_reference'}:
+        raise ValueError('incomplete real FP32 diagnosis arrays')
+    save_numeric_arrays(directory, metadata, arrays)
+
+
+def save_numeric_arrays(directory, metadata, arrays):
     import numpy as np
     directory = Path(directory)
     directory.mkdir()
     files = {}
-    for name in ('q', 'k', 'v', 'actual', 'fp32_reference'):
-        value = arrays[name]
+    for name, value in arrays.items():
+        if name not in ('q', 'k', 'v', 'actual', 'fp32_reference', 'official'):
+            raise ValueError('unexpected numeric array name')
         filename = name + '.npy'
         with (directory / filename).open('xb') as file:
             np.save(file, value, allow_pickle=False)
@@ -103,7 +117,8 @@ def recompute_saved_fp64(directory):
     errors, floor = np.abs(actual - fp64), np.abs(nearest - fp64)
     threshold = 1e-3 + 1e-5 * np.abs(fp64)
     index = int(errors.argmax())
-    return dict(scope='saved real query/head only, not a full-shape pass',
+    result = dict(numeric_protocol=meta.get('numeric_protocol', 'pod-fp32-hard-gate-v1'),
+        scope='saved real query/head only, not a full-shape pass',
         max_abs_actual_vs_fp64=float(errors.max()), max_abs_fp32_vs_fp64=float(np.abs(fp32 - fp64).max()),
         max_abs_nearest_fp16_vs_fp64=float(floor.max()), actual_exceeding_fixed_tolerance=int((errors > threshold).sum()),
         nearest_fp16_exceeding_fixed_tolerance=int((floor > threshold).sum()),
@@ -111,6 +126,43 @@ def recompute_saved_fp64(directory):
         worst_dimension=index, actual=float(actual[index]), fp32_reference=float(fp32[index]),
         fp64_reference=float(fp64[index]), nearest_fp16=float(nearest[index]),
         limitation='Excess over final FP16 rounding does not isolate softmax, GEMM, or online rescaling.')
+    if keys == 2 and meta['causal'] and meta['query_index'] == 1:
+        # A real two-key row fits one upstream tile: model the unnormalized
+        # exponential's conversion to Element=half before PV, then normalize
+        # using the unquantized sum. This is not a hardware rounding simulator.
+        half_p = weights.astype(np.float16).astype(np.float64)
+        modeled64 = ((half_p @ v) / weights.sum()).astype(np.float16).astype(np.float64)
+        raw32 = k.astype(np.float32) @ q.astype(np.float32)
+        scale32 = np.float32(meta['scale'] * np.log2(np.e))
+        max_scaled = np.float32(raw32.max() * scale32)
+        exponent32 = (raw32.astype(np.float64) * float(scale32) - float(max_scaled)).astype(np.float32)
+        exp32 = np.exp2(exponent32)
+        half_p32 = exp32.astype(np.float16).astype(np.float32)
+        pv32 = half_p32[0] * v[0].astype(np.float32) + half_p32[1] * v[1].astype(np.float32)
+        inv_sum = np.float32(1) / exp32.sum(dtype=np.float32)
+        modeled32 = (pv32 * inv_sum).astype(np.float16).astype(np.float64)
+        result['two_key_source_model'] = dict(
+            scope='saved two-key row only; source consistency, not exact isolation of GPU rounding',
+            unnormalized_exp_fp64=weights.tolist(), half_p=half_p.tolist(),
+            unnormalized_exp_fp32_exp2=exp32.tolist(), half_p_fp32=half_p32.tolist(),
+            fp32_inverse_sum=float(inv_sum),
+            final_half_only_matches=int((nearest == actual).sum()),
+            half_p_fp64_model_matches=int((modeled64 == actual).sum()),
+            half_p_fp32_model_matches=int((modeled32 == actual).sum()),
+            half_p_fp64_model_max_abs_vs_actual=float(np.abs(modeled64 - actual).max()),
+            half_p_fp32_model_max_abs_vs_actual=float(np.abs(modeled32 - actual).max()),
+            worst_dimension_half_p_fp64=float(modeled64[index]),
+            worst_dimension_half_p_fp32=float(modeled32[index]))
+    return result
+
+
+def save_cpu_fp64_report(directory):
+    directory = Path(directory)
+    result = recompute_saved_fp64(directory)
+    with (directory / 'cpu-fp64-report.json').open('x') as file:
+        json.dump(result, file, indent=2)
+        file.write('\n')
+    return result
 
 
 def audit_decisions(meta, counters, contexts, engine):
@@ -250,18 +302,57 @@ def run_arm(args, result, output_file):
         gold = (prefill(), decode())
         torch.cuda.synchronize()
 
-        def check_pair(outputs, refs):
+        def check_pair(outputs, refs, stage):
             maximum = 0.0
-            for output, reference in zip(outputs, refs):
-                if output is None or output.shape != reference.shape or not torch.isfinite(output).all().item():
+            for phase, output, reference in zip(('prefill', 'decode'), outputs, refs):
+                if output is None or output.shape != reference.shape:
+                    result['pair_failure_context'] = dict(model=name, decode_batch=bs, phase=phase, stage=stage,
+                        actual_shape=list(output.shape) if output is not None else None,
+                        official_shape=list(reference.shape), reason='missing or invalid-shaped output')
                     raise RuntimeError("missing, invalid-shaped or nonfinite attention output")
                 diff = (output.float() - reference.float()).abs()
-                maximum = max(maximum, diff.max().item())
-                if not torch.allclose(output.float(), reference.float(), atol=1e-3, rtol=1e-5):
+                finite = torch.isfinite(output).all().item() and torch.isfinite(reference).all().item()
+                current_max = diff.max().item() if finite else math.inf
+                maximum = max(maximum, current_max)
+                if not finite or not torch.allclose(output.float(), reference.float(), atol=1e-3, rtol=1e-5):
+                    flat, index = torch.nan_to_num(diff, nan=math.inf).argmax().item(), []
+                    for extent in reversed(diff.shape):
+                        index.append(flat % extent)
+                        flat //= extent
+                    batch, query, head, component = reversed(index)
+                    q, k, v = (q_p, k_p, v_p) if phase == 'prefill' else (q_d, k_d, v_d)
+                    effective_keys = query + 1 if phase == 'prefill' else 8191
+                    kv_head = head // (32 // hkv)
+                    directory = args.output.parent / f'pair-failure-{name}-bs{bs}-{phase}-{stage}'
+                    metadata = dict(numeric_protocol=NUMERIC_PROTOCOL, arm=args.arm, model=name, decode_batch=bs,
+                        phase=phase, stage=stage, seed=seed, comparison='tested operator vs official FA, both FP16',
+                        scope='entire ' + phase + ' output', output_shape=list(output.shape), finite=finite,
+                        checked_elements=diff.numel(), exceeding_elements=(~torch.isclose(output.float(), reference.float(), atol=1e-3, rtol=1e-5)).sum().item(),
+                        max_abs_error=current_max if finite else None,
+                        max_error_coordinate=[batch, query, head, component], kv_head=kv_head,
+                        query_index=query, query_length=q.shape[1], valid_kv=8192 if phase == 'prefill' else 8191,
+                        effective_keys=effective_keys, causal=phase == 'prefill', head_dim=128, scale=128 ** -0.5,
+                        atol=1e-3, rtol=1e-5)
+                    result['pair_failure_context'] = dict(**metadata, diagnostic_directory=directory.name)
+                    try:
+                        save_numeric_arrays(directory, metadata,
+                            dict(q=q[batch, query, head].cpu().numpy(),
+                                 k=k[batch, :effective_keys, kv_head].cpu().numpy(),
+                                 v=v[batch, :effective_keys, kv_head].cpu().numpy(),
+                                 actual=output[batch, query, head].cpu().numpy(),
+                                 official=reference[batch, query, head].cpu().numpy()))
+                    except Exception as error:
+                        raise RuntimeError(f'attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5; '
+                                           f'pair diagnostic save failed: {error}') from error
                     raise RuntimeError(f"attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5")
             return maximum
 
-        def fp32_reference_check(q, k, v, output, length, causal, phase):
+        def fp32_characterization(q, k, v, output, length, causal, phase):
+            if (output is None or tuple(output.shape) != tuple(q.shape) or tuple(k.shape) != tuple(v.shape)
+                    or q.shape[2:] != (32, 128) or k.shape[2:] != (hkv, 128)
+                    or q.shape[0] != k.shape[0] or not 0 < length <= k.shape[1]
+                    or (causal and q.shape[1] != length) or (not causal and q.shape[1] != 1)):
+                raise RuntimeError('official output/input shape or reference mask extent differs')
             maximum, error_sum, error_square_sum = -1.0, 0.0, 0.0
             checked, exceeding, worst = 0, 0, None
             for b in range(0, q.shape[0], 4):
@@ -296,14 +387,20 @@ def run_arm(args, result, output_file):
                         # are checked. Original Q/K/V tensors remain untouched.
                         worst = (batch, query, head, component,
                                  reference[batch_offset, query_offset, head].clone())
+            summary = dict(numeric_protocol=NUMERIC_PROTOCOL, phase=phase,
+                role='characterization_not_cross_precision_pass_gate', finite=True, shape_checked=True,
+                mask='causal_prefix' if causal else 'valid_kv', output_shape=list(output.shape),
+                checked_elements=checked, exceeding_elements=exceeding, max_abs_error=maximum,
+                mean_abs_error=error_sum / checked, rms_error=math.sqrt(error_square_sum / checked),
+                atol=1e-3, rtol=1e-5, diagnostic_directory=None)
             if exceeding:
                 batch, query, head, component, reference_row = worst
                 kv_head = head // (32 // hkv)
                 effective_keys = query + 1 if causal else length
                 actual_row = output[batch, query, head]
-                diagnostic_dir = args.output.parent / f'fp32-failure-{phase}'
-                metadata = dict(arm=args.arm, model=name, decode_batch=bs, seed=seed, phase=phase,
-                    comparison='official FlashAttention vs full-FP32 reference; no POD/BPF called',
+                diagnostic_dir = args.output.parent / fp32_diagnostic_name(name, bs, phase)
+                metadata = dict(numeric_protocol=NUMERIC_PROTOCOL, arm=args.arm, model=name, decode_batch=bs, seed=seed, phase=phase,
+                    comparison='official FlashAttention vs full-FP32 reference, before this shape tested operator',
                     scope='entire ' + phase + ' output', output_shape=list(output.shape),
                     checked_elements=checked, exceeding_elements=exceeding, max_abs_error=maximum,
                     mean_abs_error=error_sum / checked, rms_error=math.sqrt(error_square_sum / checked),
@@ -318,16 +415,23 @@ def run_arm(args, result, output_file):
                              k=k[batch, :effective_keys, kv_head].cpu().numpy(),
                              v=v[batch, :effective_keys, kv_head].cpu().numpy(),
                              actual=actual_row.cpu().numpy(), fp32_reference=reference_row.cpu().numpy()))
-                    result['failure_diagnostic'] = str(diagnostic_dir)
+                    summary['diagnostic_directory'] = diagnostic_dir.name
                 except Exception as error:
-                    raise RuntimeError(f'attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5; '
+                    raise RuntimeError(f'FP32 characterization max_abs={maximum}, atol=1e-3 rtol=1e-5; '
                                        f'diagnostic save failed: {error}') from error
-                raise RuntimeError(f'attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5; '
-                                   f'exceeding={exceeding}/{checked}; diagnostic={diagnostic_dir}')
-            return maximum
+            return summary
 
-        reference_error = max(fp32_reference_check(q_p, k_p, v_p, gold[0], 8192, True, 'prefill'),
-                              fp32_reference_check(q_d, k_d, v_d, gold[1], 8191, False, 'decode'))
+        reference_stats = dict(prefill=fp32_characterization(q_p, k_p, v_p, gold[0], 8192, True, 'prefill'),
+                               decode=fp32_characterization(q_d, k_d, v_d, gold[1], 8191, False, 'decode'))
+        reference_error = max(value['max_abs_error'] for value in reference_stats.values())
+        result.setdefault('fp32_characterizations', {})[f'{name}:bs{bs}'] = reference_stats
+        # Keep completed reference scans even if the following operator/JIT or
+        # hard same-precision comparison fails. This is outside event timing.
+        output_file.seek(0)
+        json.dump(result, output_file, indent=2)
+        output_file.write('\n')
+        output_file.truncate()
+        output_file.flush()
         streams = (torch.cuda.Stream(), torch.cuda.Stream())
         joins = (torch.cuda.Event(), torch.cuda.Event())
         current = torch.cuda.current_stream()
@@ -358,7 +462,7 @@ def run_arm(args, result, output_file):
         bridge_before = bridge_stats() if bridge_stats else None
         outputs = operator()
         torch.cuda.synchronize()
-        error = check_pair(outputs, gold)
+        error = check_pair(outputs, gold, 'diagnostic')
         diagnostic = None
         if pod_mode:
             metadata, counters, contexts, errors = fused_attn.pod_last_launch()
@@ -374,7 +478,7 @@ def run_arm(args, result, output_file):
         for _ in range(10):
             outputs = operator()
         torch.cuda.synchronize()
-        error = max(error, check_pair(outputs, gold))
+        error = max(error, check_pair(outputs, gold, 'warmup-10'))
         samples = []
         for _ in range(3 if args.preflight else 100):
             start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
@@ -388,7 +492,7 @@ def run_arm(args, result, output_file):
             elapsed_ms = start.elapsed_time(end)
             if not math.isfinite(elapsed_ms) or elapsed_ms <= 0:
                 raise RuntimeError("invalid complete operator event timing")
-            error = max(error, check_pair(outputs, gold))
+            error = max(error, check_pair(outputs, gold, f'timed-{len(samples) + 1:03d}'))
             if pod_mode:
                 metadata, counters, _, errors = fused_attn.pod_last_launch()
                 meta = dict(zip(META_NAMES, metadata.tolist()))
@@ -398,7 +502,8 @@ def run_arm(args, result, output_file):
             samples.append({"cuda_ms": elapsed_ms, "host_wall_ms": wall_ms})
         bridge = (audit_bridge(bridge_before, bridge_stats(), 1 + 10 + len(samples),
                               meta["smem_bytes"], pod_mode) if bridge_stats else None)
-        cell = {"model": name, "kv_heads": hkv, "query_heads": 32, "head_dim": 128,
+        cell = {"numeric_protocol": NUMERIC_PROTOCOL, "fp32_characterization": reference_stats,
+                "model": name, "kv_heads": hkv, "query_heads": 32, "head_dim": 128,
                 "prefill_batch": 1, "prefill_length": 8192, "decode_batch": bs,
                 "decode_query_length": 1, "decode_cache_extent": 8192, "decode_valid_kv": 8191,
                 "dtype": "float16", "seed": seed, "fused_params": 15 if pod_mode else None, "warmups": 10,
@@ -426,7 +531,7 @@ def main():
     args = parser.parse_args()
     # Refuse replacement before importing CUDA. Persist failure, never a silent None/-1.
     with args.output.open("x") as out:
-        result = {"complete": False, "arm": args.arm, "block": args.block,
+        result = {"complete": False, "numeric_protocol": NUMERIC_PROTOCOL, "arm": args.arm, "block": args.block,
                   "preflight": args.preflight, "cells": []}
         try:
             run_arm(args, result, out)

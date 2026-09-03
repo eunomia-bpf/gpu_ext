@@ -1,0 +1,43 @@
+{
+  "numeric_protocol": "pod-fp32-hard-gate-v1",
+  "scope": "saved real query/head only, not a full-shape pass",
+  "max_abs_actual_vs_fp64": 0.001327910378291719,
+  "max_abs_fp32_vs_fp64": 4.2768200514409216e-07,
+  "max_abs_nearest_fp16_vs_fp64": 0.000625214621708281,
+  "actual_exceeding_fixed_tolerance": 1,
+  "nearest_fp16_exceeding_fixed_tolerance": 0,
+  "max_excess_above_best_final_fp16_rounding": 0.000702695756583438,
+  "worst_dimension": 7,
+  "actual": 3.23046875,
+  "fp32_reference": 3.2291407585144043,
+  "fp64_reference": 3.2291408396217083,
+  "nearest_fp16": 3.228515625,
+  "limitation": "Excess over final FP16 rounding does not isolate softmax, GEMM, or online rescaling.",
+  "two_key_source_model": {
+    "scope": "saved two-key row only; source consistency, not exact isolation of GPU rounding",
+    "unnormalized_exp_fp64": [
+      0.6360530967256779,
+      1.0
+    ],
+    "half_p": [
+      0.63623046875,
+      1.0
+    ],
+    "unnormalized_exp_fp32_exp2": [
+      0.6360530853271484,
+      1.0
+    ],
+    "half_p_fp32": [
+      0.63623046875,
+      1.0
+    ],
+    "fp32_inverse_sum": 0.6112270951271057,
+    "final_half_only_matches": 79,
+    "half_p_fp64_model_matches": 128,
+    "half_p_fp32_model_matches": 128,
+    "half_p_fp64_model_max_abs_vs_actual": 0.0,
+    "half_p_fp32_model_max_abs_vs_actual": 0.0,
+    "worst_dimension_half_p_fp64": 3.23046875,
+    "worst_dimension_half_p_fp32": 3.23046875
+  }
+}

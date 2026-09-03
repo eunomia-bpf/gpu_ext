@@ -4,11 +4,12 @@ Status: complete official CPU build succeeded: all 21 fused CUDA compilation
 units and the original FA extension (four CUDA TUs plus API) compiled and linked.
 The resulting `fused_attn`/`flash_attn_og` shared libraries are 719,807,608 /
 29,503,152 bytes. Selector/ABI and launch-bridge CPU checks, ten PTX-adapter
-tests, seven benchmark-audit tests, eighteen preparation/pruning/partition
-tests, four host-link tests and twelve coordinator tests pass.
+tests, eighteen preparation/pruning/partition tests and four host-link tests pass;
+the numerical/benchmark/coordinator CPU tests also pass.
 Final linked PTX extraction also passed all four planned TUs/six packets.
-No GPU correctness, engagement or
-performance test has run. This is an operator port,
+Two real FA-only preflights stopped at the v1 extra FP32 gate before any POD
+operator, device selector or performance cell completed. Protocol v2 below is
+fixed before any actual POD/BPF result. This is an operator port,
 not a Sarathi/full-paper reproduction.
 
 The first build exposed NVCC removing the constant length argument. The fix is
@@ -17,7 +18,7 @@ causal h128 fo10/fo11 PTX now has the real two-parameter declaration and call,
 followed by volatile device output/engine reads used by the attention branch.
 An isolated ABI compile also exercises NVCC's two-parameter address-space clone;
 the adapter checks its declaration/call and still rejects a one-parameter clone.
-The thin loader and real operator benchmark are authored but not GPU-tested.
+The thin device-BPF loader and actual POD operator are not yet GPU-tested.
 The scoped driver-launch bridge is compiled and its CPU driver-double tests
 pass; it is not GPU-tested. Existing bpftime does not transfer the original
 kernel's dynamic shared-memory opt-in to its newly loaded CUfunction.
@@ -181,15 +182,46 @@ every observation. Pair at the cell/block level, not the individual launch.
 Five randomized paired blocks use seed 20260903; input seed is 20260904 and
 paired percentile-bootstrap seed is 20260905 (10,000 draws). No dropped adverse cells.
 
-Correctness: full finite outputs against separate original attention, fixed
-`atol=1e-3, rtol=1e-5` (the official check), plus chunked FP32 reference checks
-with the same fixed tolerance. Real diagnostic launches retain each CTA's SM,
+Correctness under `pod-fp16-upstream-match-v2`: full finite outputs against
+separate original FA, with the unchanged hard `atol=1e-3, rtol=1e-5` check for
+every arm. Full prefill/decode FA-versus-FP32 scans characterize cross-precision
+error; their finite/shape/mask checks remain hard failures, but exceeding the
+same reporting threshold is not a cross-precision pass/fail gate. Real
+diagnostic launches retain each CTA's SM,
 ticket, operation and slot, verify each actual claim and exactly-once logical
 work, including exhaustion/tails; do not require identical nondeterministic
 SM assignments across runs. Confirm device-BPF-written fields and PTX call
 feed the branch. Disable detailed tracing equally for performance, retaining
-numerical checks outside event timing. Any oracle/tolerance change is recorded
-before rerunning all affected cells, not used to pass an inconvenient result.
+numerical checks outside event timing. Oracle changes require independent
+numerical evidence, an explicit protocol version and a fresh run of every
+affected cell; earlier failures are never relabeled.
+
+## Explicit numerical protocol revision, before POD/BPF results
+
+V1 additionally applied that absolute gate to original FA versus a full-FP32
+oracle. Both `raw/preflight-575-01` and `raw/preflight-575-02` remain failed and
+cannot enter formal statistics. In 02, the complete prefill output had one
+exceedance among 33,554,432 elements: max 0.0013279915, MAE 0.00000753793,
+RMS 0.0000131618, at `[0,1,19,7]`; decode's oracle was not reached under v1.
+The saved two-key row's independent CPU-FP64 value is 3.2291408396217083,
+versus FA 3.23046875 and nearest FP16 3.228515625. Thus the failure is not just
+unavoidable final-output quantization; FP32 and FP64 agree within 4.28e-7 over
+that row. A source-consistency model of unnormalized exp → half P → PV /
+unquantized denominator → half O matches all 128 actual components; final-half
+rounding alone matches 79. This is not a hardware-step rounding proof or an
+all-shape accuracy claim. Code: `bench.recompute_saved_fp64`; data and generated
+`cpu-fp64-report.json`: `raw/preflight-575-02/block-01-official_streams/fp32-failure-prefill/`.
+
+The official `tests/attn_sweep.py:82,84` gate compares two FP16 implementations,
+not FA to full FP32. V2 retains that gate unchanged, without a BPF exception,
+and records full cross-precision count/exceedances/max/mean/RMS for both phases
+of every shape. Each excess saves its worst real query/head, effective Q/K/V,
+and actual/reference rows in a unique model/batch/phase directory for CPU-FP64
+recalculation. Completed reference scans are checkpointed before launching the
+tested operator; a later hard FA↔arm failure saves corresponding real rows too.
+No observed-max multiplier or selected favorable error threshold is used.
+All new manifest/execution/operator cells carry `numeric_protocol`; all five
+arms and ten shapes must be rerun, and v1 data cannot satisfy v2 admission.
 
 ## Minimal implementation and execution
 
@@ -227,7 +259,7 @@ owned `BPFTIME_GLOBAL_SHM_NAME=pod_attention_...`. A separate preloaded syscall
 server runs `build/pod-loader build/selector.bpf.o EXACT_KERNEL_NAMES.txt` and
 remains alive until the BPF client exits. Exact kernel names must come from the
 linked official extension, not a wildcard attach or assumed symbol. Private
-loader lifecycle/campaign coordination is not yet run or validated. Set
+device-loader lifecycle is not yet run or validated. Set
 `SPDLOG_LEVEL=warn` to avoid recording vendor internal cache identifiers.
 `run_study.py` now supplies this thin coordination using the existing GPU/struct-ops
 lease paths and safety/telemetry helpers. `python3 run_study.py preflight --output
@@ -239,7 +271,8 @@ PASSED_DIR` requires that complete five-arm preflight with unchanged runtime
 files. Each cell checks the campaign's original file inventory; a live loader
 keeps its private SHM until the CUDA client exits, then orderly detaches and
 removes only its newly created exact segment. Every failure/cleanup check is
-retained. No such coordinated GPU invocation has run yet.
+retained. The two v1 coordinated invocations reached only the original FA
+reference failure; neither is a completed five-arm preflight.
 Real preflight uses the actual two
 attention outputs, one Figure-14 shape and all five arms, plus exhaustion tests;
 CPU selector tests/build success alone are not preflight. Retain source versions,

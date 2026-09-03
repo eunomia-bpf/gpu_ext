@@ -1,9 +1,11 @@
 """Pure CPU checks of diagnostic interpretation; no torch/CUDA import."""
 import unittest
+import json
 import tempfile
 from pathlib import Path
 from bench import (CTX_NAMES, UNSET, audit_bridge, audit_decisions, shape_order,
-                   half_precision_evidence, save_fp32_failure, recompute_saved_fp64)
+                   half_precision_evidence, save_fp32_failure, recompute_saved_fp64,
+                   fp32_diagnostic_name, save_cpu_fp64_report, save_numeric_arrays)
 
 
 def sparse_fallback_case():
@@ -74,6 +76,34 @@ class BenchAuditTests(unittest.TestCase):
             self.assertEqual(result['actual_exceeding_fixed_tolerance'], 128)
             self.assertEqual(result['max_excess_above_best_final_fp16_rounding'], 0.00390625)
             self.assertIn('does not isolate', result['limitation'])
+
+    def test_all_shapes_have_distinct_characterization_paths(self):
+        names = {fp32_diagnostic_name(model, bs, phase)
+                 for model, bs in shape_order(1, False) for phase in ('prefill', 'decode')}
+        self.assertEqual(len(names), 20)
+
+    def test_saved_cpu_source_model_and_report_are_explicit_and_exclusive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'failure'
+            self.saved_fixture(path, 4.0, 4.00390625, 4.0)
+            result = save_cpu_fp64_report(path)
+            self.assertEqual(result['two_key_source_model']['half_p_fp32_model_matches'], 128)
+            self.assertIn('not exact isolation', result['two_key_source_model']['scope'])
+            self.assertTrue((path / 'cpu-fp64-report.json').is_file())
+            with self.assertRaises(FileExistsError):
+                save_cpu_fp64_report(path)
+
+    def test_pair_failure_preserves_official_fp16_without_calling_it_fp32(self):
+        import numpy as np
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            metadata, arrays = self.saved_fixture(root / 'reference', 4.0, 4.0, 4.00390625)
+            arrays['official'] = arrays.pop('fp32_reference').astype(np.float16)
+            save_numeric_arrays(root / 'pair', metadata, arrays)
+            saved = json.loads((root / 'pair/diagnostic.json').read_text())
+            self.assertEqual(saved['arrays']['actual']['dtype'], 'float16')
+            self.assertEqual(saved['arrays']['official']['dtype'], 'float16')
+            self.assertNotIn('fp32_reference', saved['arrays'])
 
     def test_bridge_actual_launch_and_limit_accounting(self):
         before = dict(launches=5, runtime_redirects=5)

@@ -157,3 +157,29 @@ The independent official GDRCopy basic test then reported CUDA GPUDirect-RDMA
 capability absent on this GPU and failed. A separate mapped-pinned-host flag
 canary passed 64 exact roundtrips, but that is a different memory transport and
 does not make the original GDR actuator available.
+
+## Per-runlist identity and directly observable GSP completion
+
+At 2026-09-03 01:01:22–23 UTC, a second ordinary bounded reload installed driver
+revision `e7d46fa5` from the new separate directory
+`/opt/gpubpf/modules/575.57.08/gpreempt-e7d46fa5-6.15.11/`. No boot-module files,
+old staging files or module-probing restrictions were changed. GPU state was
+2 MiB/0%, both struct-ops registrations succeeded, UVM and GDR references were
+zero, and the power limit was again restored to 400 W. The existing GDR node
+remained major 507, mode 0600 and UID/GID 1000.
+
+This patch appends runlist/engine identity to the destroy context while retaining
+the original TSG-ID offset. TSG hardware IDs are allocated within a per-runlist
+namespace; a TSG-ID-only lookup can confuse graphics and copy-engine groups.
+The matching BPF policy uses composite identity instead of accepting mismatches.
+The patch also adds a Kbuild-instrumented, observation-only hook after the actual
+GSP control RPC wait, carrying input value, transport status and valid firmware
+status. Direct probing of the core RM `notrace` functions was rejected by Linux
+6.15; that rejection is not bypassed. The completion hook cannot change policy
+or return status and is not emitted for cache hits or pre-send rejection.
+
+CPU transport/diagnostic tests passed 5 cases and 118 assertions, and transition
+tests passed 12 cases and 145 assertions. The new core module is 30,112,976 bytes;
+live NVIDIA BTF is 125,410 bytes and UVM BTF is 268,940 bytes. These build/load
+facts do not yet prove firmware timeslice acceptance or physical scheduling
+quantum; the new observer/context canary must supply its own runtime evidence.

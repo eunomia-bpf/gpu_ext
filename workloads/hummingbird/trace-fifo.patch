@@ -1,0 +1,81 @@
+diff --git a/third_party/disb/include/benchmark.h b/third_party/disb/include/benchmark.h
+--- a/third_party/disb/include/benchmark.h
++++ b/third_party/disb/include/benchmark.h
+@@ -37,6 +37,7 @@
+ #include <json/json.h>
+ #ifdef GPREEMPT_LOAD_STUDY
+ #include "load_study_measurement.h"
++#include "trace_schedule.h"
+ #endif
+ 
+ #define WARMUP_TIME                         10
+@@ -57,6 +58,7 @@
+ #ifdef GPREEMPT_LOAD_STUDY
+     std::shared_ptr<gpreempt_load_study::CommonStart> studyStart;
+     int64_t studyIntervalNs = 0;
++    std::vector<int64_t> studyOffsetsNs;
+     int64_t studyVerifiedReadyNs = 0;
+ #endif
+ 
+diff --git a/third_party/disb/src/benchmark.cpp b/third_party/disb/src/benchmark.cpp
+--- a/third_party/disb/src/benchmark.cpp
++++ b/third_party/disb/src/benchmark.cpp
+@@ -150,9 +150,9 @@
+     beginTime = window.wall_begin;
+     endTime = window.wall_end;
+     client->startAnalyzers(beginTime);
+-    gpreempt_load_study::Schedule schedule(window.begin_ns, window.end_ns, studyIntervalNs);
++    hummingbird::Schedule schedule(window.begin_ns, window.end_ns, studyIntervalNs, studyOffsetsNs);
+     std::vector<gpreempt_load_study::Request> requests;
+-    requests.reserve(studyIntervalNs ? schedule.offered() : 65536);
++    requests.reserve(schedule.finite() ? schedule.offered() : 65536);
+     while (true) {
+         std::this_thread::sleep_until(gpreempt_load_study::at_ns(schedule.next_ns()));
+         gpreempt_load_study::Request request;
+@@ -166,13 +166,13 @@
+     Json::Value study;
+     study["task"] = id;
+     study["clock"] = "steady_clock";
+-    study["mode"] = studyIntervalNs ? "periodic_fifo" : "continuous_closed_loop";
++    study["mode"] = !studyOffsetsNs.empty() ? "trace_fifo" : (studyIntervalNs ? "periodic_fifo" : "continuous_closed_loop");
+     study["phase_ns"] = Json::Int64(0);
+     study["begin_ns"] = Json::Int64(window.begin_ns);
+     study["end_ns"] = Json::Int64(window.end_ns);
+     study["interval_ns"] = Json::Int64(studyIntervalNs);
+-    study["offered"] = studyIntervalNs ? Json::Value(Json::UInt64(schedule.offered())) : Json::Value();
++    study["offered"] = schedule.finite() ? Json::Value(Json::UInt64(schedule.offered())) : Json::Value();
+     study["started"] = Json::UInt64(schedule.started());
+     study["request_fields"] = "id,scheduled_ns,started_ns,verified_ready_ns";
+     study["requests"] = Json::Value(Json::arrayValue);
+     for (const auto &request : requests) {
+@@ -253,8 +253,17 @@
+                 const int rate = arrival["frequency"].asInt();
+                 if (rate <= 0 || 1000000000 % rate != 0)
+                     throw std::invalid_argument("FIFO rate must divide one second");
+                 tasks[taskId].studyIntervalNs = 1000000000 / rate;
++            } else if (mode == "trace_fifo") {
++                const auto &offsets = arrival["offsets_ns"];
++                if (!offsets.isArray() || offsets.empty())
++                    throw std::invalid_argument("trace_fifo needs nonempty offsets_ns");
++                for (const auto &offset : offsets) {
++                    if (!offset.isInt64())
++                        throw std::invalid_argument("trace offset must be integer nanoseconds");
++                    tasks[taskId].studyOffsetsNs.push_back(offset.asInt64());
++                }
+             } else if (mode != "continuous") {
+-                throw std::invalid_argument("load-study requires periodic_fifo or continuous");
++                throw std::invalid_argument("load-study requires periodic_fifo, trace_fifo or continuous");
+             }
+ #endif
+diff --git a/third_party/disb/src/load.cpp b/third_party/disb/src/load.cpp
+--- a/third_party/disb/src/load.cpp
++++ b/third_party/disb/src/load.cpp
+@@ -72,6 +72,8 @@
+ {
+ #ifdef GPREEMPT_LOAD_STUDY
+     // BenchmarkTask supplies the FIFO scheduler; this object is never coordinated/run.
++    if (config["type"].asString() == "trace_fifo")
++        return std::make_shared<ContinuousLoad>();
+     if (config["type"].asString() == "periodic_fifo")
+         return std::make_shared<PeriodicLoad>(config);
+ #endif

@@ -57,3 +57,66 @@ Nine invalid initialization/input cases were rejected. The independent oracle
 reads raw mock nodes and atomics rather than reusing the BPF eligibility predicate.
 This is component validation, not an end-to-end MoE performance result or a full
 paper reproduction.
+
+## Paper-v3 scored eviction and prefetch ordering
+
+The activation-aware frontend port follows the separate paper-v3 implementation
+in `workloads/moe-infinity/paper_policy.py`; see its accompanying
+`activation-aware-port.md` for mathematical conventions and deviations from
+the dormant upstream predictor. The policy source is
+[MoE-Infinity, arXiv v3](https://arxiv.org/abs/2401.14361v3), Algorithm 1 and the
+prefetch discussion. The current-source count selector above is not substituted
+for the paper's probability-scored eviction.
+
+The common frontend computes cosine similarities, selected-trace aggregation,
+probabilities, and layer-decayed scores. It must hand the native and BPF selectors
+the **same float64 bit patterns**, without converting them to float32. The C++
+bridge does not calculate scores, filter candidates, or sort them. It copies
+unsorted entries into bounded memory and calls the selected JIT program.
+
+- `moe_expert_scored_select_v1`: choose the first eligible strictly smaller
+  score, with initial minimum positive infinity. Four eligibility facts and
+  input order are the same as the count selector. NaNs and positive infinity
+  cannot win; negative infinity can; positive and negative zero compare equal.
+- `moe_expert_rank_v1`: filter `score > 0`, retaining positive infinity and
+  excluding all NaNs and nonpositive values; perform stable descending merge
+  sort **inside BPF**. Equal scores retain the original unfiltered, layer-major
+  input order. Each entry's ordinal must equal its input position. Return input
+  indices, leaving identity mapping and prefetch enqueueing to the frontend.
+
+Both BPF programs implement IEEE-754 float64 comparisons using integer bit
+ordering, avoiding unsupported eBPF floating-point operations. Rank uses bounded
+caller-owned scratch and O(n log n) work, not a C pre-sort or quadratic insertion
+sort. Its bridge requires output capacity at least the input count, exposes
+`moe_expert_rank_stats_v1`, and separately counts ranked indices and empty calls.
+The scored selector has its own `moe_expert_scored_stats_v1` counters. Ready/error
+and process-exit log records include `kind=paper_scored` or `kind=paper_rank`.
+
+The existing SO exports all three component interfaces. Initialize scored and
+rank programs with absolute paths to these additional build outputs:
+
+```text
+extension/.output/moe_expert_policy_scored.bin
+extension/.output/moe_expert_policy_rank.bin
+```
+
+The corresponding null-path environment variables are `MOE_EXPERT_SCORED_CODE`
+and `MOE_EXPERT_RANK_CODE`. Missing programs and malformed snapshots fail closed;
+there is no C decision fallback. The header gives the full 24-byte entry layouts
+and separate output types.
+
+CPU validation completed for each new component: **40,871 scored selections and
+40,871 rankings, zero mismatches**, producing **2,376,217 ranked indices**.
+The independent oracle uses native double comparisons and `std::stable_sort`,
+not the BPF integer encoding or merge algorithm. Tests cover positive/negative
+infinities, quiet and signaling NaNs, both zeros, subnormals, adjacent doubles
+that would collapse under float32, all eligibility combinations, random IEEE
+encodings, 65,536-candidate all-tie and reordered cases, and four concurrent
+threads. Fourteen invalid input/initialization cases are rejected. Output-array
+sentinels verify that the bridge does not overwrite the caller's boundaries.
+
+This validates the discrete score-selection components against a native
+specification. It does **not** by itself validate prediction math, EAMC lifecycle,
+model correctness, actual prefetch/eviction actuation, or performance. In
+particular, the shared frontend's EAMC nearest-trace selection is not counted
+as BPF execution by these rank/eviction counters.

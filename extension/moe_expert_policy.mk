@@ -11,15 +11,17 @@ MEP_VM_LIBS := $(BPFTIME_BUILD)/vm/vm-core/libbpftime_vm.a \
 	$(BPFTIME_BUILD)/third_party/spdlog/libspdlogd.a -lpthread -ldl
 
 .PHONY: all test
-all: $(MEP_OUTPUT)/libmoe_expert_policy.so $(MEP_OUTPUT)/moe_expert_policy.bin
+.SECONDARY:
+all: $(MEP_OUTPUT)/libmoe_expert_policy.so $(MEP_OUTPUT)/moe_expert_policy.bin \
+	$(MEP_OUTPUT)/moe_expert_policy_scored.bin $(MEP_OUTPUT)/moe_expert_policy_rank.bin
 
 $(MEP_OUTPUT):
 	mkdir -p $@
 
-$(MEP_OUTPUT)/moe_expert_policy.bpf.o: moe_expert_policy.bpf.c moe_expert_policy.h | $(MEP_OUTPUT)
+$(MEP_OUTPUT)/%.bpf.o: %.bpf.c moe_expert_policy.h | $(MEP_OUTPUT)
 	$(MEP_CLANG) -O2 -g -target bpf -c $< -o $@
 
-$(MEP_OUTPUT)/moe_expert_policy.bin: $(MEP_OUTPUT)/moe_expert_policy.bpf.o
+$(MEP_OUTPUT)/%.bin: $(MEP_OUTPUT)/%.bpf.o
 	llvm-objcopy --only-section=.text -O binary $< $@
 
 $(MEP_OUTPUT)/libmoe_expert_policy.so: moe_expert_policy.cpp moe_expert_policy.h | $(MEP_OUTPUT)
@@ -30,5 +32,11 @@ $(MEP_OUTPUT)/moe_expert_policy_test: moe_expert_policy_test.cpp moe_expert_poli
 	$(MEP_CXX) -O2 -g -std=c++17 -Wall -Wextra -Werror -Wl,--build-id=none $< \
 		-L$(MEP_OUTPUT) -Wl,-rpath,'$$ORIGIN' -lmoe_expert_policy -lpthread -o $@
 
-test: all $(MEP_OUTPUT)/moe_expert_policy_test
+$(MEP_OUTPUT)/moe_expert_policy_scored_test: moe_expert_policy_scored_test.cpp moe_expert_policy.h $(MEP_OUTPUT)/libmoe_expert_policy.so
+	$(MEP_CXX) -O2 -g -std=c++17 -Wall -Wextra -Werror -Wl,--build-id=none $< \
+		-L$(MEP_OUTPUT) -Wl,-rpath,'$$ORIGIN' -lmoe_expert_policy -lpthread -o $@
+
+test: all $(MEP_OUTPUT)/moe_expert_policy_test $(MEP_OUTPUT)/moe_expert_policy_scored_test
 	./$(MEP_OUTPUT)/moe_expert_policy_test $(abspath $(MEP_OUTPUT)/moe_expert_policy.bin)
+	./$(MEP_OUTPUT)/moe_expert_policy_scored_test $(abspath $(MEP_OUTPUT)/moe_expert_policy_scored.bin) \
+		$(abspath $(MEP_OUTPUT)/moe_expert_policy_rank.bin)

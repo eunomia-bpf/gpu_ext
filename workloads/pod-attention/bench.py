@@ -28,6 +28,91 @@ CTX_NAMES = ("counters", "abi_version", "nsmid", "smid", "prefill_slots", "decod
 UNSET = 0xffffffff
 
 
+def half_precision_evidence(actual, reference):
+    """Adjacent representable values, not an adjusted correctness threshold."""
+    if not math.isfinite(actual) or not math.isfinite(reference):
+        raise ValueError('precision diagnosis requires finite actual/reference values')
+    bits = struct.unpack('<H', struct.pack('<e', actual))[0]
+    half = lambda value: struct.unpack('<e', struct.pack('<H', value))[0]
+    if half(bits) != actual:
+        raise ValueError('actual diagnostic value is not exactly FP16')
+    if actual == 0:
+        lower, upper = half(0x8001), half(1)
+    elif actual > 0:
+        lower, upper = half(bits - 1), half(bits + 1)
+    else:
+        lower, upper = half(bits + 1), half(bits - 1)
+    nearest = struct.unpack('<e', struct.pack('<e', reference))[0]
+    threshold = 1e-3 + 1e-5 * abs(reference)
+    return dict(actual_fp16=actual, reference_fp32=reference, adjacent_fp16_lower=lower,
+                adjacent_fp16_upper=upper, nearest_fp16_to_reference=nearest,
+                actual_is_nearest_fp16=actual == nearest,
+                minimum_fp16_absolute_error=abs(nearest - reference),
+                actual_absolute_error=abs(actual - reference), fixed_allowed_error=threshold,
+                nearest_fp16_satisfies_fixed_tolerance=abs(nearest - reference) <= threshold)
+
+
+def save_fp32_failure(directory, metadata, arrays):
+    """Save only one real query/head and its effective keys; never overwrite."""
+    import numpy as np
+    directory = Path(directory)
+    directory.mkdir()
+    files = {}
+    for name in ('q', 'k', 'v', 'actual', 'fp32_reference'):
+        value = arrays[name]
+        filename = name + '.npy'
+        with (directory / filename).open('xb') as file:
+            np.save(file, value, allow_pickle=False)
+        files[name] = dict(filename=filename, dtype=str(value.dtype), shape=list(value.shape),
+                           bytes=(directory / filename).stat().st_size)
+    with (directory / 'diagnostic.json').open('x') as file:
+        json.dump(dict(complete=True, **metadata, arrays=files), file, indent=2)
+        file.write('\n')
+
+
+def recompute_saved_fp64(directory):
+    """Offline CPU-only recheck; importing this function does not import torch."""
+    import numpy as np
+    directory = Path(directory)
+    meta = json.loads((directory / 'diagnostic.json').read_text())
+    if meta.get('complete') is not True or meta.get('atol') != 1e-3 or meta.get('rtol') != 1e-5:
+        raise ValueError('incomplete diagnostic or changed fixed threshold')
+    arrays = {}
+    for name in ('q', 'k', 'v', 'actual', 'fp32_reference'):
+        spec = meta['arrays'][name]
+        if spec['filename'] != name + '.npy':
+            raise ValueError('unexpected diagnostic array path')
+        value = np.load(directory / spec['filename'], allow_pickle=False)
+        if list(value.shape) != spec['shape'] or str(value.dtype) != spec['dtype'] or not np.isfinite(value).all():
+            raise ValueError('diagnostic array differs from its declared shape/type')
+        if value.dtype != (np.float32 if name == 'fp32_reference' else np.float16):
+            raise ValueError('not the real FP16 inputs/output and FP32 oracle row')
+        arrays[name] = value.astype(np.float64)
+    q, k, v, actual, fp32 = (arrays[name] for name in ('q', 'k', 'v', 'actual', 'fp32_reference'))
+    width, keys = meta['head_dim'], meta['effective_keys']
+    if (width != 128 or q.shape != (width,) or actual.shape != (width,) or fp32.shape != (width,)
+            or k.shape != (keys, width) or v.shape != k.shape or keys < 1
+            or keys != (meta['query_index'] + 1 if meta['causal'] else meta['valid_kv'])
+            or not 0 <= meta['query_index'] < meta['query_length']
+            or not 0 < keys <= meta['valid_kv'] or meta['scale'] != 128 ** -0.5):
+        raise ValueError('saved query/key extent or scale does not match the real mask')
+    scores = (k @ q) * meta['scale']
+    weights = np.exp(scores - scores.max())
+    fp64 = (weights / weights.sum()) @ v
+    nearest = fp64.astype(np.float16).astype(np.float64)
+    errors, floor = np.abs(actual - fp64), np.abs(nearest - fp64)
+    threshold = 1e-3 + 1e-5 * np.abs(fp64)
+    index = int(errors.argmax())
+    return dict(scope='saved real query/head only, not a full-shape pass',
+        max_abs_actual_vs_fp64=float(errors.max()), max_abs_fp32_vs_fp64=float(np.abs(fp32 - fp64).max()),
+        max_abs_nearest_fp16_vs_fp64=float(floor.max()), actual_exceeding_fixed_tolerance=int((errors > threshold).sum()),
+        nearest_fp16_exceeding_fixed_tolerance=int((floor > threshold).sum()),
+        max_excess_above_best_final_fp16_rounding=float((errors - floor).max()),
+        worst_dimension=index, actual=float(actual[index]), fp32_reference=float(fp32[index]),
+        fp64_reference=float(fp64[index]), nearest_fp16=float(nearest[index]),
+        limitation='Excess over final FP16 rounding does not isolate softmax, GEMM, or online rescaling.')
+
+
 def audit_decisions(meta, counters, contexts, engine):
     """Recompute the original rule/claims, not a producer success flag."""
     p = (meta["prefill_blocks"] + meta["factor_p"] - 1) // meta["factor_p"]
@@ -176,8 +261,9 @@ def run_arm(args, result, output_file):
                     raise RuntimeError(f"attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5")
             return maximum
 
-        def fp32_reference_check(q, k, v, output, length, causal):
-            maximum = 0.0
+        def fp32_reference_check(q, k, v, output, length, causal, phase):
+            maximum, error_sum, error_square_sum = -1.0, 0.0, 0.0
+            checked, exceeding, worst = 0, 0, None
             for b in range(0, q.shape[0], 4):
                 kk = k[b:b+4, :length].float().repeat_interleave(32 // hkv, dim=2).transpose(1, 2)
                 vv = v[b:b+4, :length].float().repeat_interleave(32 // hkv, dim=2).transpose(1, 2)
@@ -189,11 +275,59 @@ def run_arm(args, result, output_file):
                         keys = torch.arange(length, device="cuda")
                         scores.masked_fill_(keys[None, :] > positions[:, None], -math.inf)
                     reference = torch.matmul(torch.softmax(scores, dim=-1), vv).transpose(1, 2)
-                    maximum = max(maximum, check_pair((output[b:b+4, row:row+128],), (reference,)))
+                    actual = output[b:b+4, row:row+128]
+                    if not torch.isfinite(actual).all().item() or not torch.isfinite(reference).all().item():
+                        raise RuntimeError('nonfinite official output or FP32 reference')
+                    diff = (actual.float() - reference).abs()
+                    maximum_here = diff.max().item()
+                    exceeding += (~torch.isclose(actual.float(), reference, atol=1e-3, rtol=1e-5)).sum().item()
+                    checked += diff.numel()
+                    error_sum += diff.sum(dtype=torch.float64).item()
+                    error_square_sum += diff.double().square().sum().item()
+                    if maximum_here > maximum:
+                        maximum = maximum_here
+                        flat, index = diff.argmax().item(), []
+                        for extent in reversed(diff.shape):
+                            index.append(flat % extent)
+                            flat //= extent
+                        batch_offset, query_offset, head, component = reversed(index)
+                        batch, query = b + batch_offset, row + query_offset
+                        # Keep only this output row alive while subsequent chunks
+                        # are checked. Original Q/K/V tensors remain untouched.
+                        worst = (batch, query, head, component,
+                                 reference[batch_offset, query_offset, head].clone())
+            if exceeding:
+                batch, query, head, component, reference_row = worst
+                kv_head = head // (32 // hkv)
+                effective_keys = query + 1 if causal else length
+                actual_row = output[batch, query, head]
+                diagnostic_dir = args.output.parent / f'fp32-failure-{phase}'
+                metadata = dict(arm=args.arm, model=name, decode_batch=bs, seed=seed, phase=phase,
+                    comparison='official FlashAttention vs full-FP32 reference; no POD/BPF called',
+                    scope='entire ' + phase + ' output', output_shape=list(output.shape),
+                    checked_elements=checked, exceeding_elements=exceeding, max_abs_error=maximum,
+                    mean_abs_error=error_sum / checked, rms_error=math.sqrt(error_square_sum / checked),
+                    max_error_coordinate=[batch, query, head, component], kv_head=kv_head,
+                    query_index=query, query_length=q.shape[1], valid_kv=length,
+                    effective_keys=effective_keys, causal=causal, head_dim=128, scale=128 ** -0.5,
+                    atol=1e-3, rtol=1e-5,
+                    precision=half_precision_evidence(actual_row[component].item(), reference_row[component].item()))
+                try:
+                    save_fp32_failure(diagnostic_dir, metadata,
+                        dict(q=q[batch, query, head].cpu().numpy(),
+                             k=k[batch, :effective_keys, kv_head].cpu().numpy(),
+                             v=v[batch, :effective_keys, kv_head].cpu().numpy(),
+                             actual=actual_row.cpu().numpy(), fp32_reference=reference_row.cpu().numpy()))
+                    result['failure_diagnostic'] = str(diagnostic_dir)
+                except Exception as error:
+                    raise RuntimeError(f'attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5; '
+                                       f'diagnostic save failed: {error}') from error
+                raise RuntimeError(f'attention mismatch: max_abs={maximum}, fixed atol=1e-3 rtol=1e-5; '
+                                   f'exceeding={exceeding}/{checked}; diagnostic={diagnostic_dir}')
             return maximum
 
-        reference_error = max(fp32_reference_check(q_p, k_p, v_p, gold[0], 8192, True),
-                              fp32_reference_check(q_d, k_d, v_d, gold[1], 8191, False))
+        reference_error = max(fp32_reference_check(q_p, k_p, v_p, gold[0], 8192, True, 'prefill'),
+                              fp32_reference_check(q_d, k_d, v_d, gold[1], 8191, False, 'decode'))
         streams = (torch.cuda.Stream(), torch.cuda.Stream())
         joins = (torch.cuda.Event(), torch.cuda.Event())
         current = torch.cuda.current_stream()

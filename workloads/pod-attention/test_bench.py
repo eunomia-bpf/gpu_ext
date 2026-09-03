@@ -1,6 +1,9 @@
 """Pure CPU checks of diagnostic interpretation; no torch/CUDA import."""
 import unittest
-from bench import CTX_NAMES, UNSET, audit_bridge, audit_decisions, shape_order
+import tempfile
+from pathlib import Path
+from bench import (CTX_NAMES, UNSET, audit_bridge, audit_decisions, shape_order,
+                   half_precision_evidence, save_fp32_failure, recompute_saved_fp64)
 
 
 def sparse_fallback_case():
@@ -20,6 +23,58 @@ def sparse_fallback_case():
 
 
 class BenchAuditTests(unittest.TestCase):
+    def test_exact_fp16_neighbours_and_unchanged_tolerance(self):
+        positive = half_precision_evidence(1.0, 1.0001)
+        self.assertEqual(positive['adjacent_fp16_lower'], 0.99951171875)
+        self.assertEqual(positive['adjacent_fp16_upper'], 1.0009765625)
+        self.assertTrue(positive['actual_is_nearest_fp16'])
+        self.assertEqual(positive['fixed_allowed_error'], 1e-3 + 1e-5 * 1.0001)
+        negative = half_precision_evidence(-1.0, -1.0001)
+        self.assertEqual(negative['adjacent_fp16_lower'], -1.0009765625)
+        self.assertEqual(negative['adjacent_fp16_upper'], -0.99951171875)
+        zero = half_precision_evidence(0.0, 0.0)
+        self.assertEqual(zero['adjacent_fp16_lower'], -2 ** -24)
+        self.assertEqual(zero['adjacent_fp16_upper'], 2 ** -24)
+        unavoidable = half_precision_evidence(4.0, 4.001953125)
+        self.assertFalse(unavoidable['nearest_fp16_satisfies_fixed_tolerance'])
+        with self.assertRaises(ValueError):
+            half_precision_evidence(1.0001, 1.0)
+
+    def saved_fixture(self, path, value0, value1, actual):
+        import numpy as np
+        metadata = dict(atol=1e-3, rtol=1e-5, head_dim=128, effective_keys=2,
+                        query_index=1, query_length=8192, valid_kv=8192, causal=True,
+                        scale=128 ** -0.5)
+        arrays = dict(q=np.zeros(128, dtype=np.float16), k=np.zeros((2, 128), dtype=np.float16),
+                      v=np.array([[value0] * 128, [value1] * 128], dtype=np.float16),
+                      actual=np.full(128, actual, dtype=np.float16),
+                      fp32_reference=np.full(128, (value0 + value1) / 2, dtype=np.float32))
+        save_fp32_failure(path, metadata, arrays)
+        return metadata, arrays
+
+    def test_cpu_fp64_can_identify_unavoidable_final_fp16_rounding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'failure'
+            metadata, arrays = self.saved_fixture(path, 4.0, 4.00390625, 4.0)
+            result = recompute_saved_fp64(path)
+            self.assertEqual(result['max_abs_fp32_vs_fp64'], 0)
+            self.assertEqual(result['actual_exceeding_fixed_tolerance'], 128)
+            self.assertEqual(result['nearest_fp16_exceeding_fixed_tolerance'], 128)
+            self.assertEqual(result['max_excess_above_best_final_fp16_rounding'], 0)
+            with self.assertRaises(FileExistsError):
+                save_fp32_failure(path, metadata, arrays)
+
+    def test_cpu_fp64_does_not_blame_nonfinal_error_on_output_rounding(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'failure'
+            self.saved_fixture(path, 4.0, 4.0, 4.00390625)
+            result = recompute_saved_fp64(path)
+            self.assertEqual(result['fp64_reference'], 4.0)
+            self.assertEqual(result['nearest_fp16_exceeding_fixed_tolerance'], 0)
+            self.assertEqual(result['actual_exceeding_fixed_tolerance'], 128)
+            self.assertEqual(result['max_excess_above_best_final_fp16_rounding'], 0.00390625)
+            self.assertIn('does not isolate', result['limitation'])
+
     def test_bridge_actual_launch_and_limit_accounting(self):
         before = dict(launches=5, runtime_redirects=5)
         after = dict(launches=116, runtime_redirects=116, prepared_functions=2,

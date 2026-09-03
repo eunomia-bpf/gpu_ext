@@ -19,7 +19,18 @@ diff --git a/attach/nv_attach_impl/nv_attach_fatbin_record.cpp b/attach/nv_attac
 diff --git a/attach/nv_attach_impl/nv_attach_impl.cpp b/attach/nv_attach_impl/nv_attach_impl.cpp
 --- a/attach/nv_attach_impl/nv_attach_impl.cpp
 +++ b/attach/nv_attach_impl/nv_attach_impl.cpp
-@@ -1799,10 +1799,72 @@ void nv_attach_impl::bootstrap_existing_fatbins()
+@@ -798,7 +798,9 @@ nv_attach_impl::extract_ptxs(std::vector<uint8_t> &&data_vec)
+ 		cmd += sh_quote(std::string(tmp_dir));
+ 		cmd += " && ";
+ 		cmd += sh_quote(cuobjdump);
+-		cmd += " --extract-ptx all temp.fatbin";
++		// cuobjdump's extraction messages are diagnostics, not application
++		// output. Redirect only this child, never the injected process stdout.
++		cmd += " --extract-ptx all temp.fatbin 1>&2";
+ 
+ 		std::vector<std::string> arg_strs;
+ 		arg_strs.emplace_back("sh");
+@@ -1799,10 +1801,72 @@ void nv_attach_impl::bootstrap_existing_fatbins()
  	auto modules = elf_introspect::list_loaded_modules();
  	std::size_t ingested = 0;
  
@@ -92,7 +103,7 @@ diff --git a/attach/nv_attach_impl/nv_attach_impl.cpp b/attach/nv_attach_impl/nv
  		if (auto sec = elf_introspect::find_section_in_memory(
  			    mod, ".nv_fatbin");
  		    sec) {
-@@ -1823,12 +1885,18 @@ void nv_attach_impl::bootstrap_existing_fatbins()
+@@ -1823,12 +1887,18 @@ void nv_attach_impl::bootstrap_existing_fatbins()
  					fatbin_records.emplace_back(
  						std::move(rec));
  					ingested++;
@@ -224,6 +235,34 @@ diff --git a/attach/nv_attach_impl/nv_attach_impl_frida_setup.cpp b/attach/nv_at
  		current_fatbin->try_loading_ptxs(*context->impl);
  		auto fatbin_handle =
  			gum_invocation_context_get_nth_argument(gum_ctx, 0);
+diff --git a/runtime/agent/agent.cpp b/runtime/agent/agent.cpp
+--- a/runtime/agent/agent.cpp
++++ b/runtime/agent/agent.cpp
+@@ -5,7 +5,7 @@
+ #include "frida_uprobe_attach_impl.hpp"
+ 
+ #include "spdlog/common.h"
+-#include "bpftime_logger.hpp"
++#include "bootstrap_logger.hpp"
+ #include <chrono>
+ #include <csignal>
+ #include <cstdio>
+@@ -718,6 +718,7 @@ void **(*original___cudaRegisterFatBinary)(void *) = nullptr;
+ extern "C" void **__cudaRegisterFatBinary(void *fatbin)
+ {
+ 	try {
++		initialize_agent_bootstrap_logger();
+ 		auto orig = try_get_original_func("__cudaRegisterFatBinary",
+ 						 original___cudaRegisterFatBinary);
+ 		// We have to register llvmbpf manually, since this function
+@@ -738,6 +739,7 @@ extern "C" void **__cudaRegisterFatBinary(void *fatbin)
+ extern "C" void bpftime_agent_main(const gchar *data, gboolean *stay_resident)
+ {
+ 	try {
++		initialize_agent_bootstrap_logger();
+ #ifdef __linux__
+ 			// If an agent IPC server is already present in this process,
+ 			// refresh it instead of initializing a new copy.
 diff --git a/runtime/src/handler/map_handler.cpp b/runtime/src/handler/map_handler.cpp
 --- a/runtime/src/handler/map_handler.cpp
 +++ b/runtime/src/handler/map_handler.cpp
@@ -236,3 +275,25 @@ diff --git a/runtime/src/handler/map_handler.cpp b/runtime/src/handler/map_handl
  		init_refcnt();
  		shm_holder.global_shared_memory.set_enable_mock(true);
  		return 0;
+diff --git a/runtime/agent/bootstrap_logger.hpp b/runtime/agent/bootstrap_logger.hpp
+new file mode 100644
+--- /dev/null
++++ b/runtime/agent/bootstrap_logger.hpp
+@@ -0,0 +1,17 @@
++// Configure diagnostics before CUDA registration or shared-memory initialization.
++// The agent later applies the loader's runtime configuration as before.
++#pragma once
++#include "bpftime_logger.hpp"
++#include <cstdlib>
++#include <mutex>
++
++namespace bpftime {
++inline void initialize_agent_bootstrap_logger()
++{
++	static std::once_flag once;
++	std::call_once(once, [] {
++		const char *target = std::getenv("BPFTIME_LOG_OUTPUT");
++		bpftime_set_logger(target != nullptr ? target : "");
++	});
++}
++} // namespace bpftime

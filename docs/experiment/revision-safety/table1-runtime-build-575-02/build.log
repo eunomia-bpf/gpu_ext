@@ -1,0 +1,260 @@
+[1/7] Performing build step for 'libbpf'
+  INSTALL  bpf.h libbpf.h btf.h libbpf_common.h libbpf_legacy.h bpf_helpers.h bpf_helper_defs.h bpf_tracing.h bpf_endian.h bpf_core_read.h skel_internal.h libbpf_version.h usdt.bpf.h
+  INSTALL  /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/libbpf/libbpf/libbpf.pc
+  INSTALL  /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/libbpf/libbpf/libbpf.a /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/libbpf/libbpf/libbpf.so /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/libbpf/libbpf/libbpf.so.1 /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/libbpf/libbpf/libbpf.so.1.7.0
+[2/7] No install step for 'libbpf'
+[3/7] Completed 'libbpf'
+[4/7] Building CXX object runtime/agent/CMakeFiles/bpftime-agent.dir/agent.cpp.o
+In file included from /home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/bootstrap_logger.hpp:4,
+                 from /home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/agent.cpp:9:
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:13:20: error: redefinition of ‘std::string bpftime::expand_user_path(const std::string&)’
+   13 | inline std::string expand_user_path(const std::string &input_path)
+      |                    ^~~~~~~~~~~~~~~~
+In file included from /home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/agent.cpp:8:
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:13:20: note: ‘std::string bpftime::expand_user_path(const std::string&)’ previously defined here
+   13 | inline std::string expand_user_path(const std::string &input_path)
+      |                    ^~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:39:13: error: redefinition of ‘void bpftime::bpftime_set_logger(const std::string&)’
+   39 | inline void bpftime_set_logger(const std::string &target) noexcept
+      |             ^~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:39:13: note: ‘void bpftime::bpftime_set_logger(const std::string&)’ previously defined here
+   39 | inline void bpftime_set_logger(const std::string &target) noexcept
+      |             ^~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp: In destructor ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::~<lambda>()’:
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: error: mangling of ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::~<lambda>()’ as ‘_ZZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEENUlS7_E_D1Ev’ conflicts with a previous mangle
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: previous mangling ‘constexpr bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::~<lambda>()’
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: error: mangling of ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::~<lambda>()’ as ‘_ZZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEENUlS7_E_D2Ev’ conflicts with a previous mangle
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: previous mangling ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::~<lambda>()’
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp: In function ‘void bpftime::bpftime_set_logger(const std::string&)’:
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:43: note: synthesized method ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::~<lambda>()’ first required here
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   82 |                         if (auto failed_logger = weak_logger.lock())
+      |                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   83 |                                 failed_logger->set_level(spdlog::level::off);
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   84 |                 });
+      |                 ~                          
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp: At global scope:
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:98:13: error: redefinition of ‘void bpftime::bpftime_logger_flush()’
+   98 | inline void bpftime_logger_flush() noexcept
+      |             ^~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:98:13: note: ‘void bpftime::bpftime_logger_flush()’ previously defined here
+   98 | inline void bpftime_logger_flush() noexcept
+      |             ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/c++/13/functional:59,
+                 from /home/yunwei37/workspace/gpu/bpftime-table1-575/third_party/spdlog/include/spdlog/common.h:13,
+                 from /home/yunwei37/workspace/gpu/bpftime-table1-575/third_party/spdlog/include/spdlog/spdlog.h:12,
+                 from /home/yunwei37/workspace/gpu/bpftime-table1-575/attach/base_attach_impl/attach_private_data.hpp:5,
+                 from /home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/agent.cpp:1:
+/usr/include/c++/13/bits/std_function.h: In instantiation of ‘std::function<_Res(_ArgTypes ...)>::function(_Functor&&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Constraints = void; _Res = void; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’:
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:28:   required from here
+/usr/include/c++/13/bits/std_function.h:435:9: error: mangling of ‘std::function<_Res(_ArgTypes ...)>::function(_Functor&&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Constraints = void; _Res = void; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’ as ‘_ZNSt8functionIFvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEEC1IZN7bpftime18bpftime_set_loggerES7_EUlS7_E_vEEOT_’ conflicts with a previous mangle
+  435 |         function(_Functor&& __f)
+      |         ^~~~~~~~
+/usr/include/c++/13/bits/std_function.h:435:9: note: previous mangling ‘std::function<_Res(_ArgTypes ...)>::function(_Functor&&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Constraints = void; _Res = void; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/usr/include/c++/13/bits/std_function.h:435:9: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:435:9: error: mangling of ‘std::function<_Res(_ArgTypes ...)>::function(_Functor&&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Constraints = void; _Res = void; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’ as ‘_ZNSt8functionIFvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEEC2IZN7bpftime18bpftime_set_loggerES7_EUlS7_E_vEEOT_’ conflicts with a previous mangle
+/usr/include/c++/13/bits/std_function.h:435:9: note: previous mangling ‘std::function<_Res(_ArgTypes ...)>::function(_Functor&&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Constraints = void; _Res = void; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/usr/include/c++/13/bits/std_function.h:435:9: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp: In instantiation of ‘static void std::_Function_base::_Base_manager<_Functor>::_M_create(std::_Any_data&, _Fn&&, std::false_type) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; std::false_type = std::integral_constant<bool, false>]’:
+/usr/include/c++/13/bits/std_function.h:215:15:   required from ‘static void std::_Function_base::_Base_manager<_Functor>::_M_init_functor(std::_Any_data&, _Fn&&) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:449:36:   required from ‘std::function<_Res(_ArgTypes ...)>::function(_Functor&&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Constraints = void; _Res = void; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:28:   required from here
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: error: mangling of ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&&)’ as ‘_ZZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEENUlS7_E_C1EOS8_’ conflicts with a previous mangle
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: previous mangling ‘constexpr bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&&)’
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: error: mangling of ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&&)’ as ‘_ZZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEENUlS7_E_C2EOS8_’ conflicts with a previous mangle
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: previous mangling ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&&)’
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/usr/include/c++/13/bits/std_function.h:161:17: note: synthesized method ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&&)’ first required here
+  161 |               = new _Functor(std::forward<_Fn>(__f));
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp: In instantiation of ‘static void std::_Function_base::_Base_manager<_Functor>::_M_create(std::_Any_data&, _Fn&&, std::false_type) [with _Fn = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; std::false_type = std::integral_constant<bool, false>]’:
+/usr/include/c++/13/bits/std_function.h:215:15:   required from ‘static void std::_Function_base::_Base_manager<_Functor>::_M_init_functor(std::_Any_data&, _Fn&&) [with _Fn = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:198:23:   required from ‘static bool std::_Function_base::_Base_manager<_Functor>::_M_manager(std::_Any_data&, const std::_Any_data&, std::_Manager_operation) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:282:23:   required from ‘static bool std::_Function_handler<_Res(_ArgTypes ...), _Functor>::_M_manager(std::_Any_data&, const std::_Any_data&, std::_Manager_operation) [with _Res = void; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/usr/include/c++/13/bits/std_function.h:452:21:   required from ‘std::function<_Res(_ArgTypes ...)>::function(_Functor&&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Constraints = void; _Res = void; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:28:   required from here
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: error: mangling of ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&)’ as ‘_ZZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEENUlS7_E_C1ERKS8_’ conflicts with a previous mangle
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: previous mangling ‘constexpr bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&)’
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: error: mangling of ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&)’ as ‘_ZZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEENUlS7_E_C2ERKS8_’ conflicts with a previous mangle
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: previous mangling ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&)’
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:55: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                                       ^
+/usr/include/c++/13/bits/std_function.h:161:17: note: synthesized method ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>::<lambda>(const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&)’ first required here
+  161 |               = new _Functor(std::forward<_Fn>(__f));
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:158:11: error: mangling of ‘static void std::_Function_base::_Base_manager<_Functor>::_M_create(std::_Any_data&, _Fn&&, std::false_type) [with _Fn = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E9_M_createIRKSA_EEvRSt9_Any_dataOT_St17integral_constantIbLb0EE’ conflicts with a previous mangle
+  158 |           _M_create(_Any_data& __dest, _Fn&& __f, false_type)
+      |           ^~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:158:11: note: previous mangling ‘static void std::_Function_base::_Base_manager<_Functor>::_M_create(std::_Any_data&, _Fn&&, std::false_type) [with _Fn = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:158:11: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+In file included from /usr/include/c++/13/bits/stl_construct.h:60,
+                 from /usr/include/c++/13/bits/char_traits.h:57,
+                 from /usr/include/c++/13/string_view:40,
+                 from /home/yunwei37/workspace/gpu/bpftime-table1-575/attach/base_attach_impl/attach_private_data.hpp:4:
+/usr/include/c++/13/bits/move.h:70:5: error: mangling of ‘constexpr _Tp&& std::forward(typename remove_reference<_Functor>::type&) [with _Tp = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&]’ as ‘_ZSt7forwardIRKZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_EOT_RNSt16remove_referenceISC_E4typeE’ conflicts with a previous mangle
+   70 |     forward(typename std::remove_reference<_Tp>::type& __t) noexcept
+      |     ^~~~~~~
+/usr/include/c++/13/bits/move.h:70:5: note: previous mangling ‘constexpr _Tp&& std::forward(typename remove_reference<_Functor>::type&) [with _Tp = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&]’
+/usr/include/c++/13/bits/move.h:70:5: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:173:9: error: mangling of ‘static void std::_Function_base::_Base_manager<_Functor>::_M_destroy(std::_Any_data&, std::false_type) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E10_M_destroyERSt9_Any_dataSt17integral_constantIbLb0EE’ conflicts with a previous mangle
+  173 |         _M_destroy(_Any_data& __victim, false_type)
+      |         ^~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:173:9: note: previous mangling ‘static void std::_Function_base::_Base_manager<_Functor>::_M_destroy(std::_Any_data&, std::false_type) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:173:9: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:211:11: error: mangling of ‘static void std::_Function_base::_Base_manager<_Functor>::_M_init_functor(std::_Any_data&, _Fn&&) [with _Fn = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E15_M_init_functorIRKSA_EEvRSt9_Any_dataOT_’ conflicts with a previous mangle
+  211 |           _M_init_functor(_Any_data& __functor, _Fn&& __f)
+      |           ^~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:211:11: note: previous mangling ‘static void std::_Function_base::_Base_manager<_Functor>::_M_init_functor(std::_Any_data&, _Fn&&) [with _Fn = const bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:211:11: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+In file included from /usr/include/c++/13/bits/refwrap.h:38,
+                 from /usr/include/c++/13/string:52,
+                 from /usr/include/c++/13/bits/locale_classes.h:40,
+                 from /usr/include/c++/13/bits/ios_base.h:41,
+                 from /usr/include/c++/13/ios:44,
+                 from /usr/include/c++/13/istream:40,
+                 from /usr/include/c++/13/sstream:40,
+                 from /usr/include/c++/13/chrono:45,
+                 from /home/yunwei37/workspace/gpu/bpftime-table1-575/third_party/spdlog/include/spdlog/common.h:10:
+/usr/include/c++/13/bits/invoke.h:60:5: error: mangling of ‘constexpr _Res std::__invoke_impl(__invoke_other, _Fn&&, _Args&& ...) [with _Res = void; _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; _Args = {const __cxx11::basic_string<char, char_traits<char>, allocator<char> >&}]’ as ‘_ZSt13__invoke_implIvRZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_JS8_EET_St14__invoke_otherOT0_DpOT1_’ conflicts with a previous mangle
+   60 |     __invoke_impl(__invoke_other, _Fn&& __f, _Args&&... __args)
+      |     ^~~~~~~~~~~~~
+/usr/include/c++/13/bits/invoke.h:60:5: note: previous mangling ‘constexpr _Res std::__invoke_impl(__invoke_other, _Fn&&, _Args&& ...) [with _Res = void; _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; _Args = {const __cxx11::basic_string<char, char_traits<char>, allocator<char> >&}]’
+/usr/include/c++/13/bits/invoke.h:60:5: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/move.h:70:5: error: mangling of ‘constexpr _Tp&& std::forward(typename remove_reference<_Functor>::type&) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&]’ as ‘_ZSt7forwardIRZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_EOT_RNSt16remove_referenceISB_E4typeE’ conflicts with a previous mangle
+   70 |     forward(typename std::remove_reference<_Tp>::type& __t) noexcept
+      |     ^~~~~~~
+/usr/include/c++/13/bits/move.h:70:5: note: previous mangling ‘constexpr _Tp&& std::forward(typename remove_reference<_Functor>::type&) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&]’
+/usr/include/c++/13/bits/move.h:70:5: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:95:7: error: mangling of ‘const _Tp& std::_Any_data::_M_access() const [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>*]’ as ‘_ZNKSt9_Any_data9_M_accessIPZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_EERKT_v’ conflicts with a previous mangle
+   95 |       _M_access() const noexcept
+      |       ^~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:95:7: note: previous mangling ‘const _Tp& std::_Any_data::_M_access() const [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>*]’
+/usr/include/c++/13/bits/std_function.h:95:7: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:180:9: error: mangling of ‘static bool std::_Function_base::_Base_manager<_Functor>::_M_manager(std::_Any_data&, const std::_Any_data&, std::_Manager_operation) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E10_M_managerERSt9_Any_dataRKSC_St18_Manager_operation’ conflicts with a previous mangle
+  180 |         _M_manager(_Any_data& __dest, const _Any_data& __source,
+      |         ^~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:180:9: note: previous mangling ‘static bool std::_Function_base::_Base_manager<_Functor>::_M_manager(std::_Any_data&, const std::_Any_data&, std::_Manager_operation) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:180:9: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:90:7: error: mangling of ‘_Tp& std::_Any_data::_M_access() [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>*]’ as ‘_ZNSt9_Any_data9_M_accessIPZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_EERT_v’ conflicts with a previous mangle
+   90 |       _M_access() noexcept
+      |       ^~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:90:7: note: previous mangling ‘_Tp& std::_Any_data::_M_access() [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>*]’
+/usr/include/c++/13/bits/std_function.h:90:7: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/invoke.h:104:5: error: mangling of ‘constexpr std::enable_if_t<is_invocable_r_v<_Res, _Callable, _Args ...>, _Res> std::__invoke_r(_Callable&&, _Args&& ...) [with _Res = void; _Callable = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; _Args = {const __cxx11::basic_string<char, char_traits<char>, allocator<char> >&}]’ as ‘_ZSt10__invoke_rIvRZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_JS8_EENSt9enable_ifIX16is_invocable_r_vIT_T0_DpT1_EESC_E4typeEOSD_DpOSE_’ conflicts with a previous mangle
+  104 |     __invoke_r(_Callable&& __fn, _Args&&... __args)
+      |     ^~~~~~~~~~
+/usr/include/c++/13/bits/invoke.h:104:5: note: previous mangling ‘constexpr std::enable_if_t<is_invocable_r_v<_Res, _Callable, _Args ...>, _Res> std::__invoke_r(_Callable&&, _Args&& ...) [with _Res = void; _Callable = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; _Args = {const __cxx11::basic_string<char, char_traits<char>, allocator<char> >&}]’
+/usr/include/c++/13/bits/invoke.h:104:5: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:134:9: error: mangling of ‘static _Functor* std::_Function_base::_Base_manager<_Functor>::_M_get_pointer(const std::_Any_data&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E14_M_get_pointerERKSt9_Any_data’ conflicts with a previous mangle
+  134 |         _M_get_pointer(const _Any_data& __source) noexcept
+      |         ^~~~~~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:134:9: note: previous mangling ‘static _Functor* std::_Function_base::_Base_manager<_Functor>::_M_get_pointer(const std::_Any_data&) [with _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:134:9: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:158:11: error: mangling of ‘static void std::_Function_base::_Base_manager<_Functor>::_M_create(std::_Any_data&, _Fn&&, std::false_type) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E9_M_createISA_EEvRSt9_Any_dataOT_St17integral_constantIbLb0EE’ conflicts with a previous mangle
+  158 |           _M_create(_Any_data& __dest, _Fn&& __f, false_type)
+      |           ^~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:158:11: note: previous mangling ‘static void std::_Function_base::_Base_manager<_Functor>::_M_create(std::_Any_data&, _Fn&&, std::false_type) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:158:11: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:267:7: error: mangling of ‘static bool std::_Function_handler<_Res(_ArgTypes ...), _Functor>::_M_manager(std::_Any_data&, const std::_Any_data&, std::_Manager_operation) [with _Res = void; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’ as ‘_ZNSt17_Function_handlerIFvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEZN7bpftime18bpftime_set_loggerES7_EUlS7_E_E10_M_managerERSt9_Any_dataRKSC_St18_Manager_operation’ conflicts with a previous mangle
+  267 |       _M_manager(_Any_data& __dest, const _Any_data& __source,
+      |       ^~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:267:7: note: previous mangling ‘static bool std::_Function_handler<_Res(_ArgTypes ...), _Functor>::_M_manager(std::_Any_data&, const std::_Any_data&, std::_Manager_operation) [with _Res = void; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/usr/include/c++/13/bits/std_function.h:267:7: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:288:7: error: mangling of ‘static _Res std::_Function_handler<_Res(_ArgTypes ...), _Functor>::_M_invoke(const std::_Any_data&, _ArgTypes&& ...) [with _Res = void; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’ as ‘_ZNSt17_Function_handlerIFvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEZN7bpftime18bpftime_set_loggerES7_EUlS7_E_E9_M_invokeERKSt9_Any_dataS7_’ conflicts with a previous mangle
+  288 |       _M_invoke(const _Any_data& __functor, _ArgTypes&&... __args)
+      |       ^~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:288:7: note: previous mangling ‘static _Res std::_Function_handler<_Res(_ArgTypes ...), _Functor>::_M_invoke(const std::_Any_data&, _ArgTypes&& ...) [with _Res = void; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/usr/include/c++/13/bits/std_function.h:288:7: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+In file included from /usr/include/c++/13/bits/char_traits.h:50:
+/usr/include/c++/13/type_traits:3022:20: error: mangling of ‘constexpr bool std::__call_is_nt(__invoke_other) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; _Args = {const __cxx11::basic_string<char, char_traits<char>, allocator<char> >&}]’ as ‘_ZSt12__call_is_ntIRZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_JS8_EEbSt14__invoke_other’ conflicts with a previous mangle
+ 3022 |     constexpr bool __call_is_nt(__invoke_other)
+      |                    ^~~~~~~~~~~~
+/usr/include/c++/13/type_traits:3022:20: note: previous mangling ‘constexpr bool std::__call_is_nt(__invoke_other) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; _Args = {const __cxx11::basic_string<char, char_traits<char>, allocator<char> >&}]’
+/usr/include/c++/13/type_traits:3022:20: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/type_traits:3378:25: error: mangling of ‘constexpr const bool std::is_nothrow_invocable_r_v<void, bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&, const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>’ as ‘_ZSt24is_nothrow_invocable_r_vIvRZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_JS8_EE’ conflicts with a previous mangle
+ 3378 |   inline constexpr bool is_nothrow_invocable_r_v
+      |                         ^~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/type_traits:3378:25: note: previous mangling ‘constexpr const bool std::is_nothrow_invocable_r_v<void, bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&, const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>’
+/usr/include/c++/13/type_traits:3378:25: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/type_traits:276:25: error: mangling of ‘constexpr std::true_type std::__is_complete_or_unbounded(__type_identity<_Tp>) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; long unsigned int <anonymous> = 16]’ as ‘_ZSt26__is_complete_or_unboundedIRZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_Lm16EESt17integral_constantIbLb1EESt15__type_identityIT_E’ conflicts with a previous mangle
+  276 |     constexpr true_type __is_complete_or_unbounded(__type_identity<_Tp>)
+      |                         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/type_traits:276:25: note: previous mangling ‘constexpr std::true_type std::__is_complete_or_unbounded(__type_identity<_Tp>) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>&; long unsigned int <anonymous> = 16]’
+/usr/include/c++/13/type_traits:276:25: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/type_traits:3375:25: error: mangling of ‘constexpr const bool std::is_invocable_r_v<void, bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&, const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>’ as ‘_ZSt16is_invocable_r_vIvRZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_JS8_EE’ conflicts with a previous mangle
+ 3375 |   inline constexpr bool is_invocable_r_v
+      |                         ^~~~~~~~~~~~~~~~
+/usr/include/c++/13/type_traits:3375:25: note: previous mangling ‘constexpr const bool std::is_invocable_r_v<void, bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>&, const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&>’
+/usr/include/c++/13/type_traits:3375:25: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:211:11: error: mangling of ‘static void std::_Function_base::_Base_manager<_Functor>::_M_init_functor(std::_Any_data&, _Fn&&) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E15_M_init_functorISA_EEvRSt9_Any_dataOT_’ conflicts with a previous mangle
+  211 |           _M_init_functor(_Any_data& __functor, _Fn&& __f)
+      |           ^~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:211:11: note: previous mangling ‘static void std::_Function_base::_Base_manager<_Functor>::_M_init_functor(std::_Any_data&, _Fn&&) [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:211:11: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/move.h:70:5: error: mangling of ‘constexpr _Tp&& std::forward(typename remove_reference<_Functor>::type&) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>]’ as ‘_ZSt7forwardIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_EOT_RNSt16remove_referenceISA_E4typeE’ conflicts with a previous mangle
+   70 |     forward(typename std::remove_reference<_Tp>::type& __t) noexcept
+      |     ^~~~~~~
+/usr/include/c++/13/bits/move.h:70:5: note: previous mangling ‘constexpr _Tp&& std::forward(typename remove_reference<_Functor>::type&) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>]’
+/usr/include/c++/13/bits/move.h:70:5: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:235:11: error: mangling of ‘static bool std::_Function_base::_Base_manager<_Functor>::_M_not_empty_function(const _Tp&) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’ as ‘_ZNSt14_Function_base13_Base_managerIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS9_E_E21_M_not_empty_functionISA_EEbRKT_’ conflicts with a previous mangle
+  235 |           _M_not_empty_function(const _Tp&) noexcept
+      |           ^~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:235:11: note: previous mangling ‘static bool std::_Function_base::_Base_manager<_Functor>::_M_not_empty_function(const _Tp&) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>]’
+/usr/include/c++/13/bits/std_function.h:235:11: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/bits/std_function.h:296:9: error: mangling of ‘static constexpr bool std::_Function_handler<_Res(_ArgTypes ...), _Functor>::_S_nothrow_init() [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Res = void; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’ as ‘_ZNSt17_Function_handlerIFvRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEZN7bpftime18bpftime_set_loggerES7_EUlS7_E_E15_S_nothrow_initISA_EEbv’ conflicts with a previous mangle
+  296 |         _S_nothrow_init() noexcept
+      |         ^~~~~~~~~~~~~~~
+/usr/include/c++/13/bits/std_function.h:296:9: note: previous mangling ‘static constexpr bool std::_Function_handler<_Res(_ArgTypes ...), _Functor>::_S_nothrow_init() [with _Fn = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _Res = void; _Functor = bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>; _ArgTypes = {const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&}]’
+/usr/include/c++/13/bits/std_function.h:296:9: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/usr/include/c++/13/type_traits:276:25: error: mangling of ‘constexpr std::true_type std::__is_complete_or_unbounded(__type_identity<_Tp>) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>; long unsigned int <anonymous> = 16]’ as ‘_ZSt26__is_complete_or_unboundedIZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEUlS8_E_Lm16EESt17integral_constantIbLb1EESt15__type_identityIT_E’ conflicts with a previous mangle
+  276 |     constexpr true_type __is_complete_or_unbounded(__type_identity<_Tp>)
+      |                         ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/13/type_traits:276:25: note: previous mangling ‘constexpr std::true_type std::__is_complete_or_unbounded(__type_identity<_Tp>) [with _Tp = bpftime::bpftime_set_logger(const std::string&)::<lambda(const string&)>; long unsigned int <anonymous> = 16]’
+/usr/include/c++/13/type_traits:276:25: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:43: error: mangling of ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>’ as ‘_ZZN7bpftime18bpftime_set_loggerERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEENKUlS7_E_clES7_’ conflicts with a previous mangle
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                           ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:43: note: previous mangling ‘bpftime::bpftime_set_logger(const std::string&)::<lambda(const std::string&)>’
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                           ^
+/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/agent/../include/bpftime_logger.hpp:81:43: note: a later ‘-fabi-version=’ (or =0) avoids this error with a change in mangling
+   81 |                 logger->set_error_handler([weak_logger](const std::string &) {
+      |                                           ^
+[5/7] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_impl.cpp.o
+[6/7] Linking CXX static library attach/nv_attach_impl/libbpftime_nv_attach_impl.a
+[7/7] Linking CXX shared library runtime/agent/libbpftime-agent.so

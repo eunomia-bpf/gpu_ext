@@ -1,0 +1,21 @@
+{
+  "scope": "bounded CPU-only Step C tests",
+  "cuda_imported": false,
+  "gpu_executed": false,
+  "commands": [
+    {
+      "file": "shadow.log",
+      "command": "timeout --kill-after=5s 30s taskset -c 17 make -C workloads/expert-buffering-policy/section-vi -f shadow.mk -j1 test-shadow",
+      "started": "2026-09-03 15:59:02 UTC",
+      "finished": "2026-09-03 15:59:02 UTC",
+      "exit_code": 0
+    },
+    {
+      "file": "correctness.log",
+      "command": "timeout --kill-after=5s 30s taskset -c 17 /usr/bin/python3 -B workloads/expert-buffering-policy/section-vi/test_correctness.py",
+      "started": "2026-09-03 15:59:02 UTC",
+      "finished": "2026-09-03 15:59:02 UTC",
+      "exit_code": 0
+    }
+  ]
+}

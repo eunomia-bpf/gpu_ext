@@ -13,6 +13,10 @@ provides epoch/cohort/residency and status validation for the C++ worker.
 locking, copy completion and eviction are wired in the private patch. The
 [19-unit offloader build and exact-path import](adapter-build-01.md) now pass;
 the adapter is not yet validated on a real CUDA workload.
+The same-worker [Step C correctness/performance source](correctness-plan.md)
+is now prepared for three exact-logit preflight arms and a separately gated
+15-cell timed matrix. Its shadow build, six bridge tests and eight controller
+tests pass ([logs](step-c-cpu-01/execution.md)); the GPU cells have not run.
 
 Scope: this independent policy, real host-uBPF path, CPU oracle and private
 adapter source; do not change the old page-profile policy or the frozen FineMoE runtime.

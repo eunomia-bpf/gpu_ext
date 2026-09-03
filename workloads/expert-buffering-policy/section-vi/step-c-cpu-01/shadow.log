@@ -1,0 +1,17 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'
+mkdir -p build
+taskset -c 17 /usr/bin/g++-13 -std=c++17 -O2 -fPIC -shared -Wall -Wextra -Werror -Wl,--build-id=none shadow_bridge.cpp -ldl -pthread -o build/libeb_shadow.so
+taskset -c 17 /usr/bin/python3 -B test_shadow_bridge.py
+test_explicit_guard_and_absolute_real_library (__main__.ShadowTest.test_explicit_guard_and_absolute_real_library) ... ok
+test_jit_first_identical_before_and_close_retains_snapshot (__main__.ShadowTest.test_jit_first_identical_before_and_close_retains_snapshot) ... ok
+test_mismatch_is_sticky_and_never_replaces_jit_context (__main__.ShadowTest.test_mismatch_is_sticky_and_never_replaces_jit_context) ... ok
+test_real_open_failure_does_not_reserve_instance (__main__.ShadowTest.test_real_open_failure_does_not_reserve_instance) ... ok
+test_real_ubpf_same_snapshot_sequence (__main__.ShadowTest.test_real_ubpf_same_snapshot_sequence) ... shadow_cpu_real_jit_checks=5 live_gpu_evidence=false
+ok
+test_single_instance_nulls_guard_revocation_and_native_rejection (__main__.ShadowTest.test_single_instance_nulls_guard_revocation_and_native_rejection) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.034s
+
+OK
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/expert-buffering-policy/section-vi'

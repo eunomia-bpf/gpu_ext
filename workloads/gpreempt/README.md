@@ -13,7 +13,16 @@ See the [complete results and replay command](results-575-host-mapped-20260903.m
 The preparation history below is retained; its earlier build-only milestones
 do not describe the current completion state.
 
-## New contention / full-response study
+## Completed contention / full-response study — 2026-09-03
+
+All **45/45 cells, five paired blocks per load scenario**, passed independent
+raw audit. Under continuous background supply, LC response p99 medians are
+**1.795937 / 1.614817 / 1.610008 ms** for native / original C / BPF; BE goodput
+is **197.717 / 179.967 / 180.100 req/s**. BPF preserves the original policy's
+foreground/background tradeoff, not an across-the-board speedup or formal
+equivalence. All 270,000 foreground requests completed correctly inside their
+windows. See the [full results and limits](results-load-study-575-20260903.md)
+and [XSched/GPreempt four-panel figure](figures/scheduling-comparison-2x2.pdf).
 
 The [fixed follow-on plan](load-study-plan.md) tests LC 100 requests/s with
 BE 100, 200, or closed-loop continuous supply. This explicitly changes the old
@@ -43,8 +52,9 @@ errors in all three arms, records actual native stream priorities, and removes
 the native client's overwritten extra stream. These are scoped correctness and
 measurement changes, not a new GPreempt policy. C and BPF keep identical policy
 inputs and execution order, including the existing host-mapped transport.
-The standalone audit and plotting tools consume raw reports; a successful build
-or preflight alone must not be reported as completed performance measurements.
+The standalone audit and plotting tools consume raw reports. The completed
+campaign is `raw/load-study-full-575-20260903`, with its final independent audit;
+the separate three-cell preflight is not pooled into the performance estimates.
 
 ## Source and preparation history
 

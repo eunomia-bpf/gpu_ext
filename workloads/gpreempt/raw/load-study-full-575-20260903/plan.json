@@ -1,0 +1,447 @@
+{
+  "arrival_phase_ns": 0,
+  "blocks": 5,
+  "cell_timeout_seconds": 240,
+  "clock": "steady_clock",
+  "comparison_variant": "host_mapped_compatibility",
+  "configs": {
+    "be100": {
+      "tasks": [
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "vgg",
+            "name": "vgg_rt",
+            "preprocess_time": 200,
+            "priority": 0,
+            "use_cuda_graph": true
+          },
+          "id": "vgg_rt",
+          "load": {
+            "frequency": 100,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        },
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "resnet152",
+            "name": "resnet152_be",
+            "preprocess_time": 200,
+            "priority": 1,
+            "use_cuda_graph": true
+          },
+          "id": "resnet152_be",
+          "load": {
+            "frequency": 100,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        }
+      ],
+      "time": 60
+    },
+    "be200": {
+      "tasks": [
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "vgg",
+            "name": "vgg_rt",
+            "preprocess_time": 200,
+            "priority": 0,
+            "use_cuda_graph": true
+          },
+          "id": "vgg_rt",
+          "load": {
+            "frequency": 100,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        },
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "resnet152",
+            "name": "resnet152_be",
+            "preprocess_time": 200,
+            "priority": 1,
+            "use_cuda_graph": true
+          },
+          "id": "resnet152_be",
+          "load": {
+            "frequency": 200,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        }
+      ],
+      "time": 60
+    },
+    "be_continuous": {
+      "tasks": [
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "vgg",
+            "name": "vgg_rt",
+            "preprocess_time": 200,
+            "priority": 0,
+            "use_cuda_graph": true
+          },
+          "id": "vgg_rt",
+          "load": {
+            "frequency": 100,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        },
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "resnet152",
+            "name": "resnet152_be",
+            "preprocess_time": 200,
+            "priority": 1,
+            "use_cuda_graph": true
+          },
+          "id": "resnet152_be",
+          "load": {
+            "type": "continuous"
+          }
+        }
+      ],
+      "time": 60
+    }
+  },
+  "cooldown_seconds": 5,
+  "flag_transport": "host_mapped",
+  "formal_required_blocks": 5,
+  "gdrcopy_directory": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/gdrcopy-2.5.2",
+  "goodput_definition": "verified_ready_ns < end_ns, divided by configured seconds",
+  "incomplete_rule": "report backlog/coverage and conditional completed-request p99; never discard overload",
+  "kernel_repetition": 1,
+  "mode": "full",
+  "orders": [
+    {
+      "arm": "native",
+      "block": 0,
+      "cell": 0,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 0,
+      "cell": 1,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 0,
+      "cell": 2,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 0,
+      "cell": 3,
+      "scenario": "be200"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 0,
+      "cell": 4,
+      "scenario": "be200"
+    },
+    {
+      "arm": "native",
+      "block": 0,
+      "cell": 5,
+      "scenario": "be200"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 0,
+      "cell": 6,
+      "scenario": "be100"
+    },
+    {
+      "arm": "native",
+      "block": 0,
+      "cell": 7,
+      "scenario": "be100"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 0,
+      "cell": 8,
+      "scenario": "be100"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 1,
+      "cell": 9,
+      "scenario": "be100"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 1,
+      "cell": 10,
+      "scenario": "be100"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "cell": 11,
+      "scenario": "be100"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "cell": 12,
+      "scenario": "be200"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 1,
+      "cell": 13,
+      "scenario": "be200"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 1,
+      "cell": 14,
+      "scenario": "be200"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "cell": 15,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 1,
+      "cell": 16,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 1,
+      "cell": 17,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 2,
+      "cell": 18,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "cell": 19,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 2,
+      "cell": 20,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 2,
+      "cell": 21,
+      "scenario": "be100"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "cell": 22,
+      "scenario": "be100"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 2,
+      "cell": 23,
+      "scenario": "be100"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 2,
+      "cell": 24,
+      "scenario": "be200"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 2,
+      "cell": 25,
+      "scenario": "be200"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "cell": 26,
+      "scenario": "be200"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 3,
+      "cell": 27,
+      "scenario": "be100"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 3,
+      "cell": 28,
+      "scenario": "be100"
+    },
+    {
+      "arm": "native",
+      "block": 3,
+      "cell": 29,
+      "scenario": "be100"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 3,
+      "cell": 30,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 3,
+      "cell": 31,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "native",
+      "block": 3,
+      "cell": 32,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "native",
+      "block": 3,
+      "cell": 33,
+      "scenario": "be200"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 3,
+      "cell": 34,
+      "scenario": "be200"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 3,
+      "cell": 35,
+      "scenario": "be200"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 4,
+      "cell": 36,
+      "scenario": "be200"
+    },
+    {
+      "arm": "native",
+      "block": 4,
+      "cell": 37,
+      "scenario": "be200"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 4,
+      "cell": 38,
+      "scenario": "be200"
+    },
+    {
+      "arm": "native",
+      "block": 4,
+      "cell": 39,
+      "scenario": "be100"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 4,
+      "cell": 40,
+      "scenario": "be100"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 4,
+      "cell": 41,
+      "scenario": "be100"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 4,
+      "cell": 42,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 4,
+      "cell": 43,
+      "scenario": "be_continuous"
+    },
+    {
+      "arm": "native",
+      "block": 4,
+      "cell": 44,
+      "scenario": "be_continuous"
+    }
+  ],
+  "p99_definition": "nearest rank, scheduled arrival to synchronized and numerically verified output",
+  "p99_population": "all_started_and_verified_including_after_window",
+  "policy_changes": false,
+  "privilege": "all clients and loader run as root without permission changes",
+  "required_cells": 45,
+  "scenario_orders": [
+    [
+      "be_continuous",
+      "be200",
+      "be100"
+    ],
+    [
+      "be100",
+      "be200",
+      "be_continuous"
+    ],
+    [
+      "be_continuous",
+      "be100",
+      "be200"
+    ],
+    [
+      "be100",
+      "be_continuous",
+      "be200"
+    ],
+    [
+      "be200",
+      "be100",
+      "be_continuous"
+    ]
+  ],
+  "scenarios": [
+    "be100",
+    "be200",
+    "be_continuous"
+  ],
+  "schema": "gpreempt_load_study_v1",
+  "seed": 20260903,
+  "statistics": {
+    "confidence": 0.95,
+    "draws": 10000,
+    "equivalence_claimed": false,
+    "estimator": "paired geometric-mean ratios",
+    "interval": "percentile paired-block bootstrap",
+    "seed": 20260903
+  },
+  "timed_seconds_per_cell": 60,
+  "window": "[begin_ns,end_ns); no new start at or after end"
+}

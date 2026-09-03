@@ -186,12 +186,14 @@ def _draw(data: dict, paths: list[Path], width: float) -> None:
                     panel.plot([center - half_width, center + half_width], [median, median],
                                color=color, linewidth=2, zorder=4)
             panel.set_ylabel(label)
-            panel.set_ylim(bottom=0)
+            # Zero-based headroom keeps markers visible even when cells cluster
+            # tightly around a nonzero value, as in the XSched BE panel.
+            panel.set_ylim(0, max(point[metric] for point in source) * 1.08)
             panel.set_xlim(-.5, 2.5)
             panel.yaxis.set_major_locator(MaxNLocator(nbins=5))
             panel.ticklabel_format(axis="y", style="plain", useOffset=False)
             panel.grid(axis="y", alpha=.25, linewidth=.6)
-            panel.text(-.18, 1.025, letter, transform=panel.transAxes, fontsize=8)
+            panel.text(.012, .985, letter, transform=panel.transAxes, fontsize=8, va="top")
         axes[1, 0].set_xticks(range(3), ["Native", "Original\nXSched", "BPF-HPF"])
         axes[1, 0].set_xlabel("XSched burst workload")
         axes[1, 1].set_xticks(range(3), ["100 req/s", "200 req/s", "Continuous"])

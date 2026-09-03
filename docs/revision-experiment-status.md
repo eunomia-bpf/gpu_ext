@@ -19,7 +19,7 @@ papers, their downloaded PDFs and artifact/hardware limits. Its priorities are
 adaptive expert prefetch, idle-interval-aware scheduling and device-local task
 selection; these are proposals, not new measured results.
 
-### Current priority: GPreempt contention study
+### Completed follow-on: GPreempt contention study
 
 Independent XSched runtime development is paused. The
 [new fixed GPreempt plan](../workloads/gpreempt/load-study-plan.md) compares
@@ -28,14 +28,31 @@ closed-loop continuous supply. It adds a common-phase FIFO arrival schedule,
 complete response timestamps, and explicit deadline/backlog accounting; the
 old service-p99 experiment and its binaries remain unchanged.
 
-The three 10-second real-GPU preflight cells passed independent raw audit at
-04:53 UTC, with every foreground request verified and no CUDA/numerical,
-engagement, telemetry, or cleanup failure. These cells are excluded from formal
-estimates. The 45-cell, five-paired-block-per-scenario run started at 04:53:52 UTC
-under the existing exclusive leases, using a fixed 5-second inter-cell cooldown.
-No driver or service changes were made. Live artifacts are
-`workloads/gpreempt/raw/load-study-full-575-20260903/{plan,progress,summary}.json`;
-completion is pending, not implied by the successful preflight.
+**All 45/45 cells passed independent audit**, five paired blocks per scenario,
+with no rejected, missing or unexpected attempts. Execution ran
+04:53:52–05:50:03 UTC on 2026-09-03 under exclusive leases and a fixed 5-second
+inter-cell cooldown. The three 10-second preflight cells are excluded.
+All 270,000 foreground requests completed correctly inside the measurement
+windows. No driver or service changes were made; final GPU/struct-ops cleanup
+passed and the runtime stayed frozen throughout.
+
+For continuous background supply, native / original-C / BPF medians are
+**1.795937 / 1.614817 / 1.610008 ms** LC response p99 and
+**197.717 / 179.967 / 180.100 req/s** BE goodput. BPF/native paired LC p99 is
+**10.81% lower** at an **8.88% BE goodput cost**. BPF/C LC change is
+**−1.32%**, 95% paired-block interval **[−4.19%, +0.51%]**; BE change is
+**+0.08% [−0.36%, +0.51%]**. All three loads show the same broad policy
+tradeoff, not formal BPF/C equivalence. BE 200 backlog is retained explicitly;
+the 100 req/s result is rate-capped. This remains the disclosed host-mapped
+transport variant, with host-JIT decisions and kernel BPF timeslice callbacks,
+not original GDRCopy/hardware reproduction or a universal mechanism speedup.
+
+See [all loads, paired effects and limits](../workloads/gpreempt/results-load-study-575-20260903.md),
+[final raw audit](../workloads/gpreempt/raw/load-study-full-575-20260903/independent-audit-final.json)
+and [four-panel XSched/GPreempt figure](../workloads/gpreempt/figures/scheduling-comparison-2x2.pdf).
+The new response metric must not be compared directly with old service-stage
+p99 or XSched queue-entry latency. The original three-way results below remain
+valid for their separately documented workload; no paper submodule was edited.
 
 ## Completed comparisons — 2026-09-03
 

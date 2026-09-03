@@ -33,7 +33,9 @@ exclusive. FineMoE has measured actual useful/unused transfers; Hummingbird must
 background recovery with foreground protection, and POD-Attention must execute
 a BPF-returned task choice on the device. Builds, trace-only replay and host-JIT
 callbacks alone cannot close those respective requirements. The existing
-GPreempt runtime, driver, paper submodule and unrelated work remain untouched.
+GPreempt runtime and unrelated work remain frozen. Following the user's renewed
+request to finish all remaining commitments, scoped paper integration proceeds
+separately from the GPU campaigns.
 
 The next real-GPU dependency is now complete: Hummingbird's split-model/copy
 calibration verified 23 ResNet152 and 102 VGG19 outputs, and an isolated
@@ -43,7 +45,7 @@ audit; output-copy admission qualified, while input admission did not actually
 engage and remains disabled. The ten-cell, five-arm preflight also completed,
 including 62,623,882 actual BPF JIT decisions and all 5,460 foreground requests
 verified inside their windows. It has not established throughput recovery;
-the 50-cell performance matrix remains pending. See the
+the full 50-cell performance matrix is running. See the
 [current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
 FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;
 the full original Qwen model has now completed a normal 73-request reference
@@ -95,7 +97,26 @@ The 09:04 UTC reboot restored stock 575 modules, as configured. The completed
 FineMoE campaign ended at 08:59:10 UTC and was not interrupted. Hummingbird's
 remaining four non-native arms require the separately staged custom context/
 timeslice interface; a matching driver version alone does not establish readiness.
-Restore and validate the previously used runtime before starting a new full batch.
+The same staged `849ea75d` runtime was restored at 09:50:34–35 UTC; both
+required-RPC context canaries passed 2,048 exact outputs and 17 negative cases.
+Hummingbird's unchanged full 50-cell batch is now running under exclusive leases.
+See the [restoration and pending service cleanup](experiment/driver-575-linux-6.15-runtime.md#second-unexpected-reboot-and-follow-on-restoration).
+
+The active paper draft now includes Q2 pseudocode/algorithm/TCB/rejection
+examples, the policy-expressibility table, completed matched comparisons and
+the scheduling figure, calibrated headline attribution, discussion topics and
+typographic repairs. Fresh LaTeX compilation/placement review is still pending.
+The [source-backed safety audit](revision-safety-design.md) exposes a substantive
+remaining implementation gap: the current device experiment runtime has GPU
+verification disabled, and the separate strict verifier does not yet model
+POD's pointer/leader-ticket ABI. These are not closed by prose edits.
+LMCache's harness now supports explicit 575 selection and rejects smoke-sized
+or mixed-driver formal comparisons. Its lifecycle now includes exclusive leases,
+fixed worker placement, continuous monitors, owned cleanup and boot checks;
+23 lightweight CPU tests passed independently and the repairs were pushed as
+`bbc4d3f`, with no new 575 GPU-compatibility or disk-performance claim. The [remaining artifact
+work](revision-remaining-artifacts.md) includes disk, Table 1 and unavailable
+original agent transcripts.
 
 All three original scoped comparisons are complete, including the unchanged
 full XSched campaign. The subsequent literature search identifies useful,
@@ -139,13 +160,15 @@ See [all loads, paired effects and limits](../workloads/gpreempt/results-load-st
 and [four-panel XSched/GPreempt figure](../workloads/gpreempt/figures/scheduling-comparison-2x2.pdf).
 The new response metric must not be compared directly with old service-stage
 p99 or XSched queue-entry latency. The original three-way results below remain
-valid for their separately documented workload; no paper submodule was edited.
+valid for their separately documented workload; paper integration was not part
+of that completed campaign and is now proceeding separately.
 
 ## Completed comparisons — 2026-09-03
 
 This section supersedes the dated August 31 execution state below. The
-user-requested GPreempt, MoE-Infinity, and XSched comparisons are complete;
-LMCache is paused.
+user-requested GPreempt, MoE-Infinity, and XSched comparisons are complete.
+LMCache was paused at this historical milestone; its disk-tier follow-up is now
+queued under the user's request to finish the remaining commitments.
 The host is Linux `6.15.11-061511-generic`, RTX 5090, and NVIDIA 575.57.08 with
 the temporarily loaded `849ea75d` scheduling port. After an unexpected reboot
 at 01:37:41 UTC, the verified modules were restored with ordinary unload/load;

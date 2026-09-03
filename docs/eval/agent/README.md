@@ -5,6 +5,13 @@ public; the original prompt/interaction-log release is **not complete**.
 The six Q1–Q6 reports are derived notes, not raw conversations or substitute
 prompts. Benchmark sources alone do not reproduce the agent's decisions.
 
+The 2026-09-03 [inventory](../../experiment/revision-artifact-inventory.md)
+confirms that the 25 primary and 259 nested study transcripts remain missing
+in the checked locations. [Current reproduction prompts](reproduction-prompts.md)
+are newly authored, separately labelled templates for the revision's policy
+ports and raw audits; they are not recovered original prompts or a completed
+new agent-study trajectory.
+
 ## Analysis and benchmark entry points
 
 | Material | Public entry point | Scope |

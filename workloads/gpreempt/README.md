@@ -146,6 +146,59 @@ memory and a device-side polling deadline, not GDR-mapped GPU memory. This
 establishes a possible compatibility route, not original GPreempt reproduction
 or scheduling performance. The full clients still default to original GDR.
 
+## Explicit host-mapped flag compatibility arm
+
+`flag-transport.patch` extends the integrated full client with an opt-in
+`--flag-transport host_mapped`. **This is not original GDRCopy replication.**
+The default remains `gdr`, and an unsupported/failed GDR pin never switches
+transports automatically. Both original-C and BPF policy arms must select the
+same transport; the native single-context baseline does not use a flag transport.
+
+The compatibility option allocates portable, device-mapped pinned host memory,
+sets `CU_CTX_MAP_HOST` on both role contexts, and obtains the LC context's device
+pointer. CPU resets/releases use aligned release stores, while the unmodified
+`gpu_block` kernel still polls its volatile pointer. Two role contexts, the
+original 1,000,000/1 µs timeslices, preprocessing-minus-100 µs hint deadline,
+two blocking launches, CUDA graph, and model-enqueue-before-release ordering
+are unchanged. Neither BPF nor native policy chooses a different actuator.
+
+`flag_transport.h` reports the actual transport and owns the exact allocation
+base/mapping. For GDR it retains pin/map semantics, corrects allocation-base and
+mapping-offset bookkeeping, and uses the official `gdr_copy_to_mapping` helper
+for mapped-memory write barriers. After the original benchmark joins its worker
+and daemon threads, cleanup releases every used flag, records completion events
+on the tracked LC streams, and polls for at most five seconds. It only frees
+flag storage after those events complete; an error/timeout fails the cell and
+leaves in-flight storage for the outer bounded process cleanup. Successful
+cleanup is explicitly reported and required by the runner.
+
+```bash
+make build-bridge JOBS=2 CPUSET=8-15
+make test-cpu
+python3 -B run_three_way.py --plan --flag-transport host_mapped
+# GPU execution only in a coordinator-released slot, after driver validation:
+sudo -n env -i PATH=/usr/local/cuda-12.9/bin:/usr/bin:/bin LANG=C.UTF-8 \
+  /usr/bin/python3 -B run_three_way.py --output raw/575-host-mapped-three-way-01 \
+    --blocks 5 --flag-transport host_mapped
+```
+
+The runner records `comparison_variant=host_mapped_compatibility` and actual
+transport in each policy cell, rejects missing/mismatched readiness or cleanup
+records, and cannot combine two different transports into one valid pair.
+Unlike GDR policy cells, host-mapped cells do not require `/dev/gdrdrv`; no
+runner changes any module, device node, or service. Native command lines and
+config A's 60-second workload remain unchanged. Failed original GDR attempts
+listed above remain retained and are not relabeled as compatibility passes.
+
+CPU-only validation: the incrementally rebuilt full client linked successfully;
+49 fake CUDA/GDR lifecycle checks passed without linking or calling a GPU
+runtime. Tests include exact allocation/free bases, GDR pin failure without
+fallback, portable mapping flags, aligned flag stores, bounded incomplete-event
+cleanup without premature free, and idempotent completed cleanup. The 13 runner
+tests also pass, including transport mismatch and mixed-pair rejection. These
+are build/component results; the full host-mapped two-context policy has not
+yet been executed or measured by this change.
+
 ## Model assets and fair cells still required
 
 The official checkout contains only `model/makefile`, not ready model assets.
@@ -240,8 +293,9 @@ postprocess position in every arm and their overhead is included consistently.
 This comparison patch intentionally covers the FP32 DNN cells; zero-output
 graph/scientific workloads are rejected rather than labeled numerically valid.
 
-Both full-policy arms use the same strong-linked bridge and original CUDA/GDR
-actuators. Default `GPREEMPT_POLICY=original` runs the original C decisions and
+Both full-policy arms use the same strong-linked bridge and CUDA/flag actuators
+(GDR by default; host-mapped only by explicit CLI selection). Default
+`GPREEMPT_POLICY=original` runs the original C decisions and
 the narrow compatibility timeslice ioctl. `GPREEMPT_POLICY=bpf` requires the
 loader's unique `GPREEMPT_BPF_MAPS` directory and absolute `GPREEMPT_HINT_CODE`
 bytecode path; missing engagement is fatal, and this arm skips the original C
@@ -250,7 +304,7 @@ while the original initial primary-context warmup remains unchanged. Native
 `baseclient` retains its single-context stream priorities and rejects a BPF
 label. `_wo` remains a distinct timeslice-only ablation, not the full policy.
 
-For full GPreempt, PREPROCESS still resets the GDR flag and reserves the hint
+For full GPreempt, PREPROCESS still resets the selected flag and reserves the hint
 at preprocessing minus 100 µs; DUE uses the same `system_clock` domain and strict
 `>` comparison. The selected BLOCK action enqueues the same two blocking kernels.
 INFER still enqueues the model before releasing the flag. Role values outside

@@ -31,6 +31,12 @@ def report_log(report, checks):
         "GPREEMPT_VALIDATION " + json.dumps(check) for check in checks)
 
 
+def transport_fixture(transport="gdr"):
+    return (f"gpreempt_flag_transport: transport={transport} portable={int(transport == 'host_mapped')} "
+            f"original_gdr={int(transport == 'gdr')}\n"
+            f"gpreempt_flag_cleanup: transport={transport} status=passed slots=1\n")
+
+
 def engagement_fixture():
     bridge = ("gpreempt_hint_ready: backend=ubpf-jit\n"
               "gpreempt_context_registered: role=0 hclient=1 htsg=2 tsg_id=10 engine=1 timeslice_us=1000000 cuda_context=100\n"
@@ -40,7 +46,7 @@ def engagement_fixture():
     kernel = ("gpreempt_policy_stats: scope_enter=2 scope_leave=2 gr_init=2 timeslice_ok=2 alloc_captured=2 "
               "registered=2 destroy=2 unknown_engine=0 setter_error=0 alloc_error=0 register_error=0 "
               "bind_shadow_mismatch=0 map_error=0 scope_error=0\n")
-    return bridge, kernel
+    return bridge + transport_fixture(), kernel
 
 
 class ComparisonTests(unittest.TestCase):
@@ -96,7 +102,8 @@ class ComparisonTests(unittest.TestCase):
 
     def test_original_backend_does_not_silently_use_bpf(self):
         original = ("gpreempt_bridge_stats: backend=original-c preprocess=500 due=100 infer=500 "
-                    "reset=150 hint=150 block=150 release=150 scopes=0 registered=0 ended=0 errors=0\n")
+                    "reset=150 hint=150 block=150 release=150 scopes=0 registered=0 ended=0 errors=0\n"
+                    + transport_fixture())
         self.assertEqual(runner.check_engagement("original_gpreempt", original, "")["backend"], "original-c")
         with self.assertRaises(ValueError):
             runner.check_engagement("native", original, "")
@@ -110,10 +117,41 @@ class ComparisonTests(unittest.TestCase):
     def test_partial_blocks_are_not_completion(self):
         report, checks = report_fixture()
         metrics = runner.parse_report(report_log(report, checks))["metrics"]
-        rows = [{"arm": arm, "block": block, "status": "passed", "metrics": metrics}
+        rows = [{"arm": arm, "block": block, "status": "passed", "metrics": metrics,
+                 "flag_transport": "not_used" if arm == "native" else "gdr"}
                 for block in range(5) for arm in runner.ARMS]
         self.assertTrue(runner.summarize(rows, 5)["formal_5_block_complete"])
         self.assertFalse(runner.summarize(rows[:-1], 5)["formal_5_block_complete"])
+
+    def test_transport_is_explicit_and_native_command_is_unchanged(self):
+        config = Path("/tmp/test-config.json")
+        self.assertEqual(len(runner.client_command("native", config, "host_mapped")), 2)
+        for arm in ("original_gpreempt", "bpf_gpreempt"):
+            self.assertEqual(runner.client_command(arm, config, "host_mapped")[-2:],
+                             ["--flag-transport", "host_mapped"])
+        with self.assertRaises(ValueError):
+            runner.client_command("original_gpreempt", config, "automatic")
+
+    def test_host_mapping_requires_matching_readiness_and_cleanup(self):
+        client, loader = engagement_fixture()
+        mapped = client.replace(transport_fixture(), transport_fixture("host_mapped"))
+        result = runner.check_engagement("bpf_gpreempt", mapped, loader, "host_mapped")
+        self.assertEqual(result["flag_transport"]["original_gdr"], "0")
+        for altered in (mapped.replace("status=passed", "status=failed"),
+                        mapped.replace("slots=1", "slots=0"),
+                        mapped.replace("portable=1", "portable=0"), client):
+            with self.assertRaises(ValueError):
+                runner.check_engagement("bpf_gpreempt", altered, loader, "host_mapped")
+
+    def test_mixed_transports_cannot_be_a_paired_result(self):
+        report, checks = report_fixture()
+        metrics = runner.parse_report(report_log(report, checks))["metrics"]
+        rows = [{"arm": arm, "block": 0, "status": "passed", "metrics": metrics,
+                 "flag_transport": "host_mapped"} for arm in runner.ARMS]
+        self.assertEqual(runner.summarize(rows, 1, "host_mapped")["valid_paired_blocks"], 1)
+        self.assertFalse(runner.summarize(rows, 1, "host_mapped")["original_gdr_transport"])
+        rows[-1]["flag_transport"] = "gdr"
+        self.assertEqual(runner.summarize(rows, 1, "host_mapped")["valid_paired_blocks"], 0)
 
     def test_cleanup_finds_orphan_after_owned_leader_exits(self):
         # Only a finite, owned CPU sleeping child; no CUDA imports or device access.

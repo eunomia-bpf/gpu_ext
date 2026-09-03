@@ -43,6 +43,10 @@ test-cpu: prepare
 	python3 -B test_smoke.py
 	taskset -c $(CPUSET) $(HOST_CXX) -std=c++17 -O1 test_client_checks.cpp -o $(BUILD)/test-client-checks
 	taskset -c $(CPUSET) $(BUILD)/test-client-checks
+	taskset -c $(CPUSET) $(HOST_CXX) -std=c++17 -O2 -Wall -Wextra -Werror -Wl,--build-id=none \
+		-I$(CUDA_HOME)/include -I$(GDRCOPY_DIR)/include test_flag_transport.cpp -o $(BUILD)/test-flag-transport
+	taskset -c $(CPUSET) $(BUILD)/test-flag-transport
+	python3 -B test_three_way.py
 
 # Official v2.5.2 (c91ad9f); build only, never install or load.
 gdrcopy-driver:

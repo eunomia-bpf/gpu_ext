@@ -121,7 +121,7 @@ diff --git a/src/cuda-clients/gpreemptclient.cpp b/src/cuda-clients/gpreemptclie
 -            GPUCtxCreate(&g_ctx[priority], 0, dev);
 -            NvContext nvctx;
 +            CHECK_EQ(gpreempt_ctx_begin(priority), 0);
-+            ASSERT_CUDA_ERROR(GPUCtxCreate(&g_ctx[priority], 0, dev));
++            ASSERT_CUDA_ERROR(GPUCtxCreate(&g_ctx[priority], flag_pool.context_flags(), dev));
 +            NvContext nvctx{};
              nvctx.hClient = util_gettid();
 -            NVRMCHECK(NvRmQuery(&nvctx));
@@ -149,7 +149,7 @@ diff --git a/src/cuda-clients/gpreemptclient.cpp b/src/cuda-clients/gpreemptclie
 +                                                initialized, reserve_preempt);
 +        CHECK_GE(action, 0);
 +        if(action & GP_RESET)
-+            *(int*)(gdr_stop.cpu_map) = 0;
++            reset_blocking_stream(&gdr_stop);
 +        if(action & (GP_HINT | GP_BLOCK)) {
              DeamonHint *hint;
 -            *(int*)(gdr_stop.cpu_map) = 0;

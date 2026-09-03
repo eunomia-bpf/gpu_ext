@@ -20,7 +20,7 @@ if [[ "$actual_revision" != "$revision" ]]; then
 fi
 patch_files=(compatibility.patch)
 if [[ ${1:-} == --bridge ]]; then
-    patch_files+=(policy-bridge.patch measurement.patch)
+    patch_files+=(policy-bridge.patch measurement.patch flag-transport.patch)
 elif [[ $# -ne 0 ]]; then
     echo "Usage: $0 [--bridge]" >&2
     exit 1

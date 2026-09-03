@@ -1,0 +1,82 @@
+--- a/src/cuda-clients/gpreemptclient.cpp
++++ b/src/cuda-clients/gpreemptclient.cpp
+@@ -19,0 +20,1 @@
++#include "flag_transport.h"
+@@ -34,5 +35,1 @@
+-GPUdeviceptr d_pool;
+-int *h_pool;
+-int pool_top;
+-gdr_mh_t g_mh;
++gpreempt_artifact::FlagPool flag_pool;
+@@ -84,1 +82,5 @@
+-    *(int*)signal->cpu_map = 1;
++    CHECK_EQ(flag_pool.store(signal->cpu_map, 1), 0);
++}
++
++void reset_blocking_stream(GdrEntry *signal) {
++    CHECK_EQ(flag_pool.store(signal->cpu_map, 0), 0);
+@@ -88,43 +90,5 @@
+-    if(h_pool == nullptr) {
+-        gdr_t g = gdr_open();
+-        if(g == nullptr) {
+-            LOG(ERROR) << "Failed to open gdr";
+-            return -1;
+-        }
+-        ASSERT_CUDA_ERROR(GPUMemAlloc(&d_pool, GPU_PAGE_SIZE  * 2));
+-        d_pool = (d_pool + GPU_PAGE_SIZE ) & ~(GPU_PAGE_SIZE - 1);
+-        gdr_mh_t mh;
+-        if(gdr_pin_buffer(g, (unsigned long)d_pool, GPU_PAGE_SIZE , 0, 0, &g_mh) != 0) {
+-            LOG(ERROR) << "Failed to pin input buffer";
+-            return -1;
+-        }
+-        if (gdr_map(g, g_mh, (void**)&h_pool, GPU_PAGE_SIZE ) != 0) {
+-            LOG(ERROR) << "Failed to map input GPU buffer";
+-            return -1;
+-        }
+-        gdr_info_t info;
+-        if(gdr_get_info(g, g_mh, &info) != 0) {
+-            LOG(ERROR) << "Failed to get info";
+-            return -1;
+-        }
+-        int off = info.va - d_pool;
+-        h_pool = (int*)((char*)h_pool + off);
+-    }
+-    entry->d = d_pool + pool_top * sizeof(int);
++    int result = flag_pool.allocate(&entry->d, &entry->cpu_map);
+     entry->d_ptr = &entry->d;
+-    entry->cpu_map = h_pool + pool_top;
+-    pool_top++;
+-    return 0;
++    return result;
+@@ -199,1 +172,1 @@
+-            assert(res == 0);
++            CHECK_EQ(res, 0); // Also fatal in Release builds; never fall back.
+@@ -207,1 +182,2 @@
+         GPUStreamCreate(&copy_stream, 0);
++        if (!priority) flag_pool.track_stream(stream);
+@@ -364,19 +340,20 @@
+-        std::cout << "Usage: " << argv[0] << " config.json <reserve_preempt=true>" << std::endl;
++        std::cout << "Usage: " << argv[0] << " config.json [true|false] [--flag-transport gdr|host_mapped]" << std::endl;
+         return -1;
+     }
+-    if (argc == 3) {
+-        std::string arg = argv[2];
++    for (int i = 2; i < argc; ++i) {
++        std::string arg = argv[i];
+         if (arg == "true") {
+             reserve_preempt = true;
+         } else if (arg == "false") {
+             reserve_preempt = false;
++        } else if (arg == "--flag-transport" && i + 1 < argc) {
++            if (flag_pool.configure(argv[++i]) != 0) {
++                std::cerr << "Invalid or repeated flag transport" << std::endl;
++                return 1;
++            }
+         } else {
+             std::cout << "Invalid argument: " << arg << std::endl;
+             return -1;
+         }
+     }
+@@ -389,1 +366,1 @@
+-    return 0;
++    return flag_pool.cleanup() == 0 ? 0 : 1;

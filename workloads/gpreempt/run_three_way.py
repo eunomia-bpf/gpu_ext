@@ -106,12 +106,21 @@ def parse_report(log: str) -> dict:
     return {"metrics": metrics, "report": report}
 
 
-def check_engagement(arm: str, client_log: str, loader_log: str) -> dict:
+def check_engagement(arm: str, client_log: str, loader_log: str, flag_transport: str = "gdr") -> dict:
     if arm == "native":
         if any(marker in client_log for marker in ("gpreempt_context_registered:", "gpreempt_hint_ready:",
-                                                    "gpreempt_bridge_stats:")) or loader_log:
+                                                    "gpreempt_bridge_stats:", "gpreempt_flag_transport:",
+                                                    "gpreempt_flag_cleanup:")) or loader_log:
             raise ValueError("native arm unexpectedly engaged GPreempt policy")
         return {"backend": "native_single_context_stream_priorities"}
+    transport = parse_fields(client_log, "gpreempt_flag_transport:")
+    cleanup = parse_fields(client_log, "gpreempt_flag_cleanup:")
+    if (flag_transport not in {"gdr", "host_mapped"} or transport.get("transport") != flag_transport
+            or transport.get("portable") != ("1" if flag_transport == "host_mapped" else "0")
+            or transport.get("original_gdr") != ("1" if flag_transport == "gdr" else "0")
+            or cleanup.get("transport") != flag_transport or cleanup.get("status") != "passed"
+            or cleanup.get("slots") != "1"):
+        raise ValueError("flag transport mismatch, silent fallback, or incomplete flag cleanup")
     fields = parse_fields(client_log, "gpreempt_bridge_stats:")
     backend = "ubpf-jit" if arm == "bpf_gpreempt" else "original-c"
     if fields.get("backend") != backend or int(fields.get("errors", -1)) != 0:
@@ -119,7 +128,7 @@ def check_engagement(arm: str, client_log: str, loader_log: str) -> dict:
     for key in ("preprocess", "due", "infer", "reset", "hint", "block", "release"):
         if int(fields.get(key, 0)) <= 0:
             raise ValueError(f"full reserved-hint policy did not exercise {key}")
-    result = {"backend": backend, "bridge": fields}
+    result = {"backend": backend, "bridge": fields, "flag_transport": transport, "flag_cleanup": cleanup}
     if arm == "original_gpreempt":
         if loader_log or "gpreempt_context_registered:" in client_log:
             raise ValueError("original C arm unexpectedly used kernel BPF")
@@ -249,19 +258,33 @@ def model_assets() -> dict:
     return assets
 
 
-def run_cell(directory: Path, arm: str, config: Path, timeout: int, gdrcopy: Path = DEFAULT_GDRCOPY) -> dict:
+def client_command(arm: str, config: Path, flag_transport: str) -> list[str]:
+    if arm not in ARMS or flag_transport not in {"gdr", "host_mapped"}:
+        raise ValueError("unknown policy arm or flag transport")
+    executable = "baseclient" if arm == "native" else "gpreemptclient"
+    command = [str(HERE / "build/ninja" / executable), str(config)]
+    if arm != "native":
+        command += ["--flag-transport", flag_transport]
+    return command
+
+
+def run_cell(directory: Path, arm: str, config: Path, timeout: int, gdrcopy: Path = DEFAULT_GDRCOPY,
+             flag_transport: str = "gdr") -> dict:
     directory.mkdir(parents=True, exist_ok=False)
-    result = {"status": "failed", "arm": arm}
+    result = {"status": "failed", "arm": arm,
+              "flag_transport": "not_used" if arm == "native" else flag_transport,
+              "comparison_variant": "original_gdr" if flag_transport == "gdr" else "host_mapped_compatibility"}
     before = None
     client = loader = telemetry = None
     streams = []
     pin = Path(f"/sys/fs/bpf/gpreempt-{os.getpid()}-{time.monotonic_ns()}")
     try:
+        command = client_command(arm, config, flag_transport)
         before = safety.safety_snapshot()
         safety.validate_pre_server_safety(before)
         if before["gpu"]["driver"] != "575.57.08":
             raise RuntimeError("the prepared 575 compatibility driver is required")
-        if not Path("/dev/gdrdrv").exists():
+        if arm != "native" and flag_transport == "gdr" and not Path("/dev/gdrdrv").exists():
             raise RuntimeError("GDRCopy must be separately prepared; runner never changes drivers/devices")
         result["safety_before"] = before
         version = Path("/sys/module/gdrdrv/version")
@@ -280,8 +303,7 @@ def run_cell(directory: Path, arm: str, config: Path, timeout: int, gdrcopy: Pat
                 if loader.poll() is not None or time.monotonic() >= deadline:
                     raise RuntimeError("BPF loader did not become ready")
                 time.sleep(0.1)
-        executable = "baseclient" if arm == "native" else "gpreemptclient"
-        command = [str(HERE / "build/ninja" / executable), str(config)]
+        command = client_command(arm, config, flag_transport)
         result.update(command=command, environment=environment(arm, pin, gdrcopy), timeout_seconds=timeout)
         client_stream = (directory / "client.log").open("x")
         streams.append(client_stream)
@@ -305,7 +327,7 @@ def run_cell(directory: Path, arm: str, config: Path, timeout: int, gdrcopy: Pat
         # Full samples remain separately available for recalculation, not just p99.
         safety.atomic_write_json(directory / "request-report.json", parsed.pop("report"))
         result.update(parsed)
-        result["engagement"] = check_engagement(arm, client_log, loader_log)
+        result["engagement"] = check_engagement(arm, client_log, loader_log, flag_transport)
         result["status"] = "passed"
     except BaseException as exc:
         result["error"] = str(exc)
@@ -336,11 +358,13 @@ def run_cell(directory: Path, arm: str, config: Path, timeout: int, gdrcopy: Pat
     return result
 
 
-def summarize(results: list[dict], blocks: int) -> dict:
+def summarize(results: list[dict], blocks: int, flag_transport: str = "gdr") -> dict:
     ratios = []
     for block in range(blocks):
         cells = {row["arm"]: row for row in results if row["block"] == block}
         if set(cells) != set(ARMS) or any(row["status"] != "passed" for row in cells.values()):
+            continue
+        if any(cells[arm].get("flag_transport") != flag_transport for arm in ARMS if arm != "native"):
             continue
         native = cells["native"]["metrics"]
         original = cells["original_gpreempt"]["metrics"]
@@ -350,7 +374,10 @@ def summarize(results: list[dict], blocks: int) -> dict:
             "bpf_over_native_lc_p99": bpf[TASKS[0]]["p99_latency_us"] / native[TASKS[0]]["p99_latency_us"],
             "bpf_over_original_lc_p99": bpf[TASKS[0]]["p99_latency_us"] / original[TASKS[0]]["p99_latency_us"],
             "bpf_over_original_be_throughput": bpf[TASKS[1]]["throughput_rps"] / original[TASKS[1]]["throughput_rps"]})
-    return {"valid_paired_blocks": len(ratios), "formal_5_block_complete": len(ratios) >= 5,
+    return {"flag_transport": flag_transport,
+            "comparison_variant": "original_gdr" if flag_transport == "gdr" else "host_mapped_compatibility",
+            "original_gdr_transport": flag_transport == "gdr",
+            "valid_paired_blocks": len(ratios), "formal_5_block_complete": len(ratios) >= 5,
             "requested_blocks_complete": len(ratios) == blocks,
             "paired_ratios": ratios, "medians": {key: statistics.median(row[key] for row in ratios)
             for key in ratios[0] if key != "block"} if ratios else {},
@@ -365,6 +392,8 @@ def main():
     parser.add_argument("--cell-timeout", type=int, default=240)
     parser.add_argument("--cooldown-seconds", type=int, default=10)
     parser.add_argument("--gdrcopy-dir", type=Path, default=DEFAULT_GDRCOPY)
+    parser.add_argument("--flag-transport", choices=("gdr", "host_mapped"), default="gdr",
+                        help="same explicit transport in both policy arms; host_mapped is not original GDRCopy")
     parser.add_argument("--plan", action="store_true")
     args = parser.parse_args()
     if not 1 <= args.blocks <= 30 or not 90 <= args.cell_timeout <= 3500 or not 0 <= args.cooldown_seconds <= 60:
@@ -378,6 +407,8 @@ def main():
             "load_semantics": "periodic newest-only: skip stale slots, standalone-latency phase offset; last admitted request may finish after cutoff",
             "arrival_and_drop_counts": "not instrumented; do not infer exact drops from 6000 minus completions",
             "gdrcopy_directory": str(args.gdrcopy_dir.resolve()),
+            "flag_transport": args.flag_transport,
+            "comparison_variant": "original_gdr" if args.flag_transport == "gdr" else "host_mapped_compatibility",
             "privilege": "all three clients and loader run as root; no permission changes"}
     if args.plan:
         print(json.dumps(plan, indent=2))
@@ -404,11 +435,11 @@ def main():
             for arm in order:
                 print(f"START block={block} arm={arm}", flush=True)
                 result = run_cell(output / f"block-{block:02d}" / arm, arm, output / "config-A.json",
-                                  args.cell_timeout, args.gdrcopy_dir.resolve())
+                                  args.cell_timeout, args.gdrcopy_dir.resolve(), args.flag_transport)
                 result["block"] = block
                 results.append(result)
                 safety.atomic_write_json(output / "progress.json", {"completed_cells": len(results), "last_block": block, "last_arm": arm})
-                safety.atomic_write_json(output / "summary.json", summarize(results, args.blocks))
+                safety.atomic_write_json(output / "summary.json", summarize(results, args.blocks, args.flag_transport))
                 print(f"PASS block={block} arm={arm}", flush=True)
                 if len(results) < args.blocks * 3:
                     time.sleep(args.cooldown_seconds)
@@ -416,7 +447,7 @@ def main():
         run_error = f"{type(exc).__name__}: {exc}"
         raise
     finally:
-        summary = summarize(results, args.blocks)
+        summary = summarize(results, args.blocks, args.flag_transport)
         summary.update(status="failed" if run_error else "completed", error=run_error)
         safety.atomic_write_json(output / "summary.json", summary)
         if lease is not None:

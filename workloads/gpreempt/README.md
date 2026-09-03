@@ -1,5 +1,20 @@
 # GPreempt original-policy 575 / sm_120 compatibility build
 
+## Completed comparison — 2026-09-03
+
+All **five paired blocks / 15 cells** of native baseline, original-C policy,
+and actual BPF policy passed independent raw-output and engagement checks.
+LC service-stage p99 medians are **1.414351 / 1.415130 / 1.419397 ms**,
+respectively. The BPF/original-C paired overhead is **0.258%** (95% interval
+0.128–0.374%); this is successful scoped policy implementation with a small
+measured cost, not a performance win. Both policy arms use the explicit
+**host-mapped flag compatibility transport**, not original GDRCopy.
+See the [complete results and replay command](results-575-host-mapped-20260903.md).
+The preparation history below is retained; its earlier build-only milestones
+do not describe the current completion state.
+
+## Source and preparation history
+
 Upstream: <https://github.com/thustorage/GPreempt>, pinned to `249ee3e`.
 This directory preserves the original clients, executors, workload definitions,
 1,000,000 µs LC / 1 µs BE timeslices, hint daemon, blocking kernel, CUDA graphs,
@@ -291,8 +306,9 @@ contexts), and the equivalent BPF policy on the same two-context topology.
 `gpreemptclient_wo` is an optional timeslice-only ablation. Preserve original
 config A's 60 seconds, 100 requests/s per role, 200 µs preprocessing and graphs;
 initialize identical deterministic input in all three cells and verify outputs
-against isolated native execution. Role-to-TSG and hint bridges for the BPF cell
-are separate work, not implied by this compatibility build.
+against isolated native execution. Role-to-TSG and hint bridges were separate
+from the initial compatibility build; the integrated implementation and completed
+comparison are documented below and in the result report above.
 
 ## Integrated BPF policy and common numerical instrumentation
 
@@ -311,7 +327,8 @@ header, and all bridge-integrated clients plus the measurement analyzer rebuilt
 successfully in a coordinated cooldown window. `gpreemptclient` resolves the
 strong bridge library and its begin/register/end, hint and backend symbols;
 the private GDRCopy 2.5.2 library resolves when selected in the runtime environment.
-The rebuilt clients have not yet run on the GPU. All three DNN clients require the exported
+That rebuild alone did not establish GPU execution; the later full campaign
+has now passed. All three DNN clients require the exported
 full `reference.f32` and initialize exactly the input formula above, including
 after context reinitialization. Every output is finite-checked and compared
 elementwise with `atol=1e-6`, `rtol=1e-4`; `GPREEMPT_VALIDATION` records total and

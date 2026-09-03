@@ -1,7 +1,8 @@
 # Step B: private whole-expert adapter wiring
 
-2026-09-03: source preparation and CPU checks passed; **no private offloader
-build, CUDA import, GPU request, or Section VI performance cell has run**.
+2026-09-03: source preparation and CPU checks passed. The subsequent
+[private offloader build/import](adapter-build-01.md) also passes; **no GPU
+request or Section VI performance cell has run**.
 Step A is committed as `f5af919`; this step does not change its accepted state
 interface or the completed FineMoE source/runtime.
 Root reviewed the live contact points and independently reran the 61 control
@@ -61,8 +62,8 @@ timeout 30s taskset -c 17 /usr/bin/python3 -B workloads/expert-buffering-policy/
 
 ## Later root-only private build
 
-The already staged `build/stage-check-02` contains no offloader binary and may
-be used directly. To stage another attempt, select a **fresh** directory:
+The subsequent build used `build/stage-check-02`, which now contains its
+offloader binary. To stage another attempt, select a **fresh** directory:
 
 ```sh
 taskset -c 17 /usr/bin/python3 -B workloads/expert-buffering-policy/section-vi/prepare_adapter.py --stage workloads/expert-buffering-policy/section-vi/build/offloader-01
@@ -87,7 +88,7 @@ its leader exits. Signal/error cleanup must empty that group. A successful
 build must additionally produce exactly one fresh, nonempty `.so`, import
 that exact extension path, expose revision `section-vi-private-adapter-v1` and
 the snapshot API, and leave `torch.cuda.is_initialized()` false. The log records
-its path and size. **None of these offloader build/import gates has yet run.**
+its path and size. These build/import gates now pass as recorded separately.
 
 After build review, the root must adapt the existing FineMoE original-HF
 token/logit comparison to the three arms, using the retained exact tolerance.

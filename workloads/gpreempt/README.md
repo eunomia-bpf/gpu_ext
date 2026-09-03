@@ -185,9 +185,12 @@ make test-cpu
 deps/tvm-venv/bin/python -B test_model_export.py
 ```
 
-The three client sources have passed CPU-only syntax checks against the real
-bridge header. The bridge-integrated client binaries have not yet been rebuilt
-or run. Once this patch is applied, all three DNN clients require the exported
+The three client sources passed CPU-only syntax checks against the real bridge
+header, and all bridge-integrated clients plus the measurement analyzer rebuilt
+successfully in a coordinated cooldown window. `gpreemptclient` resolves the
+strong bridge library and its begin/register/end, hint and backend symbols;
+the private GDRCopy 2.5.2 library resolves when selected in the runtime environment.
+The rebuilt clients have not yet run on the GPU. All three DNN clients require the exported
 full `reference.f32` and initialize exactly the input formula above, including
 after context reinitialization. Every output is finite-checked and compared
 elementwise with `atol=1e-6`, `rtol=1e-4`; `GPREEMPT_VALIDATION` records total and
@@ -221,3 +224,46 @@ while generating the final report. It does not add work inside the timed
 recording path. Percentiles from these samples are source-native six-stage
 service latency, not arrival-to-completion latency. A 100 requests/s offered
 load does not imply exactly 6,000 completed requests in the 60-second window.
+
+## Five paired 60-second comparison blocks
+
+```bash
+python3 -B test_three_way.py
+python3 -B run_three_way.py --plan
+# Only after the coordinator releases the GPU and verifies driver/GDR canaries:
+sudo -n env -i PATH=/usr/local/cuda-12.9/bin:/usr/bin:/bin LANG=C.UTF-8 \
+  /usr/bin/python3 -B run_three_way.py --output raw/575-three-way-01 --blocks 5
+```
+
+The runner preserves config A, uses five randomized distinct permutations of
+the three arms (position counts differ by at most one), and pauses 10 seconds
+between cells. Each process has a 240-second bound including original warmup,
+standalone measurement, initialization, and the 60-second measured interval.
+All arms run with the same root privilege and a minimal environment because the
+BPF control maps remain private/root-only; existing shared lease files are opened
+without `O_CREAT`, avoiding sticky-`/tmp` ownership surprises. No module, service,
+existing pin, or device permission is changed. An optional `--gdrcopy-dir` selects
+the private dependency tree, defaulting to the separately built 2.5.2 checkout.
+
+Original DISB periodic loads are newest-only, not unbounded queues
+(`deps/upstream/third_party/disb/src/load.cpp:143`). They skip stale slots when
+the following slot is already in the past and admit no new slot at or after the
+cutoff; the last admitted request can finish after that cutoff. The original
+coordinator also phase-offsets the two equal-rate, load-priority-zero tasks using
+their measured standalone latency. Arrival/drop counts are not instrumented;
+results explicitly leave them unknown rather than calling `6000-completed`
+the drop count. Completed requests, service-latency samples, original 60-second
+throughput, and whole-process wall time are reported separately.
+
+Every cell must match all 110 original untimed requests plus every completed
+timed request against the complete native numerical reference. At least 100
+real samples per role are required to report p99. BPF additionally requires two
+distinct role/TSG registrations, exact two-context scope/setter/allocation/destroy
+counters, real JIT readiness, nonzero full hint/block/release decisions, and zero
+policy errors. A clean loader exit or host-shadow counter alone is insufficient.
+All raw request samples, telemetry, cell outcomes and partial/failed blocks are
+retained; only five complete paired blocks set `formal_5_block_complete=true`.
+
+The nine CPU-only runner tests include count/tolerance/zero-engagement rejection,
+balanced ordering, partial-block rejection and actual cleanup of an owned CPU
+orphan after its group leader exits. None is a GPU performance result.

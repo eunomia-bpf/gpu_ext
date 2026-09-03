@@ -3,11 +3,22 @@ import copy
 import json
 from pathlib import Path
 import unittest
+from tempfile import TemporaryDirectory
 
 import inference
 
 
 class InferenceProtocolTests(unittest.TestCase):
+    def test_repeat_array_is_persisted_without_changing_values(self):
+        # Storage-only fixture, not a model or performance experiment.
+        array = inference.np.arange(32, dtype=inference.np.float32).reshape(2, 1, 16)
+        with TemporaryDirectory(prefix="finemoe-repeat-test-") as directory:
+            filename = inference.save_repeat_logits(Path(directory), 137, array)
+            self.assertEqual(filename, "question-137-repeat-logits.npy")
+            restored = inference.np.load(Path(directory) / filename, allow_pickle=False)
+            self.assertEqual(restored.dtype, array.dtype)
+            inference.np.testing.assert_array_equal(restored, array)
+
     def test_exact_full_model_and_64_8_1_cohort(self):
         data = json.loads((Path(__file__).parent / "dataset-mtbench-v1.json").read_text())
         inference.validate_data(data)

@@ -31,7 +31,12 @@ official `check_native_jit_disabled()` predicate, recording it in every raw
 result's runtime state. This only disables PyTorch's automatic Triton/DSL operator
 overrides, not the independently linked uBPF selector JIT or its engagement gate.
 No Torch source, model mathematics, precision, cohort, budget or tolerance changed.
-**No numerical GPU canary, history store, or performance cell has passed.**
+**No four-arm numerical canary, history store, or performance cell has passed.**
+Normal golden-v3 has now passed 73 requests and nine repeated-output checks;
+its fixed reported absolute tolerance is 0.0 and teardown passed. It is retained
+unchanged as preparation, but its repeat logits were not separately saved.
+The final golden-v4 adds only those nine array files so an independent reader can
+recompute repeat errors. The full 64/8/1 cohort and all calculations stay fixed.
 
 ## Research Question
 
@@ -246,7 +251,7 @@ model golden and same-arm repeat tolerance, then the full 64-request history,
 then all four numerical/oracle/copy-accounting canaries. Formal runs disable
 full-logit transfer and shadow comparisons, retain exact golden token checks,
 and use fresh processes with the same store/warmup. The failed v1 and v2 GPU
-attempts and diagnostic are retained; the next run is normal golden-v3 with the
+attempts and diagnostic are retained; the next run is normal golden-v4 with the
 same full 73-request / 9-repeat protocol, not a reduced model or cohort.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
@@ -257,10 +262,10 @@ reused as a reference. The next normal no-debugger attempt uses a new directory;
 the following staged commands are not claims that those stages passed.
 
 ```sh
-.venv/bin/python -B compare.py --mode golden --output raw/golden-v3
-.venv/bin/python -B compare.py --mode history --golden raw/golden-v3/stage --output raw/history-v1
-.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v3/stage --history raw/history-v1/stage --output raw/preflight-v1
-.venv/bin/python -B compare.py --mode full --golden raw/golden-v3/stage --history raw/history-v1/stage --preflight raw/preflight-v1 --output raw/full-v1
+.venv/bin/python -B compare.py --mode golden --output raw/golden-v4
+.venv/bin/python -B compare.py --mode history --golden raw/golden-v4/stage --output raw/history-v1
+.venv/bin/python -B compare.py --mode preflight --golden raw/golden-v4/stage --history raw/history-v1/stage --output raw/preflight-v1
+.venv/bin/python -B compare.py --mode full --golden raw/golden-v4/stage --history raw/history-v1/stage --preflight raw/preflight-v1 --output raw/full-v1
 ```
 
 The parent controller must retain its ordinary affinity (it runs telemetry on

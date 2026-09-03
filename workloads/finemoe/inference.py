@@ -111,6 +111,12 @@ def check_result(result, logits, gold, directory, tolerance):
     return check
 
 
+def save_repeat_logits(directory, question_id, logits):
+    filename = f"question-{question_id}-repeat-logits.npy"
+    np.save(directory / filename, logits, allow_pickle=False)
+    return filename
+
+
 def create_finemoe(data, offload, online):
     from finemoe import MoE
     if importlib.util.find_spec("flash_attn") is not None:
@@ -163,9 +169,10 @@ def worker(args):
             if record["generated_ids"] != original["generated_ids"]:
                 raise RuntimeError("original model repeated greedy tokens are not identical")
             previous = np.load(args.output / original["logits_file"], allow_pickle=False)
+            repeat_logits_file = save_repeat_logits(args.output, row["question_id"], logits)
             result["repeat_checks"].append({"question_id": row["question_id"],
                 "generated_ids": record["generated_ids"], "compared_logits": int(logits.size),
-                "max_abs_error": float(np.max(np.abs(logits - previous)))})
+                "max_abs_error": float(np.max(np.abs(logits - previous))), "logits_file": repeat_logits_file})
             result["same_arm_repeat_max_abs_error"] = max(result["same_arm_repeat_max_abs_error"],
                                                          float(np.max(np.abs(logits - previous))))
         # Freeze the repeat-derived tolerance before either policy arm runs.

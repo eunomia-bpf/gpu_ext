@@ -83,3 +83,32 @@ results. The separate actual uBPF selector JIT is unaffected and retains its
 exact oracle and JIT-call engagement gates. This is a proposed compatibility
 remedy, not a verified root-cause claim; full normal 73+9 validation is still
 required. No GPU run or extension rebuild was performed during this change.
+
+## Normal v3 completed; final reference will retain both arrays
+
+`raw/golden-v3` completed normally (exit 0, no debugger): 73 original requests
+produced 1,168 generated tokens, and nine repeat checks produced another 144.
+All nine repeat token sequences matched; their reported maximum absolute logit
+error and the frozen absolute tolerance were both 0.0. The persisted original
+nine float32 arrays contain 21,878,784 finite values, shape `(16, 1, 151936)` per
+request, and total 87,516,288 file bytes. Independent read-only checks verified
+all input IDs and request order, token counts/ranges, raw token timestamps,
+original-array shape/finiteness, repeat-record counts/tokens, runtime inventory,
+reported tolerance consistency, telemetry and clean teardown. No performance
+claim is made: another task was compiling on separate CPU cores during this
+correctness preparation.
+
+Observed runtime versions were Python 3.12.3, Torch 2.13.0+cu129 (CUDA 12.9),
+Transformers 4.49.0 and NumPy 2.5.2, with the native-DSL-disabled predicate true.
+The 961 telemetry samples peaked at 28,041 MiB and 53 C with no disallowed
+throttling; cleanup returned the GPU to 15 MiB, no compute process, UVM 0 and no
+Xid/kernel abnormality. This successful compatibility run still does not prove
+the precise cause of the earlier signal.
+
+Limitation: v3 saved the original logits but only scalar errors for the repeat
+logits, so an offline reader cannot independently recompute those nine errors
+from two arrays. V3 remains unchanged as valid normal preparation. The only next
+worker change writes `question-ID-repeat-logits.npy` and records its filename
+in each repeat row. No generation, random seed, cohort, mathematics, tolerance
+rule or budget changes. A fresh full normal `raw/golden-v4` will be the final
+reference after both original and repeated arrays pass offline recomputation.

@@ -16,6 +16,7 @@ import signal
 import stat
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -49,6 +50,104 @@ SHM_ROOT = Path("/dev/shm")
 CLIENT_CPUS = "8-15"
 
 
+class OwnedCleanupError(RuntimeError):
+    """Unsafe to continue the campaign; an owned resource may still be live."""
+
+    def __init__(self, message: str, details: dict[str, Any]):
+        super().__init__(message)
+        self.details = details
+
+
+def process_identity(process) -> dict[str, Any]:
+    identity = {"pid": process.pid}
+    try:
+        fields = Path(f"/proc/{process.pid}/stat").read_text().rsplit(")", 1)[1].split()
+        identity.update(pgid=int(fields[2]), sid=int(fields[3]), start_ticks=int(fields[19]))
+    except (OSError, IndexError, ValueError):
+        identity["proc_stat_unavailable"] = True
+    return identity
+
+
+def stop_owned(process, role: str, identity: dict[str, Any] | None = None) -> None:
+    try:
+        shared.stop_owned(process)
+    except BaseException as error:
+        details = {"role": role, "identity": identity or (process_identity(process) if process else None),
+                   "reason": f"{type(error).__name__}: {error}"}
+        if process is not None:
+            details["live_group_members"] = shared.group_members(process.pid)
+        raise OwnedCleanupError(f"{role} cleanup failed: {error}", details) from error
+
+
+def run_cmd_owned(
+    cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None,
+    timeout: int | None = None, log_path: Path | None = None, check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    """The legacy CPU-helper contract, with owned teardown on every exit."""
+    started = datetime.now().isoformat(timespec="seconds")
+    process = reader = log_file = None
+    output: list[str] = []
+    lock = threading.Lock()
+    returncode = None
+    timed_out = False
+    failure = None
+    try:
+        if log_path:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log_file = log_path.open("w", encoding="utf-8")
+            log_file.write(f"$ {' '.join(cmd)}\n# cwd: {cwd or Path.cwd()}\n# started: {started}\n\n## output\n")
+            log_file.flush()
+        process = subprocess.Popen(cmd, cwd=str(cwd) if cwd else None, env=env, text=True,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+
+        def read_output() -> None:
+            with process.stdout:
+                for line in process.stdout:
+                    with lock:
+                        output.append(line)
+                        if log_file is not None:
+                            log_file.write(line)
+                            log_file.flush()
+
+        reader = threading.Thread(target=read_output, daemon=True)
+        reader.start()
+        try:
+            returncode = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+    except BaseException as error:
+        failure = error
+        raise
+    finally:
+        try:
+            stop_owned(process, "CPU helper")
+        except BaseException as error:
+            failure = error
+            raise
+        finally:
+            if process is not None and returncode is None:
+                returncode = process.returncode
+            if reader is not None:
+                reader.join(timeout=5)
+            with lock:
+                if log_file is not None:
+                    log_file.write(f"\n# exit: {returncode}\n")
+                    if timed_out:
+                        log_file.write(f"# timeout_s: {timeout}\n")
+                    if failure is not None:
+                        log_file.write(f"# error: {type(failure).__name__}: {failure}\n")
+                        if isinstance(failure, OwnedCleanupError):
+                            log_file.write(f"# cleanup: {json.dumps(failure.details)}\n")
+                    log_file.close()
+                    log_file = None
+    completed = subprocess.CompletedProcess(cmd, returncode, "".join(output), "")
+    if timed_out:
+        raise subprocess.TimeoutExpired(cmd, timeout, output=completed.stdout)
+    if check and returncode != 0:
+        raise RuntimeError(f"command failed ({returncode}): {' '.join(cmd)}")
+    return completed
+
+
 def target_launch(command: list[str], environment: dict[str, str]):
     # Apply affinity before loading either instrumentation runtime. In particular,
     # do not inject the GPU agent into taskset itself.
@@ -65,7 +164,7 @@ def cell_safety(directory: Path):
     directory.mkdir(parents=True, exist_ok=True)
     record = {"passed": False, "worker_cpus": CLIENT_CPUS,
               "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip()}
-    process = stream = path = before = None
+    process = stream = path = before = failure = None
     try:
         before = shared.safety.safety_snapshot()
         record["before"] = before
@@ -78,14 +177,19 @@ def cell_safety(directory: Path):
             raise RuntimeError("GPU telemetry stopped before cell completion")
         record["passed"] = True
     except BaseException as error:
+        failure = error
         record["error"] = str(error)
+        if isinstance(error, OwnedCleanupError):
+            record["fatal_cleanup"] = error.details
         raise
     finally:
         errors = []
         try:
-            shared.stop_owned(process)
+            stop_owned(process, "GPU telemetry")
         except BaseException as error:
             errors.append(str(error))
+            if not isinstance(failure, OwnedCleanupError):
+                failure = error
         if stream is not None:
             stream.close()
         try:
@@ -101,8 +205,12 @@ def cell_safety(directory: Path):
             errors.append(str(error))
         if errors:
             record.update(passed=False, cleanup_errors=errors)
+            if isinstance(failure, OwnedCleanupError):
+                record["fatal_cleanup"] = failure.details
         (directory / "gpu-safety.json").write_text(json.dumps(record, indent=2) + "\n")
         if errors:
+            if isinstance(failure, OwnedCleanupError):
+                raise failure
             raise RuntimeError("; ".join(errors))
 
 
@@ -140,10 +248,12 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
     record = {"private_segment": name, "command": command, "loader_environment": recorded_env,
               "agent_environment": target_env, "private_segment_removed": False}
     process = identity = None
+    preserve_loader = False
     with (run_dir / "probe.log").open("x") as stream:
         try:
             process = subprocess.Popen(command, cwd=core.WORKLOAD_DIR, env=loader_env,
                                        stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
+            record["loader_identity"] = process_identity(process)
             time.sleep(args.probe_startup_s)
             if process.poll() is not None:
                 raise RuntimeError("private probe exited before the CUDA client")
@@ -152,20 +262,30 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
             yield target_env
             if process.poll() is not None:
                 raise RuntimeError("private probe exited before its CUDA client finished")
+        except OwnedCleanupError as error:
+            if error.details.get("role") == "CUDA client":
+                preserve_loader = True
+                record.update(client_cleanup_failure=error.details, loader_preserved=True,
+                              preservation_reason="CUDA client cleanup is unconfirmed; its agent state must remain live")
+            raise
         finally:
             try:
-                shared.stop_owned(process)
-                record["loader_returncode"] = process.returncode if process is not None else None
-                if segment.exists() or segment.is_symlink():
-                    actual = segment_identity(segment)
-                    if identity is not None and actual != identity:
-                        raise RuntimeError("private segment changed identity; refusing removal")
-                    if process is None or shared.group_members(process.pid):
-                        raise RuntimeError("private loader is not stopped; refusing removal")
-                    segment.unlink()
-                    record["private_segment_removed"] = True
-                if process is not None and process.returncode != 0:
-                    raise RuntimeError("private probe did not exit cleanly")
+                if not preserve_loader:
+                    stop_owned(process, "private loader", record.get("loader_identity"))
+                    record["loader_returncode"] = process.returncode if process is not None else None
+                    if segment.exists() or segment.is_symlink():
+                        actual = segment_identity(segment)
+                        if identity is not None and actual != identity:
+                            raise OwnedCleanupError("private segment changed identity; refusing removal", record)
+                        if process is None or shared.group_members(process.pid):
+                            raise OwnedCleanupError("private loader is not stopped; refusing removal", record)
+                        segment.unlink()
+                        record["private_segment_removed"] = True
+                    if process is not None and process.returncode != 0:
+                        raise RuntimeError("private probe did not exit cleanly")
+            except OwnedCleanupError as error:
+                record["cleanup_error"] = str(error)
+                raise
             finally:
                 (run_dir / "probe-execution.json").write_text(json.dumps(record, indent=2) + "\n")
 
@@ -467,22 +587,33 @@ def run_cli_separate(
         stderr=subprocess.PIPE,
         start_new_session=True,
     )
+    execution = {"command": cmd, "identity": process_identity(process), "cleanup_passed": False}
+    timed_out = False
     try:
-        stdout, stderr = process.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-        stdout, stderr = process.communicate()
-        returncode = -1
-    else:
-        returncode = process.returncode
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        finally:
+            stop_owned(process, "CUDA client", execution["identity"])
+            execution["cleanup_passed"] = True
+        if timed_out:
+            stdout, stderr = process.communicate(timeout=5)
+        returncode = -1 if timed_out else process.returncode
+        log_path.write_text(
+            f"$ {' '.join(cmd)}\n# cwd: {cwd}\n\n## stdout\n{stdout}"
+            f"\n## stderr\n{stderr}\n# exit: {returncode}\n",
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, returncode, stdout, stderr)
+    except BaseException as error:
+        execution["error"] = f"{type(error).__name__}: {error}"
+        if isinstance(error, OwnedCleanupError):
+            execution["cleanup_failure"] = error.details
+        raise
     finally:
-        shared.stop_owned(process)
-    log_path.write_text(
-        f"$ {' '.join(cmd)}\n# cwd: {cwd}\n\n## stdout\n{stdout}"
-        f"\n## stderr\n{stderr}\n# exit: {returncode}\n",
-        encoding="utf-8",
-    )
-    return subprocess.CompletedProcess(cmd, returncode, stdout, stderr)
+        execution.update(returncode=process.returncode, timed_out=timed_out)
+        log_path.with_suffix(".execution.json").write_text(json.dumps(execution, indent=2) + "\n")
 
 
 def correctness_env(args: argparse.Namespace) -> dict[str, str]:
@@ -913,9 +1044,14 @@ def main() -> int:
     def interrupted(signum, frame):
         raise KeyboardInterrupt(f"signal {signum}")
     previous_handler = signal.signal(signal.SIGTERM, interrupted)
+    previous_run_cmd = core.run_cmd
     try:
+        # Only this runner process uses owned CPU/build helpers; the shared,
+        # potentially dirty source file and other coordinators stay untouched.
+        core.run_cmd = run_cmd_owned
         return run_campaign(args)
     finally:
+        core.run_cmd = previous_run_cmd
         signal.signal(signal.SIGTERM, previous_handler)
         lease.close()
 
@@ -993,6 +1129,13 @@ def run_campaign(args: argparse.Namespace) -> int:
         print(f"correctness config={config} attempt={attempt}", flush=True)
         try:
             check = run_correctness_cell(config, attempt, args, output_dir, tool_dirs)
+        except OwnedCleanupError as exc:
+            check = {"attempt": attempt, "returncode": -1, "valid": False, "error": str(exc),
+                     "fatal_cleanup": exc.details}
+            state["correctness"][config]["attempts"].append(check)
+            state["fatal_cleanup"] = exc.details
+            write_state(output_dir, state)
+            raise
         except Exception as exc:  # noqa: BLE001
             check = {"attempt": attempt, "returncode": -1, "valid": False, "error": str(exc)}
         if config != "baseline":
@@ -1024,6 +1167,13 @@ def run_campaign(args: argparse.Namespace) -> int:
             print(f"block={block} config={config} attempt={attempt}", flush=True)
             try:
                 run = run_cell(config, run_id, args, output_dir, tool_dirs)
+            except OwnedCleanupError as exc:
+                run = {"returncode": -1, "valid": False, "error": str(exc),
+                       "block": block, "attempt": attempt, "fatal_cleanup": exc.details}
+                state["configs"][config]["runs"].append(run)
+                state["fatal_cleanup"] = exc.details
+                write_state(output_dir, state)
+                raise
             except Exception as exc:  # noqa: BLE001
                 run = {"returncode": -1, "valid": False, "error": str(exc)}
             run["block"] = block

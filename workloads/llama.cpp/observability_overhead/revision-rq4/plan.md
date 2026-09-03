@@ -17,7 +17,14 @@ client/loader exit and its type, owner and inode checks pass. Before/after
 kernel/GPU safety and fixed 400 W state are checked for every cell. A private
 launchlate source-copy repair records GPU-before-host clock errors instead of
 clamping them to zero; both systems require explicit zero-error counters.
-Fifteen lightweight CPU tests pass; no new 575 GPU result is claimed.
+Twenty-two lightweight CPU tests pass, including a real interrupted CPU
+child-group cleanup check. CPU build/diagnostic helpers now use bounded owned
+teardown without changing the shared legacy harness. If CUDA-client cleanup
+cannot confirm exit, the runner retains that client's loader and private
+segment, records process identities and stops the campaign immediately;
+post-safety errors cannot downgrade this terminal failure. Normal teardown is
+client, loader, private segment, then telemetry and post-safety checks. No new
+575 GPU result is claimed.
 
 The reused performance runtime currently has GPU verification disabled. This
 study compares functional instrumentation cost; it does not establish enforced

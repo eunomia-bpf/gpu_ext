@@ -32,6 +32,20 @@ a BPF-returned task choice on the device. Builds, trace-only replay and host-JIT
 callbacks alone cannot close those respective requirements. The existing
 GPreempt runtime, driver, paper submodule and unrelated work remain untouched.
 
+The next real-GPU dependency is now complete: Hummingbird's split-model/copy
+calibration verified 23 ResNet152 and 102 VGG19 outputs, and an isolated
+60-second LC reference verified all 6,000 offered requests. Its SLO is fixed
+at 1,811,879 ns. The 20-cell small-bubble qualification is running; the 50-cell
+performance matrix remains pending. See the
+[current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
+FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;
+the full original Qwen weights are downloaded, but model GPU correctness and
+transfer results remain open. The original complete LMSYS dataset requires
+access approval, so the same 64/8/1 split uses public LMSYS MT-Bench first-turn
+inputs instead, with the dataset difference explicitly recorded. POD's real
+attention device-call ABI has been retained through compilation; full linking,
+device BPF engagement, numerical checks and timing are still open.
+
 All three original scoped comparisons are complete, including the unchanged
 full XSched campaign. The subsequent literature search identifies useful,
 interesting questions; it does not relabel proposed component ports as

@@ -68,8 +68,10 @@ steps were exactly equal. The zero-tolerance failure is retained. The author's
 head computed all prefill positions while HF 4.49 requested only the last.
 `common-runtime.patch` now aligns the `logits_to_keep` signature, propagation and
 pre-head slice, retaining default-zero full-logit semantics. All 51 CPU tests
-passed; no policy, tolerance or compiled extension changed. This remains a
-candidate fix until fresh history-v4 and four-arm preflight-v2 pass.
+passed; no policy, tolerance or compiled extension changed. Fresh history-v4
+then passed all 64 exact-token requests, full-store and independent cleanup
+checks (18,399 MiB sampled peak). The head-shape repair remains a candidate
+explanation until four-arm preflight-v2 passes its full-logit gate.
 
 ## Research Question
 
@@ -288,14 +290,14 @@ attempts and diagnostic are retained. Normal golden-v4 completed the full
 73-request / 9-repeat protocol and independent two-array numerical audit;
 history-v3 completed the full 64-request real history and store audit. Following
 the retained preflight-v1 discrepancy and Python head-shape compatibility change,
-the next runs are fresh full history-v4 and four-arm preflight-v2.
+fresh full history-v4 has also passed. The next run is four-arm preflight-v2.
 
 Exact staged GPU commands, **only while the root grants the exclusive window**:
 
 The completed diagnostic used `.venv/bin/python -B compare.py --mode golden
 --native-backtrace --output raw/golden-sigill-gdb-01 --timeout 1200`. It cannot be
-reused as a reference. Normal golden-v4 has completed; the fresh history-v4,
-preflight-v2 and full commands below are not claims those stages passed.
+reused as a reference. Normal golden-v4 and history-v4 have completed;
+the preflight-v2 and full commands below are not claims those stages passed.
 
 ```sh
 .venv/bin/python -B compare.py --mode golden --output raw/golden-v4

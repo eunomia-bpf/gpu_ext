@@ -259,3 +259,22 @@ All 51 Python tests passed without CUDA initialization. No strategy, model
 weight, numerical tolerance or compiled extension changed. Fresh full
 `raw/history-v4` and `raw/preflight-v2` will determine whether this compatibility
 repair removes the measured discrepancy; no GPU run was performed during it.
+
+## History v4: post-head-compatibility history passed
+
+`raw/history-v4` subsequently completed normally with all 64 requests and 1,024
+tokens exactly matching golden-v4. Independent checks again passed for every
+saved request, expected tokens, raw timestamps/logs, the disjoint history cohort,
+public decoding configuration, unchanged 42-file runtime inventory and 19-file
+golden reference inventory. The exported `(1000, 2048)` embedding and
+`(1000, 24, 60)` probability arrays contain 3,488,000 finite float32 values and
+fill the 1,000-entry store; their respective file sizes are 8,192,128 and
+5,760,128 bytes. The maximum per-layer probability-sum error is 1.8131e-7.
+
+All 1,064 telemetry samples had inactive throttle flags; peaks were 18,399 MiB
+and 52 C. Cleanup returned to GPU 15 MiB, no compute process, UVM 0 and no
+Xid/kernel abnormality. This is the final current history reference for
+`raw/preflight-v2`. Its token-only checks do not establish that the prior
+prefill-logit discrepancy is fixed; the unchanged zero-tolerance four-arm
+numerical preflight remains required. Earlier history and failed preflight
+artifacts are retained unchanged.

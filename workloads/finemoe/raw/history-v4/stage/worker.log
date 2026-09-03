@@ -1,0 +1,87 @@
+SPDLOG_LEVEL : (null)
+2026-09-03 01:16:46.842 INFO Create ArcherAioThread for thread: , 0
+2026-09-03 01:16:46.842 INFO Loading index file from , /home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/deps/qwen-offload-cache/archer_index
+2026-09-03 01:16:46.843 INFO Index file size , 4659
+2026-09-03 01:16:46.843 INFO Device count , 1
+2026-09-03 01:16:46.843 INFO Enabled peer access for all devices
+[WARNING] FlashAttention is not available in the current environment. Using default attention.
+Loading model from offload_path ...
+Model create:   0%|          | 0/4658 [00:00<?, ?it/s]Qwen2MoeForCausalLM has generative capabilities, as `prepare_inputs_for_generation` is explicitly overwritten. However, it doesn't directly inherit from `GenerationMixin`. From 👉v4.50👈 onwards, `PreTrainedModel` will NOT inherit from `GenerationMixin`, and this model will lose the ability to call `generate` and other related functions.
+  - If you're using `trust_remote_code=True`, you can get rid of this warning by loading the model with an auto class. See https://huggingface.co/docs/transformers/en/model_doc/auto#auto-classes
+  - If you are the owner of the model architecture code, please modify your model class such that it inherits from `GenerationMixin` (after `PreTrainedModel`, otherwise you'll get an exception).
+  - If you are not the owner of the model architecture class, please contact the model code owner to update it.
+Model create:   0%|          | 1/4658 [00:00<07:53,  9.84it/s]Model create:   0%|          | 10/4658 [00:00<01:22, 56.31it/s]Model create:   1%|          | 27/4658 [00:00<00:43, 106.92it/s]Model create:   1%|          | 44/4658 [00:00<00:35, 130.56it/s]Model create:   1%|▏         | 62/4658 [00:00<00:31, 146.11it/s]Model create:   2%|▏         | 79/4658 [00:00<00:29, 153.07it/s]Model create:   2%|▏         | 96/4658 [00:00<00:28, 157.51it/s]Model create:   2%|▏         | 113/4658 [00:00<00:28, 160.41it/s]Model create:   3%|▎         | 131/4658 [00:00<00:27, 163.43it/s]Model create:   3%|▎         | 148/4658 [00:01<00:27, 164.42it/s]Model create:   4%|▎         | 165/4658 [00:01<00:27, 165.10it/s]Model create:   4%|▍         | 183/4658 [00:01<00:26, 166.57it/s]Model create:   4%|▍         | 201/4658 [00:01<00:29, 153.32it/s]Model create:   5%|▍         | 218/4658 [00:01<00:28, 157.05it/s]Model create:   5%|▌         | 235/4658 [00:01<00:27, 159.79it/s]Model create:   5%|▌         | 252/4658 [00:01<00:27, 161.77it/s]Model create:   6%|▌         | 269/4658 [00:01<00:26, 163.21it/s]Model create:   6%|▌         | 286/4658 [00:01<00:26, 163.29it/s]Model create:   7%|▋         | 303/4658 [00:01<00:26, 164.29it/s]Model create:   7%|▋         | 320/4658 [00:02<00:26, 161.25it/s]Model create:   7%|▋         | 338/4658 [00:02<00:26, 162.90it/s]Model create:   8%|▊         | 355/4658 [00:02<00:26, 164.00it/s]Model create:   8%|▊         | 372/4658 [00:02<00:26, 164.79it/s]Model create:   8%|▊         | 393/4658 [00:02<00:28, 150.71it/s]Model create:  12%|█▏        | 574/4658 [00:02<00:07, 580.28it/s]Model create:  16%|█▌        | 724/4658 [00:02<00:04, 826.87it/s]Model create:  17%|█▋        | 814/4658 [00:03<00:06, 608.08it/s]Model create:  19%|█▉        | 888/4658 [00:03<00:07, 508.60it/s]Model create:  22%|██▏       | 1009/4658 [00:03<00:05, 648.18it/s]Model create:  23%|██▎       | 1089/4658 [00:03<00:05, 607.97it/s]Model create:  26%|██▌       | 1214/4658 [00:03<00:04, 741.27it/s]Model create:  28%|██▊       | 1300/4658 [00:03<00:05, 650.71it/s]Model create:  30%|██▉       | 1375/4658 [00:03<00:05, 584.59it/s]Model create:  33%|███▎      | 1540/4658 [00:04<00:03, 812.80it/s]Model create:  35%|███▌      | 1635/4658 [00:04<00:04, 721.37it/s]Model create:  37%|███▋      | 1718/4658 [00:04<00:04, 732.65it/s]Model create:  41%|████▏     | 1929/4658 [00:04<00:02, 1024.97it/s]Model create:  47%|████▋     | 2185/4658 [00:04<00:01, 1404.20it/s]Model create:  53%|█████▎    | 2455/4658 [00:04<00:01, 1733.70it/s]Model create:  58%|█████▊    | 2697/4658 [00:04<00:01, 1871.45it/s]Model create:  63%|██████▎   | 2946/4658 [00:04<00:00, 2037.99it/s]Model create:  69%|██████▉   | 3210/4658 [00:04<00:00, 2194.77it/s]Model create:  74%|███████▍  | 3465/4658 [00:05<00:00, 2199.20it/s]Model create:  79%|███████▉  | 3690/4658 [00:06<00:01, 570.14it/s] Model create:  83%|████████▎ | 3854/4658 [00:06<00:01, 601.67it/s]Model create:  86%|████████▌ | 3996/4658 [00:06<00:00, 687.20it/s]Model create:  89%|████████▊ | 4133/4658 [00:07<00:01, 445.48it/s]Model create:  91%|█████████ | 4236/4658 [00:07<00:01, 326.85it/s]Model create:  93%|█████████▎| 4313/4658 [00:08<00:01, 280.40it/s]Model create:  94%|█████████▍| 4372/4658 [00:08<00:01, 252.53it/s]Model create:  95%|█████████▍| 4418/4658 [00:08<00:01, 235.19it/s]Model create:  96%|█████████▌| 4456/4658 [00:09<00:00, 213.68it/s]Model create:  96%|█████████▋| 4487/4658 [00:09<00:00, 206.23it/s]Model create:  97%|█████████▋| 4514/4658 [00:09<00:00, 198.08it/s]Model create:  97%|█████████▋| 4538/4658 [00:09<00:00, 193.05it/s]Model create:  98%|█████████▊| 4560/4658 [00:09<00:00, 188.58it/s]Model create:  98%|█████████▊| 4581/4658 [00:09<00:00, 182.89it/s]Model create:  99%|█████████▉| 4601/4658 [00:10<00:00, 179.21it/s]{"stage": "decoding_configuration", "checkpoint_fields": {"do_sample": true, "repetition_penalty": 1.05, "eos_token_id": [151645, 151643], "pad_token_id": 151643, "temperature": 0.7, "top_k": 20, "top_p": 0.8}, "explicit_overrides": {"do_sample": false, "min_new_tokens": 16, "max_new_tokens": 16, "pad_token_id": 151643}}
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:629: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.7` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
+  warnings.warn(
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:634: UserWarning: `do_sample` is set to `False`. However, `top_p` is set to `0.8` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_p`.
+  warnings.warn(
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:651: UserWarning: `do_sample` is set to `False`. However, `top_k` is set to `20` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_k`.
+  warnings.warn(
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/finemoe/.venv/lib/python3.12/site-packages/transformers/generation/utils.py:2105: UserWarning: You are calling .generate() with the `input_ids` being on a device type different than your model's device. `input_ids` is on cuda, whereas the model is on cpu. You may experience unexpected behaviors or slower generation. Please make sure that you have put `input_ids` to the correct device by calling for example input_ids = input_ids.to('cpu') before running `.generate()`.
+  warnings.warn(
+Model create:  99%|█████████▉| 4610/4658 [00:30<00:00, 179.21it/s]{"stage": "history", "question_id": 141, "tokens": 16}
+{"stage": "history", "question_id": 109, "tokens": 16}
+{"stage": "history", "question_id": 81, "tokens": 16}
+{"stage": "history", "question_id": 118, "tokens": 16}
+{"stage": "history", "question_id": 104, "tokens": 16}
+{"stage": "history", "question_id": 114, "tokens": 16}
+{"stage": "history", "question_id": 132, "tokens": 16}
+{"stage": "history", "question_id": 84, "tokens": 16}
+{"stage": "history", "question_id": 113, "tokens": 16}
+{"stage": "history", "question_id": 149, "tokens": 16}
+{"stage": "history", "question_id": 116, "tokens": 16}
+{"stage": "history", "question_id": 159, "tokens": 16}
+{"stage": "history", "question_id": 134, "tokens": 16}
+{"stage": "history", "question_id": 90, "tokens": 16}
+{"stage": "history", "question_id": 127, "tokens": 16}
+{"stage": "history", "question_id": 152, "tokens": 16}
+{"stage": "history", "question_id": 126, "tokens": 16}
+{"stage": "history", "question_id": 135, "tokens": 16}
+{"stage": "history", "question_id": 99, "tokens": 16}
+{"stage": "history", "question_id": 86, "tokens": 16}
+{"stage": "history", "question_id": 102, "tokens": 16}
+{"stage": "history", "question_id": 124, "tokens": 16}
+{"stage": "history", "question_id": 158, "tokens": 16}
+{"stage": "history", "question_id": 160, "tokens": 16}
+{"stage": "history", "question_id": 94, "tokens": 16}
+{"stage": "history", "question_id": 87, "tokens": 16}
+{"stage": "history", "question_id": 105, "tokens": 16}
+{"stage": "history", "question_id": 120, "tokens": 16}
+{"stage": "history", "question_id": 138, "tokens": 16}
+{"stage": "history", "question_id": 147, "tokens": 16}
+{"stage": "history", "question_id": 129, "tokens": 16}
+{"stage": "history", "question_id": 107, "tokens": 16}
+{"stage": "history", "question_id": 93, "tokens": 16}
+{"stage": "history", "question_id": 82, "tokens": 16}
+{"stage": "history", "question_id": 150, "tokens": 16}
+{"stage": "history", "question_id": 122, "tokens": 16}
+{"stage": "history", "question_id": 148, "tokens": 16}
+{"stage": "history", "question_id": 121, "tokens": 16}
+{"stage": "history", "question_id": 92, "tokens": 16}
+{"stage": "history", "question_id": 111, "tokens": 16}
+{"stage": "history", "question_id": 136, "tokens": 16}
+{"stage": "history", "question_id": 101, "tokens": 16}
+{"stage": "history", "question_id": 144, "tokens": 16}
+{"stage": "history", "question_id": 117, "tokens": 16}
+{"stage": "history", "question_id": 154, "tokens": 16}
+{"stage": "history", "question_id": 119, "tokens": 16}
+{"stage": "history", "question_id": 155, "tokens": 16}
+{"stage": "history", "question_id": 89, "tokens": 16}
+{"stage": "history", "question_id": 103, "tokens": 16}
+{"stage": "history", "question_id": 95, "tokens": 16}
+{"stage": "history", "question_id": 91, "tokens": 16}
+{"stage": "history", "question_id": 143, "tokens": 16}
+{"stage": "history", "question_id": 130, "tokens": 16}
+{"stage": "history", "question_id": 97, "tokens": 16}
+{"stage": "history", "question_id": 88, "tokens": 16}
+{"stage": "history", "question_id": 153, "tokens": 16}
+{"stage": "history", "question_id": 128, "tokens": 16}
+{"stage": "history", "question_id": 85, "tokens": 16}
+{"stage": "history", "question_id": 156, "tokens": 16}
+{"stage": "history", "question_id": 139, "tokens": 16}
+{"stage": "history", "question_id": 106, "tokens": 16}
+{"stage": "history", "question_id": 151, "tokens": 16}
+{"stage": "history", "question_id": 131, "tokens": 16}
+{"stage": "history", "question_id": 83, "tokens": 16}
+ArcherTaskPool destructor
+Model create:  99%|█████████▉| 4610/4658 [03:28<00:02, 22.13it/s] 

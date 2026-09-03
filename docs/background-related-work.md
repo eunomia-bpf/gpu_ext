@@ -3,25 +3,35 @@
 Updated: 2026-09-03 UTC. Scope: the user's request to look for interesting work
 **after finishing MoE-Infinity, XSched, and GPreempt**. Those three scoped
 comparisons are [complete](revision-experiment-status.md#completed-comparisons--2026-09-03).
-This is a bounded follow-on survey, not seven new reproduction results, a
-whole-paper novelty assessment, or a commitment to run seven systems.
+This is a bounded follow-on survey, not a reproduction result for every listed
+paper, a whole-paper novelty assessment, or a commitment to run every system.
 The original survey made no GPU experiment, driver change or service interruption.
 
-Follow-on execution update: the user has now selected FineMoE, Hummingbird and
-POD-Attention for implementation and experiments. Their PDFs below remain the
-starting evidence; the three source/algorithm feasibility checks are running
-in parallel. The subsequently completed
+Follow-on execution update: the selected component studies are now complete:
+[FineMoE](../workloads/finemoe/results-performance.md), 20 cells;
+[Hummingbird](../workloads/hummingbird/results-575-20260903.md), 50 cells; and
+[POD-Attention](../workloads/pod-attention/results-575-20260903.md), 250 cells.
+FineMoE's BPF selector reduced evicted-unused logical payload versus all-positive,
+but was 12.62% slower than demand-only. The conservative Hummingbird port lost
+about 19–20% background throughput versus fixed GPreempt. POD device BPF added
+0.51–1.18% operator latency versus its matched CUDA adapter in nine shapes;
+one shape improved 0.44%. These are completed, scoped policy studies, not full
+author-system reproductions, new agent-discovered algorithms, or equivalence
+results. Their reports preserve the negative results and deployment boundaries.
+The subsequently completed
 [GPreempt load study](../workloads/gpreempt/results-load-study-575-20260903.md)
 now provides a foreground/background tradeoff under continuous BE supply:
 original C and BPF both improve foreground p99 relative to native, while BE
-goodput falls about 9%. This motivates the requested idle-interval experiment;
-it is not already evidence of Hummingbird's benefit.
+goodput falls about 9%. That motivated the now-completed idle-interval study;
+it did not predict or establish Hummingbird's benefit on this frontend.
 
-## What seems worth doing next
+## Original priorities and their implementation boundaries
 
-The priorities below are our inference from the papers and current results,
-not measured benefits of a new BPF policy. Reproducing an existing decision rule
-correctly remains a useful outcome; outperforming it is not required.
+The table records the initial survey's proposals, not the current execution
+queue. The completed reports above supersede its preparation-status statements;
+the final section below gives the new, unexecuted follow-on candidate.
+Reproducing an existing decision rule correctly remains useful; outperforming
+it is not required.
 
 | Priority | Question and motivation | Smallest useful future comparison | Missing work / interpretation boundary |
 | --- | --- | --- | --- |
@@ -29,11 +39,11 @@ correctly remains a useful outcome; outperforming it is not required.
 | 2: less costly foreground protection | Can a policy recover background throughput while protecting foreground latency? Our [separate driver-BPF arm](../workloads/xsched/performance-full-575-20260903.md) loses 39.5% BE throughput relative to XSched; this is not the same-policy HPF arm. The new GPreempt load study measures about 9% BE cost for both original C and BPF. | Inspired by Hummingbird: use real DNN clients, bursty foreground arrivals and saturated background work; compare HPF/fixed preemption with idle-interval-aware admission. Report foreground p99/SLO attainment **and** completed background work, with equal work and native/BPF policy inputs. UniBoost supplies a separate idea: require useful progress before reconsidering a costly switch. | Requires real queue-completion/idle hints and a safe launch-deferral or queue-control path, not discarded CUDA calls. Hummingbird's kernel splitter and UniBoost's KV-aware LLM scheduler are separate, larger integrations. GPreempt's completed continuous-supply result provides a comparison point, not proof of full GPU saturation. |
 | 3: device-local decisions that actually choose work | Can bounded device-side BPF reproduce a useful SM-local task selector, rather than merely observe counters? POD-Attention offers a concrete original selector. | After an sm_120 port, compare serial attention, two-stream overlap, original POD selection and the same selector in device BPF, sharing numerical kernels and executor. Test several prefill/decode mixes, numerical correctness, exactly-once task execution and completion times; remove SM-local input as an ablation. | Need an execution interface returning an operation/task ID that controls real work. POD uses SM IDs and atomic tickets, not measured warp pressure or arbitrary hardware CTA placement. Kernel fusion benefits must not be attributed to the BPF mechanism. This is a larger integration than priority 1. |
 
-These tests are proposals, not frozen protocols or implemented extensions.
-Do not tune on the final measurement blocks or pool them with the completed
-three-system campaign. Preserve failures and permit neutral/negative outcomes.
+The initial proposals were refined into the separately frozen component studies
+linked above. Future extensions must not tune on their final blocks or pool new
+measurements with those campaigns. Preserve failures and neutral/negative results.
 
-## Seven papers and their implementation boundaries
+## Original seven papers and their implementation boundaries
 
 ### FineMoE — EuroSys 2026
 
@@ -48,9 +58,10 @@ prefetching every positive-score candidate. [Author PDF](https://intellisys.haow
 
 The [official artifact](https://github.com/IntelliSys-Lab/FineMoE-EuroSys26) is
 explicitly a **demo**, built on MoE-Infinity, with a stated GPU-memory
-requirement of **at least 48 GB** and a Qwen1.5-MoE/LMSYS sample. It is not an
-as-is reproduction on our 32 GB RTX 5090. Reuse the existing expert executor
-only after matching the new selector's inputs and residency rules.
+requirement of **at least 48 GB** and a Qwen1.5-MoE/LMSYS sample. Our completed
+32 GB RTX 5090 study is a declared selector/component port, with the repaired
+common executor and MT-Bench substitution documented in its report, not an
+as-is reproduction of that demo or the entire EuroSys system.
 
 ### HybriMoE — DAC 2025
 
@@ -74,8 +85,8 @@ Microsecond-scale*. Splits kernels through PTX transformation and replays the
 correct block-index offsets; its scheduler fills detected idle intervals and
 stops admitting low-priority work when high-priority work is ready. Larger idle
 intervals permit consolidation. The original survey read
-[v1](https://arxiv.org/html/2601.04071v1); implementation preparation now also
-checks [v2, 2026-02-10](https://arxiv.org/abs/2601.04071v2), retained as a
+[v1](https://arxiv.org/html/2601.04071v1); implementation preparation also
+checked [v2, 2026-02-10](https://arxiv.org/abs/2601.04071v2), retained as a
 [separate PDF](reference/2026-hu-hummingbird-v2.pdf). Section 4.3 requires
 real bubble hints, waiting for high-priority GPU completion, split-kernel
 admission and kernel-tick pacing. Merely shortening GPreempt's hint is not this
@@ -111,9 +122,11 @@ callback counter. [Author PDF](https://www.microsoft.com/en-us/research/wp-conte
 
 The inspected [build configuration](https://github.com/microsoft/vattention/blob/main/pod_attn/setup.py#L105)
 targets sm_80/sm_90; the [selector's SM-count comment](https://github.com/microsoft/vattention/blob/main/pod_attn/pod_attn/fused_fwd_kernel.h#L1313)
-says it was only tested on A100. A 5090 port must validate SM-ID bounds and
-shared-memory/kernel constraints. This is a **component-port candidate**, not
-a ready full POD/Sarathi-Serve reproduction or proof of arbitrary CTA placement.
+says it was only tested on A100. The completed local sm_120 operator port
+checks SM-ID bounds, shared-memory/kernel constraints, full-output numerical
+agreement and exactly-once CTA assignment. It remains a **component port**, not
+a full POD/Sarathi-Serve reproduction or proof of arbitrary CTA placement;
+the measured runtime's strict GPU verifier is OFF.
 
 ### MPK — 2026 v2
 
@@ -146,7 +159,8 @@ reference. [Evaluation methodology](https://arxiv.org/html/2608.11688v1#S5.SS2).
 
 ## Downloaded PDF inventory
 
-All original seven downloads and the additional Hummingbird v2 snapshot were
+All original seven downloads, the additional Hummingbird v2 snapshot and the
+two follow-on snapshots below were
 checked with `pdfinfo` and first-page title inspection.
 Sizes are the local downloaded files; this is an inventory, not evidence that
 any artifact builds or runs. PDFs remain the original authors' work.
@@ -161,6 +175,8 @@ any artifact builds or runs. PDFs remain the original authors' work.
 | POD-Attention / author ASPLOS 2025 PDF | [PDF](reference/2025-pod-attention.pdf) | 1,091,305 | 16 |
 | MPK / arXiv v2, 2026-06-10 | [PDF](reference/2026-mpk-v2.pdf) | 829,938 | 18 |
 | APEX / arXiv v1, 2026-08-12 | [PDF](reference/2026-kanani-apex.pdf) | 9,408,998 | 14 |
+| SpecMD / arXiv v1, 2026-02-03 | [PDF](reference/2026-hoang-specmd-v1.pdf) | 3,587,758 | 17 |
+| UrgenGo / arXiv v1, 2025-08-26 | [PDF](reference/2025-zhu-urgengo-v1.pdf) | 4,394,281 | 15 |
 
 ## Search scope and remaining uncertainty
 
@@ -184,3 +200,73 @@ code everywhere, or unsupported hardware in general follows from this search.
 In particular, an artifact's sm_120 port gap is not proof that the hardware
 lacks the underlying feature. Source branches can change; pin an upstream
 revision and record local patches before any future build or measurement.
+
+## Two additional papers and one unexecuted algorithm candidate
+
+This 2026-09-03 follow-on verifies the two primary papers selected by the
+root's four-query search; it is not an exhaustive novelty claim. The detailed
+[source/review record](tmp/research-literature-novelty-20260903T130412Z/report.md)
+retains queries, versions, interface evidence and the independent review.
+
+**SpecMD — expert-cache eviction.** Duc Hoang et al. propose Least-Stale:
+separate previous-pass from current/prefetched experts, favor stale victims,
+and order within queues by layer position (Section 4.2). This is an eviction
+rule, not FineMoE's confidence-controlled prefetch-set rule. Sections 3.1.4
+and A describe next-layer speculative queues and a capacity-monitoring worker.
+The [Apple author page](https://machinelearning.apple.com/research/specmd-expert-prefetching)
+labels ICML, May 2026; our [v1 PDF](reference/2026-hoang-specmd-v1.pdf) is the
+2026-02-03 preprint, still marked under review. No author-code link was
+confirmed on the inspected primary pages or PDF. Do not use unrelated
+same-name repositories as the artifact. A future eviction port needs resident
+expert identities, pass/position labels and a common victim actuator; the
+current FineMoE selector ABI does not supply them. Keep routing and miss
+handling unchanged: SpecMD's optional expert dropping/substitution is not an
+output-preserving comparison.
+
+**UrgenGo — urgency-aware kernel admission.** Hanqi Zhu et al.'s
+[v1 paper](reference/2025-zhu-urgengo-v1.pdf) estimates urgency from remaining
+CPU/GPU work and a chain deadline (Section 4.2), binds each task's kernels to
+one selected stream, delays competing launches, and amortizes progress
+observation with overlapping batch synchronization (Sections 4.4.3–4.4.5).
+This requires chain metadata, profiled remaining work and dependency-preserving
+stream/event handling—not just a higher-priority-ready bit. Its
+[arXiv record](https://arxiv.org/abs/2509.12207v1) dates v1 to 2025-08-26;
+the PDF's ACM venue/DOI are placeholders. Section 5 promises later code release,
+but no official artifact was confirmed in this bounded search. An admission
+component could use a shared host executor; the present Hummingbird ABI lacks
+chain deadlines, stream assignment and batch-completion state. Neither a
+host-JIT callback nor a GPreempt timeslice change reproduces the full system.
+
+**Candidate for experiment-design review, not yet implemented:** retain
+FineMoE's predictor/ranking and mandatory demand execution, but bound admitted
+speculative bytes using past completed-copy first-use/eviction outcomes,
+outstanding speculative bytes and actual demand backlog. The
+[copy ledger](../workloads/finemoe/finemoe_copy_ledger.h) already observes
+completion/use/eviction; the [policy ABI](../workloads/finemoe/finemoe_policy.h)
+currently contains only probabilities, threshold and top-K. It needs a common
+immutable, timestamped snapshot with generation-safe outstanding/queued byte
+accounting and a live demand-backlog field. Cumulative misses are not backlog;
+resident-unused copies are censored, not failed speculation. A zero budget
+needs a bounded probing/reopening rule to avoid feedback lockout. Native and
+host-BPF must share snapshot fields, update rules and the executor; same-input
+shadow checks establish decision parity, not identical online feedback across
+separately timed runs. This governor
+would change the original minimum-K admission rule and must be a separate
+policy, never relabeled a faithful FineMoE reproduction.
+
+| Name-free claim / closest work | Same-claim risk and missing evidence | Baseline handoff / consequence |
+| --- | --- | --- |
+| Reproduce pass-aware eviction / SpecMD | High intentional overlap; new bounded residency/victim ABI, original tie rules and runnable artifact remain unresolved. | Citation/design reference for now, not an admitted numerical baseline or a novel rule. |
+| Reproduce urgency-aware launch decisions / UrgenGo | High intentional overlap; scheduling component possible only after shared chain/progress/stream integration. | Optional later component comparison; no author-system performance claim without its workload and protocol. |
+| Use realized copy utility and live demand pressure to bound speculation / FineMoE, SpecMD and ordinary feedback control | Generic feedback control has high prior-art risk; these two papers do not establish novelty. With equal-sized experts a byte cap is just a count cap; different units/signals alone are insufficient. | Compare demand-only, original FineMoE, fixed-byte admission and matched adaptive C/BPF. If demand-only wins, speculation remains unhelpful; if fixed wins, adaptation adds no demonstrated value; if FineMoE wins, throttling loses useful overlap. |
+
+Use the existing official FineMoE demo/MT-Bench assets as the initial external
+test assets, while declaring their model, short-input and executor limitations.
+Freeze tuning on separate development requests with equal search budgets;
+then compare randomized held-out request groups, including a prespecified
+distribution change and preserved policy history. Report exact outputs,
+drain-inclusive wall throughput, demand wait/backlog, and completed logical
+useful/evicted-unused/censored bytes with paired blocks. Do not equate logical
+payload with measured PCIe traffic or claim causality from correlating waste
+with throughput. This handoff is an alternative for root selection, not a
+change to the paper's claims or an authorized GPU run.

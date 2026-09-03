@@ -16,6 +16,15 @@ import run_revision_rq4 as runner
 
 
 class OfflineTests(unittest.TestCase):
+    def test_correctness_keeps_generated_token_output_enabled(self):
+        command = runner.llama_cli_cmd(SimpleNamespace(
+            llama_cli=Path("/llama-cli"), model=Path("/model.gguf"), n_gpu_layers=99))
+        # llama-cli emits generated tokens through LOG(); pausing that logger
+        # suppresses the correctness oracle, not merely diagnostic messages.
+        self.assertNotIn("--log-disable", command)
+        for option, value in (("-n", "8"), ("--seed", "1797"), ("--temp", "0")):
+            self.assertEqual(command[command.index(option) + 1], value)
+
     def test_cpu_helper_preserves_results_errors_and_streamed_logs(self):
         for outcome in ("success", "unchecked failure", "failure", "timeout", "interrupt", "survivor"):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as tmp:
@@ -374,8 +383,11 @@ class OfflineTests(unittest.TestCase):
     def test_all_probe_paths_need_real_samples_and_complete_clock_counters(self):
         probe = dict(sample_count=2, nonzero_timestamps=2, selected_launches=2, nonzero_threads=1,
                      clock_errors=0, histogram_sum=2, queue_underflows=0, queue_overflows=0,
-                     host_launches=2, device_entries=2)
-        for check in (runner.gpubpf_probe_valid, runner.nvbit_probe_valid):
+                     host_launches=2, device_entries=2, configured_entries=4,
+                     readback_entries=4, readback_bytes=32, readback_complete=1)
+        gpubpf_check = lambda tool, data: runner.gpubpf_probe_valid(
+            tool, data, expected_thread_count=4)
+        for check in (gpubpf_check, runner.nvbit_probe_valid):
             for tool in runner.TASKS:
                 self.assertTrue(check(tool, probe))
                 self.assertFalse(check(tool, {**probe, "sample_count": 0}))
@@ -386,6 +398,34 @@ class OfflineTests(unittest.TestCase):
         for label in ("Clock errors: 0\n", "Queue underflows: 0\n", "Queue overflows: 0\n"):
             self.assertFalse(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text.replace(label, ""))))
         self.assertEqual(runner.parse_nvbit("launchlate", "NVBIT launchlate samples=2")["clock_errors"], -1)
+
+    def test_threadhist_full_width_readback_including_zero_tail(self):
+        sentinel = (1 << 64) - 1
+        expected = 4096
+        for copied, valid in (([8] * 1024, False),
+                              ([8] * 1024 + [0] * 3072, True)):
+            # CPU double for the real lookup output buffer. Unwritten entries
+            # remain sentinel; legitimately zero GPU entries are still copied.
+            values = [sentinel] * expected
+            values[:len(copied)] = copied
+            observed = sum(value != sentinel for value in values)
+            text = (f"Configured thread entries: {expected}\n"
+                    f"Readback entries: {observed}\nReadback bytes: {observed * 8}\n"
+                    f"Readback complete: {int(observed == expected)}\n"
+                    "Nonzero threads: 1024\nTotal exit probes: 8192\n")
+            probe = runner.parse_gpubpf("threadhist", text)
+            self.assertEqual(runner.gpubpf_probe_valid(
+                "threadhist", probe, expected_thread_count=expected), valid)
+            if valid:
+                self.assertFalse(runner.gpubpf_probe_valid("threadhist", probe))
+                self.assertFalse(runner.gpubpf_probe_valid(
+                    "threadhist", probe, expected_thread_count=1048576))
+                for key in ("configured_entries", "readback_entries", "readback_bytes", "readback_complete"):
+                    incomplete = {name: value for name, value in probe.items() if name != key}
+                    self.assertFalse(runner.gpubpf_probe_valid(
+                        "threadhist", incomplete, expected_thread_count=expected))
+                self.assertFalse(runner.gpubpf_probe_valid(
+                    "threadhist", {**probe, "readback_bytes": 8192}, expected_thread_count=expected))
 
     def test_file_metadata_does_not_read_content(self):
         with tempfile.TemporaryDirectory() as tmp:

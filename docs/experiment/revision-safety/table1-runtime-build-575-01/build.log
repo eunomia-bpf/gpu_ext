@@ -1,0 +1,140 @@
+[1/124] Creating directories for 'FridaGum'
+[2/124] Creating directories for 'ubpf'
+[3/124] Creating directories for 'libbpf'
+[4/124] No download step for 'ubpf'
+[5/124] No download step for 'libbpf'
+[6/124] No update step for 'ubpf'
+[7/124] No update step for 'libbpf'
+[8/124] No patch step for 'ubpf'
+[9/124] No patch step for 'libbpf'
+[10/124] Performing configure step for 'ubpf'
+FAILED: [code=1] vm/compat/ubpf-vm/ubpf-prefix/src/ubpf-stamp/ubpf-configure /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/vm/compat/ubpf-vm/ubpf-prefix/src/ubpf-stamp/ubpf-configure 
+cd /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/vm/compat/ubpf-vm/ubpf && /usr/bin/cmake -GNinja -S /home/yunwei37/workspace/gpu/bpftime-table1-575/vm/compat/ubpf-vm/../../../third_party/ubpf -B /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/vm/compat/ubpf-vm/ubpf && /usr/bin/cmake -E touch /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/vm/compat/ubpf-vm/ubpf-prefix/src/ubpf-stamp/ubpf-configure
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pow in m
+-- Looking for pow in m - found
+CMake Error at /usr/share/cmake-3.28/Modules/ExternalProject.cmake:3235 (message):
+  No download info given for 'Conformance' and its source directory:
+
+   /home/yunwei37/workspace/gpu/bpftime-table1-575/third_party/ubpf/external/bpf_conformance
+
+  is not an existing non-empty directory.  Please specify one of:
+
+   * SOURCE_DIR with an existing non-empty directory
+   * DOWNLOAD_COMMAND
+   * URL
+   * GIT_REPOSITORY
+   * SVN_REPOSITORY
+   * HG_REPOSITORY
+   * CVS_REPOSITORY and CVS_MODULE
+Call Stack (most recent call first):
+  /usr/share/cmake-3.28/Modules/ExternalProject.cmake:4418 (_ep_add_download_command)
+  CMakeLists.txt:24 (ExternalProject_Add)
+
+
+-- Configuring incomplete, errors occurred!
+[11/124] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/cfg.cpp.o
+[12/124] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/file_sinks.cpp.o
+[13/124] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/async.cpp.o
+[14/124] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/stdout_sinks.cpp.o
+[15/124] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/color_sinks.cpp.o
+[16/124] Performing download step (download, verify and extract) for 'FridaGum'
+-- Downloading...
+   dst='/home/yunwei37/workspace/gpu/bpftime-table1-575/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+   timeout='none'
+   inactivity timeout='none'
+-- Using src='https://github.com/frida/frida/releases/download/16.1.2/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+-- [download 0% complete]
+-- [download 1% complete]
+-- [download 2% complete]
+-- [download 3% complete]
+-- [download 4% complete]
+-- [download 5% complete]
+-- [download 6% complete]
+-- [download 7% complete]
+-- [download 8% complete]
+-- [download 9% complete]
+-- [download 10% complete]
+-- [download 11% complete]
+-- [download 12% complete]
+-- [download 13% complete]
+-- [download 14% complete]
+-- [download 15% complete]
+-- [download 16% complete]
+-- [download 17% complete]
+-- [download 18% complete]
+-- [download 19% complete]
+-- [download 20% complete]
+-- [download 21% complete]
+-- [download 22% complete]
+-- [download 23% complete]
+-- [download 24% complete]
+-- [download 25% complete]
+-- [download 26% complete]
+-- [download 27% complete]
+-- [download 28% complete]
+-- [download 29% complete]
+-- [download 30% complete]
+-- [download 31% complete]
+-- [download 32% complete]
+-- [download 33% complete]
+-- [download 34% complete]
+-- [download 35% complete]
+-- [download 36% complete]
+-- [download 37% complete]
+-- [download 42% complete]
+-- [download 46% complete]
+-- [download 47% complete]
+-- [download 48% complete]
+-- [download 49% complete]
+-- [download 50% complete]
+-- [download 51% complete]
+-- [download 52% complete]
+-- [download 53% complete]
+-- [download 54% complete]
+-- [download 55% complete]
+-- [download 56% complete]
+-- [download 57% complete]
+-- [download 58% complete]
+-- [download 59% complete]
+-- [download 60% complete]
+-- [download 61% complete]
+-- [download 62% complete]
+-- [download 63% complete]
+-- [download 78% complete]
+-- [download 89% complete]
+-- [download 90% complete]
+-- [download 91% complete]
+-- [download 92% complete]
+-- [download 93% complete]
+-- [download 94% complete]
+-- [download 95% complete]
+-- [download 96% complete]
+-- [download 97% complete]
+-- [download 98% complete]
+-- [download 99% complete]
+-- [download 100% complete]
+-- verifying file...
+       file='/home/yunwei37/workspace/gpu/bpftime-table1-575/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+-- Downloading... done
+-- extracting...
+     src='/home/yunwei37/workspace/gpu/bpftime-table1-575/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+     dst='/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/FridaGum-prefix/src/FridaGum'
+-- extracting... [tar xfz]
+-- extracting... [analysis]
+-- extracting... [rename]
+-- extracting... [clean up]
+-- extracting... done
+[17/124] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/spdlog.cpp.o
+ninja: build stopped: subcommand failed.

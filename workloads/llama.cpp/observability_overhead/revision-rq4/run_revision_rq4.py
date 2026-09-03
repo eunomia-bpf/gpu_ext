@@ -323,6 +323,13 @@ def patch_launchlate_clock(directory: Path) -> None:
 
 def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
     result = core.parse_probe_samples(tool, text)
+    if tool == "threadhist":
+        for key, label in (("configured_entries", "Configured thread entries"),
+                           ("readback_entries", "Readback entries"),
+                           ("readback_bytes", "Readback bytes"),
+                           ("readback_complete", "Readback complete")):
+            values = re.findall(rf"^{label}:\s*(\d+)$", text, re.MULTILINE)
+            result[key] = int(values[-1]) if values else -1
     if tool == "launchlate":
         for key, label in (("clock_errors", "Clock errors"), ("queue_underflows", "Queue underflows"),
                            ("queue_overflows", "Queue overflows")):
@@ -527,14 +534,20 @@ def run_nvbit_once(
     return result
 
 
-def gpubpf_probe_valid(tool: str, probe: dict[str, Any]) -> bool:
+def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
+                      expected_thread_count: int | None = None) -> bool:
     samples = int(probe.get("sample_count", 0))
     if samples <= 0:
         return False
     if tool == "kernelretsnoop":
         return int(probe.get("nonzero_timestamps", 0)) == samples
     if tool == "threadhist":
-        return int(probe.get("nonzero_threads", 0)) > 0
+        return (int(probe.get("nonzero_threads", 0)) > 0
+                and expected_thread_count is not None and expected_thread_count > 0
+                and probe.get("configured_entries") == expected_thread_count
+                and probe.get("readback_entries") == expected_thread_count
+                and probe.get("readback_bytes") == expected_thread_count * 8
+                and probe.get("readback_complete") == 1)
     return (
         int(probe.get("clock_errors", -1)) == 0
         and int(probe.get("queue_underflows", -1)) == 0
@@ -569,7 +582,6 @@ def llama_cli_cmd(args: argparse.Namespace) -> list[str]:
         "0",
         "--no-display-prompt",
         "--simple-io",
-        "--log-disable",
     ]
 
 
@@ -705,7 +717,7 @@ def run_correctness_cell(
             probe_text = probe_log.read_text(errors="replace") if probe_log.exists() else ""
             result["probe"] = parse_gpubpf(tool, probe_text)
             result["valid"] = bool(result["valid"]) and gpubpf_probe_valid(
-                tool, result["probe"]
+                tool, result["probe"], expected_thread_count=args.threadhist_gpu_thread_count
             )
         else:
             result["probe"] = parse_nvbit(tool, completed.stderr)
@@ -985,7 +997,8 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
             result = run_bench(tool, run_id, args, output_dir, env_extra=env)
         result["probe"] = parse_gpubpf(tool, (run_dir / "probe.log").read_text(errors="replace"))
         result["probe_log"] = str((run_dir / "probe.log").relative_to(output_dir))
-        result["valid"] = bool(result.get("valid")) and gpubpf_probe_valid(tool, result["probe"])
+        result["valid"] = bool(result.get("valid")) and gpubpf_probe_valid(
+            tool, result["probe"], expected_thread_count=args.threadhist_gpu_thread_count)
         return result
     return run_nvbit_once(tool, run_id, args, output_dir)
 

@@ -17,7 +17,7 @@ client/loader exit and its type, owner and inode checks pass. Before/after
 kernel/GPU safety and fixed 400 W state are checked for every cell. A private
 launchlate source-copy repair records GPU-before-host clock errors instead of
 clamping them to zero; both systems require explicit zero-error counters.
-Twenty-two lightweight CPU tests pass, including a real interrupted CPU
+Twenty-four lightweight CPU tests pass, including a real interrupted CPU
 child-group cleanup check. CPU build/diagnostic helpers now use bounded owned
 teardown without changing the shared legacy harness. If CUDA-client cleanup
 cannot confirm exit, the runner retains that client's loader and private
@@ -25,6 +25,26 @@ segment, records process identities and stops the campaign immediately;
 post-safety errors cannot downgrade this terminal failure. Normal teardown is
 client, loader, private segment, then telemetry and post-safety checks. No new
 575 GPU result is claimed.
+
+The separate `bpftime-table1-575/build-table1-575` runtime now builds
+successfully (108/108 steps). It carries the actual-thread-count metadata fix
+from the strict R5 path and the controlled CUDA attachment repairs; the main
+runtime and R5 build are unchanged. The histogram collector initializes the
+entire configured array with a sentinel and requires complete readback,
+including legitimate zero-valued tail entries. The runner requires all
+1,048,576 entries / 8,388,608 bytes; mock truncated readbacks fail. This is
+build/CPU evidence only, not real histogram engagement. Use both
+`--bpftime-root /home/yunwei37/workspace/gpu/bpftime-table1-575` and
+`--bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575`
+for the fresh 575 preflight and subsequent full run.
+
+Retained preflight 01 stopped before GPU execution because sudo's PATH lacked
+`nvcc`; use an explicit `/usr/local/cuda-12.9/bin` PATH for the coordinator.
+Preflight 02 built every tool but rejected the native correctness control's
+empty stdout. In this llama-cli, generated tokens use `LOG()`, and
+`--log-disable` suppresses them too. Remove only that flag for all correctness
+arms, preserving the prompt, eight-token limit, seed, temperature and exact
+nonempty-output requirement. No timing cell ran in either failed attempt.
 
 The reused performance runtime currently has GPU verification disabled. This
 study compares functional instrumentation cost; it does not establish enforced

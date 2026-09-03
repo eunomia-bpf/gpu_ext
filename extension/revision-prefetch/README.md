@@ -1,7 +1,13 @@
 # Q2: invalid initial-prefetch action, 575 preparation
 
-Status: **CPU preparation passed; not attached or GPU-tested.** The three
-synthetic record-gate tests and first independent single-CPU build passed on
+Status: **actual 575 loader admission failed; all three functional controls
+remain unexecuted.** [Attempt01](../../docs/experiment/revision-safety/prefetch-invalid-575-01/results.md)
+stopped before releasing the initialized target because `range_enter`'s
+structure-returning target is unsupported by fentry (`-EINVAL`, zero processed
+instructions). Cleanup completed without recorded failure; this supplies no
+invalid99 callback, native-fallback, mask, or numerical-correctness evidence.
+
+The three synthetic record-gate tests and first independent single-CPU build passed on
 2026-09-03; see the
 [execution record](../../docs/experiment/revision-safety/prefetch-invalid-cpu-575-01-EXpHQx/execution.md).
 Two additional cleanup regressions subsequently passed (five synthetic tests
@@ -24,10 +30,12 @@ Action 99 is rejected; `(0,0)` is legal, deliberately isolating action rejection
 Existing 575 build inspection found `compute_prefetch_region` inlined, but
 `compute_prefetch_mask` and `uvm_perf_prefetch_bitmap_tree_iter_get_range` retain
 BTF, function-entry instrumentation, and actual calls from the native branch.
-This is **not live attachment admission**. The fixture uses named fentry/fexit
+Attempt01 demonstrated that these properties do **not** establish live
+attachment admission: the `get_range` STRUCT return was rejected during object
+load, before the attachment loop. The retained fixture uses named fentry/fexit
 attachments only, no instruction offsets, notrace bypass, or driver patch.
-If the loaded module cannot admit these exact attachments, stop before the
-target is released; do not replace the observation with a callback counter.
+It correctly stopped before target release; do not retry unchanged inputs or
+replace this failed observation with a callback counter.
 
 The observer correlates one active `compute_prefetch_mask` frame per task,
 checks the same bitmap-tree identity at every wrapper/range event, and counts
@@ -39,8 +47,9 @@ The actual final output mask is read at mask-function exit, with bounds checked
 and bounded samples retained. This is the compute function's output, before its
 caller removes demanded/thrashing pages, not the final migration mask. It is
 not reconstructed from the requested region.
-This observes native-branch execution, not the local validator enum directly,
-and does not by itself establish completed DMA or physical PCIe bytes.
+If admitted, this would observe native-branch execution, not the local validator
+enum directly, and would not establish completed DMA or physical PCIe bytes.
+Attempt01 produced none of these observations.
 Task/tree identity prevents cross-frame association but is not target-TGID or
 VA-space attribution. Counters describe the globally observed exclusive window;
 do not claim that this observer independently attributes every callback to the
@@ -92,7 +101,9 @@ taskset -c 17 python3 -B extension/revision-prefetch/test_offline.py
 taskset -c 17 make -C extension/revision-prefetch -j1
 ```
 
-After root admits an exclusive GPU window:
+The following attempt01 command was run and failed at loader admission. It is
+retained for provenance, **not a ready next-run command**; do not reuse its
+output directory:
 
 ```sh
 sudo -n python3 extension/revision-prefetch/run_safety.py \
@@ -124,9 +135,13 @@ failure bounds, not a measured duration or a performance target.
 The existing UVM-tools migration monitor is an optional later downstream
 cross-check; its successful 610 records do not prove 575 compatibility.
 
-If named attachments fail, the minimum alternative is a **separately reviewed**
-read-only, noinline Kbuild diagnostic called after initial-effect selection and
-after native traversal, carrying copied scalar action/result/effect/bounds/final
-region and an opaque correlation ID. That would touch only
+The next step is a **separately, independently reviewed** read-only, noinline
+Kbuild diagnostic with a void return and a pointer to a driver-filled const
+context. Emit phases after initial-effect selection and completed native
+traversal, carrying copied scalar action/result/effect/bounds/selected region
+and invocation correlation. It must not change policy dispatch or actuation.
+That would touch only
 `uvm_bpf_struct_ops.h/.c` and `uvm_perf_prefetch.c`, retain actuator semantics,
-and require a new driver build/reload admission. It is not implemented here.
+and require a new driver build/reload admission. It is not implemented here;
+the existing type gate is not bypassed, and the Q2 live-prefetch requirement
+remains open.

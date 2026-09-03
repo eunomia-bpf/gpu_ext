@@ -1,0 +1,30 @@
+Id=gdm.service
+ActiveState=inactive
+
+Id=nvidia-persistenced.service
+ActiveState=inactive
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/run_safety.py", line 362, in <module>
+    main()
+  File "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/run_safety.py", line 352, in main
+    run_cell(mode, output / mode)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/run_safety.py", line 243, in run_cell
+    ready = safety.wait_event(loader, directory / "loader.jsonl", "ready", 30)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py", line 1069, in wait_event
+    raise GateError(f"probe exited {process.returncode} before {event}: {tail}")
+run_moe_head_to_head.GateError: probe exited 1 before ready: libbpf: prog 'range_enter': BPF program load failed: -EINVAL
+libbpf: prog 'range_enter': -- BEGIN PROG LOAD LOG --
+The function uvm_perf_prefetch_bitmap_tree_iter_get_range return type STRUCT is unsupported.
+processed 0 insns (limit 1000000) max_states_per_insn 0 total_states 0 peak_states 0 mark_read 0
+-- END PROG LOAD LOG --
+libbpf: prog 'range_enter': failed to load: -EINVAL
+libbpf: failed to load object 'fixture_bpf'
+libbpf: failed to load BPF skeleton 'fixture_bpf': -EINVAL
+prefetch fixture did not reach complete attach readiness
+
+Id=gdm.service
+ActiveState=active
+
+Id=nvidia-persistenced.service
+ActiveState=active

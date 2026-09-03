@@ -1,0 +1,190 @@
+{
+  "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+  "complete": false,
+  "error": "GateError: probe exited 1 before ready: libbpf: prog 'range_enter': BPF program load failed: -EINVAL\nlibbpf: prog 'range_enter': -- BEGIN PROG LOAD LOG --\nThe function uvm_perf_prefetch_bitmap_tree_iter_get_range return type STRUCT is unsupported.\nprocessed 0 insns (limit 1000000) max_states_per_insn 0 total_states 0 peak_states 0 mark_read 0\n-- END PROG LOAD LOG --\nlibbpf: prog 'range_enter': failed to load: -EINVAL\nlibbpf: failed to load object 'fixture_bpf'\nlibbpf: failed to load BPF skeleton 'fixture_bpf': -EINVAL\nprefetch fixture did not reach complete attach readiness\n",
+  "files": [
+    {
+      "mtime_ns": 1788453672535051598,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/build/prefetch_safety",
+      "size_bytes": 1567672
+    },
+    {
+      "mtime_ns": 1788453672396602914,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/build/fixture.bpf.o",
+      "size_bytes": 27744
+    },
+    {
+      "mtime_ns": 1788453054127621448,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/fixture.bpf.c",
+      "size_bytes": 8329
+    },
+    {
+      "mtime_ns": 1788453054127621448,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/fixture.h",
+      "size_bytes": 1195
+    },
+    {
+      "mtime_ns": 1788453054128621468,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/loader.c",
+      "size_bytes": 7456
+    },
+    {
+      "mtime_ns": 1788454242539652465,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/run_safety.py",
+      "size_bytes": 19474
+    },
+    {
+      "mtime_ns": 1771271976556120032,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/uvm_types.h",
+      "size_bytes": 4821
+    },
+    {
+      "mtime_ns": 1788236214602297364,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/bpf_testmod.h",
+      "size_bytes": 2989
+    },
+    {
+      "mtime_ns": 1788225815403192151,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/uvm_fault_stream",
+      "size_bytes": 1022440
+    },
+    {
+      "mtime_ns": 1788225828808794780,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/uvm_fault_stream.cu",
+      "size_bytes": 7396
+    }
+  ],
+  "finished_ns": 1788454342767398609,
+  "interface": {
+    "btf_path": "/sys/kernel/btf/nvidia_uvm",
+    "gpu_mem_ops_members": [
+      "gpu_test_trigger",
+      "gpu_page_prefetch",
+      "gpu_page_prefetch_iter",
+      "gpu_block_activate",
+      "gpu_block_access",
+      "gpu_evict_prepare"
+    ],
+    "required_kfuncs": [
+      "bpf_gpu_request_reorder",
+      "bpf_gpu_set_prefetch_region"
+    ],
+    "version": "575.57.08"
+  },
+  "kernel_abnormal": [],
+  "loader_argv": [
+    "sudo",
+    "-n",
+    "taskset",
+    "-c",
+    "17",
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision-prefetch/build/prefetch_safety",
+    "native"
+  ],
+  "loader_group_pid": 701416,
+  "mode": "native",
+  "monitor_cleanup": [
+    {
+      "error": null,
+      "pid": 701396,
+      "returncode": -2
+    },
+    {
+      "error": null,
+      "pid": 701393,
+      "returncode": 0
+    }
+  ],
+  "monitors_alive": [
+    true,
+    true
+  ],
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 56.11,
+      "sm_clock_mhz": 2400,
+      "temperature_c": 46,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788454342138044408,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 11.65,
+      "sm_clock_mhz": 22,
+      "temperature_c": 45,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788454337580096994,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "started_ns": 1788454336214289730,
+  "target_argv": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/uvm-policy-mechanism/uvm_fault_stream",
+    "--gib",
+    "8",
+    "--region-kib",
+    "64",
+    "--wait-for-monitor",
+    "--output",
+    "/home/yunwei37/workspace/gpu/gpu_ext/docs/experiment/revision-safety/prefetch-invalid-575-01/native/target.json"
+  ],
+  "target_pid": 701397,
+  "telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2400.0,
+    "mean_power_w": 32.894615384615385,
+    "min_sm_clock_mhz": 22.0,
+    "peak_memory_mib": 508.0,
+    "peak_temperature_c": 46.0,
+    "samples": 13,
+    "throttled": false
+  },
+  "telemetry_cpu": 16,
+  "worker_cpu_affinity": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ]
+}

@@ -120,6 +120,37 @@ generation needs explicit model selection, CUDA-source export, sm_120 targeting,
 the patched TVM host metadata path, and a later authorized GPU validation slot.
 Do not substitute a hand-written vector kernel and call it the model experiment.
 
+The source preparation and explicit model exporter are now available:
+
+```bash
+make configure-tvm
+uv venv --python /usr/bin/python3.10 deps/tvm-venv
+uv pip install --python deps/tvm-venv/bin/python -r tvm-requirements.txt
+# Heavy compilation: only with the experiment owner's cooldown coordination.
+make build-tvm JOBS=4 CPUSET=8-15
+python3 -B export_model.py --model vgg --plan
+# The following commands acquire GPU leases and really execute CUDA. Wait for a slot.
+python3 -B export_model.py --model vgg --output deps/upstream/model/vgg
+python3 -B export_model.py --model resnet152 --output deps/upstream/model/resnet152
+```
+
+`prepare_tvm.sh` applied the original recorder patch successfully at the pinned
+revision, with the three required source submodules. The CPU-only configure
+completed with LLVM 14, GCC 13 and CUDA 12.9; the full TVM build and model exports
+have not yet passed. The exporter has a 1,200-second process-group bound, keeps
+failed exports, and never replaces an existing model directory. It chooses the
+upstream script's VGG19/ResNet152 variants with 224×224 FP32 input, testing
+parameters generated with seed 0, and the same nonconstant deterministic input
+formula for every cell. These are TVM testing networks, not pretrained-accuracy
+results or recovered copies of the authors' unavailable model binaries.
+
+Each successful export will retain CUDA source, the sm_120 cubin, graph/actual
+launch metadata, parameters, and the full 1,000-value isolated native TVM output
+as `reference.f32`; that output is a numerical reference, not a performance
+measurement. CUDA source export and model choice are explicit fixes to the
+provided generation script. Runtime output agreement still must be checked in
+the original standalone executor and every comparison cell.
+
 Primary comparison remains upstream native `baseclient` (single context with
 stream priorities), complete original `gpreemptclient` on the 575 port (two role
 contexts), and the equivalent BPF policy on the same two-context topology.

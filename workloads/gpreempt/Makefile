@@ -8,7 +8,7 @@ FRESH ?=
 UPSTREAM := $(abspath deps/upstream)
 BUILD := $(abspath build/ninja)
 
-.PHONY: all prepare configure build test-cpu gdrcopy-driver
+.PHONY: all prepare configure build test-cpu gdrcopy-driver prepare-tvm configure-tvm build-tvm
 all: build
 
 prepare:
@@ -43,3 +43,19 @@ gdrcopy-driver:
 		NVIDIA_SRC_DIR=/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia \
 		NVIDIA_IS_OPENSOURCE=y KVER=6.15.11-061511-generic \
 		CC=/usr/bin/gcc-14 HAVE_VM_FLAGS_SET=y
+
+prepare-tvm: prepare
+	bash ./prepare_tvm.sh
+
+configure-tvm: prepare-tvm
+	taskset -c $(CPUSET) env -u MAKEFLAGS -u MFLAGS cmake -G Ninja \
+		-S $(abspath deps/tvm) -B $(abspath build/tvm) \
+		-DCMAKE_C_COMPILER=$(HOST_CC) -DCMAKE_CXX_COMPILER=$(HOST_CXX) \
+		-DCMAKE_BUILD_TYPE=Release -DUSE_CUDA=$(CUDA_HOME) \
+		-DUSE_LLVM=/usr/bin/llvm-config-14 -DUSE_LIBBACKTRACE=OFF \
+		-DUSE_GTEST=OFF -DUSE_RPC=OFF -DUSE_CCACHE=OFF
+
+# Heavy compiler jobs: run only in a separately coordinated cooldown window.
+build-tvm:
+	taskset -c $(CPUSET) env -u MAKEFLAGS -u MFLAGS cmake --build $(abspath build/tvm) \
+		--target tvm tvm_runtime -j$(JOBS)

@@ -7,7 +7,18 @@ release have completed. It supplements the
 Hummingbird and POD-Attention have their own plans; do not rerun them merely to
 fill this checklist. GPU work is exclusive and coordinated by the main thread.
 
-## 1. LMCache local disk: finish the storage-tier comparison
+## 1. LMCache local disk: paused by user direction
+
+Current update: the repaired 575 traced disk preflight passed its storage
+engagement checks, but the subsequent full eight-prefix correctness comparison
+failed: cold output matches across all three arms; CPU and disk warm output
+match each other but disagree with recompute for every prefix. No formal
+performance cells started. A shared KV layout/stride defect is a concrete
+source-level candidate, not a validated root cause. Preserve those raw records
+without changing their identity-sensitive permissions. The sequence below is
+retained for history and possible resumption, **not an active execution queue**.
+The user explicitly paused this work on 2026-09-03; keep the storage discussion
+and disclose the deferred measurement in the revision response.
 
 The highest-value remaining LMCache result is the already specified matched
 **recompute / native LMCache CPU / native LMCache disk** comparison. It answers
@@ -139,6 +150,13 @@ native storage-tier measurement before deciding whether that additional port
 adds enough new evidence.
 
 ## 2. RTX 5090 / NVBit Table 1
+
+Current update: the controlled 575 runtime builds, and 24 CPU tests pass.
+Three retained preflights culminate in all seven real correctness arms, but
+four fail; no timing cell started. Full BPF histogram readback is confirmed,
+while stdout contamination, unequal event totals and both launch-latency
+paths require diagnosis. See the [current preflight report](../workloads/llama.cpp/observability_overhead/revision-rq4/preflight-575-results.md).
+The historical preparation details below are not a completed Table 1 result.
 
 The [paper table](paper/tex/eval.tex) still reports P40 results. The dedicated
 [RQ4 plan](../workloads/llama.cpp/observability_overhead/revision-rq4/plan.md)

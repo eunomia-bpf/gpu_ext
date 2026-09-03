@@ -1,7 +1,7 @@
 # Revision completion checklist
 
 Updated 2026-09-03 UTC. The user requests completion of the remaining items,
-not only a status audit. The [verbatim author response and shepherd comments](revision-shepherd-comment.md)
+not only a status audit. The [complete review archive](paper/asplos-27-rebuttal/README.md)
 define the scope. The dated plan in the paper repository is not evidence that
 these commitments have been met. Experimental completion, paper integration,
 and public artifact availability are separate checks.
@@ -13,41 +13,47 @@ typography repairs. The abstract/introduction now distinguish policy benefits
 from the measured mechanism cost. A fresh three-pass LaTeX/BibTeX build succeeds
 without undefined references/citations, and the two scheduling/memory figures
 were rendered and inspected. The checked source draft is pushed as paper commit
-`b5e2f25`; its [build review](paper/asplos-27-rebuttal/revision-build-review.md)
-records that checkpoint's remaining issues. Subsequent condensation produced
+`ee1623e`; its [build review](paper/asplos-27-rebuttal/revision-build-review.md)
+records the integrated checkpoint's remaining issues. Condensation produced
 **16 total pages, with conclusion on page 14**, still exceeding the working
 original-body-plus-two-page target. Hummingbird, POD and the completed narrow
-strict-device controls are now added to source; a fresh final build and review
-remain needed. This is not closure of missing driver safety tests, Table 1,
+strict-device controls are included in that successfully built and visually
+checked source. Review archive commit `46d2f70` adds the missing review updates
+and meta-review. This is not closure of missing driver safety tests, Table 1,
 disk measurements, agent-log release, or final figure-expansion work. See
 [safety evidence and gaps](revision-safety-design.md) and
 [remaining artifact execution](revision-remaining-artifacts.md).
+
+The user has explicitly **paused LMCache**, retaining its failed correctness
+records and the original storage-tier commitment as deferred, not complete.
+Two requested read-only OpenCode subagents have returned; their full reports
+and main-thread corrections are [recorded here](experiment/revision-opencode-review-20260903.md).
 
 ## Current evidence and remaining work
 
 | Commitment | Evidence available | Still required |
 | --- | --- | --- |
-| MoE-Infinity and XSched comparisons | Complete paired studies with baseline, native algorithm and actual host-BPF decisions; scoped results and costs are integrated in the paper draft. See the [experiment handoff](revision-experiment-status.md). | Fresh paper build/review and publication. Do not call component ports full original-system reproduction. |
-| GPreempt policy comparison | Original 15-cell study and 45-cell contention study complete; both C and BPF improve foreground p99 with background costs. The draft includes the [load study and four-panel figure](../workloads/gpreempt/results-load-study-575-20260903.md). | Fresh build/placement review and publication. The new response metric replaces the unsupported historical scheduling-latency proxy; raw historical records remain. |
-| LMCache local-disk backend | One real 610 cold/warm disk check. On 575, the first complete-workload startup failed; a same-environment tiny Triton test fails with bundled 13.1 but passes all 4,096 outputs with 12.9. All three arms now pin the latter; [diagnosis](../workloads/lmcache-disk/compatibility-575.md) and 27 CPU tests are retained. | Repaired traced preflight 02 is running, followed by three correctness cells and ten paired blocks. No 575 storage/performance result is claimed yet. |
-| Expert Buffering hot residency | Four-arm, five-block page-granular/profile-guided analogue; a [read-only raw audit](../workloads/expert-buffering-policy/raw-audit.md) reconciles the saved timing arithmetic and documents the EOS protocol change, weak correctness oracle and missing restoration evidence. | The promised policy implementation remains open: the original Section VI uses current-batch activity, expert-atomic residency and inactive-first/LIFO eviction, not a static hot-page profile. Implement and validate that policy before claiming reproduction; publish the retained old raw records with their limitations separately. |
+| MoE-Infinity and XSched comparisons | Complete paired studies with baseline, native algorithm and actual host-BPF decisions; results/costs are integrated, built and pushed. See the [experiment handoff](revision-experiment-status.md). | Preserve boundaries: MoE uses a paper-algorithm reimplementation; XSched uses the original Level-1 executor, not Level-3. MoE baseline also has a different prefill cache shortcut, so its contrast is not pure policy effect. |
+| GPreempt policy comparison | Original 15-cell study and 45-cell contention study complete; both C and BPF improve foreground p99 with background costs. The [load study and four-panel figure](../workloads/gpreempt/results-load-study-575-20260903.md) are integrated, built, inspected and pushed. | Host-mapped compatibility port, not original GDRCopy/hardware reproduction. The new response metric replaces the unsupported historical scheduling-latency proxy; raw historical records remain. |
+| LMCache local-disk backend | Repaired 575 traced preflight proves storage engagement. All three correctness arms then ran: all eight cold outputs match, and CPU/disk warm outputs match each other, but **all eight differ from recompute**. Both raw directories' 275 non-cache records are committed (`013d4b4`); native cache payloads remain local. | **Paused by user direction.** No formal cells ran and no valid performance result is claimed. Shared KV layout/stride mismatch is a source-backed candidate, not a confirmed root cause. Preserve the promised storage discussion and explain the deferred measurement. |
+| Expert Buffering hot residency | The historical 20-cell page-profile analogue and [audit](../workloads/expert-buffering-policy/raw-audit.md) remain separate. The [Section VI selector](../workloads/expert-buffering-policy/section-vi/plan.md) and logs are committed (`25be625`): nine CPU tests / 2,131 native and 2,131 actual host-JIT decisions. | Live current-batch notification, expert-atomic residency and inactive-first/LIFO eviction adapter remain missing, followed by three-arm correctness and five paired performance blocks. CPU decision agreement is not a GPU policy reproduction. |
 | Transition-validation pseudocode, SIMT algorithm, rejected policies, failure taxonomy, TCB | Code-grounded exposition is in the draft. [Two actual strict counter pairs pass](../workloads/bpftime-device-smoke/results-strict-575-20260903.md), independently audited: 32,768 callbacks per positive, explicit rejection and zero counters per negative. Scheduler-init shared-validator fixtures pass 28 cases / 705 assertions. | Native scheduler-init and invalid-prefetch transition observations remain open; CPU/compile-only fixtures are not those tests. The verification-disabled performance runtime is not retroactively verified by the separate strict controls. |
-| Three-way expressibility table | Active draft now separates user space, modified driver and current gpubpf capabilities, with actuator/trust boundaries. | Fresh build/readability review and publication. |
-| Expand Fig. 13 and distinguish policy from mechanism | Matched-policy subsection and revised headline attribution are drafted. Historical Fig. 13 source now pins six audited CSVs and labels its single-round/engagement limitations. | Render and inspect the corrected full-width figure; the fresh engaged, independently timed memory/scheduling matrix remains unmeasured. Do not turn those old observations into causal scheduler evidence. |
-| RTX 5090 Table 1 | Matching seven-arm harness is prepared. The strict smoke exposed a real per-thread map readback truncation, fixed in independent R5 commit `ea9907d`. | Apply the same metadata repair in a controlled Table 1 runtime and strengthen its readback oracle before executing. Do not substitute unrelated application throughput or an incomplete histogram. |
+| Three-way expressibility table | Draft separates user space, modified driver and current gpubpf capabilities, with actuator/trust boundaries; built, visually checked and pushed. | Preserve those execution-domain and enforcement qualifications in the final revision. |
+| Expand Fig. 13 and distinguish policy from mechanism | Matched-policy subsection and revised attribution are integrated. Historical Fig. 13 uses six audited CSVs and labels its single-round/engagement limitations; the corrected full-width rendering has been inspected. | The fresh engaged, independently timed memory/scheduling matrix remains unmeasured. Do not turn old observations into causal scheduler evidence. |
+| RTX 5090 Table 1 | Independent 575 runtime builds; 24 CPU tests pass. [Three retained preflights](../workloads/llama.cpp/observability_overhead/revision-rq4/preflight-575-results.md): the last tried all seven arms, proves full 1,048,576-slot BPF readback, but rejects four configurations. Every owned cleanup/safety check passes. | No timing cells ran. Fix BPF stdout contamination, establish matched event coverage/collection, and repair both launch-latency paths. Do not use the current lower BPF event count as evidence of lower overhead. |
 | Agent prompts and benchmark harnesses | Public harnesses, the missing-session inventory and separately labelled newly authored reproduction templates are committed and pushed (`1e4564c`). | Recover and redact actual original transcripts before claiming the original-prompt release complete. The author has been asked for the backup. |
-| Discussion and organization | Draft now groups stale-state thrashing, CXL tiers, tenant scope, trampoline scaling, portability and software co-location versus static partitioning. | Fresh paper build/review and publication; proposed mitigations remain distinct from implemented/tested guarantees. |
-| Typographic fixes | Active-source double punctuation and printed bibliography braces repaired. | Verify a fresh build. |
+| Discussion and organization | Draft groups stale-state thrashing, CXL tiers, tenant scope, trampoline scaling, portability and software co-location versus static partitioning; built and pushed. | Proposed mitigations remain distinct from implemented/tested guarantees; current page budget remains unmet. |
+| Typographic fixes | Active-source double punctuation and printed bibliography braces repaired and checked in a fresh build. | Existing bibliography metadata warnings are not a completed citation audit. |
 
 ## Additional requested experiments
 
 | Experiment | Status and next action |
 | --- | --- |
-| FineMoE dynamic prefetch | **Complete:** 20 cells, five blocks. [Report](../workloads/finemoe/results-performance.md) retains reduced unused transfers versus all-positive, a throughput loss versus demand-only, and unresolved BPF/C difference. Integrate the bounded result; no favorable-result rerun is required. |
+| FineMoE dynamic prefetch | **Measurement complete:** 20 cells, five blocks. [Report](../workloads/finemoe/results-performance.md) retains reduced unused transfers versus all-positive, a throughput loss versus demand-only, and unresolved BPF/C difference. Integrated in the draft; the plan's paired scatter and transfer/throughput figures remain to be generated from existing raw data, without rerunning. |
 | Hummingbird idle scheduling | **Complete and published (`2658e0e`):** full 50-cell raw comparison and [independent audit](../workloads/hummingbird/raw-audit.md). C/BPF both lose roughly 19–20% background goodput to fixed GPreempt; all results and incomplete-coverage control requests are retained. |
 | POD-Attention device task choice | **Complete:** five blocks, ten shapes, 250 operator cells / 25 arm processes; [report](../workloads/pod-attention/results-575-20260903.md) and [independent audit](../workloads/pod-attention/raw-audit.md) reconcile every cell. Nine shapes show 0.51–1.18% BPF/CUDA latency cost; substantial whole-process cost and FP32 characterization exceedances remain explicit. Strict verifier enforcement/full-system reproduction are not claimed. Earlier failures remain retained. |
 
-These additional experiments do not replace safety, local-disk, Table 1,
+These additional experiments do not silently replace safety, deferred local-disk, Table 1,
 artifact-release or paper-integration commitments. A negative but valid result
 may complete a comparison; missing execution cannot.
 

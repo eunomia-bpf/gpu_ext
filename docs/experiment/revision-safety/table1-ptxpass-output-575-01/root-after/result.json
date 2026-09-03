@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "-c",
+    "\nimport ctypes, json, sys\nplugin = ctypes.CDLL(sys.argv[1])\nplugin.process_input.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p]\nplugin.process_input.restype = ctypes.c_int\nptx = '.version 7.0\\n.target sm_60\\n.address_size 64\\n.visible .entry test_kernel()\\n{\\n    ret;\\n}\\n'\nrequest = {'input': {'full_ptx': ptx, 'to_patch_kernel': 'test_kernel'},\n           'ebpf_instructions': [{'upper_32bit': 0, 'lower_32bit': 0xb7},\n                                 {'upper_32bit': 0, 'lower_32bit': 0x95}]}\noutput = ctypes.create_string_buffer(1024 * 1024)\nstatus = plugin.process_input(json.dumps(request).encode(), len(output), output)\nassert status == 0, status\nresponse = json.loads(output.value)\nassert response['modified'] is True\nassert 'call __retprobe_func__test_kernel;' in response['output_ptx']\nassert '.entry test_kernel()' in response['output_ptx']\nctypes.CDLL(None).fflush(None)\nprint('APPLICATION_STDOUT_SENTINEL', flush=True)\nprint('CPU_PLUGIN_RESULT ' + json.dumps({'status': status, 'modified': response['modified'],\n      'output_ptx_bytes': len(response['output_ptx'])}), file=sys.stderr)\n",
+    "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so"
+  ],
+  "returncode": 0,
+  "plugin": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so",
+  "plugin_bytes": 133517464,
+  "plugin_mtime_ns": 1788442697630583121,
+  "stdout_bytes": 28,
+  "stderr_bytes": 122,
+  "application_stdout_clean": true,
+  "diagnostic_on_stderr": true,
+  "scope": "actual CPU LLVM/PTX plugin call; no CUDA initialization or GPU execution"
+}

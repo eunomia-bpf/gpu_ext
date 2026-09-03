@@ -235,6 +235,46 @@ diff --git a/attach/nv_attach_impl/nv_attach_impl_frida_setup.cpp b/attach/nv_at
  		current_fatbin->try_loading_ptxs(*context->impl);
  		auto fatbin_handle =
  			gum_invocation_context_get_nth_argument(gum_ctx, 0);
+diff --git a/attach/nv_attach_impl/pass/ptxpass_core/src/core.cpp b/attach/nv_attach_impl/pass/ptxpass_core/src/core.cpp
+--- a/attach/nv_attach_impl/pass/ptxpass_core/src/core.cpp
++++ b/attach/nv_attach_impl/pass/ptxpass_core/src/core.cpp
+@@ -318,7 +318,8 @@ std::pair<size_t, size_t> find_kernel_body(const std::string &ptx,
+ void log_transform_stats(const char *pass_name, int matched, size_t bytes_in,
+ 			 size_t bytes_out)
+ {
+-	SPDLOG_INFO("[ptxpass] {}: matched={}, in={}, out={}", pass_name,
+-		    matched, bytes_in, bytes_out);
++	// Pass plugins have their own logging registry; stdout belongs to the application.
++	std::fprintf(stderr, "[ptxpass] %s: matched=%d, in=%zu, out=%zu\n",
++		     pass_name, matched, bytes_in, bytes_out);
+ }
+ } // namespace ptxpass
+diff --git a/attach/nv_attach_impl/test/test_ptxpass.cpp b/attach/nv_attach_impl/test/test_ptxpass.cpp
+--- a/attach/nv_attach_impl/test/test_ptxpass.cpp
++++ b/attach/nv_attach_impl/test/test_ptxpass.cpp
+@@ -293,7 +293,7 @@ TEST_CASE("compile_ebpf_to_ptx_from_words compiles eBPF to PTX",
+ 	REQUIRE(ptx.find("ret") != std::string::npos);
+ }
+ 
+-TEST_CASE("log_transform_stats emits stats through spdlog",
++TEST_CASE("log_transform_stats bypasses the application default logger",
+ 	  "[ptxpass_core]")
+ {
+ 	std::ostringstream oss;
+@@ -307,11 +307,8 @@ TEST_CASE("log_transform_stats emits stats through spdlog",
+ 	logger->flush();
+ 	spdlog::set_default_logger(old_logger);
+ 
+-	std::string output = oss.str();
+-	REQUIRE(output.find("test_pass") != std::string::npos);
+-	REQUIRE(output.find("matched=5") != std::string::npos);
+-	REQUIRE(output.find("in=1024") != std::string::npos);
+-	REQUIRE(output.find("out=2048") != std::string::npos);
++	// The process-level plugin test separately checks the real stderr bytes.
++	REQUIRE(oss.str().empty());
+ }
+ 
+ TEST_CASE("PassConfig default includes and excludes work correctly",
 diff --git a/runtime/agent/agent.cpp b/runtime/agent/agent.cpp
 --- a/runtime/agent/agent.cpp
 +++ b/runtime/agent/agent.cpp

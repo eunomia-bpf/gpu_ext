@@ -24,3 +24,26 @@ diff --git a/finemoe/models/modeling_qwen/modeling_qwen2_moe.py b/finemoe/models
  
              # Index the correct hidden states and compute the expert hidden state for
              # the current expert. We need to make sure to multiply the output hidden
+@@ -1446,6 +1453,7 @@ class Qwen2MoeForCausalLM(Qwen2MoePreTrainedModel):
+         output_router_logits: Optional[bool] = None,
+         return_dict: Optional[bool] = None,
+         cache_position: Optional[torch.LongTensor] = None,
++        logits_to_keep: Union[int, torch.Tensor] = 0,
+     ) -> Union[Tuple, MoeCausalLMOutputWithPast]:
+         r"""
+         Args:
+@@ -1500,3 +1508,5 @@ class Qwen2MoeForCausalLM(Qwen2MoePreTrainedModel):
+         hidden_states = outputs[0]
+-        logits = self.lm_head(hidden_states)
++        # Match HF 4.49's generation head shape; zero retains all positions.
++        slice_indices = slice(-logits_to_keep, None) if isinstance(logits_to_keep, int) else logits_to_keep
++        logits = self.lm_head(hidden_states[:, slice_indices, :])
+         logits = logits.float()
+@@ -1612,6 +1622,7 @@ class Qwen2MoeForCausalLM(Qwen2MoePreTrainedModel):
+                 "past_key_values": past_key_values,
+                 "use_cache": use_cache,
+                 "attention_mask": attention_mask,
++                "logits_to_keep": kwargs.get("logits_to_keep", 0),
+             }
+         )
+         return model_inputs

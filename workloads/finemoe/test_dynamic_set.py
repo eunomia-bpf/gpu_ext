@@ -6,12 +6,15 @@ experiment and cannot establish that a copy completed.
 """
 
 import ast
+import __future__
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 
 import torch
 import torch.nn.functional as F
+from transformers import GenerationMixin
+from transformers.cache_utils import StaticCache
 
 
 HERE = Path(__file__).resolve().parent
@@ -40,6 +43,79 @@ def load_author_forward():
     namespace = {"torch": torch, "F": F}
     exec(compile(ast.Module(body=[method], type_ignores=[]), str(path), "exec"), namespace)
     return namespace["forward"]
+
+
+def load_author_generation_method(name):
+    path = SOURCE / "models/modeling_qwen/modeling_qwen2_moe.py"
+    tree = ast.parse(path.read_text(), filename=str(path))
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef)
+               and n.name == "Qwen2MoeForCausalLM")
+    method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
+    method.decorator_list = []  # Documentation decorators do not affect execution.
+    namespace = {"torch": torch, "StaticCache": StaticCache}
+    exec(compile(ast.Module(body=[method], type_ignores=[]), str(path), "exec",
+                 flags=__future__.annotations.compiler_flag), namespace)
+    return namespace[name]
+
+
+class AuthorGenerationProbe(GenerationMixin):
+    """Actual author methods with CPU input/head fixtures, never a model run."""
+    forward = load_author_generation_method("forward")
+    prepare_inputs_for_generation = load_author_generation_method("prepare_inputs_for_generation")
+
+    def __init__(self):
+        self.config = SimpleNamespace(output_attentions=False, output_router_logits=False,
+                                      output_hidden_states=False, use_return_dict=False)
+        self.states = torch.arange(16, dtype=torch.bfloat16).reshape(1, 4, 4)
+        self.weights = torch.arange(12, dtype=torch.bfloat16).reshape(3, 4) / 4
+        self.head_inputs = []
+        self.model = lambda **kwargs: (self.states,)
+
+        def head(states):
+            self.head_inputs.append(states.clone())
+            return states @ self.weights.T
+        self.lm_head = head
+
+
+class GenerationCompatibilityTests(unittest.TestCase):
+    def prepared(self, model, **kwargs):
+        return model.prepare_inputs_for_generation(
+            torch.tensor([[1, 2, 3, 4]]), attention_mask=torch.ones((1, 4), dtype=torch.long),
+            cache_position=torch.arange(4), **kwargs)
+
+    def test_generation_mixin_detects_and_preparation_forwards_single_logit(self):
+        model = AuthorGenerationProbe()
+        self.assertTrue(model._supports_logits_to_keep())
+        prepared = self.prepared(model, logits_to_keep=1)
+        self.assertEqual(prepared["logits_to_keep"], 1)
+        logits = model.forward(**prepared)[0]
+        self.assertEqual(tuple(model.head_inputs[0].shape), (1, 1, 4))
+        torch.testing.assert_close(model.head_inputs[0], model.states[:, -1:, :], rtol=0, atol=0)
+        torch.testing.assert_close(logits, (model.states[:, -1:, :] @ model.weights.T).float(),
+                                   rtol=0, atol=0)
+        self.assertFalse(torch.cuda.is_initialized())
+
+    def test_default_zero_preserves_full_author_logits_and_float_output(self):
+        model = AuthorGenerationProbe()
+        prepared = self.prepared(model)
+        self.assertEqual(prepared["logits_to_keep"], 0)
+        logits = model.forward(**prepared)[0]
+        direct_default = model.forward(input_ids=prepared["input_ids"])[0]
+        self.assertEqual(tuple(logits.shape), (1, 4, 3))
+        self.assertEqual(logits.dtype, torch.float32)
+        torch.testing.assert_close(logits, (model.states @ model.weights.T).float(), rtol=0, atol=0)
+        torch.testing.assert_close(direct_default, logits, rtol=0, atol=0)
+        torch.testing.assert_close(model.head_inputs[0], model.states, rtol=0, atol=0)
+
+    def test_explicit_tensor_positions_match_hf_slice_semantics(self):
+        model = AuthorGenerationProbe()
+        positions = torch.tensor([0, 2])
+        prepared = self.prepared(model, logits_to_keep=positions)
+        self.assertIs(prepared["logits_to_keep"], positions)
+        logits = model.forward(**prepared)[0]
+        torch.testing.assert_close(model.head_inputs[0], model.states[:, positions, :], rtol=0, atol=0)
+        torch.testing.assert_close(logits, (model.states[:, positions, :] @ model.weights.T).float(),
+                                   rtol=0, atol=0)
 
 
 class CaptureEngine:

@@ -1,11 +1,13 @@
 # POD-Attention: real device-BPF task selection
 
-Status: CPU implementation/build in progress; all 21 fused CUDA compilation
-units finished, and the fused extension now links after the scoped host-stub
-repair below. The original FlashAttention extension is still building.
-Selector/ABI and launch-bridge CPU
-checks, ten PTX-adapter tests, seven benchmark-audit tests and eighteen
-preparation/pruning/partition tests pass. No GPU correctness, engagement or
+Status: complete official CPU build succeeded: all 21 fused CUDA compilation
+units and the original FA extension (four CUDA TUs plus API) compiled and linked.
+The resulting `fused_attn`/`flash_attn_og` shared libraries are 719,807,608 /
+29,503,152 bytes. Selector/ABI and launch-bridge CPU checks, ten PTX-adapter
+tests, seven benchmark-audit tests, eighteen preparation/pruning/partition
+tests, four host-link tests and twelve coordinator tests pass.
+Final linked PTX extraction also passed all four planned TUs/six packets.
+No GPU correctness, engagement or
 performance test has run. This is an operator port,
 not a Sarathi/full-paper reproduction.
 
@@ -27,10 +29,14 @@ The first final host link failed because NVCC emitted the same strong
 `exit(1)` guard, not the GPU implementation. `host_link.py` checks zero host or
 CUDA-registration references to that symbol, then localizes only its host
 binding in private link copies. All originals remain untouched; every other
-defined symbol and semantic relocation is checked unchanged, including each
-object's 135 CUDA-registration references. The embedded `.nv_fatbin` sections
+defined symbol and semantic relocation is checked unchanged, including all
+CUDA-registration references (135 in each planned TU). The embedded `.nv_fatbin` sections
 are compared directly byte-for-byte; no content identifiers are generated.
 The explicit objects/sizes/disassemblies live in `build/link/attempt-01/inventory.json`.
+The twenty originals and twenty copies each total 713,660,864 bytes; their
+704,796,024 embedded GPU bytes compare identical. Host references to the stub
+are zero in all twenty objects. Registration counts differ across unused
+official variants (103/135/151/199); no variant's references were changed.
 Four CPU fixture tests pass. The subsequent fused build reports `ninja: no work
 to do` and links normally; none of its twenty large numerical TUs was rebuilt.
 Only the separate original FA extension omits `--keep-device-functions`, since
@@ -65,9 +71,11 @@ absent, all 30 module-global objects are unreferenced, and the eight referenced
 shared objects are CTA-local. Function/entry address identity and module-level
 function aliases/tables are absent. Any contrary evidence rejects partitioning.
 Original PTX, linked extension and explicit function/packet inventories remain
-preserved; no dirty bpftime code is changed. `prepare_ptx.py` must rerun these
-checks against the linked fused extension and match exact representatives to its
-symbols. That final linked extraction, real loader lifecycle, launch bridge,
+preserved; no dirty bpftime code is changed. `prepare_ptx.py` completed these
+checks against the linked fused extension in `build/ptx-runtime-01/inventory.json`:
+all 540 original entries and 512 typed calls are retained, each packet's exact
+representative is present in the linked symbols, and all six actual adapter
+response sizes match the table above. The real loader lifecycle, launch bridge,
 full-shape numerical correctness and device engagement are still unverified.
 
 ## Question and decision value
@@ -221,6 +229,17 @@ remains alive until the BPF client exits. Exact kernel names must come from the
 linked official extension, not a wildcard attach or assumed symbol. Private
 loader lifecycle/campaign coordination is not yet run or validated. Set
 `SPDLOG_LEVEL=warn` to avoid recording vendor internal cache identifiers.
+`run_study.py` now supplies this thin coordination using the existing GPU/struct-ops
+lease paths and safety/telemetry helpers. `python3 run_study.py preflight --output
+NEW_DIR --ptx build/ptx-runtime-01` runs five one-shape cells, with three timed
+samples excluded from formal analysis. The coordinator must retain CPU 16 for
+telemetry; clients use CPUs 8–15. All CPU compilation must have ended first.
+`python3 run_study.py full --output NEW_DIR --ptx build/ptx-runtime-01 --preflight
+PASSED_DIR` requires that complete five-arm preflight with unchanged runtime
+files. Each cell checks the campaign's original file inventory; a live loader
+keeps its private SHM until the CUDA client exits, then orderly detaches and
+removes only its newly created exact segment. Every failure/cleanup check is
+retained. No such coordinated GPU invocation has run yet.
 Real preflight uses the actual two
 attention outputs, one Figure-14 shape and all five arms, plus exhaustion tests;
 CPU selector tests/build success alone are not preflight. Retain source versions,

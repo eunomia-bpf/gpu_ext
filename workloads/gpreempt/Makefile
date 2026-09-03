@@ -10,7 +10,7 @@ BRIDGE ?= 0
 UPSTREAM := $(abspath deps/upstream)
 BUILD := $(abspath build/ninja)
 
-.PHONY: all prepare configure build build-bridge test-cpu gdrcopy-driver prepare-tvm configure-tvm build-tvm
+.PHONY: all prepare configure build build-bridge test-cpu gdrcopy-driver prepare-tvm configure-tvm build-tvm build-host-flag
 all: build
 
 prepare:
@@ -67,3 +67,9 @@ configure-tvm: prepare-tvm
 build-tvm:
 	taskset -c $(CPUSET) env -u MAKEFLAGS -u MFLAGS cmake --build $(abspath build/tvm) \
 		--target tvm tvm_runtime -j$(JOBS)
+
+# CPU-only build; run --case host_flag later under both experiment leases.
+build-host-flag:
+	mkdir -p build
+	taskset -c $(CPUSET) $(CUDA_HOME)/bin/nvcc -arch=sm_$(CUDA_ARCH) -ccbin $(HOST_CXX) \
+		-std=c++17 -O2 test_host_flag.cu -o build/test-host-flag

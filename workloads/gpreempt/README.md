@@ -83,7 +83,9 @@ Linux `6.15.11-061511-generic`, and GCC 14. Its unmodified conftest correctly
 selected `HAVE_VM_FLAGS_SET=y`; no override is needed. The successful build
 produced `gdrdrv.ko` (534,936 bytes), module/API version 2.5 with the 6.15.11
 vermagic. The release revision, not that unchanged API version, identifies 2.5.2.
-It has not been loaded by this workflow. Never load `nv-p2p-dummy.ko` (a link
+The driver owner loaded it separately at 2026-09-03 00:37:22 UTC after loading
+the `e3bb2938` 575 compatibility driver. The Makefile still never loads it.
+Never load `nv-p2p-dummy.ko` (a link
 stub), and do not use the upstream install/load script's device deletion or
 world-writable defaults. Module loading and exact device-node ownership are
 handled separately by the driver owner.
@@ -103,12 +105,24 @@ Its conftest incorrectly selected `n`, causing duplicate-helper/read-only
 built a 535,584-byte module. The new release supersedes that workaround without
 altering the historical build or editing vendor source. Official support lists
 data-center/professional RTX GPUs; it does not by itself establish that GeForce
-RTX 5090 pin/map succeeds. The original finite GDRCopy path still must run.
+RTX 5090 pin/map succeeds. The original finite GDRCopy path has now failed at
+pinning: attempt `raw/575-gdr-context-smoke-02/` accepted the query/timeslice
+request, but `nvidia_p2p_get_pages` returned `-22`. Post-cleanup state was clean.
+This is not a successful GDRCopy or scheduling reproduction. Attempt 01 was
+rejected before execution because module reload had reset the 400 W limit to
+575 W; the limit was restored before attempt 02.
+
+The independent official `basic_cumemalloc` test subsequently failed in
+`raw/575-official-gdr-basic-01/`: CUDA's GPUDirect-RDMA support attribute was
+false, and the unmodified test reported that the GPU does not support GPUDirect
+RDMA. Thus the original GDR actuator is unavailable on this device, not merely
+unbuilt or lacking device-node permissions. No capability check was bypassed.
 
 ## Finite smoke, only after the driver owner releases a GPU slot
 
 ```bash
 python3 -B run_smoke.py --output raw/575-smoke-01
+python3 -B run_smoke.py --case basic_cumemalloc --output raw/575-official-gdr-basic-01
 ```
 
 This acquires the shared GPU and struct-ops leases, checks the idle GPU, requires
@@ -121,6 +135,16 @@ including failure, retains `smoke.log` and `result.json`, and cleanup targets on
 the owned process group. The runner never changes modules, devices, or services.
 It starts the child with an explicit minimal environment, excluding inherited
 preload/injection variables and resolving GDRCopy from the private build first.
+GDRCopy diagnostic logging is enabled. Optional official `basic_cumemalloc`
+and `data_validation_cumemalloc` cases use the same bounded wrapper; a waived
+test is explicitly not accepted as a pass, even if the upstream suite exits 0.
+
+An explicitly different transport canary, `make build-host-flag` followed by
+`run_smoke.py --case host_flag`, completed 64 exact CPU-write/GPU-poll roundtrips
+in `raw/575-host-flag-smoke-01/`, with clean cleanup. It uses mapped pinned host
+memory and a device-side polling deadline, not GDR-mapped GPU memory. This
+establishes a possible compatibility route, not original GPreempt reproduction
+or scheduling performance. The full clients still default to original GDR.
 
 ## Model assets and fair cells still required
 
@@ -149,8 +173,15 @@ python3 -B export_model.py --model resnet152 --output deps/upstream/model/resnet
 
 `prepare_tvm.sh` applied the original recorder patch successfully at the pinned
 revision, with the three required source submodules. The CPU-only configure
-completed with LLVM 14, GCC 13 and CUDA 12.9; the full TVM build and model exports
-have not yet passed. The exporter has a 1,200-second process-group bound, keeps
+completed with LLVM 14, GCC 13 and CUDA 12.9. The full TVM build passed, producing
+`libtvm.so` (86,473,272 bytes) and `libtvm_runtime.so` (4,709,720 bytes); importing
+the pinned runtime reports `0.19.dev0` with CUDA enabled. Both model exports
+passed with actual CUDA execution: VGG19 recorded 55 kernels, ResNet152 recorded
+307, and each retained a finite 1,000-value native reference. The first VGG
+attempt failed before model creation because `tvm.relay.testing` also imports
+pytest; the dependency was added explicitly and the failed attempt is retained.
+Successful export records are `raw/model-vgg-export-02/` and
+`raw/model-resnet152-export-01/`. The exporter has a 1,200-second process-group bound, keeps
 failed exports, and never replaces an existing model directory. It chooses the
 upstream script's VGG19/ResNet152 variants with 224×224 FP32 input, testing
 parameters generated with seed 0, and the same nonconstant deterministic input

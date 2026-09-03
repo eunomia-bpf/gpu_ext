@@ -1,0 +1,70 @@
+{
+  "case": "host_flag",
+  "checks": {
+    "host_flag_roundtrips": true
+  },
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/test-host-flag"
+  ],
+  "effective_timeslice_verified": false,
+  "kind": "GPreempt-575 owned-context/GDRCopy smoke",
+  "performance_claim": false,
+  "returncode": 0,
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 29.01,
+      "sm_clock_mhz": 2400,
+      "temperature_c": 47,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788396790260661387,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 12.44,
+      "sm_clock_mhz": 22,
+      "temperature_c": 46,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788396789147358441,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "status": "passed",
+  "timeout_seconds": 30
+}

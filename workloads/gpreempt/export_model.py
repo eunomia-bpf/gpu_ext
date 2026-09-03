@@ -98,7 +98,7 @@ def worker(args) -> None:
 def run(args) -> None:
     import run_smoke
     safety = run_smoke.safety
-    raw = args.output.parent / (args.output.name + "-export-evidence")
+    raw = args.evidence_output or args.output.parent / (args.output.name + "-export-evidence")
     raw.mkdir(parents=True, exist_ok=False)
     lease = None
     child = None
@@ -148,6 +148,8 @@ def main() -> None:
     parser.add_argument("--model", choices=["vgg", "resnet152"], required=True)
     parser.add_argument("--arch", type=int, default=120)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--evidence-output", type=Path,
+                        help="new directory for retry logs; never overwrites an earlier attempt")
     parser.add_argument("--timeout", type=int, default=1200)
     parser.add_argument("--plan", action="store_true", help="print explicit model choices without loading TVM/CUDA")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
@@ -160,6 +162,8 @@ def main() -> None:
     if args.output is None:
         parser.error("--output is required for actual export")
     args.output = args.output.resolve()
+    if args.evidence_output:
+        args.evidence_output = args.evidence_output.resolve()
     def interrupted(signum, _frame):
         raise InterruptedError(f"signal {signum}; cleaning up owned model export")
     signal.signal(signal.SIGTERM, interrupted)

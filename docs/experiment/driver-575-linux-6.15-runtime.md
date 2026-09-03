@@ -80,13 +80,30 @@ empty; the final zero-reference and clean-kernel requirements are unchanged.
 Runner changes present during these runs are committed alongside this note;
 the recorded run Git revisions are not rewritten after the fact.
 
-## Built-only GSP scheduling propagation fix
+## Loaded GSP scheduling propagation and GPreempt transport
 
 The sibling `gpu_ext-kernel-575` source now contains commit `363416c4` and the
 subsequent GPreempt transport commit `e3bb2938` on `test-sched`.
-**This build has not been staged or loaded.** The experiments
-above and the ongoing MoE campaign still use the staged/loaded `28b1d30c`
-modules; updating source does not update the running driver.
+The `e3bb2938` build was staged separately at
+`/opt/gpubpf/modules/575.57.08/gpreempt-e3bb2938-6.15.11/` and loaded at
+2026-09-03 00:35:47–49 UTC (September 2, 17:35 PDT). The historical experiments
+above and the canceled generic MoE campaign used `28b1d30c`; they are not
+retroactively attributed to this driver. The old staging directory and stock
+files under `/lib/modules` remain unchanged.
+
+The generic MoE experiment was stopped after one complete four-cell block
+because its page-level stride/LFU policy is not the MoE-Infinity algorithm.
+Block 2's UVM process was interrupted; its shutdown failure remains recorded.
+After clients exited, GPU memory returned to 2 MiB and UVM references and
+struct-ops attachments were zero, but utilization stayed at 100% and power near
+104 W. The old kernel log also contains an RM unhandled-interrupt threshold
+warning for IRQ 217 at 00:20:46 UTC during the BPF cell. No Xid does not mean
+there was no abnormality. With both experiment leases held and no device-file
+holders, ordinary bounded `rmmod`/`insmod` replaced core, modeset, DRM and UVM;
+there was no forced unload, reboot or module installation. GPU state returned
+to 2 MiB/0% and approximately 11 W. Module reload reset the power limit to
+575 W despite the service still being active; it was explicitly restored to
+the experiment's 400 W before further GPU checks.
 
 Source inspection found that the open GSP-client scheduling HAL setters only
 update host-side timeslice/interleave fields. Channel-group allocation does not
@@ -105,7 +122,7 @@ new GSP RPC or rollback path**. Independent source review found and checked the
 explicit constructor-error cleanup. Known compiler-package and missing module
 description warnings remain; the build had no errors.
 
-After the current GPU campaign completes, a separate canary must check native
+Separate runtime canaries must check native
 allocation/destruction, timeslice-only/interleave-only/combined RPC execution,
 and controlled first/second-control failures with exactly one remote cleanup.
 Reading the host shadow fields is not proof of hardware enforcement. Each run
@@ -122,10 +139,21 @@ GSP control and two-context behavior remain pending hardware canaries. The
 [userspace port](../../workloads/gpreempt/README.md) and
 [BPF policy arm](../../extension/gpreempt-policy.md) use this ABI.
 
-The separate official GDRCopy v2.5.2 `c91ad9f` dependency has also built for
-this kernel (534,936-byte `gdrdrv.ko`), but is not loaded. Its unmodified
+The separate official GDRCopy v2.5.2 `c91ad9f` dependency was built for
+this kernel (534,936-byte `gdrdrv.ko`) and loaded at 00:37:22 UTC with persistent
+mapping enabled. Its unmodified
 conftest correctly detects the 6.15 `vm_flags_set` API. The earlier v2.5
 535,584-byte build remains in its separate checkout. Neither build nor the BPF
 hint-decision CPU tests prove GDR pin/map or GPU scheduling on the RTX 5090.
-The running MoE campaign continues on `28b1d30c` without these additions;
-module replacement waits for its complete GPU-lease release.
+The new `/dev/gdrdrv` node is mode 0600, owned by experiment UID/GID 1000,
+not world writable. The original finite smoke in
+`workloads/gpreempt/raw/575-gdr-context-smoke-02/` accepted the owned-context
+query and narrow timeslice request but failed at `gdr_pin_buffer`; the kernel
+reported `nvidia_p2p_get_pages` returning `-22`. Cleanup left no compute process,
+UVM reference, struct-ops attachment or new Xid. This is a real GDR failure,
+not successful reproduction. Attempt 01 was rejected before CUDA execution
+because the reload-reset power limit was still 575 W; both attempts are retained.
+The independent official GDRCopy basic test then reported CUDA GPUDirect-RDMA
+capability absent on this GPU and failed. A separate mapped-pinned-host flag
+canary passed 64 exact roundtrips, but that is a different memory transport and
+does not make the original GDR actuator available.

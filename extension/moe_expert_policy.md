@@ -92,7 +92,7 @@ sort. Its bridge requires output capacity at least the input count, exposes
 The scored selector has its own `moe_expert_scored_stats_v1` counters. Ready/error
 and process-exit log records include `kind=paper_scored` or `kind=paper_rank`.
 
-The existing SO exports all three component interfaces. Initialize scored and
+The existing SO exports all component interfaces. Initialize scored and
 rank programs with absolute paths to these additional build outputs:
 
 ```text
@@ -117,6 +117,34 @@ sentinels verify that the bridge does not overwrite the caller's boundaries.
 
 This validates the discrete score-selection components against a native
 specification. It does **not** by itself validate prediction math, EAMC lifecycle,
-model correctness, actual prefetch/eviction actuation, or performance. In
-particular, the shared frontend's EAMC nearest-trace selection is not counted
-as BPF execution by these rank/eviction counters.
+model correctness, actual prefetch/eviction actuation, or performance.
+
+## EAMC nearest-trace and replacement selection
+
+`moe_expert_match_v1` completes the discrete nearest-neighbor decision using
+the common frontend's **unsorted float64 cosine similarities**, preserving
+original EAMC entry order. Its BPF program finds the numeric maximum and returns
+all equal indices in a single pass. The prediction frontend can aggregate all
+returned ties; a full EAMC can replace the first returned index. Computing cosine
+similarities and modifying the trace collection remain common frontend work.
+
+The API reuses the rank entry layout, input ordinals, and output capacity rules.
+Initialize with `extension/.output/moe_expert_policy_match.bin`, or set absolute
+`MOE_EXPERT_MATCH_CODE` for a null init path. `moe_expert_match_stats_v1` has
+independent `calls/candidates/matched/empty/errors` counters; log records use
+`kind=paper_match`. It starts at negative infinity, ignores NaNs, accepts positive
+infinity, treats both zeros as equal, returns all entries for an all-negative-
+infinity input, and returns empty for empty/all-NaN input. Actual finite,
+nonnegative cosine features satisfy a stricter frontend validation contract;
+the broader comparison cases are explicit component tests, not expected traces.
+
+The combined CPU suite now passes **40,871 match snapshots with 225,449 matched
+indices**, in addition to the scored/rank counts above, with zero mismatches.
+The three scored/rank/match interfaces reject 22 invalid initialization/input
+cases in total. All component tests remain CPU-only and exercise the real JIT.
+
+A concurrent frontend CPU test observed `dlopen: file too short` while the first
+match-enabled SO was being linked in place; it failed closed, without fallback.
+The standalone build now links to a temporary output and atomically renames the
+successfully linked SO, keeping the previously published SO intact during future
+builds. This build-time failure is not a model correctness or performance result.

@@ -12,6 +12,7 @@
 #include <vector>
 
 static std::atomic<mep_u64> decisions{0}, ranked{0}, scored_selected{0}, ranked_empty{0};
+static std::atomic<mep_u64> matched{0}, match_empty{0};
 static void require(bool condition, const char *message)
 {
     if (!condition) { std::fprintf(stderr, "FAIL: %s\n", message); std::abort(); }
@@ -36,6 +37,8 @@ static void check(const std::vector<Raw> &raw)
     mep_u64 expected_victim = MOE_EXPERT_NONE;
     double minimum = std::numeric_limits<double>::infinity();
     std::vector<mep_u32> expected_rank;
+    std::vector<mep_u32> expected_match;
+    double maximum = -std::numeric_limits<double>::infinity();
     for (mep_u32 i = 0; i < raw.size(); ++i) {
         const Raw &r = raw[i];
         const double score = number(r.bits);
@@ -44,6 +47,8 @@ static void check(const std::vector<Raw> &raw)
             expected_victim = i;
         }
         if (score > 0) expected_rank.push_back(i);
+        if (score > maximum) { maximum = score; expected_match.clear(); }
+        if (score == maximum) expected_match.push_back(i);
         const mep_u32 flags = (r.present ? MOE_EXPERT_NODE_PRESENT : 0) |
             (r.cuda ? MOE_EXPERT_DEVICE_CUDA : 0) | (r.pending == 0 ? MOE_EXPERT_PENDING_ZERO : 0) |
             (r.state == 0 ? MOE_EXPERT_EXEC_IDLE : 0);
@@ -66,10 +71,20 @@ static void check(const std::vector<Raw> &raw)
     require(indices.front() == canary && indices.back() == canary, "rank output overrun");
     require(std::equal(expected_rank.begin(), expected_rank.end(), indices.begin() + 1),
             "native stable_sort / BPF merge-sort mismatch");
+    const mep_u32 rank_count = count;
+    std::fill(indices.begin(), indices.end(), canary);
+    require(moe_expert_match_v1(rank.data(), rank.size(), indices.data() + 1, rank.size(), &count) == 0,
+            "match JIT failed");
+    require(count == expected_match.size(), "maximum tie count mismatch");
+    require(indices.front() == canary && indices.back() == canary, "match output overrun");
+    require(std::equal(expected_match.begin(), expected_match.end(), indices.begin() + 1),
+            "native numeric maximum / BPF match mismatch");
     ++decisions;
-    ranked += count;
+    ranked += rank_count;
+    matched += count;
     if (victim != MOE_EXPERT_NONE) ++scored_selected;
-    if (!count) ++ranked_empty;
+    if (!rank_count) ++ranked_empty;
+    if (!count) ++match_empty;
 }
 
 static const mep_u64 special[]{
@@ -101,13 +116,16 @@ static void random_cases(unsigned seed, unsigned count)
 
 int main(int argc, char **argv)
 {
-    require(argc == 3, "scored and rank bytecode arguments required");
+    require(argc == 4, "scored, rank, and match bytecode arguments required");
     unsetenv("MOE_EXPERT_SCORED_CODE");
     unsetenv("MOE_EXPERT_RANK_CODE");
+    unsetenv("MOE_EXPERT_MATCH_CODE");
     require(moe_expert_scored_init_v1(nullptr) < 0, "missing scored program accepted");
     require(moe_expert_rank_init_v1(nullptr) < 0, "missing rank program accepted");
+    require(moe_expert_match_init_v1(nullptr) < 0, "missing match program accepted");
     require(moe_expert_scored_init_v1(argv[1]) == 0, "scored JIT initialization failed");
     require(moe_expert_rank_init_v1(argv[2]) == 0, "rank JIT initialization failed");
+    require(moe_expert_match_init_v1(argv[3]) == 0, "match JIT initialization failed");
     check({});
     for (mep_u64 a : special) {
         check({{99, a, true, true, 0, 0}});
@@ -140,6 +158,10 @@ int main(int argc, char **argv)
             score_stats.selected + score_stats.no_victim == decisions, "scored counters wrong");
     require(rank_stats.calls == decisions && rank_stats.ranked == ranked && rank_stats.empty == ranked_empty,
             "rank counters wrong");
+    moe_expert_match_stats match_stats{};
+    moe_expert_match_stats_v1(&match_stats);
+    require(match_stats.calls == decisions && match_stats.matched == matched && match_stats.empty == match_empty,
+            "match counters wrong");
     mep_u64 victim;
     mep_u32 count, index;
     moe_expert_scored_candidate s{0, 0, MOE_EXPERT_ELIGIBLE, 0};
@@ -161,11 +183,25 @@ int main(int argc, char **argv)
     require(moe_expert_rank_v1(&r, 1, &index, 1, &count) < 0, "rank reordered ordinal accepted");
     r.ordinal = 0; r.reserved = 1;
     require(moe_expert_rank_v1(&r, 1, &index, 1, &count) < 0, "rank reserved accepted");
+    r.reserved = 0;
+    require(moe_expert_match_v1(nullptr, 1, &index, 1, &count) < 0, "match null accepted");
+    require(moe_expert_match_v1(&r, 1, nullptr, 1, &count) < 0, "match null output accepted");
+    require(moe_expert_match_v1(&r, 1, &index, 1, nullptr) < 0, "match null count accepted");
+    require(moe_expert_match_v1(&r, 1, &index, 0, &count) < 0, "match insufficient output accepted");
+    require(moe_expert_match_v1(&r, MOE_EXPERT_MAX_CANDIDATES + 1, &index,
+                               MOE_EXPERT_MAX_CANDIDATES + 1, &count) < 0, "match oversized accepted");
+    r.ordinal = 1;
+    require(moe_expert_match_v1(&r, 1, &index, 1, &count) < 0, "match reordered ordinal accepted");
+    r.ordinal = 0; r.reserved = 1;
+    require(moe_expert_match_v1(&r, 1, &index, 1, &count) < 0, "match reserved accepted");
     moe_expert_scored_stats_v1(&score_stats);
     moe_expert_rank_stats_v1(&rank_stats);
-    require(score_stats.errors == 6 && rank_stats.errors == 8, "negative cases not counted");
+    moe_expert_match_stats_v1(&match_stats);
+    require(score_stats.errors == 6 && rank_stats.errors == 8 && match_stats.errors == 8,
+            "negative cases not counted");
     std::printf("moe_expert_policy_scored_test: backend=ubpf-jit scored_decisions=%llu "
-                "rank_decisions=%llu ranked_indices=%llu mismatch=0 negative_cases=14 "
-                "threads=4 maximum_candidates=%u\n", decisions.load(), decisions.load(),
-                ranked.load(), MOE_EXPERT_MAX_CANDIDATES);
+                "rank_decisions=%llu match_decisions=%llu ranked_indices=%llu matched_indices=%llu "
+                "mismatch=0 negative_cases=22 threads=4 maximum_candidates=%u\n",
+                decisions.load(), decisions.load(), decisions.load(), ranked.load(), matched.load(),
+                MOE_EXPERT_MAX_CANDIDATES);
 }

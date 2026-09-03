@@ -68,6 +68,10 @@ struct moe_expert_rank_stats {
     mep_u64 calls, candidates, ranked, empty, errors;
 };
 
+struct moe_expert_match_stats {
+    mep_u64 calls, candidates, matched, empty, errors;
+};
+
 #ifndef MEP_BPF_ONLY
 #ifdef __cplusplus
 extern "C" {
@@ -96,6 +100,17 @@ int moe_expert_rank_v1(const struct moe_expert_rank_candidate *entries,
                      mep_u32 count, mep_u32 *indices, mep_u32 capacity,
                      mep_u32 *selected_count);
 void moe_expert_rank_stats_v1(struct moe_expert_rank_stats *output);
+
+/* Nearest EAMC trace(s): float64 cosine similarities in original entry order.
+ * Return all equal numeric maxima, ignoring NaNs; -Inf is a valid maximum,
+ * including an all--Inf input. +/-0 tie. Empty/all-NaN input returns empty.
+ * Reuses rank entry layout and ordinal/capacity requirements, without sorting.
+ * init(NULL) reads absolute MOE_EXPERT_MATCH_CODE. */
+int moe_expert_match_init_v1(const char *absolute_bytecode_path);
+int moe_expert_match_v1(const struct moe_expert_rank_candidate *entries,
+                      mep_u32 count, mep_u32 *indices, mep_u32 capacity,
+                      mep_u32 *selected_count);
+void moe_expert_match_stats_v1(struct moe_expert_match_stats *output);
 #ifdef __cplusplus
 }
 #endif

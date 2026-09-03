@@ -40,6 +40,7 @@ struct State {
 State &state() { static State s{"current_count", "MOE_EXPERT_POLICY_CODE"}; return s; }
 State &scored_state() { static State s{"paper_scored", "MOE_EXPERT_SCORED_CODE"}; return s; }
 State &rank_state() { static State s{"paper_rank", "MOE_EXPERT_RANK_CODE"}; return s; }
+State &match_state() { static State s{"paper_match", "MOE_EXPERT_MATCH_CODE"}; return s; }
 
 void initialize(State &s, const char *explicit_path)
 {
@@ -161,10 +162,9 @@ extern "C" int moe_expert_rank_init_v1(const char *path)
     catch (const std::exception &error) { return fail(rank_state(), error); }
 }
 
-extern "C" int moe_expert_rank_v1(const moe_expert_rank_candidate *entries, mep_u32 count,
-                                  mep_u32 *indices, mep_u32 capacity, mep_u32 *selected_count)
+static int select_indices(State &s, const moe_expert_rank_candidate *entries, mep_u32 count,
+                          mep_u32 *indices, mep_u32 capacity, mep_u32 *selected_count)
 {
-    State &s = rank_state();
     ++s.calls;
     if (selected_count) *selected_count = 0;
     try {
@@ -195,9 +195,34 @@ extern "C" int moe_expert_rank_v1(const moe_expert_rank_candidate *entries, mep_
     } catch (const std::exception &error) { return fail(s, error); }
 }
 
+extern "C" int moe_expert_rank_v1(const moe_expert_rank_candidate *entries, mep_u32 count,
+                                  mep_u32 *indices, mep_u32 capacity, mep_u32 *selected_count)
+{
+    return select_indices(rank_state(), entries, count, indices, capacity, selected_count);
+}
+
 extern "C" void moe_expert_rank_stats_v1(moe_expert_rank_stats *out)
 {
     if (!out) return;
     State &s = rank_state();
+    *out = {s.calls.load(), s.candidates.load(), s.selected.load(), s.no_victim.load(), s.errors.load()};
+}
+
+extern "C" int moe_expert_match_init_v1(const char *path)
+{
+    try { initialize(match_state(), path); return 0; }
+    catch (const std::exception &error) { return fail(match_state(), error); }
+}
+
+extern "C" int moe_expert_match_v1(const moe_expert_rank_candidate *entries, mep_u32 count,
+                                   mep_u32 *indices, mep_u32 capacity, mep_u32 *selected_count)
+{
+    return select_indices(match_state(), entries, count, indices, capacity, selected_count);
+}
+
+extern "C" void moe_expert_match_stats_v1(moe_expert_match_stats *out)
+{
+    if (!out) return;
+    State &s = match_state();
     *out = {s.calls.load(), s.candidates.load(), s.selected.load(), s.no_victim.load(), s.errors.load()};
 }

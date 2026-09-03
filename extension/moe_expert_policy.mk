@@ -13,7 +13,8 @@ MEP_VM_LIBS := $(BPFTIME_BUILD)/vm/vm-core/libbpftime_vm.a \
 .PHONY: all test
 .SECONDARY:
 all: $(MEP_OUTPUT)/libmoe_expert_policy.so $(MEP_OUTPUT)/moe_expert_policy.bin \
-	$(MEP_OUTPUT)/moe_expert_policy_scored.bin $(MEP_OUTPUT)/moe_expert_policy_rank.bin
+	$(MEP_OUTPUT)/moe_expert_policy_scored.bin $(MEP_OUTPUT)/moe_expert_policy_rank.bin \
+	$(MEP_OUTPUT)/moe_expert_policy_match.bin
 
 $(MEP_OUTPUT):
 	mkdir -p $@
@@ -26,7 +27,8 @@ $(MEP_OUTPUT)/%.bin: $(MEP_OUTPUT)/%.bpf.o
 
 $(MEP_OUTPUT)/libmoe_expert_policy.so: moe_expert_policy.cpp moe_expert_policy.h | $(MEP_OUTPUT)
 	$(MEP_CXX) -O2 -g -fPIC -shared -std=c++17 -Wall -Wextra -Werror -Wl,--build-id=none \
-		$(MEP_INCLUDES) $< $(MEP_VM_LIBS) -o $@
+		$(MEP_INCLUDES) $< $(MEP_VM_LIBS) -o $@.tmp
+	mv $@.tmp $@
 
 $(MEP_OUTPUT)/moe_expert_policy_test: moe_expert_policy_test.cpp moe_expert_policy.h $(MEP_OUTPUT)/libmoe_expert_policy.so
 	$(MEP_CXX) -O2 -g -std=c++17 -Wall -Wextra -Werror -Wl,--build-id=none $< \
@@ -39,4 +41,4 @@ $(MEP_OUTPUT)/moe_expert_policy_scored_test: moe_expert_policy_scored_test.cpp m
 test: all $(MEP_OUTPUT)/moe_expert_policy_test $(MEP_OUTPUT)/moe_expert_policy_scored_test
 	./$(MEP_OUTPUT)/moe_expert_policy_test $(abspath $(MEP_OUTPUT)/moe_expert_policy.bin)
 	./$(MEP_OUTPUT)/moe_expert_policy_scored_test $(abspath $(MEP_OUTPUT)/moe_expert_policy_scored.bin) \
-		$(abspath $(MEP_OUTPUT)/moe_expert_policy_rank.bin)
+		$(abspath $(MEP_OUTPUT)/moe_expert_policy_rank.bin) $(abspath $(MEP_OUTPUT)/moe_expert_policy_match.bin)

@@ -58,6 +58,7 @@ static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
     __u64 policy_hit = 0, policy_miss = 0;
     __u64 interleave_mod = 0, interleave_observed = 0;
     __u64 interleave_mismatch = 0, setter_error = 0;
+    __u64 control_override = 0;
     __u32 key;
 
     key = 0; bpf_map_lookup_elem(stats_fd, &key, &task_init);
@@ -70,6 +71,7 @@ static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
     key = 7; bpf_map_lookup_elem(stats_fd, &key, &interleave_observed);
     key = 8; bpf_map_lookup_elem(stats_fd, &key, &interleave_mismatch);
     key = 9; bpf_map_lookup_elem(stats_fd, &key, &setter_error);
+    key = 10; bpf_map_lookup_elem(stats_fd, &key, &control_override);
 
     printf("\n=== Statistics ===\n");
     printf("task_init:      %llu\n", (unsigned long long)task_init);
@@ -82,6 +84,7 @@ static void print_stats(struct gpu_sched_set_timeslices_bpf *skel)
     printf("interleave_observed: %llu\n", (unsigned long long)interleave_observed);
     printf("interleave_mismatch: %llu\n", (unsigned long long)interleave_mismatch);
     printf("setter_error:  %llu\n", (unsigned long long)setter_error);
+    printf("control_override: %llu\n", (unsigned long long)control_override);
 
     /* Print timeslice modification history */
     __u32 idx = 0;

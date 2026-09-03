@@ -27,7 +27,7 @@ class CanaryParserTests(unittest.TestCase):
         self.policy = ('gpreempt_policy_stats: scope_enter=2 scope_leave=2 gr_init=2 timeslice_ok=2 '
                        'alloc_captured=2 registered=2 destroy=2 unknown_engine=0 setter_error=0 '
                        'alloc_error=0 register_error=0 bind_shadow_mismatch=0 map_error=0 '
-                       'scope_error=0 bind_shadow_match=2\n')
+                       'scope_error=0 bind_shadow_match=2 control_override=2 control_lc=1 control_be=1\n')
 
     def run_case(self):
         return analyze('\n'.join(map(json.dumps, self.client)) + '\n' + self.bridge,
@@ -79,6 +79,11 @@ class CanaryParserTests(unittest.TestCase):
 
     def test_missing_negative_tests_rejected(self):
         self.client[0]['negative_cases'] = 16
+        with self.assertRaises(ValueError):
+            self.run_case()
+
+    def test_missing_persistent_control_rejected(self):
+        self.policy = self.policy.replace('control_lc=1', 'control_lc=0')
         with self.assertRaises(ValueError):
             self.run_case()
 

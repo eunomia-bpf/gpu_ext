@@ -134,7 +134,7 @@ python3 extension/gpreempt_context_smoke_check.py \
   --mode bpf --client-log CLIENT_LOG --rpc-log RPC_LOG --policy-log POLICY_LOG
 ```
 
-The analyzer's seven CPU unit tests use explicitly synthetic records only; they
+The analyzer's eight CPU unit tests use explicitly synthetic records only; they
 exercise missing/failed RPCs, wrong ownership, zero BPF engagement, dropped
 events, and a later timeslice overwrite. They are not GPU measurements.
 Finally require zero UVM references, no Xid, empty struct_ops, and removal of

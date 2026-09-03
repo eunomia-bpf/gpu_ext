@@ -17,7 +17,8 @@ of upstream's primary baseline.
 
 - The separate NVIDIA 575 driver repository needs the GSP propagation repair
   `363416c4`, owned GR query/narrow control transport `e3bb2938`, and per-runlist
-  destruction identity / real GSP completion hook `e7d46fa5`. Building
+  destruction identity / real GSP completion hook `e7d46fa5`. The persistent
+  control callback additionally needs `849ea75d`. Building
   these commits is not a hardware validation. No module is installed or loaded
   by this implementation or its CPU tests.
 - `workloads/gpreempt/policy-bridge.patch` owns integration with the original
@@ -95,7 +96,7 @@ CPU checks completed on 2026-09-03 UTC:
 
 - BPF object compilation, skeleton generation, loader compilation, and the
   strongly linked shared bridge succeeded with the real `g++` compiler.
-- Actual kernel-policy C with mocked helper/maps/setter: 78 cases and 1,500
+- Actual kernel-policy C with mocked helper/maps/setter: 78 cases and 2,460
   assertions. Includes both roles, every GR engine 1..8, direct/transferred
   NVOS21/NVOS64, untouched native/CE, nested/unknown roles, unknown engine,
   missing allocation correlation, syscall/NV-status/copy/handle failures,
@@ -155,3 +156,22 @@ The real canary and failed historical runs are recorded in
 `gpreempt_context_smoke.md`. Corrected BPF identity/registration/numerics pass,
 but strict firmware evidence rejects the CUDA 2,048-us overwrite. No GPReempt
 performance comparison or complete original-GDR reproduction is claimed.
+
+### Control-boundary repair (CPU-built, fresh runtime validation pending)
+
+The optional `on_timeslice_control` callback keeps the policy value when CUDA
+submits its later default. GP matches the captured RM handles, composite TSG,
+actual GR engine, owning TGID and GPU instance zero; it deliberately does not
+require the later user registration marker. A different thread in the same
+process is allowed. Wrong handles/runlists/GPUs/CE/phase/TGID are ignored.
+The kfunc only records a bounded request; the driver validates it after the
+callback and then uses the original authorized, locked physical RPC path.
+
+`control_override`, `control_lc` and `control_be` count successful policy
+decisions, not completed hardware actions. Both role counters must be nonzero
+with total equal to their sum, setter errors zero, and the real GSP completion
+canary must still confirm the final timeslices. All original failed evidence
+remains; this repair does not retroactively make any earlier run valid.
+The XSched process-name timeslice program implements the same callback using
+its existing all-engine process semantics, separately from its GR-only
+RM-handle preemption targets.

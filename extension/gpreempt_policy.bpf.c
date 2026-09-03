@@ -248,6 +248,28 @@ int BPF_PROG(gp_destroy, struct nv_gpu_task_destroy_ctx *destroy)
     return 0;
 }
 
+SEC("struct_ops/gp_timeslice_control")
+int BPF_PROG(gp_timeslice_control, struct nv_gpu_timeslice_control_ctx *control)
+{
+    if (!control || control->gpu_instance != 0 || control->phase != 1 ||
+        control->engine_type < 1 || control->engine_type > 8) return 0;
+    struct gp_tsg_key key = { .tsg_id = control->tsg_id, .runlist_id = control->runlist_id };
+    struct gp_tsg *target = bpf_map_lookup_elem(&tsgs, &key);
+    if (!target || !control->hclient || !control->htsg ||
+        target->handles.hclient != control->hclient || target->handles.htsg != control->htsg ||
+        target->record.engine != control->engine_type ||
+        (target->record.pid_tgid >> 32) != (bpf_get_current_pid_tgid() >> 32)) return 0;
+    /* CUDA issues its default before the user registration marker; successful
+     * ALLOC correlation and immutable RM identities suffice at this boundary. */
+    if (bpf_nv_gpu_override_timeslice(control, target->record.timeslice_us))
+        count(GP_SETTER_ERROR);
+    else {
+        count(GP_CONTROL_OVERRIDE);
+        count(target->record.role == GP_LC ? GP_CONTROL_LC : GP_CONTROL_BE);
+    }
+    return 0;
+}
+
 SEC("tracepoint/sched/sched_process_exit")
 int thread_exit(void *ctx)
 {
@@ -263,5 +285,6 @@ struct nv_gpu_sched_ops gpreempt_ops = {
     .on_task_init = (void *)gp_task_init,
     .on_bind = (void *)gp_bind,
     .on_task_destroy = (void *)gp_destroy,
+    .on_timeslice_control = (void *)gp_timeslice_control,
 };
 char LICENSE[] SEC("license") = "GPL";

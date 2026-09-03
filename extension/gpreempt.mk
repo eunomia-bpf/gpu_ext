@@ -68,7 +68,11 @@ $(GP_OUTPUT)/gpreempt_policy_test: gpreempt_policy_test.cpp gpreempt_bridge.h $(
 $(GP_OUTPUT)/gpreempt_policy_cpu_test: gpreempt_policy_cpu_test.c gpreempt_policy.bpf.c gpreempt_bridge.h gpu_sched_set_timeslices.h
 	$(CC) -O2 -g -Wall -Wextra -Wno-unused-parameter -Wl,--build-id=none $< -o $@
 
-test: $(GP_OUTPUT)/gpreempt_policy_test $(GP_OUTPUT)/gpreempt_hint.bin $(GP_OUTPUT)/gpreempt_policy_cpu_test
+$(GP_OUTPUT)/gpu_sched_timeslice_control_cpu_test: gpu_sched_timeslice_control_cpu_test.c gpu_sched_set_timeslices.bpf.c gpu_sched_set_timeslices.h
+	$(CC) -O2 -g -Wall -Wextra -Wno-unused-parameter -Wl,--build-id=none $< -o $@
+
+test: $(GP_OUTPUT)/gpreempt_policy_test $(GP_OUTPUT)/gpreempt_hint.bin $(GP_OUTPUT)/gpreempt_policy_cpu_test $(GP_OUTPUT)/gpu_sched_timeslice_control_cpu_test
 	./$(GP_OUTPUT)/gpreempt_policy_cpu_test
+	./$(GP_OUTPUT)/gpu_sched_timeslice_control_cpu_test
 	GPREEMPT_POLICY=original ./$(GP_OUTPUT)/gpreempt_policy_test
 	GPREEMPT_POLICY=bpf GPREEMPT_HINT_CODE=$(abspath $(GP_OUTPUT)/gpreempt_hint.bin) ./$(GP_OUTPUT)/gpreempt_policy_test

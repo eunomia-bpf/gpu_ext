@@ -6,9 +6,11 @@
  * Userspace can configure policies via the process_timeslice map.
  */
 
+#ifndef GPU_SCHED_CPU_TEST
 #include <vmlinux.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
+#endif
 #include "gpu_sched_set_timeslices.h"
 
 char _license[] SEC("license") = "GPL";
@@ -34,7 +36,7 @@ struct {
 /* Statistics map */
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 10);
+    __uint(max_entries, 11);
     __type(key, __u32);
     __type(value, __u64);
 } stats SEC(".maps");
@@ -49,6 +51,7 @@ struct {
 #define STAT_INTERLEAVE_OBSERVED 7
 #define STAT_INTERLEAVE_MISMATCH 8
 #define STAT_SETTER_ERROR   9
+#define STAT_CONTROL_OVERRIDE 10
 
 /* Trace events for debugging */
 struct gpu_sched_trace_event {
@@ -210,10 +213,27 @@ int BPF_PROG(on_task_destroy, struct nv_gpu_task_destroy_ctx *destroy_ctx)
     return 0;
 }
 
+/* The original process-name policy applies to every engine of that process.
+ * Persistent actuation uses the existing authorized native control path; no
+ * TSG-ID keyed state and no new process/object authorization are introduced. */
+SEC("struct_ops/on_timeslice_control")
+int BPF_PROG(on_timeslice_control, struct nv_gpu_timeslice_control_ctx *control)
+{
+    char comm[TASK_COMM_LEN];
+    if (!control || control->phase != 1) return 0;
+    if (bpf_get_current_comm(comm, sizeof(comm))) return 0;
+    __u64 *timeslice = bpf_map_lookup_elem(&process_timeslice, comm);
+    if (!timeslice || !*timeslice) return 0;
+    if (bpf_nv_gpu_override_timeslice(control, *timeslice)) inc_stat(STAT_SETTER_ERROR);
+    else inc_stat(STAT_CONTROL_OVERRIDE);
+    return 0;
+}
+
 /* Register the struct_ops */
 SEC(".struct_ops")
 struct nv_gpu_sched_ops gpu_sched_ops = {
     .on_task_init = (void *)on_task_init,
     .on_bind = (void *)on_bind,
     .on_task_destroy = (void *)on_task_destroy,
+    .on_timeslice_control = (void *)on_timeslice_control,
 };

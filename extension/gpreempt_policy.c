@@ -22,6 +22,7 @@ static const char *names[GP_STAT_COUNT] = {
     "timeslice_ok", "setter_error", "alloc_captured", "alloc_error", "registered",
     "register_error", "bind_shadow_match", "bind_shadow_mismatch", "destroy",
     "map_error", "scope_error",
+    "control_override", "control_lc", "control_be",
 };
 
 static int print_stats(struct gpreempt_policy_bpf *skeleton)

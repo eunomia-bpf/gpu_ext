@@ -79,6 +79,8 @@ def analyze(client_text, rpc_text, mode, policy_text=None):
                      'bind_shadow_mismatch', 'map_error', 'scope_error'):
             demand(int(policy[name]) == 0, f"policy error {name}")
         demand(int(policy['bind_shadow_match']) > 0, "no bind observation")
+        demand(int(policy['control_override']) == 2 and int(policy['control_lc']) == 1 and
+               int(policy['control_be']) == 1, "missing both real control-boundary policy decisions")
         demand(bridge['backend'] == 'ubpf-jit' and all(int(bridge[k]) == 2 for k in ('scopes', 'registered', 'ended')),
                "missing actual JIT/context bridge engagement")
         demand(all(int(bridge[k]) > 0 for k in ('hint', 'block', 'release')), "hint decisions not exercised")

@@ -42,11 +42,24 @@ struct nv_gpu_task_destroy_ctx {
     __u32 engine_type;
 };
 
+struct nv_gpu_timeslice_control_ctx {
+    __u64 tsg_id;
+    __u64 requested_timeslice_us;
+    __u32 engine_type;
+    __u32 runlist_id;
+    __u32 hclient;
+    __u32 htsg;
+    __u32 gpu_instance;
+    __u32 phase;
+};
+_Static_assert(sizeof(struct nv_gpu_timeslice_control_ctx) == 40, "timeslice-control input ABI");
+
 /* GPU Scheduler struct_ops definition */
 struct nv_gpu_sched_ops {
     int (*on_task_init)(struct nv_gpu_task_init_ctx *ctx);
     int (*on_bind)(struct nv_gpu_bind_ctx *ctx);
     int (*on_task_destroy)(struct nv_gpu_task_destroy_ctx *ctx);
+    int (*on_timeslice_control)(struct nv_gpu_timeslice_control_ctx *ctx);
 };
 
 /* Engine types */
@@ -69,6 +82,10 @@ struct nv_gpu_sched_ops {
 #ifndef __weak
 #define __weak __attribute__((weak))
 #endif
+
+/* Set timeslice for a TSG during task_init */
+extern int bpf_nv_gpu_override_timeslice(struct nv_gpu_timeslice_control_ctx *ctx,
+                                        __u64 timeslice_us) __weak __ksym;
 
 /* Set timeslice for a TSG during task_init */
 extern int bpf_nv_gpu_set_timeslice(struct nv_gpu_task_init_ctx *ctx,

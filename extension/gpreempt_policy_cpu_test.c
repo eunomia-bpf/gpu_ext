@@ -25,19 +25,21 @@ struct pt_regs { __u64 args[4], result; };
 #define PT_REGS_PARM4(ctx) ((ctx)->args[3])
 #define PT_REGS_RC(ctx) ((ctx)->result)
 struct nv_gpu_task_init_ctx;
+struct nv_gpu_timeslice_control_ctx;
 static __u64 bpf_get_current_pid_tgid(void);
 static void *bpf_map_lookup_elem(void *, const void *);
 static int bpf_map_update_elem(void *, const void *, const void *, __u64);
 static int bpf_map_delete_elem(void *, const void *);
 static int bpf_probe_read_user(void *, __u32, const void *);
 static int bpf_nv_gpu_set_timeslice(struct nv_gpu_task_init_ctx *, __u64);
+static int bpf_nv_gpu_override_timeslice(struct nv_gpu_timeslice_control_ctx *, __u64);
 #include "gpreempt_policy.bpf.c"
 
 struct slot { int used; unsigned char key[16]; _Alignas(8) unsigned char value[64]; };
 struct mock_map { struct slot slots[128]; size_t value_size, key_size; };
 static struct mock_map mocks[4];
 static __u64 counters[GP_STAT_COUNT], identity, last_timeslice;
-static unsigned setter_calls, cases, assertions;
+static unsigned setter_calls, override_calls, cases, assertions;
 static int setter_failure, read_failure;
 static void *map_failure;
 #define CHECK(condition) do { ++assertions; assert(condition); } while (0)
@@ -105,6 +107,13 @@ static int bpf_nv_gpu_set_timeslice(struct nv_gpu_task_init_ctx *input, __u64 va
     last_timeslice = value;
     return setter_failure;
 }
+static int bpf_nv_gpu_override_timeslice(struct nv_gpu_timeslice_control_ctx *input, __u64 value)
+{
+    CHECK(input->engine_type >= 1 && input->engine_type <= 8 && input->phase == 1);
+    ++override_calls;
+    last_timeslice = value;
+    return setter_failure;
+}
 static void reset(void)
 {
     ++cases;
@@ -118,7 +127,7 @@ static void reset(void)
     mocks[3].value_size = sizeof(struct gp_tsg);
     for (unsigned i = 0; i < 4; ++i) mocks[i].key_size = i == 3 ? sizeof(struct gp_tsg_key) : 8;
     identity = (42ULL << 32) | 101;
-    setter_calls = 0;
+    setter_calls = override_calls = 0;
     setter_failure = read_failure = 0;
     map_failure = NULL;
 }
@@ -152,6 +161,25 @@ static void successful_context(unsigned role, unsigned size, int transfer, unsig
     struct gp_handle_key key = {17, 900};
     struct gp_record *record = bpf_map_lookup_elem(&records, &key);
     CHECK(record && record->engine == engine && record->role == role && record->pid_tgid == identity);
+    struct nv_gpu_timeslice_control_ctx control = {
+        .tsg_id = 123, .requested_timeslice_us = 2048, .engine_type = engine,
+        .hclient = 17, .htsg = 900, .phase = 1,
+    };
+    gp_timeslice_control(&control); // Deliberately before user registration.
+    CHECK(override_calls == 1 && counters[GP_CONTROL_OVERRIDE] == 1);
+    CHECK(last_timeslice == (role == GP_LC ? 1000000 : 1));
+    ++control.htsg; gp_timeslice_control(&control); --control.htsg;
+    ++control.hclient; gp_timeslice_control(&control); --control.hclient;
+    ++control.runlist_id; gp_timeslice_control(&control); --control.runlist_id;
+    ++control.gpu_instance; gp_timeslice_control(&control); --control.gpu_instance;
+    control.engine_type = 9; gp_timeslice_control(&control); control.engine_type = engine;
+    control.phase = 0; gp_timeslice_control(&control); control.phase = 1;
+    identity += 1ULL << 32; gp_timeslice_control(&control); identity -= 1ULL << 32;
+    CHECK(override_calls == 1); // Wrong object/runlist/GPU/CE/phase/process all untouched.
+    ++identity; gp_timeslice_control(&control); --identity;
+    CHECK(override_calls == 2); // Another thread in the same owning process is valid.
+    setter_failure = -1; gp_timeslice_control(&control); setter_failure = 0;
+    CHECK(counters[GP_SETTER_ERROR] == 1 && counters[GP_CONTROL_OVERRIDE] == 2);
     struct pt_regs registration = {.args = {0x4321, 17, 900, role}};
     register_context(&registration);
     CHECK(scope->registered == 1 && record->cuda_context == 0x4321 && record->registered == 1);

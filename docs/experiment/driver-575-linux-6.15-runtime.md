@@ -286,3 +286,42 @@ credentials or cluster changes were attempted. SSH, logind and k3s-agent stayed
 active. The requested 575 driver and existing 400 W setting were not rolled back.
 
 See the [completed comparison summary](../revision-experiment-status.md).
+
+## Second unexpected reboot and follow-on restoration
+
+The host booted again at 2026-09-03 09:04:14 UTC, interrupting POD preflight 03.
+The preceding boot's kernel journal ends without a recorded shutdown, Xid,
+panic or OOM, and no persistent crash record was found. The reboot cause is
+unknown; neither CUDA module loading nor a BPF operator failure is established
+as its cause. The partial POD log and telemetry, including its incomplete tail,
+remain unchanged. FineMoE's complete campaign ended at 08:59:10 UTC, before this
+reboot, and is unaffected.
+
+Boot restored stock 575: core/UVM BTF sizes were 121,803/261,943 bytes and the
+custom scheduling types were absent. Read-only holder checks found only
+nvidia-persistenced PID 1989 and GDM Xorg PID 2731; login session c1 was an
+automatic greeter, not a user desktop. Both services were active before
+maintenance. With both existing experiment leases held, ordinary bounded
+service stop and module unload/load restored the same staged `849ea75d`
+core/modeset/DRM/UVM modules at **09:50:34–35 UTC**, including DRM `modeset=1`.
+There was no forced unload, reboot, package change, or boot-file replacement.
+No GDRCopy module was needed for the mapped-host follow-on paths. The power
+limit was explicitly reset from the module-load default to 400 W.
+
+Live BTF returned to 125,993/268,940 bytes and exposes `nv_gpu_sched_ops` and
+its expected kfuncs. More importantly, both existing context canaries passed
+with the required post-GSP-RPC observer: 2,048 exact values and 17 negative
+cases per arm, final LC/BE timeslices 1,000,000/1 us, zero failure and clean
+teardown. Records are retained under `workloads/xsched/raw/`:
+
+- `gpreempt-context-original-849ea75d-restored-20260903-0957/`
+- `gpreempt-context-bpf-849ea75d-restored-20260903-0958/`
+
+Directory suffixes identify the new attempts; the raw timestamps and journal
+above are the authoritative execution times. These are readiness checks, not
+new performance results or physical-quantum measurements. Hummingbird's full
+50-cell `raw/idle-study-575-01` batch then started with the unchanged selected
+profile and SLO. GDM and nvidia-persistenced remain temporarily stopped for
+the exclusive experiment window; restore their originally active state after
+the queued GPU work and verified cleanup. Other services and node labels were
+not changed.

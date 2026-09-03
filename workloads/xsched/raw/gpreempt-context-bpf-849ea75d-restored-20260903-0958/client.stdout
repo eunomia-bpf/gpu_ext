@@ -1,0 +1,30 @@
+gpreempt_hint_ready: backend=ubpf-jit clock=system_clock comparison=strict_gt
+{"event":"transport","test":"creator_thread_query","pid":60481,"tid":60505,"ioctl_rc":0,"errno":0,"nvstatus":0,"hclient":3251634209,"hobject":1543503891}
+gpreempt_context_registered: role=0 hclient=3251634209 htsg=1543503891 tsg_id=1 engine=1 runlist=0 timeslice_us=1000000 cuda_context=124943014578128
+{"event":"role_context","pid":60481,"tid":60505,"role":0,"hclient":3251634209,"htsg":1543503891,"cuda_context":124943014578128,"channels":8,"kernel_begin_ns":2828591035340}
+{"event":"transport","test":"creator_thread_query","pid":60481,"tid":60506,"ioctl_rc":0,"errno":0,"nvstatus":0,"hclient":3251634209,"hobject":1543504008}
+gpreempt_context_registered: role=1 hclient=3251634209 htsg=1543504008 tsg_id=2 engine=1 runlist=0 timeslice_us=1 cuda_context=124942209256432
+{"event":"role_context","pid":60481,"tid":60506,"role":1,"hclient":3251634209,"htsg":1543504008,"cuda_context":124942209256432,"channels":8,"kernel_begin_ns":2828713678512}
+{"event":"transport","test":"same_process_different_fd_query","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":0,"hclient":3251634209,"hobject":1543503891}
+{"event":"transport","test":"same_process_different_fd_query","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":0,"hclient":3251634209,"hobject":1543504008}
+{"event":"transport","test":"bad_query_payload_size","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":31,"hclient":0,"hobject":0}
+{"event":"transport","test":"bad_query_output_pointer","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":30,"hclient":0,"hobject":0}
+{"event":"transport","test":"null_query_output_pointer","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":31,"hclient":0,"hobject":0}
+{"event":"transport","test":"nonzero_query_object","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":31,"hclient":0,"hobject":0}
+{"event":"transport","test":"bad_outer_size","pid":60481,"tid":60481,"ioctl_rc":-1,"errno":22,"nvstatus":4294967295,"hclient":60505,"hobject":0}
+{"event":"transport","test":"unsupported_control_version","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":31,"hclient":3251634209,"hobject":1543503891}
+{"event":"transport","test":"nonwhitelisted_control_command","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":31,"hclient":3251634209,"hobject":1543503891}
+{"event":"transport","test":"bad_control_payload_size","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":31,"hclient":3251634209,"hobject":1543503891}
+{"event":"transport","test":"bad_control_input_pointer","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":30,"hclient":3251634209,"hobject":1543503891}
+{"event":"transport","test":"nonwhitelisted_timeslice","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":31,"hclient":3251634209,"hobject":1543503891}
+{"event":"transport","test":"channel_is_not_gr_tsg","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":87,"hclient":3251634209,"hobject":1543503898}
+{"event":"transport","test":"foreign_process_query","pid":60528,"tid":60528,"ioctl_rc":0,"errno":0,"nvstatus":87,"hclient":0,"hobject":0}
+{"event":"transport","test":"foreign_process_control","pid":60528,"tid":60528,"ioctl_rc":0,"errno":0,"nvstatus":87,"hclient":3251634209,"hobject":1543503891}
+{"event":"foreign_process_checks","passed":true,"negatives":2}
+{"event":"transport","test":"same_creator_ambiguous_gr","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":64,"hclient":0,"hobject":0}
+{"event":"transport","test":"unambiguous_after_one_destroy","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":0,"hclient":3251634209,"hobject":1543504124}
+{"event":"transport","test":"query_after_context_destruction","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":87,"hclient":0,"hobject":0}
+{"event":"transport","test":"stale_owned_tsg_control","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":87,"hclient":3251634209,"hobject":1543503891}
+{"event":"transport","test":"stale_owned_tsg_control","pid":60481,"tid":60481,"ioctl_rc":0,"errno":0,"nvstatus":87,"hclient":3251634209,"hobject":1543504008}
+{"event":"gpreempt_context_smoke","passed":true,"policy":"bpf","roles":2,"validated_values":2048,"negative_cases":17,"assertions":2288,"gdr_actuator_tested":false,"performance_measured":false}
+gpreempt_bridge_stats: backend=ubpf-jit preprocess=2 due=3 infer=1 reset=1 hint=1 block=1 release=1 scopes=2 registered=2 ended=2 errors=0

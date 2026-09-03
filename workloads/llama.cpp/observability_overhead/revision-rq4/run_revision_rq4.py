@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager, nullcontext
 import csv
 import json
 import math
@@ -12,8 +13,10 @@ import random
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -23,6 +26,8 @@ HERE = Path(__file__).resolve().parent
 OBS_ROOT = HERE.parent
 sys.path.insert(0, str(OBS_ROOT))
 import run_observability_overhead as core  # noqa: E402
+sys.path.insert(0, str(core.WORKLOADS_DIR / "gpreempt"))
+import run_three_way as shared  # noqa: E402
 
 
 NVBIT_ROOT = HERE / "deps/nvbit_release_x86_64"
@@ -39,6 +44,171 @@ CONFIGS = [
 TASKS = ("kernelretsnoop", "threadhist", "launchlate")
 SCHEDULE_SEED = 1797
 BOOTSTRAP_SAMPLES = 10000
+EXPECTED_DRIVER = "575.57.08"
+SHM_ROOT = Path("/dev/shm")
+CLIENT_CPUS = "8-15"
+
+
+def target_launch(command: list[str], environment: dict[str, str]):
+    # Apply affinity before loading either instrumentation runtime. In particular,
+    # do not inject the GPU agent into taskset itself.
+    launch_env = dict(environment)
+    preload = launch_env.pop("LD_PRELOAD", None)
+    prefix = ["taskset", "-c", CLIENT_CPUS, "/usr/bin/env"]
+    if preload is not None:
+        prefix.append(f"LD_PRELOAD={preload}")
+    return prefix + command, launch_env
+
+
+@contextmanager
+def cell_safety(directory: Path):
+    directory.mkdir(parents=True, exist_ok=True)
+    record = {"passed": False, "worker_cpus": CLIENT_CPUS,
+              "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip()}
+    process = stream = path = before = None
+    try:
+        before = shared.safety.safety_snapshot()
+        record["before"] = before
+        shared.safety.validate_pre_server_safety(before)
+        if before["gpu"]["driver"] != EXPECTED_DRIVER:
+            raise RuntimeError("driver changed before cell")
+        process, stream, path = shared.safety.start_gpu_telemetry(directory)
+        yield record
+        if process.poll() is not None:
+            raise RuntimeError("GPU telemetry stopped before cell completion")
+        record["passed"] = True
+    except BaseException as error:
+        record["error"] = str(error)
+        raise
+    finally:
+        errors = []
+        try:
+            shared.stop_owned(process)
+        except BaseException as error:
+            errors.append(str(error))
+        if stream is not None:
+            stream.close()
+        try:
+            if before is not None:
+                record["after"] = shared.safety.wait_for_post_server_safety(before)
+                if record["after"]["gpu"]["driver"] != EXPECTED_DRIVER:
+                    raise RuntimeError("driver changed during cell")
+            if path is not None:
+                record["telemetry"] = shared.safety.validate_gpu_telemetry(path, allow_fixed_power_cap=True)
+            if record["boot_id"] != Path("/proc/sys/kernel/random/boot_id").read_text().strip():
+                raise RuntimeError("boot changed during cell")
+        except BaseException as error:
+            errors.append(str(error))
+        if errors:
+            record.update(passed=False, cleanup_errors=errors)
+        (directory / "gpu-safety.json").write_text(json.dumps(record, indent=2) + "\n")
+        if errors:
+            raise RuntimeError("; ".join(errors))
+
+
+def reject_ambient_injection() -> None:
+    forbidden = [key for key in os.environ if key.startswith(("BPFTIME_", "OBS_", "NVBIT_", "GGML_"))
+                 or key in ("LD_PRELOAD", "LD_AUDIT", "CUDA_INJECTION64_PATH", "CUDA_INJECTION32_PATH")]
+    if forbidden or os.environ.get("CUDA_VISIBLE_DEVICES", "0") != "0":
+        raise RuntimeError(f"use an uninjected GPU-0 launch environment; conflicting keys: {forbidden}")
+
+
+def segment_identity(path: Path) -> tuple[int, int, int]:
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
+        raise RuntimeError("private segment has unexpected type/owner")
+    return info.st_dev, info.st_ino, info.st_uid
+
+
+@contextmanager
+def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: Path):
+    """Keep an owned loader alive until its direct CUDA client has returned."""
+    name = f"rq4_{os.getpid()}_{time.monotonic_ns()}"
+    segment = SHM_ROOT / name
+    if segment.exists() or segment.is_symlink():
+        raise RuntimeError("private segment already exists; refusing loader start")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    command = [str(tool_dir / tool)]
+    if tool == "launchlate":
+        command += [str(args.uprobe_binary), args.uprobe_symbol_hint]
+    env = core.probe_env(args, tool)
+    env["BPFTIME_GLOBAL_SHM_NAME"] = name
+    command, loader_env = target_launch(command, env)
+    target_env = {**core.agent_env(args, run_dir, tool), "BPFTIME_GLOBAL_SHM_NAME": name}
+    recorded_env = {key: value for key, value in env.items()
+                    if key.startswith("BPFTIME_") or key in ("LD_PRELOAD", "SPDLOG_LEVEL")}
+    record = {"private_segment": name, "command": command, "loader_environment": recorded_env,
+              "agent_environment": target_env, "private_segment_removed": False}
+    process = identity = None
+    with (run_dir / "probe.log").open("x") as stream:
+        try:
+            process = subprocess.Popen(command, cwd=core.WORKLOAD_DIR, env=loader_env,
+                                       stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
+            time.sleep(args.probe_startup_s)
+            if process.poll() is not None:
+                raise RuntimeError("private probe exited before the CUDA client")
+            identity = segment_identity(segment)
+            record["segment_identity"] = identity
+            yield target_env
+            if process.poll() is not None:
+                raise RuntimeError("private probe exited before its CUDA client finished")
+        finally:
+            try:
+                shared.stop_owned(process)
+                record["loader_returncode"] = process.returncode if process is not None else None
+                if segment.exists() or segment.is_symlink():
+                    actual = segment_identity(segment)
+                    if identity is not None and actual != identity:
+                        raise RuntimeError("private segment changed identity; refusing removal")
+                    if process is None or shared.group_members(process.pid):
+                        raise RuntimeError("private loader is not stopped; refusing removal")
+                    segment.unlink()
+                    record["private_segment_removed"] = True
+                if process is not None and process.returncode != 0:
+                    raise RuntimeError("private probe did not exit cleanly")
+            finally:
+                (run_dir / "probe-execution.json").write_text(json.dumps(record, indent=2) + "\n")
+
+
+def patch_launchlate_clock(directory: Path) -> None:
+    """Patch only the per-run copy; do not change the shared bpftime checkout."""
+    replacements = {
+        "launchlate.bpf.c": [
+            ("__uint(max_entries, 4);", "__uint(max_entries, 5);"),
+            ("u64 delta_ns = gpu_ts > *launch_ts ? gpu_ts - *launch_ts : 0;",
+             "if (gpu_ts < *launch_ts) {\n\t\tu32 error_key = 4;\n"
+             "\t\tu64 *errors = bpf_map_lookup_elem(&queue_state, &error_key);\n"
+             "\t\tif (errors)\n\t\t\t__sync_fetch_and_add(errors, 1);\n\t\treturn 0;\n\t}\n"
+             "\tu64 delta_ns = gpu_ts - *launch_ts;"),
+        ],
+        "launchlate.c": [
+            ("uint64_t queue_values[4] = {0};", "uint64_t queue_values[5] = {0};"),
+            ("for (i = 0; i < 4; i++) {", "for (i = 0; i < 5; i++) {"),
+            ('printf("Queue overflows: %" PRIu64 "\\n", queue_values[3]);',
+             'printf("Queue overflows: %" PRIu64 "\\n", queue_values[3]);\n'
+             '\tprintf("Clock errors: %" PRIu64 "\\n", queue_values[4]);'),
+        ],
+    }
+    updated = {}
+    for name, edits in replacements.items():
+        text = (directory / name).read_text()
+        for before, after in edits:
+            if text.count(before) != 1:
+                raise RuntimeError(f"private launchlate clock patch does not match {name}")
+            text = text.replace(before, after)
+        updated[name] = text
+    for name, text in updated.items():
+        (directory / name).write_text(text)
+
+
+def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
+    result = core.parse_probe_samples(tool, text)
+    if tool == "launchlate":
+        for key, label in (("clock_errors", "Clock errors"), ("queue_underflows", "Queue underflows"),
+                           ("queue_overflows", "Queue overflows")):
+            values = re.findall(rf"^{label}:\s*(\d+)$", text, re.MULTILINE)
+            result[key] = int(values[-1]) if values else -1
+    return result
 
 
 def file_metadata(path: Path) -> dict[str, Any]:
@@ -61,6 +231,9 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
     paths = [
         Path(__file__).resolve(),
         OBS_ROOT / "run_observability_overhead.py",
+        Path(shared.__file__),
+        Path(shared.run_smoke.__file__),
+        Path(shared.safety.__file__),
         NVBIT_SOURCE_DIR / "Makefile",
         NVBIT_SOURCE_DIR / "common.h",
         NVBIT_SOURCE_DIR / "inject_funcs.cu",
@@ -104,6 +277,13 @@ def defining_params(args: argparse.Namespace) -> dict[str, Any]:
         "cuda_graphs_disabled": core.CUDA_GRAPHS_DISABLED,
         "schedule_seed": SCHEDULE_SEED,
         "bootstrap_samples": BOOTSTRAP_SAMPLES,
+        "expected_driver": EXPECTED_DRIVER,
+        "worker_cpus": CLIENT_CPUS,
+        "telemetry_cpu": shared.safety.TELEMETRY_CPU,
+        "cpu_affinity": sorted(os.sched_getaffinity(0)),
+        "launch_environment": {key: os.environ.get(key) for key in
+                               ("PATH", "LD_LIBRARY_PATH", "CUDA_VISIBLE_DEVICES", "OMP_NUM_THREADS",
+                                "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")},
     }
 
 
@@ -145,9 +325,9 @@ def build_nvbit(source_dir: Path, log_dir: Path) -> Path:
 
 
 def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
-    def last(pattern: str) -> int:
+    def last(pattern: str, default: int = 0) -> int:
         values = [int(value) for value in re.findall(pattern, text)]
-        return values[-1] if values else 0
+        return values[-1] if values else default
 
     selected = last(r"NVBIT selected_launches=(\d+)")
     if tool == "kernelretsnoop":
@@ -167,7 +347,7 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
             "selected_launches": selected,
         }
     samples = last(r"NVBIT launchlate samples=(\d+)")
-    errors = last(r"NVBIT launchlate samples=\d+ clock_errors=(\d+)")
+    errors = last(r"NVBIT launchlate samples=\d+ clock_errors=(\d+)", -1)
     bins = [last(rf"NVBIT launchlate bin_{index}=(\d+)") for index in range(10)]
     return {
         "sample_count": samples,
@@ -201,7 +381,7 @@ def run_nvbit_once(
     output_dir: Path,
 ) -> dict[str, Any]:
     label = f"nvbit_{tool}"
-    result = core.run_llama_once(
+    result = run_bench(
         label,
         run_id,
         args,
@@ -236,7 +416,8 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any]) -> bool:
     if tool == "threadhist":
         return int(probe.get("nonzero_threads", 0)) > 0
     return (
-        int(probe.get("queue_underflows", -1)) == 0
+        int(probe.get("clock_errors", -1)) == 0
+        and int(probe.get("queue_underflows", -1)) == 0
         and int(probe.get("queue_overflows", -1)) == 0
         and int(probe.get("host_launches", -1))
         == int(probe.get("device_entries", -2))
@@ -276,6 +457,7 @@ def run_cli_separate(
     cmd: list[str], *, cwd: Path, env: dict[str, str], timeout: int, log_path: Path
 ) -> subprocess.CompletedProcess[str]:
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd, env = target_launch(cmd, env)
     process = subprocess.Popen(
         cmd,
         cwd=str(cwd),
@@ -293,6 +475,8 @@ def run_cli_separate(
         returncode = -1
     else:
         returncode = process.returncode
+    finally:
+        shared.stop_owned(process)
     log_path.write_text(
         f"$ {' '.join(cmd)}\n# cwd: {cwd}\n\n## stdout\n{stdout}"
         f"\n## stderr\n{stderr}\n# exit: {returncode}\n",
@@ -309,6 +493,30 @@ def correctness_env(args: argparse.Namespace) -> dict[str, str]:
     return env
 
 
+def run_bench(label: str, run_id: int, args: argparse.Namespace, output_dir: Path,
+              env_extra: dict[str, str] | None = None) -> dict[str, Any]:
+    # Use the same owned-process primitive as correctness. The older helper
+    # can leave its child running on interruption, before private SHM teardown.
+    log_path = output_dir / f"{label}_run_{run_id:02d}" / "llama_bench.log"
+    completed = run_cli_separate(core.make_llama_cmd(args), cwd=core.WORKLOAD_DIR,
+                                 env={**correctness_env(args), **(env_extra or {})},
+                                 timeout=args.timeout_s, log_path=log_path)
+    result = {"run": run_id, "log": str(log_path.relative_to(output_dir)),
+              "returncode": completed.returncode, "valid": False}
+    if completed.returncode != 0:
+        result["error"] = f"llama-bench failed or timed out: {completed.returncode}"
+        return result
+    try:
+        result.update(core.parse_llama_bench(completed.stdout + "\n" + completed.stderr))
+        metrics = result["metrics"]
+        result["valid"] = (metrics.get("pp_tokens") == args.pp
+                           and math.isfinite(float(metrics.get("pp_tok_s", 0)))
+                           and float(metrics.get("pp_tok_s", 0)) > 0)
+    except (ValueError, KeyError, TypeError) as error:
+        result["error"] = f"parse failed: {error}"
+    return result
+
+
 def run_correctness_cell(
     config: str,
     attempt: int,
@@ -318,15 +526,14 @@ def run_correctness_cell(
 ) -> dict[str, Any]:
     run_dir = output_dir / "correctness" / config / f"attempt_{attempt:02d}"
     run_dir.mkdir(parents=True, exist_ok=True)
-    core.cleanup_gpu(run_dir)
+    idle_gpu_or_error(core.nvidia_smi_snapshot())
     env = correctness_env(args)
-    probe_process = None
+    probe_context = nullcontext({})
     tool = None
     if config != "baseline":
         system, tool = config.split("_", 1)
         if system == "gpubpf":
-            probe_process = core.start_probe(core.TOOLS[tool], tool_dirs[tool], args, run_dir)
-            env.update(core.agent_env(args, run_dir, tool))
+            probe_context = private_probe(tool, args, tool_dirs[tool], run_dir)
         else:
             env.update(
                 {
@@ -341,7 +548,8 @@ def run_correctness_cell(
                     ),
                 }
             )
-    try:
+    with cell_safety(run_dir) as safety_record, probe_context as probe_env:
+        env.update(probe_env)
         completed = run_cli_separate(
             llama_cli_cmd(args),
             cwd=core.WORKLOAD_DIR,
@@ -349,9 +557,6 @@ def run_correctness_cell(
             timeout=args.timeout_s,
             log_path=run_dir / "llama_cli.log",
         )
-    finally:
-        if probe_process is not None:
-            core.stop_probe(probe_process)
 
     output = normalized_output(completed.stdout)
     result: dict[str, Any] = {
@@ -361,12 +566,13 @@ def run_correctness_cell(
         "stdout_bytes": len(output.encode()),
         "log": str((run_dir / "llama_cli.log").relative_to(output_dir)),
         "valid": completed.returncode == 0 and bool(output),
+        "safety": safety_record,
     }
     if tool is not None:
         if config.startswith("gpubpf_"):
             probe_log = run_dir / "probe.log"
             probe_text = probe_log.read_text(errors="replace") if probe_log.exists() else ""
-            result["probe"] = core.parse_probe_samples(tool, probe_text)
+            result["probe"] = parse_gpubpf(tool, probe_text)
             result["valid"] = bool(result["valid"]) and gpubpf_probe_valid(
                 tool, result["probe"]
             )
@@ -545,6 +751,7 @@ def new_state(args: argparse.Namespace, timestamp: str, snapshot: dict[str, Any]
             "bpftime_git": core.git_rev(args.bpftime_root),
             "nvidia_smi": snapshot,
             "driver": parse_driver(snapshot),
+            "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
             "nvbit_driver_supported": nvbit_driver_supported(parse_driver(snapshot)),
             "cuda_ptx": core.cuda_ptx_snapshot(args.llama_bench),
             "model_file": file_metadata(args.model),
@@ -588,6 +795,7 @@ def verify_resume(
     if state.get("provenance", {}).get("driver") != parse_driver(snapshot):
         raise RuntimeError("resume driver differs from the recorded experiment")
     checks = {
+        "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
         "bpftime_git": core.git_rev(args.bpftime_root),
         "model_file": file_metadata(args.model),
         "llama_bench_file": file_metadata(args.llama_bench),
@@ -628,11 +836,26 @@ def run_cell(
     output_dir: Path,
     tool_dirs: dict[str, Path],
 ) -> dict[str, Any]:
+    with cell_safety(output_dir / f"{config}_run_{run_id:02d}") as safety_record:
+        result = run_instrumented_cell(config, run_id, args, output_dir, tool_dirs)
+    result["safety"] = safety_record
+    return result
+
+
+def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
+                          output_dir: Path, tool_dirs: dict[str, Path]) -> dict[str, Any]:
+    idle_gpu_or_error(core.nvidia_smi_snapshot())
     if config == "baseline":
-        return core.run_llama_once("baseline", run_id, args, output_dir)
+        return run_bench("baseline", run_id, args, output_dir)
     system, tool = config.split("_", 1)
     if system == "gpubpf":
-        return core.run_tool_once(core.TOOLS[tool], tool_dirs[tool], run_id, args, output_dir)
+        run_dir = output_dir / f"{tool}_run_{run_id:02d}"
+        with private_probe(tool, args, tool_dirs[tool], run_dir) as env:
+            result = run_bench(tool, run_id, args, output_dir, env_extra=env)
+        result["probe"] = parse_gpubpf(tool, (run_dir / "probe.log").read_text(errors="replace"))
+        result["probe_log"] = str((run_dir / "probe.log").relative_to(output_dir))
+        result["valid"] = bool(result.get("valid")) and gpubpf_probe_valid(tool, result["probe"])
+        return result
     return run_nvbit_once(tool, run_id, args, output_dir)
 
 
@@ -683,8 +906,21 @@ def main() -> int:
     for field in ("model", "llama_bench", "llama_cli", "bpftime_root", "bpftime_build_dir", "uprobe_binary"):
         setattr(args, field, getattr(args, field).resolve())
     args.tools = list(TASKS)
+    reject_ambient_injection()
     validate(args)
 
+    lease = shared.Leases()
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt(f"signal {signum}")
+    previous_handler = signal.signal(signal.SIGTERM, interrupted)
+    try:
+        return run_campaign(args)
+    finally:
+        signal.signal(signal.SIGTERM, previous_handler)
+        lease.close()
+
+
+def run_campaign(args: argparse.Namespace) -> int:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = (args.output_dir or HERE / "raw" / f"{args.phase}-{timestamp}").resolve()
     if args.resume:
@@ -700,15 +936,18 @@ def main() -> int:
         "phase": args.phase,
         "nvidia_smi": snapshot,
         "driver": parse_driver(snapshot),
+        "expected_driver": EXPECTED_DRIVER,
+        "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
+        "cpu_affinity": sorted(os.sched_getaffinity(0)),
         "nvbit_driver_supported": nvbit_driver_supported(parse_driver(snapshot)),
     }
     (output_dir / f"admission-{timestamp}.json").write_text(
         json.dumps(admission, indent=2) + "\n", encoding="utf-8"
     )
-    if not admission["nvbit_driver_supported"]:
+    if admission["driver"] != EXPECTED_DRIVER:
         raise RuntimeError(
-            f"NVBit v1.8 documents driver <=575.xx; found {admission['driver']}. "
-            "Official preflight and full execution both require a supported stack."
+            f"This campaign requires driver {EXPECTED_DRIVER}; found {admission['driver']}. "
+            "Historical admissions retain their original driver identity."
         )
     idle_gpu_or_error(snapshot)
 
@@ -735,6 +974,8 @@ def main() -> int:
                 build_root=build_root,
                 target_symbol=args.target_symbol,
             )
+            if tool == "launchlate":
+                patch_launchlate_clock(directory)
             core.build_tool(core.TOOLS[tool], directory)
             tool_dirs[tool] = directory
 

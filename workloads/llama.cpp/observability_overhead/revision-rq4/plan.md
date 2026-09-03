@@ -1,9 +1,28 @@
 # Experiment Plan: RQ4 RTX 5090 Observability Overhead
 
-**Review status:** Closed as rejected after the final permitted follow-up; see
-`plan-review.md`. The two final implementation defects have been repaired, but
-the runtime experiment requires a new independently reviewed proposal and an
-installed 575.x driver before execution.
+**Execution update, 2026-09-03:** The user has requested completion of all
+remaining revision commitments. The earlier closed review in `plan-review.md`
+is retained as history, not a new approval loop. The host now runs Linux
+6.15.11 and NVIDIA **575.57.08**. The experiment below retains its seven arms,
+workload, exact-output/engagement gates and ten-block schedule. The driver
+change and launch-lifecycle repairs do not themselves establish a valid
+preflight or performance result; both remain pending.
+
+The runner now acquires the two existing revision leases, rejects ambient
+injection, fixes CUDA clients/loaders to CPUs 8–15, and starts continuous GPU
+telemetry on CPU 16. **Do not pin the coordinator to CPUs 8–15**: the telemetry
+CPU must remain available. Instrumentation is injected only after the affinity
+wrapper. Each BPF cell uses a private segment, removed only after its owned
+client/loader exit and its type, owner and inode checks pass. Before/after
+kernel/GPU safety and fixed 400 W state are checked for every cell. A private
+launchlate source-copy repair records GPU-before-host clock errors instead of
+clamping them to zero; both systems require explicit zero-error counters.
+Fifteen lightweight CPU tests pass; no new 575 GPU result is claimed.
+
+The reused performance runtime currently has GPU verification disabled. This
+study compares functional instrumentation cost; it does not establish enforced
+SIMT verification, which is a separate strict-runtime experiment. Preserve all
+earlier diagnostics, and use fresh 575 preflight/full directories.
 
 ## Research Question
 - RQ exactly as written in the paper: **RQ4 (Overhead): What is the overhead of gpubpf's core mechanisms and observability capabilities?**
@@ -63,7 +82,7 @@ installed 575.x driver before execution.
 - Real preflight case: On the supported 575.x stack, first pass the deterministic exact-output control for all seven paths, then run one pp=32 timing cell for every distinct path: no probe, all three corrected gpubpf tools, and all three matched custom NVBit adapters, on the actual llama.cpp binaries and model. The earlier diagnostic admission at `raw/preflight-20260831_013158/admission.json` observed driver 610 and two external SGLang processes, so it is not an official preflight attempt and no process was terminated. The current runner rejects driver 610 for both official preflight and full execution.
 - Full completion rule: All seven planned configurations reach terminal status with 10 valid repetitions on the same RTX 5090 under an officially supported NVBit 575.x driver stack. Otherwise the experiment remains incomplete/inconclusive. Diagnostics on driver 610 cannot complete the paper comparison. No partial prefix is treated as the experiment result.
 - Raw-result path: `workloads/llama.cpp/observability_overhead/revision-rq4/raw/<timestamp>/`.
-- Checkpoint or recovery approach: Write logs and result JSON/CSV after every correctness attempt and repetition. A new run refuses a nonempty output directory. Resume requires the same phase, arguments, driver, model/llama binaries, source manifest, and hashes of the preserved per-run NVBit and gpubpf tool binaries; it skips only valid cells and writes retries to new attempt paths.
+- Checkpoint or recovery approach: Write logs and result JSON/CSV after every correctness attempt and repetition. A new run refuses a nonempty output directory. Resume requires the same phase, arguments, boot, driver, source revisions and explicit source/binary inventories with ordinary file metadata; it skips only valid cells and writes retries to new attempt paths. Actual exact-output and engagement checks, not content-integrity fields, establish experiment validity.
 
 ## Interpretation
 - Positive result: Every compared probe engages correctly and gpubpf's claim-matched overhead is lower with confidence intervals that do not reverse the ordering.
@@ -79,4 +98,4 @@ installed 575.x driver before execution.
   an upstream bpftime PR, runtime approval, or a completed experiment.
 - Software and data versions: Record Git commits, NVBit release, supported 575.x driver, CUDA toolkit, llama.cpp build metadata, ordinary path/size/time metadata for required model and binaries, and GPU state in raw results.
 - Config and seed notes: Preserve exact environment variables, target symbols, commands, repetition order, sample counts, and timeout status.
-- Known deviations: The current host driver is 610.43.02, whereas NVBit's official README states driver `<=575.xx`. The gpubpf-enabled 575.57.08 open modules now build with BTF for the installed Linux 6.14.0-37 kernel, providing a concrete supported-stack path, but matching 575 userspace and a reboot have not been authorized. Implementation work and diagnostics may proceed, while paper-facing execution remains blocked until the same RTX 5090 is booted with that supported stack.
+- Historical stack deviation: Earlier diagnostics used 610.43.02, outside NVBit's documented `<=575.xx` range, and discussed a then-prepared Linux 6.14 build. Those records are unchanged. The new execution uses the already installed 575.57.08 userspace and Linux 6.15.11 runtime described in the dated update above; no installation or reboot is part of this runner.

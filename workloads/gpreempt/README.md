@@ -201,3 +201,10 @@ INFER still enqueues the model before releasing the flag. Role values outside
 0/1 and preprocessing of 100 µs or less are explicitly rejected in all three
 clients. The source-level bridge and CPU tests establish wiring and decision
 agreement, not GPU actuation or scheduling performance.
+
+`measurement.patch`, applied by the same `--bridge` preparation, exports the
+existing analyzer's completed count and every request's six-stage duration only
+while generating the final report. It does not add work inside the timed
+recording path. Percentiles from these samples are source-native six-stage
+service latency, not arrival-to-completion latency. A 100 requests/s offered
+load does not imply exactly 6,000 completed requests in the 60-second window.

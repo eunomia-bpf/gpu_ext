@@ -1,0 +1,21 @@
+diff --git a/third_party/disb/src/analyzer.cpp b/third_party/disb/src/analyzer.cpp
+--- a/third_party/disb/src/analyzer.cpp
++++ b/third_party/disb/src/analyzer.cpp
+@@ -101,1 +101,2 @@
+     nanoseconds totalLatencyAvg(0);
++    Json::Value requestLatencyNs(Json::arrayValue);
+@@ -115,1 +116,9 @@
+             std::shared_ptr<TimePoints> tps = record->timePoints;
++            // Same six measured stages as the original average; report-time only.
++            const auto requestLatency = (tps->prepareInputEnd - tps->prepareInputBegin)
++                + (tps->preprocessEnd - tps->preprocessBegin)
++                + (tps->copyInputEnd - tps->copyInputBegin)
++                + (tps->inferEnd - tps->inferBegin)
++                + (tps->copyOutputEnd - tps->copyOutputBegin)
++                + (tps->postprocessEnd - tps->postprocessBegin);
++            requestLatencyNs.append(static_cast<Json::Value::Int64>(requestLatency.count()));
+@@ -155,1 +164,4 @@
+     report["avgThroughput(req/s)"] = avgThroughput;
++    report["completedRequests"] = static_cast<Json::Value::UInt64>(records.size());
++    report["requestLatencyNs"] = requestLatencyNs;
++    report["latencyDefinition"] = "sum_of_original_six_recorded_stages";

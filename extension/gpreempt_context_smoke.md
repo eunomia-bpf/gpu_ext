@@ -92,6 +92,20 @@ Do not run these bare commands as a substitute for that wrapper.
 Within the admitted wrapper, start the RPC observer, wait for its ready line,
 then run the canary with a hard outer deadline (normally 60 seconds):
 
+The provided wrapper holds both original lease paths (opens existing files
+without `O_CREAT`), checks shared pre/post safety, supervises only its owned
+process groups, captures all logs, and runs the offline correlation check:
+
+```sh
+sudo -n python3 extension/gpreempt_context_smoke_run.py --mode original \
+  --output NEW_ORIGINAL_OUTPUT --timeout 60
+sudo -n python3 extension/gpreempt_context_smoke_run.py --mode bpf \
+  --output NEW_BPF_OUTPUT --timeout 60
+```
+
+Its child commands, shown for clarity rather than as a substitute for leases
+and supervision, are:
+
 ```sh
 extension/.output/gpreempt_context_smoke_rpc 120
 GPREEMPT_POLICY=original CUDA_CACHE_DISABLE=1 \

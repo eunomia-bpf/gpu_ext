@@ -1,0 +1,24 @@
+Command (each run): taskset -c 17 python3 -B test_affinity_guard.py
+Working directory: workloads/expert-buffering-policy/section-vi
+Scope: explicit successful-pin ownership; no actual affinity changes or GPU use.
+
+First run, exit 0; combined stdout/stderr:
+test_restore_new_thread_and_preserve_external_mask_and_reused_pid (__main__.GuardTests.test_restore_new_thread_and_preserve_external_mask_and_reused_pid) ... ok
+test_signal_cleanup_then_restore_with_durable_original_record (__main__.GuardTests.test_signal_cleanup_then_restore_with_durable_original_record) ... ok
+test_workspace_and_exact_start_ticks (__main__.GuardTests.test_workspace_and_exact_start_ticks) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.076s
+
+OK
+
+Final run after adding the external-pin-before-first-success regression; exit 0;
+combined stdout/stderr:
+test_restore_new_thread_and_preserve_external_mask_and_reused_pid (__main__.GuardTests.test_restore_new_thread_and_preserve_external_mask_and_reused_pid) ... ok
+test_signal_cleanup_then_restore_with_durable_original_record (__main__.GuardTests.test_signal_cleanup_then_restore_with_durable_original_record) ... ok
+test_workspace_and_exact_start_ticks (__main__.GuardTests.test_workspace_and_exact_start_ticks) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.089s
+
+OK

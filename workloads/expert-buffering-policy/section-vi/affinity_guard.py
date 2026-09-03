@@ -43,7 +43,7 @@ def threads(pid):
     return result
 
 
-def restore(pid, ticks, original, pinned):
+def restore(pid, ticks, original, pinned, initial_ids, owned_ids):
     results, deadline = [], time.monotonic() + 3
     while True:
         identity(pid, ticks)
@@ -55,7 +55,10 @@ def restore(pid, ticks, original, pinned):
                 if start_ticks(path) != thread["start_ticks"]:
                     continue
                 status = "already_original" if current == original else "preserved_external_mask"
-                if current == pinned:
+                key = (thread["tid"], thread["start_ticks"])
+                if current == pinned and key in initial_ids and key not in owned_ids:
+                    status = "preserved_unowned_mask"
+                elif current == pinned:
                     os.sched_setaffinity(thread["tid"], original)
                     if start_ticks(path) != thread["start_ticks"]:
                         raise RuntimeError("thread identity changed during affinity restoration")
@@ -69,7 +72,9 @@ def restore(pid, ticks, original, pinned):
                 results.append(dict(thread, status="restore_error", error=str(error)))
         identity(pid, ticks)
         final = threads(pid)  # Also cover threads created during the first restore pass.
-        if not any(t["cpus"] == pinned for t in final) or time.monotonic() >= deadline:
+        if not any(t["cpus"] == pinned and
+                   ((t["tid"], t["start_ticks"]) not in initial_ids or
+                    (t["tid"], t["start_ticks"]) in owned_ids) for t in final) or time.monotonic() >= deadline:
             return dict(actions=results, final_threads=final)
         time.sleep(0.05)
 
@@ -78,7 +83,7 @@ def run(args):
     record = dict(pid=args.pid, cpu=args.cpu, command=args.command, complete=False,
                   checks=0, started_utc=datetime.now(timezone.utc).isoformat(), errors=[])
     child, original, ticks, interrupted = None, None, None, None
-    pin_started = False
+    owned_ids = set()
 
     def stop(signum, _frame):
         nonlocal interrupted
@@ -100,6 +105,7 @@ def run(args):
         try:
             ticks = identity(args.pid, args.start_ticks)
             initial = threads(args.pid)
+            initial_ids = {(t["tid"], t["start_ticks"]) for t in initial}
             identity(args.pid, ticks)
             masks = {tuple(t["cpus"]) for t in initial}
             if len(masks) != 1 or args.cpu not in initial[0]["cpus"]:
@@ -109,7 +115,6 @@ def run(args):
                 raise RuntimeError("target is already pinned; ownership of this mask is ambiguous")
             record.update(start_ticks=ticks, cwd=str(WORKSPACE), original_cpus=original, initial_threads=initial)
             save()  # Durable original identities and masks before the first change.
-            pin_started = True
             for thread in initial:
                 if interrupted:
                     raise InterruptedError(f"signal {interrupted}")
@@ -120,6 +125,7 @@ def run(args):
                             current != original):
                         raise RuntimeError("thread identity or original affinity changed before pinning")
                     os.sched_setaffinity(thread["tid"], [args.cpu])
+                    owned_ids.add((thread["tid"], thread["start_ticks"]))
                     if start_ticks(Path(f"/proc/{args.pid}/task/{thread['tid']}/stat")) != thread["start_ticks"]:
                         raise RuntimeError("thread identity changed during pinning")
                 except (FileNotFoundError, ProcessLookupError):
@@ -166,9 +172,10 @@ def run(args):
             except Exception as error:
                 record["errors"].append(f"child cleanup: {error}")
             try:
-                if pin_started:
-                    record["restoration"] = restore(args.pid, ticks, original, [args.cpu])
-                    if (any(t["status"] in ("preserved_external_mask", "restore_error")
+                record["pinned_threads"] = [dict(tid=tid, start_ticks=start) for tid, start in sorted(owned_ids)]
+                if owned_ids:
+                    record["restoration"] = restore(args.pid, ticks, original, [args.cpu], initial_ids, owned_ids)
+                    if (any(t["status"] in ("preserved_external_mask", "preserved_unowned_mask", "restore_error")
                             for t in record["restoration"]["actions"]) or
                             any(t["cpus"] != original for t in record["restoration"]["final_threads"])):
                         record["errors"].append("affinity restoration incomplete or external changes preserved")

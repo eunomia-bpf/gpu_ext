@@ -26,7 +26,7 @@ class GuardTests(unittest.TestCase):
                 guard.identity(123456, 77)
 
     def test_restore_new_thread_and_preserve_external_mask_and_reused_pid(self):
-        masks, calls = {1: [17], 2: [6]}, 0
+        masks, calls = {1: [17], 2: [6], 4: [17]}, 0
 
         def snapshot(_pid):
             nonlocal calls
@@ -39,14 +39,17 @@ class GuardTests(unittest.TestCase):
                 patch.object(guard, "start_ticks", return_value=7), \
                 patch.object(guard.os, "sched_getaffinity", side_effect=lambda tid: masks[tid]), \
                 patch.object(guard.os, "sched_setaffinity", side_effect=lambda tid, mask: masks.update({tid: list(mask)})) as setmask:
-            result = guard.restore(123456, 77, [0, 17], [17])
+            initial, owned = {(1, 7), (2, 7), (4, 7)}, {(1, 7)}
+            result = guard.restore(123456, 77, [0, 17], [17], initial, owned)
             self.assertEqual([call.args[0] for call in setmask.call_args_list], [1, 3])
-            self.assertEqual(masks, {1: [0, 17], 2: [6], 3: [0, 17]})
+            self.assertEqual(masks, {1: [0, 17], 2: [6], 3: [0, 17], 4: [17]})
             self.assertTrue(any(t["status"] == "preserved_external_mask" for t in result["actions"]))
+            self.assertTrue(any(t["tid"] == 4 and t["status"] == "preserved_unowned_mask"
+                                for t in result["actions"]))
             setmask.reset_mock()
             with patch.object(guard, "identity", side_effect=RuntimeError("reused PID")):
                 with self.assertRaises(RuntimeError):
-                    guard.restore(123456, 77, [0, 17], [17])
+                    guard.restore(123456, 77, [0, 17], [17], initial, owned)
             setmask.assert_not_called()
 
     def test_signal_cleanup_then_restore_with_durable_original_record(self):
@@ -104,6 +107,22 @@ class GuardTests(unittest.TestCase):
             self.assertEqual(masks[1], [0, 17])
             self.assertEqual(order, ["cooperative_wait", "owned_cleanup", "restore"])
             self.assertEqual(handlers[signal.SIGTERM], signal.SIG_DFL)
+
+            # External pin before our first successful set: neither mutate nor restore it.
+            args.record = Path(directory) / "external-first.json"
+            with patch.object(guard, "identity", return_value=77), \
+                    patch.object(guard, "threads", return_value=[dict(tid=1, start_ticks=7, cpus=[0, 17])]), \
+                    patch.object(guard, "start_ticks", return_value=7), \
+                    patch.object(guard.os, "sched_getaffinity", return_value=[17]), \
+                    patch.object(guard.os, "sched_setaffinity") as setmask, \
+                    patch.object(guard.signal, "signal", side_effect=register), \
+                    patch.object(guard, "restore") as restore, \
+                    patch.object(guard.subprocess, "Popen") as launch:
+                self.assertEqual(guard.run(args), 1)
+            setmask.assert_not_called()
+            restore.assert_not_called()
+            launch.assert_not_called()
+            self.assertEqual(json.loads(args.record.read_text())["pinned_threads"], [])
 
 
 if __name__ == "__main__":

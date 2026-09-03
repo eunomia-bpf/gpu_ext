@@ -21,7 +21,8 @@ def emit(message):
     print(json.dumps({"utc_ns": time.time_ns(), "progress": message}), flush=True)
 
 
-def admit(port):
+def admit(port, driver_stage=None):
+    driver_stage = Path(driver_stage) if driver_stage is not None else DRIVER_STAGE
     safety = base.safety_snapshot()
     base.validate_pre_server_safety(safety)
     if safety["gpu"]["driver"] != "575.57.08" or os.uname().release != "6.15.11-061511-generic":
@@ -32,14 +33,14 @@ def admit(port):
                                allow_instrumentation=True, paper_activation=True)
     files = [HERE / name for name in ("paper_policy.py", "paper_server.py",
              "paper-activation.patch", "run_paper_policy.py", "prompts.json")]
-    files += list(base.MOE_SOURCE.glob("moe_infinity/_store*.so"))
+    files += sorted(base.MOE_SOURCE.glob("moe_infinity/_*.so"))
     files += [base.EXTENSION / ".output" / name for name in (
         "libmoe_expert_policy.so", "moe_expert_policy_rank.bin",
         "moe_expert_policy_scored.bin", "moe_expert_policy_match.bin")]
     return {"safety": safety, "source": source,
             "files": [base.file_metadata(path) for path in files],
-            "driver_stage_declared_by_coordinator": str(DRIVER_STAGE),
-            "driver_stage_module": base.file_metadata(DRIVER_STAGE / "nvidia-uvm.ko"),
+            "driver_stage_declared_by_coordinator": str(driver_stage),
+            "driver_stage_module": base.file_metadata(driver_stage / "nvidia-uvm.ko"),
             "models": base.verify_model_artifacts()}
 
 
@@ -85,7 +86,7 @@ def validate_activation(mode, state):
         raise base.GateError("not all three real BPF programs engaged")
 
 
-def canary(mode, output, port):
+def canary(mode, output, port, driver_stage=None):
     output.mkdir(parents=True, exist_ok=False)
     lease = base.LeaseSet.acquire()
     before = None
@@ -93,7 +94,7 @@ def canary(mode, output, port):
     result = {"protocol": "paper-v3-same-frontend-canary-1", "mode": mode,
               "execution_domain": "host-ubpf-jit", "performance_result": False}
     try:
-        admission = admit(port)
+        admission = admit(port, driver_stage)
         before = admission["safety"]
         base.atomic_write_json(output / "admission.json", admission)
         result["interrupt_warnings_before"] = interrupt_warnings()
@@ -161,5 +162,6 @@ if __name__ == "__main__":
     parser.add_argument("--mode", choices=MODES, default="paper-bpf")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--port", type=int, default=18230)
+    parser.add_argument("--driver-stage", type=Path, default=DRIVER_STAGE)
     args = parser.parse_args()
-    canary(args.mode, args.output.resolve(), args.port)
+    canary(args.mode, args.output.resolve(), args.port, args.driver_stage)

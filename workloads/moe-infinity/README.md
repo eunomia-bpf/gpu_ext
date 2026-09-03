@@ -1,5 +1,10 @@
 # MoE-Infinity revision baseline
 
+Active work: the [explicit paper-v3 activation-aware port](activation-aware-port.md)
+now has a passed real BPF canary: same-frontend exact outputs, actual EAMC
+matching/prefetch ranking/score-based eviction, zero shadow mismatches and clean
+teardown. The three-mode repeated performance comparison is not completed yet.
+
 Current status: the generic host-stride/LFU campaign was **stopped on user
 instruction** after one paired block because it does not reproduce MoE-Infinity's
 activation-aware algorithm. Do not resume its five-block sequence. Its retained

@@ -1,7 +1,9 @@
 # MoE-Infinity activation-aware policy: explicit paper-v3 port
 
-Status: implementation and CPU verification in progress; **no performance or
-end-to-end reproduction claim yet**. This replaces the stopped generic-policy
+Status: **the first real paper-BPF canary passed**, including two full requests,
+exact same-frontend outputs, and all three BPF selectors. Native-off/native-paper
+canaries and the repeated three-arm comparison remain unfinished; **no paired
+performance or completed-reproduction claim yet**. This replaces the stopped generic-policy
 campaign, whose diagnostic data remain in [results-575.md](results-575.md).
 
 The target is [arXiv:2401.14361v3](https://arxiv.org/abs/2401.14361), dated
@@ -110,6 +112,20 @@ unused-prefetch evictions and bytes, unused residents, actual scored selections,
 BPF calls and mismatches. An unused resident at shutdown is not a completed
 wasted eviction. These are necessary attribution evidence, not performance
 results by themselves.
+
+The first `paper-bpf` canary on the coordinator's `e7d46fa5` driver stage passed
+at 2026-09-03 01:10 UTC. Four expert row sizes and four accumulation arrival
+orders had zero numerical error. Both 512-input/64-output responses exactly
+matched the retained same-frontend MoE goldens. BPF executed 8,919 scored
+evictions, 2,304 EAMC matches, and 4,608 ranks; same-snapshot verification had
+zero mismatches in every selector. The worker completed 2,021 prefetches
+(26,771,103,744 bytes), with 1,100 first-use hits, 890 unused-prefetch evictions
+(11,789,352,960 bytes), and 31 unused residents. Request latencies were 9.255
+and 7.675 seconds **with shadow verification enabled**, not performance samples.
+The server exited normally with code zero, and post-cleanup reported GPU 2 MiB,
+0% utilization, UVM refcount zero, and empty struct_ops. Full evidence is in
+`raw/paper-v3-575/canary-bpf-01/`; this is not sufficient to claim all three
+configurations or five repeated blocks completed.
 
 Completed-request and explicit drain paths discard queued speculation and wait
 for already-started H2D to finish. The queue tracks in-flight work under the

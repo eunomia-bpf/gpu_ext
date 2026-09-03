@@ -1,0 +1,121 @@
+{
+  "activation": {
+    "algorithm": "arxiv-2401.14361v3-reimplementation",
+    "controller": {
+      "aborted_requests": 0,
+      "active_request_traces": 0,
+      "bpf_match_calls": 2304,
+      "completed_requests": 2,
+      "eamc_entries": 4,
+      "eamc_replacements": 0,
+      "iterations": 128,
+      "match_mismatches": 0,
+      "matched_predictions": 2304,
+      "predictions": 4608,
+      "prefetch_candidates_selected": 1147975,
+      "rank_calls": 4608,
+      "rank_mismatches": 0,
+      "routed_layers": 4608
+    },
+    "dispatcher": {
+      "bpf_eviction_calls": 8919,
+      "eviction_mismatches": 0,
+      "eviction_selections": 8919,
+      "evictions": 8919,
+      "mode": 2,
+      "prefetch_bytes": 26771103744,
+      "prefetch_completed": 2021,
+      "prefetch_hits": 1100,
+      "prefetch_submitted": 1147975,
+      "prefetch_unused_resident": 31,
+      "prefetch_wasted": 890,
+      "prefetch_wasted_bytes": 11789352960
+    },
+    "features": "shared-float64-EAMC-cosine-and-probability",
+    "mode": "paper-bpf"
+  },
+  "exact_old_frontend_outputs": true,
+  "execution_domain": "host-ubpf-jit",
+  "interrupt_warnings_after": [],
+  "interrupt_warnings_before": [],
+  "mode": "paper-bpf",
+  "numerical": {
+    "accumulation": {
+      "arrival_orders": 4,
+      "exact": true,
+      "max_abs": 0.0,
+      "max_rel": 0.0,
+      "rows": 353
+    },
+    "atol": 0.01,
+    "device": "NVIDIA GeForce RTX 5090",
+    "dtype": "bfloat16",
+    "results": [
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 1,
+        "within_tolerance": true
+      },
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 256,
+        "within_tolerance": true
+      },
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 257,
+        "within_tolerance": true
+      },
+      {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "rows": 353,
+        "within_tolerance": true
+      }
+    ],
+    "rtol": 0.01
+  },
+  "passed": true,
+  "performance_result": false,
+  "protocol": "paper-v3-same-frontend-canary-1",
+  "responses": [
+    {
+      "e2e_ms": 9255.196648,
+      "end_ns": 9559465245548,
+      "finish_reason": "length",
+      "start_ns": 9550210048900,
+      "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    },
+    {
+      "e2e_ms": 7674.938245,
+      "end_ns": 9567161487872,
+      "finish_reason": "length",
+      "start_ns": 9559486549627,
+      "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+      "usage": {
+        "completion_tokens": 64,
+        "prompt_tokens": 512,
+        "total_tokens": 576
+      }
+    }
+  ],
+  "server_exit_code": 0,
+  "telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2887.0,
+    "mean_power_w": 169.75367816091955,
+    "min_sm_clock_mhz": 2400.0,
+    "peak_memory_mib": 31854.0,
+    "peak_temperature_c": 58.0,
+    "samples": 87,
+    "throttled": false
+  }
+}

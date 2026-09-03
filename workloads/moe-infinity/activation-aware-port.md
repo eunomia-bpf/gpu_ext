@@ -136,7 +136,8 @@ time, alongside separately labelled per-request token latency.
 ## CPU verification and build
 
 ```bash
-taskset -c 8-15 .venv/bin/python -m unittest -v test_paper_policy.py
+CUDA_VISIBLE_DEVICES='' taskset -c 8-15 .venv/bin/python -m unittest -v \
+  test_paper_policy.py test_paper_server.py
 /usr/bin/g++-13 -std=c++17 -pthread -Wall -Wextra -Werror \
   test_revision_fetch_queue.cpp -o /tmp/moe-paper-fetch-queue-test
 /tmp/moe-paper-fetch-queue-test

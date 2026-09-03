@@ -43,16 +43,23 @@ verified inside their windows. It has not established throughput recovery;
 the 50-cell performance matrix remains pending. See the
 [current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
 FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;
-the full original Qwen weights are downloaded. The first full-model golden
-attempt failed during loading, before any request, with 4.97 GiB of PyTorch
-reservation unused; cleanup passed. A common allocator-only retry keeps the
-model, precision, cohort and budget unchanged. Model correctness and transfer
-results remain open; see the [retained failure](../workloads/finemoe/results-preparation.md).
+the full original Qwen model has now completed a normal 73-request reference
+and nine exact repeated-output checks. Preparation required a common allocator
+setting and disabling optional PyTorch DSL overrides, not the separate uBPF
+policy JIT. Earlier OOM/SIGILL and diagnostic records remain retained; the
+precise fatal-signal cause is not established. A fresh reference will also save
+both sets of repeated logits for independent numerical recomputation. FineMoE
+offload correctness, history, actual transfers and four-arm timing are still
+open; see the [preparation record](../workloads/finemoe/results-preparation.md).
 The original complete LMSYS dataset requires
 access approval, so the same 64/8/1 split uses public LMSYS MT-Bench first-turn
 inputs instead, with the dataset difference explicitly recorded. POD's real
-attention device-call ABI has been retained through compilation; full linking,
-device BPF engagement, numerical checks and timing are still open.
+attention device-call ABI has been retained through compilation. All four
+required numerical translation units now have CPU-validated adapter paths
+within the existing transport limit; only unreferenced helpers are removed,
+and oversized units are partitioned with all entry bodies retained and explicit
+state-independence checks. Full linking, device BPF engagement, numerical checks
+and timing are still open.
 
 All three original scoped comparisons are complete, including the unchanged
 full XSched campaign. The subsequent literature search identifies useful,

@@ -20,7 +20,8 @@ The user now requests a meaningful GPreempt/native difference for **both**
 original C and BPF, plus experiments on FineMoE's dynamic prefetch sets,
 Hummingbird's idle-interval scheduling and POD-Attention's device-local task
 selection. The 45-cell GPreempt study is completed and pushed. FineMoE's
-20-cell comparison is also complete; Hummingbird and POD remain open.
+20-cell comparison and Hummingbird's 50-cell comparison are also complete;
+POD remains open.
 
 GPreempt satisfies that bounded comparison: all three prespecified loads have
 original-C/native and BPF/native foreground-response paired 95% intervals
@@ -29,7 +30,7 @@ strictly below one. Under continuous BE supply, C/native reduces LC p99 by
 background-throughput cost disclosed below. This does not mean BPF beats C.
 
 Source and algorithm checks run in parallel; GPU correctness and timing remain
-exclusive. FineMoE has measured actual useful/unused transfers; Hummingbird must test
+exclusive. FineMoE has measured actual useful/unused transfers; Hummingbird has tested
 background recovery with foreground protection, and POD-Attention must execute
 a BPF-returned task choice on the device. Builds, trace-only replay and host-JIT
 callbacks alone cannot close those respective requirements. The existing
@@ -44,8 +45,16 @@ at 1,811,879 ns. All 20 small-bubble qualification cells passed independent raw
 audit; output-copy admission qualified, while input admission did not actually
 engage and remains disabled. The ten-cell, five-arm preflight also completed,
 including 62,623,882 actual BPF JIT decisions and all 5,460 foreground requests
-verified inside their windows. It has not established throughput recovery;
-the full 50-cell performance matrix is running. See the
+verified inside their windows. The full 50-cell performance matrix has now
+passed independent raw audit, including 768,248 numerically verified timed
+requests and 1,907,838,828 actual host-JIT decisions. It does not support
+throughput recovery: C/fixed BE ratios are 0.81149 and 0.80160 for periodic
+and BurstGPT, and BPF/fixed ratios are 0.80685 and 0.79693. BPF/C is about
+0.994 in both; periodic SLO attainment also falls by 1.743 percentage points.
+The BurstGPT equal-timeslice control misses 317 in-window LC completions;
+its conditional p99 cannot support a headline protection speedup. These
+results bound the conservative single-in-flight port, not the original full
+Hummingbird system. Full raw publication is queued at the next untimed gap. See the
 [current results and raw calibration](../workloads/hummingbird/results-575-20260903.md).
 FineMoE's native/actual-host-BPF selector passes independent arithmetic tests;
 the full original Qwen model has now completed a normal 73-request reference
@@ -91,7 +100,12 @@ five arms. Both original failures remain failures. The third preflight completed
 only the original-streams cell before the host reboot at 09:04 UTC interrupted
 BPF initialization. Its cause is unknown; it is not a completed BPF experiment.
 The launcher now avoids preloading the BPF agent into the CPU-affinity wrapper;
-37 CPU tests pass. Device BPF engagement, numerical checks and timing remain open.
+37 CPU tests pass. Fresh preflight 04 completed all five arms: actual device-BPF
+engine 2 covered 3,328 CTA task choices, with exactly-once prefill/decode coverage,
+14 verified bridge calls and zero output difference versus original FP16 FA.
+All five cells passed cleanup; the runtime inventory remains unchanged.
+The full five-block/ten-shape comparison is next. Strict device verification
+remains a separate missing result; the performance runtime has it disabled.
 
 The 09:04 UTC reboot restored stock 575 modules, as configured. The completed
 FineMoE campaign ended at 08:59:10 UTC and was not interrupted. Hummingbird's
@@ -99,13 +113,16 @@ remaining four non-native arms require the separately staged custom context/
 timeslice interface; a matching driver version alone does not establish readiness.
 The same staged `849ea75d` runtime was restored at 09:50:34–35 UTC; both
 required-RPC context canaries passed 2,048 exact outputs and 17 negative cases.
-Hummingbird's unchanged full 50-cell batch is now running under exclusive leases.
+Hummingbird's unchanged full 50-cell batch completed at 10:53 UTC under exclusive leases.
 See the [restoration and pending service cleanup](experiment/driver-575-linux-6.15-runtime.md#second-unexpected-reboot-and-follow-on-restoration).
 
 The active paper draft now includes Q2 pseudocode/algorithm/TCB/rejection
 examples, the policy-expressibility table, completed matched comparisons and
 the scheduling figure, calibrated headline attribution, discussion topics and
-typographic repairs. Fresh LaTeX compilation/placement review is still pending.
+typographic repairs. A fresh three-pass LaTeX/BibTeX build and two-figure
+render check passed, without undefined references/citations. The draft is
+18 total pages with conclusion on page 16, so condensation and a fresh final
+build remain necessary before claiming paper integration complete.
 The [source-backed safety audit](revision-safety-design.md) exposes a substantive
 remaining implementation gap: the current device experiment runtime has GPU
 verification disabled, and the separate strict verifier does not yet model

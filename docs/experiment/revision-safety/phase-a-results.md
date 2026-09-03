@@ -24,11 +24,14 @@ remain open.
 | --- | --- | --- | --- |
 | Base bounds | 8-byte write at stack offset -520 rejected with `Lower bound must be at least 0` | same-width write at -8 accepted | PASS |
 | Base loop | helper-derived backward loop rejected with `Could not prove termination` | one-iteration constant-bounded backward loop accepted | PASS |
-| SIMT branch | lane-ID-derived predicate rejected with `Warp-Uniform Branch Conditions` | block-ID-derived predicate accepted | PASS |
-| SIMT map key | lane-derived key rejected with `Map Helper Key Uniformity` | block-uniform key accepted | PASS |
-| SIMT map value | lane-derived shared-map value rejected with `Shared Map Value Uniformity` | block-uniform value accepted | PASS |
+| SIMT branch | lane-ID-derived predicate rejected with `Warp-Uniform Branch Conditions` | warp-ID-derived predicate accepted | PASS |
+| SIMT map key | lane-derived key rejected with `Map Helper Key Uniformity` | warp-uniform key accepted | PASS |
+| SIMT map value | lane-derived shared-map value rejected with `Shared Map Value Uniformity` | warp-uniform value accepted | PASS |
 | SIMT atomic | per-thread-map address rejected with `Atomic Operations on Uniform Addresses` | shared-map address accepted | PASS |
 | Helper admission | prohibited helper 506 rejected with `Prohibited Helpers` | allowed helper 510 accepted | PASS |
+
+Terminology correction, 2026-09-03: the three controls above use helper 510,
+`bpf_get_warp_id`, not block ID. The saved programs and outcomes are unchanged.
 
 The atomic pair uses the same lookup and atomic instruction sequence. Only the
 map address-space type differs: the unsafe program receives a per-thread map

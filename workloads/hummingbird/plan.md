@@ -1,7 +1,9 @@
 # Hummingbird idle-interval scheduling — implementation proposal
 
-Prepared 2026-09-03 UTC. Calibration and all 20 small-pattern qualification cells
-have passed; the performance matrix remains open. See [current results](results-575-20260903.md).
+Prepared 2026-09-03 UTC. Calibration, 20 small-pattern qualification cells,
+ten preflight cells and the full 50-cell comparison are complete. The full
+result is negative for background-throughput recovery; the frozen protocol
+below is retained unchanged. See [current results](results-575-20260903.md).
 The completed
 [GPreempt 45-cell study](../gpreempt/results-load-study-575-20260903.md), its
 source/build trees and results remain frozen. Root independent review admitted

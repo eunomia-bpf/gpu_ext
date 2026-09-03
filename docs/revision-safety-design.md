@@ -27,7 +27,7 @@ that current device-policy performance runs use the verifier.
 
 | Item | Current evidence | Remaining boundary |
 | --- | --- | --- |
-| Scheduler initialization requests | D610/D575 use immutable inputs, typed recording setters, independent per-field validation, and native setters | Retained five scheduler load-fixture outcomes and an explicit initialization commit-path safety test are still missing |
+| Scheduler initialization requests | D610/D575 use immutable inputs, typed recording setters, independent per-field validation, and native setters; [575 load-only evidence](experiment/revision-safety/sched-load-575-02/execution.json) admits three scheduler controls and rejects two direct writes, within the seven-fixture scheduler/PMM suite | An explicit native initialization commit-path safety test is still missing; load admission/rejection does not execute the constructor or native setters |
 | UVM prefetch requests | Production code validates actions, original-width endpoints, checked translation, and narrowing | Retained live invalid-region/action fallback testing is missing |
 | PMM reorder requests | Production code uses callback-local requests, root membership/generation and lock-held validation | One retained 610 kernel-native ioctl and positive/negative BPF-load pair passed; this is not every driver/hardware combination |
 | GPU SIMT verification | V implements PREVAIL, uniformity dataflow and SIMT checks; retained CPU rejection/control tests passed | Current R build has verification disabled; strict verifier-to-device deployment is not established by the CPU tests |
@@ -275,11 +275,13 @@ verification. Results must retain their actual execution-domain labels.
 2. Establish enabled, strict GPU verification on the actual deployed
    device-policy runtime, retaining rejection-before-launch and positive
    execution controls. R's disabled build cannot supply that evidence.
-3. Execute and retain the scheduler load fixtures and covered native commit
-   tests on a matching custom driver. A `/sys/kernel/btf/nvidia` file alone
-   is insufficient: stock BTF need not contain `nv_gpu_sched_ops` or its
-   kfuncs. Existing module presence does not authorize or imply a driver
-   reload; the coordinating experiment owner must check the actual types.
+3. Retain covered native scheduler-init commit tests on the matching custom
+   driver. The [575 run](experiment/revision-safety/sched-load-575-02/execution.json)
+   now records all seven scheduler/PMM load-only outcomes (4 admissions,
+   3 rejections) and the shared-header CPU validator's 12 cases/145 assertions.
+   Neither result executes native initialization commits or live prefetch
+   fallback. The actual custom BTF types were checked; no module reload or
+   policy attachment was needed for the load-only suite.
 4. Retain live prefetch invalid-output/fallback evidence rather than treating
    offline build success as that test.
 5. Correct the historical taxonomy wording and narrow the four partial rows;

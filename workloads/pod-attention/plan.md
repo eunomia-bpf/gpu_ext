@@ -1,5 +1,23 @@
 # POD-Attention: real device-BPF task selection
 
+## Current execution — 2026-09-03
+
+The fresh [five-arm preflight 04](raw/preflight-575-04/manifest.json) completed
+successfully. Every arm matched the original FP16 operator with maximum
+absolute difference zero. The BPF arm actually used device engine 2 for all
+3,328 CTA choices, covering 2,048 prefill and 1,280 decode slots exactly once;
+all 14 launch-bridge calls and 81,920-byte dynamic-shared-memory requirements
+were checked. Owned loader/segment cleanup and safety passed. Initialization
+took 269.81 seconds for the BPF process; it is excluded from operator timing.
+The unchanged runtime passes the full-study preflight check. The five-block,
+ten-shape formal study is next, not yet complete. The performance runtime has
+GPU verification disabled; these results do not establish strict admission.
+
+The earlier failed/interrupted attempts and the preparation record below are
+retained. Their statements about untested paths describe those earlier stages.
+
+## Retained preparation record
+
 Status: complete official CPU build succeeded: all 21 fused CUDA compilation
 units and the original FA extension (four CUDA TUs plus API) compiled and linked.
 The resulting `fused_attn`/`flash_attn_og` shared libraries are 719,807,608 /

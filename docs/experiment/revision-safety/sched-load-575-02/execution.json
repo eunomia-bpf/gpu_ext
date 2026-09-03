@@ -1,0 +1,84 @@
+{
+  "after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 11.34,
+      "sm_clock_mhz": 22,
+      "temperature_c": 43,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788432912444025134,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "attaches_policy": false,
+  "before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 11.37,
+      "sm_clock_mhz": 22,
+      "temperature_c": 43,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788432911355256792,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+  "complete": true,
+  "kind": "scheduler-and-PMM-load-only",
+  "tests": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "17",
+        "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/tests/transition-validator/transition_validator_test"
+      ],
+      "returncode": 0,
+      "stdout": "PASS scheduler-presence-minimum\nPASS interleave-low-range\nPASS scheduler-identity-phase\nPASS scheduler-repeat-conflict\nPASS scheduler-independent-fields\nPASS prefetch-action\nPASS prefetch-action-region-routing\nPASS prefetch-region-width\nPASS prefetch-translation\nPASS pmm-attempt-latching\nPASS pmm-rejected-attempt-sequences\nPASS pmm-snapshot-routing\nPASS all: 12 cases, 145 assertions\n"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "17",
+        "/home/yunwei37/workspace/gpu/gpu_ext/extension/revision_sched_verifier",
+        "-d",
+        "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output",
+        "-l",
+        "/home/yunwei37/workspace/gpu/gpu_ext/docs/experiment/revision-safety/sched-load-575-02"
+      ],
+      "returncode": 0,
+      "stdout": "libbpf: prog 'revision_sched_on_task_init': BPF program load failed: -EACCES\nlibbpf: prog 'revision_sched_on_task_init': failed to load: -EACCES\nlibbpf: failed to load object '/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/revision_sched_input_write.bpf.o'\nlibbpf: prog 'revision_sched_on_task_init': BPF program load failed: -EACCES\nlibbpf: prog 'revision_sched_on_task_init': failed to load: -EACCES\nlibbpf: failed to load object '/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/revision_sched_hidden_write.bpf.o'\nlibbpf: prog 'revision_pmm_block_access': BPF program load failed: -EACCES\nlibbpf: prog 'revision_pmm_block_access': failed to load: -EACCES\nlibbpf: failed to load object '/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/revision_pmm_hidden_write.bpf.o'\nPASS sched-immutable-read expected=admit observed=admit\nPASS sched-timeslice-setter expected=admit observed=admit\nPASS sched-interleave-low-setter expected=admit observed=admit\nPASS pmm-reorder-setter expected=admit observed=admit\nGUARD positive_controls_admitted=4; running negatives\nPASS sched-input-write expected=reject observed=reject\nPASS sched-hidden-write expected=reject observed=reject\nPASS pmm-hidden-write expected=reject observed=reject\nSUMMARY attempted=7 expected=7 admitted=4 expected_admitted=4 rejected=3 expected_rejected=3 passed=7\n"
+    }
+  ]
+}

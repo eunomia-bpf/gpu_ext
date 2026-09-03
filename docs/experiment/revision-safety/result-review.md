@@ -2,6 +2,14 @@
 
 Date: 2026-08-31
 
+Status update, 2026-09-03: this review's original verdict and observations
+remain below. Its pre-repair Phase B diagnosis is supplemented by the later
+production-shared validator and [575 execution](sched-load-575-02/execution.json):
+12 CPU cases/145 assertions and seven load-only fixtures (4 admissions,
+3 rejections), with no policy attachment. This is not a new review verdict
+or evidence of native scheduler-init commit or live invalid-prefetch fallback;
+those tests remain open. See [current boundaries](driver-test-readiness.md).
+
 Reviewer verdict: `PASS` for the reported scoped result. Aggregate R5 remains
 `PARTIAL` by experiment outcome, not because the review failed.
 

@@ -1,0 +1,154 @@
+{
+  "complete": true,
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "arm": "official_serial",
+  "block": 1,
+  "preflight": true,
+  "cells": [
+    {
+      "numeric_protocol": "pod-fp16-upstream-match-v2",
+      "fp32_characterization": {
+        "prefill": {
+          "numeric_protocol": "pod-fp16-upstream-match-v2",
+          "phase": "prefill",
+          "role": "characterization_not_cross_precision_pass_gate",
+          "finite": true,
+          "shape_checked": true,
+          "mask": "causal_prefix",
+          "output_shape": [
+            1,
+            8192,
+            32,
+            128
+          ],
+          "checked_elements": 33554432,
+          "exceeding_elements": 1,
+          "max_abs_error": 0.0013279914855957031,
+          "mean_abs_error": 7.537930187767016e-06,
+          "rms_error": 1.3161790097770346e-05,
+          "atol": 0.001,
+          "rtol": 1e-05,
+          "diagnostic_directory": "fp32-characterization-llama-3-8b-bs32-prefill"
+        },
+        "decode": {
+          "numeric_protocol": "pod-fp16-upstream-match-v2",
+          "phase": "decode",
+          "role": "characterization_not_cross_precision_pass_gate",
+          "finite": true,
+          "shape_checked": true,
+          "mask": "valid_kv",
+          "output_shape": [
+            32,
+            1,
+            32,
+            128
+          ],
+          "checked_elements": 131072,
+          "exceeding_elements": 0,
+          "max_abs_error": 3.532320261001587e-05,
+          "mean_abs_error": 3.953370561582403e-06,
+          "rms_error": 5.148906827811921e-06,
+          "atol": 0.001,
+          "rtol": 1e-05,
+          "diagnostic_directory": null
+        }
+      },
+      "model": "llama-3-8b",
+      "kv_heads": 8,
+      "query_heads": 32,
+      "head_dim": 128,
+      "prefill_batch": 1,
+      "prefill_length": 8192,
+      "decode_batch": 32,
+      "decode_query_length": 1,
+      "decode_cache_extent": 8192,
+      "decode_valid_kv": 8191,
+      "dtype": "float16",
+      "seed": 20260936,
+      "fused_params": null,
+      "warmups": 10,
+      "samples": [
+        {
+          "cuda_ms": 3.569472074508667,
+          "host_wall_ms": 3.58873
+        },
+        {
+          "cuda_ms": 3.5562241077423096,
+          "host_wall_ms": 3.564578
+        },
+        {
+          "cuda_ms": 3.559551954269409,
+          "host_wall_ms": 3.567175
+        }
+      ],
+      "mean_cuda_ms": 3.5617493788401284,
+      "mean_host_wall_ms": 3.573494333333333,
+      "max_abs_vs_official": 0.0,
+      "official_max_abs_vs_fp32": 0.0013279914855957031,
+      "atol": 0.001,
+      "rtol": 1e-05,
+      "diagnostic": null,
+      "launch_bridge": null
+    }
+  ],
+  "torch": "2.13.0+cu129",
+  "torch_cuda": "12.9",
+  "device": "NVIDIA GeForce RTX 5090",
+  "sm_count": 170,
+  "memory_bytes": 33669316608,
+  "shape_order": [
+    [
+      "llama-3-8b",
+      32
+    ]
+  ],
+  "estimator": "arithmetic mean of all timed complete operator CUDA-event latencies",
+  "fp32_characterizations": {
+    "llama-3-8b:bs32": {
+      "prefill": {
+        "numeric_protocol": "pod-fp16-upstream-match-v2",
+        "phase": "prefill",
+        "role": "characterization_not_cross_precision_pass_gate",
+        "finite": true,
+        "shape_checked": true,
+        "mask": "causal_prefix",
+        "output_shape": [
+          1,
+          8192,
+          32,
+          128
+        ],
+        "checked_elements": 33554432,
+        "exceeding_elements": 1,
+        "max_abs_error": 0.0013279914855957031,
+        "mean_abs_error": 7.537930187767016e-06,
+        "rms_error": 1.3161790097770346e-05,
+        "atol": 0.001,
+        "rtol": 1e-05,
+        "diagnostic_directory": "fp32-characterization-llama-3-8b-bs32-prefill"
+      },
+      "decode": {
+        "numeric_protocol": "pod-fp16-upstream-match-v2",
+        "phase": "decode",
+        "role": "characterization_not_cross_precision_pass_gate",
+        "finite": true,
+        "shape_checked": true,
+        "mask": "valid_kv",
+        "output_shape": [
+          32,
+          1,
+          32,
+          128
+        ],
+        "checked_elements": 131072,
+        "exceeding_elements": 0,
+        "max_abs_error": 3.532320261001587e-05,
+        "mean_abs_error": 3.953370561582403e-06,
+        "rms_error": 5.148906827811921e-06,
+        "atol": 0.001,
+        "rtol": 1e-05,
+        "diagnostic_directory": null
+      }
+    }
+  }
+}

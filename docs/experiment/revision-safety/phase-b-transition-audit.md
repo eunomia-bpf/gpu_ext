@@ -2,6 +2,14 @@
 
 Date: 2026-08-31
 
+Status update, 2026-09-03: the source diagnosis below describes the pre-repair
+interface and is preserved as a historical audit. Later production paths use
+a shared validator; the [575 execution](sched-load-575-02/execution.json)
+passed 12 CPU cases/145 assertions and seven kernel load-only fixtures
+(4 admissions, 3 rejections). No policy was attached. These results do not
+execute native scheduler-init commits or live invalid-prefetch fallback;
+those tests remain open. See [current boundaries](driver-test-readiness.md).
+
 Disposition: `GAP`. The current production paths do not expose a shared
 transition-validation seam that can satisfy the frozen numeric, stale, and
 conflict tests. Per the approved plan, no duplicated model is substituted and

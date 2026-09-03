@@ -1,0 +1,12 @@
+fixture=sched-input-write
+load_error=-13
+expected_write_offset=16
+0: R1=ctx() R10=fp0
+; int BPF_PROG(revision_sched_on_task_init, struct nv_gpu_task_init_ctx *policy_ctx) @ revision_sched_fixture.bpf.h:87
+0: (79) r1 = *(u64 *)(r1 +0)
+func 'on_task_init' arg0 has btf_id 147701 type STRUCT 'nv_gpu_task_init_ctx'
+1: R1_w=trusted_ptr_nv_gpu_task_init_ctx()
+1: (b7) r2 = 1                        ; R2_w=1
+; policy_ctx->default_timeslice = 1; @ revision_sched_fixture.bpf.h:90
+2: (7b) *(u64 *)(r1 +16) = r2
+processed 3 insns (limit 1000000) max_states_per_insn 0 total_states 0 peak_states 0 mark_read 0

@@ -1,23 +1,34 @@
-# Q2 driver safety tests: 575 readiness and remaining gaps
+# Q2 driver safety tests: 575 results and remaining gaps
 
-Read-only audit, 2026-09-03. No compilation, BPF load/attachment, GPU workload,
-ioctl, or module change was performed. Commands below are prepared for the
-coordinator, not executed results. HB remains exclusive; module references
-were nonzero during inspection, so this is not an idle-state admission.
+Updated 2026-09-03 from the coordinator's
+[completed execution](sched-load-575-02/execution.json) and all seven verifier
+logs. Both commands exited zero: the load-only runner recorded **7 attempts,
+4 admissions, 3 rejections, 7 passes**; the production-shared CPU validator
+recorded **12 cases and 145 assertions**. Before/after snapshots show 400 W,
+UVM references zero, no compute clients or struct_ops maps/links, and no
+reported Xids or abnormal kernel messages. No policy was attached.
 
-## What is ready
+The four positive logs report `load_error=0`; the three negative logs report
+`load_error=-13` at actual stores to scheduler input offset 16, scheduler
+private offset 32, and PMM private offset 56. These are verifier-load results,
+not native transition execution. The earlier
+[01 admission attempt](sched-load-575-01/admission.md) stopped on shared-lock
+file permissions before either test and is retained, not counted as a run.
+This document update only reads those records; it performs no new test or
+driver operation and does not admit work alongside the current GPU owner.
 
-The existing scheduler verifier fixtures can be attempted without a rebuild
-or module change, subject to the normal exclusive/idle safety gate. Their
-source, stored ELF instructions, and current kernel BTF match the covered
-ABI. **Native scheduler-init rejection/commit tests and invalid-prefetch live
+## Completed scope and remaining live gaps
+
+The existing scheduler/PMM verifier fixtures passed without a rebuild or
+module change. Their source, stored ELF instructions, and current kernel BTF
+match the covered ABI. **Native scheduler-init rejection/commit tests and invalid-prefetch live
 fallback tests do not have a complete existing runnable fixture/runner.**
 Do not substitute a successful workload or load-only result for those tests.
 
 | Requirement | Existing path and evidence | Missing live evidence / disposition |
 | --- | --- | --- |
-| Scheduler verifier admission/rejection | `extension/revision_sched_verifier` and five `revision_sched_*.bpf.o`; built inputs read a 32-byte context, setters request 100 us and explicit LOW=0, negative stores are at offsets 16 and 32 | Ready to run load-only. Current runner also includes two PMM fixtures: expected total is **7 attempts, 4 admissions, 3 rejections, 7 passes**, not the historical 5/3/2/5 |
-| Shared scheduler/prefetch validator semantics | `../gpu_ext-kernel-575/kernel-open/tests/transition-validator/transition_validator_test`; retained 12 cases/145 assertions cover scheduler identity/phase, minimum, repeat/conflict, independent fields, and prefetch action/range/translation | Existing CPU executable can be rerun directly. It does not execute the native constructor, resource setters, CUDA, or UVM fault path |
+| Scheduler verifier admission/rejection | `extension/revision_sched_verifier` and five `revision_sched_*.bpf.o`; built inputs read a 32-byte context, setters request 100 us and explicit LOW=0, negative stores are at offsets 16 and 32 | **Passed load-only in 02:** current runner also includes two PMM fixtures; observed **7 attempts, 4 admissions, 3 rejections, 7 passes**, not the historical 5/3/2/5 |
+| Shared scheduler/prefetch validator semantics | `../gpu_ext-kernel-575/kernel-open/tests/transition-validator/transition_validator_test`; 12 cases/145 assertions cover scheduler identity/phase, minimum, repeat/conflict, independent fields, and prefetch action/range/translation | **Fresh CPU rerun passed in 02.** It does not execute the native constructor, resource setters, CUDA, or UVM fault path |
 | Native scheduler initialization commit/rejection | Production `../gpu_ext-kernel-575/src/nvidia/src/kernel/gpu/fifo/kernel_channel_group_api.c:329`; `extension/gpu_sched_set_timeslices` supplies ordinary policy requests and callback statistics | No ready bounded negative/positive init-commit matrix. Need actual post-validation/native-setter observations for rejected and independently accepted fields; setter counters alone report recording, not commit |
 | Invalid initial/iterator prefetch output | Production `../gpu_ext-kernel-575/kernel-open/nvidia-uvm/uvm_perf_prefetch.c:100`; same production header is CPU-tested | No invalid-action/range/conflict BPF variant and no live native-fallback oracle found in the existing extension/test paths. Cannot give a truthful ready-to-run completion command |
 | Valid prefetch control only | `extension/prefetch_none_revision` and its BPF object use the 24-byte decision ABI and request legal `(0,0)` with BYPASS | Available control, but no invalid output and no engagement counter; it runs until signaled. It cannot close invalid-prefetch fallback by itself |
@@ -57,8 +68,9 @@ The older scheduler fixture objects declare only the original three-member
 `nv_gpu_sched_ops`. This is not by itself a mismatch: the linked libbpf path
 allocates zeroed kernel-sized struct_ops data and maps object members by name
 (`libbpf/src/libbpf.c:1135`), leaving the new optional callback null. The 32-byte
-input and relevant member offsets match current BTF. Admission still needs
-the positive load controls; source inspection is not a passed load test.
+input and relevant member offsets match current BTF. All four positive load
+controls subsequently passed in 02; that admission result is retained
+separately from this source inspection.
 
 | Artifact root | Inspected existing module identity | Use with current runtime |
 | --- | --- | --- |
@@ -93,15 +105,19 @@ The loader's existing executable exposes the current `-m` option and seven-
 fixture summary format. ELF relocation targets match the named current
 kfuncs. Its runtime dependencies are ordinary libelf, zlib and libc, not CUDA.
 The 575 CPU transition-test executable is 16,864 bytes and newer than its
-unchanged source/header; its fresh test result remains to be recorded.
+unchanged source/header; its fresh 12/145 result is retained in 02.
 
-## Coordinator order and exact ready commands
+## Repeat-only commands and remaining coordinator work
 
-1. Wait for HB, retain the existing GPU/struct_ops leases, and apply the normal
+The completed commands and their stdout are in `sched-load-575-02/execution.json`.
+No rerun is needed to establish the load-only/CPU results above. If a later
+change requires repetition, use a new directory and the same admission rules:
+
+1. Wait for the current GPU owner, obtain the existing GPU/struct_ops leases, and apply the normal
    preflight: 400 W, no foreign compute client or policy, UVM reference count
    zero, no new driver/kernel errors. This audit did not grant that admission.
 2. Optionally rerun the existing CPU executable below; do not rebuild merely
-   to repeat its old 12/145 evidence.
+   to repeat its 12/145 evidence.
 3. Run the seven load-only fixtures into a **new** directory. Preserve its
    console/exit code and seven per-fixture logs; require exact 7/4/3/7 totals
    and no attached/pinned state afterward. The runner overwrites log files
@@ -116,11 +132,11 @@ separately and stop on any failure:
 
 ```bash
 taskset -c 17 ../gpu_ext-kernel-575/kernel-open/tests/transition-validator/transition_validator_test
-test ! -e docs/experiment/revision-safety/sched-load-575-01
-mkdir docs/experiment/revision-safety/sched-load-575-01
+test ! -e docs/experiment/revision-safety/sched-load-575-03
+mkdir docs/experiment/revision-safety/sched-load-575-03
 sudo -n taskset -c 17 ./extension/revision_sched_verifier \
-  -d extension/.output -l docs/experiment/revision-safety/sched-load-575-01 \
-  > docs/experiment/revision-safety/sched-load-575-01/console.txt 2>&1
+  -d extension/.output -l docs/experiment/revision-safety/sched-load-575-03 \
+  > docs/experiment/revision-safety/sched-load-575-03/console.txt 2>&1
 ```
 
 No command above installs or replaces modules, attaches a policy, invokes a

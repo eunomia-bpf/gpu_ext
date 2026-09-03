@@ -10,6 +10,28 @@ engagement, raw results, and implementation/compatibility limits retained.
 Reproducing an algorithm does not imply reproducing the paper's original
 hardware, transport, or headline performance numbers.
 
+### Active follow-on objective
+
+The user now requests a meaningful GPreempt/native difference for **both**
+original C and BPF, plus experiments on FineMoE's dynamic prefetch sets,
+Hummingbird's idle-interval scheduling and POD-Attention's device-local task
+selection. The 45-cell GPreempt study is completed and pushed; the other three
+experiments remain open.
+
+GPreempt satisfies that bounded comparison: all three prespecified loads have
+original-C/native and BPF/native foreground-response paired 95% intervals
+strictly below one. Under continuous BE supply, C/native reduces LC p99 by
+9.61% [6.46%, 11.91%], and BPF/native by 10.81% [9.91%, 11.70%], with the
+background-throughput cost disclosed below. This does not mean BPF beats C.
+
+The other three items remain **in progress**, not reproduced. Their source and
+algorithm checks run in parallel; GPU correctness and timing remain exclusive.
+FineMoE must measure actual useful/unused transfers, Hummingbird must test
+background recovery with foreground protection, and POD-Attention must execute
+a BPF-returned task choice on the device. Builds, trace-only replay and host-JIT
+callbacks alone cannot close those respective requirements. The existing
+GPreempt runtime, driver, paper submodule and unrelated work remain untouched.
+
 All three original scoped comparisons are complete, including the unchanged
 full XSched campaign. The subsequent literature search identifies useful,
 interesting questions; it does not relabel proposed component ports as

@@ -5,7 +5,17 @@ Updated: 2026-09-03 UTC. Scope: the user's request to look for interesting work
 comparisons are [complete](revision-experiment-status.md#completed-comparisons--2026-09-03).
 This is a bounded follow-on survey, not seven new reproduction results, a
 whole-paper novelty assessment, or a commitment to run seven systems.
-No additional GPU experiment, driver change, or service interruption was made.
+The original survey made no GPU experiment, driver change or service interruption.
+
+Follow-on execution update: the user has now selected FineMoE, Hummingbird and
+POD-Attention for implementation and experiments. Their PDFs below remain the
+starting evidence; the three source/algorithm feasibility checks are running
+in parallel. The subsequently completed
+[GPreempt load study](../workloads/gpreempt/results-load-study-575-20260903.md)
+now provides a foreground/background tradeoff under continuous BE supply:
+original C and BPF both improve foreground p99 relative to native, while BE
+goodput falls about 9%. This motivates the requested idle-interval experiment;
+it is not already evidence of Hummingbird's benefit.
 
 ## What seems worth doing next
 
@@ -16,7 +26,7 @@ correctly remains a useful outcome; outperforming it is not required.
 | Priority | Question and motivation | Smallest useful future comparison | Missing work / interpretation boundary |
 | --- | --- | --- | --- |
 | 1: adaptive expert prefetch | Can we retain useful prefetches while copying fewer unused experts? Current [MoE results](../workloads/moe-infinity/results-paper-v3-protected-575.md) have about 72% of completed prefetched copies unused before eviction. This counts copies, **not bytes or wasted runtime**. | Inspired by FineMoE: keep predictor, executor, cache budget and eviction rules fixed; compare all-positive, fixed-top-K and confidence-controlled prefetch sets. Use the same snapshots for native/BPF decision parity. Measure full-wall token/s, newly instrumented demand waits, useful/unused transferred bytes and adaptation across real A → B → A request groups, preserving policy history between groups. | Current activation counts do not supply FineMoE's full routing-probability maps or semantic features. Adding only a prefetch-set selector is a component port. First isolate the [baseline/executor asymmetry](../workloads/moe-infinity/results-paper-v3-protected-575.md), including temporary overload slots; the baseline gap is not yet causally explained. |
-| 2: less costly foreground protection | Can a policy recover background throughput while protecting foreground latency? Our [separate driver-BPF arm](../workloads/xsched/performance-full-575-20260903.md) loses 39.5% BE throughput relative to XSched; this is not the same-policy HPF arm. | Inspired by Hummingbird: use real DNN clients, bursty foreground arrivals and saturated background work; compare HPF/fixed preemption with idle-interval-aware admission. Report foreground p99/SLO attainment **and** completed background work, with equal work and native/BPF policy inputs. UniBoost supplies a separate idea: require useful progress before reconsidering a costly switch. | Requires real queue-completion/idle hints and a safe launch-deferral or queue-control path, not discarded CUDA calls. Hummingbird's kernel splitter and UniBoost's KV-aware LLM scheduler are separate, larger integrations. The current light-load GPreempt run does not establish saturated performance. |
+| 2: less costly foreground protection | Can a policy recover background throughput while protecting foreground latency? Our [separate driver-BPF arm](../workloads/xsched/performance-full-575-20260903.md) loses 39.5% BE throughput relative to XSched; this is not the same-policy HPF arm. The new GPreempt load study measures about 9% BE cost for both original C and BPF. | Inspired by Hummingbird: use real DNN clients, bursty foreground arrivals and saturated background work; compare HPF/fixed preemption with idle-interval-aware admission. Report foreground p99/SLO attainment **and** completed background work, with equal work and native/BPF policy inputs. UniBoost supplies a separate idea: require useful progress before reconsidering a costly switch. | Requires real queue-completion/idle hints and a safe launch-deferral or queue-control path, not discarded CUDA calls. Hummingbird's kernel splitter and UniBoost's KV-aware LLM scheduler are separate, larger integrations. GPreempt's completed continuous-supply result provides a comparison point, not proof of full GPU saturation. |
 | 3: device-local decisions that actually choose work | Can bounded device-side BPF reproduce a useful SM-local task selector, rather than merely observe counters? POD-Attention offers a concrete original selector. | After an sm_120 port, compare serial attention, two-stream overlap, original POD selection and the same selector in device BPF, sharing numerical kernels and executor. Test several prefill/decode mixes, numerical correctness, exactly-once task execution and completion times; remove SM-local input as an ablation. | Need an execution interface returning an operation/task ID that controls real work. POD uses SM IDs and atomic tickets, not measured warp pressure or arbitrary hardware CTA placement. Kernel fusion benefits must not be attributed to the BPF mechanism. This is a larger integration than priority 1. |
 
 These tests are proposals, not frozen protocols or implemented extensions.

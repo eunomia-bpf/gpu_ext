@@ -91,7 +91,9 @@ patch-application checks pass. Root runner review, independent nine-test rerun,
 and CLI help check pass. OpenCode's full
 consultation and the accepted/rejected suggestions are retained in
 [opencode-review.md](opencode-review.md) and [opencode-final.md](opencode-final.md).
-All real preflight and performance values remain **PENDING**.
+The subsequent [real eight-cell preflight](preflight-results.md) passes the
+independent audit and exercises depth 2 in every relevant cell. All 40 formal
+performance cells remain **PENDING**; the short preflight is not their result.
 
 CPU-only preparation/build entrypoints (no CUDA-kernel rebuild):
 

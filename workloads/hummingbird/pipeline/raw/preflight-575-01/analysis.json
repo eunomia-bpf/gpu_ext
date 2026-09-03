@@ -1,0 +1,1538 @@
+{
+  "campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01",
+  "mode": "preflight",
+  "required_cells": 8,
+  "accepted_cells": 8,
+  "complete": true,
+  "formal_complete": false,
+  "pending": [],
+  "rejected": [],
+  "unexpected": [],
+  "cells": [
+    {
+      "block": 0,
+      "scenario": "periodic",
+      "arm": "idle_bpf_d1",
+      "actual_arm": "idle_bpf",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 1000,
+          "started": 1000,
+          "completed_in_window": 1000,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 100.0,
+          "response_p99_ns": 1878003,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 953,
+          "slo_attainment": 0.953,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 1110,
+            "timed_checked": 1000,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1332,
+          "completed_in_window": 1331,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 133.1,
+          "response_p99_ns": 8007606,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1442,
+            "timed_checked": 1332,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.bin",
+          "configured_lp_inflight_bound": 1,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_bpf",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635705,
+            "hobject": 1543504392,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635705,
+            "hobject": 1543504828,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 477453472,
+          "completion_fence": "event-query-before-next-launch",
+          "configured_lp_inflight_bound": 1,
+          "ctas_submitted": 55062216,
+          "decision_ns": 397112572,
+          "decisions": 32337063,
+          "hp_stop_decisions": 6169573,
+          "input_small_launches": 0,
+          "jit_decisions": 32337063,
+          "large_launches": 410110,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 26187980,
+          "lp_event_query_ns": 1764541978,
+          "lp_event_waits": 25777560,
+          "lp_event_yield_ns": 3129947688,
+          "lp_events_issued": 410420,
+          "lp_events_retired": 410420,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 0,
+          "max_lp_inflight": 1,
+          "mode": "idle_bpf",
+          "nop_copies": 1332,
+          "output_small_launches": 310,
+          "requests_accepted": 1332,
+          "requests_completed": 1332,
+          "small_launches": 310,
+          "split_launches": 474,
+          "task": "resnet152_be",
+          "tick_waits": 21505013,
+          "whole_launches": 409946
+        },
+        "hp_events": {
+          "hp_completions": 1000,
+          "hp_enqueues": 1000,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 24296949,
+          "output_bubbles": 1000,
+          "small_event_checks": 2128,
+          "small_event_query_ns": 1275171
+        }
+      },
+      "begin_ns": 16579199580551,
+      "end_ns": 16589199580551,
+      "latest_verified_ns": 16589203929280
+    },
+    {
+      "block": 0,
+      "scenario": "periodic",
+      "arm": "idle_bpf_d2",
+      "actual_arm": "idle_bpf",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 1000,
+          "started": 1000,
+          "completed_in_window": 1000,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 100.0,
+          "response_p99_ns": 1817082,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 985,
+          "slo_attainment": 0.985,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 1110,
+            "timed_checked": 1000,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1535,
+          "completed_in_window": 1534,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 153.4,
+          "response_p99_ns": 7126723,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1645,
+            "timed_checked": 1535,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.bin",
+          "configured_lp_inflight_bound": 2,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_bpf",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635718,
+            "hobject": 1543504392,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635718,
+            "hobject": 1543504828,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 468439321,
+          "completion_fence": "bounded-kernel-tick-event-ring",
+          "configured_lp_inflight_bound": 2,
+          "ctas_submitted": 63453830,
+          "decision_ns": 380034556,
+          "decisions": 31871059,
+          "hp_stop_decisions": 6418870,
+          "input_small_launches": 0,
+          "jit_decisions": 31871059,
+          "large_launches": 472552,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 25974860,
+          "lp_event_query_ns": 1749218544,
+          "lp_event_waits": 25035301,
+          "lp_event_yield_ns": 3027630652,
+          "lp_events_issued": 473034,
+          "lp_events_retired": 473034,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 466525,
+          "max_lp_inflight": 2,
+          "mode": "idle_bpf",
+          "nop_copies": 1535,
+          "output_small_launches": 482,
+          "requests_accepted": 1535,
+          "requests_completed": 1535,
+          "small_launches": 482,
+          "split_launches": 736,
+          "task": "resnet152_be",
+          "tick_waits": 24577744,
+          "whole_launches": 472298
+        },
+        "hp_events": {
+          "hp_completions": 1000,
+          "hp_enqueues": 1000,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 7688106,
+          "output_bubbles": 1000,
+          "small_event_checks": 2824,
+          "small_event_query_ns": 1364634
+        }
+      },
+      "begin_ns": 16604080107510,
+      "end_ns": 16614080107510,
+      "latest_verified_ns": 16614085328615
+    },
+    {
+      "block": 0,
+      "scenario": "periodic",
+      "arm": "idle_c_d1",
+      "actual_arm": "idle_c",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 1000,
+          "started": 1000,
+          "completed_in_window": 1000,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 100.0,
+          "response_p99_ns": 1847076,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 979,
+          "slo_attainment": 0.979,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 1110,
+            "timed_checked": 1000,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1334,
+          "completed_in_window": 1333,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 133.3,
+          "response_p99_ns": 7955716,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1444,
+            "timed_checked": 1334,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "",
+          "configured_lp_inflight_bound": 1,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_c",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635731,
+            "hobject": 1543504392,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635731,
+            "hobject": 1543504828,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 475498956,
+          "completion_fence": "event-query-before-next-launch",
+          "configured_lp_inflight_bound": 1,
+          "ctas_submitted": 55144892,
+          "decision_ns": 384702977,
+          "decisions": 32368262,
+          "hp_stop_decisions": 6324985,
+          "input_small_launches": 0,
+          "jit_decisions": 0,
+          "large_launches": 410703,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 26059576,
+          "lp_event_query_ns": 1793084254,
+          "lp_event_waits": 25648546,
+          "lp_event_yield_ns": 3106678371,
+          "lp_events_issued": 411030,
+          "lp_events_retired": 411030,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 0,
+          "max_lp_inflight": 1,
+          "mode": "idle_c",
+          "nop_copies": 1334,
+          "output_small_launches": 327,
+          "requests_accepted": 1334,
+          "requests_completed": 1334,
+          "small_launches": 327,
+          "split_launches": 485,
+          "task": "resnet152_be",
+          "tick_waits": 21544325,
+          "whole_launches": 410545
+        },
+        "hp_events": {
+          "hp_completions": 1000,
+          "hp_enqueues": 1000,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 11653243,
+          "output_bubbles": 1000,
+          "small_event_checks": 2326,
+          "small_event_query_ns": 1342101
+        }
+      },
+      "begin_ns": 16629007498428,
+      "end_ns": 16639007498428,
+      "latest_verified_ns": 16639011793301
+    },
+    {
+      "block": 0,
+      "scenario": "periodic",
+      "arm": "idle_c_d2",
+      "actual_arm": "idle_c",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 1000,
+          "started": 1000,
+          "completed_in_window": 1000,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 100.0,
+          "response_p99_ns": 1817429,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 985,
+          "slo_attainment": 0.985,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 1110,
+            "timed_checked": 1000,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1535,
+          "completed_in_window": 1534,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 153.4,
+          "response_p99_ns": 7129590,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1645,
+            "timed_checked": 1535,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "",
+          "configured_lp_inflight_bound": 2,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_c",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635744,
+            "hobject": 1543504392,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635744,
+            "hobject": 1543504828,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 464843781,
+          "completion_fence": "bounded-kernel-tick-event-ring",
+          "configured_lp_inflight_bound": 2,
+          "ctas_submitted": 63453830,
+          "decision_ns": 363020751,
+          "decisions": 31169695,
+          "hp_stop_decisions": 6223964,
+          "input_small_launches": 0,
+          "jit_decisions": 0,
+          "large_launches": 472573,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 25460130,
+          "lp_event_query_ns": 1732641016,
+          "lp_event_waits": 24521067,
+          "lp_event_yield_ns": 3067914265,
+          "lp_events_issued": 473010,
+          "lp_events_retired": 473010,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 466053,
+          "max_lp_inflight": 2,
+          "mode": "idle_c",
+          "nop_copies": 1535,
+          "output_small_launches": 437,
+          "requests_accepted": 1535,
+          "requests_completed": 1535,
+          "small_launches": 437,
+          "split_launches": 667,
+          "task": "resnet152_be",
+          "tick_waits": 24074792,
+          "whole_launches": 472343
+        },
+        "hp_events": {
+          "hp_completions": 1000,
+          "hp_enqueues": 1000,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 7455932,
+          "output_bubbles": 1000,
+          "small_event_checks": 2742,
+          "small_event_query_ns": 1469410
+        }
+      },
+      "begin_ns": 16653840160071,
+      "end_ns": 16663840160071,
+      "latest_verified_ns": 16663842214752
+    },
+    {
+      "block": 0,
+      "scenario": "burstgpt",
+      "arm": "idle_c_d2",
+      "actual_arm": "idle_c",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 92,
+          "started": 92,
+          "completed_in_window": 92,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 9.2,
+          "response_p99_ns": 3215639,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 85,
+          "slo_attainment": 0.9239130434782609,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 202,
+            "timed_checked": 92,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1741,
+          "completed_in_window": 1740,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 174.0,
+          "response_p99_ns": 7067464,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1851,
+            "timed_checked": 1741,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "",
+          "configured_lp_inflight_bound": 2,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_c",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635757,
+            "hobject": 1543504395,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635757,
+            "hobject": 1543504583,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 419651069,
+          "completion_fence": "bounded-kernel-tick-event-ring",
+          "configured_lp_inflight_bound": 2,
+          "ctas_submitted": 71969458,
+          "decision_ns": 336808757,
+          "decisions": 28722365,
+          "hp_stop_decisions": 577791,
+          "input_small_launches": 0,
+          "jit_decisions": 0,
+          "large_launches": 536204,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 28713211,
+          "lp_event_query_ns": 1970525608,
+          "lp_event_waits": 27644841,
+          "lp_event_yield_ns": 3465564210,
+          "lp_events_issued": 536236,
+          "lp_events_retired": 536236,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 532134,
+          "max_lp_inflight": 2,
+          "mode": "idle_c",
+          "nop_copies": 1741,
+          "output_small_launches": 32,
+          "requests_accepted": 1741,
+          "requests_completed": 1741,
+          "small_launches": 32,
+          "split_launches": 40,
+          "task": "resnet152_be",
+          "tick_waits": 27364694,
+          "whole_launches": 536196
+        },
+        "hp_events": {
+          "hp_completions": 92,
+          "hp_enqueues": 92,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 809030,
+          "output_bubbles": 92,
+          "small_event_checks": 214,
+          "small_event_query_ns": 126790
+        }
+      },
+      "begin_ns": 16678671480833,
+      "end_ns": 16688671480833,
+      "latest_verified_ns": 16688671771466
+    },
+    {
+      "block": 0,
+      "scenario": "burstgpt",
+      "arm": "idle_c_d1",
+      "actual_arm": "idle_c",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 92,
+          "started": 92,
+          "completed_in_window": 92,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 9.2,
+          "response_p99_ns": 3362343,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 85,
+          "slo_attainment": 0.9239130434782609,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 202,
+            "timed_checked": 92,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1522,
+          "completed_in_window": 1521,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 152.1,
+          "response_p99_ns": 7878457,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1632,
+            "timed_checked": 1522,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "",
+          "configured_lp_inflight_bound": 1,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_c",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635770,
+            "hobject": 1543504392,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635770,
+            "hobject": 1543504828,
+            "mode": "idle_c",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_c",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 439983022,
+          "completion_fence": "event-query-before-next-launch",
+          "configured_lp_inflight_bound": 1,
+          "ctas_submitted": 62916436,
+          "decision_ns": 365993961,
+          "decisions": 29935831,
+          "hp_stop_decisions": 578540,
+          "input_small_launches": 0,
+          "jit_decisions": 0,
+          "large_launches": 468766,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 29388033,
+          "lp_event_query_ns": 1977356885,
+          "lp_event_waits": 28919252,
+          "lp_event_yield_ns": 3504178967,
+          "lp_events_issued": 468781,
+          "lp_events_retired": 468781,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 0,
+          "max_lp_inflight": 1,
+          "mode": "idle_c",
+          "nop_copies": 1522,
+          "output_small_launches": 15,
+          "requests_accepted": 1522,
+          "requests_completed": 1522,
+          "small_launches": 15,
+          "split_launches": 20,
+          "task": "resnet152_be",
+          "tick_waits": 24596694,
+          "whole_launches": 468761
+        },
+        "hp_events": {
+          "hp_completions": 92,
+          "hp_enqueues": 92,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 610122,
+          "output_bubbles": 92,
+          "small_event_checks": 168,
+          "small_event_query_ns": 127499
+        }
+      },
+      "begin_ns": 16703634759789,
+      "end_ns": 16713634759789,
+      "latest_verified_ns": 16713640085282
+    },
+    {
+      "block": 0,
+      "scenario": "burstgpt",
+      "arm": "idle_bpf_d1",
+      "actual_arm": "idle_bpf",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 92,
+          "started": 92,
+          "completed_in_window": 92,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 9.2,
+          "response_p99_ns": 3132703,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 86,
+          "slo_attainment": 0.9347826086956522,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 202,
+            "timed_checked": 92,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1515,
+          "completed_in_window": 1514,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 151.4,
+          "response_p99_ns": 7903949,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1625,
+            "timed_checked": 1515,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.bin",
+          "configured_lp_inflight_bound": 1,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_bpf",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635785,
+            "hobject": 1543504392,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635785,
+            "hobject": 1543504828,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 437266709,
+          "completion_fence": "event-query-before-next-launch",
+          "configured_lp_inflight_bound": 1,
+          "ctas_submitted": 62627070,
+          "decision_ns": 372155573,
+          "decisions": 29728094,
+          "hp_stop_decisions": 585500,
+          "input_small_launches": 0,
+          "jit_decisions": 29728094,
+          "large_launches": 466606,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 29170840,
+          "lp_event_query_ns": 1988011096,
+          "lp_event_waits": 28704210,
+          "lp_event_yield_ns": 3517185615,
+          "lp_events_issued": 466630,
+          "lp_events_retired": 466630,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 0,
+          "max_lp_inflight": 1,
+          "mode": "idle_bpf",
+          "nop_copies": 1515,
+          "output_small_launches": 24,
+          "requests_accepted": 1515,
+          "requests_completed": 1515,
+          "small_launches": 24,
+          "split_launches": 34,
+          "task": "resnet152_be",
+          "tick_waits": 24265799,
+          "whole_launches": 466596
+        },
+        "hp_events": {
+          "hp_completions": 92,
+          "hp_enqueues": 92,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 643576,
+          "output_bubbles": 92,
+          "small_event_checks": 198,
+          "small_event_query_ns": 127467
+        }
+      },
+      "begin_ns": 16728696554903,
+      "end_ns": 16738696554903,
+      "latest_verified_ns": 16738697778222
+    },
+    {
+      "block": 0,
+      "scenario": "burstgpt",
+      "arm": "idle_bpf_d2",
+      "actual_arm": "idle_bpf",
+      "metrics": {
+        "vgg_rt": {
+          "offered": 92,
+          "started": 92,
+          "completed_in_window": 92,
+          "completed_after_window": 0,
+          "started_unfinished": 0,
+          "never_started": 0,
+          "completion_coverage": 1.0,
+          "goodput_rps": 9.2,
+          "response_p99_ns": 3181388,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": 86,
+          "slo_attainment": 0.9347826086956522,
+          "numerics": {
+            "task": "vgg_rt",
+            "checked": 202,
+            "timed_checked": 92,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        },
+        "resnet152_be": {
+          "offered": null,
+          "started": 1743,
+          "completed_in_window": 1742,
+          "completed_after_window": 1,
+          "started_unfinished": 0,
+          "never_started": null,
+          "completion_coverage": null,
+          "goodput_rps": 174.2,
+          "response_p99_ns": 7052063,
+          "conditional_p99": false,
+          "slo_ns": 1811879,
+          "slo_met": null,
+          "slo_attainment": null,
+          "numerics": {
+            "task": "resnet152_be",
+            "checked": 1853,
+            "timed_checked": 1743,
+            "max_absolute_error": 0,
+            "atol": 1e-06,
+            "rtol": 0.0001
+          }
+        }
+      },
+      "engagement": {
+        "setup": {
+          "bpf_program": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.bin",
+          "configured_lp_inflight_bound": 2,
+          "gpreempt_driver_policy": "original",
+          "graph": false,
+          "isolated_lc_calibration": false,
+          "lp_worker_cpu": 2,
+          "mode": "idle_bpf",
+          "profile_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/raw/preflight-575-01/profile-frozen.json",
+          "small_input_enabled": false,
+          "small_output_enabled": true,
+          "split_cubin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin"
+        },
+        "contexts": [
+          {
+            "context_kind": "independent",
+            "hclient": 3251635798,
+            "hobject": 1543504395,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 0,
+            "stream_priority": 0,
+            "task": "vgg_rt",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          },
+          {
+            "context_kind": "independent",
+            "hclient": 3251635798,
+            "hobject": 1543504583,
+            "mode": "idle_bpf",
+            "owned_query_ok": true,
+            "role": 1,
+            "stream_priority": 0,
+            "task": "resnet152_be",
+            "timeslice_set_ok": true,
+            "timeslice_us": 1000000
+          }
+        ],
+        "cleanups": [
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "resnet152_be"
+          },
+          {
+            "complete": true,
+            "mode": "idle_bpf",
+            "task": "vgg_rt"
+          }
+        ],
+        "executor": {
+          "admission_lock_wait_ns": 427609132,
+          "completion_fence": "bounded-kernel-tick-event-ring",
+          "configured_lp_inflight_bound": 2,
+          "ctas_submitted": 72052134,
+          "decision_ns": 354673873,
+          "decisions": 29131102,
+          "hp_stop_decisions": 578313,
+          "input_small_launches": 0,
+          "jit_decisions": 29131102,
+          "large_launches": 536835,
+          "lp_bound_semantics": "host-issued-unretired-events-not-device-queue-occupancy",
+          "lp_event_checks": 29122085,
+          "lp_event_query_ns": 1997852170,
+          "lp_event_waits": 28052191,
+          "lp_event_yield_ns": 3380532166,
+          "lp_events_issued": 536851,
+          "lp_events_retired": 536851,
+          "lp_outstanding_at_report": 0,
+          "lp_overlap_launches": 533043,
+          "max_lp_inflight": 2,
+          "mode": "idle_bpf",
+          "nop_copies": 1743,
+          "output_small_launches": 16,
+          "requests_accepted": 1743,
+          "requests_completed": 1743,
+          "small_launches": 16,
+          "split_launches": 23,
+          "task": "resnet152_be",
+          "tick_waits": 27762127,
+          "whole_launches": 536828
+        },
+        "hp_events": {
+          "hp_completions": 92,
+          "hp_enqueues": 92,
+          "input_bubble_ns": 0,
+          "input_bubbles": 0,
+          "output_bubble_ns": 690492,
+          "output_bubbles": 92,
+          "small_event_checks": 162,
+          "small_event_query_ns": 128603
+        }
+      },
+      "begin_ns": 16753717364769,
+      "end_ns": 16763717364769,
+      "latest_verified_ns": 16763720616523
+    }
+  ],
+  "slo_ns": 1811879,
+  "statistics": {
+    "paired_blocks": 5,
+    "draws": 10000,
+    "seed": 20260903,
+    "method": "paired geometric ratios and arithmetic SLO percentage-point differences; whole-block percentile bootstrap"
+  },
+  "definitions": {
+    "p99": "nearest-rank arrival-to-verified over all started, including the late verified tail",
+    "conditional_p99": "true when some offered LC requests never started; cannot establish protection",
+    "completion_coverage": "window-completed / all offered, not final verified / offered",
+    "slo": "response <= frozen SLO AND verified < end; denominator is all offered LC requests",
+    "goodput": "verified < end divided by configured seconds; zero is retained",
+    "audit_scope": "independent raw measurement/matrix/statistics; shared read-only engagement/safety checks",
+    "fidelity": "completion-fence ablation; host outstanding events are not hardware queue occupancy"
+  },
+  "runtime_inventory": {
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/block.cubin": {
+      "bytes": 7384,
+      "mtime_ns": 1788410750365907476
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/libexecutor.so": {
+      "bytes": 1201552,
+      "mtime_ns": 1788410741119015422
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/libgpreempt.so": {
+      "bytes": 16496,
+      "mtime_ns": 1788410740780391385
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/libworkloads.so": {
+      "bytes": 1482600,
+      "mtime_ns": 1788410733469968781
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/build/resnet152-split/mod.cubin": {
+      "bytes": 357920,
+      "mtime_ns": 1788417616734872672
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/hummingbird_client": {
+      "bytes": 8337848,
+      "mtime_ns": 1788441468395473501
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/idle_policy.bin": {
+      "bytes": 1032,
+      "mtime_ns": 1788441451617248337
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src/hummingbird_client.cpp": {
+      "bytes": 16449,
+      "mtime_ns": 1788441372017376464
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src/idle_executor.cpp": {
+      "bytes": 17990,
+      "mtime_ns": 1788441440320861677
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src/idle_executor.h": {
+      "bytes": 4291,
+      "mtime_ns": 1788441372017376464
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src/idle_policy.c": {
+      "bytes": 2914,
+      "mtime_ns": 1788441372017376464
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src/idle_policy.h": {
+      "bytes": 1689,
+      "mtime_ns": 1788441372017376464
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/build/src/run_study.py": {
+      "bytes": 24006,
+      "mtime_ns": 1788442190679380313
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/pipeline/pipeline_events.h": {
+      "bytes": 1401,
+      "mtime_ns": 1788441163838884621
+    }
+  },
+  "equivalence_claimed": false,
+  "pipeline_exercised": true,
+  "causal_interpretation_ready": false,
+  "scenarios": {
+    "periodic": {
+      "complete_blocks": [
+        0
+      ],
+      "paired": {
+        "idle_c_d2/idle_c_d1": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 0.9839492256950987,
+            "block_ratios": [
+              0.9839492256950987
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 1.150787696924231,
+            "block_ratios": [
+              1.150787696924231
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              0.6000000000000005
+            ],
+            "mean_difference_pp": 0.6000000000000005,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        },
+        "idle_bpf_d2/idle_bpf_d1": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 0.96756075469528,
+            "block_ratios": [
+              0.96756075469528
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 1.1525169045830204,
+            "block_ratios": [
+              1.1525169045830204
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              3.200000000000003
+            ],
+            "mean_difference_pp": 3.200000000000003,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        },
+        "idle_bpf_d1/idle_c_d1": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 1.0167437614911352,
+            "block_ratios": [
+              1.0167437614911352
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 0.9984996249062265,
+            "block_ratios": [
+              0.9984996249062265
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              -2.6000000000000023
+            ],
+            "mean_difference_pp": -2.6000000000000023,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        },
+        "idle_bpf_d2/idle_c_d2": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 0.9998090709458252,
+            "block_ratios": [
+              0.9998090709458252
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 1.0,
+            "block_ratios": [
+              1.0
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              0.0
+            ],
+            "mean_difference_pp": 0.0,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        }
+      }
+    },
+    "burstgpt": {
+      "complete_blocks": [
+        0
+      ],
+      "paired": {
+        "idle_c_d2/idle_c_d1": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 0.956368520403778,
+            "block_ratios": [
+              0.956368520403778
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 1.143984220907298,
+            "block_ratios": [
+              1.143984220907298
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              0.0
+            ],
+            "mean_difference_pp": 0.0,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        },
+        "idle_bpf_d2/idle_bpf_d1": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 1.015540892322062,
+            "block_ratios": [
+              1.015540892322062
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 1.1505944517833553,
+            "block_ratios": [
+              1.1505944517833553
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              0.0
+            ],
+            "mean_difference_pp": 0.0,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        },
+        "idle_bpf_d1/idle_c_d1": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 0.9317023872936223,
+            "block_ratios": [
+              0.9317023872936223
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 0.9953977646285339,
+            "block_ratios": [
+              0.9953977646285339
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              1.0869565217391353
+            ],
+            "mean_difference_pp": 1.0869565217391353,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        },
+        "idle_bpf_d2/idle_c_d2": {
+          "paired_blocks": 1,
+          "lc_response_p99_ratio": {
+            "geometric_ratio": 0.9893486178019361,
+            "block_ratios": [
+              0.9893486178019361
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "be_goodput_ratio": {
+            "geometric_ratio": 1.0011494252873563,
+            "block_ratios": [
+              1.0011494252873563
+            ],
+            "paired_block_bootstrap_ci95": null
+          },
+          "slo_attainment_difference_pp": {
+            "block_differences_pp": [
+              1.0869565217391353
+            ],
+            "mean_difference_pp": 1.0869565217391353,
+            "paired_block_bootstrap_ci95_pp": null
+          },
+          "full_lc_window_coverage": true,
+          "classification": "incomplete_campaign",
+          "equivalence_claimed": false
+        }
+      }
+    }
+  }
+}

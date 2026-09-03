@@ -1,0 +1,26 @@
+Id=gdm.service
+ActiveState=active
+
+Id=nvidia-persistenced.service
+ActiveState=active
+START 1/8 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=1878003 BE_rps=133.1
+START 2/8 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=1817082 BE_rps=153.4
+START 3/8 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=1847076 BE_rps=133.3
+START 4/8 {'block': 0, 'scenario': 'periodic', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=1817429 BE_rps=153.4
+START 5/8 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_c_d2'}
+PASS LC_p99_ns=3215639 BE_rps=174.0
+START 6/8 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_c_d1'}
+PASS LC_p99_ns=3362343 BE_rps=152.1
+START 7/8 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d1'}
+PASS LC_p99_ns=3132703 BE_rps=151.4
+START 8/8 {'block': 0, 'scenario': 'burstgpt', 'arm': 'idle_bpf_d2'}
+PASS LC_p99_ns=3181388 BE_rps=174.2
+Id=gdm.service
+ActiveState=active
+
+Id=nvidia-persistenced.service
+ActiveState=active

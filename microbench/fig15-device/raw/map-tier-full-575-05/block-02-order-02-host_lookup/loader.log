@@ -1,0 +1,50 @@
+libbpf: loading object from /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/.output/map-probe.bpf.o
+libbpf: elf: section(3) kprobe/fig15_map_kernel, size 1120, link 0, flags 6, type=1
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__noop' at insn offset 0 (0 bytes), code size 2 insns (16 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__device_update' at insn offset 2 (16 bytes), code size 20 insns (160 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__host_update' at insn offset 22 (176 bytes), code size 20 insns (160 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__rpc_update' at insn offset 42 (336 bytes), code size 20 insns (160 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__device_lookup' at insn offset 62 (496 bytes), code size 26 insns (208 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__host_lookup' at insn offset 88 (704 bytes), code size 26 insns (208 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__rpc_lookup' at insn offset 114 (912 bytes), code size 26 insns (208 bytes)
+libbpf: elf: section(4) .relkprobe/fig15_map_kernel, size 144, link 27, flags 40, type=9
+libbpf: elf: section(5) .maps, size 128, link 0, flags 3, type=1
+libbpf: elf: section(6) license, size 4, link 0, flags 3, type=1
+libbpf: license of /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/.output/map-probe.bpf.o is GPL
+libbpf: elf: section(17) .BTF, size 1963, link 0, flags 0, type=1
+libbpf: elf: section(19) .BTF.ext, size 992, link 0, flags 0, type=1
+libbpf: elf: section(27) .symtab, size 720, link 1, flags 0, type=2
+libbpf: looking for externs among 30 symbols...
+libbpf: collected 0 externs total
+[2026-09-04 10:18:33][info][2772238] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 10:18:33][info][2772238] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 10:18:33][warning][2772238] BPFTIME_VERIFIER_LEVEL=WARNING was requested, but this bpftime build was compiled with ENABLE_EBPF_VERIFIER=OFF; continuing without userspace verification.
+[2026-09-04 10:18:33][info][2772238] Verifier mode: WARNING
+[2026-09-04 10:18:33][info][2772238] Init bpftime syscall mocking..
+[2026-09-04 10:18:33][info][2772238] The log will be written to: console
+[2026-09-04 10:18:33][info][2772238] Starting syscall server..
+[2026-09-04 10:18:33][info][2772238] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 10:18:33][info][2772238] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 10:18:33][warning][2772238] BPFTIME_VERIFIER_LEVEL=WARNING was requested, but this bpftime build was compiled with ENABLE_EBPF_VERIFIER=OFF; continuing without userspace verification.
+[2026-09-04 10:18:33][info][2772238] Verifier mode: WARNING
+[2026-09-04 10:18:33][info][2772238] Initialize syscall server
+[2026-09-04 10:18:33][info][2772238] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 10:18:33][info][2772238] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 10:18:33][warning][2772238] BPFTIME_VERIFIER_LEVEL=WARNING was requested, but this bpftime build was compiled with ENABLE_EBPF_VERIFIER=OFF; continuing without userspace verification.
+[2026-09-04 10:18:33][info][2772238] Verifier mode: WARNING
+[2026-09-04 10:18:33][info][2772238] Global shm constructed. shm_open_type 3 for fig15_map_2771074_116058556924034
+[2026-09-04 10:18:33][info][2772238] Global shm initialized
+[2026-09-04 10:18:33][info][2772238] Initializing CUDA at syscall-server side
+[2026-09-04 10:18:33][info][2772238] CUDA initialized at syscall server side
+[2026-09-04 10:18:33][info][2772238] bpftime-syscall-server started
+libbpf: map 'device_values': at sec_idx 5, offset 0.
+libbpf: map 'device_values': found type = 1503.
+libbpf: map 'device_values': found key [8], sz = 4.
+libbpf: map 'device_values': found value [12], sz = 8.
+libbpf: map 'device_values': found max_entries = 32.
+libbpf: map 'host_values': at sec_idx 5, offset 32.
+libbpf: map 'host_values': found type = 1513.
+libbpf: map 'host_values': found key [8], sz = 4.
+libbpf: map 'host_values': found value [12], sz = 8.
+libbpf: map 'host_values': found max_entries = 32.
+failed to open BPF object /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/.output/map-probe.bpf.o: error=-22 (Invalid argument)

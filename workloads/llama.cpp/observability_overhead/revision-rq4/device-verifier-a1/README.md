@@ -59,7 +59,7 @@ Run once from a clean, uninjected environment on the admitted 575 host. Keep
 the CUDA 12.9 tools in `PATH` as required by the parent revision-rq4 runbook:
 
 ```bash
-sudo -E env PATH="/usr/local/cuda-12.9/bin:$PATH" \
+env PATH="/usr/local/cuda-12.9/bin:$PATH" \
   python3 run_device_verifier_a1.py \
   --bpftime-root /home/yunwei37/workspace/gpu/bpftime-table1-575 \
   --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict \

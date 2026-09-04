@@ -404,6 +404,9 @@ def analyze(root: Path) -> dict[str, Any]:
 
     cells = state.get("cells", [])
     audited_cells: list[dict[str, Any]] = []
+    if not isinstance(cells, list) or len(cells) != len(expected_schedule):
+        errors.append("A1 cell cardinality differs from the fixed schedule")
+        cells = cells if isinstance(cells, list) else []
     for expected in expected_schedule:
         matches = [cell for cell in cells if isinstance(cell, dict)
                    and cell.get("sequence") == expected["sequence"]]

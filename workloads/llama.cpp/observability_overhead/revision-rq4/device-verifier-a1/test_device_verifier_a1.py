@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -285,6 +286,20 @@ class AnalyzerTests(unittest.TestCase):
             result = analyzer.analyze(fixture.root)
             self.assertFalse(result["complete"])
             self.assertEqual(result["run_status"], "incomplete")
+
+    def test_extra_cell_is_invalid(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = AnalyzerFixture(Path(temporary))
+            extra = copy.deepcopy(fixture.state["cells"][-1])
+            extra["sequence"] = 41
+            fixture.state["cells"].append(extra)
+            fixture.write()
+            result = analyzer.analyze(fixture.root)
+            self.assertFalse(result["complete"])
+            self.assertIn(
+                "A1 cell cardinality differs from the fixed schedule",
+                result["errors"],
+            )
 
 
 if __name__ == "__main__":

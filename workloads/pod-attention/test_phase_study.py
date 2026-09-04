@@ -1,6 +1,8 @@
 """CPU-only POD phase-study protocol tests; no CUDA process is launched."""
+import io
 import json
 from contextlib import ExitStack
+from contextlib import redirect_stdout
 from pathlib import Path
 import tempfile
 import unittest
@@ -112,7 +114,11 @@ class PhaseStudyTests(unittest.TestCase):
     def test_cross_process_timeline_and_derived_durations_fail_closed(self):
         value = phase_report()
         run = execution()
-        self.assertEqual(phase.durations(run, value)['loader_ready_ns'], 10)
+        measured = phase.durations(run, value)
+        self.assertEqual(measured['loader_ready_ns'], 10)
+        self.assertEqual(measured['client_lifetime_ns'], 100)
+        self.assertEqual(measured['pre_runtime_imports_ns'], 10)
+        self.assertEqual(measured['whole_cell_ns'], 200)
         base.validate_phase_execution(run, value, 'pod_bpf')
         run['phase_timestamps']['client_spawn_ns'] = 111
         with self.assertRaises(ValueError):
@@ -274,6 +280,50 @@ class PhaseStudyTests(unittest.TestCase):
                 manifest = json.loads((output / 'manifest.json').read_text())
                 self.assertTrue(manifest['complete'])
                 self.assertEqual(manifest['completed'], phase.orders(mode))
+
+    def test_dry_run_prints_exact_matrix_without_runtime_or_output_access(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            forbidden = AssertionError('dry-run crossed the offline boundary')
+            for mode, count, samples in (('preflight', 3, 3), ('full', 15, 100)):
+                output = root / f'{mode}-must-not-exist'
+                argv = ['run_phase_study.py', mode, '--dry-run', '--output', str(output),
+                        '--ptx', str(root / 'absent-ptx')]
+                if mode == 'full':
+                    argv += ['--preflight', str(root / 'absent-preflight')]
+                stream = io.StringIO()
+                with ExitStack() as stack:
+                    stack.enter_context(patch.object(sys, 'argv', argv))
+                    stack.enter_context(patch.object(base, 'preparation', side_effect=forbidden))
+                    stack.enter_context(patch.object(base, 'file_inventory', side_effect=forbidden))
+                    stack.enter_context(patch.object(base, 'require_no_build', side_effect=forbidden))
+                    stack.enter_context(patch.object(base.shared, 'Leases', side_effect=forbidden))
+                    stack.enter_context(patch.object(base, 'run_cell', side_effect=forbidden))
+                    stack.enter_context(patch.object(phase, 'validate_preflight', side_effect=forbidden))
+                    stack.enter_context(redirect_stdout(stream))
+                    phase.main()
+                plan = json.loads(stream.getvalue())
+                self.assertFalse(output.exists())
+                self.assertTrue(plan['dry_run'])
+                self.assertFalse(plan['executes_gpu_work'])
+                self.assertFalse(plan['writes_output'])
+                self.assertFalse(plan['experiment_evidence'])
+                self.assertEqual(plan['cell_count'], count)
+                self.assertEqual(plan['samples_per_cell'], samples)
+                self.assertEqual(plan['fixed_shape'], list(phase.FIXED_SHAPE))
+                self.assertEqual([(cell['block'], cell['arm']) for cell in plan['cells']],
+                                 [(item['block'], item['arm']) for item in phase.orders(mode)])
+                self.assertTrue(all(cell['fresh_client_process'] for cell in plan['cells']))
+                self.assertEqual(sum(cell['owned_private_loader'] for cell in plan['cells']),
+                                 1 if mode == 'preflight' else 5)
+                self.assertIn('generic attachment cost', plan['claim_boundary'])
+
+    def test_full_dry_run_still_requires_preflight_argument(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            argv = ['run_phase_study.py', 'full', '--dry-run', '--output',
+                    str(Path(temporary) / 'out')]
+            with patch.object(sys, 'argv', argv), self.assertRaises(SystemExit):
+                phase.main()
 
 
 if __name__ == '__main__':

@@ -32,6 +32,74 @@ def orders(mode):
     return result
 
 
+def dry_run_plan(mode, output, extraction, preflight=None):
+    """Return the exact campaign matrix without touching runtime or GPU state."""
+    order = orders(mode)
+    blocks = 1 if mode == 'preflight' else 5
+    expected = blocks * len(ARMS)
+    if len(order) != expected or len({(item['block'], item['arm']) for item in order}) != expected:
+        raise ValueError('phase dry-run matrix is incomplete or duplicated')
+    for block in range(1, blocks + 1):
+        block_arms = [item['arm'] for item in order if item['block'] == block]
+        if len(block_arms) != len(ARMS) or set(block_arms) != set(ARMS):
+            raise ValueError('phase dry-run block is not a complete randomized triplet')
+
+    cells = []
+    for ordinal, item in enumerate(order, 1):
+        directory = output / f"block-{item['block']:02d}-{item['arm']}"
+        operator_args = ['--arm', item['arm'], '--block', str(item['block']),
+                         '--output', str(directory / 'operator.json'), '--phase-study']
+        if mode == 'preflight':
+            operator_args.append('--preflight')
+        cells.append({
+            'ordinal': ordinal,
+            **item,
+            'directory': str(directory),
+            'operator_args': operator_args,
+            'fresh_client_process': True,
+            'owned_private_loader': item['arm'] == 'pod_bpf',
+        })
+
+    return {
+        'dry_run': True,
+        'executes_gpu_work': False,
+        'writes_output': False,
+        'experiment_evidence': False,
+        'protocol': PROTOCOL,
+        'numeric_protocol': bench.NUMERIC_PROTOCOL,
+        'mode': mode,
+        'seed': SEED,
+        'arms': list(ARMS),
+        'blocks': blocks,
+        'cell_count': len(cells),
+        'order': order,
+        'fixed_shape': list(FIXED_SHAPE),
+        'warmups': 10,
+        'samples_per_cell': 3 if mode == 'preflight' else 100,
+        'output': str(output),
+        'ptx': str(extraction),
+        'preflight': str(preflight) if preflight is not None else None,
+        'phase_markers': {
+            'coordinator': ['cell_start_ns', 'loader_spawn_ns', 'loader_ready_ns',
+                            'client_spawn_ns', 'client_exit_ns', 'cleanup_complete_ns'],
+            'operator': list(base.OPERATOR_PHASE_KEYS),
+        },
+        'retained_gates': [
+            'hard FP16 output agreement and full FP32 characterization',
+            'CTA exactly-once audit and device engine 2 for pod_bpf',
+            'launch-bridge counts, per-kernel first launch, and shared-memory opt-in',
+            'exact six-target loader readiness and owned private-segment cleanup',
+            'driver, telemetry, runtime inventory, post-safety, and exclusive leases',
+        ],
+        'claim_boundary': (
+            'This plan can bound setup and recurring phases only for the frozen POD adapter '
+            'and shape. It cannot establish generic attachment cost, strict-verifier '
+            'admission, a constant trampoline cost, or full serving-system performance.'
+        ),
+        'cells': cells,
+    }
+
+
 def exact_targets(extraction):
     targets = (extraction / 'exact-kernels.txt').read_text().splitlines()
     if (len(targets) != 6 or len(set(targets)) != 6
@@ -44,8 +112,11 @@ def durations(execution, report):
     parent = execution['phase_timestamps']
     child = report['phase_timestamps']
     result = {
+        'coordinator_pre_client_ns': parent['client_spawn_ns'] - parent['cell_start_ns'],
+        'client_lifetime_ns': parent['client_exit_ns'] - parent['client_spawn_ns'],
         'pre_python_main_ns': child['process_main_ns'] - parent['client_spawn_ns'],
         'stdlib_imports_ns': child['stdlib_imports_done_ns'] - child['process_main_ns'],
+        'pre_runtime_imports_ns': child['runtime_imports_start_ns'] - child['stdlib_imports_done_ns'],
         'runtime_imports_ns': child['runtime_imports_done_ns'] - child['runtime_imports_start_ns'],
         'post_import_setup_ns': child['pre_first_diagnostic_ns'] - child['runtime_imports_done_ns'],
         'first_diagnostic_sync_ns': child['post_first_sync_ns'] - child['pre_first_diagnostic_ns'],
@@ -59,6 +130,16 @@ def durations(execution, report):
     }
     if any(type(value) is not int or value < 0 for value in result.values() if value is not None):
         raise ValueError('negative/non-integer derived phase duration')
+    child_total = sum(result[key] for key in (
+        'pre_python_main_ns', 'stdlib_imports_ns', 'pre_runtime_imports_ns',
+        'runtime_imports_ns', 'post_import_setup_ns', 'first_diagnostic_sync_ns',
+        'warmups_ns', 'steady_samples_ns', 'post_steady_process_ns'))
+    if child_total != result['client_lifetime_ns']:
+        raise ValueError('child phase durations do not cover the client lifetime exactly')
+    coordinator_total = (result['coordinator_pre_client_ns'] + result['client_lifetime_ns']
+                         + result['post_process_cleanup_ns'])
+    if coordinator_total != result['whole_cell_ns']:
+        raise ValueError('coordinator phase durations do not cover the cell lifetime exactly')
     return result
 
 
@@ -171,7 +252,18 @@ def main():
     parser.add_argument('--ptx', type=Path, default=HERE / 'build/ptx-runtime-01')
     parser.add_argument('--preflight', type=Path,
                         help='required for full: prior complete three-arm phase preflight')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='print the CPU-only matrix; do not inspect artifacts, write output, acquire leases, or launch processes')
     args = parser.parse_args()
+    if args.mode == 'full' and args.preflight is None:
+        parser.error('full requires --preflight from this unchanged phase runtime')
+    if args.mode == 'preflight' and args.preflight is not None:
+        parser.error('--preflight is only valid for a full phase campaign')
+    if args.dry_run:
+        plan = dry_run_plan(args.mode, args.output.absolute(), args.ptx.absolute(),
+                            args.preflight.absolute() if args.preflight is not None else None)
+        print(json.dumps(plan, indent=2))
+        return
     if args.output.exists():
         parser.error('refusing to overwrite an existing phase campaign')
 
@@ -180,8 +272,6 @@ def main():
     runtime = base.file_inventory(runtime_paths)
     targets = exact_targets(extraction)
     if args.mode == 'full':
-        if args.preflight is None:
-            parser.error('full requires --preflight from this unchanged phase runtime')
         validate_preflight(args.preflight, runtime, targets)
     base.require_no_build()
 

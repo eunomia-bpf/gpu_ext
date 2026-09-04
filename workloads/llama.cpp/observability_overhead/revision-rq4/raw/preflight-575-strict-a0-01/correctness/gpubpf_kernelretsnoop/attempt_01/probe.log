@@ -1,0 +1,79 @@
+libbpf: loading object 'kernelretsnoop_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 144, link 1, flags 0, type=2
+libbpf: elf: section(3) kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 480, link 0, flags 6, type=1
+libbpf: sec 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': found program 'cuda__retprobe' at insn offset 0 (0 bytes), code size 60 insns (480 bytes)
+libbpf: elf: section(4) .maps, size 32, link 0, flags 3, type=1
+libbpf: elf: section(5) license, size 4, link 0, flags 3, type=1
+libbpf: license of kernelretsnoop_bpf is GPL
+libbpf: elf: section(6) .relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 16, link 2, flags 40, type=9
+libbpf: elf: section(7) .BTF, size 1554, link 0, flags 0, type=1
+libbpf: elf: section(8) .BTF.ext, size 688, link 0, flags 0, type=1
+libbpf: looking for externs among 6 symbols...
+libbpf: collected 0 externs total
+[2026-09-04 05:14:48][info][2255441] Setting BPFTIME_SHM_MEMORY_MB to: 1000
+[2026-09-04 05:14:48][info][2255441] Verifier mode: STRICT
+[2026-09-04 05:14:48][info][2255441] Init bpftime syscall mocking..
+[2026-09-04 05:14:48][info][2255441] The log will be written to: console
+[2026-09-04 05:14:48][info][2255441] Starting syscall server..
+[2026-09-04 05:14:48][info][2255441] Setting BPFTIME_SHM_MEMORY_MB to: 1000
+[2026-09-04 05:14:48][info][2255441] Verifier mode: STRICT
+[2026-09-04 05:14:48][info][2255441] Initialize syscall server
+[2026-09-04 05:14:48][info][2255441] Setting BPFTIME_SHM_MEMORY_MB to: 1000
+[2026-09-04 05:14:48][info][2255441] Verifier mode: STRICT
+[2026-09-04 05:14:48][info][2255441] Global shm constructed. shm_open_type 3 for rq4_2253988_97834198171044
+[2026-09-04 05:14:48][info][2255441] Global shm initialized
+[2026-09-04 05:14:48][info][2255441] Initializing CUDA at syscall-server side
+[2026-09-04 05:14:49][info][2255441] CUDA initialized at syscall server side
+[2026-09-04 05:14:49][info][2255441] Enabling 43 helpers
+[2026-09-04 05:14:49][info][2255441] bpftime-syscall-server started
+libbpf: map 'rb': at sec_idx 4, offset 0.
+libbpf: map 'rb': found type = 1527.
+libbpf: map 'rb': found key [8], sz = 4.
+libbpf: map 'rb': found value [12], sz = 32.
+libbpf: map 'rb': found max_entries = 256.
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': collecting relocation for section(3) 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli'
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #0: insn #54 against 'rb'
+libbpf: prog 'cuda__retprobe': found map 0 (rb, sec 4, off 0) for insn #54
+libbpf: object 'kernelretsnoop_': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+[2026-09-04 05:14:49][info][2255441] syscall server: Set enable_mock_after_initialized to false
+[2026-09-04 05:14:49][info][2255441] CUDA context for thread 2255441 has been set to 57825fdb8ab0
+[2026-09-04 05:14:49][info][2255441] Map rb (nv_gpu_ringbuf_map_impl) has space for thread count 22528
+[2026-09-04 05:14:49][info][2255441] syscall server: Set enable_mock_after_initialized to true
+libbpf: map 'rb': created successfully, fd=16
+[2026-09-04 05:14:49][info][2255441] Created kprobe/kretprobe perf event handler, func_name _Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, addr 0
+[2026-09-04 05:15:04][warning][2255446] Calling original ioctl: 8 3223340586 133656921761392
+Requested thread slots: 22528
+Requested ring entries per thread: 256
+Allocated thread slots: 22528
+Ring entries per thread: 256
+Record bytes: 32
+Committed events: 720896
+Total events collected: 720896
+Runtime collected events: 720896
+Nonzero timestamps: 720896
+OOB drops: 0
+Full drops: 0
+Bad-size drops: 0
+Other drops: 0
+Dirty slots: 0
+Pending events: 0
+Final drain events: 0
+Second drain events: 0
+Cartesian launches: 220
+Cartesian coordinates: 22528
+Cartesian complete: 1
+Coordinate extent x: 88
+Coordinate extent y: 256
+Coordinate extent z: 1
+Coordinate multiplicity 220: 1024
+Coordinate multiplicity 44: 1024
+Coordinate multiplicity 22: 20480
+Coordinate multiplicity other: 0
+Coordinate segment mismatches: 0
+Invalid launch coordinates: 0
+Unique coordinates: 22528
+Multiplicity oracle enabled: 1
+Multiplicity oracle total events: 720896
+Multiplicity oracle passed: 1
+Collector gate passed: 1

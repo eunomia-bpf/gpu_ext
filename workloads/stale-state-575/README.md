@@ -2,7 +2,11 @@
 
 This directory is the CPU/source boundary for Reviewer D's stale-state
 sensitivity experiment.  It contains no GPU result.  No live cell has been
-run.
+run. The native decision model now also has a real host-uBPF JIT consumer and
+a deterministic native/JIT differential test. That is dependency evidence;
+it does not close the live-interface boundary below. The exact CPU execution
+and review are retained in
+[`jit-preparation-20260904.md`](jit-preparation-20260904.md).
 
 ## Frozen question and matrix
 
@@ -101,7 +105,11 @@ python3 -B run_study.py analyze \
 `dry-run` does not inspect artifacts, create output, acquire leases, start a
 process, or query a GPU. `cpu-preflight` uses the monotonic clock to confirm
 that fresh, 100 ms, and 1 s publications are distinguishable; it is dependency
-evidence only. Building the CUDA workload is separate:
+evidence only. `make test-offline` also compiles the bounded policy to BPF
+bytecode, executes it through bpftime's uBPF JIT, and differentially checks it
+against the native model over malformed inputs and 306,000 seeded decisions.
+The test requires an existing bpftime uBPF build and has no native fallback.
+Building the CUDA workload is separate:
 
 ```bash
 make build-sources

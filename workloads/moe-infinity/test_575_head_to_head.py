@@ -13,6 +13,25 @@ import audit_575_results as audit
 
 
 class CurrentStackTests(unittest.TestCase):
+    def test_lease_uses_existing_read_only_coordinator_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = tuple(Path(temporary) / name for name in ("gpu.lock", "ops.lock"))
+            for path in paths:
+                path.write_text("")
+                path.chmod(0o444)
+            try:
+                with patch.object(base, "LEASE_PATHS", paths):
+                    lease = base.LeaseSet.acquire()
+                    try:
+                        self.assertEqual(len(lease.files), 2)
+                        self.assertTrue(all(stream.readable() for stream in lease.files))
+                        self.assertTrue(all(not stream.writable() for stream in lease.files))
+                    finally:
+                        lease.close()
+            finally:
+                for path in paths:
+                    path.chmod(0o600)
+
     def test_raw_sse_audit_rejects_saved_text_and_usage_drift(self):
         payload = {"choices": [{"text": "test", "finish_reason": "length"}],
                    "usage": {"prompt_tokens": 512, "completion_tokens": 64}}

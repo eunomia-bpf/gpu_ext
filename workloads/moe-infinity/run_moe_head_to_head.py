@@ -95,6 +95,10 @@ EXPECTED_LLAMA_COMMIT = "26836b27ae1ec9d6e94c6b56306cca75c7e86814"
 EXPECTED_MOE_COMMIT = "b766f8f1f6379fac6cd23594713ba6f4c7650ad9"
 EXPECTED_MOUNT_SOURCE = "/dev/disk/by-uuid/864c5664-999e-43c2-9967-4edaeee79d57"
 EXPECTED_MOUNT_FSTYPE = "ext4"
+LEASE_PATHS = (
+    Path("/tmp/gpubpf-revision-gpu0.lock"),
+    Path("/tmp/gpubpf-revision-struct-ops.lock"),
+)
 CONFIGS = (
     "llama_ncmoe32",
     "llama_uvm",
@@ -897,11 +901,17 @@ class LeaseSet:
     @classmethod
     def acquire(cls) -> "LeaseSet":
         files = []
-        for path in (
-            Path("/tmp/gpubpf-revision-gpu0.lock"),
-            Path("/tmp/gpubpf-revision-struct-ops.lock"),
-        ):
-            stream = path.open("a+")
+        for path in LEASE_PATHS:
+            try:
+                # The shared coordinator creates root-owned 0644 lock files.
+                # flock(2) does not require a writable descriptor, so preserve
+                # those files and open them read-only when they already exist.
+                stream = path.open("r")
+            except FileNotFoundError:
+                try:
+                    stream = path.open("x+")
+                except FileExistsError:
+                    stream = path.open("r")
             try:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:

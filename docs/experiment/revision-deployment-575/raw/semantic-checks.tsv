@@ -1,0 +1,9 @@
+check	observation	status
+product_gpu_backend	PTX compiler and eBPF-to-PTX markers present	pass
+product_sass_backend	no NVBit or SASS marker in product attach implementation	pass
+nvbit_location	audited NVBit call sites are present in the selected benchmark example	pass
+nvbit_device_timing	device clock statements are commented; injected functions are no-op	pass
+running_pid_attach	CLI delegates running-process injection to Frida	pass
+direct_ptrace_api	no direct ptrace call in product CLI or agent; mechanism belongs to injector dependency	pass
+preload_route	CLI preload, startup wrapper, agent marker, and IPC initialization are present	pass
+cpu_build_configuration	BPFTIME_ENABLE_CUDA_ATTACH is OFF	pass

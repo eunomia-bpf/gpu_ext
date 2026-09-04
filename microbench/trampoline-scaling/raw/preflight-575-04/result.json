@@ -1,0 +1,525 @@
+{
+  "build_logs": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/build-01.log"
+  ],
+  "compiled_hook_site": {
+    "marker_explicit_stub_calls": 0,
+    "ptx": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/scaling.ptx",
+    "stub_defined": true,
+    "target_explicit_stub_calls": 1
+  },
+  "failures": [],
+  "kind": "RTX 5090 device-trampoline scaling",
+  "last_safety": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 59.8,
+      "sm_clock_mhz": 2400,
+      "temperature_c": 52,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788491592620480014,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "loader_source_audit": {
+    "attach_order": [
+      "cuda__scale_target",
+      "cuda__scale_marker"
+    ],
+    "reason": "the first link owns the runtime's module-wide explicit stub",
+    "source": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.c"
+  },
+  "params": {
+    "blocks": 1,
+    "bpftime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "cell_ids": [
+      0
+    ],
+    "expected_driver": "575.57.08",
+    "expected_gpu": "NVIDIA GeForce RTX 5090",
+    "hook_repeats": 1,
+    "launches": 2,
+    "phase": "preflight",
+    "schedule_seed": 1797,
+    "warmup": 1
+  },
+  "records": [
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 0,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/scaling",
+        "--cells",
+        "0",
+        "--warmup",
+        "1",
+        "--launches",
+        "2",
+        "--hook-repeats",
+        "1",
+        "--run-id",
+        "0"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/block-01-order-1-baseline",
+      "measurements": [
+        {
+          "active_threads": 65536,
+          "active_warps": 2048,
+          "blocks": 256,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0064960001,
+          "event": "measurement",
+          "hook_repeats": 1,
+          "launched_threads": 65536,
+          "launches": 2,
+          "mismatches": 0,
+          "threads_per_block": 256,
+          "warmup": 1
+        }
+      ],
+      "order": 0,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 14001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 58.94,
+          "sm_clock_mhz": 2400,
+          "temperature_c": 52,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788491582380210028,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/telemetry-01/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 22.0,
+          "mean_power_w": 15.88,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 15.0,
+          "peak_temperature_c": 51.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/block-01-order-2-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 0,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/scaling",
+        "--cells",
+        "0",
+        "--warmup",
+        "1",
+        "--launches",
+        "2",
+        "--hook-repeats",
+        "1",
+        "--run-id",
+        "0"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/block-01-order-2-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 8,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 65536,
+          "active_warps": 2048,
+          "blocks": 256,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.014304,
+          "event": "measurement",
+          "hook_repeats": 1,
+          "launched_threads": 65536,
+          "launches": 2,
+          "mismatches": 0,
+          "threads_per_block": 256,
+          "warmup": 1
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_1409498_65328541107215",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 49.09,
+          "sm_clock_mhz": 742,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788491587724013842,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/telemetry-02/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 49.288125,
+          "min_sm_clock_mhz": 2400.0,
+          "peak_memory_mib": 1624.0,
+          "peak_temperature_c": 52.0,
+          "samples": 16,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/block-01-order-3-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 0,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/scaling",
+        "--cells",
+        "0",
+        "--warmup",
+        "1",
+        "--launches",
+        "2",
+        "--hook-repeats",
+        "1",
+        "--run-id",
+        "0"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/block-01-order-3-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 65536,
+          "active_warps": 2048,
+          "blocks": 256,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0104959998,
+          "event": "measurement",
+          "hook_repeats": 1,
+          "launched_threads": 65536,
+          "launches": 2,
+          "mismatches": 0,
+          "threads_per_block": 256,
+          "warmup": 1
+        }
+      ],
+      "order": 2,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_1409498_65333871889835",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 14001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 59.8,
+          "sm_clock_mhz": 2400,
+          "temperature_c": 52,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788491592620480014,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-04/telemetry-03/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2422.0,
+          "mean_power_w": 47.53214285714286,
+          "min_sm_clock_mhz": 457.0,
+          "peak_memory_mib": 1031.0,
+          "peak_temperature_c": 52.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    }
+  ],
+  "runtime_configuration": {
+    "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+    "BPFTIME_LLVM_JIT": "ON",
+    "CMAKE_HOME_DIRECTORY": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "ENABLE_EBPF_VERIFIER": "OFF"
+  },
+  "runtime_source_audit": {
+    "default_save_strategy": "minimal",
+    "explicit_stub_resolution_scope": "whole PTX module before named-kernel fallback",
+    "interpretation": "source does not establish one scalar handler execution per warp; the experiment measures observed scaling",
+    "register_guard_for_default": false,
+    "required_attach_order": [
+      "cuda__scale_target",
+      "cuda__scale_marker"
+    ],
+    "source": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp",
+    "stub_replacement_instruction": "ordinary PTX call/call.uni"
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 810,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 27.36,
+      "sm_clock_mhz": 60,
+      "temperature_c": 51,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788491594600642537,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 15.88,
+      "sm_clock_mhz": 22,
+      "temperature_c": 51,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788491579507346014,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "schedule": [
+    {
+      "arm": "baseline",
+      "block": 0,
+      "order": 0,
+      "run_id": 0
+    },
+    {
+      "arm": "counter",
+      "block": 0,
+      "order": 1,
+      "run_id": 0
+    },
+    {
+      "arm": "noop",
+      "block": 0,
+      "order": 2,
+      "run_id": 0
+    }
+  ],
+  "source_manifest": [
+    {
+      "bytes": 546,
+      "ctime_ns": 1788486681168047943,
+      "device": 66305,
+      "inode": 94388514,
+      "mtime_ns": 1788486681168047943,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/matrix.h"
+    },
+    {
+      "bytes": 11275,
+      "ctime_ns": 1788486872473325834,
+      "device": 66305,
+      "inode": 94388550,
+      "mtime_ns": 1788486872473325834,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/scaling.cu"
+    },
+    {
+      "bytes": 1717,
+      "ctime_ns": 1788486681168047943,
+      "device": 66305,
+      "inode": 94388515,
+      "mtime_ns": 1788486681168047943,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.bpf.c"
+    },
+    {
+      "bytes": 6219,
+      "ctime_ns": 1788491157276036398,
+      "device": 66305,
+      "inode": 94388516,
+      "mtime_ns": 1788491157276036398,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.c"
+    },
+    {
+      "bytes": 1487,
+      "ctime_ns": 1788486760397819433,
+      "device": 66305,
+      "inode": 94388551,
+      "mtime_ns": 1788486760397819433,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/Makefile"
+    },
+    {
+      "bytes": 44454,
+      "ctime_ns": 1788491472526007906,
+      "device": 66305,
+      "inode": 94388507,
+      "mtime_ns": 1788491472526007906,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/run_scaling.py"
+    },
+    {
+      "bytes": 4486,
+      "ctime_ns": 1788437099982237230,
+      "device": 66305,
+      "inode": 92300341,
+      "mtime_ns": 1788437099982237230,
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp"
+    }
+  ],
+  "status": "complete",
+  "summary": [
+    {
+      "active_warps": 2048,
+      "arm": "noop",
+      "blocks": 256,
+      "bootstrap_median_overhead_high_pct": 61.57634911366456,
+      "bootstrap_median_overhead_low_pct": 61.57634911366456,
+      "cell": 0,
+      "median_delta_ms": 0.0039999996999999995,
+      "median_overhead_pct": 61.57634911366456,
+      "pairs": 1
+    },
+    {
+      "active_warps": 2048,
+      "arm": "counter",
+      "blocks": 256,
+      "bootstrap_median_overhead_high_pct": 120.19704094524263,
+      "bootstrap_median_overhead_low_pct": 120.19704094524263,
+      "cell": 0,
+      "median_delta_ms": 0.007807999900000001,
+      "median_overhead_pct": 120.19704094524263,
+      "pairs": 1
+    }
+  ]
+}

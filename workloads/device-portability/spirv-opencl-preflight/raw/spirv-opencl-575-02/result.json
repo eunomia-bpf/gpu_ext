@@ -1,0 +1,125 @@
+{
+  "binary": {
+    "executable": true,
+    "mtime_ns": 1788535893467144350,
+    "path": "/home/yunwei37/workspace/gpu/bpftime-spirv-build-20260904/example/spirv/spirv_opencl_test",
+    "size_bytes": 136907048
+  },
+  "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+  "build": {
+    "CMAKE_HOME_DIRECTORY": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit",
+    "LLVMBPF_ENABLE_SPIRV": "ON",
+    "LLVM_DIR": "/usr/lib/llvm-20/lib/cmake/llvm"
+  },
+  "capability_checked_before_demo_process": true,
+  "cleanup_errors": [
+    "GPU did not settle within 60 seconds after server cleanup: {'index': 0, 'name': 'NVIDIA GeForce RTX 5090', 'driver': '575.57.08', 'memory_used_mib': 18, 'memory_total_mib': 32607, 'temperature_c': 46, 'sm_clock_mhz': 22, 'memory_clock_mhz': 405, 'power_w': 12.2, 'utilization_gpu_percent': 0, 'compute_apps': []}; uvm_refcount=4"
+  ],
+  "demo_process_started": false,
+  "device_capability": {
+    "cl_device_il_version": "",
+    "cl_device_ils_with_version": [],
+    "device_name": "NVIDIA GeForce RTX 5090",
+    "device_numeric_version": {
+      "major": 3,
+      "minor": 0,
+      "patch": 0
+    },
+    "device_vendor": "NVIDIA Corporation",
+    "device_version": "OpenCL 3.0 CUDA",
+    "driver_version": "575.57.08",
+    "extensions": [
+      "cl_khr_global_int32_base_atomics",
+      "cl_khr_global_int32_extended_atomics",
+      "cl_khr_local_int32_base_atomics",
+      "cl_khr_local_int32_extended_atomics",
+      "cl_khr_fp64",
+      "cl_khr_3d_image_writes",
+      "cl_khr_byte_addressable_store",
+      "cl_khr_icd",
+      "cl_khr_gl_sharing",
+      "cl_nv_compiler_options",
+      "cl_nv_device_attribute_query",
+      "cl_nv_pragma_unroll",
+      "cl_nv_copy_opts",
+      "cl_nv_create_buffer",
+      "cl_khr_int64_base_atomics",
+      "cl_khr_int64_extended_atomics",
+      "cl_khr_device_uuid",
+      "cl_khr_pci_bus_info",
+      "cl_khr_external_semaphore",
+      "cl_khr_external_memory",
+      "cl_khr_external_semaphore_opaque_fd",
+      "cl_khr_external_memory_opaque_fd",
+      "cl_khr_semaphore"
+    ],
+    "has_cl_khr_il_program": false,
+    "loader": "/usr/lib/x86_64-linux-gnu/libOpenCL.so.1",
+    "opencl_c_version": "OpenCL C 1.2 ",
+    "platform_count": 1,
+    "platform_name": "NVIDIA CUDA",
+    "platform_vendor": "NVIDIA Corporation",
+    "platform_version": "OpenCL 3.0 CUDA 12.9.76",
+    "selected_platform_index": 0,
+    "supports_intermediate_language_programs": false,
+    "supports_spirv_il": false
+  },
+  "error": "UnsupportedSPIRVIL: selected OpenCL device does not advertise SPIR-V IL support: CL_DEVICE_IL_VERSION='', CL_DEVICE_ILS_WITH_VERSION=[], cl_khr_il_program=False",
+  "exclusions": [
+    "gpubpf device-hook attach backend",
+    "cross-layer maps",
+    "SIMT verifier",
+    "application-kernel policy execution",
+    "AMD or Intel execution",
+    "performance"
+  ],
+  "owned_process_survivors": [],
+  "schema": 2,
+  "scope": "standalone eBPF-to-SPIR-V OpenCL demo only",
+  "source": {
+    "executable": false,
+    "mtime_ns": 1788437147061413086,
+    "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit/example/spirv/spirv_opencl_test.cpp",
+    "size_bytes": 12765
+  },
+  "source_build_identity": {
+    "binary_newer_than_inputs": true,
+    "opencl_loader_linked": true,
+    "relevant_inputs": [
+      {
+        "executable": false,
+        "mtime_ns": 1788437147061413086,
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit/example/spirv/spirv_opencl_test.cpp",
+        "size_bytes": 12765
+      },
+      {
+        "executable": false,
+        "mtime_ns": 1788437147060135057,
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit/CMakeLists.txt",
+        "size_bytes": 5940
+      },
+      {
+        "executable": false,
+        "mtime_ns": 1788437147061224628,
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit/example/spirv/CMakeLists.txt",
+        "size_bytes": 941
+      },
+      {
+        "executable": false,
+        "mtime_ns": 1788437147061965713,
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit/src/llvm_jit_context.cpp",
+        "size_bytes": 26418
+      },
+      {
+        "executable": false,
+        "mtime_ns": 1788437147062028101,
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit/src/vm.cpp",
+        "size_bytes": 3917
+      }
+    ],
+    "source_repo": "/home/yunwei37/workspace/gpu/bpftime-table1-575/vm/llvm-jit",
+    "source_revision": "f66cafa4478b9991e16095e7844f9e8586979111",
+    "tracked_inputs_unmodified": true
+  },
+  "status": "invalid"
+}

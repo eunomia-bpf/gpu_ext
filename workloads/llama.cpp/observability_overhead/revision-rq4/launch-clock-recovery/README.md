@@ -1,5 +1,41 @@
 # Launch-clock preflight-575-07 recovery audit
 
+## Public RM/PTIMER correlation diagnostic
+
+`rm_ptimer_correlation_sanity.c` is the first executable admission gate for
+the source-backed RM design in `../launchlate-rm-correlation-design.md`.  It
+uses the exact public 575 userspace layouts to allocate a private RM root,
+device 0, and subdevice 0, then repeats control `0x20800406` with the
+`PLATFORM_API|CPU` clock source.  Each call is bracketed by
+`CLOCK_MONOTONIC_RAW` and emitted as one JSON line.  The summary passes only
+when every requested call is structurally valid and the median conservative
+bracket, including the 32 ns PTIMER allowance on each side, is below 1.5 us.
+The 1.5 us threshold is a Phase-0 admission heuristic: it requires at least a
+threefold improvement over the roughly 5.2 us failed calibration, but it is
+not a launch-latency correctness threshold.  The summary also rejects any
+CPU-midpoint or PTIMER regression and is emitted only after RM cleanup.
+
+Build without running the GPU-facing control:
+
+```bash
+make -C launch-clock-recovery rm_ptimer_correlation_sanity
+```
+
+Run only while holding the shared GPU lease and retain stdout and stderr as
+raw evidence:
+
+```bash
+./launch-clock-recovery/rm_ptimer_correlation_sanity --samples 200 \
+  > /new/raw/directory/rm-correlation.jsonl \
+  2> /new/raw/directory/rm-correlation.stderr
+```
+
+A pass proves only that the public RM control works and supplies materially
+narrower conservative offset brackets on this exact stack.  It does not yet
+prove that RM PTIMER and device `%globaltimer` track identically, repair the
+bpftime host clock, satisfy the 220-launch uncertainty gate, or authorize a
+timing campaign.  Those remain later gates; failures must be retained.
+
 This audit is a repair note for the `launchlate` correctness arms. It does not
 promote the failed preflight to a result, change any raw file, or relax the
 frozen histogram bins, 10% uncertain-sample limit, or 10,000 ppb drift limit.
@@ -97,14 +133,18 @@ closest CPU pair. On this Linux implementation that CPU source ultimately uses
 - `gpu_ext-kernel-575/src/nvidia/src/kernel/gpu/subdevice/subdevice_ctrl_timer_kernel.c`
 - `gpu_ext-kernel-575/kernel-open/nvidia/os-interface.c`
 
-This is the correct clock relationship to pursue, but the current ABI returns
-only the midpoint pair, not the closest CPU-pair width needed for the existing
-conservative interval classifier. It also requires an RM client/subdevice
-control path not present in the current launchlate loader. A correct production
-repair should expose the chosen CPU bracket width (or both CPU endpoints), map
-`CLOCK_MONOTONIC_RAW` to `CLOCK_MONOTONIC` with an explicit CPU-only bracket,
-and then retain the same interval classifier. Treating the midpoint as exact
-would recreate the problem in a less visible form.
+The public ABI returns only the midpoint pair, not the selected CPU endpoints.
+The new diagnostic conservatively bounds the hidden selected gap by one third
+of a userspace `CLOCK_MONOTONIC_RAW` bracket around the whole ioctl, then adds
+one 32 ns PTIMER period at each end. This `W/3` construction must first pass on
+the target stack; the midpoint is never treated as exact. If it is sufficiently
+narrow, the production repair can add a distinct bpftime host helper for
+`CLOCK_MONOTONIC_RAW` and keep launch timestamps and RM anchors in that domain
+end to end. The standard `bpf_ktime_get_ns` helper must remain unchanged.
+
+Only if the public-data bracket stays too wide should a versioned driver
+control expose the selected CPU endpoints. That fallback would require a new
+module build and reload; it is not a prerequisite for this diagnostic.
 
 Finally, the current two-anchor interpolation assumes the relative host/device
 clock offset evolves affinely between anchors. The endpoint drift check bounds
@@ -120,6 +160,8 @@ assumption, or a later implementation should add periodic correlation anchors.
   of a self-consistent 0.5 s record whose reported drift is below the limit.
 - `python3 -m py_compile run_revision_rq4.py test_offline.py`: passed.
 - CUPTI diagnostic compile for `sm_120`: passed; the binary was not executed.
+- RM/PTIMER diagnostic builds with `-Werror`; its checked-arithmetic self-test
+  passes. The GPU-facing RM control has not yet been run in this note.
 - Re-evaluating the untouched preflight logs with the repaired runner preserves
   the intended split: gpubpf clock model passes but uncertainty fails; NVBit
   uncertainty passes but its old short-window clock model fails.

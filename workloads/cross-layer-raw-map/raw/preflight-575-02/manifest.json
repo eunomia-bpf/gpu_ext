@@ -1,0 +1,123 @@
+{
+  "cell_count": 3,
+  "cells": [
+    {
+      "aggregate_callbacks": 768,
+      "arm": "small",
+      "block": 1,
+      "cuda_truth_exact": true,
+      "directory": "block-01-order-01-small",
+      "evidence_disposition": "accepted_complete_raw_stream",
+      "full_drops": 0,
+      "instrumented_truth_records": 768,
+      "launches": 3,
+      "native_truth_records": 768,
+      "negative_gate_passed": false,
+      "order": 1,
+      "raw_records": 768,
+      "threads": 256
+    },
+    {
+      "aggregate_callbacks": 1536,
+      "arm": "overflow_negative",
+      "block": 1,
+      "cuda_truth_exact": true,
+      "directory": "block-01-order-02-overflow_negative",
+      "evidence_disposition": "rejected_incomplete_raw_stream",
+      "full_drops": 512,
+      "instrumented_truth_records": 1536,
+      "launches": 6,
+      "native_truth_records": 1536,
+      "negative_gate_passed": true,
+      "order": 2,
+      "raw_records": 1024,
+      "threads": 256
+    },
+    {
+      "aggregate_callbacks": 6144,
+      "arm": "large",
+      "block": 1,
+      "cuda_truth_exact": true,
+      "directory": "block-01-order-03-large",
+      "evidence_disposition": "accepted_complete_raw_stream",
+      "full_drops": 0,
+      "instrumented_truth_records": 6144,
+      "launches": 3,
+      "native_truth_records": 6144,
+      "negative_gate_passed": false,
+      "order": 3,
+      "raw_records": 6144,
+      "threads": 2048
+    }
+  ],
+  "claim_boundary": "Functional raw-record expressibility and exact host readback only; no latency, bandwidth, shared-memory-shard, automatic-placement, strict-verifier, or arbitrary-data-structure claim.",
+  "finished_ns": 1788497014421712091,
+  "mode": "preflight",
+  "negative_drop_gates": 1,
+  "positive_cells": 2,
+  "preflight": null,
+  "protocol": "cross-layer-raw-record-v1",
+  "runtime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575",
+  "runtime_configuration": {
+    "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+    "BPFTIME_LLVM_JIT": "ON",
+    "CMAKE_HOME_DIRECTORY": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "ENABLE_EBPF_VERIFIER": "OFF"
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 810,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 15.5,
+      "sm_clock_mhz": 62,
+      "temperature_c": 51,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788497014051677659,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 13.21,
+      "sm_clock_mhz": 22,
+      "temperature_c": 50,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788496999959475474,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "schema": 1,
+  "seed": 20260903,
+  "started_ns": 1788496998257440540,
+  "status": "passed"
+}

@@ -33,6 +33,20 @@ raw evidence:
   2> /new/raw/directory/rm-correlation.stderr
 ```
 
+The default `xfer` control transport preserves the first canary path. Because
+the 32-byte `NVOS54` payload fits the normal size-encoded NVIDIA ioctl ABI, a
+fresh diagnostic may remove the extra forwarding layer without changing the
+RM command or interval proof:
+
+```bash
+./launch-clock-recovery/rm_ptimer_correlation_sanity --samples 200 \
+  --control-transport direct
+```
+
+Both transports are named in every sample and in the final summary. The
+direct path does not weaken the `W/3`, PTIMER allowance, monotonicity, cleanup,
+or precision gates.
+
 A pass proves only that the public RM control works and supplies materially
 narrower conservative offset brackets on this exact stack.  It does not yet
 prove that RM PTIMER and device `%globaltimer` track identically, repair the

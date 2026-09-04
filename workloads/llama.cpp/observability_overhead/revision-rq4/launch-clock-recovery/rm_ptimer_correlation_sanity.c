@@ -148,6 +148,11 @@ struct observation {
 	uint64_t bracket_width;
 };
 
+enum control_transport {
+	CONTROL_TRANSPORT_XFER = 0,
+	CONTROL_TRANSPORT_DIRECT = 1,
+};
+
 static int monotonic_raw_ns(uint64_t *value)
 {
 	struct timespec now;
@@ -172,6 +177,16 @@ static int rm_xfer(int fd, uint32_t command, void *payload, uint32_t size)
 				      nv_ioctl_xfer_t);
 
 	if (ioctl(fd, request, &xfer) < 0)
+		return -errno;
+	return 0;
+}
+
+static int rm_control_direct(int fd, nvos54_parameters *control)
+{
+	unsigned long request = _IOWR(NV_IOCTL_MAGIC, NV_ESC_RM_CONTROL,
+				      nvos54_parameters);
+
+	if (ioctl(fd, request, control) < 0)
 		return -errno;
 	return 0;
 }
@@ -254,6 +269,7 @@ static int rm_open_timer(int fd, struct rm_handles *handles,
 
 static int rm_timer_control(int fd, const struct rm_handles *handles,
 			    nv2080_timer_correlation_parameters *params,
+			    enum control_transport transport,
 			    uint32_t *rm_status)
 {
 	nvos54_parameters control = {
@@ -265,7 +281,9 @@ static int rm_timer_control(int fd, const struct rm_handles *handles,
 		.paramsSize = sizeof(*params),
 		.status = 0,
 	};
-	int err = rm_xfer(fd, NV_ESC_RM_CONTROL, &control, sizeof(control));
+	int err = transport == CONTROL_TRANSPORT_DIRECT ?
+			rm_control_direct(fd, &control) :
+			rm_xfer(fd, NV_ESC_RM_CONTROL, &control, sizeof(control));
 
 	*rm_status = control.status;
 	if (err)
@@ -358,7 +376,10 @@ static int parse_samples(const char *text, unsigned int *samples)
 
 static void usage(const char *program)
 {
-	fprintf(stderr, "Usage: %s [--samples N | --self-test]\n", program);
+	fprintf(stderr,
+		"Usage: %s [--samples N] [--control-transport xfer|direct] | "
+		"--self-test\n",
+		program);
 }
 
 static int self_test(void)
@@ -396,6 +417,8 @@ int main(int argc, char **argv)
 {
 	struct rm_handles handles = { 0 };
 	unsigned int requested = DEFAULT_SAMPLES;
+	enum control_transport transport = CONTROL_TRANSPORT_XFER;
+	const char *transport_name = "xfer";
 	unsigned int attempted = 0, accepted = 0, rejected = 0;
 	unsigned int cpu_midpoint_regressions = 0, ptimer_regressions = 0;
 	uint64_t *widths = NULL, *outer_widths = NULL;
@@ -411,14 +434,29 @@ int main(int argc, char **argv)
 
 	if (argc == 2 && strcmp(argv[1], "--self-test") == 0)
 		return self_test();
-	if (argc == 3 && strcmp(argv[1], "--samples") == 0) {
-		if (parse_samples(argv[2], &requested)) {
+	for (int i = 1; i < argc; ++i) {
+		if (strcmp(argv[i], "--samples") == 0 && i + 1 < argc) {
+			if (parse_samples(argv[++i], &requested)) {
+				usage(argv[0]);
+				return 1;
+			}
+		} else if (strcmp(argv[i], "--control-transport") == 0 &&
+			   i + 1 < argc) {
+			const char *value = argv[++i];
+			if (strcmp(value, "xfer") == 0) {
+				transport = CONTROL_TRANSPORT_XFER;
+				transport_name = "xfer";
+			} else if (strcmp(value, "direct") == 0) {
+				transport = CONTROL_TRANSPORT_DIRECT;
+				transport_name = "direct";
+			} else {
+				usage(argv[0]);
+				return 1;
+			}
+		} else {
 			usage(argv[0]);
 			return 1;
 		}
-	} else if (argc != 1) {
-		usage(argv[0]);
-		return 1;
 	}
 
 	widths = calloc(requested, sizeof(*widths));
@@ -477,7 +515,8 @@ int main(int argc, char **argv)
 		rm_status = 0;
 		before_err = monotonic_raw_ns(&before);
 		control_err = before_err ? -ECANCELED :
-			rm_timer_control(fd, &handles, &params, &rm_status);
+			rm_timer_control(fd, &handles, &params, transport,
+					 &rm_status);
 		after_err = monotonic_raw_ns(&after);
 		if (!before_err && !control_err && !after_err)
 			derive_err = derive_observation(
@@ -487,6 +526,7 @@ int main(int argc, char **argv)
 		if (before_err || control_err || after_err || derive_err) {
 			++rejected;
 			written = printf("{\"record\":\"sample\",\"index\":%u,"
+			       "\"control_transport\":\"%s\","
 			       "\"valid\":false,\"before_error\":%d,"
 			       "\"control_error\":%d,\"after_error\":%d,"
 			       "\"derive_error\":%d,\"rm_status\":%" PRIu32
@@ -494,7 +534,8 @@ int main(int argc, char **argv)
 			       ",\"host_after_ns\":%" PRIu64
 			       ",\"rm_cpu_midpoint_ns\":%" PRIu64
 			       ",\"rm_gpu_ptimer_ns\":%" PRIu64 "}\n",
-			       i, before_err, control_err, after_err, derive_err,
+			       i, transport_name, before_err, control_err, after_err,
+			       derive_err,
 			       rm_status, before, after, params.samples[0].cpuTime,
 			       params.samples[0].gpuTime);
 			if (written < 0) {
@@ -525,6 +566,7 @@ int main(int argc, char **argv)
 		if (observation.outer_width > max_outer)
 			max_outer = observation.outer_width;
 		written = printf("{\"record\":\"sample\",\"index\":%u,"
+		       "\"control_transport\":\"%s\","
 		       "\"valid\":true,\"cpu_midpoint_regression\":%s,"
 		       "\"ptimer_regression\":%s,"
 		       "\"rm_status\":0,\"host_before_ns\":%" PRIu64
@@ -538,7 +580,7 @@ int main(int argc, char **argv)
 		       ",\"offset_low_ns\":%" PRId64
 		       ",\"offset_high_ns\":%" PRId64
 		       ",\"bracket_width_ns\":%" PRIu64 "}\n",
-		       i, cpu_regression ? "true" : "false",
+		       i, transport_name, cpu_regression ? "true" : "false",
 		       gpu_regression ? "true" : "false", observation.before,
 		       observation.after,
 		       observation.midpoint, observation.gpu,
@@ -587,6 +629,7 @@ finalize:
 	exit_code = setup_error || cleanup_error || output_error ? 1 :
 		    gate_pass ? 0 : 2;
 	if (printf("{\"record\":\"summary\",\"setup_stage\":\"%s\","
+		   "\"control_transport\":\"%s\","
 		   "\"setup_error\":%d,\"cleanup_error\":%d,"
 		   "\"cleanup_rm_status\":%" PRIu32
 		   ",\"output_error\":%d,\"requested\":%u,"
@@ -601,7 +644,8 @@ finalize:
 		   ",\"max_bracket_width_ns\":%" PRIu64
 		   ",\"target_median_bracket_ns\":%" PRIu64
 		   ",\"gate_pass\":%s}\n",
-		   setup_stage, setup_error, cleanup_error, free_status,
+		   setup_stage, transport_name, setup_error, cleanup_error,
+		   free_status,
 		   output_error, requested, attempted, accepted, rejected,
 		   cpu_midpoint_regressions, ptimer_regressions, min_outer,
 		   median_outer, max_outer, min_width, median_width, max_width,

@@ -5,6 +5,13 @@ The coordinator owns the GPU lease and, for pod_bpf, starts the private loader
 before this process with the existing bpftime agent preloaded. Each invocation
 runs one arm over the fixed shapes (or the one-shape real preflight).
 """
+import time
+
+# This is intentionally the first executable module statement.  The parent
+# records the time immediately before Popen, so the two monotonic timestamps
+# bound interpreter/preload startup without pretending that this is exec time.
+PROCESS_MAIN_NS = time.monotonic_ns()
+
 import argparse
 from collections import defaultdict
 import json
@@ -15,7 +22,6 @@ import random
 import statistics
 import struct
 import sys
-import time
 
 ROOT = Path(__file__).resolve().parent
 ARMS = ("official_serial", "official_streams", "pod_inline", "pod_cuda", "pod_bpf")
@@ -27,6 +33,7 @@ CTX_NAMES = ("counters", "abi_version", "nsmid", "smid", "prefill_slots", "decod
              "first_op", "first_claim", "fallback_claim", "reserved")
 UNSET = 0xffffffff
 NUMERIC_PROTOCOL = 'pod-fp16-upstream-match-v2'
+STDLIB_IMPORTS_DONE_NS = time.monotonic_ns()
 
 
 def fp32_diagnostic_name(model, batch, phase):
@@ -240,11 +247,19 @@ def audit_bridge(before, after, expected_launches, smem_bytes, mode):
 
 def run_arm(args, result, output_file):
     # Nothing below is a CPU test: the coordinator must own an exclusive GPU slot.
+    if args.phase_study:
+        result['phase_timestamps'] = {
+            'process_main_ns': PROCESS_MAIN_NS,
+            'stdlib_imports_done_ns': STDLIB_IMPORTS_DONE_NS,
+            'runtime_imports_start_ns': time.monotonic_ns(),
+        }
     sys.path[:0] = [str(ROOT / "build/python"), str(ROOT / "deps/vattention/pod_attn")]
     import torch
     import fused_attn
     from pod_attn.flash_attn_interface import flash_attn_with_kvcache
     from pod_attn.fused_attn_interface import true_fused_attn_with_kvcache
+    if args.phase_study:
+        result['phase_timestamps']['runtime_imports_done_ns'] = time.monotonic_ns()
 
     bridge_stats = None
     if args.arm in ("pod_cuda", "pod_bpf"):
@@ -256,15 +271,39 @@ def run_arm(args, result, output_file):
         class BridgeStats(ctypes.Structure):
             _fields_ = [(name, ctypes.c_uint64) for name in
                 ("launches", "prepared_functions", "runtime_redirects", "requested_dynamic_bytes",
-                 "verified_dynamic_bytes", "static_shared_bytes", "device_optin_bytes")]
+                 "verified_dynamic_bytes", "static_shared_bytes", "device_optin_bytes",
+                 "first_launches")]
+        class BridgeFirstLaunch(ctypes.Structure):
+            _fields_ = [("monotonic_ns", ctypes.c_uint64), ("kernel", ctypes.c_char * 512)]
         accessor = ctypes.CDLL(None).pod_bridge_get_stats
         accessor.argtypes = [ctypes.POINTER(BridgeStats), ctypes.c_uint64]
         accessor.restype = ctypes.c_int
+        first_accessor = ctypes.CDLL(None).pod_bridge_get_first_launch
+        first_accessor.argtypes = [ctypes.POINTER(BridgeFirstLaunch), ctypes.c_uint64,
+                                   ctypes.c_uint64]
+        first_accessor.restype = ctypes.c_int
         def bridge_stats():
             stats = BridgeStats()
             if accessor(ctypes.byref(stats), ctypes.sizeof(stats)):
                 raise RuntimeError("launch bridge statistics ABI mismatch")
             return {name: getattr(stats, name) for name, _ in stats._fields_}
+        def bridge_first_launches():
+            count = bridge_stats()['first_launches']
+            records = []
+            for index in range(count):
+                record = BridgeFirstLaunch()
+                if first_accessor(ctypes.byref(record), ctypes.sizeof(record), index):
+                    raise RuntimeError("launch bridge first-launch record disappeared")
+                kernel = bytes(record.kernel).split(b'\0', 1)[0].decode('ascii')
+                if not kernel or record.monotonic_ns <= 0:
+                    raise RuntimeError("invalid launch bridge first-launch record")
+                records.append({'kernel': kernel, 'monotonic_ns': record.monotonic_ns})
+            extra = BridgeFirstLaunch()
+            if first_accessor(ctypes.byref(extra), ctypes.sizeof(extra), count) != 1:
+                raise RuntimeError("launch bridge first-launch count is not closed")
+            if len({record['kernel'] for record in records}) != len(records):
+                raise RuntimeError("duplicate launch bridge first-launch kernel")
+            return records
     elif os.environ.get("POD_LAUNCH_BRIDGE", "off") != "off":
         raise RuntimeError("official/inline arms must retain their original CUDA launch path")
 
@@ -279,10 +318,13 @@ def run_arm(args, result, output_file):
     torch.backends.cudnn.allow_tf32 = False
     device = torch.cuda.get_device_properties(0)
     result.update({"arm": args.arm, "block": args.block, "preflight": args.preflight,
+              "phase_study": args.phase_study,
               "torch": torch.__version__, "torch_cuda": torch.version.cuda,
               "device": device.name, "sm_count": device.multi_processor_count,
               "memory_bytes": device.total_memory, "cells": []})
-    shapes = shape_order(args.block, args.preflight)
+    shapes = shape_order(args.block, args.preflight or args.phase_study)
+    if args.phase_study and len(shapes) != 1:
+        raise RuntimeError("phase study must retain exactly one frozen operator shape")
     result["shape_order"] = shapes
     result["estimator"] = "arithmetic mean of all timed complete operator CUDA-event latencies"
     for name, bs in shapes:
@@ -460,8 +502,12 @@ def run_arm(args, result, output_file):
                        causal=True, fused_params=15)
 
         bridge_before = bridge_stats() if bridge_stats else None
+        if args.phase_study:
+            result['phase_timestamps']['pre_first_diagnostic_ns'] = time.monotonic_ns()
         outputs = operator()
         torch.cuda.synchronize()
+        if args.phase_study:
+            result['phase_timestamps']['post_first_sync_ns'] = time.monotonic_ns()
         error = check_pair(outputs, gold, 'diagnostic')
         diagnostic = None
         if pod_mode:
@@ -479,6 +525,8 @@ def run_arm(args, result, output_file):
             outputs = operator()
         torch.cuda.synchronize()
         error = max(error, check_pair(outputs, gold, 'warmup-10'))
+        if args.phase_study:
+            result['phase_timestamps']['warmup_done_ns'] = time.monotonic_ns()
         samples = []
         for _ in range(3 if args.preflight else 100):
             start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
@@ -500,8 +548,12 @@ def run_arm(args, result, output_file):
                 if errors.cpu().item() or sum(counts[:meta["nsmid"]]) != meta["grid_ctas"]:
                     raise RuntimeError("timed operator did not execute all device decisions")
             samples.append({"cuda_ms": elapsed_ms, "host_wall_ms": wall_ms})
+        if args.phase_study:
+            result['phase_timestamps']['steady_complete_ns'] = time.monotonic_ns()
         bridge = (audit_bridge(bridge_before, bridge_stats(), 1 + 10 + len(samples),
                               meta["smem_bytes"], pod_mode) if bridge_stats else None)
+        if bridge is not None and args.phase_study:
+            bridge['first_launches'] = bridge_first_launches()
         cell = {"numeric_protocol": NUMERIC_PROTOCOL, "fp32_characterization": reference_stats,
                 "model": name, "kv_heads": hkv, "query_heads": 32, "head_dim": 128,
                 "prefill_batch": 1, "prefill_length": 8192, "decode_batch": bs,
@@ -527,12 +579,14 @@ def main():
     parser.add_argument("--arm", choices=ARMS, required=True)
     parser.add_argument("--block", type=int, choices=range(1, 6), default=1)
     parser.add_argument("--preflight", action="store_true")
+    parser.add_argument("--phase-study", action="store_true",
+                        help="one-shape fresh-process setup/first-launch/steady decomposition")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     # Refuse replacement before importing CUDA. Persist failure, never a silent None/-1.
     with args.output.open("x") as out:
         result = {"complete": False, "numeric_protocol": NUMERIC_PROTOCOL, "arm": args.arm, "block": args.block,
-                  "preflight": args.preflight, "cells": []}
+                  "preflight": args.preflight, "phase_study": args.phase_study, "cells": []}
         try:
             run_arm(args, result, out)
         except BaseException as exc:

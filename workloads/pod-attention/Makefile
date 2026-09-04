@@ -66,4 +66,4 @@ test: cpu
 	taskset -c $(CPUSET) build/test-launch-bridge
 	taskset -c $(CPUSET) $(PYTHON) test_ptx_adapter.py
 	taskset -c $(CPUSET) $(PYTHON) test_bench.py
-	taskset -c $(CPUSET) $(PYTHON) -m unittest test_ptx_prune test_ptx_partition test_prepare_ptx test_host_link test_run_study
+	taskset -c $(CPUSET) $(PYTHON) -m unittest test_ptx_prune test_ptx_partition test_prepare_ptx test_host_link test_run_study test_phase_study

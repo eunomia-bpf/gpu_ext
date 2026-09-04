@@ -30,6 +30,10 @@ SERVER = BPFTIME / 'runtime/syscall-server/libbpftime-syscall-server.so'
 PYTHON = HERE.parent / 'moe-infinity/.venv/bin/python'
 BRIDGE = HERE / 'build/libpod_launch_bridge.so'
 TIMEOUT = 1800
+OPERATOR_PHASE_KEYS = ('process_main_ns', 'stdlib_imports_done_ns',
+                       'runtime_imports_start_ns', 'runtime_imports_done_ns',
+                       'pre_first_diagnostic_ns', 'post_first_sync_ns',
+                       'warmup_done_ns', 'steady_complete_ns')
 
 
 def orders(mode):
@@ -116,14 +120,28 @@ def require_no_build():
         raise RuntimeError(f'CPU compilation must finish before GPU measurement: {active}')
 
 
-def validate_report(report, arm, block, preflight):
-    expected = bench.shape_order(block, preflight)
+def ordered_monotonic_ns(record, keys):
+    values = [record.get(key) for key in keys]
+    if any(type(value) is not int or value <= 0 for value in values):
+        raise ValueError('missing/non-integer monotonic phase timestamp')
+    if values != sorted(values):
+        raise ValueError('monotonic phase timestamps are out of order')
+    return values
+
+
+def validate_report(report, arm, block, preflight, phase_study=False):
+    expected = bench.shape_order(block, preflight or phase_study)
     if (report.get('complete') is not True or report.get('numeric_protocol') != bench.NUMERIC_PROTOCOL
             or 'error' in report or report.get('arm') != arm
             or report.get('block') != block or report.get('preflight') is not preflight
+            or report.get('phase_study', False) is not phase_study
             or report.get('shape_order') != [list(x) for x in expected]
             or [(c['model'], c['decode_batch']) for c in report.get('cells', [])] != expected):
         raise ValueError('incomplete/wrong operator result or shape order')
+    if phase_study:
+        if set(report.get('phase_timestamps', {})) != set(OPERATOR_PHASE_KEYS):
+            raise ValueError('phase study has missing/extra operator timestamps')
+        ordered_monotonic_ns(report['phase_timestamps'], OPERATOR_PHASE_KEYS)
     for cell in report['cells']:
         settings = dict(numeric_protocol=bench.NUMERIC_PROTOCOL, kv_heads=bench.MODEL_HEADS[cell['model']], query_heads=32, head_dim=128,
             prefill_batch=1, prefill_length=8192, decode_query_length=1, decode_cache_extent=8192,
@@ -181,6 +199,17 @@ def validate_report(report, arm, block, preflight):
                 bridge = cell['launch_bridge']
                 bench.audit_bridge(bridge['before'], bridge['after'], 11 + len(samples),
                                    meta['smem_bytes'], arm.removeprefix('pod_'))
+                if phase_study:
+                    launches = bridge.get('first_launches', [])
+                    if (len(launches) != 1
+                            or bridge['after'].get('first_launches', 0)
+                               - bridge['before'].get('first_launches', 0) != 1
+                            or launches[0].get('kernel', '').find('true_fused_tb_fwd_kernel') < 0
+                            or type(launches[0].get('monotonic_ns')) is not int
+                            or not report['phase_timestamps']['pre_first_diagnostic_ns']
+                                   <= launches[0]['monotonic_ns']
+                                   <= report['phase_timestamps']['post_first_sync_ns']):
+                        raise ValueError('fixed-shape first kernel launch is missing or out of phase')
             elif cell['launch_bridge'] is not None:
                 raise ValueError('inline baseline unexpectedly used launch injection')
         elif cell['diagnostic'] is not None or cell['launch_bridge'] is not None or cell['fused_params'] is not None:
@@ -211,13 +240,32 @@ def remove_owned_segment(path, identity):
     return True
 
 
-def run_cell(directory, specification, mode, extraction, runtime_paths, campaign_runtime):
+def validate_phase_execution(result, report, arm):
+    phase = result.get('phase_timestamps', {})
+    common = ('cell_start_ns', 'client_spawn_ns', 'client_exit_ns',
+              'cleanup_complete_ns')
+    ordered_monotonic_ns(phase, common)
+    if arm == 'pod_bpf':
+        ordered_monotonic_ns(phase, ('cell_start_ns', 'loader_spawn_ns',
+                                    'loader_ready_ns', 'client_spawn_ns'))
+    elif phase.get('loader_spawn_ns') is not None or phase.get('loader_ready_ns') is not None:
+        raise ValueError('non-BPF phase arm unexpectedly started a policy loader')
+    operator = ordered_monotonic_ns(report['phase_timestamps'], OPERATOR_PHASE_KEYS)
+    if not phase['client_spawn_ns'] <= operator[0] <= operator[-1] <= phase['client_exit_ns']:
+        raise ValueError('operator timestamps escape the fresh client lifetime')
+    return result
+
+
+def run_cell(directory, specification, mode, extraction, runtime_paths, campaign_runtime,
+             phase_study=False):
     directory.mkdir()
     arm, block = specification['arm'], specification['block']
     command = ['taskset', '-c', '8-15', str(PYTHON), str(HERE / 'bench.py'), '--arm', arm,
                '--block', str(block), '--output', str(directory / 'operator.json')]
     if mode == 'preflight':
         command.append('--preflight')
+    if phase_study:
+        command.append('--phase-study')
     name = f'pod_attention_{os.getpid()}_{time.monotonic_ns()}' if arm == 'pod_bpf' else None
     segment = Path('/dev/shm') / name if name else None
     target_env = environment(arm, extraction, name)
@@ -227,10 +275,16 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
         # Pin the wrapper before loading any agent. Preloading taskset would
         # initialize bpftime before its main/affinity/exec, then again in Python.
         command[3:3] = ['/usr/bin/env', 'LD_PRELOAD=' + preload]
-    client = loader = telemetry = before = identity = None
+    client = loader = telemetry = before = identity = operator_report = None
     streams, cleanup = [], []
     result = dict(status='failed', numeric_protocol=bench.NUMERIC_PROTOCOL, **specification, command=command, timeout_seconds=TIMEOUT,
-                  environment=target_env, launch_environment=launch_env, private_segment=name)
+                  environment=target_env, launch_environment=launch_env, private_segment=name,
+                  phase_study=phase_study)
+    if phase_study:
+        result['phase_timestamps'] = dict(cell_start_ns=time.monotonic_ns(),
+                                          loader_spawn_ns=None, loader_ready_ns=None,
+                                          client_spawn_ns=None, client_exit_ns=None,
+                                          cleanup_complete_ns=None)
     try:
         require_no_build()
         result['runtime_before'] = file_inventory(runtime_paths)
@@ -252,17 +306,29 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
                               str(extraction / 'exact-kernels.txt')]
             loader_env = environment(arm, extraction, name, loader=True)
             result.update(loader_command=loader_command, loader_environment=loader_env)
+            if phase_study:
+                result['phase_timestamps']['loader_spawn_ns'] = time.monotonic_ns()
             loader = subprocess.Popen(loader_command, stdin=subprocess.PIPE, stdout=log,
                 stderr=subprocess.STDOUT, env=loader_env, start_new_session=True, cwd=HERE)
             deadline = time.monotonic() + 30
             while 'POD_LOADER_READY kernels=6\n' not in (directory / 'loader.log').read_text():
+                if identity is None:
+                    try:
+                        identity = segment_identity(segment)
+                    except FileNotFoundError:
+                        pass
                 if loader.poll() is not None or time.monotonic() >= deadline:
                     raise RuntimeError('private BPF loader did not become ready')
                 time.sleep(.1)
-            identity = segment_identity(segment)
+            if identity is None:
+                identity = segment_identity(segment)
+            if phase_study:
+                result['phase_timestamps']['loader_ready_ns'] = time.monotonic_ns()
         log = (directory / 'client.log').open('x')
         streams.append(log)
         started = time.monotonic()
+        if phase_study:
+            result['phase_timestamps']['client_spawn_ns'] = time.monotonic_ns()
         client = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
             env=launch_env, start_new_session=True, cwd=HERE)
         while client.poll() is None:
@@ -271,10 +337,13 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
             if loader is not None and loader.poll() is not None:
                 raise RuntimeError('private loader exited while CUDA client was alive')
             time.sleep(.2)
+        if phase_study:
+            result['phase_timestamps']['client_exit_ns'] = time.monotonic_ns()
         result.update(returncode=client.returncode, process_wall_seconds=time.monotonic() - started)
         if client.returncode:
             raise RuntimeError(f'operator client exited {client.returncode}')
-        validate_report(json.loads((directory / 'operator.json').read_text()), arm, block, mode == 'preflight')
+        operator_report = json.loads((directory / 'operator.json').read_text())
+        validate_report(operator_report, arm, block, mode == 'preflight', phase_study)
         result['status'] = 'passed'
     except BaseException as error:
         result['error'] = f'{type(error).__name__}: {error}'
@@ -301,12 +370,15 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
             except BaseException as error:
                 cleanup.append(str(error))
         try:
-            if segment is not None and loader is not None:
+            if segment is not None:
                 if any(p is not None and shared.group_members(p.pid) for p in (client, loader)):
                     raise RuntimeError('owned processes survive; refusing private segment removal')
-                if identity is None and segment.exists():
-                    identity = segment_identity(segment)
-                result['private_segment_removed'] = remove_owned_segment(segment, identity)
+                if identity is None:
+                    if segment.exists() or segment.is_symlink():
+                        raise RuntimeError('unidentified private segment survived; refusing removal')
+                    result['private_segment_removed'] = False
+                else:
+                    result['private_segment_removed'] = remove_owned_segment(segment, identity)
                 if segment.exists() or segment.is_symlink():
                     raise RuntimeError('private loader segment survived cleanup')
         except BaseException as error:
@@ -336,6 +408,13 @@ def run_cell(directory, specification, mode, extraction, runtime_paths, campaign
                 result['telemetry'] = safety.validate_gpu_telemetry(telemetry_path, allow_fixed_power_cap=True)
         except BaseException as error:
             cleanup.append(str(error))
+        if phase_study:
+            result['phase_timestamps']['cleanup_complete_ns'] = time.monotonic_ns()
+            if result.get('status') == 'passed' and not cleanup:
+                try:
+                    validate_phase_execution(result, operator_report, arm)
+                except BaseException as error:
+                    cleanup.append(str(error))
         if cleanup:
             result.update(status='failed', cleanup_errors=cleanup)
         safety.atomic_write_json(directory / 'execution.json', result)

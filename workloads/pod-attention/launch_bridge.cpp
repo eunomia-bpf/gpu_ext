@@ -8,9 +8,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <dlfcn.h>
 #include <map>
 #include <mutex>
+#include <optional>
+#include <string>
 #include <tuple>
 
 namespace {
@@ -46,23 +49,31 @@ void check(CUresult code, const char *operation) {
     if (code != CUDA_SUCCESS) fail(operation, int(code));
 }
 
-bool is_pod(CUfunction function) {
+std::optional<std::string> pod_kernel_name(CUfunction function) {
     static auto get_name = next_symbol<decltype(&cuFuncGetName)>("cuFuncGetName");
     const char *name = nullptr;
     check(get_name(&name, function), "cuFuncGetName");
     if (!name) fail("null CUfunction name");
-    return std::strstr(name, "true_fused_tb_fwd_kernel") != nullptr;
+    if (!std::strstr(name, "true_fused_tb_fwd_kernel")) return std::nullopt;
+    return std::string(name);
+}
+
+uint64_t monotonic_ns() {
+    timespec value{};
+    if (clock_gettime(CLOCK_MONOTONIC, &value)) fail("clock_gettime");
+    return uint64_t(value.tv_sec) * 1000000000ULL + uint64_t(value.tv_nsec);
 }
 
 struct Attributes { int dynamic_bytes, static_bytes, device_bytes; };
 struct State {
     std::mutex mutex;
     std::map<std::tuple<uintptr_t, uintptr_t>, Attributes> prepared;
+    std::map<std::string, uint64_t> first_launch_ns;
     PodBridgeStats stats{};
 };
 State &state() { static State value; return value; }
 
-void prepare(CUfunction function, unsigned bytes) {
+bool prepare(CUfunction function, unsigned bytes, const std::string &kernel) {
     static auto get_context = next_symbol<decltype(&cuCtxGetCurrent)>("cuCtxGetCurrent");
     static auto get_device = next_symbol<decltype(&cuCtxGetDevice)>("cuCtxGetDevice");
     static auto device_attr = next_symbol<decltype(&cuDeviceGetAttribute)>("cuDeviceGetAttribute");
@@ -117,6 +128,7 @@ void prepare(CUfunction function, unsigned bytes) {
     s.stats.verified_dynamic_bytes = a.dynamic_bytes;
     s.stats.static_shared_bytes = a.static_bytes;
     s.stats.device_optin_bytes = a.device_bytes;
+    return s.first_launch_ns.find(kernel) == s.first_launch_ns.end();
 }
 
 using DriverLaunch = CUresult (CUDAAPI *)(CUfunction, unsigned, unsigned, unsigned,
@@ -124,17 +136,23 @@ using DriverLaunch = CUresult (CUDAAPI *)(CUfunction, unsigned, unsigned, unsign
 using RuntimeLaunch = cudaError_t (CUDARTAPI *)(const void *, dim3, dim3, void **, size_t, cudaStream_t);
 
 CUresult driver_launch(const char *symbol, CUfunction function, unsigned gx, unsigned gy, unsigned gz,
-                      unsigned bx, unsigned by, unsigned bz, unsigned bytes, CUstream stream,
+    unsigned bx, unsigned by, unsigned bz, unsigned bytes, CUstream stream,
                       void **args, void **extra) {
     auto original = next_symbol<DriverLaunch>(symbol);
-    bool pod = enabled() && is_pod(function);
-    if (pod) prepare(function, bytes);
+    auto kernel = enabled() ? pod_kernel_name(function) : std::nullopt;
+    bool needs_first_marker = kernel && prepare(function, bytes, *kernel);
+    uint64_t first_candidate_ns = needs_first_marker ? monotonic_ns() : 0;
     CUresult result = original(function, gx, gy, gz, bx, by, bz, bytes, stream, args, extra);
-    if (pod) {
+    if (kernel) {
         check(result, "cuLaunchKernel actual POD function");
         auto &s = state();
         std::lock_guard<std::mutex> guard(s.mutex);
         ++s.stats.launches;
+        auto [first, inserted] = s.first_launch_ns.emplace(*kernel, first_candidate_ns);
+        if (!inserted && first_candidate_ns && first_candidate_ns < first->second)
+            first->second = first_candidate_ns;
+        if (inserted)
+            s.stats.first_launches = s.first_launch_ns.size();
     }
     return result;
 }
@@ -163,7 +181,7 @@ cudaError_t runtime_launch(const char *symbol, const void *function, dim3 grid, 
     cudaError_t result = get_function(&actual, function);
     if (result != cudaSuccess) fail("cudaGetFuncBySymbol", int(result));
     if (!actual) fail("null registered CUDA function");
-    if (!is_pod(actual)) return original(function, grid, block, args, bytes, stream);
+    if (!pod_kernel_name(actual)) return original(function, grid, block, args, bytes, stream);
     if (bytes > UINT_MAX) fail("dynamic shared memory size overflow");
     {
         auto &s = state();
@@ -195,5 +213,20 @@ extern "C" int pod_bridge_get_stats(PodBridgeStats *out, uint64_t size) {
     auto &s = state();
     std::lock_guard<std::mutex> guard(s.mutex);
     *out = s.stats;
+    return 0;
+}
+
+extern "C" int pod_bridge_get_first_launch(PodBridgeFirstLaunch *out,
+                                             uint64_t size, uint64_t index) {
+    if (!out || size != sizeof(*out)) return -1;
+    auto &s = state();
+    std::lock_guard<std::mutex> guard(s.mutex);
+    if (index >= s.first_launch_ns.size()) return 1;
+    auto it = s.first_launch_ns.begin();
+    std::advance(it, index);
+    if (it->first.size() >= sizeof(out->kernel)) return -1;
+    std::memset(out, 0, sizeof(*out));
+    out->monotonic_ns = it->second;
+    std::memcpy(out->kernel, it->first.data(), it->first.size());
     return 0;
 }

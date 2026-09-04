@@ -81,6 +81,8 @@ int main() {
     assert(setenv("POD_LAUNCH_BRIDGE", "cuda", 1) == 0);
     launch(10);
     assert(sets == 1 && driver_calls == 1 && dynamic_bytes == 80 * 1024);
+    PodBridgeFirstLaunch first_once{};
+    assert(pod_bridge_get_first_launch(&first_once, sizeof(first_once), 0) == 0);
     launch(10);
     launch(10, 64 * 1024); // Never lower the opt-in for a smaller launch.
     assert(sets == 1 && dynamic_bytes == 80 * 1024);
@@ -93,8 +95,16 @@ int main() {
     PodBridgeStats stats{};
     assert(pod_bridge_get_stats(&stats, sizeof(stats)) == 0);
     assert(stats.launches == 6 && stats.prepared_functions == 2 && stats.runtime_redirects == 2);
+    assert(stats.first_launches == 1);
     assert(stats.requested_dynamic_bytes == 80 * 1024 && stats.verified_dynamic_bytes >= 80 * 1024);
     assert(pod_bridge_get_stats(&stats, sizeof(stats) - 1) == -1);
+    PodBridgeFirstLaunch first{};
+    assert(pod_bridge_get_first_launch(&first, sizeof(first), 0) == 0);
+    assert(first.monotonic_ns > 0);
+    assert(first.monotonic_ns == first_once.monotonic_ns);
+    assert(std::strcmp(first.kernel, "_Z_true_fused_tb_fwd_kernel_h128") == 0);
+    assert(pod_bridge_get_first_launch(&first, sizeof(first), 1) == 1);
+    assert(pod_bridge_get_first_launch(&first, sizeof(first) - 1, 0) == -1);
     must_fail([] { launch(20, 99 * 1024); }); // Static + dynamic exceeds sm_120 limit.
     must_fail([] { bad_set = true; launch(21); });
     must_fail([] { bad_readback = true; launch(22); });

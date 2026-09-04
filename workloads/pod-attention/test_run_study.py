@@ -176,7 +176,8 @@ class CoordinatorTests(unittest.TestCase):
                 run.require_no_build()
 
     def lifecycle(self, root, *, preexisting=False, loader_fails=False, changed_between_cells=False,
-                  closing_fails=False):
+                  closing_fails=False, loader_close_fails=False,
+                  unidentified_segment=False, phase_study=False):
         cell = root / 'cell'
         shm_root = root / 'shm'
         shm_root.mkdir()
@@ -198,12 +199,15 @@ class CoordinatorTests(unittest.TestCase):
             self.assertTrue(kwargs['start_new_session'])
             if 'libbpftime-syscall-server.so' in kwargs['env'].get('LD_PRELOAD', ''):
                 events.append('loader start')
-                segment.write_bytes(b'owned loader state')
+                if not unidentified_segment:
+                    segment.write_bytes(b'owned loader state')
                 kwargs['stdout'].write('failed\n' if loader_fails else 'POD_LOADER_READY kernels=6\n')
                 kwargs['stdout'].flush()
                 process = Process('loader', 1 if loader_fails else None)
                 def close():
                     events.append('loader stdin close')
+                    if loader_close_fails:
+                        raise OSError('test loader stdin close failure')
                     kwargs['stdout'].write('POD_LOADER_CLOSED\n')
                     kwargs['stdout'].flush()
                 process.stdin = SimpleNamespace(close=close)
@@ -213,12 +217,24 @@ class CoordinatorTests(unittest.TestCase):
             self.assertEqual(command[:5], ['taskset', '-c', '8-15', '/usr/bin/env',
                                           f'LD_PRELOAD={run.BRIDGE}:{run.AGENT}'])
             self.assertEqual(command[5], str(run.PYTHON))
-            (cell / 'operator.json').write_text(json.dumps(report()))
+            value = report()
+            if phase_study:
+                self.assertIn('--phase-study', command)
+                value['phase_study'] = True
+                value['phase_timestamps'] = {key: 12345 for key in run.OPERATOR_PHASE_KEYS}
+                bridge = value['cells'][0]['launch_bridge']
+                bridge['before']['first_launches'] = 0
+                bridge['after']['first_launches'] = 1
+                bridge['first_launches'] = [dict(
+                    kernel='_Z_true_fused_tb_fwd_kernel_fixture', monotonic_ns=12345)]
+            (cell / 'operator.json').write_text(json.dumps(value))
             return Process('client', 0)
         def stop(process):
             if process is not None:
                 events.append(process.kind + ' stop')
                 process.returncode = process.returncode or 0
+                if process.kind == 'loader' and unidentified_segment:
+                    segment.write_bytes(b'unidentified replacement')
         def json_write(path, value):
             path.write_text(json.dumps(value))
         snapshot = {'gpu': {'driver': '575.57.08'}}
@@ -245,11 +261,14 @@ class CoordinatorTests(unittest.TestCase):
             stack.enter_context(patch.object(run.safety, 'start_gpu_telemetry',
                 return_value=(Process('telemetry'), stream, root / 'telemetry.txt')))
             frozen = {'old_binary': 1} if changed_between_cells else {'binary': 1}
-            if preexisting or loader_fails or changed_between_cells or closing_fails:
+            if (preexisting or loader_fails or changed_between_cells or closing_fails
+                    or loader_close_fails or unidentified_segment):
                 with self.assertRaises(RuntimeError):
-                    run.run_cell(cell, {'block': 1, 'arm': 'pod_bpf'}, 'preflight', Path('/ptx'), [], frozen)
+                    run.run_cell(cell, {'block': 1, 'arm': 'pod_bpf'}, 'preflight', Path('/ptx'), [], frozen,
+                                 phase_study=phase_study)
             else:
-                run.run_cell(cell, {'block': 1, 'arm': 'pod_bpf'}, 'preflight', Path('/ptx'), [], frozen)
+                run.run_cell(cell, {'block': 1, 'arm': 'pod_bpf'}, 'preflight', Path('/ptx'), [], frozen,
+                             phase_study=phase_study)
         return events, segment, json.loads((cell / 'execution.json').read_text())
 
     def test_loader_is_kept_until_client_exit_and_exact_segment_is_removed(self):
@@ -264,6 +283,16 @@ class CoordinatorTests(unittest.TestCase):
                              execution['environment'])
             self.assertTrue(execution['private_segment_removed'])
             self.assertFalse(segment.exists())
+
+    def test_phase_cell_uses_fresh_client_flag_and_persists_cross_process_markers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, _, execution = self.lifecycle(Path(directory), phase_study=True)
+            self.assertEqual(execution['status'], 'passed')
+            self.assertTrue(execution['phase_study'])
+            self.assertIn('--phase-study', execution['command'])
+            self.assertEqual(set(execution['phase_timestamps']), {
+                'cell_start_ns', 'loader_spawn_ns', 'loader_ready_ns',
+                'client_spawn_ns', 'client_exit_ns', 'cleanup_complete_ns'})
 
     def test_existing_segment_is_never_started_over_or_removed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -280,6 +309,23 @@ class CoordinatorTests(unittest.TestCase):
             self.assertFalse(segment.exists())
             self.assertEqual(execution['status'], 'failed')
             self.assertIn('private BPF loader did not become ready', execution['error'])
+
+    def test_loader_close_failure_still_removes_only_its_captured_segment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            events, segment, execution = self.lifecycle(Path(directory), loader_close_fails=True)
+            self.assertIn('loader stdin close', events)
+            self.assertFalse(segment.exists())
+            self.assertEqual(execution['status'], 'failed')
+            self.assertIn('test loader stdin close failure', execution['cleanup_errors'])
+
+    def test_cleanup_never_adopts_a_segment_that_was_not_identified_while_loader_alive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, segment, execution = self.lifecycle(Path(directory), loader_fails=True,
+                                                   unidentified_segment=True)
+            self.assertEqual(segment.read_bytes(), b'unidentified replacement')
+            self.assertEqual(execution['status'], 'failed')
+            self.assertTrue(any('unidentified private segment' in error
+                                for error in execution['cleanup_errors']))
 
     def test_change_between_cells_is_rejected_before_any_gpu_activity(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -4,8 +4,10 @@
 #include <string.h>
 
 #include "clock_domain.h"
+#include "rm_ptimer_575.h"
 
 int main() {
+    assert(rm_ptimer_575_self_test() == 0);
     clock_calibration_t calibration = {};
     assert(consider_clock_calibration_sample(&calibration, 1250, 1000, 1100));
     assert(calibration.offset_low_ns == 150);

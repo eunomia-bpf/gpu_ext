@@ -15,6 +15,7 @@
 
 #include "clock_domain.h"
 #include "common.h"
+#include "rm_ptimer_575.h"
 #include "nvbit.h"
 #include "nvbit_tool.h"
 #include "utils/channel.hpp"
@@ -31,9 +32,8 @@ struct context_state_t {
     ChannelHost channel_host;
     CUmodule tool_module = nullptr;
     CUfunction flush_channel_func = nullptr;
-    CUfunction clock_sample_func = nullptr;
-    uint64_t* clock_sample = nullptr;
     clock_calibration_t* start_calibration = nullptr;
+    struct rm_calibration_run* start_rm = nullptr;
     launch_pair_t* launch_pairs = nullptr;
     uint64_t* device_launch_entries = nullptr;
     uint64_t* launch_capture_errors = nullptr;
@@ -45,6 +45,14 @@ struct context_state_t {
     uint64_t exit_bad_size_bytes = 0;
     volatile recv_state_t recv_state = recv_state_t::INIT;
     bool saw_selected_launch = false;
+};
+
+struct rm_calibration_run {
+    uint64_t requested = 0;
+    uint64_t accepted = 0;
+    uint64_t rejected = 0;
+    uint64_t cleanup_complete = 0;
+    struct rm_ptimer_575_sample best = {};
 };
 
 #include "tool_func/flush_channel.c"
@@ -176,9 +184,9 @@ static void print_exit_validation(const context_state_t* state,
             passed ? 1U : 0U);
 }
 
-static bool monotonic_ns(uint64_t* value) {
+static bool monotonic_raw_ns(uint64_t* value) {
     struct timespec ts;
-    if (value == nullptr || clock_gettime(CLOCK_MONOTONIC, &ts) != 0 ||
+    if (value == nullptr || clock_gettime(CLOCK_MONOTONIC_RAW, &ts) != 0 ||
         ts.tv_sec < 0 || ts.tv_nsec < 0 || ts.tv_nsec >= 1000000000L ||
         static_cast<uint64_t>(ts.tv_sec) >
             UINT64_MAX / 1000000000ULL) {
@@ -189,54 +197,49 @@ static bool monotonic_ns(uint64_t* value) {
     return true;
 }
 
-static bool sample_gpu_clock(CUcontext ctx, context_state_t* state,
-                             uint64_t* gpu_ns, uint64_t* host_before_ns,
-                             uint64_t* host_after_ns) {
-    if (state == nullptr || state->clock_sample_func == nullptr ||
-        state->clock_sample == nullptr || gpu_ns == nullptr ||
-        cudaMemset(state->clock_sample, 0, sizeof(*state->clock_sample)) !=
-            cudaSuccess ||
-        cudaDeviceSynchronize() != cudaSuccess ||
-        !monotonic_ns(host_before_ns)) {
-        return false;
-    }
-    void* args[] = {&state->clock_sample};
-    if (nvbit_launch_kernel(ctx, state->clock_sample_func, 1, 1, 1, 1, 1, 1,
-                            0, nullptr, args, nullptr) != CUDA_SUCCESS ||
-        cudaDeviceSynchronize() != cudaSuccess ||
-        !monotonic_ns(host_after_ns)) {
-        return false;
-    }
-    *gpu_ns = *state->clock_sample;
-    return *gpu_ns != 0;
-}
-
-static bool calibrate_gpu_clock(CUcontext ctx, context_state_t* state,
-                                clock_calibration_t* calibration) {
-    if (calibration == nullptr) {
+static bool calibrate_gpu_clock(clock_calibration_t* calibration,
+                                rm_calibration_run* run) {
+    if (calibration == nullptr || run == nullptr) {
         return false;
     }
     *calibration = {};
-    uint64_t gpu_ns;
-    uint64_t host_before_ns;
-    uint64_t host_after_ns;
+    *run = {};
+    run->requested = CALIBRATION_TRIALS;
+    rm_ptimer_575_client client;
+    rm_ptimer_575_client_init(&client);
+    if (rm_ptimer_575_open(&client) != 0) {
+        return false;
+    }
     for (uint32_t trial = 0; trial < CALIBRATION_WARMUPS; trial++) {
-        if (!sample_gpu_clock(ctx, state, &gpu_ns, &host_before_ns,
-                              &host_after_ns)) {
+        struct rm_ptimer_575_sample sample = {};
+        if (rm_ptimer_575_sample(&client, &sample) != 0) {
+            run->cleanup_complete = rm_ptimer_575_close(&client) == 0;
             return false;
         }
     }
     for (uint32_t trial = 0; trial < CALIBRATION_TRIALS; trial++) {
-        if (!sample_gpu_clock(ctx, state, &gpu_ns, &host_before_ns,
-                              &host_after_ns) ||
-            !consider_clock_calibration_sample(calibration, gpu_ns,
-                                               host_before_ns,
-                                               host_after_ns)) {
-            *calibration = {};
+        struct rm_ptimer_575_sample sample = {};
+        if (rm_ptimer_575_sample(&client, &sample) != 0) {
+            run->rejected++;
+            run->cleanup_complete = rm_ptimer_575_close(&client) == 0;
             return false;
         }
+        run->accepted++;
+        if (run->accepted == 1 ||
+            sample.bracket_width_ns < run->best.bracket_width_ns) {
+            run->best = sample;
+            calibration->offset_low_ns = sample.offset_low_ns;
+            calibration->offset_high_ns = sample.offset_high_ns;
+            calibration->uncertainty_ns = sample.bracket_width_ns / 2 +
+                                          sample.bracket_width_ns % 2;
+            calibration->host_anchor_ns = sample.cpu_before_raw_ns +
+                                          sample.selected_gap_ns / 2;
+            calibration->valid = 1;
+        }
     }
-    return clock_calibration_valid(*calibration);
+    run->cleanup_complete = rm_ptimer_575_close(&client) == 0;
+    return run->cleanup_complete && run->accepted == run->requested &&
+           run->rejected == 0 && clock_calibration_valid(*calibration);
 }
 
 static bool wait_for_minimum_clock_span(
@@ -245,21 +248,24 @@ static bool wait_for_minimum_clock_span(
     if (!minimum_end_calibration_deadline(start_calibration, &deadline_ns)) {
         return false;
     }
-    struct timespec deadline = {};
-    deadline.tv_sec =
-        static_cast<time_t>(deadline_ns / 1000000000ULL);
-    deadline.tv_nsec =
-        static_cast<long>(deadline_ns % 1000000000ULL);
-    int error;
-    do {
-        error = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline,
-                                nullptr);
-    } while (error == EINTR);
-    return error == 0;
+    for (;;) {
+        uint64_t now_ns;
+        if (!monotonic_raw_ns(&now_ns)) return false;
+        if (now_ns >= deadline_ns) return true;
+        const uint64_t remaining = deadline_ns - now_ns;
+        struct timespec delay = {
+            static_cast<time_t>(remaining / 1000000000ULL),
+            static_cast<long>(remaining % 1000000000ULL),
+        };
+        while (nanosleep(&delay, &delay) != 0) {
+            if (errno != EINTR) return false;
+        }
+    }
 }
 
 static void print_clock_calibration(
-    const char* phase, const clock_calibration_t& calibration) {
+    const char* phase, const clock_calibration_t& calibration,
+    const rm_calibration_run& run) {
     fprintf(stderr, "NVBIT launchlate %s_clock_offset_lower_ns=%lld\n", phase,
             static_cast<long long>(calibration.offset_low_ns));
     fprintf(stderr, "NVBIT launchlate %s_clock_offset_upper_ns=%lld\n", phase,
@@ -270,6 +276,32 @@ static void print_clock_calibration(
             static_cast<unsigned long long>(calibration.host_anchor_ns));
     fprintf(stderr, "NVBIT launchlate %s_clock_calibration_valid=%llu\n", phase,
             static_cast<unsigned long long>(calibration.valid));
+    fprintf(stderr, "NVBIT launchlate %s_rm_samples_requested=%llu\n", phase,
+            static_cast<unsigned long long>(run.requested));
+    fprintf(stderr, "NVBIT launchlate %s_rm_samples_accepted=%llu\n", phase,
+            static_cast<unsigned long long>(run.accepted));
+    fprintf(stderr, "NVBIT launchlate %s_rm_samples_rejected=%llu\n", phase,
+            static_cast<unsigned long long>(run.rejected));
+    fprintf(stderr, "NVBIT launchlate %s_rm_outer_before_raw_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.outer_before_raw_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_cpu_before_raw_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.cpu_before_raw_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_gpu_ptimer_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.gpu_ptimer_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_cpu_after_raw_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.cpu_after_raw_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_outer_after_raw_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.outer_after_raw_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_outer_width_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.outer_width_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_selected_gap_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.selected_gap_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_bracket_width_ns=%llu\n", phase,
+            static_cast<unsigned long long>(run.best.bracket_width_ns));
+    fprintf(stderr, "NVBIT launchlate %s_rm_status=%u\n", phase,
+            run.best.rm_status);
+    fprintf(stderr, "NVBIT launchlate %s_rm_cleanup_complete=%llu\n", phase,
+            static_cast<unsigned long long>(run.cleanup_complete));
 }
 
 static bool exact_sample_accounting(uint64_t selected, uint64_t classified,
@@ -297,7 +329,7 @@ static void print_launchlate_results(
             continue;
         }
         const launch_sample_status_t status = classify_affine_launch_latency(
-            pair.host_mono_ns, pair.gpu_entry_ns, *state->start_calibration,
+            pair.host_raw_ns, pair.gpu_entry_ns, *state->start_calibration,
             end_calibration, &bin);
         if (status == LAUNCH_SAMPLE_CLASSIFIED) {
             histogram[bin]++;
@@ -498,17 +530,13 @@ void nvbit_at_ctx_init(CUcontext ctx) {
     pthread_mutex_lock(&state_mutex);
     auto* state = new context_state_t;
     contexts[ctx] = state;
-    if (mode == OBS_KERNELRETSNOOP || mode == OBS_LAUNCHLATE) {
+    if (mode == OBS_KERNELRETSNOOP) {
         nvbit_load_tool_module(ctx, reinterpret_cast<const void*>(flush_channel_bin),
                                &state->tool_module);
     }
     if (mode == OBS_KERNELRETSNOOP) {
         nvbit_find_function_by_name(ctx, state->tool_module, "flush_channel",
                                     &state->flush_channel_func);
-    } else if (mode == OBS_LAUNCHLATE) {
-        nvbit_find_function_by_name(ctx, state->tool_module,
-                                    "sample_globaltimer",
-                                    &state->clock_sample_func);
     }
     pthread_mutex_unlock(&state_mutex);
 }
@@ -543,17 +571,17 @@ void nvbit_tool_init(CUcontext ctx) {
                                 sizeof(uint64_t)));
         CUDA_SAFECALL(cudaMemset(state->launch_capture_errors, 0,
                                 sizeof(uint64_t)));
-        CUDA_SAFECALL(cudaMallocManaged(&state->clock_sample,
-                                       sizeof(uint64_t)));
         CUDA_SAFECALL(cudaMallocManaged(&state->start_calibration,
                                        sizeof(clock_calibration_t)));
+        state->start_rm = new rm_calibration_run;
         const bool calibrated =
-            calibrate_gpu_clock(ctx, state, state->start_calibration);
+            calibrate_gpu_clock(state->start_calibration, state->start_rm);
         fprintf(stderr,
                 "NVBIT launchlate clock_calibration_method="
-                "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_"
+                "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_"
                 "with_affine_interpolation_and_drift_bound\n");
-        print_clock_calibration("start", *state->start_calibration);
+        print_clock_calibration("start", *state->start_calibration,
+                                *state->start_rm);
         if (!calibrated) {
             fprintf(stderr,
                     "NVBIT_OBS error: launchlate start clock calibration "
@@ -580,11 +608,11 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
         if (!is_exit) {
             instrument_selected(ctx, func, state);
             if (mode == OBS_LAUNCHLATE) {
-                uint64_t launch_mono_ns = 0;
+                uint64_t launch_raw_ns = 0;
                 uint64_t pair_ptr = 0;
-                if (!monotonic_ns(&launch_mono_ns)) {
+                if (!monotonic_raw_ns(&launch_raw_ns)) {
                     fprintf(stderr,
-                            "NVBIT_OBS error: CLOCK_MONOTONIC read failed\n");
+                            "NVBIT_OBS error: CLOCK_MONOTONIC_RAW read failed\n");
                 }
                 if (state->selected_launches == UINT64_MAX) {
                     state->selected_launch_counter_overflow = true;
@@ -592,7 +620,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                     const uint64_t index = state->selected_launches++;
                     if (index < LAUNCH_PAIR_CAPACITY) {
                         launch_pair_t* pair = &state->launch_pairs[index];
-                        pair->host_mono_ns = launch_mono_ns;
+                        pair->host_raw_ns = launch_raw_ns;
                         pair->gpu_entry_ns = 0;
                         pair->sequence = index + 1;
                         state->stored_launch_pairs++;
@@ -654,12 +682,13 @@ void nvbit_at_ctx_term(CUcontext ctx) {
                 static_cast<unsigned long long>(total));
     } else if (mode == OBS_LAUNCHLATE && state->launch_pairs != nullptr) {
         clock_calibration_t end_calibration = {};
+        rm_calibration_run end_rm = {};
         clock_drift_t drift = {};
         const bool minimum_span_ready =
             state->start_calibration != nullptr &&
             wait_for_minimum_clock_span(*state->start_calibration);
         const bool end_calibrated = minimum_span_ready &&
-            calibrate_gpu_clock(ctx, state, &end_calibration);
+            calibrate_gpu_clock(&end_calibration, &end_rm);
         const bool drift_measured =
             end_calibrated && state->start_calibration != nullptr &&
             clock_calibration_drift(*state->start_calibration,
@@ -668,7 +697,7 @@ void nvbit_at_ctx_term(CUcontext ctx) {
             drift_measured &&
             drift.elapsed_ns >= CLOCK_MIN_CALIBRATION_SPAN_NS &&
             drift.bounded;
-        print_clock_calibration("end", end_calibration);
+        print_clock_calibration("end", end_calibration, end_rm);
         fprintf(stderr,
                 "NVBIT launchlate clock_offset_change_lower_ns=%lld\n",
                 static_cast<long long>(drift.offset_change_low_ns));
@@ -703,12 +732,10 @@ void nvbit_at_ctx_term(CUcontext ctx) {
             static_cast<unsigned long long>(exit_records.load()),
             static_cast<unsigned long long>(nonzero_timestamps.load()));
 
-    if (state->clock_sample != nullptr) {
-        CUDA_SAFECALL(cudaFree(state->clock_sample));
-    }
     if (state->start_calibration != nullptr) {
         CUDA_SAFECALL(cudaFree(state->start_calibration));
     }
+    delete state->start_rm;
     if (state->launch_pairs != nullptr) {
         CUDA_SAFECALL(cudaFree(state->launch_pairs));
     }

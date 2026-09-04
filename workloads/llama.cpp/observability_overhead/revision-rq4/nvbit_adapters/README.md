@@ -14,19 +14,21 @@ NVBit 1.8 core. They deliberately instrument only the exact mangled kernel in
 - `threadhist`: inject before every `EXIT`, check its execution predicate, increment the full
   configured logical-thread array, and report its nonzero entries and total at
   context termination. Per-thread increments match gpubpf's non-atomic semantics.
-- `launchlate`: bracket real `%globaltimer` reads with `CLOCK_MONOTONIC` before
-  and after observation. Each selected host callback reserves one bounded
+- `launchlate`: timestamp each selected host callback with
+  `CLOCK_MONOTONIC_RAW` and correlate that clock to PTIMER using the versioned
+  NVIDIA 575 RM `endpoints-v1` zipper. Each selected callback reserves one bounded
   managed record and passes its pointer through NVBit's per-launch argument;
   block/thread zero writes the matching GPU-entry timestamp. After device
   synchronization, the host interpolates the conservative offset interval
-  between both calibration anchors and builds the authoritative histogram from
+  between both narrow RM anchors, evaluates both endpoints in the PTIMER
+  domain, and builds the authoritative histogram from
   those retained raw pairs. Capacity exhaustion, a missing device entry, or a
   wholly negative latency interval is a clock error; only an interval that
   overlaps zero or a bin boundary is uncertain. The validity gate requires
   exact selected/classified/uncertain/error accounting, no clock errors, at
   most 10% uncertainty, and endpoint drift no greater than 10,000 ppb. This is
   measured across an unconditional minimum one-second anchor span so that a
-  sub-second workload does not turn the microsecond-scale endpoint bracket
+  sub-second workload does not turn the endpoint bracket
   width into an unresolvable drift-rate bound. The longer span does not change
   the 10,000 ppb limit, histogram bins, or 10% uncertainty gate, and it does not
   guarantee that a genuinely drifting clock will pass. This is the closest

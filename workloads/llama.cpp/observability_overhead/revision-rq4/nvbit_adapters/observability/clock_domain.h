@@ -151,16 +151,16 @@ static inline bool clock_calibration_drift(
 }
 
 OBS_HOST_DEVICE static inline launch_sample_status_t classify_launch_latency(
-    uint64_t host_mono_ns, uint64_t gpu_ns,
+    uint64_t host_raw_ns, uint64_t gpu_ns,
     const clock_calibration_t& calibration, uint32_t* bin) {
-    if (bin == nullptr || host_mono_ns == 0 || gpu_ns == 0 ||
-        host_mono_ns > INT64_MAX || gpu_ns > INT64_MAX ||
+    if (bin == nullptr || host_raw_ns == 0 || gpu_ns == 0 ||
+        host_raw_ns > INT64_MAX || gpu_ns > INT64_MAX ||
         !clock_calibration_valid(calibration)) {
         return LAUNCH_SAMPLE_CLOCK_ERROR;
     }
 
     const int64_t observed_ns = static_cast<int64_t>(gpu_ns) -
-                                static_cast<int64_t>(host_mono_ns);
+                                static_cast<int64_t>(host_raw_ns);
     int64_t latency_low_ns;
     int64_t latency_high_ns;
     if (!subtract_i64(observed_ns, calibration.offset_high_ns,
@@ -234,23 +234,23 @@ OBS_HOST static inline bool affine_clock_offset_interval(
 }
 
 OBS_HOST static inline launch_sample_status_t classify_affine_launch_latency(
-    uint64_t host_mono_ns, uint64_t gpu_ns,
+    uint64_t host_raw_ns, uint64_t gpu_ns,
     const clock_calibration_t& start, const clock_calibration_t& end,
     uint32_t* bin) {
-    if (bin == nullptr || host_mono_ns == 0 || gpu_ns == 0 ||
-        host_mono_ns > INT64_MAX || gpu_ns > INT64_MAX) {
+    if (bin == nullptr || host_raw_ns == 0 || gpu_ns == 0 ||
+        host_raw_ns > INT64_MAX || gpu_ns > INT64_MAX) {
         return LAUNCH_SAMPLE_CLOCK_ERROR;
     }
 
     int64_t offset_low_ns;
     int64_t offset_high_ns;
-    if (!affine_clock_offset_interval(host_mono_ns, start, end,
+    if (!affine_clock_offset_interval(host_raw_ns, start, end,
                                       &offset_low_ns, &offset_high_ns)) {
         return LAUNCH_SAMPLE_CLOCK_ERROR;
     }
 
     const int64_t observed_ns = static_cast<int64_t>(gpu_ns) -
-                                static_cast<int64_t>(host_mono_ns);
+                                static_cast<int64_t>(host_raw_ns);
     int64_t latency_low_ns;
     int64_t latency_high_ns;
     if (!subtract_i64(observed_ns, offset_high_ns, &latency_low_ns) ||

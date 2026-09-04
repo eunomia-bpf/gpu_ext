@@ -23,3 +23,11 @@ The map-tier harness is intentionally the current scalar per-thread runtime.
 It must not be described as the missing warp-aggregation prototype, and the
 fixed-work trampoline experiment must not be substituted for either Fig. 15
 claim.
+
+For every attached cell, replay requires the mode-specific truncated BPF
+program name, one target `matched=1` transformation, the patched module load,
+and successful attach in the application log. The loader prime must occur once
+and before libbpf starts opening the object. The static single call in the
+generated target PTX plus the logged exact 8-warmup/64-timed-launch loop binds
+the selected program to each full-run launch. Idempotent final map readback
+checks all lane/key results; it does not count callbacks per launch.

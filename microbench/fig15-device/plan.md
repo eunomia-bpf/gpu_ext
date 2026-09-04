@@ -68,6 +68,14 @@ and writes a deterministic CUDA output. A CUDA event encloses one batch of
 identical launches; loader setup, PTX compilation, map initialization, and map
 readback are outside the event interval.
 
+Before a campaign, the runner checks that the generated target PTX contains
+exactly one static hook call in `fig15_map_kernel`. Each full cell then records
+the exact 8-warmup/64-timed-launch loop, one `matched=1` transformation, the
+mode-specific (15-character where truncated) BPF program name, patched-module
+load, and attach. Together these records bind the selected mode to the one
+static call site in every launched kernel; they do not directly count callback
+invocations.
+
 - Update: lane `i` writes a deterministic nonzero value to key `i`. The loader
   reads all 32 keys after the application finishes.
 - Lookup: the loader initializes key `i` with a deterministic nonzero value;
@@ -77,6 +85,10 @@ readback are outside the event interval.
 - Native/no-op: the CUDA output must still match exactly. The no-op arm also
   requires exact target-stub replacement, patched-module load, and successful
   attach records.
+
+Map operations are idempotent across the repeated launches. Consequently the
+final 32-key readback verifies the complete lane/key result set, but is not an
+independent count of how many times each lane executed the callback.
 
 Any CUDA error, nonzero process status, wrong output, missing transformation,
 wrong map value, unknown map record, surviving owned process, or unreclaimed
@@ -101,6 +113,10 @@ seed 1797 plus a fixed operation offset). The two 97.5% intervals give at least
 95% family-wise coverage by Bonferroni. Also report paired absolute
 microseconds-per-launch differences, device/no-op increments, RPC/device ratios,
 and all raw arm medians descriptively.
+
+The device-minus-no-op increments are within-block median arithmetic contrasts,
+not causal component-cost estimates. In particular, a negative contrast must
+not be described as a negative map-operation cost.
 
 - Supported: both main-baseline ratio intervals lie wholly above 1.0.
 - Contradicted: either interval lies wholly at or below 1.0.

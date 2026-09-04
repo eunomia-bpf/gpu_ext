@@ -62,9 +62,12 @@ def write_fixture(root: Path, phase: str = "full") -> None:
         attached = arm != "native"
         prefix = ""
         if attached:
+            program = analyzer.PROGRAM_PREFIXES[arm]
             prefix = (
+                f"Instantiating bpf link 61 and the corresponding program {program} "
+                "is cuda program\n"
                 "[ptxpass] kprobe_entry_stub: matched=1, in=1, out=2\n"
-                "Loaded module: patched.map-bench.ptx\n"
+                "Loaded module: patched.map_bench.sm_120.ptx\n"
                 "Attach successfully\n"
             )
         (directory / "application.log").write_text(
@@ -83,7 +86,11 @@ def write_fixture(root: Path, phase: str = "full") -> None:
             "Global shm initialized\n",
             encoding="utf-8",
         )
-        lines = ["FIG15_SERVER_PRIMED\t1", f"FIG15_READY\t{arm}\t1"]
+        lines = [
+            "FIG15_SERVER_PRIMED\t1",
+            "libbpf: loading object from /test/map-probe.bpf.o",
+            f"FIG15_READY\t{arm}\t1",
+        ]
         expectation = analyzer.expected_map(arm)
         if expectation is not None:
             name, values = expectation
@@ -188,6 +195,18 @@ class IndependentReplayTests(unittest.TestCase):
         self.assertGreater(
             analysis["effects"]["host_vs_device_lookup"]["ratio_low"], 1.0
         )
+        self.assertAlmostEqual(
+            analysis["descriptive_deltas"]["device_update_minus_noop"][
+                "delta_us"
+            ],
+            1.0,
+        )
+        self.assertAlmostEqual(
+            analysis["descriptive_deltas"]["device_lookup_minus_noop"][
+                "delta_us"
+            ],
+            3.0,
+        )
 
     def test_preflight_is_valid_but_not_a_paper_result(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -197,6 +216,7 @@ class IndependentReplayTests(unittest.TestCase):
         self.assertEqual(analysis["run_status"], "valid_preflight")
         self.assertEqual(analysis["tested_hypothesis"], "not_tested")
         self.assertEqual(analysis["effects"], {})
+        self.assertEqual(analysis["descriptive_deltas"], {})
 
     def test_wrong_map_value_invalidates_raw_cell(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -235,7 +255,7 @@ class IndependentReplayTests(unittest.TestCase):
             with self.assertRaisesRegex(analyzer.AnalysisError, "engagement"):
                 analyzer.analyze_campaign(root)
 
-    def test_engagement_may_be_split_across_application_and_agent_logs(self) -> None:
+    def test_engagement_must_be_in_the_selected_application_log(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "campaign"
             write_fixture(root)
@@ -251,7 +271,7 @@ class IndependentReplayTests(unittest.TestCase):
             agent = directory / "agent.log"
             markers = (
                 "[ptxpass] kprobe_entry_stub: matched=1, in=1, out=2\n"
-                "Loaded module: patched.map-bench.ptx\n"
+                "Loaded module: patched.map_bench.sm_120.ptx\n"
                 "Attach successfully\n"
             )
             application.write_text(
@@ -262,9 +282,80 @@ class IndependentReplayTests(unittest.TestCase):
                 agent.read_text(encoding="utf-8") + markers,
                 encoding="utf-8",
             )
-            runner.validate_engagement_logs(application, agent)
-            analysis = analyzer.analyze_campaign(root)
-        self.assertEqual(analysis["run_status"], "valid")
+            with self.assertRaisesRegex(RuntimeError, "evidence is incomplete"):
+                runner.validate_engagement_logs(application, agent, "device_lookup")
+            with self.assertRaisesRegex(analyzer.AnalysisError, "engagement"):
+                analyzer.analyze_campaign(root)
+
+    def test_wrong_mode_program_prefix_invalidates_raw_cell(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "campaign"
+            write_fixture(root)
+            item = next(
+                value for value in analyzer.expected_schedule("full")
+                if value["arm"] == "host_update"
+            )
+            path = root / (
+                f"block-{int(item['block']):02d}-order-{int(item['order']):02d}-"
+                "host_update/application.log"
+            )
+            path.write_text(
+                path.read_text(encoding="utf-8").replace(
+                    analyzer.PROGRAM_PREFIXES["host_update"],
+                    analyzer.PROGRAM_PREFIXES["device_update"],
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(analyzer.AnalysisError, "engagement"):
+                analyzer.analyze_campaign(root)
+
+    def test_prime_after_object_open_invalidates_loader(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "campaign"
+            write_fixture(root)
+            item = next(
+                value for value in analyzer.expected_schedule("full")
+                if value["arm"] == "noop"
+            )
+            path = root / (
+                f"block-{int(item['block']):02d}-order-{int(item['order']):02d}-"
+                "noop/loader.log"
+            )
+            text = path.read_text(encoding="utf-8")
+            first, second, remainder = text.split("\n", 2)
+            path.write_text(second + "\n" + first + "\n" + remainder,
+                            encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "prime record"):
+                runner.validate_loader_log(path, "noop")
+            with self.assertRaisesRegex(analyzer.AnalysisError, "prime failed"):
+                analyzer.analyze_campaign(root)
+
+    def test_duplicate_prime_invalidates_loader(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "campaign"
+            write_fixture(root)
+            item = next(
+                value for value in analyzer.expected_schedule("full")
+                if value["arm"] == "noop"
+            )
+            path = root / (
+                f"block-{int(item['block']):02d}-order-{int(item['order']):02d}-"
+                "noop/loader.log"
+            )
+            path.write_text(
+                "FIG15_SERVER_PRIMED\t1\n" + path.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(analyzer.AnalysisError, "prime failed"):
+                analyzer.analyze_campaign(root)
+
+    def test_descriptive_delta_has_noncausal_caveat(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "campaign"
+            write_fixture(root)
+            rendered = analyzer.render_markdown(analyzer.analyze_campaign(root))
+        self.assertIn("within-block arithmetic contrasts only", rendered)
+        self.assertIn("does not estimate a negative mechanism cost", rendered)
 
     def test_schedule_mutation_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

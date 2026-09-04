@@ -26,6 +26,15 @@ ARMS = (
     "host_lookup",
     "rpc_lookup",
 )
+PROGRAM_PREFIXES = {
+    "noop": "cuda__noop",
+    "device_update": "cuda__device_up",
+    "host_update": "cuda__host_upda",
+    "rpc_update": "cuda__rpc_updat",
+    "device_lookup": "cuda__device_lo",
+    "host_lookup": "cuda__host_look",
+    "rpc_lookup": "cuda__rpc_looku",
+}
 UPDATE_MAGIC = 0x51A7000000000000
 LOOKUP_MAGIC = 0x10C4000000000000
 
@@ -131,22 +140,31 @@ def parse_application(path: Path, warmup: int, launches: int) -> float:
     return elapsed_ms * 1000.0 / launches
 
 
-def parse_engagement(application_path: Path, agent_path: Path) -> None:
-    """Recheck engagement independently across both runtime log routes."""
+def parse_engagement(application_path: Path, agent_path: Path, arm: str) -> None:
+    """Independently bind the selected arm to the transformed application."""
     application = application_path.read_text(encoding="utf-8", errors="replace")
     agent = agent_path.read_text(encoding="utf-8", errors="replace")
     combined = application + "\n" + agent
     required = {
-        "target_transform": r"\[ptxpass\] kprobe_entry_stub: matched=1,",
-        "module_load": r"Loaded module:",
+        "target_transform": (
+            r"^\[ptxpass\] kprobe_entry_stub: matched=1, "
+            r"in=\d+, out=\d+$"
+        ),
+        "module_load": r"Loaded module: patched\.map_bench\.sm_120\.ptx",
         "attach": r"Attach successfully",
     }
-    counts = {name: len(re.findall(pattern, combined))
+    counts = {name: len(re.findall(pattern, application, re.MULTILINE))
               for name, pattern in required.items()}
-    if counts["target_transform"] != 1 or counts["module_load"] < 1 or \
-            counts["attach"] < 1:
+    programs = re.findall(
+        r"corresponding program ([A-Za-z0-9_]+) is cuda program", application,
+    )
+    expected_program = PROGRAM_PREFIXES[arm]
+    if any(value != 1 for value in counts.values()) or not programs or \
+            set(programs) != {expected_program}:
         raise AnalysisError(
-            f"target engagement failed in {application_path.parent}: {counts}"
+            f"target engagement failed in {application_path.parent}: "
+            f"arm={arm}, expected_program={expected_program}, "
+            f"programs={programs}, counts={counts}"
         )
     bootstrap = {
         "verifier_mode": r"Verifier mode: WARNING",
@@ -183,9 +201,12 @@ def expected_map(arm: str) -> tuple[str, dict[int, int]] | None:
 
 def parse_loader(path: Path, arm: str) -> None:
     text = path.read_text(encoding="utf-8", errors="replace")
-    if re.findall(r"^FIG15_SERVER_PRIMED\t1$", text, re.MULTILINE) != [
-        "FIG15_SERVER_PRIMED\t1"
-    ]:
+    prime = list(re.finditer(r"^FIG15_SERVER_PRIMED\t1$", text, re.MULTILINE))
+    object_load = list(re.finditer(
+        r"^libbpf: loading object from .+$", text, re.MULTILINE,
+    ))
+    if len(prime) != 1 or len(object_load) != 1 or \
+            prime[0].start() >= object_load[0].start():
         raise AnalysisError(f"loader syscall-server prime failed: {path}")
     if re.findall(r"^FIG15_READY\t([^\t]+)\t1$", text, re.MULTILINE) != [arm]:
         raise AnalysisError(f"loader readiness failed: {path}")
@@ -255,6 +276,21 @@ def effect(records: dict[tuple[int, str], float], left: str, right: str,
     }
 
 
+def paired_delta(records: dict[tuple[int, str], float], left: str, right: str,
+                 confidence: float, seed: int) -> dict[str, float | int]:
+    blocks = sorted({block for block, arm in records if arm == left})
+    differences = [records[(block, left)] - records[(block, right)]
+                   for block in blocks]
+    middle, low, high = bootstrap_median(differences, confidence, seed)
+    return {
+        "pairs": len(blocks),
+        "delta_us": middle,
+        "delta_low_us": low,
+        "delta_high_us": high,
+        "confidence": confidence,
+    }
+
+
 def analyze_campaign(campaign: Path) -> dict[str, Any]:
     schedule = read_schedule(campaign / "schedule.tsv")
     phase = infer_phase(schedule)
@@ -282,7 +318,7 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
                 encoding="utf-8", errors="replace"
             ).strip():
                 raise AnalysisError(f"missing agent bootstrap log: {agent}")
-            parse_engagement(application_path, agent)
+            parse_engagement(application_path, agent, arm)
     if len(records) != len(schedule):
         raise AnalysisError("raw record count differs from schedule")
 
@@ -301,6 +337,7 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
             "raw_arm_processes": len(records),
             "arm_median_us": arm_medians,
             "effects": {},
+            "descriptive_deltas": {},
         }
 
     effects = {
@@ -317,6 +354,14 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
             records, "rpc_lookup", "device_lookup", 0.95, SEED + 3,
         ),
         "noop_vs_native": effect(records, "noop", "native", 0.95, SEED + 4),
+    }
+    descriptive_deltas = {
+        "device_update_minus_noop": paired_delta(
+            records, "device_update", "noop", 0.95, SEED + 5,
+        ),
+        "device_lookup_minus_noop": paired_delta(
+            records, "device_lookup", "noop", 0.95, SEED + 6,
+        ),
     }
     primary = (
         effects["host_vs_device_update"],
@@ -335,6 +380,7 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
         "raw_arm_processes": len(records),
         "arm_median_us": arm_medians,
         "effects": effects,
+        "descriptive_deltas": descriptive_deltas,
         "scope": (
             "one 32-thread block; current verification-disabled scalar per-thread "
             "runtime; RTX 5090; lookup and update only"
@@ -377,8 +423,26 @@ def render_markdown(analysis: dict[str, Any]) -> str:
         lines.extend(
             [
                 "",
+                "## Descriptive device/no-op deltas",
+                "",
+                "| Comparison | pairs | median delta us (interval) | confidence |",
+                "|---|---:|---:|---:|",
+            ]
+        )
+        for name, item in analysis["descriptive_deltas"].items():
+            lines.append(
+                f"| {name} | {item['pairs']} | {item['delta_us']:.6f} "
+                f"[{item['delta_low_us']:.6f}, {item['delta_high_us']:.6f}] | "
+                f"{100 * item['confidence']:.1f}% |"
+            )
+        lines.extend(
+            [
+                "",
                 "The two host-mapped/device-resident intervals are the Bonferroni-adjusted "
                 "co-primary comparisons. RPC and no-op comparisons are descriptive.",
+                "The device-minus-no-op values are within-block arithmetic contrasts only. "
+                "A negative value does not estimate a negative mechanism cost or a causal "
+                "benefit from adding the map operation.",
                 "",
                 f"Scope: {analysis['scope']}",
             ]
@@ -398,6 +462,12 @@ def write_tsv(path: Path, analysis: dict[str, Any]) -> None:
                 (name, item["pairs"], item["ratio"], item["ratio_low"],
                  item["ratio_high"], item["delta_us"], item["delta_low_us"],
                  item["delta_high_us"], item["confidence"])
+            )
+        for name, item in analysis["descriptive_deltas"].items():
+            writer.writerow(
+                (name, item["pairs"], "", "", "", item["delta_us"],
+                 item["delta_low_us"], item["delta_high_us"],
+                 item["confidence"])
             )
 
 

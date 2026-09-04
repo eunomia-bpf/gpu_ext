@@ -39,6 +39,15 @@ ARMS = (
     "rpc_lookup",
 )
 ATTACHED_ARMS = ARMS[1:]
+PROGRAM_PREFIXES = {
+    "noop": "cuda__noop",
+    "device_update": "cuda__device_up",
+    "host_update": "cuda__host_upda",
+    "rpc_update": "cuda__rpc_updat",
+    "device_lookup": "cuda__device_lo",
+    "host_lookup": "cuda__host_look",
+    "rpc_lookup": "cuda__rpc_looku",
+}
 LEASES = (
     Path("/tmp/gpubpf-revision-gpu0.lock"),
     Path("/tmp/gpubpf-revision-struct-ops.lock"),
@@ -293,22 +302,32 @@ def validate_application_log(path: Path, warmup: int, launches: int) -> None:
         raise RuntimeError("application log contains runtime error/critical record")
 
 
-def validate_engagement_logs(application_path: Path, agent_path: Path) -> None:
-    """Accept runtime records from either documented logger destination."""
+def validate_engagement_logs(application_path: Path, agent_path: Path,
+                             arm: str) -> None:
+    """Bind the selected arm to the transformed and loaded application module."""
     application = application_path.read_text(encoding="utf-8", errors="replace")
     agent = agent_path.read_text(encoding="utf-8", errors="replace")
     combined = application + "\n" + agent
     required = {
-        "target_transform": r"\[ptxpass\] kprobe_entry_stub: matched=1,",
-        "module_load": r"Loaded module:",
+        "target_transform": (
+            r"^\[ptxpass\] kprobe_entry_stub: matched=1, "
+            r"in=\d+, out=\d+$"
+        ),
+        "module_load": r"Loaded module: patched\.map_bench\.sm_120\.ptx",
         "attach": r"Attach successfully",
     }
-    counts = {name: len(re.findall(pattern, combined))
+    counts = {name: len(re.findall(pattern, application, re.MULTILINE))
               for name, pattern in required.items()}
-    if counts["target_transform"] != 1 or counts["module_load"] < 1 or \
-            counts["attach"] < 1:
+    programs = re.findall(
+        r"corresponding program ([A-Za-z0-9_]+) is cuda program", application,
+    )
+    expected_program = PROGRAM_PREFIXES[arm]
+    if any(value != 1 for value in counts.values()) or not programs or \
+            set(programs) != {expected_program}:
         raise RuntimeError(
-            f"target transform/module/attach evidence is incomplete: {counts}"
+            "selected program/transform/module/attach evidence is incomplete: "
+            f"arm={arm}, expected_program={expected_program}, "
+            f"programs={programs}, counts={counts}"
         )
     bootstrap = {
         "verifier_mode": r"Verifier mode: WARNING",
@@ -342,9 +361,12 @@ def expected_map(arm: str) -> tuple[str, dict[int, int]] | None:
 
 def validate_loader_log(path: Path, arm: str) -> None:
     text = path.read_text(encoding="utf-8", errors="replace")
-    if re.findall(r"^FIG15_SERVER_PRIMED\t1$", text, re.MULTILINE) != [
-        "FIG15_SERVER_PRIMED\t1"
-    ]:
+    prime = list(re.finditer(r"^FIG15_SERVER_PRIMED\t1$", text, re.MULTILINE))
+    object_load = list(re.finditer(
+        r"^libbpf: loading object from .+$", text, re.MULTILINE,
+    ))
+    if len(prime) != 1 or len(object_load) != 1 or \
+            prime[0].start() >= object_load[0].start():
         raise RuntimeError("loader syscall-server prime record is incomplete")
     if re.findall(r"^FIG15_READY\t([^\t]+)\t1$", text, re.MULTILINE) != [arm]:
         raise RuntimeError("loader readiness record is incomplete")
@@ -450,7 +472,7 @@ def run_attached(arm: str, directory: Path, build: Path, warmup: int,
             encoding="utf-8", errors="replace"
         ).strip():
             raise RuntimeError("agent bootstrap log is empty")
-        validate_engagement_logs(application_log, agent_log)
+        validate_engagement_logs(application_log, agent_log, arm)
     finally:
         stop_owned(application_process)
         stop_owned(loader_process)

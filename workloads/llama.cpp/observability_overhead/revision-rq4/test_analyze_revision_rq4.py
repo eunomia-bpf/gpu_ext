@@ -36,6 +36,7 @@ def safe_cell_record():
         }
     return {
         "passed": True,
+        "boot_id": "boot-A",
         "before": snapshot(),
         "after": snapshot(),
         "telemetry": {"samples": 2, "throttled": False},
@@ -236,6 +237,7 @@ def three_tool_state():
     state["params"]["tools"] = list(audit.TASKS)
     configs = audit.selected_configs(audit.TASKS)
     state["schedule"] = audit.fixed_schedule(configs, 1)
+    state["provenance"]["boot_id"] = "boot-A"
     probes = {
         "gpubpf_launchlate": runner.parse_gpubpf(
             "launchlate", lossless_launchlate_log()),
@@ -245,6 +247,42 @@ def three_tool_state():
     for index, config in enumerate(("gpubpf_launchlate", "nvbit_launchlate"), 5):
         state["correctness"][config] = {"attempts": [correctness_cell(probes[config])]}
         state["configs"][config] = {"runs": [timing_cell(1, 90.0 - index, probes[config])]}
+    return state
+
+
+def launch_only_state():
+    state = three_tool_state()
+    configs = audit.selected_configs(("launchlate",))
+    state["params"]["tools"] = ["launchlate"]
+    state["schedule"] = audit.fixed_schedule(configs, 1)
+    state["correctness"] = {
+        config: state["correctness"][config] for config in configs
+    }
+    state["configs"] = {config: state["configs"][config] for config in configs}
+    return state
+
+
+def full_launch_only_state(preflight_path):
+    state = launch_only_state()
+    state["phase"] = "full"
+    state["params"].update(
+        phase="full", runs=10, pp=512,
+        preflight_campaign=str(Path(preflight_path).resolve()),
+        kernelretsnoop_timing_thread_slots=524288,
+        kernelretsnoop_timing_expected_coordinates=524288,
+        kernelretsnoop_timing_expected_events=23068672,
+        kernelretsnoop_timing_shared_bytes=935329824,
+    )
+    configs = audit.selected_configs(("launchlate",))
+    state["schedule"] = audit.fixed_schedule(configs, 10)
+    for config in configs:
+        template = state["configs"][config]["runs"][0]
+        state["configs"][config]["runs"] = []
+        for block in range(1, 11):
+            cell = copy.deepcopy(template)
+            cell["block"] = block
+            cell["metrics"]["pp_tokens"] = 512
+            state["configs"][config]["runs"].append(cell)
     return state
 
 
@@ -306,14 +344,296 @@ def full_three_tool_state():
     return state
 
 
+def endpoint_records():
+    samples = []
+    widths = []
+    outer_widths = []
+    for index in range(audit.LAUNCH_CONTROL_SAMPLES):
+        cpu_before = 1_000_000_000 + index * 10_000
+        cpu_after = cpu_before + 100
+        before, after = cpu_before - 100, cpu_before + 200
+        gpu = cpu_before + 1_000
+        samples.append({
+            "record": "sample", "index": index,
+            "control_transport": "direct", "correlation_command": "endpoints-v1",
+            "rm_status": 0, "host_before_ns": before, "host_after_ns": after,
+            "rm_cpu_before_ns": cpu_before,
+            "rm_cpu_midpoint_ns": cpu_before + 50,
+            "rm_cpu_after_ns": cpu_after, "rm_gpu_ptimer_ns": gpu,
+            "outer_width_ns": after - before, "max_selected_gap_ns": 100,
+            "cpu_lower_ns": cpu_before, "cpu_upper_ns": cpu_after,
+            "offset_low_ns": gpu - cpu_after - 32,
+            "offset_high_ns": gpu - cpu_before + 32,
+            "bracket_width_ns": 164, "cpu_midpoint_regression": False,
+            "ptimer_regression": False, "valid": True,
+        })
+        widths.append(164)
+        outer_widths.append(300)
+    samples.append({
+        "record": "summary", "setup_stage": "samples",
+        "control_transport": "direct", "correlation_command": "endpoints-v1",
+        "setup_error": 0, "cleanup_error": 0, "cleanup_rm_status": 0,
+        "output_error": 0, "requested": audit.LAUNCH_CONTROL_SAMPLES,
+        "attempted": audit.LAUNCH_CONTROL_SAMPLES,
+        "accepted": audit.LAUNCH_CONTROL_SAMPLES, "rejected": 0,
+        "cpu_midpoint_regressions": 0, "ptimer_regressions": 0,
+        "min_outer_width_ns": min(outer_widths),
+        "median_outer_width_ns": audit.integer_median(outer_widths),
+        "max_outer_width_ns": max(outer_widths),
+        "min_bracket_width_ns": min(widths),
+        "median_bracket_width_ns": audit.integer_median(widths),
+        "max_bracket_width_ns": max(widths),
+        "target_median_bracket_ns": audit.LAUNCH_RM_MAX_BRACKET_NS,
+        "gate_pass": True,
+    })
+    return samples
+
+
+def identity_records():
+    samples = []
+    for index in range(audit.LAUNCH_CONTROL_SAMPLES):
+        base = 3_000_000_000 + index * 10_000
+        bo, bc, ba, bx = base, base + 100, base + 200, base + 300
+        ko, kx = base + 400, base + 500
+        ao, ac, aa, ax = base + 600, base + 700, base + 800, base + 900
+        bg, kg, ag = base + 5_000, base + 5_100, base + 5_200
+        samples.append({
+            "type": "identity_sample", "trial": index,
+            "rm_before_outer_before_raw_ns": bo,
+            "rm_before_cpu_before_raw_ns": bc,
+            "rm_before_gpu_ptimer_ns": bg,
+            "rm_before_cpu_after_raw_ns": ba,
+            "rm_before_outer_after_raw_ns": bx,
+            "rm_before_offset_low_ns": bg - ba - 32,
+            "rm_before_offset_high_ns": bg - bc + 32,
+            "kernel_before_raw_ns": ko, "device_globaltimer_ns": kg,
+            "kernel_after_raw_ns": kx, "rm_after_outer_before_raw_ns": ao,
+            "rm_after_cpu_before_raw_ns": ac,
+            "rm_after_gpu_ptimer_ns": ag,
+            "rm_after_cpu_after_raw_ns": aa,
+            "rm_after_outer_after_raw_ns": ax,
+            "rm_after_offset_low_ns": ag - aa - 32,
+            "rm_after_offset_high_ns": ag - ac + 32,
+            "before_bracket_width_ns": ba - bc + 64,
+            "after_bracket_width_ns": aa - ac + 64,
+            "contained": True, "accepted": True,
+        })
+    samples.append({
+        "type": "identity_summary", "requested": audit.LAUNCH_CONTROL_SAMPLES,
+        "attempted": audit.LAUNCH_CONTROL_SAMPLES,
+        "accepted": audit.LAUNCH_CONTROL_SAMPLES, "rejected": 0,
+        "containment_failures": 0, "raw_regressions": 0,
+        "ptimer_regressions": 0, "cuda_errors": 0,
+        "setup_complete": True, "cleanup_complete": True, "gate_passed": True,
+    })
+    return samples
+
+
+def write_process_evidence(directory, filename, stdout, stderr, safety):
+    directory.mkdir(parents=True, exist_ok=True)
+    log = directory / filename
+    log.write_text(
+        f"$ /fake/client\n# cwd: /fake\n\n## stdout\n{stdout}"
+        f"\n## stderr\n{stderr}\n# exit: 0\n"
+    )
+    log.with_suffix(".execution.json").write_text(json.dumps({
+        "command": ["/fake/client"], "identity": {"pid": 4321},
+        "cleanup_passed": True, "returncode": 0, "timed_out": False,
+    }))
+    (directory / "gpu-safety.json").write_text(json.dumps(safety))
+    return log
+
+
+def materialize_launch_raw(campaign, state):
+    state["provenance"]["boot_id"] = "boot-A"
+    for config, group in state["correctness"].items():
+        for index, cell in enumerate(group.get("attempts", ()), 1):
+            if cell.get("valid") is not True:
+                continue
+            stdout = audit.EXPECTED_OUTPUT
+            stderr = (lossless_nvbit_launchlate_log()
+                      if config == "nvbit_launchlate" else "")
+            directory = campaign / "correctness" / config / f"attempt_{index:02d}"
+            log = write_process_evidence(
+                directory, "llama_cli.log", stdout, stderr, cell["safety"]
+            )
+            cell["log"] = str(log.relative_to(campaign))
+            if config == "gpubpf_launchlate":
+                (directory / "probe.log").write_text(lossless_launchlate_log())
+    for config, group in state["configs"].items():
+        for index, cell in enumerate(group.get("runs", ()), 1):
+            if cell.get("valid") is not True:
+                continue
+            throughput = float(cell["metrics"]["pp_tok_s"])
+            raw = [{
+                "n_prompt": state["params"]["pp"], "n_gen": 0,
+                "avg_ts": throughput, "stddev_ts": 0.0,
+                "samples_ts": [throughput],
+            }]
+            cell["raw"] = copy.deepcopy(raw)
+            cell["metrics"] = {
+                "pp_tok_s": throughput, "pp_stddev": 0.0,
+                "pp_tokens": state["params"]["pp"],
+                "pp_samples_tok_s": [throughput],
+            }
+            stderr = (lossless_nvbit_launchlate_log()
+                      if config == "nvbit_launchlate" else "")
+            directory = campaign / "timing" / config / f"cell_{index:02d}"
+            log = write_process_evidence(
+                directory, "llama_bench.log", json.dumps(raw), stderr, cell["safety"]
+            )
+            cell["log"] = str(log.relative_to(campaign))
+            if config == "gpubpf_launchlate":
+                probe = directory / "probe.log"
+                probe.write_text(lossless_launchlate_log())
+                cell["probe_log"] = str(probe.relative_to(campaign))
+
+    controls = {}
+    for name, records, executable in (
+        ("endpoint_precision", endpoint_records(), "rm_ptimer_correlation_sanity"),
+        ("globaltimer_identity", identity_records(), "rm_globaltimer_identity"),
+    ):
+        directory = campaign / "clock_controls" / name
+        stdout = "".join(json.dumps(record, separators=(",", ":")) + "\n"
+                         for record in records)
+        process = write_process_evidence(
+            directory, "process.log", stdout, "", safe_cell_record()
+        )
+        stdout_path, stderr_path = directory / "stdout.jsonl", directory / "stderr.log"
+        stdout_path.write_text(stdout)
+        stderr_path.write_text("")
+        executable_path = campaign / "clock_control_build" / executable
+        executable_path.parent.mkdir(parents=True, exist_ok=True)
+        executable_path.write_text("synthetic control executable\n")
+        command = [str(executable_path), "--samples", str(audit.LAUNCH_CONTROL_SAMPLES)]
+        if name == "endpoint_precision":
+            command += ["--control-transport", "direct",
+                        "--correlation-command", "endpoints-v1"]
+        controls[name] = {
+            "command": command, "returncode": 0,
+            "stdout": str(stdout_path.resolve()), "stderr": str(stderr_path.resolve()),
+            "safety": str((directory / "gpu-safety.json").resolve()),
+            "valid": True, "error": None,
+        }
+        self_execution = process.with_suffix(".execution.json")
+        assert self_execution.is_file()
+    record = {
+        "role": "calibration_only", "boot_id": "boot-A",
+        "driver": audit.EXPECTED_DRIVER,
+        "endpoint_precision": controls["endpoint_precision"],
+        "globaltimer_identity": controls["globaltimer_identity"], "passed": True,
+    }
+    state["clock_controls"] = record
+    (campaign / "clock-controls.json").write_text(json.dumps(record))
+
+
 def analyze_state(state):
     with tempfile.TemporaryDirectory() as tmp:
         campaign = Path(tmp)
+        if "launchlate" in state.get("params", {}).get("tools", ()):
+            materialize_launch_raw(campaign, state)
         (campaign / "result.json").write_text(json.dumps(state))
         return audit.analyze(campaign)
 
 
 class AnalyzeRevisionRQ4Tests(unittest.TestCase):
+    def test_launch_control_replay_rejects_missing_and_shifted_samples(self):
+        endpoints = endpoint_records()
+        identity = identity_records()
+        self.assertTrue(audit.endpoint_control_valid(endpoints))
+        self.assertTrue(audit.identity_control_valid(identity))
+        self.assertTrue(runner.endpoint_control_valid(endpoints))
+        self.assertTrue(runner.identity_control_valid(identity))
+        self.assertFalse(audit.endpoint_control_valid(endpoints[:-1]))
+        self.assertFalse(runner.endpoint_control_valid(endpoints[:-1]))
+        shifted = copy.deepcopy(identity)
+        shifted[100]["device_globaltimer_ns"] += 5_100_000
+        self.assertFalse(audit.identity_control_valid(shifted))
+        self.assertFalse(runner.identity_control_valid(shifted))
+
+        def with_bracket(width):
+            records = endpoint_records()
+            gap = width - 64
+            for sample in records[:-1]:
+                cpu_before = sample["rm_cpu_before_ns"]
+                sample["rm_cpu_after_ns"] = cpu_before + gap
+                sample["rm_cpu_midpoint_ns"] = cpu_before + gap // 2
+                sample["host_after_ns"] = cpu_before + gap + 100
+                sample["outer_width_ns"] = sample["host_after_ns"] - sample["host_before_ns"]
+                sample["max_selected_gap_ns"] = gap
+                sample["cpu_upper_ns"] = cpu_before + gap
+                sample["offset_low_ns"] = sample["rm_gpu_ptimer_ns"] - (cpu_before + gap) - 32
+                sample["bracket_width_ns"] = width
+            summary = records[-1]
+            summary.update(
+                min_outer_width_ns=gap + 200,
+                median_outer_width_ns=gap + 200,
+                max_outer_width_ns=gap + 200,
+                min_bracket_width_ns=width,
+                median_bracket_width_ns=width,
+                max_bracket_width_ns=width,
+                gate_pass=width <= audit.LAUNCH_RM_MAX_BRACKET_NS,
+            )
+            return records
+
+        at_limit = with_bracket(1500)
+        above_limit = with_bracket(1501)
+        self.assertTrue(audit.endpoint_control_valid(at_limit))
+        self.assertTrue(runner.endpoint_control_valid(at_limit))
+        self.assertFalse(audit.endpoint_control_valid(above_limit))
+        self.assertFalse(runner.endpoint_control_valid(above_limit))
+
+    def test_launch_correctness_requires_exact_220_engagement(self):
+        params = three_tool_state()["params"]
+        gp = runner.parse_gpubpf("launchlate", lossless_launchlate_log(
+            samples=219, histogram=219, host_launches=219, host_enqueued=219,
+            device_entries=219, matched=219, classified=219,
+        ))
+        nv = runner.parse_nvbit("launchlate", lossless_nvbit_launchlate_log(
+            selected=219, samples=219,
+        ))
+        self.assertTrue(audit.gpubpf_valid("launchlate", gp, params, False))
+        self.assertTrue(audit.nvbit_valid("launchlate", nv, params, False))
+        self.assertFalse(audit.gpubpf_valid("launchlate", gp, params, True))
+        self.assertFalse(audit.nvbit_valid("launchlate", nv, params, True))
+
+    def test_launch_analysis_reopens_raw_and_fails_closed_when_it_is_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            campaign = Path(tmp)
+            state = three_tool_state()
+            materialize_launch_raw(campaign, state)
+            (campaign / "result.json").write_text(json.dumps(state))
+            self.assertTrue(audit.analyze(campaign)["complete"])
+            cell = state["configs"]["gpubpf_launchlate"]["runs"][0]
+            (campaign / cell["probe_log"]).unlink()
+            result = audit.analyze(campaign)
+            self.assertFalse(result["complete"])
+            self.assertIn({"block": 1, "config": "gpubpf_launchlate"},
+                          result["rejected_cells"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            campaign = Path(tmp)
+            state = three_tool_state()
+            materialize_launch_raw(campaign, state)
+            (campaign / "result.json").write_text(json.dumps(state))
+            (campaign / "clock-controls.json").unlink()
+            result = audit.analyze(campaign)
+            self.assertFalse(result["complete"])
+            self.assertFalse(
+                result["launch_clock_controls"]["independently_passed"]
+            )
+
+    def test_launch_analysis_rejects_raw_state_disagreement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            campaign = Path(tmp)
+            state = three_tool_state()
+            materialize_launch_raw(campaign, state)
+            state["configs"]["baseline"]["runs"][0]["metrics"]["pp_tok_s"] += 1
+            (campaign / "result.json").write_text(json.dumps(state))
+            result = audit.analyze(campaign)
+            self.assertFalse(result["complete"])
+            self.assertIn({"block": 1, "config": "baseline"}, result["rejected_cells"])
+
     def test_exact_two_tool_preflight_is_complete(self):
         result = analyze_state(two_tool_state())
         self.assertTrue(result["complete"])
@@ -352,6 +672,29 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
         self.assertEqual(full["preflight_gate"], {
             "required": False, "campaign": None, "independently_complete": None,
         })
+
+    def test_launch_only_full_is_ten_raw_replayed_three_arm_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            preflight_dir, full_dir = root / "preflight", root / "full"
+            preflight_dir.mkdir()
+            full_dir.mkdir()
+            preflight = launch_only_state()
+            full = full_launch_only_state(preflight_dir)
+            materialize_launch_raw(preflight_dir, preflight)
+            materialize_launch_raw(full_dir, full)
+            (preflight_dir / "result.json").write_text(json.dumps(preflight))
+            (full_dir / "result.json").write_text(json.dumps(full))
+            result = audit.analyze(full_dir)
+            self.assertTrue(result["complete"])
+            self.assertEqual(result["configs"], [
+                "baseline", "gpubpf_launchlate", "nvbit_launchlate",
+            ])
+            self.assertEqual(result["valid_complete_blocks"], 10)
+            comparison = result["comparisons"][0]
+            self.assertEqual(comparison["paired_blocks"], 10)
+            self.assertEqual(len(comparison["raw_paired_triples"]), 10)
+            self.assertIsNotNone(comparison["median_paired_effect"])
 
     def test_each_exact_engagement_gate_fails_closed(self):
         mutations = (
@@ -401,7 +744,11 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
             with self.subTest(key=key):
                 state = two_tool_state()
                 state["params"][key] = value
-                with self.assertRaisesRegex(ValueError, key if key != "target_symbol" else "target_symbol"):
+                message = (
+                    "non-finite" if key == "probe_startup_s"
+                    else key if key != "target_symbol" else "target_symbol"
+                )
+                with self.assertRaisesRegex(ValueError, message):
                     analyze_state(state)
 
         for key in ("model", "llama_bench", "llama_cli", "bpftime_root",

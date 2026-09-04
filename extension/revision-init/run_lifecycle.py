@@ -321,7 +321,8 @@ def validate_scheduler_base_interface(raw: str, c_declarations: str) -> dict[str
     _return_id, client_id, tsg_id = prototype.groups()
     demand(client_id == tsg_id, "preemption kfunc handle argument types differ")
     demand(re.search(
-        r"^extern int bpf_nv_gpu_preempt_tsg\(u32 hClient, u32 hTsg\) "
+        r"^extern int bpf_nv_gpu_preempt_tsg\("
+        r"(?P<handle>u32(?:___[0-9]+)?) hClient, (?P=handle) hTsg\) "
         r"__weak __ksym;$", c_declarations, re.MULTILINE,
     ) is not None, "preemption kfunc C signature differs")
     demand(re.search(
@@ -968,7 +969,9 @@ def require_artifacts_unchanged(directory: Path, subset: tuple[str, ...],
 
 
 def restoration_complete(state: RuntimeState, errors: list[dict[str, str]]) -> bool:
-    return state.old_restored and state.services_restored and not errors
+    untouched = not state.destructive_started and not state.services_stopped
+    restored = state.old_restored and state.services_restored
+    return (untouched or restored) and not errors
 
 
 def recover(recorder: Recorder, state: RuntimeState, initial: dict[str, Any],

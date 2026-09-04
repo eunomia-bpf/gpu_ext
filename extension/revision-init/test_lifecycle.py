@@ -444,6 +444,13 @@ class PublicationTests(unittest.TestCase):
             old_restored=True, services_restored=True,
         )
 
+    def test_unmutated_admission_failure_needs_no_physical_restore(self):
+        self.assertTrue(runner.restoration_complete(runner.RuntimeState(), []))
+        self.assertFalse(runner.restoration_complete(
+            runner.RuntimeState(services_stopped=["gdm.service"]), []))
+        self.assertFalse(runner.restoration_complete(
+            runner.RuntimeState(), [{"stage": "audit", "error": "failed"}]))
+
     def test_success_closes_lease_before_publishing_true_summary(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
@@ -553,6 +560,15 @@ class BtfAbiTests(unittest.TestCase):
         with self.assertRaises(runner.LifecycleError):
             runner.validate_scheduler_base_interface(
                 self.RAW, self.C.replace("u32 hTsg", "u64 hTsg"))
+
+    def test_bpftool_disambiguated_u32_alias_is_equivalent(self):
+        rendered = self.C.replace("u32 hClient", "u32___2 hClient").replace(
+            "u32 hTsg", "u32___2 hTsg")
+        observed = runner.validate_scheduler_base_interface(self.RAW, rendered)
+        self.assertEqual(observed["preempt_signature"], "s32(u32,u32)")
+        with self.assertRaises(runner.LifecycleError):
+            runner.validate_scheduler_base_interface(
+                self.RAW, rendered.replace("u32___2 hTsg", "u32___3 hTsg"))
 
 
 if __name__ == "__main__":

@@ -24,7 +24,13 @@ BOOTSTRAP_SAMPLES = 10000
 EXPECTED_OUTPUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_OUTPUT_BYTES = 47
 EXPECTED_GPU_THREAD_SLOTS = 22528
-MIN_RING_ENTRIES_PER_THREAD = 256
+CORRECTNESS_RING_ENTRIES_PER_THREAD = 256
+TIMING_RING_ENTRIES_PER_THREAD = 16
+TIMING_THREADS_PER_PROMPT_TOKEN = 1024
+TIMING_EXIT_LAUNCHES = 44
+RING_SLOT_HEADER_BYTES = 24
+RING_ALIGNED_RECORD_BYTES = 88
+RING_ERROR_COUNTER_BYTES = 32
 EXIT_RECORD_BYTES = 80
 CORRECTNESS_EXIT_EVENTS = 720896
 CORRECTNESS_EXIT_LAUNCHES = 220
@@ -40,6 +46,23 @@ EXPECTED_N_GPU_LAYERS = 99
 EXPECTED_TG = 0
 EXPECTED_WORKER_CPUS = "8-15"
 EXPECTED_TELEMETRY_CPU = 16
+
+
+def kernelretsnoop_layout(pp: int, *, correctness: bool) -> dict[str, int]:
+    if correctness:
+        slots, entries = CORRECTNESS_EXIT_COORDINATES, CORRECTNESS_RING_ENTRIES_PER_THREAD
+        launches, events = CORRECTNESS_EXIT_LAUNCHES, CORRECTNESS_EXIT_EVENTS
+    else:
+        if pp not in (32, 512):
+            raise ValueError("kernelretsnoop timing layout is defined only for pp32/pp512")
+        slots, entries = pp * TIMING_THREADS_PER_PROMPT_TOKEN, TIMING_RING_ENTRIES_PER_THREAD
+        launches, events = TIMING_EXIT_LAUNCHES, slots * TIMING_EXIT_LAUNCHES
+    return {
+        "thread_slots": slots, "entries_per_thread": entries,
+        "launches": launches, "coordinates": slots, "events": events,
+        "shared_bytes": RING_ERROR_COUNTER_BYTES + slots * (
+            RING_SLOT_HEADER_BYTES + entries * RING_ALIGNED_RECORD_BYTES),
+    }
 
 
 def selected_tools(params: dict[str, Any]) -> tuple[str, ...]:
@@ -61,6 +84,11 @@ def absolute_path_param(params: dict[str, Any], key: str) -> Path:
 
 
 def validate_frozen_params(params: dict[str, Any]) -> None:
+    pp = params.get("pp")
+    if type(pp) is not int:
+        raise ValueError("recorded pp is not an integer")
+    correctness_layout = kernelretsnoop_layout(pp, correctness=True)
+    timing_layout = kernelretsnoop_layout(pp, correctness=False)
     exact = {
         "tg": EXPECTED_TG,
         "n_gpu_layers": EXPECTED_N_GPU_LAYERS,
@@ -69,6 +97,14 @@ def validate_frozen_params(params: dict[str, Any]) -> None:
         "kernelretsnoop_shm_memory_mb": EXPECTED_KERNELRETSNOOP_SHM_MEMORY_MB,
         "kernelretsnoop_correctness_exact_oracle": True,
         "kernelretsnoop_timing_exact_oracle": False,
+        "kernelretsnoop_correctness_thread_slots": correctness_layout["thread_slots"],
+        "kernelretsnoop_correctness_ring_entries_per_thread": correctness_layout["entries_per_thread"],
+        "kernelretsnoop_timing_thread_slots": timing_layout["thread_slots"],
+        "kernelretsnoop_timing_ring_entries_per_thread": timing_layout["entries_per_thread"],
+        "kernelretsnoop_timing_expected_launches": timing_layout["launches"],
+        "kernelretsnoop_timing_expected_coordinates": timing_layout["coordinates"],
+        "kernelretsnoop_timing_expected_events": timing_layout["events"],
+        "kernelretsnoop_timing_shared_bytes": timing_layout["shared_bytes"],
         "uvm": False,
         "no_warmup": False,
         "cuda_graphs_disabled": True,
@@ -208,15 +244,17 @@ def gpubpf_valid(tool: str, probe: dict[str, Any], params: dict[str, Any],
         if samples <= 0:
             return False
         if tool == "kernelretsnoop":
+            layout = kernelretsnoop_layout(params["pp"], correctness=correctness)
             launches = integer(probe, "cartesian_launches")
             coordinates = integer(probe, "cartesian_coordinates")
             multiplicities = tuple(integer(probe, key) for key in (
                 "multiplicity_220", "multiplicity_44", "multiplicity_22", "other_multiplicity"))
             exact = int(correctness)
             generic = (
-                integer(probe, "requested_thread_slots") == EXPECTED_GPU_THREAD_SLOTS
-                and integer(probe, "allocated_thread_slots") == EXPECTED_GPU_THREAD_SLOTS
-                and integer(probe, "entries_per_thread") >= MIN_RING_ENTRIES_PER_THREAD
+                integer(probe, "requested_thread_slots") == layout["thread_slots"]
+                and integer(probe, "allocated_thread_slots") == layout["thread_slots"]
+                and integer(probe, "requested_entries_per_thread") == layout["entries_per_thread"]
+                and integer(probe, "entries_per_thread") == layout["entries_per_thread"]
                 and integer(probe, "record_bytes") == EXIT_RECORD_BYTES
                 and integer(probe, "committed_events")
                 == integer(probe, "runtime_collected_events")
@@ -233,6 +271,10 @@ def gpubpf_valid(tool: str, probe: dict[str, Any], params: dict[str, Any],
                 and integer(probe, "oracle_enabled") == exact
                 and integer(probe, "oracle_total_events") == samples
                 and integer(probe, "oracle_passed") == exact
+                and samples == layout["events"]
+                and launches == layout["launches"]
+                and coordinates == layout["coordinates"]
+                and (correctness or multiplicities == (0, coordinates, 0, 0))
             )
             if not generic:
                 return False
@@ -276,17 +318,17 @@ def gpubpf_valid(tool: str, probe: dict[str, Any], params: dict[str, Any],
         return False
 
 
-def nvbit_valid(tool: str, probe: dict[str, Any], correctness: bool) -> bool:
+def nvbit_valid(tool: str, probe: dict[str, Any], params: dict[str, Any],
+                correctness: bool) -> bool:
     try:
         samples = integer(probe, "sample_count")
         selected = integer(probe, "selected_launches")
         if samples <= 0 or selected <= 0:
             return False
         if tool == "kernelretsnoop":
+            layout = kernelretsnoop_layout(params["pp"], correctness=correctness)
             valid = integer(probe, "nonzero_timestamps") == samples
-            return valid and (not correctness or (
-                samples == CORRECTNESS_EXIT_EVENTS
-                and selected == CORRECTNESS_EXIT_LAUNCHES))
+            return valid and samples == layout["events"] and selected == layout["launches"]
         if tool == "threadhist":
             return integer(probe, "nonzero_threads") > 0
         histogram = probe.get("histogram")
@@ -343,7 +385,7 @@ def cell_valid(cell: dict[str, Any], config: str, params: dict[str, Any],
     if not isinstance(probe, dict):
         return False
     return (gpubpf_valid(tool, probe, params, correctness)
-            if system == "gpubpf" else nvbit_valid(tool, probe, correctness))
+            if system == "gpubpf" else nvbit_valid(tool, probe, params, correctness))
 
 
 def one_valid(entries: list[dict[str, Any]], config: str, params: dict[str, Any],

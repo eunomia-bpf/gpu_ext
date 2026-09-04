@@ -1,0 +1,72 @@
+diff --git a/kernelretsnoop.c b/kernelretsnoop.c
+--- a/kernelretsnoop.c
++++ b/kernelretsnoop.c
+@@ -399,17 +399,37 @@ static uint64_t requested_thread_slots(void)
+ 	return parsed;
+ }
+ 
++static uint64_t requested_ring_entries(void)
++{
++	const char *value = getenv("BPFTIME_KERNELRETSNOOP_RING_ENTRIES");
++	if (!value || !*value)
++		return 0;
++	errno = 0;
++	char *end = NULL;
++	const unsigned long long parsed = strtoull(value, &end, 10);
++	if (errno || end == value || *end != '\0' || *value == '-' ||
++	    parsed > UINT_MAX)
++		return 0;
++	return parsed;
++}
++
+ int main(int argc, char **argv)
+ {
+ 	if (argc == 2 &&
+ 	    strcmp(argv[1], "--self-test-multiplicity-oracle") == 0)
+ 		return run_multiplicity_oracle_selftest();
+ 	const int oracle_mode = multiplicity_oracle_mode();
+ 	if (oracle_mode < 0) {
+ 		fprintf(stderr,
+ 			"BPFTIME_KERNELRETSNOOP_EXACT_ORACLE must be 0 or 1\n");
+ 		return 2;
+ 	}
++	const uint64_t requested_entries = requested_ring_entries();
++	if (requested_entries == 0) {
++		fprintf(stderr,
++			"BPFTIME_KERNELRETSNOOP_RING_ENTRIES must be a positive uint32\n");
++		return 2;
++	}
+ 	struct kernelretsnoop_bpf *skel = NULL;
+ 	struct state state = {};
+ 	int err = 0;
+@@ -429,6 +449,13 @@ int main(int argc, char **argv)
+ 		return 1;
+ 	}
+ 
++	err = bpf_map__set_max_entries(skel->maps.rb, requested_entries);
++	if (err) {
++		fprintf(stderr, "Failed to configure GPU ring entries: %d\n", err);
++		status = 1;
++		goto cleanup;
++	}
++
+ 	/* Load & verify BPF programs */
+ 	err = kernelretsnoop_bpf__load(skel);
+ 	if (err) {
+@@ -519,5 +546,7 @@ int main(int argc, char **argv)
+ 
+ 	printf("Requested thread slots: %" PRIu64 "\n", requested);
++	printf("Requested ring entries per thread: %" PRIu64 "\n",
++	       requested_entries);
+ 	printf("Allocated thread slots: %" PRIu64 "\n",
+ 	       stats.allocated_thread_slots);
+ 	printf("Ring entries per thread: %" PRIu64 "\n",
+@@ -544,7 +573,7 @@ int main(int argc, char **argv)
+ 
+ 	const bool passed =
+ 		requested != 0 && requested == stats.allocated_thread_slots &&
+-		stats.entries_per_thread >= 256 &&
++		stats.entries_per_thread == requested_entries &&
+ 		stats.value_size == sizeof(struct data) &&
+ 		stats.committed_records == state.count &&
+ 		stats.collected_records == state.count &&

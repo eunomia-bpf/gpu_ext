@@ -67,6 +67,21 @@ def timing_cell(block, throughput, probe=None):
     return cell
 
 
+def timing_exit_probe(pp):
+    layout = runner.kernelretsnoop_layout(pp, correctness=False)
+    return runner.parse_gpubpf("kernelretsnoop", lossless_exit_log(
+        requested=layout["thread_slots"], allocated=layout["thread_slots"],
+        requested_entries=layout["entries_per_thread"], entries=layout["entries_per_thread"],
+        committed=layout["events"], collected=layout["events"],
+        runtime_collected=layout["events"], nonzero=layout["events"],
+        launches=layout["launches"], coordinates=layout["coordinates"],
+        multiplicity_220=0, multiplicity_44=layout["coordinates"], multiplicity_22=0,
+        other_multiplicity=0, segment_mismatches=layout["coordinates"],
+        unique_coordinates=layout["coordinates"], oracle_enabled=0,
+        oracle_total_events=layout["events"], oracle_passed=0,
+    ))
+
+
 def two_tool_state():
     tools = ("kernelretsnoop", "threadhist")
     configs = audit.selected_configs(tools)
@@ -91,6 +106,14 @@ def two_tool_state():
         "kernelretsnoop_shm_memory_mb": 1000,
         "kernelretsnoop_correctness_exact_oracle": True,
         "kernelretsnoop_timing_exact_oracle": False,
+        "kernelretsnoop_correctness_thread_slots": 22528,
+        "kernelretsnoop_correctness_ring_entries_per_thread": 256,
+        "kernelretsnoop_timing_thread_slots": 32768,
+        "kernelretsnoop_timing_ring_entries_per_thread": 16,
+        "kernelretsnoop_timing_expected_launches": 44,
+        "kernelretsnoop_timing_expected_coordinates": 32768,
+        "kernelretsnoop_timing_expected_events": 1441792,
+        "kernelretsnoop_timing_shared_bytes": 46923808,
         "uprobe_binary": "/bin/libggml-cuda.so",
         "uprobe_symbol_hint": "selected_kernel",
         "uvm": False,
@@ -105,11 +128,7 @@ def two_tool_state():
         "launch_environment": {"PATH": "/original"},
     }
     exact_exit = runner.parse_gpubpf("kernelretsnoop", lossless_exit_log())
-    timed_exit = {
-        **exact_exit,
-        "oracle_enabled": 0,
-        "oracle_passed": 0,
-    }
+    timed_exit = timing_exit_probe(32)
     nvbit_exit = {
         "sample_count": audit.CORRECTNESS_EXIT_EVENTS,
         "nonzero_timestamps": audit.CORRECTNESS_EXIT_EVENTS,
@@ -127,7 +146,10 @@ def two_tool_state():
                   "selected_launches": audit.CORRECTNESS_EXIT_LAUNCHES}
     probes = {
         "gpubpf_kernelretsnoop": (exact_exit, timed_exit),
-        "nvbit_kernelretsnoop": (nvbit_exit, nvbit_exit),
+        "nvbit_kernelretsnoop": (nvbit_exit, {
+            "sample_count": 1441792, "nonzero_timestamps": 1441792,
+            "selected_launches": 44,
+        }),
         "gpubpf_threadhist": (gpubpf_hist, gpubpf_hist),
         "nvbit_threadhist": (nvbit_hist, nvbit_hist),
     }
@@ -175,6 +197,18 @@ def full_two_tool_state(preflight_path):
         phase="full", runs=10, pp=512,
         preflight_campaign=str(Path(preflight_path).resolve()),
     )
+    layout = runner.kernelretsnoop_layout(512, correctness=False)
+    state["params"].update(
+        kernelretsnoop_timing_thread_slots=layout["thread_slots"],
+        kernelretsnoop_timing_expected_coordinates=layout["coordinates"],
+        kernelretsnoop_timing_expected_events=layout["events"],
+        kernelretsnoop_timing_shared_bytes=layout["shared_bytes"],
+    )
+    state["configs"]["gpubpf_kernelretsnoop"]["runs"][0]["probe"] = timing_exit_probe(512)
+    state["configs"]["nvbit_kernelretsnoop"]["runs"][0]["probe"] = {
+        "sample_count": layout["events"], "nonzero_timestamps": layout["events"],
+        "selected_launches": layout["launches"],
+    }
     configs = audit.selected_configs(tuple(state["params"]["tools"]))
     state["schedule"] = audit.fixed_schedule(configs, 10)
     for config in configs:
@@ -193,6 +227,18 @@ def full_three_tool_state():
     state = three_tool_state()
     state["phase"] = "full"
     state["params"].update(phase="full", runs=10, pp=512)
+    layout = runner.kernelretsnoop_layout(512, correctness=False)
+    state["params"].update(
+        kernelretsnoop_timing_thread_slots=layout["thread_slots"],
+        kernelretsnoop_timing_expected_coordinates=layout["coordinates"],
+        kernelretsnoop_timing_expected_events=layout["events"],
+        kernelretsnoop_timing_shared_bytes=layout["shared_bytes"],
+    )
+    state["configs"]["gpubpf_kernelretsnoop"]["runs"][0]["probe"] = timing_exit_probe(512)
+    state["configs"]["nvbit_kernelretsnoop"]["runs"][0]["probe"] = {
+        "sample_count": layout["events"], "nonzero_timestamps": layout["events"],
+        "selected_launches": layout["launches"],
+    }
     configs = audit.selected_configs(audit.TASKS)
     state["schedule"] = audit.fixed_schedule(configs, 10)
     for config in configs:
@@ -257,6 +303,14 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
             "kernelretsnoop_shm_memory_mb": 999,
             "kernelretsnoop_correctness_exact_oracle": False,
             "kernelretsnoop_timing_exact_oracle": True,
+            "kernelretsnoop_correctness_thread_slots": 22527,
+            "kernelretsnoop_correctness_ring_entries_per_thread": 255,
+            "kernelretsnoop_timing_thread_slots": 32767,
+            "kernelretsnoop_timing_ring_entries_per_thread": 15,
+            "kernelretsnoop_timing_expected_launches": 43,
+            "kernelretsnoop_timing_expected_coordinates": 32767,
+            "kernelretsnoop_timing_expected_events": 1441791,
+            "kernelretsnoop_timing_shared_bytes": 46923807,
             "schedule_seed": 1798,
             "bootstrap_samples": 9999,
             "expected_driver": "610.43.02",
@@ -338,6 +392,19 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
         result = analyze_state(state)
         self.assertFalse(result["complete"])
         self.assertEqual(result["valid_complete_blocks"], 0)
+
+    def test_kernelret_timing_geometry_and_ring_are_independently_exact(self):
+        for field in ("requested_thread_slots", "allocated_thread_slots",
+                      "requested_entries_per_thread", "entries_per_thread",
+                      "sample_count", "cartesian_launches", "cartesian_coordinates",
+                      "multiplicity_44"):
+            with self.subTest(field=field):
+                state = two_tool_state()
+                probe = state["configs"]["gpubpf_kernelretsnoop"]["runs"][0]["probe"]
+                probe[field] -= 1
+                result = analyze_state(state)
+                self.assertFalse(result["complete"])
+                self.assertEqual(result["valid_complete_blocks"], 0)
 
     def test_selecting_three_tools_does_not_reclassify_launchlate_failure(self):
         state = three_tool_state()

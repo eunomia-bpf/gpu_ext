@@ -59,8 +59,8 @@ zero and report the fixed prompt count plus finite positive throughput.
 
 For `kernelretsnoop` correctness, gpubpf must report exactly 720,896 committed,
 runtime-collected, host-collected, and nonzero-timestamp events; 220 launches;
-22,528 unique Cartesian coordinates; 22,528 requested and allocated slots; at
-least 256 entries per slot; an 80-byte record; exact coordinate multiplicities
+22,528 unique Cartesian coordinates; 22,528 requested and allocated slots;
+exactly 256 entries per slot; an 80-byte record; exact coordinate multiplicities
 1,024 at 220, 1,024 at 44, 20,480 at 22, and zero other; zero segment mismatch;
 and enabled/passed exact oracle fields. All drop, dirty, pending, second-drain,
 and invalid-coordinate counters must be zero, and Cartesian/collector gates
@@ -68,7 +68,27 @@ must pass. NVBit must report exactly the same 720,896 nonzero-timestamp events
 and 220 selected launches. Timed cells keep the same generic lossless and
 Cartesian-complete gpubpf gate with the exact correctness oracle explicitly
 disabled; every block additionally requires exact gpubpf/NVBit equality for
-event and selected-launch counts. A count mismatch invalidates both cells.
+event and selected-launch counts. For timing, the frozen rope geometry is
+`4 KV heads × pp tokens × 256 threads`: pp32 therefore requires exactly 32,768
+coordinates, 44 launches, and 1,441,792 events, while pp512 requires exactly
+524,288 coordinates, 44 launches, and 23,068,672 events. Every timing
+coordinate must have multiplicity 44, with all other multiplicity bins zero.
+Both gpubpf and NVBit
+must independently report those exact event/launch totals before their pair is
+compared. A count mismatch invalidates both cells.
+
+The failed campaign `raw/preflight-575-noncross-clock-01` remains failed and is
+never resumed or reclassified: its pp32 gpubpf timing cell allocated 22,528
+slots but observed 32,768 coordinates on each of 44 launches, producing 450,560
+OOB drops. The replacement uses a declared source patch to set the ring map
+capacity before load. Correctness remains the original 22,528×256 exact-oracle
+layout. Timing uses `pp×1,024` slots and exactly 16 entries per slot. At pp512,
+the runtime's 24-byte slot header plus `16×88` aligned record bytes consumes
+750,780,448 bytes including error counters (about 716 MiB), below the frozen
+1,000 MiB segment budget. Dense 256-entry timing would exceed 10 GiB; even a
+dense 44-record payload alone would exceed 1.7 GiB. The 16-entry setting does
+not relax losslessness: any full/OOB/drop/pending/dirty/error counter or missed
+event still rejects the cell.
 
 For `threadhist`, gpubpf must report a positive total and nonzero-thread count,
 exactly 1,048,576 configured and read-back entries, exactly 8,388,608 read-back
@@ -92,7 +112,9 @@ contain at least one sample and report no throttling:
 
 The analyzer also rechecks the frozen experiment parameters rather than only
 the phase dimensions: tg=0, 99 GPU layers, 22,528 exit slots, 1,048,576
-histogram entries, 1,000 MiB exit SHM, correctness/timing exact-oracle flags,
+histogram entries, 1,000 MiB exit SHM, phase-specific exit slots and ring
+entries, exact timing coordinates/44 launches/event count/shared allocation,
+correctness/timing exact-oracle flags,
 seed 1797, 10,000 bootstrap draws, driver 575.57.08, CUDA graphs disabled, UVM
 and no-warmup disabled, worker CPUs 8–15, and telemetry CPU 16. Recorded input,
 binary, source/build, NVBit, and uprobe paths must be absolute, and the target

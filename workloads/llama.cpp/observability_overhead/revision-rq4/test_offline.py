@@ -19,6 +19,7 @@ def lossless_exit_log(**overrides):
     values = {
         "requested": 22528,
         "allocated": 22528,
+        "requested_entries": 256,
         "entries": 256,
         "record_bytes": 80,
         "committed": 720896,
@@ -52,6 +53,7 @@ def lossless_exit_log(**overrides):
     return "\n".join((
         f"Requested thread slots: {values['requested']}",
         f"Allocated thread slots: {values['allocated']}",
+        f"Requested ring entries per thread: {values['requested_entries']}",
         f"Ring entries per thread: {values['entries']}",
         f"Record bytes: {values['record_bytes']}",
         f"Committed events: {values['committed']}",
@@ -672,7 +674,7 @@ class OfflineTests(unittest.TestCase):
                 def start(*args, **kwargs):
                     segment.write_text("owned loader state")
                     return process
-                args = SimpleNamespace(probe_startup_s=0, gpu_thread_count=22528)
+                args = SimpleNamespace(probe_startup_s=0, gpu_thread_count=22528, pp=32)
                 with (patch.object(runner, "SHM_ROOT", root),
                       patch.object(runner.time, "monotonic_ns", return_value=123),
                       patch.object(runner.core, "probe_env", return_value={}),
@@ -689,7 +691,10 @@ class OfflineTests(unittest.TestCase):
                             "1" if exact else "0",
                         )
                 loader_env = popen.call_args.kwargs["env"]
-                self.assertEqual(loader_env["BPFTIME_MAP_GPU_THREAD_COUNT"], "22528")
+                expected_slots = "22528" if exact else "32768"
+                expected_entries = "256" if exact else "16"
+                self.assertEqual(loader_env["BPFTIME_MAP_GPU_THREAD_COUNT"], expected_slots)
+                self.assertEqual(loader_env["BPFTIME_KERNELRETSNOOP_RING_ENTRIES"], expected_entries)
                 self.assertEqual(loader_env["BPFTIME_SHM_MEMORY_MB"], "1000")
                 self.assertEqual(
                     loader_env["BPFTIME_KERNELRETSNOOP_EXACT_ORACLE"],
@@ -762,6 +767,9 @@ class OfflineTests(unittest.TestCase):
                 "event_coordinate(&state->events[i]",
                 "Invalid launch coordinates:",
                 "sizeof(struct data)",
+                "BPFTIME_KERNELRETSNOOP_RING_ENTRIES",
+                "bpf_map__set_max_entries(skel->maps.rb, requested_entries)",
+                "Requested ring entries per thread:",
             )),
         }
         with tempfile.TemporaryDirectory() as tmp:
@@ -920,10 +928,12 @@ class OfflineTests(unittest.TestCase):
                                 if tool == "kernelretsnoop" else 4)
             self.assertTrue(runner.gpubpf_probe_valid(
                 tool, tool_probe, expected_thread_count=expected_threads,
+                expected_ring_entries=(256 if tool == "kernelretsnoop" else None),
                 exact_exit_oracle=tool == "kernelretsnoop"))
             self.assertFalse(runner.gpubpf_probe_valid(
                 tool, {**tool_probe, "sample_count": 0},
                 expected_thread_count=expected_threads,
+                expected_ring_entries=(256 if tool == "kernelretsnoop" else None),
                 exact_exit_oracle=tool == "kernelretsnoop"))
             nvbit_probe = (
                 runner.parse_nvbit("launchlate", lossless_nvbit_launchlate_log())
@@ -1191,6 +1201,7 @@ class OfflineTests(unittest.TestCase):
         self.assertTrue(runner.gpubpf_probe_valid(
             "kernelretsnoop", probe,
             expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            expected_ring_entries=runner.CORRECTNESS_RING_ENTRIES_PER_THREAD,
             expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
             expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
             expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
@@ -1198,7 +1209,8 @@ class OfflineTests(unittest.TestCase):
         ))
         for key in (
             "sample_count", "nonzero_timestamps", "requested_thread_slots",
-            "allocated_thread_slots", "entries_per_thread", "record_bytes",
+            "allocated_thread_slots", "requested_entries_per_thread",
+            "entries_per_thread", "record_bytes",
             "committed_events", "runtime_collected_events", "oob_drops",
             "full_drops", "bad_size_drops", "other_drops", "dirty_slots",
             "pending_events", "final_drain_events", "second_drain_events",
@@ -1221,6 +1233,7 @@ class OfflineTests(unittest.TestCase):
                 self.assertFalse(runner.gpubpf_probe_valid(
                     "kernelretsnoop", broken,
                     expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+                    expected_ring_entries=runner.CORRECTNESS_RING_ENTRIES_PER_THREAD,
                     expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
                     expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
                     expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
@@ -1233,6 +1246,7 @@ class OfflineTests(unittest.TestCase):
         self.assertFalse(runner.gpubpf_probe_valid(
             "kernelretsnoop", swapped_segment,
             expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            expected_ring_entries=runner.CORRECTNESS_RING_ENTRIES_PER_THREAD,
             expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
             expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
             expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
@@ -1261,35 +1275,61 @@ class OfflineTests(unittest.TestCase):
         self.assertFalse(runner.gpubpf_probe_valid(
             "kernelretsnoop", {**probe, "invalid_launch_coordinates": 1},
             expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            expected_ring_entries=runner.CORRECTNESS_RING_ENTRIES_PER_THREAD,
             expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
             expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
             expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
             exact_exit_oracle=True,
         ))
 
-    def test_timed_exit_gate_accepts_accounted_nonuniform_multiplicity(self):
+    def test_timed_exit_gate_requires_frozen_pp32_geometry(self):
+        layout = runner.kernelretsnoop_layout(32, correctness=False)
         text = lossless_exit_log(
-            committed=40, collected=40, runtime_collected=40, nonzero=40,
-            final_drain=8, launches=5, coordinates=6,
-            multiplicity_220=0, multiplicity_44=0, multiplicity_22=0,
-            other_multiplicity=6, segment_mismatches=6,
-            unique_coordinates=6, oracle_enabled=0,
-            oracle_total_events=40, oracle_passed=0,
+            requested=layout["thread_slots"], allocated=layout["thread_slots"],
+            requested_entries=layout["entries_per_thread"], entries=layout["entries_per_thread"],
+            committed=layout["events"], collected=layout["events"],
+            runtime_collected=layout["events"], nonzero=layout["events"],
+            final_drain=8, launches=layout["launches"], coordinates=layout["coordinates"],
+            multiplicity_220=0, multiplicity_44=layout["coordinates"], multiplicity_22=0,
+            other_multiplicity=0, segment_mismatches=layout["coordinates"],
+            unique_coordinates=layout["coordinates"], oracle_enabled=0,
+            oracle_total_events=layout["events"], oracle_passed=0,
         )
         probe = runner.parse_gpubpf("kernelretsnoop", text)
-        # Timed workloads need complete coordinate accounting, but their
-        # nonuniform multiplicities need not satisfy the llama-cli oracle.
-        self.assertNotEqual(5 * 6, 40)
         self.assertTrue(runner.gpubpf_probe_valid(
             "kernelretsnoop", probe,
-            expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            expected_thread_count=layout["thread_slots"],
+            expected_ring_entries=layout["entries_per_thread"],
+            expected_exit_events=layout["events"],
+            expected_exit_launches=layout["launches"],
+            expected_exit_coordinates=layout["coordinates"],
             exact_exit_oracle=False,
         ))
-        self.assertFalse(runner.gpubpf_probe_valid(
-            "kernelretsnoop", {**probe, "oracle_enabled": 1},
-            expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
-            exact_exit_oracle=False,
-        ))
+        for field in ("requested_thread_slots", "requested_entries_per_thread",
+                      "entries_per_thread", "sample_count", "cartesian_launches",
+                      "cartesian_coordinates"):
+            self.assertFalse(runner.gpubpf_probe_valid(
+                "kernelretsnoop", {**probe, field: probe[field] - 1},
+                expected_thread_count=layout["thread_slots"],
+                expected_ring_entries=layout["entries_per_thread"],
+                expected_exit_events=layout["events"],
+                expected_exit_launches=layout["launches"],
+                expected_exit_coordinates=layout["coordinates"],
+                exact_exit_oracle=False,
+            ))
+
+    def test_phase_layouts_fit_budget_without_reusing_pp32_width(self):
+        correctness = runner.kernelretsnoop_layout(32, correctness=True)
+        preflight = runner.kernelretsnoop_layout(32, correctness=False)
+        full = runner.kernelretsnoop_layout(512, correctness=False)
+        self.assertEqual((correctness["thread_slots"], correctness["entries_per_thread"]),
+                         (22528, 256))
+        self.assertEqual((preflight["thread_slots"], preflight["events"]),
+                         (32768, 1441792))
+        self.assertEqual((full["thread_slots"], full["events"]),
+                         (524288, 23068672))
+        self.assertEqual(full["shared_bytes"], 750780448)
+        self.assertLess(full["shared_bytes"], 1000 * 1024 * 1024)
 
     def test_timed_exit_pairs_require_equal_events_and_launches(self):
         for field in (None, "events", "launches"):
@@ -1435,6 +1475,14 @@ class OfflineTests(unittest.TestCase):
                     gates["kernelretsnoop_correctness"]["gpubpf"]["events"],
                     runner.CORRECTNESS_EXIT_EVENTS,
                 )
+                layout = runner.kernelretsnoop_layout(pp, correctness=False)
+                timing_gate = gates["kernelretsnoop_timing"]
+                self.assertEqual(timing_gate["gpubpf_requested_and_allocated_thread_slots"],
+                                 layout["thread_slots"])
+                self.assertEqual(timing_gate["gpubpf_exact_ring_entries_per_thread"], 16)
+                self.assertEqual(timing_gate["gpubpf_exact_events"], layout["events"])
+                self.assertEqual(timing_gate["nvbit_exact_events"], layout["events"])
+                self.assertEqual(timing_gate["gpubpf_exact_selected_launches"], 44)
                 self.assertEqual(
                     gates["threadhist_all_cells"]["gpubpf_readback_bytes"],
                     args.threadhist_gpu_thread_count * 8,

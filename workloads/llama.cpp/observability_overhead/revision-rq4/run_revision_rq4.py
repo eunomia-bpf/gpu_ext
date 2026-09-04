@@ -50,7 +50,13 @@ EXPECTED_DRIVER = "575.57.08"
 SHM_ROOT = Path("/dev/shm")
 CLIENT_CPUS = "8-15"
 EXPECTED_GPU_THREAD_SLOTS = 22528
-MIN_RING_ENTRIES_PER_THREAD = 256
+CORRECTNESS_RING_ENTRIES_PER_THREAD = 256
+TIMING_RING_ENTRIES_PER_THREAD = 16
+TIMING_THREADS_PER_PROMPT_TOKEN = 1024
+TIMING_EXIT_LAUNCHES = 44
+RING_SLOT_HEADER_BYTES = 24
+RING_ALIGNED_RECORD_BYTES = 88
+RING_ERROR_COUNTER_BYTES = 32
 EXIT_RECORD_BYTES = 80
 CORRECTNESS_EXIT_EVENTS = 720896
 CORRECTNESS_EXIT_LAUNCHES = 220
@@ -70,6 +76,29 @@ LEASE_PATHS = (
 )
 RELATIVE_RUNTIME_INCLUDE = "../../../runtime/include"
 RELATIVE_RUNTIME_INCLUDE_PATTERN = re.compile(r"(?:\.\./)+runtime/include")
+KERNELRETSNOOP_CAPACITY_PATCH = HERE / "kernelretsnoop-phase-capacity.patch"
+
+
+def kernelretsnoop_layout(pp: int, *, correctness: bool) -> dict[str, int]:
+    """Return the frozen phase-specific dense-ring geometry and exact event count."""
+    if correctness:
+        slots = CORRECTNESS_EXIT_COORDINATES
+        entries = CORRECTNESS_RING_ENTRIES_PER_THREAD
+        launches = CORRECTNESS_EXIT_LAUNCHES
+        events = CORRECTNESS_EXIT_EVENTS
+    else:
+        if pp not in (32, 512):
+            raise ValueError("kernelretsnoop timing layout is defined only for pp32/pp512")
+        slots = pp * TIMING_THREADS_PER_PROMPT_TOKEN
+        entries = TIMING_RING_ENTRIES_PER_THREAD
+        launches = TIMING_EXIT_LAUNCHES
+        events = slots * launches
+    shared_bytes = RING_ERROR_COUNTER_BYTES + slots * (
+        RING_SLOT_HEADER_BYTES + entries * RING_ALIGNED_RECORD_BYTES
+    )
+    return {"thread_slots": slots, "entries_per_thread": entries,
+            "launches": launches, "coordinates": slots, "events": events,
+            "shared_bytes": shared_bytes}
 
 
 def selected_tools(args: argparse.Namespace) -> tuple[str, ...]:
@@ -121,6 +150,8 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
         },
     }
     if "kernelretsnoop" in selected_tools(args):
+        correctness_layout = kernelretsnoop_layout(args.pp, correctness=True)
+        timing_layout = kernelretsnoop_layout(args.pp, correctness=False)
         gates["kernelretsnoop_correctness"] = {
             "gpubpf": {
                 "events": CORRECTNESS_EXIT_EVENTS,
@@ -128,7 +159,7 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 "selected_launches": CORRECTNESS_EXIT_LAUNCHES,
                 "unique_coordinates": CORRECTNESS_EXIT_COORDINATES,
                 "requested_and_allocated_thread_slots": EXPECTED_GPU_THREAD_SLOTS,
-                "minimum_ring_entries_per_thread": MIN_RING_ENTRIES_PER_THREAD,
+                "exact_ring_entries_per_thread": correctness_layout["entries_per_thread"],
                 "record_bytes": EXIT_RECORD_BYTES,
                 "zero_drop_dirty_pending_second_drain_and_invalid_coordinate_counters": True,
                 "cartesian_complete": True,
@@ -147,6 +178,15 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
             },
         }
         gates["kernelretsnoop_timing"] = {
+            "gpubpf_requested_and_allocated_thread_slots": timing_layout["thread_slots"],
+            "gpubpf_exact_ring_entries_per_thread": timing_layout["entries_per_thread"],
+            "gpubpf_exact_coordinates": timing_layout["coordinates"],
+            "gpubpf_exact_events": timing_layout["events"],
+            "gpubpf_exact_selected_launches": timing_layout["launches"],
+            "gpubpf_exact_coordinate_multiplicity": {"44": timing_layout["coordinates"],
+                                                       "220": 0, "22": 0, "other": 0},
+            "nvbit_exact_events": timing_layout["events"],
+            "nvbit_exact_selected_launches": timing_layout["launches"],
             "gpubpf_internal_lossless_and_cartesian_complete": True,
             "gpubpf_exact_correctness_multiplicity_oracle": False,
             "pair_events_equal": True,
@@ -442,8 +482,10 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
     command, loader_env = target_launch(command, env)
     target_env = {**core.agent_env(args, run_dir, tool), "BPFTIME_GLOBAL_SHM_NAME": name}
     if tool == "kernelretsnoop":
+        layout = kernelretsnoop_layout(args.pp, correctness=exact_exit_oracle)
         exit_environment = {
-            "BPFTIME_MAP_GPU_THREAD_COUNT": str(args.gpu_thread_count),
+            "BPFTIME_MAP_GPU_THREAD_COUNT": str(layout["thread_slots"]),
+            "BPFTIME_KERNELRETSNOOP_RING_ENTRIES": str(layout["entries_per_thread"]),
             "BPFTIME_SHM_MEMORY_MB": str(KERNELRETSNOOP_SHM_MEMORY_MB),
             "BPFTIME_KERNELRETSNOOP_EXACT_ORACLE": "1" if exact_exit_oracle else "0",
         }
@@ -636,6 +678,9 @@ def validate_kernelretsnoop_source_schema(directory: Path) -> None:
             "event_coordinate(&state->events[i]",
             "Invalid launch coordinates:",
             "sizeof(struct data)",
+            "BPFTIME_KERNELRETSNOOP_RING_ENTRIES",
+            "bpf_map__set_max_entries(skel->maps.rb, requested_entries)",
+            "Requested ring entries per thread:",
         ),
     }
     for name, markers in required.items():
@@ -662,6 +707,17 @@ def prepare_tool_source(
         build_root=build_root,
         target_symbol=target_symbol,
     )
+    if spec.name == "kernelretsnoop" and (directory / spec.user_file).exists():
+        completed = subprocess.run(
+            ["patch", "--batch", "--forward", "--fuzz=0", "-p1", "-i",
+             str(KERNELRETSNOOP_CAPACITY_PATCH)],
+            cwd=directory, text=True, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError(
+                "failed to apply declared kernelretsnoop capacity patch:\n" + completed.stdout
+            )
     makefile = directory / "Makefile"
     text = makefile.read_text()
     relative_includes = set(RELATIVE_RUNTIME_INCLUDE_PATTERN.findall(text))
@@ -691,6 +747,7 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             "requested_thread_slots": "Requested thread slots",
             "allocated_thread_slots": "Allocated thread slots",
             "entries_per_thread": "Ring entries per thread",
+            "requested_entries_per_thread": "Requested ring entries per thread",
             "record_bytes": "Record bytes",
             "committed_events": "Committed events",
             "runtime_collected_events": "Runtime collected events",
@@ -803,6 +860,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         Path(shared.__file__),
         Path(shared.run_smoke.__file__),
         Path(shared.safety.__file__),
+        KERNELRETSNOOP_CAPACITY_PATCH,
         NVBIT_SOURCE_DIR / "Makefile",
         NVBIT_SOURCE_DIR / "clock_domain.h",
         NVBIT_SOURCE_DIR / "common.h",
@@ -829,6 +887,8 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
 
 
 def defining_params(args: argparse.Namespace) -> dict[str, Any]:
+    correctness_layout = kernelretsnoop_layout(args.pp, correctness=True)
+    timing_layout = kernelretsnoop_layout(args.pp, correctness=False)
     return {
         "phase": args.phase,
         "tools": list(selected_tools(args)),
@@ -854,6 +914,14 @@ def defining_params(args: argparse.Namespace) -> dict[str, Any]:
         "kernelretsnoop_shm_memory_mb": KERNELRETSNOOP_SHM_MEMORY_MB,
         "kernelretsnoop_correctness_exact_oracle": True,
         "kernelretsnoop_timing_exact_oracle": False,
+        "kernelretsnoop_correctness_thread_slots": correctness_layout["thread_slots"],
+        "kernelretsnoop_correctness_ring_entries_per_thread": correctness_layout["entries_per_thread"],
+        "kernelretsnoop_timing_thread_slots": timing_layout["thread_slots"],
+        "kernelretsnoop_timing_ring_entries_per_thread": timing_layout["entries_per_thread"],
+        "kernelretsnoop_timing_expected_launches": timing_layout["launches"],
+        "kernelretsnoop_timing_expected_coordinates": timing_layout["coordinates"],
+        "kernelretsnoop_timing_expected_events": timing_layout["events"],
+        "kernelretsnoop_timing_shared_bytes": timing_layout["shared_bytes"],
         "uprobe_binary": str(args.uprobe_binary),
         "uprobe_symbol_hint": args.uprobe_symbol_hint,
         "uvm": args.uvm,
@@ -1124,6 +1192,7 @@ def run_nvbit_once(
     args: argparse.Namespace,
     output_dir: Path,
 ) -> dict[str, Any]:
+    exit_layout = kernelretsnoop_layout(args.pp, correctness=False)
     label = f"nvbit_{tool}"
     result = run_bench(
         label,
@@ -1138,7 +1207,7 @@ def run_nvbit_once(
             "OBS_GPU_THREAD_COUNT": str(
                 args.threadhist_gpu_thread_count
                 if tool == "threadhist"
-                else args.gpu_thread_count
+                else exit_layout["thread_slots"]
             ),
         },
     )
@@ -1146,13 +1215,16 @@ def run_nvbit_once(
     text = log_path.read_text(errors="replace") if log_path.exists() else ""
     result["probe"] = parse_nvbit(tool, text)
     result["valid"] = bool(result.get("valid")) and nvbit_probe_valid(
-        tool, result["probe"]
+        tool, result["probe"],
+        expected_exit_events=(exit_layout["events"] if tool == "kernelretsnoop" else None),
+        expected_exit_launches=(exit_layout["launches"] if tool == "kernelretsnoop" else None),
     )
     return result
 
 
 def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
                       expected_thread_count: int | None = None,
+                      expected_ring_entries: int | None = None,
                       expected_exit_events: int | None = None,
                       expected_exit_launches: int | None = None,
                       expected_exit_coordinates: int | None = None,
@@ -1173,7 +1245,9 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
             expected_thread_count is not None
             and requested == expected_thread_count
             and int(probe.get("allocated_thread_slots", -1)) == requested
-            and int(probe.get("entries_per_thread", -1)) >= MIN_RING_ENTRIES_PER_THREAD
+            and expected_ring_entries is not None
+            and int(probe.get("requested_entries_per_thread", -1)) == expected_ring_entries
+            and int(probe.get("entries_per_thread", -1)) == expected_ring_entries
             and int(probe.get("record_bytes", -1)) == EXIT_RECORD_BYTES
             and int(probe.get("committed_events", -1))
             == int(probe.get("runtime_collected_events", -2))
@@ -1197,6 +1271,12 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
             and (expected_exit_events is None or samples == expected_exit_events)
             and (expected_exit_launches is None or launches == expected_exit_launches)
             and (expected_exit_coordinates is None or coordinates == expected_exit_coordinates)
+            and (exact_exit_oracle or (
+                int(probe.get("multiplicity_220", -1)) == 0
+                and int(probe.get("multiplicity_44", -1)) == coordinates
+                and int(probe.get("multiplicity_22", -1)) == 0
+                and int(probe.get("other_multiplicity", -1)) == 0
+            ))
         )
         if not generic_valid or not exact_exit_oracle:
             return generic_valid
@@ -1411,6 +1491,9 @@ def run_correctness_cell(
                 expected_thread_count=(
                     args.gpu_thread_count if tool == "kernelretsnoop"
                     else args.threadhist_gpu_thread_count
+                ),
+                expected_ring_entries=(
+                    CORRECTNESS_RING_ENTRIES_PER_THREAD if tool == "kernelretsnoop" else None
                 ),
                 expected_exit_events=(
                     CORRECTNESS_EXIT_EVENTS if tool == "kernelretsnoop" else None
@@ -1716,6 +1799,7 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
         return run_bench("baseline", run_id, args, output_dir)
     system, tool = config.split("_", 1)
     if system == "gpubpf":
+        exit_layout = kernelretsnoop_layout(args.pp, correctness=False)
         run_dir = output_dir / f"{tool}_run_{run_id:02d}"
         with private_probe(
             tool, args, tool_dirs[tool], run_dir, exact_exit_oracle=False
@@ -1727,9 +1811,15 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
             tool,
             result["probe"],
             expected_thread_count=(
-                args.gpu_thread_count if tool == "kernelretsnoop"
+                exit_layout["thread_slots"] if tool == "kernelretsnoop"
                 else args.threadhist_gpu_thread_count
             ),
+            expected_ring_entries=(
+                exit_layout["entries_per_thread"] if tool == "kernelretsnoop" else None
+            ),
+            expected_exit_events=(exit_layout["events"] if tool == "kernelretsnoop" else None),
+            expected_exit_launches=(exit_layout["launches"] if tool == "kernelretsnoop" else None),
+            expected_exit_coordinates=(exit_layout["coordinates"] if tool == "kernelretsnoop" else None),
             exact_exit_oracle=False,
         )
         return result
@@ -1776,6 +1866,10 @@ def validate_plan(args: argparse.Namespace) -> None:
         raise ValueError("preflight is fixed to --runs 1 --pp 32")
     if args.phase == "full" and (args.runs != 10 or args.pp != 512):
         raise ValueError("paper-facing full run is fixed to --runs 10 --pp 512")
+    if "kernelretsnoop" in tools:
+        layout = kernelretsnoop_layout(args.pp, correctness=False)
+        if layout["shared_bytes"] > KERNELRETSNOOP_SHM_MEMORY_MB * 1024 * 1024:
+            raise ValueError("kernelretsnoop timing ring exceeds its frozen shared-memory budget")
     preflight_dir = getattr(args, "preflight_dir", None)
     if args.phase == "preflight" and preflight_dir is not None:
         raise ValueError("--preflight-dir is only valid for a subset full run")

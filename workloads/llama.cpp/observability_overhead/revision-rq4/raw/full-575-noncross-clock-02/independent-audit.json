@@ -1,0 +1,80 @@
+{
+  "phase": "full",
+  "tools": [
+    "kernelretsnoop",
+    "threadhist"
+  ],
+  "configs": [
+    "baseline",
+    "gpubpf_kernelretsnoop",
+    "nvbit_kernelretsnoop",
+    "gpubpf_threadhist",
+    "nvbit_threadhist"
+  ],
+  "correctness": {
+    "baseline": true,
+    "gpubpf_kernelretsnoop": true,
+    "nvbit_kernelretsnoop": true,
+    "gpubpf_threadhist": true,
+    "nvbit_threadhist": true
+  },
+  "valid_complete_blocks": 10,
+  "required_blocks": 10,
+  "preflight_gate": {
+    "required": true,
+    "campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-04",
+    "independently_complete": true
+  },
+  "complete": true,
+  "rejected_cells": [],
+  "config_summaries": [
+    {
+      "config": "baseline",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 38056.92764983501
+    },
+    {
+      "config": "gpubpf_kernelretsnoop",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 128.37355854713863
+    },
+    {
+      "config": "nvbit_kernelretsnoop",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 144.30165034724487
+    },
+    {
+      "config": "gpubpf_threadhist",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 36531.77186099729
+    },
+    {
+      "config": "nvbit_threadhist",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 34136.7723150551
+    }
+  ],
+  "comparisons": [
+    {
+      "task": "kernelretsnoop",
+      "paired_blocks": 10,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": {
+        "mean": -0.04184924074324385,
+        "ci95_low": -0.043550630994696006,
+        "ci95_high": -0.040286914415072594
+      }
+    },
+    {
+      "task": "threadhist",
+      "paired_blocks": 10,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": {
+        "mean": 6.293511306736801,
+        "ci95_low": 6.125070162014159,
+        "ci95_high": 6.470764402763701
+      }
+    }
+  ],
+  "scope_policy": "Unselected tools are outside this predeclared campaign only; prior failures remain failures and are not reclassified by this analysis."
+}

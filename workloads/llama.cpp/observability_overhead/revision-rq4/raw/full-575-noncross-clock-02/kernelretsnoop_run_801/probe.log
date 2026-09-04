@@ -1,0 +1,58 @@
+libbpf: loading object 'kernelretsnoop_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 144, link 1, flags 0, type=2
+libbpf: elf: section(3) kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 480, link 0, flags 6, type=1
+libbpf: sec 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': found program 'cuda__retprobe' at insn offset 0 (0 bytes), code size 60 insns (480 bytes)
+libbpf: elf: section(4) .maps, size 32, link 0, flags 3, type=1
+libbpf: elf: section(5) license, size 4, link 0, flags 3, type=1
+libbpf: license of kernelretsnoop_bpf is GPL
+libbpf: elf: section(6) .relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 16, link 2, flags 40, type=9
+libbpf: elf: section(7) .BTF, size 1554, link 0, flags 0, type=1
+libbpf: elf: section(8) .BTF.ext, size 688, link 0, flags 0, type=1
+libbpf: looking for externs among 6 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'rb': at sec_idx 4, offset 0.
+libbpf: map 'rb': found type = 1527.
+libbpf: map 'rb': found key [8], sz = 4.
+libbpf: map 'rb': found value [12], sz = 32.
+libbpf: map 'rb': found max_entries = 256.
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': collecting relocation for section(3) 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli'
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #0: insn #54 against 'rb'
+libbpf: prog 'cuda__retprobe': found map 0 (rb, sec 4, off 0) for insn #54
+libbpf: object 'kernelretsnoop_': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+libbpf: map 'rb': created successfully, fd=16
+[2026-09-04 03:11:45][warning][2050444] Calling original ioctl: 8 3223340586 139066516956784
+Requested thread slots: 524288
+Requested ring entries per thread: 44
+Allocated thread slots: 524288
+Ring entries per thread: 44
+Record bytes: 32
+Committed events: 23068672
+Total events collected: 23068672
+Runtime collected events: 23068672
+Nonzero timestamps: 23068672
+OOB drops: 0
+Full drops: 0
+Bad-size drops: 0
+Other drops: 0
+Dirty slots: 0
+Pending events: 0
+Final drain events: 0
+Second drain events: 0
+Cartesian launches: 44
+Cartesian coordinates: 524288
+Cartesian complete: 1
+Coordinate extent x: 2048
+Coordinate extent y: 256
+Coordinate extent z: 1
+Coordinate multiplicity 220: 0
+Coordinate multiplicity 44: 524288
+Coordinate multiplicity 22: 0
+Coordinate multiplicity other: 0
+Coordinate segment mismatches: 0
+Invalid launch coordinates: 0
+Unique coordinates: 524288
+Multiplicity oracle enabled: 0
+Multiplicity oracle total events: 23068672
+Multiplicity oracle passed: 0
+Collector gate passed: 1

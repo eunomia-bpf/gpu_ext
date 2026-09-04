@@ -1,0 +1,56 @@
+$ taskset -c 8-15 /usr/bin/env /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench -m /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf -r 1 -o json -p 512 -n 0 -ngl 99
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp
+
+## stdout
+[
+  {
+    "build_commit": "26836b27",
+    "build_number": 7102,
+    "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+    "gpu_info": "NVIDIA GeForce RTX 5090",
+    "backends": "CUDA",
+    "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "model_type": "llama 1B Q4_K - Medium",
+    "model_size": 667078656,
+    "model_n_params": 1100048384,
+    "n_batch": 2048,
+    "n_ubatch": 512,
+    "n_threads": 4,
+    "cpu_mask": "0x0",
+    "cpu_strict": false,
+    "poll": 50,
+    "type_k": "f16",
+    "type_v": "f16",
+    "n_gpu_layers": 99,
+    "n_cpu_moe": 0,
+    "split_mode": "layer",
+    "main_gpu": 0,
+    "no_kv_offload": false,
+    "flash_attn": false,
+    "devices": "auto",
+    "tensor_split": "0.00",
+    "tensor_buft_overrides": "none",
+    "use_mmap": true,
+    "embeddings": false,
+    "no_op_offload": 0,
+    "no_host": false,
+    "n_prompt": 512,
+    "n_gen": 0,
+    "n_depth": 0,
+    "test_time": "2026-09-04T09:50:07Z",
+    "avg_ns": 13497334,
+    "stddev_ns": 0,
+    "avg_ts": 37933.417073,
+    "stddev_ts": 0.000000,
+    "samples_ns": [ 13497334 ],
+    "samples_ts": [ 37933.4 ]
+  }
+]
+
+## stderr
+ggml_cuda_init: GGML_CUDA_FORCE_MMQ:    no
+ggml_cuda_init: GGML_CUDA_FORCE_CUBLAS: no
+ggml_cuda_init: found 1 CUDA devices:
+  Device 0: NVIDIA GeForce RTX 5090, compute capability 12.0, VMM: no
+
+# exit: 0

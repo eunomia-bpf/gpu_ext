@@ -2,6 +2,8 @@
 #ifndef REVISION_INIT_REQUESTS_H
 #define REVISION_INIT_REQUESTS_H
 
+#include "revision_init_records.h"
+
 /* One request sequence is shared by BPF fixtures and the CPU test of the
  * production 575 recorder/validator. No native actuator is mocked here. */
 enum revision_init_case {
@@ -13,13 +15,6 @@ enum revision_init_case {
     REVISION_INIT_INDEPENDENT_INTERLEAVE,
     REVISION_INIT_INDEPENDENT_TIMESLICE,
     REVISION_INIT_CASE_COUNT,
-};
-
-struct revision_init_returns {
-    unsigned int timeslice_count;
-    unsigned int interleave_count;
-    int timeslice[3];
-    int interleave[3];
 };
 
 /* Callers provide a zeroed result and the two bpf_nv_gpu_set_* functions.

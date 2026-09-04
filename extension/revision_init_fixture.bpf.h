@@ -41,23 +41,10 @@ extern int bpf_nv_gpu_set_timeslice(struct nv_gpu_task_init_ctx *, __u64) __ksym
 extern int bpf_nv_gpu_set_interleave(struct nv_gpu_task_init_ctx *, __u32) __ksym;
 #include "revision_init_requests.h"
 
-/* Unconfigured fixtures affect nobody. A future reviewed loader must set the
- * actual gated target TGID, not its own PID or a process-name approximation. */
+/* Unconfigured fixtures affect nobody. The live loader sets the exact gated
+ * target TGID before object load, never its PID or a process-name match. */
 const volatile __u32 target_tgid = 0;
 
-struct revision_init_key {
-    __u64 pid_tgid;
-    __u64 tsg_id;
-    __u32 runlist_id;
-    __u32 reserved;
-};
-struct revision_init_record {
-    struct nv_gpu_task_init_ctx input;
-    struct revision_init_returns requests;
-    __u64 timestamp_ns;
-    __u32 fixture;
-    __u32 complete;
-};
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 64);
@@ -65,7 +52,6 @@ struct {
     __type(value, struct revision_init_record);
 } init_requests SEC(".maps");
 
-enum { INIT_SEEN, INIT_RECORDED, INIT_RECORD_ERROR, INIT_STAT_COUNT };
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __uint(max_entries, INIT_STAT_COUNT);

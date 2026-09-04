@@ -81,7 +81,8 @@ ALL_APPS += revision_sched_verifier
 REVISION_INIT_FIXTURES = no_request legal invalid_interleave duplicate conflict \
 	independent_interleave independent_timeslice
 REVISION_INIT_OBJECTS = $(addprefix $(OUTPUT)/revision_init_,$(addsuffix .bpf.o,$(REVISION_INIT_FIXTURES)))
-$(REVISION_INIT_OBJECTS): revision_init_fixture.bpf.h revision_init_requests.h
+$(REVISION_INIT_OBJECTS): revision_init_fixture.bpf.h revision_init_requests.h \
+	revision_init_records.h
 REVISION_INIT_DRIVER ?= ../../gpu_ext-kernel-575
 REVISION_INIT_DRIVER_INC = $(REVISION_INIT_DRIVER)/kernel-open/common/inc
 
@@ -93,8 +94,46 @@ test_revision_init_fixtures: $(OUTPUT)/revision_init_cpu_test
 	$(Q)$<
 
 $(OUTPUT)/revision_init_cpu_test: revision_init_cpu_test.c revision_init_requests.h \
+		revision_init_records.h \
 		$(REVISION_INIT_DRIVER_INC)/nv-gpu-transition-validator.h \
 		$(REVISION_INIT_DRIVER_INC)/nvtypes.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -std=c11 -I$(REVISION_INIT_DRIVER_INC) $< \
+		$(ALL_LDFLAGS) -Wl,--build-id=none -o $@
+
+# Explicit opt-in live observer/loader and CPU gates. These are not part of
+# the default build and never load or replace a driver module.
+REVISION_INIT_LIVE_TOOLS = revision_init_trace revision_init_loader
+ALL_APPS += $(REVISION_INIT_LIVE_TOOLS)
+.PHONY: revision_init_live_tools test_revision_init_live
+revision_init_live_tools: $(REVISION_INIT_LIVE_TOOLS) \
+	$(OUTPUT)/revision_init_trace_cpu_test revision_init_fixtures
+
+test_revision_init_live: $(OUTPUT)/revision_init_trace_cpu_test
+	$(call msg,TEST,$<)
+	$(Q)$<
+	$(call msg,TEST,revision-init/test_offline.py)
+	$(Q)PYTHONDONTWRITEBYTECODE=1 python3 revision-init/test_offline.py
+	$(call msg,TEST,revision-init/run_live.py --plan-only)
+	$(Q)PYTHONDONTWRITEBYTECODE=1 python3 revision-init/run_live.py --plan-only >/dev/null
+
+$(OUTPUT)/revision_init_trace.bpf.o: revision_init_trace.h
+$(OUTPUT)/revision_init_trace.o: $(OUTPUT)/revision_init_trace.skel.h \
+	revision_init_trace.h
+$(OUTPUT)/revision_init_loader.o: revision_init_records.h
+
+revision_init_trace: $(OUTPUT)/revision_init_trace.o $(LIBBPF_OBJ) | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -Wl,--build-id=none -lelf -lz -o $@
+
+revision_init_loader: $(OUTPUT)/revision_init_loader.o $(LIBBPF_OBJ) | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -Wl,--build-id=none -lelf -lz -o $@
+
+$(OUTPUT)/revision_init_trace_cpu_test: revision_init_trace_cpu_test.c \
+		revision_init_trace.h \
+		$(REVISION_INIT_DRIVER_INC)/nv-gpu-rpc-diagnostic.h \
+		$(REVISION_INIT_DRIVER_INC)/nv-gpu-sched-init-diagnostic.h | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) -std=c11 -I$(REVISION_INIT_DRIVER_INC) $< \
 		$(ALL_LDFLAGS) -Wl,--build-id=none -o $@

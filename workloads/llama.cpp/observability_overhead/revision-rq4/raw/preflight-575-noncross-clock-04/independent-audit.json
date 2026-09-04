@@ -1,0 +1,80 @@
+{
+  "phase": "preflight",
+  "tools": [
+    "kernelretsnoop",
+    "threadhist"
+  ],
+  "configs": [
+    "baseline",
+    "gpubpf_kernelretsnoop",
+    "nvbit_kernelretsnoop",
+    "gpubpf_threadhist",
+    "nvbit_threadhist"
+  ],
+  "correctness": {
+    "baseline": true,
+    "gpubpf_kernelretsnoop": true,
+    "nvbit_kernelretsnoop": true,
+    "gpubpf_threadhist": true,
+    "nvbit_threadhist": true
+  },
+  "valid_complete_blocks": 1,
+  "required_blocks": 1,
+  "preflight_gate": {
+    "required": false,
+    "campaign": null,
+    "independently_complete": null
+  },
+  "complete": true,
+  "rejected_cells": [],
+  "config_summaries": [
+    {
+      "config": "baseline",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 7074.943996999999
+    },
+    {
+      "config": "gpubpf_kernelretsnoop",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 131.230887
+    },
+    {
+      "config": "nvbit_kernelretsnoop",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 132.66218199999997
+    },
+    {
+      "config": "gpubpf_threadhist",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 5464.883087999995
+    },
+    {
+      "config": "nvbit_threadhist",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 6663.094969999997
+    }
+  ],
+  "comparisons": [
+    {
+      "task": "kernelretsnoop",
+      "paired_blocks": 1,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": {
+        "mean": -0.020230478157955645,
+        "ci95_low": -0.020230478157955645,
+        "ci95_high": -0.020230478157955645
+      }
+    },
+    {
+      "task": "threadhist",
+      "paired_blocks": 1,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": {
+        "mean": -16.935991048241235,
+        "ci95_low": -16.935991048241235,
+        "ci95_high": -16.935991048241235
+      }
+    }
+  ],
+  "scope_policy": "Unselected tools are outside this predeclared campaign only; prior failures remain failures and are not reclassified by this analysis."
+}

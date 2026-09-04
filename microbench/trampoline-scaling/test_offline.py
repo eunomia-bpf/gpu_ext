@@ -406,11 +406,83 @@ class SummaryTests(unittest.TestCase):
 
 class CampaignStateTests(unittest.TestCase):
     def test_arm_is_not_checkpointed_valid_before_post_safety(self) -> None:
+        events = []
         snapshot = {"gpu": {"driver": runner.EXPECTED_DRIVER, "name": runner.EXPECTED_GPU}}
         fake_record = {
             "valid": True, "arm": "baseline",
             "measurements": [measurement_event(runner.CELLS[0], 1, 2, 1)],
         }
+        args = mock.Mock(
+            phase="preflight", output=None,
+            bpftime_root=Path("/runtime"), bpftime_build=Path("/runtime/build"),
+            resume=False,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            args.output = Path(temporary) / "run"
+            telemetry_stream = mock.Mock()
+            telemetry_stream.close.side_effect = lambda: events.append("close")
+            safety_calls = 0
+
+            def wait_for_safety(*_args: object, **_kwargs: object) -> dict:
+                nonlocal safety_calls
+                safety_calls += 1
+                events.append("safety")
+                if safety_calls == 1:
+                    raise RuntimeError("did not settle")
+                return snapshot
+
+            with (
+                mock.patch.object(runner, "build_harness", return_value=args.output / "build-01.log"),
+                mock.patch.object(runner, "runtime_configuration", return_value={"runtime": "ok"}),
+                mock.patch.object(runner, "validate_compiled_hook_site", return_value={"ptx": "ok"}),
+                mock.patch.object(runner, "audit_runtime_source", return_value={"source": "ok"}),
+                mock.patch.object(runner, "source_manifest", return_value=[{"source": "ok"}]),
+                mock.patch.object(runner, "ReadOnlyLeases", return_value=mock.MagicMock()),
+                mock.patch.object(
+                    runner, "run_baseline",
+                    side_effect=lambda *_args: (events.append("run"), fake_record)[1],
+                ),
+                mock.patch.object(runner.safety, "safety_snapshot", return_value=snapshot),
+                mock.patch.object(runner.safety, "validate_pre_server_safety"),
+                mock.patch.object(
+                    runner.safety, "start_gpu_telemetry",
+                    side_effect=lambda *_args: (
+                        events.append("start"),
+                        (mock.Mock(), telemetry_stream, args.output / "telemetry.csv"),
+                    )[1],
+                ),
+                mock.patch.object(
+                    runner.safety, "wait_for_post_server_safety",
+                    side_effect=wait_for_safety,
+                ) as wait_for_safety,
+                mock.patch.object(
+                    runner.safety, "validate_gpu_telemetry",
+                    side_effect=lambda *_args, **_kwargs: (
+                        events.append("validate"), {"ok": True}
+                    )[1],
+                ),
+                mock.patch.object(
+                    runner, "stop_owned", side_effect=lambda *_args: events.append("stop"),
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "did not settle"):
+                    runner.run_campaign(args)
+                self.assertEqual(wait_for_safety.call_count, 2)
+                for call in wait_for_safety.call_args_list:
+                    self.assertEqual(
+                        call.kwargs["timeout"], runner.POST_RUN_SETTLE_TIMEOUT_SECONDS,
+                    )
+            state = json.loads((args.output / "result.json").read_text())
+        self.assertEqual(events[:6], ["start", "run", "stop", "close", "validate", "safety"])
+        self.assertEqual(fake_record["telemetry"]["summary"], {"ok": True})
+        self.assertEqual(fake_record["telemetry"]["path"], str(args.output / "telemetry.csv"))
+        self.assertEqual(state["status"], "failed")
+        self.assertEqual(state["records"], [])
+        self.assertEqual(state["failures"][0]["telemetry_path"], str(args.output / "telemetry.csv"))
+        self.assertIn("did not settle", state["campaign_error"])
+
+    def test_primary_and_telemetry_cleanup_errors_are_both_reported(self) -> None:
+        snapshot = {"gpu": {"driver": runner.EXPECTED_DRIVER, "name": runner.EXPECTED_GPU}}
         args = mock.Mock(
             phase="preflight", output=None,
             bpftime_root=Path("/runtime"), bpftime_build=Path("/runtime/build"),
@@ -425,7 +497,7 @@ class CampaignStateTests(unittest.TestCase):
                 mock.patch.object(runner, "audit_runtime_source", return_value={"source": "ok"}),
                 mock.patch.object(runner, "source_manifest", return_value=[{"source": "ok"}]),
                 mock.patch.object(runner, "ReadOnlyLeases", return_value=mock.MagicMock()),
-                mock.patch.object(runner, "run_baseline", return_value=fake_record),
+                mock.patch.object(runner, "run_baseline", side_effect=ValueError("primary broke")),
                 mock.patch.object(runner.safety, "safety_snapshot", return_value=snapshot),
                 mock.patch.object(runner.safety, "validate_pre_server_safety"),
                 mock.patch.object(
@@ -433,23 +505,19 @@ class CampaignStateTests(unittest.TestCase):
                     return_value=(mock.Mock(), io.StringIO(), args.output / "telemetry.csv"),
                 ),
                 mock.patch.object(
-                    runner.safety, "wait_for_post_server_safety",
-                    side_effect=[RuntimeError("did not settle"), snapshot],
-                ) as wait_for_safety,
+                    runner.safety, "wait_for_post_server_safety", return_value=snapshot,
+                ),
                 mock.patch.object(runner.safety, "validate_gpu_telemetry", return_value={"ok": True}),
-                mock.patch.object(runner, "stop_owned"),
+                mock.patch.object(runner, "stop_owned", side_effect=RuntimeError("stop broke")),
             ):
-                with self.assertRaisesRegex(RuntimeError, "did not settle"):
+                with self.assertRaisesRegex(
+                    RuntimeError, "arm: ValueError: primary broke; telemetry stop: RuntimeError: stop broke",
+                ):
                     runner.run_campaign(args)
-                self.assertEqual(wait_for_safety.call_count, 2)
-                for call in wait_for_safety.call_args_list:
-                    self.assertEqual(
-                        call.kwargs["timeout"], runner.POST_RUN_SETTLE_TIMEOUT_SECONDS,
-                    )
             state = json.loads((args.output / "result.json").read_text())
-        self.assertEqual(state["status"], "failed")
         self.assertEqual(state["records"], [])
-        self.assertIn("did not settle", state["campaign_error"])
+        self.assertIn("primary broke", state["campaign_error"])
+        self.assertIn("stop broke", state["campaign_error"])
 
 
 if __name__ == "__main__":

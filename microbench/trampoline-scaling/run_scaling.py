@@ -34,7 +34,7 @@ MAX_THREADS = 1_048_576
 THREADS_PER_BLOCK = 256
 COUNTER_KEYS = 5
 SEED = 1797
-POST_RUN_SETTLE_TIMEOUT_SECONDS = 120
+POST_RUN_SETTLE_TIMEOUT_SECONDS = 60
 LEASE_PATHS = (
     Path("/tmp/gpubpf-revision-gpu0.lock"),
     Path("/tmp/gpubpf-revision-struct-ops.lock"),
@@ -859,17 +859,14 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         for record in result["records"] if record.get("valid")
     }
     phase = phase_parameters(args.phase)
-    telemetry = telemetry_stream = telemetry_path = None
     before = None
+    campaign_error = None
     with ReadOnlyLeases():
         try:
             before = safety.safety_snapshot()
             safety.validate_pre_server_safety(before)
             if before["gpu"]["driver"] != EXPECTED_DRIVER or before["gpu"]["name"] != EXPECTED_GPU:
                 raise RuntimeError(f"frozen GPU/driver mismatch: {before['gpu']}")
-            telemetry_dir = next_numbered_path(args.output, "telemetry")
-            telemetry_dir.mkdir()
-            telemetry, telemetry_stream, telemetry_path = safety.start_gpu_telemetry(telemetry_dir)
             result.update(status="running", safety_before=before)
             atomic_write_json(state_path, result)
             deadline = time.monotonic() + 3600
@@ -880,19 +877,67 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                 if time.monotonic() >= deadline:
                     raise RuntimeError("one-hour campaign deadline reached")
                 run_dir = attempt_directory(args.output, item)
+                telemetry_dir = next_numbered_path(args.output, "telemetry")
+                telemetry_dir.mkdir()
+                telemetry = telemetry_stream = telemetry_path = None
                 try:
-                    if item["arm"] == "baseline":
-                        record = run_baseline(
-                            run_dir, phase["cell_ids"], phase["warmup"], phase["launches"],
-                            phase["hook_repeats"], item["run_id"],
+                    record = telemetry_summary = primary_error = None
+                    telemetry_errors = []
+                    try:
+                        telemetry, telemetry_stream, telemetry_path = (
+                            safety.start_gpu_telemetry(telemetry_dir)
                         )
-                    else:
-                        record = run_attached(
-                            item["arm"], run_dir, args.bpftime_build, phase["cell_ids"],
-                            phase["warmup"], phase["launches"], phase["hook_repeats"],
-                            item["run_id"],
-                        )
+                        if item["arm"] == "baseline":
+                            record = run_baseline(
+                                run_dir, phase["cell_ids"], phase["warmup"], phase["launches"],
+                                phase["hook_repeats"], item["run_id"],
+                            )
+                        else:
+                            record = run_attached(
+                                item["arm"], run_dir, args.bpftime_build, phase["cell_ids"],
+                                phase["warmup"], phase["launches"], phase["hook_repeats"],
+                                item["run_id"],
+                            )
+                    except BaseException as error:
+                        primary_error = error
+                    finally:
+                        try:
+                            if telemetry is not None:
+                                stop_owned(telemetry)
+                        except BaseException as error:
+                            telemetry_errors.append(
+                                f"stop: {type(error).__name__}: {error}"
+                            )
+                        try:
+                            if telemetry_stream is not None:
+                                telemetry_stream.close()
+                        except BaseException as error:
+                            telemetry_errors.append(
+                                f"stream close: {type(error).__name__}: {error}"
+                            )
+                        try:
+                            if telemetry_path is not None:
+                                telemetry_summary = safety.validate_gpu_telemetry(
+                                    telemetry_path, allow_fixed_power_cap=True,
+                                )
+                        except BaseException as error:
+                            telemetry_errors.append(
+                                f"validation: {type(error).__name__}: {error}"
+                            )
+                    if primary_error is not None or telemetry_errors:
+                        errors = []
+                        if primary_error is not None:
+                            errors.append(
+                                f"arm: {type(primary_error).__name__}: {primary_error}"
+                            )
+                        errors.extend(f"telemetry {error}" for error in telemetry_errors)
+                        raise RuntimeError("; ".join(errors)) from primary_error
+                    if record is None or telemetry_path is None or telemetry_summary is None:
+                        raise RuntimeError("arm telemetry lifecycle completed without evidence")
                     record.update(block=item["block"], order=item["order"], directory=str(run_dir))
+                    record["telemetry"] = {
+                        "path": str(telemetry_path), "summary": telemetry_summary,
+                    }
                     record["safety_after"] = safety.wait_for_post_server_safety(
                         before, timeout=POST_RUN_SETTLE_TIMEOUT_SECONDS,
                     )
@@ -901,35 +946,31 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                     result["last_safety"] = record["safety_after"]
                     atomic_write_json(state_path, result)
                 except BaseException as error:
-                    result["failures"].append({**item, "directory": str(run_dir),
-                                               "error": f"{type(error).__name__}: {error}"})
+                    failure = {
+                        **item, "directory": str(run_dir),
+                        "telemetry_directory": str(telemetry_dir),
+                        "error": f"{type(error).__name__}: {error}",
+                    }
+                    if telemetry_path is not None:
+                        failure["telemetry_path"] = str(telemetry_path)
+                    result["failures"].append(failure)
                     result["status"] = "failed"
                     atomic_write_json(state_path, result)
                     raise
             result["status"] = "complete"
         except BaseException as error:
+            campaign_error = error
             result.update(status="failed", campaign_error=f"{type(error).__name__}: {error}")
             raise
         finally:
             cleanup_errors = []
             try:
-                if telemetry is not None:
-                    stop_owned(telemetry)
-            except BaseException as error:
-                cleanup_errors.append(str(error))
-            if telemetry_stream is not None:
-                telemetry_stream.close()
-            try:
-                if telemetry_path is not None:
-                    result["telemetry"] = safety.validate_gpu_telemetry(
-                        telemetry_path, allow_fixed_power_cap=True,
-                    )
                 if before is not None:
                     result["safety_after"] = safety.wait_for_post_server_safety(
                         before, timeout=POST_RUN_SETTLE_TIMEOUT_SECONDS,
                     )
             except BaseException as error:
-                cleanup_errors.append(str(error))
+                cleanup_errors.append(f"final safety: {type(error).__name__}: {error}")
             if cleanup_errors:
                 result.update(status="failed", cleanup_errors=cleanup_errors)
             if result.get("status") == "complete":
@@ -940,7 +981,13 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                     cleanup_errors.append(f"summary: {error}")
             atomic_write_json(state_path, result)
             if cleanup_errors:
-                raise RuntimeError("; ".join(cleanup_errors))
+                message = "; ".join(cleanup_errors)
+                if campaign_error is not None:
+                    message = (
+                        f"campaign: {type(campaign_error).__name__}: {campaign_error}; "
+                        f"finalization: {message}"
+                    )
+                raise RuntimeError(message) from campaign_error
     return result
 
 

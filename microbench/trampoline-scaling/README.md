@@ -36,10 +36,14 @@ oracle, complete BPF-map segment oracle, target-specific attach evidence,
 runtime feature gate, deterministic pairing, ambient-injection rejection, and
 read-only coordination leases. Missing lock files are never created.
 
-After each arm, the runner allows a fixed 120-second window for NVIDIA UVM's
+Each scheduled arm owns a separate telemetry process and raw CSV. The runner
+stops that process, closes its stream, and validates its samples before the
+post-arm safety check, so telemetry cannot hold the UVM reference being
+checked. It then allows the ordinary fixed 60-second window for NVIDIA UVM's
 asynchronous reference release, while continuing to reject a nonzero final
 count, active compute process, new kernel anomaly, or nonempty struct_ops
-state. An arm is checkpointed only after this gate passes.
+state. The validated telemetry path and summary are attached to the arm, and
+the arm is checkpointed only after every gate passes.
 
 ## Real execution
 

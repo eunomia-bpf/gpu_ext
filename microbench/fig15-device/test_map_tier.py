@@ -155,6 +155,16 @@ class SharedMemoryCleanupTests(unittest.TestCase):
             self.assertEqual(identity, [(info.st_dev, info.st_ino, os.getuid())])
 
 
+class LoaderDiagnosticTests(unittest.TestCase):
+    def test_null_open_reports_saved_errno_instead_of_invented_enomem(self) -> None:
+        source = (Path(__file__).resolve().parent / "map_probe.c").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("const int saved_open_errno = errno;", source)
+        self.assertIn("saved_open_errno ? saved_open_errno", source)
+        self.assertNotIn("object ? libbpf_get_error(object) : -ENOMEM", source)
+
+
 class IndependentReplayTests(unittest.TestCase):
     def test_complete_raw_fixture_supports_both_primary_operations(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

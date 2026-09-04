@@ -125,8 +125,12 @@ int main(int argc, char **argv)
 	signal(SIGTERM, handle_signal);
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
+	errno = 0;
 	struct bpf_object *object = bpf_object__open_file(argv[1], NULL);
-	const long open_error = object ? libbpf_get_error(object) : -ENOMEM;
+	const int saved_open_errno = errno;
+	const long open_error = object ? libbpf_get_error(object)
+				       : -(long)(saved_open_errno ? saved_open_errno
+							 : EIO);
 	if (!object || open_error) {
 		fprintf(stderr, "failed to open BPF object %s: error=%ld (%s)\n",
 			argv[1], open_error,

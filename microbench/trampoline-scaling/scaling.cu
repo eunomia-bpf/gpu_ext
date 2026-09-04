@@ -8,7 +8,10 @@
 #include <cstring>
 #include <vector>
 
-#include "matrix.h"
+#ifndef TRAMPOLINE_SCALING_MATRIX_HEADER
+#define TRAMPOLINE_SCALING_MATRIX_HEADER "matrix.h"
+#endif
+#include TRAMPOLINE_SCALING_MATRIX_HEADER
 
 #define CUDA_CHECK(call)                                                        \
     do {                                                                        \
@@ -23,11 +26,13 @@
 struct ScaleCell {
     unsigned id;
     unsigned blocks;
+    unsigned threads_per_block;
     unsigned active_threads;
     unsigned counter_key;
 };
 
-#define CELL_ROW(id, blocks, active, key) {id##U, blocks##U, active##U, key##U},
+#define CELL_ROW(id, blocks, threads, active, key) \
+    {id##U, blocks##U, threads##U, active##U, key##U},
 static constexpr ScaleCell kCells[] = {SCALE_CELL_LIST(CELL_ROW)};
 #undef CELL_ROW
 
@@ -174,7 +179,7 @@ int main(int argc, char **argv)
     if (std::strstr(properties.name, "RTX 5090") == nullptr ||
         properties.major != 12 || properties.minor != 0 ||
         properties.warpSize != 32 ||
-        properties.maxThreadsPerBlock < (int)SCALE_THREADS_PER_BLOCK ||
+        properties.maxThreadsPerBlock < (int)SCALE_MAX_THREADS_PER_BLOCK ||
         properties.maxGridSize[0] < 4096) {
         std::fprintf(stderr, "device does not satisfy frozen RTX 5090 matrix\n");
         return 3;
@@ -212,9 +217,12 @@ int main(int argc, char **argv)
 
     for (const ScaleCell *cell : cells) {
         const uint64_t launched_threads =
-            (uint64_t)cell->blocks * SCALE_THREADS_PER_BLOCK;
+            (uint64_t)cell->blocks * cell->threads_per_block;
         if (cell->active_threads > launched_threads ||
-            launched_threads > SCALE_MAX_THREADS) {
+            launched_threads > SCALE_MAX_THREADS ||
+            cell->threads_per_block == 0 ||
+            cell->threads_per_block > SCALE_MAX_THREADS_PER_BLOCK ||
+            cell->threads_per_block % properties.warpSize != 0) {
             std::fprintf(stderr, "cell %u violates launch bounds\n", cell->id);
             return 5;
         }
@@ -223,7 +231,7 @@ int main(int argc, char **argv)
         const uint64_t seed = UINT64_C(0x1797000000000000) ^
                               ((uint64_t)run_id << 16) ^ cell->id;
         for (unsigned launch = 0; launch < warmup; ++launch) {
-            trampoline_scale_kernel<<<cell->blocks, SCALE_THREADS_PER_BLOCK>>>(
+            trampoline_scale_kernel<<<cell->blocks, cell->threads_per_block>>>(
                 device_output, cell->active_threads, seed, hook_repeats);
         }
         CUDA_CHECK(cudaGetLastError());
@@ -231,7 +239,7 @@ int main(int argc, char **argv)
 
         CUDA_CHECK(cudaEventRecord(start));
         for (unsigned launch = 0; launch < launches; ++launch) {
-            trampoline_scale_kernel<<<cell->blocks, SCALE_THREADS_PER_BLOCK>>>(
+            trampoline_scale_kernel<<<cell->blocks, cell->threads_per_block>>>(
                 device_output, cell->active_threads, seed, hook_repeats);
         }
         CUDA_CHECK(cudaEventRecord(stop));
@@ -264,7 +272,7 @@ int main(int argc, char **argv)
             "\"warmup\":%u,\"launches\":%u,\"hook_repeats\":%u,"
             "\"elapsed_ms\":%.9g,\"checked_values\":%u,"
             "\"mismatches\":%" PRIu64 "}\n",
-            cell->id, cell->blocks, SCALE_THREADS_PER_BLOCK, launched_threads,
+            cell->id, cell->blocks, cell->threads_per_block, launched_threads,
             cell->active_threads, cell->active_threads / 32, cell->counter_key,
             warmup, launches, hook_repeats, elapsed_ms, SCALE_MAX_THREADS,
             mismatches);

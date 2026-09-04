@@ -32,8 +32,8 @@ def device_event() -> dict:
 def measurement_event(cell: dict, warmup: int, launches: int, repeats: int) -> dict:
     return {
         "event": "measurement", "cell": cell["id"], "blocks": cell["blocks"],
-        "threads_per_block": runner.THREADS_PER_BLOCK,
-        "launched_threads": cell["blocks"] * runner.THREADS_PER_BLOCK,
+        "threads_per_block": cell["threads_per_block"],
+        "launched_threads": cell["blocks"] * cell["threads_per_block"],
         "active_threads": cell["active_threads"],
         "active_warps": cell["active_threads"] // 32,
         "counter_key": cell["counter_key"], "warmup": warmup,
@@ -118,7 +118,8 @@ class MatrixTests(unittest.TestCase):
         text = (HERE / "matrix.h").read_text()
         for cell in runner.CELLS:
             marker = (f"X({cell['id']}, {cell['blocks']}, "
-                      f"{cell['active_threads']}, {cell['counter_key']})")
+                      f"{cell['threads_per_block']}, {cell['active_threads']}, "
+                      f"{cell['counter_key']})")
             self.assertIn(marker, text)
         self.assertIn("#define SCALE_CELL_COUNT 9", text)
         self.assertIn("#define SCALE_MAX_THREADS 1048576", text)

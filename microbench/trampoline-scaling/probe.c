@@ -10,7 +10,10 @@
 #include <string.h>
 #include <time.h>
 
-#include "matrix.h"
+#ifndef TRAMPOLINE_SCALING_MATRIX_HEADER
+#define TRAMPOLINE_SCALING_MATRIX_HEADER "matrix.h"
+#endif
+#include TRAMPOLINE_SCALING_MATRIX_HEADER
 
 static volatile sig_atomic_t stopping;
 

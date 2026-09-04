@@ -2,7 +2,10 @@
 #include <vmlinux.h>
 #include <bpf/bpf_helpers.h>
 
-#include "matrix.h"
+#ifndef TRAMPOLINE_SCALING_MATRIX_HEADER
+#define TRAMPOLINE_SCALING_MATRIX_HEADER "matrix.h"
+#endif
+#include TRAMPOLINE_SCALING_MATRIX_HEADER
 
 #define BPF_MAP_TYPE_PERGPUTD_ARRAY_MAP 1502
 
@@ -44,22 +47,16 @@ int cuda__scale_target(void)
     gpu_grid_dim(&grid_x, &grid_y, &grid_z);
     gpu_block_dim(&block_x, &block_y, &block_z);
 
-    if (grid_y != 1 || grid_z != 1 || block_x != SCALE_THREADS_PER_BLOCK ||
-        block_y != 1 || block_z != 1)
+    if (grid_y != 1 || grid_z != 1 || block_y != 1 || block_z != 1)
         return 0;
 
-    u32 key;
-    if (grid_x == 256)
-        key = 0;
-    else if (grid_x == 512)
-        key = 1;
-    else if (grid_x == 1024)
-        key = 2;
-    else if (grid_x == 2048)
-        key = 3;
-    else if (grid_x == 4096)
-        key = 4;
-    else
+    u32 key = SCALE_COUNTER_KEYS;
+#define MATCH_GEOMETRY(blocks, threads, counter_key)           \
+    if (grid_x == (blocks) && block_x == (threads))              \
+        key = (counter_key);
+    SCALE_COUNTER_GEOMETRY_LIST(MATCH_GEOMETRY)
+#undef MATCH_GEOMETRY
+    if (key >= SCALE_COUNTER_KEYS)
         return 0;
 
     u64 *count = bpf_map_lookup_elem(&target_count, &key);
@@ -70,4 +67,3 @@ int cuda__scale_target(void)
 }
 
 char LICENSE[] SEC("license") = "GPL";
-

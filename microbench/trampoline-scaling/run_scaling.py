@@ -30,8 +30,10 @@ DEFAULT_BPFTIME_ROOT = WORKSPACE / "bpftime-table1-575"
 DEFAULT_BPFTIME_BUILD = DEFAULT_BPFTIME_ROOT / "build-table1-575"
 EXPECTED_DRIVER = "575.57.08"
 EXPECTED_GPU = "NVIDIA GeForce RTX 5090"
+EXPERIMENT_KIND = "RTX 5090 device-trampoline scaling"
+SUMMARY_TITLE = "RTX 5090 device-trampoline scaling"
 MAX_THREADS = 1_048_576
-THREADS_PER_BLOCK = 256
+MAX_THREADS_PER_BLOCK = 256
 COUNTER_KEYS = 5
 SEED = 1797
 POST_RUN_SETTLE_TIMEOUT_SECONDS = 60
@@ -42,16 +44,42 @@ LEASE_PATHS = (
 SHM_ROOT = Path("/dev/shm")
 ARMS = ("baseline", "noop", "counter")
 CELLS = (
-    {"id": 0, "blocks": 256, "active_threads": 65_536, "counter_key": 0},
-    {"id": 1, "blocks": 512, "active_threads": 65_536, "counter_key": 1},
-    {"id": 2, "blocks": 1024, "active_threads": 65_536, "counter_key": 2},
-    {"id": 3, "blocks": 2048, "active_threads": 65_536, "counter_key": 3},
-    {"id": 4, "blocks": 4096, "active_threads": 65_536, "counter_key": 4},
-    {"id": 5, "blocks": 4096, "active_threads": 131_072, "counter_key": 4},
-    {"id": 6, "blocks": 4096, "active_threads": 262_144, "counter_key": 4},
-    {"id": 7, "blocks": 4096, "active_threads": 524_288, "counter_key": 4},
-    {"id": 8, "blocks": 4096, "active_threads": 1_048_576, "counter_key": 4},
+    {"id": 0, "blocks": 256, "threads_per_block": 256,
+     "active_threads": 65_536, "counter_key": 0},
+    {"id": 1, "blocks": 512, "threads_per_block": 256,
+     "active_threads": 65_536, "counter_key": 1},
+    {"id": 2, "blocks": 1024, "threads_per_block": 256,
+     "active_threads": 65_536, "counter_key": 2},
+    {"id": 3, "blocks": 2048, "threads_per_block": 256,
+     "active_threads": 65_536, "counter_key": 3},
+    {"id": 4, "blocks": 4096, "threads_per_block": 256,
+     "active_threads": 65_536, "counter_key": 4},
+    {"id": 5, "blocks": 4096, "threads_per_block": 256,
+     "active_threads": 131_072, "counter_key": 4},
+    {"id": 6, "blocks": 4096, "threads_per_block": 256,
+     "active_threads": 262_144, "counter_key": 4},
+    {"id": 7, "blocks": 4096, "threads_per_block": 256,
+     "active_threads": 524_288, "counter_key": 4},
+    {"id": 8, "blocks": 4096, "threads_per_block": 256,
+     "active_threads": 1_048_576, "counter_key": 4},
 )
+PREFLIGHT_CELL_IDS = (0,)
+FULL_CELL_IDS = tuple(range(9))
+PREFLIGHT_BLOCKS = 1
+FULL_BLOCKS = 10
+PREFLIGHT_WARMUP = 1
+FULL_WARMUP = 2
+PREFLIGHT_LAUNCHES = 2
+FULL_LAUNCHES = 8
+PREFLIGHT_HOOK_REPEATS = 1
+FULL_HOOK_REPEATS = 2
+RANDOMIZE_CELL_ORDER = False
+EXTRA_SOURCE_PATHS: tuple[Path, ...] = ()
+MATRIX_HEADER = HERE / "matrix.h"
+APPLICATION_BINARY = HERE / ".output/scaling"
+COMPILED_PTX = HERE / ".output/scaling.ptx"
+LOADER_BINARY = HERE / ".output/probe"
+BPF_OBJECT_PREFIX = "probe"
 
 SAFETY_SPEC = importlib.util.spec_from_file_location(
     "trampoline_scaling_safety",
@@ -137,9 +165,10 @@ def file_metadata(path: Path) -> dict[str, Any]:
 
 def source_manifest(bpftime_root: Path) -> list[dict[str, Any]]:
     paths = (
-        HERE / "matrix.h", HERE / "scaling.cu", HERE / "probe.bpf.c",
+        MATRIX_HEADER, HERE / "scaling.cu", HERE / "probe.bpf.c",
         HERE / "probe.c", HERE / "Makefile", HERE / "run_scaling.py",
         bpftime_root / "attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp",
+        *EXTRA_SOURCE_PATHS,
     )
     return [file_metadata(path) for path in paths]
 
@@ -318,8 +347,8 @@ def validate_application_events(
         or devices[0].get("major") != 12
         or devices[0].get("minor") != 0
         or devices[0].get("warp_size") != 32
-        or devices[0].get("max_threads_per_block", 0) < THREADS_PER_BLOCK
-        or devices[0].get("max_grid_x", 0) < 4096
+        or devices[0].get("max_threads_per_block", 0) < MAX_THREADS_PER_BLOCK
+        or devices[0].get("max_grid_x", 0) < max(cell["blocks"] for cell in CELLS)
     ):
         raise RuntimeError("application device gate failed")
     if markers != [{"event": "marker", "threads": 32, "mismatches": 0}]:
@@ -330,8 +359,8 @@ def validate_application_events(
         expected = {
             "cell": cell["id"],
             "blocks": cell["blocks"],
-            "threads_per_block": THREADS_PER_BLOCK,
-            "launched_threads": cell["blocks"] * THREADS_PER_BLOCK,
+            "threads_per_block": cell["threads_per_block"],
+            "launched_threads": cell["blocks"] * cell["threads_per_block"],
             "active_threads": cell["active_threads"],
             "active_warps": cell["active_threads"] // 32,
             "counter_key": cell["counter_key"],
@@ -538,7 +567,7 @@ def application_command(
     hook_repeats: int, run_id: int,
 ) -> list[str]:
     return [
-        str(HERE / ".output/scaling"),
+        str(APPLICATION_BINARY),
         "--cells", ",".join(str(index) for index in cell_ids),
         "--warmup", str(warmup), "--launches", str(launches),
         "--hook-repeats", str(hook_repeats), "--run-id", str(run_id),
@@ -610,9 +639,9 @@ def run_attached(
     application_log = run_dir / "application.log"
     agent_log = run_dir / "agent.log"
     loader_env, agent_env = attached_environment(build, segment, agent_log)
-    object_path = HERE / ".output" / f"probe-{mode}.bpf.o"
+    object_path = HERE / ".output" / f"{BPF_OBJECT_PREFIX}-{mode}.bpf.o"
     loader_command = [
-        str(HERE / ".output/probe"), str(object_path), mode,
+        str(LOADER_BINARY), str(object_path), mode,
         str(MAX_THREADS), "300",
     ]
     command = application_command(cell_ids, warmup, launches, hook_repeats, run_id)
@@ -701,11 +730,13 @@ def run_attached(
 
 def phase_parameters(phase: str) -> dict[str, Any]:
     if phase == "preflight":
-        return {"blocks": 1, "cell_ids": (0,), "warmup": 1, "launches": 2,
-                "hook_repeats": 1}
+        return {"blocks": PREFLIGHT_BLOCKS, "cell_ids": PREFLIGHT_CELL_IDS,
+                "warmup": PREFLIGHT_WARMUP, "launches": PREFLIGHT_LAUNCHES,
+                "hook_repeats": PREFLIGHT_HOOK_REPEATS}
     if phase == "full":
-        return {"blocks": 10, "cell_ids": tuple(range(9)), "warmup": 2,
-                "launches": 8, "hook_repeats": 2}
+        return {"blocks": FULL_BLOCKS, "cell_ids": FULL_CELL_IDS,
+                "warmup": FULL_WARMUP, "launches": FULL_LAUNCHES,
+                "hook_repeats": FULL_HOOK_REPEATS}
     raise ValueError(phase)
 
 
@@ -715,9 +746,15 @@ def frozen_schedule(phase: str) -> list[dict[str, Any]]:
     for block in range(params["blocks"]):
         arms = list(ARMS)
         random.Random(SEED + block).shuffle(arms)
+        cell_ids = list(params["cell_ids"])
+        if RANDOMIZE_CELL_ORDER:
+            random.Random(SEED + 10_000 + block).shuffle(cell_ids)
         for order, arm in enumerate(arms):
-            schedule.append({"block": block, "order": order, "arm": arm,
-                             "run_id": block})
+            item = {"block": block, "order": order, "arm": arm,
+                    "run_id": block}
+            if RANDOMIZE_CELL_ORDER:
+                item["cell_ids"] = cell_ids
+            schedule.append(item)
     return schedule
 
 
@@ -735,6 +772,7 @@ def attempt_directory(output: Path, item: dict[str, Any]) -> Path:
 def defining_parameters(args: argparse.Namespace) -> dict[str, Any]:
     phase = phase_parameters(args.phase)
     return {
+        "kind": EXPERIMENT_KIND,
         "phase": args.phase,
         "bpftime_root": str(args.bpftime_root.resolve()),
         "bpftime_build": str(args.bpftime_build.resolve()),
@@ -746,6 +784,8 @@ def defining_parameters(args: argparse.Namespace) -> dict[str, Any]:
         "schedule_seed": SEED,
         "expected_driver": EXPECTED_DRIVER,
         "expected_gpu": EXPECTED_GPU,
+        "matrix": [dict(cell) for cell in CELLS],
+        "randomize_cell_order": RANDOMIZE_CELL_ORDER,
     }
 
 
@@ -789,6 +829,7 @@ def summarize(records: list[dict[str, Any]], blocks: int) -> list[dict[str, Any]
                 bootstrap.append(statistics.median(sample))
             rows.append({
                 "cell": cell["id"], "blocks": cell["blocks"],
+                "threads_per_block": cell["threads_per_block"],
                 "active_warps": cell["active_threads"] // 32,
                 "arm": arm, "pairs": len(pairs),
                 "median_delta_ms": statistics.median(value[0] for value in pairs),
@@ -809,15 +850,16 @@ def write_summary(output: Path, result: dict[str, Any]) -> None:
             writer.writeheader()
             writer.writerows(rows)
     lines = [
-        "# RTX 5090 device-trampoline scaling", "",
+        f"# {SUMMARY_TITLE}", "",
         f"- Phase: `{result['params']['phase']}`",
         f"- Status: `{result['status']}`", "",
-        "| Cell | Blocks | Active warps | Arm | Pairs | Median delta (ms) | Median overhead | 95% paired-bootstrap interval |",
-        "|---:|---:|---:|---|---:|---:|---:|---:|",
+        "| Cell | Blocks | Threads/block | Active warps | Arm | Pairs | Median delta (ms) | Median overhead | 95% paired-bootstrap interval |",
+        "|---:|---:|---:|---:|---|---:|---:|---:|---:|",
     ]
     for row in rows:
         lines.append(
-            f"| {row['cell']} | {row['blocks']} | {row['active_warps']} | {row['arm']} | "
+            f"| {row['cell']} | {row['blocks']} | {row['threads_per_block']} | "
+            f"{row['active_warps']} | {row['arm']} | "
             f"{row['pairs']} | {row['median_delta_ms']:.6f} | "
             f"{row['median_overhead_pct']:.3f}% | "
             f"[{row['bootstrap_median_overhead_low_pct']:.3f}%, "
@@ -869,7 +911,7 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     else:
         args.output.mkdir(parents=True, exist_ok=False)
         result = {
-            "kind": "RTX 5090 device-trampoline scaling",
+            "kind": EXPERIMENT_KIND,
             "status": "preparing", "params": params,
             "schedule": frozen_schedule(args.phase), "records": [], "failures": [],
         }
@@ -878,7 +920,7 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     build_log = build_harness(args, args.output)
     current_evidence = {
         "runtime_configuration": runtime_configuration(args.bpftime_build),
-        "compiled_hook_site": validate_compiled_hook_site(HERE / ".output/scaling.ptx"),
+        "compiled_hook_site": validate_compiled_hook_site(COMPILED_PTX),
         "runtime_source_audit": audit_runtime_source(args.bpftime_root),
         "loader_source_audit": audit_loader_source(),
         "source_manifest": source_manifest(args.bpftime_root),
@@ -915,6 +957,7 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                 if time.monotonic() >= deadline:
                     raise RuntimeError("one-hour campaign deadline reached")
                 run_dir = attempt_directory(args.output, item)
+                cell_ids = tuple(item.get("cell_ids", phase["cell_ids"]))
                 telemetry_dir = next_numbered_path(args.output, "telemetry")
                 telemetry_dir.mkdir()
                 telemetry = telemetry_stream = telemetry_path = None
@@ -927,12 +970,12 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                         )
                         if item["arm"] == "baseline":
                             record = run_baseline(
-                                run_dir, phase["cell_ids"], phase["warmup"], phase["launches"],
+                                run_dir, cell_ids, phase["warmup"], phase["launches"],
                                 phase["hook_repeats"], item["run_id"],
                             )
                         else:
                             record = run_attached(
-                                item["arm"], run_dir, args.bpftime_build, phase["cell_ids"],
+                                item["arm"], run_dir, args.bpftime_build, cell_ids,
                                 phase["warmup"], phase["launches"], phase["hook_repeats"],
                                 item["run_id"],
                             )
@@ -1030,7 +1073,7 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=EXPERIMENT_KIND)
     parser.add_argument("--phase", choices=("preflight", "full"), required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--bpftime-root", type=Path, default=DEFAULT_BPFTIME_ROOT)

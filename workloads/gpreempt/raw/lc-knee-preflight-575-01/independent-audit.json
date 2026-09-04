@@ -1,0 +1,459 @@
+{
+  "campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/lc-knee-preflight-575-01",
+  "complete": true,
+  "continuous_offered_or_miss_rate_defined": false,
+  "driver_revision_evidence": "declared expected source revision, not inferred from runtime counters",
+  "equivalence_claimed": false,
+  "evidence_role": "supporting",
+  "flag_transport": "host_mapped",
+  "formal_complete": false,
+  "formal_eligible": false,
+  "goodput_definition": "verified completions strictly before common cutoff divided by configured seconds",
+  "incomplete_cells": [],
+  "latency_definition": "nearest-rank scheduled-arrival to synchronized/numerically-verified output ready",
+  "mode": "preflight",
+  "original_gdr_transport": false,
+  "post_hoc_rate_additions_allowed": false,
+  "prespecified_lc_rates_rps": [
+    500,
+    625,
+    800
+  ],
+  "rejected_cells": [],
+  "required_cells": 3,
+  "scenarios": {
+    "lc800": {
+      "arms": {
+        "bpf_gpreempt": {
+          "resnet152_be": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": null,
+            "median_completion_coverage": null,
+            "median_goodput_rps": 4.8,
+            "median_p99_response_us": 212832.954,
+            "paired_cell_count": 1
+          },
+          "vgg_rt": {
+            "any_p99_conditional": true,
+            "max_never_started_backlog": 841,
+            "median_completion_coverage": 0.894875,
+            "median_goodput_rps": 715.8,
+            "median_p99_response_us": 1043385.798,
+            "paired_cell_count": 1
+          }
+        },
+        "native": {
+          "resnet152_be": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": null,
+            "median_completion_coverage": null,
+            "median_goodput_rps": 135.6,
+            "median_p99_response_us": 7811.084,
+            "paired_cell_count": 1
+          },
+          "vgg_rt": {
+            "any_p99_conditional": true,
+            "max_never_started_backlog": 1462,
+            "median_completion_coverage": 0.81725,
+            "median_goodput_rps": 653.7,
+            "median_p99_response_us": 1811762.816,
+            "paired_cell_count": 1
+          }
+        },
+        "original_gpreempt": {
+          "resnet152_be": {
+            "any_p99_conditional": false,
+            "max_never_started_backlog": null,
+            "median_completion_coverage": null,
+            "median_goodput_rps": 4.8,
+            "median_p99_response_us": 210845.441,
+            "paired_cell_count": 1
+          },
+          "vgg_rt": {
+            "any_p99_conditional": true,
+            "max_never_started_backlog": 839,
+            "median_completion_coverage": 0.895125,
+            "median_goodput_rps": 716.0,
+            "median_p99_response_us": 1040712.965,
+            "paired_cell_count": 1
+          }
+        }
+      },
+      "complete": true,
+      "paired": {
+        "bpf_gpreempt/native:resnet152_be:goodput_rps": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.035398230088495575
+          ],
+          "conditional_response_population": false,
+          "direction": "higher is better",
+          "geometric_ratio": 0.035398230088495575,
+          "paired_block_bootstrap_ci95": null
+        },
+        "bpf_gpreempt/native:vgg_rt:p99_response_us": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.5758953593625359
+          ],
+          "conditional_response_population": true,
+          "direction": "lower is better",
+          "geometric_ratio": 0.5758953593625359,
+          "paired_block_bootstrap_ci95": null
+        },
+        "bpf_gpreempt/original_gpreempt:resnet152_be:goodput_rps": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            1.0
+          ],
+          "conditional_response_population": false,
+          "direction": "higher is better",
+          "geometric_ratio": 1.0,
+          "paired_block_bootstrap_ci95": null
+        },
+        "bpf_gpreempt/original_gpreempt:vgg_rt:p99_response_us": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            1.0025682710698238
+          ],
+          "conditional_response_population": true,
+          "direction": "lower is better",
+          "geometric_ratio": 1.0025682710698238,
+          "paired_block_bootstrap_ci95": null
+        },
+        "original_gpreempt/native:resnet152_be:goodput_rps": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.035398230088495575
+          ],
+          "conditional_response_population": false,
+          "direction": "higher is better",
+          "geometric_ratio": 0.035398230088495575,
+          "paired_block_bootstrap_ci95": null
+        },
+        "original_gpreempt/native:vgg_rt:p99_response_us": {
+          "all_offered_latency_comparison": false,
+          "block_ids": [
+            0
+          ],
+          "block_ratios": [
+            0.5744200928561279
+          ],
+          "conditional_response_population": true,
+          "direction": "lower is better",
+          "geometric_ratio": 0.5744200928561279,
+          "paired_block_bootstrap_ci95": null
+        }
+      },
+      "per_cell_points": [
+        {
+          "arm": "native",
+          "begin_ns": 71938731324662,
+          "block": 0,
+          "cell": 0,
+          "end_ns": 71948731324662,
+          "last_verified_ready_ns": 71948736261992,
+          "metrics": {
+            "resnet152_be": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 1356,
+              "completion_coverage": null,
+              "goodput_rps": 135.6,
+              "in_window_response_p99_us": 7811.084,
+              "mean_response_us": 7372.447162859248,
+              "never_started_backlog": null,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 1467,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "resnet152_be",
+                "timed_checked": 1357
+              },
+              "offered_requests": null,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 7811.084,
+              "p99_sample_count": 1357,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 7811.084,
+              "service_p99_us": 7810.666,
+              "started_requests": 1357,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": null,
+              "window_completion_fraction": null
+            },
+            "vgg_rt": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 6537,
+              "completion_coverage": 0.81725,
+              "goodput_rps": 653.7,
+              "in_window_response_p99_us": 1811492.305,
+              "mean_response_us": 905276.5127626185,
+              "never_started_backlog": 1462,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 6648,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "vgg_rt",
+                "timed_checked": 6538
+              },
+              "offered_requests": 8000,
+              "p99_is_conditional": true,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 1811762.816,
+              "p99_sample_count": 6538,
+              "response_p99_conditional": true,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 1811762.816,
+              "service_p99_us": 1674.388,
+              "started_requests": 6538,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": 1463,
+              "window_completion_fraction": 0.817125
+            }
+          },
+          "native_priorities": {
+            "resnet152_be": {
+              "actual": "0",
+              "greatest": "-5",
+              "least": "0",
+              "role": "1",
+              "task": "resnet152_be"
+            },
+            "vgg_rt": {
+              "actual": "-5",
+              "greatest": "-5",
+              "least": "0",
+              "role": "0",
+              "task": "vgg_rt"
+            }
+          },
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/lc-knee-preflight-575-01/block-00/lc800/native",
+          "policy_action_coverage": {
+            "applicable": false
+          },
+          "scenario": "lc800"
+        },
+        {
+          "arm": "bpf_gpreempt",
+          "begin_ns": 71970976725370,
+          "block": 0,
+          "cell": 1,
+          "end_ns": 71980976725370,
+          "last_verified_ready_ns": 71980981089652,
+          "metrics": {
+            "resnet152_be": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 48,
+              "completion_coverage": null,
+              "goodput_rps": 4.8,
+              "in_window_response_p99_us": 212832.954,
+              "mean_response_us": 204167.20104081635,
+              "never_started_backlog": null,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 159,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "resnet152_be",
+                "timed_checked": 49
+              },
+              "offered_requests": null,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": true,
+              "p99_response_us": 212832.954,
+              "p99_sample_count": 49,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 212832.954,
+              "service_p99_us": 212832.589,
+              "started_requests": 49,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": null,
+              "window_completion_fraction": null
+            },
+            "vgg_rt": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 7158,
+              "completion_coverage": 0.894875,
+              "goodput_rps": 715.8,
+              "in_window_response_p99_us": 1043241.3,
+              "mean_response_us": 527187.7542641431,
+              "never_started_backlog": 841,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 7269,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "vgg_rt",
+                "timed_checked": 7159
+              },
+              "offered_requests": 8000,
+              "p99_is_conditional": true,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 1043385.798,
+              "p99_sample_count": 7159,
+              "response_p99_conditional": true,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 1043385.798,
+              "service_p99_us": 1466.124,
+              "started_requests": 7159,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": 842,
+              "window_completion_fraction": 0.89475
+            }
+          },
+          "native_priorities": {},
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/lc-knee-preflight-575-01/block-00/lc800/bpf_gpreempt",
+          "policy_action_coverage": {
+            "all_timed_started": 7208,
+            "applicable": true,
+            "due_decisions": 28800973,
+            "foreground_started": 7159,
+            "verified_counts": {
+              "block": 7159,
+              "hint": 7159,
+              "infer": 7428,
+              "preprocess": 7428,
+              "release": 7159,
+              "reset": 7159
+            },
+            "warmup_calibration_requests": 220
+          },
+          "scenario": "lc800"
+        },
+        {
+          "arm": "original_gpreempt",
+          "begin_ns": 72004084493899,
+          "block": 0,
+          "cell": 2,
+          "end_ns": 72014084493899,
+          "last_verified_ready_ns": 72014087502916,
+          "metrics": {
+            "resnet152_be": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 48,
+              "completion_coverage": null,
+              "goodput_rps": 4.8,
+              "in_window_response_p99_us": 210845.441,
+              "mean_response_us": 204139.7726122449,
+              "never_started_backlog": null,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 159,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "resnet152_be",
+                "timed_checked": 49
+              },
+              "offered_requests": null,
+              "p99_is_conditional": false,
+              "p99_less_than_100_samples": true,
+              "p99_response_us": 210845.441,
+              "p99_sample_count": 49,
+              "response_p99_conditional": false,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 210845.441,
+              "service_p99_us": 210845.124,
+              "started_requests": 49,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": null,
+              "window_completion_fraction": null
+            },
+            "vgg_rt": {
+              "all_offered_p99_response_us": null,
+              "completed_after_window": 1,
+              "completed_in_window": 7160,
+              "completion_coverage": 0.895125,
+              "goodput_rps": 716.0,
+              "in_window_response_p99_us": 1040562.676,
+              "mean_response_us": 525998.0636180701,
+              "never_started_backlog": 839,
+              "numerics": {
+                "atol": 1e-06,
+                "checked": 7271,
+                "max_absolute_error": 0,
+                "rtol": 0.0001,
+                "task": "vgg_rt",
+                "timed_checked": 7161
+              },
+              "offered_requests": 8000,
+              "p99_is_conditional": true,
+              "p99_less_than_100_samples": false,
+              "p99_response_us": 1040712.965,
+              "p99_sample_count": 7161,
+              "response_p99_conditional": true,
+              "response_p99_population": "all_started_and_verified_including_after_window",
+              "response_p99_us": 1040712.965,
+              "service_p99_us": 1542.531,
+              "started_requests": 7161,
+              "started_unfinished": 0,
+              "unfinished_offered_at_deadline": 840,
+              "window_completion_fraction": 0.895
+            }
+          },
+          "native_priorities": {},
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/lc-knee-preflight-575-01/block-00/lc800/original_gpreempt",
+          "policy_action_coverage": {
+            "all_timed_started": 7210,
+            "applicable": true,
+            "due_decisions": 34842496,
+            "foreground_started": 7161,
+            "verified_counts": {
+              "block": 7161,
+              "hint": 7161,
+              "infer": 7430,
+              "preprocess": 7430,
+              "release": 7161,
+              "reset": 7161
+            },
+            "warmup_calibration_requests": 220
+          },
+          "scenario": "lc800"
+        }
+      ],
+      "required_blocks": 1,
+      "valid_paired_blocks": 1
+    }
+  },
+  "schema": "gpreempt_lc_knee_audit_v1",
+  "source_revisions": {
+    "expected_driver_port": "849ea75d",
+    "gpu_ext_head": "58c7e2532d7e20dcb6097baa176a79b1c30ba51d",
+    "upstream": "249ee3e"
+  },
+  "statistics": {
+    "confidence": 0.95,
+    "draws": 10000,
+    "equivalence_claimed": false,
+    "estimator": "paired geometric-mean ratios",
+    "interval": "percentile paired-block bootstrap",
+    "seed": 20260903
+  },
+  "study": "lc-knee",
+  "unexpected_cells": [],
+  "valid_cells": 3
+}

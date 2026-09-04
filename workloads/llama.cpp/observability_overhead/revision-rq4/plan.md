@@ -1,5 +1,18 @@
 # Experiment Plan: RQ4 RTX 5090 Observability Overhead
 
+**Result, 2026-09-04:** The predeclared two-tool subset is complete. The
+dependency preflight is `raw/preflight-575-noncross-clock-04`; the paper-value
+run is `raw/full-575-noncross-clock-02`. Independent analysis accepted all five
+correctness configurations and all 10 randomized five-cell blocks, with no
+rejected or retried cell. The result is mixed: for exit records, mean overhead
+was 99.6627% for gpubpf and 99.6208% for matched NVBit (paired effect
+NVBit-minus-gpubpf -0.04185 percentage points, 95% CI [-0.04355, -0.04029]);
+for the exit-count histogram it was 4.0071% and 10.3006%, respectively
+(+6.29351 points [6.12507, 6.47076]). See `result-review.md`. This completes two
+corrected RTX 5090 rows, not the cross-clock `launchlate` row, which remains
+invalid. The runtime had GPU verification disabled, so this is functional
+instrumentation evidence rather than verifier-overhead evidence.
+
 **Predeclared non-cross-clock subset, 2026-09-03:** The executable
 [`table1-noncross-clock-plan.md`](table1-noncross-clock-plan.md) selects only
 `kernelretsnoop` and `threadhist` with `--tools kernelretsnoop threadhist`.
@@ -10,13 +23,13 @@ This is a narrower five-configuration Table 1 campaign, not a reclassification
 of the retained `launchlate` failures and not completion of the original
 seven-arm plan. Omitting `--tools` continues to select all three tools.
 
-**Execution update, 2026-09-03:** The user has requested completion of all
+**Historical execution update, 2026-09-03:** The user requested completion of all
 remaining revision commitments. The earlier closed review in `plan-review.md`
 is retained as history, not a new approval loop. The host now runs Linux
 6.15.11 and NVIDIA **575.57.08**. The experiment below retains its seven arms,
 workload, exact-output/engagement gates and ten-block schedule. The driver
-change and launch-lifecycle repairs do not themselves establish a valid
-preflight or performance result; both remain pending.
+change and launch-lifecycle repairs did not themselves establish a valid
+preflight or performance result; both were pending at this checkpoint.
 
 The runner now acquires the two existing revision leases, rejects ambient
 injection, fixes CUDA clients/loaders to CPUs 8–15, and starts continuous GPU
@@ -34,7 +47,7 @@ cannot confirm exit, the runner retains that client's loader and private
 segment, records process identities and stops the campaign immediately;
 post-safety errors cannot downgrade this terminal failure. Normal teardown is
 client, loader, private segment, then telemetry and post-safety checks. No new
-575 GPU result is claimed.
+575 GPU result was claimed at that checkpoint.
 
 The separate `bpftime-table1-575/build-table1-575` runtime now builds
 successfully (108/108 steps). It carries the actual-thread-count metadata fix
@@ -48,8 +61,8 @@ build/CPU evidence only, not real histogram engagement. Use both
 `--bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575`
 for the fresh 575 preflight and subsequent full run.
 
-The formal runner is wired to the repaired lossless exit collector but no new
-GPU result is claimed yet. It fixes the exit channel at 22,528 thread slots,
+The formal runner is wired to the repaired lossless exit collector. It fixes
+the exit channel at 22,528 thread slots,
 requires exactly 256 records per slot for correctness and exactly 44 for timing,
 and parses the collector's terminal
 allocation, record-size, commit/readback, drop, dirty, pending, drain and
@@ -102,7 +115,7 @@ earlier diagnostics, and use fresh 575 preflight/full directories.
 
 ## Published Precedent And Real Assets
 - Closest published protocol: NVBit MICRO'19 evaluates application slowdown under dynamic SASS instrumentation; the paper's submitted Table 1 measures llama.cpp prefill token/s degradation for three observability tasks.
-- Official system/model/data/benchmark/tool and version: gpubpf/bpftime at the checked-out commits; llama.cpp build 7101; TinyLlama 1.1B Q4_K_M; official NVlabs NVBit v1.8 (latest as of 2026-08-31), identified by its release path and ordinary artifact metadata.
+- Official system/model/data/benchmark/tool and version: gpubpf/bpftime at the checked-out commits; llama.cpp build 7102 (`26836b27`); TinyLlama 1.1B Q4_K_M; official NVlabs NVBit v1.8 (latest as of 2026-08-31), identified by its release path and ordinary artifact metadata. The frozen text originally named build 7101, but the accepted preflight and every full-run arm consistently used the same build-7102 binary, so this recorded bookkeeping deviation does not create an H2H mismatch.
 - What is reused: `run_observability_overhead.py`, the PTX-enabled llama-bench build, the real model, bpftime example tools, and official NVBit release examples/APIs.
 - Necessary deviations or custom glue: Add three matched custom adapters using the official NVBit release and runner support; repair the current bpftime-agent build/path and the three gpubpf tool semantics below. No new experiment-control schema or result gate will be introduced.
 

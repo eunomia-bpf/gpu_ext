@@ -1,5 +1,13 @@
 # Table 1 non-cross-clock subset
 
+**Completed 2026-09-04.** `raw/preflight-575-noncross-clock-04` passed the
+dependency gate and `raw/full-575-noncross-clock-02` passed independent analysis
+with 10/10 complete blocks and no rejected or retried cell. The accepted result
+is mixed: matched NVBit is 0.04185 percentage points lower-overhead for 32-byte
+exit records, while gpubpf is 6.29351 points lower-overhead for the final
+exit-count histogram. Full values and claim limits are in `result-review.md`.
+This closes the selected two-row campaign only; `launchlate` remains invalid.
+
 This is a predeclared, narrower campaign containing `kernelretsnoop` and
 `threadhist`. It answers only the two Table 1 rows that do not depend on a
 host-clock/`%globaltimer` comparison. It does not repair, relabel, or supersede

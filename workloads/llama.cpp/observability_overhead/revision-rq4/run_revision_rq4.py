@@ -77,6 +77,9 @@ LEASE_PATHS = (
 RELATIVE_RUNTIME_INCLUDE = "../../../runtime/include"
 RELATIVE_RUNTIME_INCLUDE_PATTERN = re.compile(r"(?:\.\./)+runtime/include")
 KERNELRETSNOOP_CAPACITY_PATCH = HERE / "kernelretsnoop-phase-capacity.patch"
+LATE_BOOTSTRAP_TARGET_FILTER_PATCH = (
+    HERE / "runtime-575/late-bootstrap-target-filter.patch"
+)
 
 
 def kernelretsnoop_layout(pp: int, *, correctness: bool) -> dict[str, int]:
@@ -914,6 +917,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         Path(shared.run_smoke.__file__),
         Path(shared.safety.__file__),
         KERNELRETSNOOP_CAPACITY_PATCH,
+        LATE_BOOTSTRAP_TARGET_FILTER_PATCH,
         NVBIT_SOURCE_DIR / "Makefile",
         NVBIT_SOURCE_DIR / "clock_domain.h",
         NVBIT_SOURCE_DIR / "common.h",
@@ -926,6 +930,9 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         args.bpftime_root / "runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.hpp",
         args.bpftime_root / "runtime/syscall-server/syscall_server_main.cpp",
         args.bpftime_root / "attach/nv_attach_impl/trampoline/default_trampoline.cu",
+        args.bpftime_root / "attach/nv_attach_impl/nv_attach_impl.cpp",
+        args.bpftime_root
+        / "attach/nv_attach_impl/test/test_late_attach_source_invariants.py",
     ]
     for tool in selected_tools(args):
         spec = core.TOOLS[tool]

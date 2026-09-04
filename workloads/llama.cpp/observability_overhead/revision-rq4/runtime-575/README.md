@@ -1,15 +1,23 @@
 # Table 1 controlled 575 runtime
 
 Base bpftime source: `d6316fa`; LLVM-JIT submodule: `f66cafa`.
-Apply `runtime-575.patch` to that base and the sibling
-`../gpubpf-observability.patch` to the example tools. The former records only
+Apply `runtime-575.patch` and then `late-bootstrap-target-filter.patch` to that
+base, and apply the sibling `../gpubpf-observability.patch` to the example
+tools. The runtime overlays record only
 the selected CUDA attachment repairs, actual-thread-count metadata fix,
 and early/plugin diagnostic-output routing repairs with a narrow unit-test update;
 the latter includes complete histogram readback. No verifier rule is changed.
 
+The target-filter overlay is also committed on the runnable bpftime branch as
+`478d10b`. It restricts late-bootstrap launch substitution to requested hook
+targets. This leaves unrelated kernels on the application's original CUDA
+function, including kernels whose opt-in dynamic-shared-memory attributes are
+set before attachment. The branch's CPU source-invariant test checks this scope;
+the RTX 5090 preflight remains the required real execution gate.
+
 `preparation.json` is the preparer's original record, including its 23-test
 checkpoint, before root's build and subsequent CLI-output repair. It is not
-the final experiment result. The main runner now passes 24 CPU tests.
+the final experiment result. The two current offline suites pass 60 CPU tests.
 Root built `bpftime-agent`, `bpftime-syscall-server` and the associated PTX
 passes/compiler in the separate `bpftime-table1-575/build-table1-575` tree:
 Debug, CUDA attachment ON, LLVM JIT ON, verifier OFF, unit testing OFF,

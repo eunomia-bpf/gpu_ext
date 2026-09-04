@@ -48,6 +48,7 @@ def current_inventory(args, tools):
              args.bpftime_build_dir / "runtime/syscall-server/libbpftime-syscall-server.so",
              args.bpftime_build_dir / "runtime/agent/CMakeFiles/bpftime-agent.dir/agent.cpp.o",
              runner.HERE / "runtime-575/runtime-575.patch",
+             runner.LATE_BOOTSTRAP_TARGET_FILTER_PATCH,
              runner.HERE / "bootstrap-output-repair.md"]
     for task, directory in tools.items():
         spec = runner.core.TOOLS[task]

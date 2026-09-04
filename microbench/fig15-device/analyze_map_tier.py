@@ -183,6 +183,10 @@ def expected_map(arm: str) -> tuple[str, dict[int, int]] | None:
 
 def parse_loader(path: Path, arm: str) -> None:
     text = path.read_text(encoding="utf-8", errors="replace")
+    if re.findall(r"^FIG15_SERVER_PRIMED\t1$", text, re.MULTILINE) != [
+        "FIG15_SERVER_PRIMED\t1"
+    ]:
+        raise AnalysisError(f"loader syscall-server prime failed: {path}")
     if re.findall(r"^FIG15_READY\t([^\t]+)\t1$", text, re.MULTILINE) != [arm]:
         raise AnalysisError(f"loader readiness failed: {path}")
     if re.findall(r"^FIG15_DETACHED\t1$", text, re.MULTILINE) != ["FIG15_DETACHED\t1"]:

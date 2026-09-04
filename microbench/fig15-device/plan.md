@@ -144,3 +144,17 @@ design.
 
 No outcome licenses a warp-leader, block-count-independent, verifier-overhead,
 or application-level performance claim.
+
+## Setup hardening after invalid campaigns
+
+Five full campaigns stopped before a timed application cell because a fresh
+loader exited while opening the unchanged BPF object. Diagnostic logging then
+showed bpftime's lazy syscall-server, shared-memory, and CUDA initialization
+interleaving with libbpf map-definition parsing; the next map parse returned
+`EINVAL`. Before any new campaign, the loader performs one ordinary
+`/dev/null` open/close through the interposer and requires a
+`FIG15_SERVER_PRIMED` record before calling libbpf. This completes the
+synchronous one-time initialization before ELF/BTF parsing. It occurs before
+BPF load, application launch, warmup, and the CUDA-event interval, and is
+identical for every attached arm. The frozen schedule, timed work, correctness
+oracles, statistics, no-retry rule, and full-restart requirement are unchanged.

@@ -83,7 +83,7 @@ def write_fixture(root: Path, phase: str = "full") -> None:
             "Global shm initialized\n",
             encoding="utf-8",
         )
-        lines = [f"FIG15_READY\t{arm}\t1"]
+        lines = ["FIG15_SERVER_PRIMED\t1", f"FIG15_READY\t{arm}\t1"]
         expectation = analyzer.expected_map(arm)
         if expectation is not None:
             name, values = expectation
@@ -164,6 +164,7 @@ class LoaderDiagnosticTests(unittest.TestCase):
         self.assertIn("saved_open_errno ? saved_open_errno", source)
         self.assertNotIn("object ? libbpf_get_error(object) : -ENOMEM", source)
         self.assertIn("libbpf_set_print(capture_libbpf_log);", source)
+        self.assertIn("if (prime_bpftime_server())", source)
 
 
 class IndependentReplayTests(unittest.TestCase):

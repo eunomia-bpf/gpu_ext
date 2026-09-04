@@ -342,6 +342,10 @@ def expected_map(arm: str) -> tuple[str, dict[int, int]] | None:
 
 def validate_loader_log(path: Path, arm: str) -> None:
     text = path.read_text(encoding="utf-8", errors="replace")
+    if re.findall(r"^FIG15_SERVER_PRIMED\t1$", text, re.MULTILINE) != [
+        "FIG15_SERVER_PRIMED\t1"
+    ]:
+        raise RuntimeError("loader syscall-server prime record is incomplete")
     if re.findall(r"^FIG15_READY\t([^\t]+)\t1$", text, re.MULTILINE) != [arm]:
         raise RuntimeError("loader readiness record is incomplete")
     if len(re.findall(r"^FIG15_DETACHED\t1$", text, re.MULTILINE)) != 1:

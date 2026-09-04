@@ -2,6 +2,7 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -10,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #define MAP_ENTRIES 32U
 #define LOOKUP_MAGIC UINT64_C(0x10c4000000000000)
@@ -21,6 +23,24 @@ static int capture_libbpf_log(enum libbpf_print_level level,
 {
 	(void)level;
 	return vfprintf(stderr, format, arguments);
+}
+
+static int prime_bpftime_server(void)
+{
+	/* Complete lazy interposer initialization before libelf parsing starts. */
+	int fd = open("/dev/null", O_RDONLY | O_CLOEXEC);
+	if (fd < 0) {
+		fprintf(stderr, "failed to prime syscall server: %s\n",
+			strerror(errno));
+		return -1;
+	}
+	if (close(fd) != 0) {
+		fprintf(stderr, "failed to close syscall-server prime fd: %s\n",
+			strerror(errno));
+		return -1;
+	}
+	printf("FIG15_SERVER_PRIMED\t1\n");
+	return 0;
 }
 
 static const char *const modes[] = {
@@ -133,6 +153,8 @@ int main(int argc, char **argv)
 	signal(SIGTERM, handle_signal);
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 	libbpf_set_print(capture_libbpf_log);
+	if (prime_bpftime_server())
+		return 7;
 
 	errno = 0;
 	struct bpf_object *object = bpf_object__open_file(argv[1], NULL);

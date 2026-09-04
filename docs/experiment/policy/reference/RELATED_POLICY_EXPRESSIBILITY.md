@@ -61,11 +61,41 @@ paper's own evaluation:
 4. `performance`: a controlled run recorded an outcome metric for that local
    analogue.
 
-The page-level Expert Buffering analogue has local runtime evidence. The new
-finite bpftime device-event workload has build evidence, explicitly separate
-from the original eGPU paper's evaluation. The
-four local PDFs previously found to contain unrelated papers are excluded as
-evidence; publication, author, and official artifact URLs are used instead.
+Four rows now have bounded local performance evidence: Expert Buffering,
+MoE-Infinity, GPREEMPT, and XSched.  The eGPU row also reaches `performance`,
+but through two deliberately separate local paths: strict real-device callback
+engagement and a verification-disabled trampoline microbenchmark.  An evidence
+level describes the strongest tested **local mapping**; it does not promote a
+`PARTIAL` or `ANALOGUE` whole-system classification.  The four local PDFs
+previously found to contain unrelated papers are excluded as evidence;
+publication, author, and official artifact URLs are used instead.
+
+## Reviewer-facing evidence ledger — 2026-09-03
+
+This table separates baseline policy benefit from the cost of executing the
+same decision through BPF.  “Native” means the matching non-BPF policy port,
+not necessarily the authors' original binary.  All performance rows link a
+complete repeated campaign and retain adverse outcomes.
+
+| Policy or mechanism | Baseline -> native policy -> BPF | Strongest local evidence | Boundary and remaining gap |
+|---|---|---|---|
+| MoE-Infinity | 11.8964 -> 11.2233 -> 11.1900 token/s; BPF/native 0.996540 [0.989239, 1.005508] | [`performance`](../../../../workloads/moe-infinity/results-paper-v3-protected-575.md), five blocks / 15 cells | Activation matching, ranking, EAMC and eviction run in native and host-uBPF selectors. The baseline alone has a prefill overload shortcut, so baseline/policy is not a pure policy contrast. Different model/hardware; no original-system or equivalence claim. |
+| XSched HPF | Native CUDA 76.8780 s / 10.2377 kernels/s -> original Level-1 XSched 26.9784 / 10.1497 -> BPF HPF 27.2502 / 10.1616 | [`performance`](../../../../workloads/xsched/performance-full-575-20260903.md), ten blocks plus controls | BPF makes HPF decisions; the original Level-1 frontend executes suspend/resume. The LC difference interval crosses zero. No Level-3, cross-XPU, pure-JIT-cost, or equivalence claim. |
+| GPREEMPT | At continuous BE supply, native 1.7959 ms / 197.717 req/s -> original C 1.6148 / 179.967 -> BPF 1.6100 / 180.100 | [`performance`](../../../../workloads/gpreempt/results-load-study-575-20260903.md), 45 cells, plus the [`LC-knee sweep`](../../../../workloads/gpreempt/results-lc-knee-575-20260903.md) | Both policy arms protect LC at an approximately 9% BE cost; BPF/C intervals include zero. Host-mapped compatibility replaces GDRCopy; requested timeslice is not a proved hardware quantum. |
+| Expert Buffering Section VI | Same-K FIFO 5.508 -> native 5.663 -> BPF 5.621 token/s | [`performance`](../../../../workloads/expert-buffering-policy/section-vi/results-performance-575-20260903.md), five blocks / 15 cells | Native/BPF decisions match; BPF/native is -0.74% [-1.40%, -0.20%]. Single-GPU policy port, not distributed expert buffering, gating control, or load balancing. |
+| FineMoE dynamic set | Demand-only 5.1713, all-positive 3.6228 -> native 4.4994 -> BPF 4.5144 token/s | [`performance`](../../../../workloads/finemoe/results-performance.md), five blocks / 20 cells | Native/BPF implement the same host selector; their interval crosses one. Dynamic selection reduces unused speculation versus all-positive but remains 12.62% slower than demand-only. Not a full FineMoE reproduction. |
+| Hummingbird idle admission | Native and fixed-GPreempt controls -> native C port -> host-uBPF port | [`performance`](../../../../workloads/hummingbird/results-575-20260903.md), 50 cells; [`bound-2 ablation`](../../../../workloads/hummingbird/pipeline/results-575-20260903.md), 40 cells | Conservative C/BPF ports lose about 19--20% BE throughput to fixed GPreempt. Bound 2 recovers about 15% versus bound 1 but does not establish unchanged LC protection. No released original scheduler arm or headline reproduction. |
+| POD-Attention selector | FA serial/streams -> POD inline and matched CUDA adapter -> device-BPF | [`performance`](../../../../workloads/pod-attention/results-575-20260903.md), 250 cells; [`phase decomposition`](../../../../workloads/pod-attention/results-phase-full-575-01.md), 15 cells | BPF/CUDA costs 0.51--1.18% in nine shapes and is 0.44% faster in one; the fixed shape shows +1.78% [1.64%, 1.92%]. Fusion gains are POD policy gains. Current fresh-process BPF setup is about 271 s and strict verification was off. |
+| Same-policy UVM no-prefetch | Built-in no-prefetch -> identical decision through gpubpf | [`performance`](../../../../workloads/uvm-policy-mechanism/results/analysis.md), 15 paired blocks | gpubpf adds 3.219% [2.247%, 4.202%] kernel time on one CPU-resident, non-first-touch fault path. This isolates mechanism cost, not an application-policy benefit. |
+| Device callback and trampoline | Native kernel -> BPF return-only -> BPF per-thread counter | [`performance`](../../../../microbench/trampoline-scaling/results-575-20260903.md), 270 measurements; separate [`strict engagement`](../../../../workloads/bpftime-device-smoke/results-strict-575-20260903.md) | Return-only adds 0.0012--0.0022 ms at fixed geometry; counter cost grows with active work. The performance runtime disables verification and uses per-thread calls, so it does not prove once-per-warp or arbitrary-handler constant cost. |
+| Raw non-composable map state | Native control -> instrumented producer -> host probe, plus overflow-negative control | [`engagement`](../../../../workloads/cross-layer-raw-map/results-full-575-02.md), five blocks / 15 cells | All 34,560 bounded tuples and all 2,560 deliberate drops reconcile. This is raw host readback, not a latency/bandwidth, on-chip-shard, automatic-placement, or unbounded-data result. |
+| LMCache local disk | Planned recompute / original CPU / original disk; no BPF arm | **Paused by user** after correctness failure; see [retained status](../../../revision-completion-checklist.md) | No formal performance cells and no BPF storage policy. Cold outputs agree, but all warm CPU/disk outputs disagree with recompute. Do not claim completion or storage-tier performance. |
+
+The ledger is intentionally broader than the fixed 48-paper JSON matrix: POD,
+Hummingbird, FineMoE, the UVM control, the raw-map check, and trampoline scaling
+are local policy/mechanism studies rather than reclassifications of rows in that
+survey.  RTX 5090 Table 1 remains incomplete; the retained two-tool preflight
+does not become performance evidence for the full NVBit comparison.
 
 ## Survey matrix
 
@@ -99,8 +129,8 @@ observation/action and missing-primitive text.
 
 | Paper | Year | Result | Closest in-tree policy | Boundary |
 |---|---:|---|---|---|
-| [Towards MoE Deployment / Expert Buffering](https://arxiv.org/abs/2303.06182) | 2023 | `ANALOGUE` | `expert_buffering_policy`, `eviction_cycle_moe` | Page-level hot residency only; no gating or expert-atomic buffer |
-| [MoE-Infinity](https://arxiv.org/abs/2401.14361) | 2024 | `PARTIAL` | MoE prefetch + approximate LFU | No expert identity or expert-atomic transfer |
+| [Towards MoE Deployment / Expert Buffering](https://arxiv.org/abs/2303.06182) | 2023 | `ANALOGUE`; `performance` | native/BPF inactive-first/LIFO hot residency | Same-executor port only; no distributed gating, balancing, or original expert-buffer system |
+| [MoE-Infinity](https://arxiv.org/abs/2401.14361) | 2024 | `PARTIAL`; `performance` | native/BPF EAMC, rank, prefetch and eviction port | Host-uBPF application port; driver ABI still lacks native expert semantics and paper runtime |
 | [Fiddler](https://arxiv.org/abs/2402.07033) | 2025 | `NO` | — | Defining action is CPU/GPU compute orchestration |
 | [HOBBIT](https://arxiv.org/abs/2411.01433) | 2024 | `PARTIAL` | MoE prefetch + LFU | No precision selection, expert transfer, or token/layer events |
 | [ProMoE](https://arxiv.org/abs/2410.22134) | 2024 | `PARTIAL` | `prefetch_moe_expert` | No proactive cross-block expert transfer |
@@ -122,9 +152,9 @@ observation/action and missing-primitive text.
 
 | Paper | Year | Result | Closest in-tree policy | Boundary |
 |---|---:|---|---|---|
-| [GPREEMPT](https://www.usenix.org/conference/atc25/presentation/fan) | 2025 | `ANALOGUE` | driver intent; full hybrid port pending runtime validation | [Original clients](../../../../workloads/gpreempt/README.md) and [BPF role/hint bridge](../../../../extension/gpreempt-policy.md) built/CPU-tested; GSP, GDR and model H2H remain pending |
+| [GPREEMPT](https://www.usenix.org/conference/atc25/presentation/fan) | 2025 | `ANALOGUE`; `performance` | kernel-BPF role/timeslice plus host-uBPF hint decisions | Native/C/BPF load studies pass; host-mapped compatibility is not original GDRCopy/hardware reproduction |
 | [GCAPS](https://arxiv.org/abs/2406.05221) | 2024 | `PARTIAL` | timeslice + whole-TSG preempt | No GPU-segment feed or real-time admission guarantee |
-| [XSched](https://www.usenix.org/conference/osdi25/presentation/shen) | 2025 | `PARTIAL` | timeslice + whole-TSG preempt | No XQueue/cross-XPU command suspend-resume runtime |
+| [XSched](https://www.usenix.org/conference/osdi25/presentation/shen) | 2025 | `PARTIAL`; `performance` | host-uBPF HPF over original Level-1 executor | Bounded same-policy run passes; no Level-3, cross-XPU, or standalone gpubpf XQueue actuator |
 | [REEF](https://www.usenix.org/conference/osdi22/presentation/han) | 2022 | `PARTIAL` | whole-TSG preempt | No kernel kill/restore, padding, or request mapping |
 | [Salus](https://arxiv.org/abs/1902.04610) | 2020 | `PARTIAL` | process scheduler + PID quota | No iteration lanes or framework allocator |
 | [Transparent GPU Sharing](https://www.usenix.org/conference/nsdi23/presentation/wu) | 2023 | `PARTIAL` | process timeslices | No per-submission gate or completion feedback loop |
@@ -142,7 +172,7 @@ observation/action and missing-primitive text.
 | Paper | Year | Result | Available local component | Boundary |
 |---|---:|---|---|---|
 | [Extending Applications Safely and Efficiently / bpftime](https://www.usenix.org/conference/osdi25/presentation/zheng-yusheng) | 2025 | `PARTIAL` | host hooks, maps, offline GPU-verifier tests | Driver hooks do not supply the whole EIM extension/resource contract |
-| [eGPU](https://asplos.dev/pdf/bpftime_super.pdf) | 2025 | `PARTIAL` | finite device-return counter workload | Observation/injection is not a scheduler; driver-policy feedback bridge remains explicit |
+| [eGPU](https://asplos.dev/pdf/bpftime_super.pdf) | 2025 | `PARTIAL`; `performance` | strict device-return counter plus trampoline microbenchmark | Strict engagement and verification-disabled performance are separate; observation/injection is not a scheduler |
 
 ### Multi-GPU and storage
 
@@ -155,109 +185,58 @@ observation/action and missing-primitive text.
 | [CARVE](https://research.nvidia.com/publication/2018-10_combining-hwsw-mechanisms-improve-numa-performance-multi-gpu-systems) | 2018 | `NO` | — | No peer topology, remote-cache allocation, or coherence control |
 | [Griffin](https://doi.org/10.1109/HPCA47549.2020.00055) | 2020 | `NO` | — | No peer identity/destination or exact peer migration |
 
-## What can be experimented with now
+## Completed routes and still-missing mechanism surface
 
-The matrix suggests three honest experiment routes without claiming whole-system
-ports:
+The earlier MoE-cache and scheduling-intent routes have now produced controlled
+performance evidence, and no-prefetch has a same-policy mechanism-cost result.
+Those successes do not erase the matrix boundaries.  The tested MoE policies
+obtain expert semantics and transfers from their application executor; XSched
+retains its original Level-1 XQueue frontend/actuator; and GPREEMPT retains a
+two-context blocking-kernel executor with a compatibility signaling path.
 
-1. **MoE cache-policy route:** compare the page-level Expert Buffering analogue,
-   approximate LFU, and MoE-oriented prefetch under one frozen workload.  This
-   tests a shared policy question (hot residency/reuse), not Huang et al.'s
-   gating or expert-atomic implementation.
-2. **UVM policy-component route:** compare no-prefetch, bounded adaptive/stride
-   prefetch, and FIFO/LFU/MRU ordering.  These correspond to components studied
-   by the HPCA'16, ISCA'19, adaptive-UVM, Forest, and HELM lines of work.  Report
-   hook engagement separately from performance.
-3. **Scheduling-intent route:** compare default scheduling with differentiated
-   timeslices and supported whole-TSG preemption.  This exercises the policy
-   intent shared with GPREEMPT/GCAPS/XSched, while explicitly excluding their
-   missing driver/runtime protocols and real-time guarantees.
+The highest-value open expressibility questions are therefore mechanism gaps,
+not more names in a baseline list: arbitrary cross-block/tier migration, exact
+victim and destination choice, lossless command admission/completion, and
+multi-tenant policy isolation.  Papers classified `NO` identify these missing
+actions and must not be relabeled from a similarly named local heuristic.
 
-Papers classified `NO` are still useful: they identify concrete ABI extensions
-needed for a future experiment.  They are not candidates for relabeling an
-existing program.
-
-**Current GPreempt feasibility:** the
-[2026-09-02 source audit](../../../driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md)
-replaces an absolute “infeasible” interpretation with **575/Blackwell port
-pending, comparison not completed**. The official artifact still targets
-550.120/sm_80, and its patch fails the read-only check on the 575 tree; those
-negative results remain recorded. The complete original clients and `sm_120`
-blocking kernel now compile, and the separate 575 transport/GSP driver builds
-at `e3bb2938`; neither that driver nor a GPreempt workload has run on the GPU.
-The new hybrid kernel-BPF + bpftime-JIT bridge implements explicit role-to-GR
-mapping and the original hint/block/release decisions. Its real JIT matched
-101,536 CPU decisions, and its mocked kernel-policy checks passed 77 cases.
-These are implementation checks, not full-system equivalence or performance
-results. Original CUDA/GDR actuators remain unchanged. Model export, real GSP
-acceptance, GDR pin/map, two-context engagement and paired H2H are still pending;
-the classification is not promoted on CPU evidence alone.
-The separate historical paper feasibility table is retained unchanged.
+**Current GPREEMPT feasibility:** the old build-only status is superseded.
+The 45-cell load study and 27-cell LC-knee sweep run native, original-C, and
+actual BPF on RTX 5090.  The BPF arm executes kernel role/timeslice callbacks
+and host-uBPF reset/hint/block/release decisions; the original-C arm executes
+the same decisions without BPF.  Their behavior is close over the measured
+loads, while both expose the LC-protection/BE-goodput tradeoff.  The status is
+therefore **measured compatibility policy port**, not pending runtime.  It
+remains `ANALOGUE`: host-mapped flags replace GDRCopy, the paper's original
+models/hardware were not rerun, and the requested one-microsecond setting is
+not direct proof of the effective hardware preemption quantum.
 
 ## bpftime routes and local checks
 
-The clean sibling `bpftime-r5` source at revision `36610ee` built its verifier
-test target and passed **17 GPU-verifier test cases / 126 assertions** on the
-CPU. The r5 `kernel_trace` and `threadhist` BPF examples, plus the development
-tree's existing `atomizer` example, also compiled to BPF objects. None of those
-checks executed a GPU kernel. The development source at revision `d6316fa`
-already had tracked edits; this investigation did not modify that source.
+The old build-only/device-timeout status is superseded by two fresh strict
+pairs.  In each positive cell, the R5 runtime admits the actual 13-instruction
+program and records exactly 32,768 return callbacks while all 32,768 vector
+outputs match.  In each negative cell, a lane-varying branch is rejected before
+hook creation and fresh counter readback remains zero.  These runs establish a
+narrow strict real-device path; they do not prove general verifier soundness.
+The three earlier failed canaries remain retained and are not relabelled.
 
-Two short implementation routes emerge from the new papers:
+The separate trampoline campaign supplies performance evidence, but uses a
+verification-disabled runtime.  Across 270 measurements, a return-only handler
+adds 0.0012--0.0022 ms at fixed 4,096-block geometry, while a per-thread counter
+body grows with active work.  The audited PTX uses ordinary per-thread
+`call`/`call.uni`, not once-per-warp dispatch.  Strict engagement and measured
+overhead therefore remain separate facts rather than one combined safety claim.
 
-1. **Keep a runtime's original frontend, move its bounded policy decision to
-   userspace eBPF.** A same-XQueue HPF adapter is now available under
-   `workloads/xsched/bpftime_hpf.*`; native XSched remains the reference, and
-   the adapter uses bpftime's host-side uBPF JIT. This is not device-side BPF.
-   More elaborate Orion/TimeGraph admission requires operation identity,
-   completion events, and a lossless queue/dependency protocol; overriding a
-   `cuLaunchKernel` return value does not implement that protocol.
-2. **Add device observations, then evaluate one bounded block-policy
-   component.** Device-return/thread maps can feed a host policy, but need
-   explicit process/TSG correlation before they drive gpubpf. The existing
-   atomizer's block-range predicate is a possible Kernelet/Tally/LithOS
-   component only for independent-block kernels. Its partition divisor needs
-   validation, and every slice must be replayed exactly once. Native slicing
-   is the appropriate component baseline. This does not implement TPC
-   steering, transparent CUDA virtualization, or whole-paper scheduling.
-
-`workloads/bpftime-device-smoke/` provides a finite device-observation check:
-eight launches of 4,096 threads, exact checking of all 32,768 output values,
-and an independent requirement for 32,768 device-return callbacks (eight per
-thread). It uses unique named shared memory, the shared GPU/struct-ops leases,
-owned process-group cleanup, and pre/post GPU safety checks. It never removes
-bpftime's default segment. Build and run from the repository root:
-
-```bash
-make -C workloads/bpftime-device-smoke -j2
-python3 -B workloads/bpftime-device-smoke/run_smoke.py \
-  --output workloads/bpftime-device-smoke/raw/575-canary-next
-```
-
-The existing CUDA runtime build is `../bpftime/build-cuda-pr503`; it is not
-asserted to incorporate the r5 verifier. The three retained 575 canaries
-(`raw/575-canary-root-01`, `-02`, `-03`) all **failed** the full engagement
-criterion. Run 01 exposed the required `cuda__` GPU-program name prefix; run
-02 exposed the matching loader-name update. Both names are now fixed. Run 03
-matched/injected the target PTX and loaded its module; native and instrumented
-workloads each checked all 32,768 values without mismatch, but the callback
-criterion timed out. Attach success and preserved output correctness are not
-proof of device-event engagement. All three runs removed their private shared
-memory and returned to an idle GPU without new Xids. Counter snapshots and
-failure-side correctness retention were subsequently added for diagnosis;
-that diagnostic revision has only been rebuilt, not rerun on the GPU.
-
-The three unchanged result files and parsed facts are retained in
-[`workloads/bpftime-device-smoke/raw/canary-evidence.json`](../../../../workloads/bpftime-device-smoke/raw/canary-evidence.json).
-A subsequent CPU-only call to the existing return-probe translation library
-generated one unpredicated return call and no warp/lane filter. The per-thread
-expectation remains 4,096 × 8; `call.uni` does not mean one invocation per warp.
-The host lookup copies all 32,768 map bytes, and the probe retains ownership of
-the CUDA allocation after the target exits. The leading unconfirmed hypothesis
-is launch routing bypassing the patched CUfunction. Next-run counter snapshots
-plus existing debug routing messages can distinguish that from a map/codegen
-defect. Run 03's original patched PTX was not retained; the CPU reconstruction
-is not retroactive execution evidence.
+Host-uBPF ports in MoE-Infinity, XSched, GPREEMPT, Expert Buffering, FineMoE,
+and Hummingbird also execute real JIT decisions.  They keep each workload's
+native frontend and actuator, so they demonstrate bounded decision
+expressibility, not that bpftime alone supplies XQueue, DMA, cache, or launch
+execution.  More elaborate Orion/TimeGraph admission still requires operation
+identity, completion events, and a lossless queue/dependency protocol; simply
+overriding `cuLaunchKernel` does not implement that protocol.  Likewise,
+Kernelet/Tally/LithOS still need exact slice replay, dependency preservation,
+and spatial controls beyond the existing block predicate.
 
 Primary artifacts provide future original-system baselines for
 [Orion](https://github.com/eth-easl/orion),

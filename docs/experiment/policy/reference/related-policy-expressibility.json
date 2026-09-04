@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "title": "Related GPU policy expressibility against the current gpubpf ABI",
-  "as_of": "2026-09-02",
+  "as_of": "2026-09-03",
   "unit_of_classification": "The paper's whole policy or system, not an isolated sub-heuristic.",
   "abi_scope": {
     "observations": [
@@ -80,7 +80,7 @@
       "mapping_reason": "The local bpftime device path provides observation components used by gpubpf, but device instrumentation does not by itself create launch admission, TSG scheduling or arbitrary memory migration.",
       "missing_primitives": ["device-event to owning process/TSG correlation for a control loop", "explicit bridge from sampled device state to a chosen driver policy action"],
       "in_tree_programs": ["workloads/bpftime-device-smoke/probe.bpf.c", "workloads/bpftime-device-smoke/vector.cu"],
-      "evidence": {"level": "build", "paths": ["workloads/bpftime-device-smoke/Makefile", "docs/experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md"], "note": "Finite CUDA 12.9/sm_120 workload and probe built. Three 575 canaries failed the complete engagement criterion: first GPU program prefix, then loader name, then callback timeout despite native/instrumented exact correctness and patched module load. Prefix/name fixes and diagnostic snapshots are present; no passed device-return engagement or scheduler performance claim."},
+      "evidence": {"level": "performance", "paths": ["workloads/bpftime-device-smoke/results-strict-575-20260903.md", "microbench/trampoline-scaling/results-575-20260903.md"], "note": "Two strict RTX 5090 pairs each admit and execute exactly 32768 device-return callbacks while rejecting a lane-varying program before hook creation; a separate verification-disabled 270-measurement campaign quantifies return-only and per-thread state-update costs. These are bounded local device-extension results, not a reproduction of eGPU's complete evaluation or proof that the performance runtime used strict verification."},
       "bpftime_route": "First count exactly 32768 device-thread returns while checking 32768 vector outputs; only then connect sampled observations to a separately validated scheduler."
     },
     {
@@ -378,10 +378,10 @@
       "observes": ["gating output, active/hot experts, and expert load"],
       "acts": ["changes gating, caches whole experts, and balances expert placement"],
       "classification": "ANALOGUE",
-      "mapping_reason": "The tree contains a profile-guided page-granular hot-residency analogue; it is not expert-atomic buffering, dynamic gating, or load balancing.",
+      "mapping_reason": "The tree contains and has measured a same-executor inactive-first/LIFO hot-residency policy port; it is not the paper's distributed expert-atomic buffering, dynamic gating, or load balancing system.",
       "missing_primitives": ["expert-atomic migration", "gating control", "expert load balancing"],
       "in_tree_programs": ["extension/expert_buffering_policy.bpf.c", "extension/eviction_cycle_moe.bpf.c"],
-      "evidence": {"level": "engagement", "paths": ["workloads/expert-buffering-policy/correctness-result.json", "workloads/expert-buffering-policy/timing-progress.md"], "note": "Evidence covers only the explicitly bounded page-level analogue."}
+      "evidence": {"level": "performance", "paths": ["workloads/expert-buffering-policy/section-vi/correctness-results-575-02.md", "workloads/expert-buffering-policy/section-vi/results-performance-575-20260903.md"], "note": "Five FIFO/native/BPF blocks complete. Native and BPF improve throughput over the same-K FIFO baseline by 2.55% and 1.79%; BPF is 0.74% slower than the identical native policy. This is a single-GPU policy port with identical decisions, not the original distributed system."}
     },
     {
       "id": "moe-infinity-2024",
@@ -393,10 +393,10 @@
       "observes": ["expert activation traces and cache reuse"],
       "acts": ["selects whole-expert replacement and prefetch"],
       "classification": "PARTIAL",
-      "mapping_reason": "Activation/fault history can guide page order and local prefetch, but the ABI lacks expert identity and whole-expert transfer.",
+      "mapping_reason": "A same-frontend port executes MoE-Infinity's activation matching, prefetch ranking, score-based eviction, and EAMC decisions through native selectors or a host uBPF JIT. The current driver ABI still does not natively expose expert identity or provide the paper's whole-expert cache/runtime.",
       "missing_primitives": ["expert identity", "expert-atomic transfer", "cross-block proactive prefetch"],
       "in_tree_programs": ["extension/prefetch_moe_expert.bpf.c", "extension/eviction_lfu.bpf.c"],
-      "evidence": {"level": "source", "paths": [], "note": "Mapping does not claim MoE-Infinity's cache is reimplemented."}
+      "evidence": {"level": "performance", "paths": ["workloads/moe-infinity/results-paper-v3-protected-575.md", "workloads/moe-infinity/raw/paper-v3-575/timing-849ea75d-02-postboot/audited-analysis-final.json"], "note": "Five baseline/native/BPF blocks complete. Throughput medians are 11.8964/11.2233/11.1900 token/s; BPF/native is 0.996540 [0.989239, 1.005508]. This is a GPT-OSS/RTX 5090 algorithm reimplementation using host uBPF, not the paper's original model, hardware, cache implementation, or full-system reproduction."}
     },
     {
       "id": "fiddler-iclr25",
@@ -575,10 +575,10 @@
       "observes": ["LC/BE role and CUDA context, input-preprocessing hints and predicted readiness time"],
       "acts": ["sets asymmetric LC/BE TSG timeslices and launches a GDRCopy-signaled blocking kernel ahead of LC readiness"],
       "classification": "ANALOGUE",
-      "mapping_reason": "The established driver-only route implements coarse scheduling intent. A full hybrid kernel-BPF plus bpftime-JIT port now implements role-to-GR mapping and original hint/block/release decisions, retaining original CUDA/GDR actuators, but awaits runtime validation before its classification can be promoted.",
-      "missing_primitives": ["runtime-validated LC/BE role-to-GR correspondence for two contexts", "real GDRCopy pin/map and blocking-kernel engagement on sm_120", "validated 575 original query/control transport and effective GSP timeslice behavior", "exported original model workloads, numerical validation and paired three-way performance"],
+      "mapping_reason": "The measured hybrid kernel-BPF plus host-uBPF port implements role-to-GR mapping, asymmetric timeslices, and the original reset/hint/block/release decisions. It uses the original two-context/blocking-kernel executor but substitutes host-mapped flags for GDRCopy, so it remains an analogue rather than a full original-system reproduction.",
+      "missing_primitives": ["original GDRCopy pin/map signaling rather than the host-mapped compatibility transport", "the paper's original model binaries, hardware, and driver artifact", "direct proof that the requested one-microsecond timeslice is the effective hardware preemption quantum"],
       "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c", "extension/gpu_preempt_ctrl.bpf.c", "extension/gpreempt_policy.bpf.c", "extension/gpreempt_hint.bpf.c", "extension/gpreempt_bridge.cpp", "workloads/gpreempt/policy-bridge.patch"],
-      "evidence": {"level": "build", "paths": ["docs/driver_docs/sched/gpreempt-analysis/feasibility-575-20260902.md", "workloads/gpreempt/README.md", "extension/gpreempt-policy.md", "docs/experiment/driver-575-linux-6.15-runtime.md"], "note": "Official 249ee3e full clients and block.cu built for sm_120. Separate 575 driver e3bb2938 includes GSP propagation and owned query/narrow timeslice transport but is not staged or loaded. Actual bpftime JIT matched 101536 original hint decisions; mocked kernel policy passed 77 cases/1397 assertions. No GPreempt verifier attachment, GPU workload or performance comparison has run. Retain original 550.120/sm_80 and failed direct-patch evidence; CPU implementation is not a completed reproduction."}
+      "evidence": {"level": "performance", "paths": ["workloads/gpreempt/results-load-study-575-20260903.md", "workloads/gpreempt/results-lc-knee-575-20260903.md", "workloads/gpreempt/raw/load-study-full-575-20260903/independent-audit-final.json"], "note": "The 45-cell load study and 27-cell LC-knee sweep complete with native, original-C, and actual BPF arms. Under continuous BE supply, C and BPF lower LC response p99 by 9.61% and 10.81% versus native while reducing BE goodput by about 9%; BPF/C intervals include zero. This validates the compatibility port's policy behavior, not GDRCopy, an exact hardware quantum, formal equivalence, or the original paper's hardware/model results."}
     },
     {
       "id": "gcaps-ecrts24",
@@ -605,10 +605,10 @@
       "observes": ["XQueue operations, command progress, and scheduling policy state"],
       "acts": ["queues, intercepts, suspends, and resumes work across XPU types"],
       "classification": "PARTIAL",
-      "mapping_reason": "GPU priority/timeslice intent maps, but the cross-XPU XQueue runtime and command-level resume model do not.",
+      "mapping_reason": "A host-uBPF port now runs the same bounded HPF decision over the original XSched Level-1 frontend and suspend/resume actuator. The current gpubpf scheduler ABI alone still does not provide XQueue interception, command-level resume, or the paper's cross-XPU Level-3 mechanism.",
       "missing_primitives": ["XQueue interception", "cross-XPU control", "command-level suspend/resume"],
       "in_tree_programs": ["extension/gpu_sched_set_timeslices.bpf.c", "extension/gpu_preempt_ctrl.bpf.c"],
-      "evidence": {"level": "source", "paths": [], "note": "Only a scheduling-policy subset is mapped."}
+      "evidence": {"level": "performance", "paths": ["workloads/xsched/performance-full-575-20260903.md", "workloads/xsched/raw/full-persistent-575-20260903/independent-raw-audit.json"], "note": "Ten four-arm blocks plus six controls complete. Native/original-XSched/BPF-HPF LC p99 medians are 76.8780/26.9784/27.2502 s and BE rates are 10.2377/10.1497/10.1616 kernels/s. The BPF/XSched latency interval crosses zero; this validates the bounded Level-1 policy port, not formal equivalence, Level-3, cross-XPU coverage, or isolated JIT cost."}
     },
     {
       "id": "reef-osdi22",

@@ -20,6 +20,18 @@ PREFETCH_PROTECTION_COUNTERS = (
     "prefetch_protected_resident_skips", "prefetch_stale_discarded",
     "prefetch_no_victim", "prefetch_copy_started", "prefetch_victim_recheck_rejected",
 )
+PASSIVE_ABLATION_COUNTERS = {
+    "prefetch_enabled", "cache_budget_bytes", "temporary_slot_enabled",
+    "bpf_demand_eviction_calls", "bpf_prefetch_eviction_calls",
+    "demand_evictions", "prefetch_evictions", "prefetch_hit_bytes",
+    "prefetch_unused_resident_bytes", "prefetch_copy_waits",
+    "prefetch_copy_wait_ns", "demand_prefill_accesses",
+    "demand_prefill_hits", "demand_prefill_misses", "demand_decode_accesses",
+    "demand_decode_hits", "demand_decode_misses", "demand_copy_started",
+    "demand_bytes", "demand_prefetch_waits", "demand_prefetch_wait_ns",
+    "demand_cache_waits", "demand_cache_wait_ns", "temporary_slot_uses",
+    "temporary_slot_bytes", "temporary_slot_waits", "temporary_slot_wait_ns",
+}
 
 
 def emit(message):
@@ -37,7 +49,8 @@ def admit(port, driver_stage=None):
     source = base.git_revision(base.MOE_SOURCE, base.EXPECTED_MOE_COMMIT,
                                allow_instrumentation=True, paper_activation=True)
     files = [HERE / name for name in ("paper_policy.py", "paper_policy_buffers.py", "paper_server.py",
-             "paper-activation.patch", "run_paper_policy.py", "prompts.json")]
+             "paper-activation.patch", "predictive-prefetch-ablation.patch",
+             "run_paper_policy.py", "prompts.json")]
     files += sorted(base.MOE_SOURCE.glob("moe_infinity/_*.so"))
     files += [base.EXTENSION / ".output" / name for name in (
         "libmoe_expert_policy.so", "moe_expert_policy_rank.bin",
@@ -54,7 +67,7 @@ def interrupt_warnings():
             if "Going over RM unhandled interrupt threshold" in line]
 
 
-def launch(mode, output, port, verify):
+def launch(mode, output, port, verify, prefetch=None):
     argv, cwd = base.server_command("moe_infinity_075", port, output, STORE)
     argv[4:6] = [str(HERE / "paper_server.py")]
     env = base.controlled_environment("moe_infinity_075", cuda129_triton=True)
@@ -64,6 +77,8 @@ def launch(mode, output, port, verify):
                MOE_EXPERT_RANK_CODE=str(artifacts / "moe_expert_policy_rank.bin"),
                MOE_EXPERT_SCORED_CODE=str(artifacts / "moe_expert_policy_scored.bin"),
                MOE_EXPERT_MATCH_CODE=str(artifacts / "moe_expert_policy_match.bin"))
+    if prefetch is not None:
+        env["MOE_REVISION_PREFETCH"] = "1" if prefetch else "0"
     base.atomic_write_json(output / "launch.json", {"argv": argv, "cwd": str(cwd), "env": env})
     log = (output / "server.log").open("x")
     process = subprocess.Popen(argv, cwd=cwd, env=env, stdout=log,
@@ -84,7 +99,8 @@ def validate_activation(mode, state):
     if mode == "native-off":
         if (state["controller"] or dispatcher["mode"] != 0 or
                 any(type(value) is not int or value != 0
-                    for key, value in dispatcher.items() if key != "mode")):
+                    for key, value in dispatcher.items()
+                    if key != "mode" and key not in PASSIVE_ABLATION_COUNTERS)):
             raise base.GateError("native-off unexpectedly enabled policy")
         return
     controller = state["controller"]

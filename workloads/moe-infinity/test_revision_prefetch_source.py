@@ -57,9 +57,10 @@ class PrefetchSourceWiring(unittest.TestCase):
     def test_publisher_protects_before_making_work_available(self):
         submit = body("void ExpertDispatcher::SubmitActivationPrefetch(",
                       "void ExpertDispatcher::RecordActivationUse(")
-        self.assertLess(submit.index("activation_prediction_.Replace(identities)"),
-                        submit.index("ReplaceBackground"))
-        self.assertIn("item.prediction_epoch = epoch", submit)
+        enabled = submit.split("std::vector<std::vector<CallArgs>> work", 1)[1]
+        self.assertLess(enabled.index("activation_prediction_.Replace(identities)"),
+                        enabled.index("ReplaceBackground"))
+        self.assertIn("item.prediction_epoch = epoch", enabled)
 
     def test_native_off_drain_stays_policy_neutral(self):
         drain = body("void ExpertDispatcher::DrainActivationPrefetch()",

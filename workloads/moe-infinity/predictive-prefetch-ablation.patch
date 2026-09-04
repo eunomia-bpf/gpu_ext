@@ -1,0 +1,341 @@
+--- a/core/parallel/expert_dispatcher.h
++++ b/core/parallel/expert_dispatcher.h
+@@ -49,6 +49,7 @@
+     bool remote = false;
+     bool wait_for_prefetch = false;
+     bool activation_prefetch = false;
++    bool prefill = false;
+     uint64_t prediction_epoch = 0;
+   } CallArgs;
+   typedef struct {
+@@ -118,7 +119,8 @@
+   std::tuple<std::uint64_t, std::uint64_t> GetCacheCounts() const;
+   double GetCacheHitRate() const;
+   void ConfigureActivationPolicy(int mode, const std::string& library,
+-                                 const std::string& bytecode, bool verify);
++                                 const std::string& bytecode, bool verify,
++                                 bool prefetch_enabled);
+   void SetActivationScores(const std::vector<double>& scores);
+   void SubmitActivationPrefetch(const std::vector<uint64_t>& identities);
+   void DrainActivationPrefetch();
+@@ -152,6 +154,7 @@
+   bool EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id,
+                               uint64_t prediction_epoch = 0);
+   void RecordActivationUse(uint64_t identity);
++  void RecordDemandAccess(bool prefill, bool hit);
+ 
+  private:
+   std::vector<std::unique_ptr<base::Thread>> threads_;
+@@ -204,9 +207,11 @@
+   torch::Tensor router_weight_;
+ 
+   std::vector<int64_t> cache_sizes_;
++  uint64_t cache_budget_bytes_ = 0;
+   std::vector<std::unordered_set<uint64_t>> cached_experts_;
+ 
+   std::atomic<int> activation_mode_{0};  // 0 upstream, 1 paper native, 2 paper BPF
++  bool activation_prefetch_enabled_ = true;
+   bool activation_verify_ = false;
+   void* activation_library_ = nullptr;
+   int (*activation_select_)(const moe_expert_scored_candidate*, mep_u32,
+@@ -223,6 +228,19 @@
+   std::atomic<uint64_t> activation_protected_skips_{0}, activation_stale_{0};
+   std::atomic<uint64_t> activation_no_victim_{0}, activation_copy_started_{0};
+   std::atomic<uint64_t> activation_victim_recheck_rejected_{0};
++  std::atomic<uint64_t> activation_demand_evictions_{0};
++  std::atomic<uint64_t> activation_prefetch_evictions_{0};
++  std::atomic<uint64_t> activation_bpf_demand_calls_{0};
++  std::atomic<uint64_t> activation_bpf_prefetch_calls_{0};
++  std::atomic<uint64_t> demand_prefill_accesses_{0}, demand_prefill_hits_{0};
++  std::atomic<uint64_t> demand_decode_accesses_{0}, demand_decode_hits_{0};
++  std::atomic<uint64_t> demand_copy_started_{0}, demand_bytes_{0};
++  std::atomic<uint64_t> demand_prefetch_waits_{0}, demand_prefetch_wait_ns_{0};
++  std::atomic<uint64_t> demand_cache_waits_{0}, demand_cache_wait_ns_{0};
++  std::atomic<uint64_t> prefetch_copy_waits_{0}, prefetch_copy_wait_ns_{0};
++  std::atomic<uint64_t> activation_hit_bytes_{0};
++  std::atomic<uint64_t> temporary_slot_uses_{0}, temporary_slot_bytes_{0};
++  std::atomic<uint64_t> temporary_slot_waits_{0}, temporary_slot_wait_ns_{0};
+ 
+   int cache_capacity_ = 0;
+   int num_threads_ = 1;
+--- a/core/parallel/expert_dispatcher.cpp
++++ b/core/parallel/expert_dispatcher.cpp
+@@ -20,6 +20,7 @@
+ #include <c10/cuda/CUDAStream.h>
+ 
+ #include <algorithm>
++#include <chrono>
+ #include <future>
+ #include <regex>
+ #include <sstream>
+@@ -157,6 +158,7 @@
+     auto cache_limit =
+         kTopologyHandle->GetSparseCacheLimit(torch::Device(torch::kCUDA, i));
+     cache_sizes_.push_back(cache_limit);
++    cache_budget_bytes_ += static_cast<uint64_t>(cache_limit);
+   }
+ 
+   for (int i = 0; i < kNumDevices() * num_threads; ++i) {
+@@ -228,6 +230,7 @@
+   int layer_idx = args.layer_idx;
+   int expert_idx = args.expert_idx;
+   auto expert_node = experts_[expert_idx][layer_idx];
++  args.prefill = hidden_states_.size(0) > 1;
+ 
+   // Serialize paper-prefetch claims with demand's IDLE -> FETCHING claim.
+   std::unique_lock<std::mutex> activation_claim(activation_mutex_, std::defer_lock);
+@@ -238,6 +241,7 @@
+     if (!expert_node->node->exec_state.compare_exchange_strong(
+             expected, NodeExecState::FETCHING, std::memory_order_acq_rel)) {
+       if (expert_node->node->is_prefetching.load(std::memory_order_acquire)) {
++        RecordDemandAccess(args.prefill, false);
+         expert_node->node->pending_dispatches.fetch_add(
+             1, std::memory_order_acq_rel);
+         args.wait_for_prefetch = true;
+@@ -255,6 +259,7 @@
+   expert_node->node->last_access_time = MCIROSECONDS_SINCE_EPOCH;
+ 
+   if (expert_node->node->device.is_cuda()) {
++    RecordDemandAccess(args.prefill, true);
+     RecordActivationUse((uint64_t(layer_idx) << 32) | uint64_t(expert_idx));
+     // Cache-hit path: expert already on GPU, skip fetch queue entirely.
+     // transfer_event stays nullptr — GPUExecFunc will skip cudaStreamWaitEvent.
+@@ -282,6 +287,7 @@
+     // exec_queue_[args.gpu_id].push_back(std::move(exec_args));
+     exec_queue_[args.gpu_id].Push(exec_args);
+   } else {
++    RecordDemandAccess(args.prefill, false);
+     // std::unique_lock<std::mutex> lock(input_mutex_[args.gpu_id]);
+     // input_queue_[args.gpu_id].push_back(std::move(args));
+     input_queue_[args.gpu_id].Push(args);
+@@ -439,6 +445,10 @@
+     if (activation_mode_.load() == 2) {
+       int rc = activation_select_(snapshot.data(), snapshot.size(), &index);
+       activation_bpf_calls_.fetch_add(1);
++      if (prediction_epoch)
++        activation_bpf_prefetch_calls_.fetch_add(1, std::memory_order_relaxed);
++      else
++        activation_bpf_demand_calls_.fetch_add(1, std::memory_order_relaxed);
+       DLOG_FATAL_IF(rc != 0 || (index != MOE_EXPERT_NONE && index >= snapshot.size()),
+                     "paper BPF eviction failed; no fallback");
+       if (activation_verify_ && index != native()) {
+@@ -472,7 +482,8 @@
+ }
+ 
+ void ExpertDispatcher::ConfigureActivationPolicy(
+-    int mode, const std::string& library, const std::string& bytecode, bool verify) {
++    int mode, const std::string& library, const std::string& bytecode, bool verify,
++    bool prefetch_enabled) {
+   TORCH_CHECK(mode == 1 || mode == 2, "paper policy mode must be native=1 or BPF=2");
+   TORCH_CHECK(activation_mode_.load() == 0, "paper policy already configured");
+   if (mode == 2) {
+@@ -489,6 +500,7 @@
+   }
+   activation_scores_.assign(num_experts_ * experts_[0].size(), 1.0);
+   activation_verify_ = verify;
++  activation_prefetch_enabled_ = prefetch_enabled;
+   activation_mode_.store(mode, std::memory_order_release);
+ }
+ 
+@@ -506,6 +518,12 @@
+ 
+ void ExpertDispatcher::SubmitActivationPrefetch(const std::vector<uint64_t>& identities) {
+   TORCH_CHECK(activation_mode_.load(), "paper policy not configured");
++  if (!activation_prefetch_enabled_) {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    activation_prediction_.Invalidate();
++    for (auto& queue : input_queue_) queue.ReplaceBackground({});
++    return;
++  }
+   std::vector<std::vector<CallArgs>> work(kNumDevices());
+   for (auto key : identities) {
+     auto layer = key >> 32;
+@@ -531,7 +549,20 @@
+ void ExpertDispatcher::RecordActivationUse(uint64_t key) {
+   if (!activation_mode_.load()) return;
+   std::lock_guard<std::mutex> lock(activation_mutex_);
+-  if (unused_activation_prefetch_.erase(key)) activation_hits_.fetch_add(1);
++  if (unused_activation_prefetch_.erase(key)) {
++    activation_hits_.fetch_add(1);
++    auto layer = key >> 32;
++    auto expert = key & 0xffffffffULL;
++    activation_hit_bytes_.fetch_add(experts_[expert][layer]->node->byte_size);
++  }
++}
++
++void ExpertDispatcher::RecordDemandAccess(bool prefill, bool hit) {
++  if (!activation_mode_.load(std::memory_order_acquire)) return;
++  auto& accesses = prefill ? demand_prefill_accesses_ : demand_decode_accesses_;
++  auto& hits = prefill ? demand_prefill_hits_ : demand_decode_hits_;
++  accesses.fetch_add(1, std::memory_order_relaxed);
++  if (hit) hits.fetch_add(1, std::memory_order_relaxed);
+ }
+ 
+ void ExpertDispatcher::DrainActivationPrefetch() {
+@@ -569,6 +600,10 @@
+     activation_wasted_bytes_.fetch_add(node->byte_size);
+   }
+   activation_evictions_.fetch_add(1);
++  if (prediction_epoch)
++    activation_prefetch_evictions_.fetch_add(1, std::memory_order_relaxed);
++  else
++    activation_demand_evictions_.fetch_add(1, std::memory_order_relaxed);
+   node->exec_state.store(NodeExecState::IDLE, std::memory_order_release);
+   cache_cv_[gpu_id].notify_all();
+   return true;
+@@ -627,7 +662,12 @@
+     activation_copy_started_.fetch_add(1, std::memory_order_relaxed);
+   }
+   if (done) {
++    auto wait_started = std::chrono::steady_clock::now();
+     CUDA_CHECK(cudaEventSynchronize(done));
++    auto wait_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - wait_started).count();
++    prefetch_copy_waits_.fetch_add(1, std::memory_order_relaxed);
++    prefetch_copy_wait_ns_.fetch_add(wait_ns, std::memory_order_relaxed);
+     kCudaEventPool->Release(done);
+   }
+   uint64_t key = (uint64_t(args.layer_idx) << 32) | args.expert_idx;
+@@ -644,25 +684,58 @@
+ 
+ std::map<std::string, uint64_t> ExpertDispatcher::GetActivationStats() const {
+   std::lock_guard<std::mutex> lock(activation_mutex_);
++  uint64_t unused_resident_bytes = 0;
++  for (auto key : unused_activation_prefetch_) {
++    auto layer = key >> 32;
++    auto expert = key & 0xffffffffULL;
++    unused_resident_bytes += experts_[expert][layer]->node->byte_size;
++  }
+   return {{"mode", activation_mode_.load()},
++          {"prefetch_enabled", activation_prefetch_enabled_ ? 1 : 0},
++          {"cache_budget_bytes", cache_budget_bytes_},
++          {"temporary_slot_enabled", activation_mode_.load() ? 0 : 1},
+           {"eviction_selections", activation_eviction_calls_.load()},
+           {"bpf_eviction_calls", activation_bpf_calls_.load()},
++          {"bpf_demand_eviction_calls", activation_bpf_demand_calls_.load()},
++          {"bpf_prefetch_eviction_calls", activation_bpf_prefetch_calls_.load()},
+           {"eviction_mismatches", activation_mismatches_.load()},
+           {"evictions", activation_evictions_.load()},
++          {"demand_evictions", activation_demand_evictions_.load()},
++          {"prefetch_evictions", activation_prefetch_evictions_.load()},
+           {"prefetch_submitted", activation_submitted_.load()},
+           {"prefetch_completed", activation_completed_.load()},
+           {"prefetch_hits", activation_hits_.load()},
++          {"prefetch_hit_bytes", activation_hit_bytes_.load()},
+           {"prefetch_wasted", activation_wasted_.load()},
+           {"prefetch_bytes", activation_bytes_.load()},
+           {"prefetch_wasted_bytes", activation_wasted_bytes_.load()},
+           {"prefetch_unused_resident", unused_activation_prefetch_.size()},
++          {"prefetch_unused_resident_bytes", unused_resident_bytes},
+           {"prefetch_prediction_epoch", activation_prediction_.Epoch()},
+           {"prefetch_protected_candidates", activation_prediction_.Size()},
+           {"prefetch_protected_resident_skips", activation_protected_skips_.load()},
+           {"prefetch_stale_discarded", activation_stale_.load()},
+           {"prefetch_no_victim", activation_no_victim_.load()},
+           {"prefetch_copy_started", activation_copy_started_.load()},
+-          {"prefetch_victim_recheck_rejected", activation_victim_recheck_rejected_.load()}};
++          {"prefetch_victim_recheck_rejected", activation_victim_recheck_rejected_.load()},
++          {"prefetch_copy_waits", prefetch_copy_waits_.load()},
++          {"prefetch_copy_wait_ns", prefetch_copy_wait_ns_.load()},
++          {"demand_prefill_accesses", demand_prefill_accesses_.load()},
++          {"demand_prefill_hits", demand_prefill_hits_.load()},
++          {"demand_prefill_misses", demand_prefill_accesses_.load() - demand_prefill_hits_.load()},
++          {"demand_decode_accesses", demand_decode_accesses_.load()},
++          {"demand_decode_hits", demand_decode_hits_.load()},
++          {"demand_decode_misses", demand_decode_accesses_.load() - demand_decode_hits_.load()},
++          {"demand_copy_started", demand_copy_started_.load()},
++          {"demand_bytes", demand_bytes_.load()},
++          {"demand_prefetch_waits", demand_prefetch_waits_.load()},
++          {"demand_prefetch_wait_ns", demand_prefetch_wait_ns_.load()},
++          {"demand_cache_waits", demand_cache_waits_.load()},
++          {"demand_cache_wait_ns", demand_cache_wait_ns_.load()},
++          {"temporary_slot_uses", temporary_slot_uses_.load()},
++          {"temporary_slot_bytes", temporary_slot_bytes_.load()},
++          {"temporary_slot_waits", temporary_slot_waits_.load()},
++          {"temporary_slot_wait_ns", temporary_slot_wait_ns_.load()}};
+ }
+ 
+ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+@@ -714,6 +787,7 @@
+     auto expert_node = experts_[expert_idx][layer_idx];
+ 
+     if (args.wait_for_prefetch) {
++      auto wait_started = std::chrono::steady_clock::now();
+       bool claimed = false;
+       while (!main_thread_stop_flag_.load(std::memory_order_acquire)) {
+         std::unique_lock<std::mutex> claim(activation_mutex_, std::defer_lock);
+@@ -726,6 +800,11 @@
+         std::this_thread::sleep_for(std::chrono::microseconds(10));
+       }
+       if (!claimed) break;
++      demand_prefetch_waits_.fetch_add(1, std::memory_order_relaxed);
++      demand_prefetch_wait_ns_.fetch_add(
++          std::chrono::duration_cast<std::chrono::nanoseconds>(
++              std::chrono::steady_clock::now() - wait_started).count(),
++          std::memory_order_relaxed);
+       expert_node->node->pending_dispatches.fetch_sub(
+           1, std::memory_order_acq_rel);
+       if (expert_node->node->device.is_cuda()) {
+@@ -759,10 +838,21 @@
+ 
+     if (!cache_hit && cache_sizes_[gpu_id] < expert_node->node->byte_size) {
+       if (activation_mode_.load()) {
++        bool waited_for_victim = false;
++        auto wait_started = std::chrono::steady_clock::now();
+         while (cache_sizes_[gpu_id] < expert_node->node->byte_size &&
+                !main_thread_stop_flag_.load(std::memory_order_acquire)) {
+-          if (!EvictActivationVictim(FindExpertEvict(gpu_id), gpu_id))
++          if (!EvictActivationVictim(FindExpertEvict(gpu_id), gpu_id)) {
++            waited_for_victim = true;
+             std::this_thread::sleep_for(std::chrono::milliseconds(1));
++          }
++        }
++        if (waited_for_victim) {
++          demand_cache_waits_.fetch_add(1, std::memory_order_relaxed);
++          demand_cache_wait_ns_.fetch_add(
++              std::chrono::duration_cast<std::chrono::nanoseconds>(
++                  std::chrono::steady_clock::now() - wait_started).count(),
++              std::memory_order_relaxed);
+         }
+         if (main_thread_stop_flag_.load(std::memory_order_acquire)) break;
+       } else if (batch_size > 1) {
+@@ -772,14 +862,27 @@
+                    cache_sizes_[gpu_id], " incache count ",
+                    cached_experts_[gpu_id].size(), " layer_idx ", layer_idx,
+                    " expert_idx ", expert_idx);
++        bool waited_for_slot = false;
++        auto wait_started = std::chrono::steady_clock::now();
+         while (gpu_overload_[gpu_id].load(std::memory_order_acquire) &&
+                !main_thread_stop_flag_.load(std::memory_order_acquire)) {
++          waited_for_slot = true;
+           std::this_thread::sleep_for(std::chrono::microseconds(1));
+         }
+         if (main_thread_stop_flag_.load(std::memory_order_acquire)) {
+           break;
+         }
+         gpu_overload_[gpu_id].store(true, std::memory_order_release);
++        temporary_slot_uses_.fetch_add(1, std::memory_order_relaxed);
++        temporary_slot_bytes_.fetch_add(expert_node->node->byte_size,
++                                        std::memory_order_relaxed);
++        if (waited_for_slot) {
++          temporary_slot_waits_.fetch_add(1, std::memory_order_relaxed);
++          temporary_slot_wait_ns_.fetch_add(
++              std::chrono::duration_cast<std::chrono::nanoseconds>(
++                  std::chrono::steady_clock::now() - wait_started).count(),
++              std::memory_order_relaxed);
++        }
+       } else {
+         // find the expert in gpu and min incache_visit_count
+         ExpertNodePtr evict_expert_node = FindExpertEvict(gpu_id);
+@@ -882,6 +985,11 @@
+ 
+     cudaEvent_t transfer_done = nullptr;
+     expert_node->node->SetDevice(device, true, stream, &transfer_done);
++    if (!cache_hit) {
++      demand_copy_started_.fetch_add(1, std::memory_order_relaxed);
++      demand_bytes_.fetch_add(expert_node->node->byte_size,
++                              std::memory_order_relaxed);
++    }
+     expert_node->node->incache_visit_count += 1;
+     expert_node->SetTensorsFromBlob(device);
+     // module_->SetTensorsFromIds(expert_node->node->tensor_ids);

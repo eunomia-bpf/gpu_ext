@@ -32,6 +32,10 @@ class PaperEngine(ContinuousBatchingEngine):
         layers = self.engine.expert_predictor.num_layers
         experts = self.engine.expert_predictor.num_experts
         verify = os.environ.get("MOE_REVISION_VERIFY", "0") == "1"
+        prefetch_text = os.environ.get("MOE_REVISION_PREFETCH", "1")
+        if prefetch_text not in {"0", "1"}:
+            raise ValueError("MOE_REVISION_PREFETCH must be 0 or 1")
+        prefetch_enabled = prefetch_text == "1"
         library = os.environ.get("MOE_EXPERT_POLICY_LIBRARY", "")
         ranker = JitRanker(library, os.environ["MOE_EXPERT_RANK_CODE"]) if mode == "paper-bpf" else None
         matcher = JitMatcher(library, os.environ["MOE_EXPERT_MATCH_CODE"]) if mode == "paper-bpf" else None
@@ -39,7 +43,8 @@ class PaperEngine(ContinuousBatchingEngine):
                                                     verify_rank=verify)
         self.engine.expert_dispatcher.configure_activation_policy(
             2 if mode == "paper-bpf" else 1, library,
-            os.environ.get("MOE_EXPERT_SCORED_CODE", ""), verify)
+            os.environ.get("MOE_EXPERT_SCORED_CODE", ""), verify,
+            prefetch_enabled)
         executor.revision_activation = self.revision_activation
 
     def _execute_batch(self, batch):
@@ -96,6 +101,7 @@ async def activation_stats():
     activation = runtime.revision_activation
     return {"algorithm": "arxiv-2401.14361v3-reimplementation",
             "mode": os.environ.get("MOE_REVISION_POLICY", "native-off"),
+            "prefetch_enabled": os.environ.get("MOE_REVISION_PREFETCH", "1") == "1",
             "features": "shared-float64-EAMC-cosine-and-probability",
             "controller": activation.snapshot_stats() if activation else {},
             "dispatcher": runtime.engine.expert_dispatcher.get_activation_stats()}

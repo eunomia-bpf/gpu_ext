@@ -9,6 +9,13 @@ not a formal equivalence proof. Both paper arms have lower throughput but lower
 first-visible-text latency than the baseline. See the
 [complete results and limitations](results-paper-v3-protected-575.md).
 
+The follow-up [predictive-prefetch causal ablation](predictive-prefetch-ablation.md)
+is now implemented but has **no GPU result**.  It replaces the confounded
+three-arm comparison with native/BPF eviction × prefetch off/on on one strict
+no-overload executor, requires a separate four-arm real preflight, and fixes the
+full matrix at five randomized paired blocks / 20 cells / 120 exact-checked
+measured requests.
+
 The BPF selectors execute in the host ubpf JIT; this is not the old kernel-UVM
 stride/LFU program or reproduction of the authors' original hardware/model
 numbers. The shared executor includes prediction-set protection and stale-task

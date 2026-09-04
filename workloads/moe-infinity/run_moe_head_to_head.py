@@ -194,7 +194,9 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False,
                 f"{repo}: repaired source file set mismatch: expected "
                 f"{sorted(expected_status)}, found {sorted(normalized_status)}"
             )
-        patches = ("paper-activation.patch",) if paper_activation else (
+        # The predictive-prefetch patch is an additive, reverse-checkable layer
+        # over paper-activation.patch and is the current paper dispatcher state.
+        patches = ("predictive-prefetch-ablation.patch",) if paper_activation else (
             "instrumentation.patch",
             "row-chunking.patch",
             "deterministic-accumulation.patch",

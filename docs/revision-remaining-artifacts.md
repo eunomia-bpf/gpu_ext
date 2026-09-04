@@ -171,7 +171,10 @@ failed the predeclared <1.5 us precision gate. A separately versioned driver
 control now returns the selected CPU endpoints and passes Phase 0 with 200/200
 valid samples and a 0.759 us median bracket. This admits, but does not replace,
 the remaining PTIMER/%globaltimer identity and 220-launch gates.
-The performance runtime had GPU verification disabled; NVBit
+The performance runtime had GPU verification disabled. A separate completed
+STRICT/NO_VERIFY S0 campaign covers steady-state verifier-mode sensitivity for
+the two gpubpf tools, but its intervals span zero and no equivalence margin was
+preregistered; it neither relabels Table 1 nor proves zero verifier overhead. NVBit
 uses custom matched adapters while both systems retain native transports. The
 histogram arms close aggregate counts, but only gpubpf retained the complete
 vector. The frozen plan named llama.cpp build 7101; every accepted preflight
@@ -184,10 +187,22 @@ Remaining work is limited to these explicit boundaries:
    cells merely to seek a more favorable result.
 2. Treat a future same-clock or principled RM-correlation `launchlate` repair as
    a separate experiment; until then the row remains absent, not zero-overhead.
-3. Keep strict device-verifier enforcement separate from this verifier-off
-   performance study. The [strict/off plan](../workloads/llama.cpp/observability_overhead/revision-rq4/verifier-on-device-plan.md)
-   has been independently reviewed but has no result yet.
-4. Repeat the whole-paper build/placement review after any later source edits.
+3. Keep the completed [strict/off result](../workloads/llama.cpp/observability_overhead/revision-rq4/device-verifier-s0/results-s0-575-02-20260904.md)
+   separate from this verifier-off performance study and retain its
+   no-equivalence limitation.
+4. Repeat the whole-paper placement review after later source edits; the
+   device-map integration itself has already rebuilt successfully at 16 pages.
+
+### Separate device-map placement result
+
+The operation-matched [device-map campaign](../microbench/fig15-device/results-map-tier-full-575-06-20260904.md)
+is complete and integrated. Across 16 balanced blocks and 128 fresh processes,
+direct host mapping has 9.4307x the device-resident update latency (97.5% CI
+[9.3789, 9.4896]) and 1.0904x the lookup latency ([1.0797, 1.1113]). This
+replaces the old undifferentiated 6000x map claim. It is a one-block,
+32-thread, scalar-runtime result; the much larger serialized-RPC measurements
+diagnose that protocol rather than PCIe placement. Five earlier invalid full
+attempts remain excluded.
 
 ## 3. Agent prompts, original logs and harness release
 

@@ -6,9 +6,12 @@ run retains run_study's leases, driver/telemetry checks, numerical oracle,
 device decision audit, bridge accounting, and owned-loader cleanup.
 """
 import argparse
+import fcntl
 import json
+import os
 from pathlib import Path
 import random
+import stat
 
 import bench
 import run_study as base
@@ -18,6 +21,43 @@ ARMS = ('pod_inline', 'pod_cuda', 'pod_bpf')
 PROTOCOL = 'pod-device-setup-phases-v1'
 SEED = 20260903
 FIXED_SHAPE = ('llama-3-8b', 32)
+LEASE_PATHS = (Path('/tmp/gpubpf-revision-gpu0.lock'),
+               Path('/tmp/gpubpf-revision-struct-ops.lock'))
+
+
+class ReadOnlyLeases:
+    """Lock exact pre-created regular files without creating or writing them."""
+
+    def __init__(self, paths=LEASE_PATHS):
+        self.streams = []
+        try:
+            for path in paths:
+                before = path.lstat()
+                if not stat.S_ISREG(before.st_mode):
+                    raise RuntimeError(f'lease is not a regular file: {path}')
+                stream = path.open('r')
+                try:
+                    opened = os.fstat(stream.fileno())
+                    current = path.lstat()
+                    identity = (before.st_dev, before.st_ino)
+                    if ((opened.st_dev, opened.st_ino) != identity or
+                            (current.st_dev, current.st_ino) != identity or
+                            not stat.S_ISREG(opened.st_mode) or
+                            not stat.S_ISREG(current.st_mode)):
+                        raise RuntimeError(f'lease identity changed while opening: {path}')
+                    fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    self.streams.append(stream)
+                except BaseException:
+                    stream.close()
+                    raise
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        for stream in reversed(self.streams):
+            stream.close()
+        self.streams.clear()
 
 
 def orders(mode):
@@ -301,7 +341,7 @@ def main():
     }
     lease = None
     try:
-        lease = base.shared.Leases()
+        lease = ReadOnlyLeases()
         base.safety.atomic_write_json(output / 'manifest.json', manifest)
         for item in manifest['order']:
             directory = output / f"block-{item['block']:02d}-{item['arm']}"

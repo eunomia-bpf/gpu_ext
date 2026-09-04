@@ -1,5 +1,6 @@
 """CPU-only POD phase-study protocol tests; no CUDA process is launched."""
 import io
+import fcntl
 import json
 from contextlib import ExitStack
 from contextlib import redirect_stdout
@@ -255,7 +256,7 @@ class PhaseStudyTests(unittest.TestCase):
             common = [patch.object(base, 'preparation', return_value=[]),
                       patch.object(base, 'file_inventory', return_value=runtime),
                       patch.object(base, 'require_no_build'),
-                      patch.object(base.shared, 'Leases', Lease),
+                      patch.object(phase, 'ReadOnlyLeases', Lease),
                       patch.object(base, 'run_cell', side_effect=run_cell),
                       patch.object(base.safety, 'atomic_write_json', side_effect=json_write),
                       patch.object(phase, 'validate_cell', return_value=minimal),
@@ -297,7 +298,7 @@ class PhaseStudyTests(unittest.TestCase):
                     stack.enter_context(patch.object(base, 'preparation', side_effect=forbidden))
                     stack.enter_context(patch.object(base, 'file_inventory', side_effect=forbidden))
                     stack.enter_context(patch.object(base, 'require_no_build', side_effect=forbidden))
-                    stack.enter_context(patch.object(base.shared, 'Leases', side_effect=forbidden))
+                    stack.enter_context(patch.object(phase, 'ReadOnlyLeases', side_effect=forbidden))
                     stack.enter_context(patch.object(base, 'run_cell', side_effect=forbidden))
                     stack.enter_context(patch.object(phase, 'validate_preflight', side_effect=forbidden))
                     stack.enter_context(redirect_stdout(stream))
@@ -324,6 +325,53 @@ class PhaseStudyTests(unittest.TestCase):
                     str(Path(temporary) / 'out')]
             with patch.object(sys, 'argv', argv), self.assertRaises(SystemExit):
                 phase.main()
+
+
+class ReadOnlyLeaseTests(unittest.TestCase):
+    def test_precreated_read_only_files_are_locked_without_mutation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = tuple(Path(temporary) / name for name in ('gpu', 'struct'))
+            for path in paths:
+                path.touch()
+                path.chmod(0o444)
+            identities = [(path.stat().st_dev, path.stat().st_ino) for path in paths]
+            lease = phase.ReadOnlyLeases(paths)
+            self.assertEqual(len(lease.streams), 2)
+            lease.close()
+            self.assertEqual(identities,
+                             [(path.stat().st_dev, path.stat().st_ino) for path in paths])
+
+    def test_missing_or_nonregular_lease_fails_without_creation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            missing = root / 'missing'
+            with self.assertRaises(FileNotFoundError):
+                phase.ReadOnlyLeases((missing,))
+            self.assertFalse(missing.exists())
+            target = root / 'target'
+            target.touch()
+            link = root / 'link'
+            link.symlink_to(target)
+            with self.assertRaisesRegex(RuntimeError, 'not a regular file'):
+                phase.ReadOnlyLeases((link,))
+
+    def test_contended_lease_fails_and_releases_partial_set(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = tuple(Path(temporary) / name for name in ('first', 'second'))
+            for path in paths:
+                path.touch()
+            blocker = paths[1].open('r')
+            fcntl.flock(blocker.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                with self.assertRaises(BlockingIOError):
+                    phase.ReadOnlyLeases(paths)
+                probe = paths[0].open('r')
+                try:
+                    fcntl.flock(probe.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                finally:
+                    probe.close()
+            finally:
+                blocker.close()
 
 
 if __name__ == '__main__':

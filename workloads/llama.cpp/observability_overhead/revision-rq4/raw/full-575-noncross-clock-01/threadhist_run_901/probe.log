@@ -1,0 +1,32 @@
+libbpf: loading object 'threadhist_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 168, link 1, flags 0, type=2
+libbpf: elf: section(3) kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 104, link 0, flags 6, type=1
+libbpf: sec 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': found program 'cuda__retprobe' at insn offset 0 (0 bytes), code size 13 insns (104 bytes)
+libbpf: elf: section(4) .maps, size 32, link 0, flags 3, type=1
+libbpf: elf: section(5) license, size 4, link 0, flags 3, type=1
+libbpf: license of threadhist_bpf is GPL
+libbpf: elf: section(6) .relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 16, link 2, flags 40, type=9
+libbpf: elf: section(7) .BTF, size 970, link 0, flags 0, type=1
+libbpf: elf: section(8) .BTF.ext, size 160, link 0, flags 0, type=1
+libbpf: looking for externs among 7 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'call_count': at sec_idx 4, offset 0.
+libbpf: map 'call_count': found type = 1502.
+libbpf: map 'call_count': found key [8], sz = 4.
+libbpf: map 'call_count': found value [12], sz = 8.
+libbpf: map 'call_count': found max_entries = 1.
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': collecting relocation for section(3) 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli'
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #0: insn #4 against 'call_count'
+libbpf: prog 'cuda__retprobe': found map 0 (call_count, sec 4, off 0) for insn #4
+libbpf: object 'threadhist_bpf': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+libbpf: map 'call_count': created successfully, fd=16
+[2026-09-04 02:06:53][warning][1959741] Calling original ioctl: 8 3223340586 123366809638512
+[2026-09-04 02:08:25][warning][1959736] Calling original ioctl: 8 3223340586 140730091298160
+02:08:25  Final thread-exit histogram
+Configured thread entries: 1048576
+Readback entries: 1048576
+Readback bytes: 8388608
+Readback complete: 1
+Nonzero threads: 0
+Total exit probes: 0

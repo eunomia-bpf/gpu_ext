@@ -1,0 +1,30 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "-m",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "-r",
+    "1",
+    "-o",
+    "json",
+    "-p",
+    "512",
+    "-n",
+    "0",
+    "-ngl",
+    "99"
+  ],
+  "identity": {
+    "pid": 1936363,
+    "pgid": 1936363,
+    "sid": 1936363,
+    "start_ticks": 8525115
+  },
+  "cleanup_passed": true,
+  "returncode": 0,
+  "timed_out": false
+}

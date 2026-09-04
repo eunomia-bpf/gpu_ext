@@ -1,0 +1,153 @@
+{
+  "phase": "full",
+  "tools": [
+    "kernelretsnoop",
+    "threadhist"
+  ],
+  "configs": [
+    "baseline",
+    "gpubpf_kernelretsnoop",
+    "nvbit_kernelretsnoop",
+    "gpubpf_threadhist",
+    "nvbit_threadhist"
+  ],
+  "correctness": {
+    "baseline": true,
+    "gpubpf_kernelretsnoop": true,
+    "nvbit_kernelretsnoop": true,
+    "gpubpf_threadhist": true,
+    "nvbit_threadhist": true
+  },
+  "valid_complete_blocks": 0,
+  "required_blocks": 10,
+  "preflight_gate": {
+    "required": true,
+    "campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-03",
+    "independently_complete": true
+  },
+  "complete": false,
+  "rejected_cells": [
+    {
+      "block": 1,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 1,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 2,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 2,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 3,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 3,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 4,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 4,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 5,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 5,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 6,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 6,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 7,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 7,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 8,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 8,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 9,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 9,
+      "config": "gpubpf_threadhist"
+    },
+    {
+      "block": 10,
+      "config": "gpubpf_kernelretsnoop"
+    },
+    {
+      "block": 10,
+      "config": "gpubpf_threadhist"
+    }
+  ],
+  "config_summaries": [
+    {
+      "config": "baseline",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 38045.26787888011
+    },
+    {
+      "config": "gpubpf_kernelretsnoop",
+      "valid_blocks": 0,
+      "pp_tok_s_geomean": null
+    },
+    {
+      "config": "nvbit_kernelretsnoop",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 144.30119144311627
+    },
+    {
+      "config": "gpubpf_threadhist",
+      "valid_blocks": 0,
+      "pp_tok_s_geomean": null
+    },
+    {
+      "config": "nvbit_threadhist",
+      "valid_blocks": 10,
+      "pp_tok_s_geomean": 34141.821390468
+    }
+  ],
+  "comparisons": [
+    {
+      "task": "kernelretsnoop",
+      "paired_blocks": 0,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": null
+    },
+    {
+      "task": "threadhist",
+      "paired_blocks": 0,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": null
+    }
+  ],
+  "scope_policy": "Unselected tools are outside this predeclared campaign only; prior failures remain failures and are not reclassified by this analysis."
+}

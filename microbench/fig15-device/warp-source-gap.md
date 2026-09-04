@@ -84,6 +84,29 @@ The local paper-material directory contains the eGPU PDF but no eGPU source
 checkout or pinned build/run artifact. Therefore there is also no local
 official comparator entry to pair with a future warp arm.
 
+## Active-paper claim boundary
+
+Two qualifications in the current paper still imply that a retained
+claim-matched implementation exists, but this audit found none:
+
+- `docs/paper/tex/implementation.tex:23` says that an "optimized vector-add
+  prototype aggregates lanes and executes a warp leader." There is no retained
+  source, build entry, transformed PTX, correctness oracle, or raw run that can
+  identify that prototype. The standalone CUDA reduction above is not it.
+- `docs/paper/tex/discussion.tex:43` begins "Where enabled, warp aggregation
+  reduces duplicated policy work per hook." Without an identifiable enabled
+  hook path, this reads as a current implementation/result qualification rather
+  than a future design possibility. The comparison with eGPU in
+  `implementation.tex:20` has the same evidence gap.
+
+Until the missing mechanism is recovered and passes the engagement test below,
+the paper should delete the prototype sentence and the present-tense "where
+enabled"/eGPU performance comparison. If the idea remains useful, it should be
+stated only as future work (for example, warp election and decision broadcast
+*could* reduce duplicated scalar work), with no measured reduction or claim
+that gpubpf currently provides it. This report deliberately does not edit the
+paper submodule while other paper work is in progress.
+
 ## Gap and minimum valid recovery
 
 There is no existing minimum run command: the mechanism itself is absent.

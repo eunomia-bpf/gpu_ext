@@ -11,11 +11,15 @@ NVBit 1.8 core. They deliberately instrument only the exact mangled kernel in
 - `threadhist`: inject before every `EXIT`, check its execution predicate, increment the full
   configured logical-thread array, and report its nonzero entries and total at
   context termination. Per-thread increments match gpubpf's non-atomic semantics.
-- `launchlate`: pass the host CUDA launch-callback timestamp through NVBit's
-  per-launch argument and inject one device-entry sample for block/thread zero.
-  This is the closest native NVBit counterpart to gpubpf's exact host-stub
-  uprobe plus device-entry probe; the different host hook locations are kept
-  explicit in the experiment plan.
+- `launchlate`: bracket a real `%globaltimer` read with `CLOCK_MONOTONIC` at
+  startup, pass the host CUDA launch-callback timestamp through NVBit's
+  per-launch argument, and inject one device-entry sample for block/thread
+  zero. A sample enters the histogram only when its entire calibrated latency
+  interval is nonnegative and belongs to one bin. Ambiguous samples and a
+  non-overlapping end calibration are reported and fail the existing validity
+  gate; they are never clamped. This is the closest native NVBit counterpart
+  to gpubpf's exact host-stub uprobe plus device-entry probe; the different host
+  hook locations are kept explicit in the experiment plan.
 
 Build against the pinned release extracted under `revision-rq4/deps`:
 
@@ -25,6 +29,9 @@ make -C nvbit_adapters/observability \
   NVBIT_ROOT="$PWD/deps/nvbit_release_x86_64" \
   ARCH=sm_120
 ```
+
+The calibration arithmetic and fail-closed classification have a CPU-only
+test: `make -C nvbit_adapters/observability CXX=g++ test`.
 
 The revision runner sets `LD_PRELOAD`, `OBS_MODE`, `OBS_TARGET_SYMBOL`, and
 `OBS_GPU_THREAD_COUNT`. A run is invalid unless the selected kernel launches

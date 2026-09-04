@@ -15,6 +15,7 @@ OBJECTS := $(SOURCES:.cu=.o)
 TOOL_FUNC_SOURCES := $(wildcard tool_func/*.cu)
 TOOL_FUNC_FATBINS := $(TOOL_FUNC_SOURCES:.cu=.fatbin)
 TOOL_FUNC_BIN2CS := $(TOOL_FUNC_FATBINS:.fatbin=.c)
+CPU_TEST := clock_domain_test
 
 all: observability.so
 
@@ -28,15 +29,21 @@ tool_func/%.fatbin: tool_func/%.cu
 tool_func/%.c: tool_func/%.fatbin
 	$(BIN2C) -c --name $(basename $(notdir $<))_bin $< > $@
 
-observability.o: observability.cu $(TOOL_FUNC_BIN2CS)
+observability.o: observability.cu common.h clock_domain.h $(TOOL_FUNC_BIN2CS)
 	$(NVCC) -dc -c -std=c++14 $(INCLUDES) -Xptxas -cloning=no \
 		-Xcompiler -Wall -arch=$(ARCH) $(NVCC_OPT) -Xcompiler -fPIC $< -o $@
 
-inject_funcs.o: inject_funcs.cu
+inject_funcs.o: inject_funcs.cu common.h clock_domain.h
 	$(NVCC) $(INCLUDES) -Xptxas -astoolspatch --keep-device-functions \
 		-arch=$(ARCH) -Xcompiler -Wall -Xcompiler -fPIC -c $< -o $@
 
-clean:
-	rm -f observability.so *.o tool_func/*.fatbin tool_func/*.c
+$(CPU_TEST): clock_domain_test.cc clock_domain.h
+	$(CXX) -std=c++14 -Wall -Wextra -Werror $< -o $@
 
-.PHONY: all clean
+test: $(CPU_TEST)
+	./$(CPU_TEST)
+
+clean:
+	rm -f observability.so *.o $(CPU_TEST) tool_func/*.fatbin tool_func/*.c
+
+.PHONY: all clean test

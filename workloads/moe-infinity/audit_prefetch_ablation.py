@@ -86,7 +86,9 @@ def audit_block(attempt, planned, runtime_inventory):
             arm, stored["activation_before"], stored["activation_after"])
         require(delta == stored["activation_delta"],
                 f"activation delta was not independently reproducible for {arm}")
-        raw._engagement(stored)
+        raw._engagement(
+            stored,
+            expected_generated_tokens=ablation.REQUESTS_PER_CELL * 64)
         raw._log(cell, ablation.ARM_CONFIG[arm][0], stored)
         telemetry = base.validate_gpu_telemetry(
             cell / "gpu-telemetry.csv", allow_fixed_power_cap=True)

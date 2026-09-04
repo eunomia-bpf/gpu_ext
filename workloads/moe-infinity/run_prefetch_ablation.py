@@ -265,7 +265,7 @@ def run_cell(arm, output, port, prompt_order, driver_stage, expected_runtime=Non
         started = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
         for seq, number in enumerate(prompt_order, 1):
             prior.reject_build_contention()
-            paper.emit(f"{arm}: measured request {seq}/{REQUESTS_PER_CELL}, prompt {number}")
+            paper.emit(f"{arm}: measured request {seq}/{len(prompt_order)}, prompt {number}")
             result["requests"].append(prior.stream_request(
                 port, prompts["records"][number]["prompt_token_ids"],
                 goldens["goldens"][number - 1],
@@ -286,7 +286,8 @@ def run_cell(arm, output, port, prompt_order, driver_stage, expected_runtime=Non
             activation_before=activation_before, activation_after=activation_after,
             activation_delta=delta, engagement_before=before, engagement_after=after,
             engagement_delta=base.validate_measured_engagement(
-                CONFIG, before, after, current_deployment=True),
+                CONFIG, before, after, current_deployment=True,
+                expected_generated_tokens=len(prompt_order) * 64),
             gpu_telemetry=base.validate_gpu_telemetry(telemetry_path, allow_fixed_power_cap=True),
         )
         duration = (ended - started) / 1e9
@@ -496,7 +497,7 @@ def validate_preflight(path, expected_runtime):
             expected_requests=1)
         if observed_delta != cell.get("activation_delta"):
             raise base.GateError(f"preflight activation delta differs for {arm}")
-        raw_audit._engagement(cell)
+        raw_audit._engagement(cell, expected_generated_tokens=64)
         raw_audit._log(cell_dir, mode, cell)
         if (base.validate_gpu_telemetry(
                 cell_dir / "gpu-telemetry.csv", allow_fixed_power_cap=True) !=

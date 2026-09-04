@@ -2360,7 +2360,8 @@ def engagement_snapshot(config: str, port: int, run_dir: Path,
 
 def validate_measured_engagement(config: str, before: dict[str, Any],
                                  after: dict[str, Any], *,
-                                 current_deployment: bool = False) -> dict[str, Any]:
+                                 current_deployment: bool = False,
+                                 expected_generated_tokens: int = 512) -> dict[str, Any]:
     io_delta = after["process_io"]["read_bytes"] - before["process_io"]["read_bytes"]
     result: dict[str, Any] = {
         "read_bytes": io_delta,
@@ -2379,14 +2380,16 @@ def validate_measured_engagement(config: str, before: dict[str, Any],
         metric_steps = int(after["moe"]["metrics"]["moe_engine_steps_total"]) - int(
             before["moe"]["metrics"]["moe_engine_steps_total"]
         )
-        if delta["engine_generated_tokens"] != 512 or delta["engine_steps"] <= 0:
+        if (delta["engine_generated_tokens"] != expected_generated_tokens or
+                delta["engine_steps"] <= 0):
             raise GateError(f"MoE measured token/step gate failed: {delta}")
         if delta["expert_cache_accesses"] <= 0 or (
             delta["expert_cache_hits"] + delta["expert_cache_misses"]
             != delta["expert_cache_accesses"]
         ) or (not current_deployment and io_delta <= 0):
             raise GateError(f"MoE measured offload gate failed: delta={delta}, read_bytes={io_delta}")
-        if metric_tokens != 512 or metric_steps != delta["engine_steps"]:
+        if (metric_tokens != expected_generated_tokens or
+                metric_steps != delta["engine_steps"]):
             raise GateError(f"MoE measured /metrics disagreement: tokens={metric_tokens}, steps={metric_steps}")
         if int(after["moe"]["revision"]["kv_cache_num_blocks"]) != 128:
             raise GateError(f"MoE KV gauge changed: {after['moe']}")

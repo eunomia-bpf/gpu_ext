@@ -218,7 +218,7 @@ def _activation(result, mode, runner):
     require(result["activation_delta"] == delta, "activation delta differs from raw snapshots")
 
 
-def _engagement(result):
+def _engagement(result, *, expected_generated_tokens=512):
     before, after = result["engagement_before"], result["engagement_after"]
     for state in (before, after):
         members = state["process_io"]["members"]
@@ -233,7 +233,9 @@ def _engagement(result):
                 state["moe"]["metrics"]["moe_kv_cache_total_blocks"] == 128, "KV capacity differs")
     for key in ("read_bytes", "cpu_time_s"):
         require(after["process_io"][key] >= before["process_io"][key], "process accounting decreased")
-    delta = base.validate_measured_engagement("moe_infinity_075", before, after, current_deployment=True)
+    delta = base.validate_measured_engagement(
+        "moe_infinity_075", before, after, current_deployment=True,
+        expected_generated_tokens=expected_generated_tokens)
     require(result["engagement_delta"] == delta, "engine/metrics delta differs from snapshots")
 
 

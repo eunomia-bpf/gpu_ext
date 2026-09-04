@@ -101,6 +101,28 @@ class CurrentStackTests(unittest.TestCase):
             base.validate_measured_engagement("moe_infinity_075", before, after,
                                                current_deployment=True)
 
+    def test_moe_engagement_accepts_explicit_short_cell_token_count(self):
+        revision = dict(engine_generated_tokens=0, engine_steps=0, expert_cache_accesses=0,
+                        expert_cache_hits=0, expert_cache_misses=0, kv_cache_num_blocks=128)
+        before = {"process_io": {"read_bytes": 0, "cpu_time_s": 0},
+                  "moe": {"revision": revision,
+                          "metrics": {"moe_tokens_generated_total": 0,
+                                      "moe_engine_steps_total": 0}}}
+        after = copy.deepcopy(before)
+        after["moe"]["revision"].update(
+            engine_generated_tokens=64, engine_steps=64,
+            expert_cache_accesses=12, expert_cache_hits=10, expert_cache_misses=2)
+        after["moe"]["metrics"].update(
+            moe_tokens_generated_total=64, moe_engine_steps_total=64)
+        result = base.validate_measured_engagement(
+            "moe_infinity_075", before, after, current_deployment=True,
+            expected_generated_tokens=64)
+        self.assertEqual(result["metrics_delta"], {"tokens": 64, "steps": 64})
+        with self.assertRaises(base.GateError):
+            base.validate_measured_engagement(
+                "moe_infinity_075", before, after, current_deployment=True,
+                expected_generated_tokens=384)
+
     def test_hook_engagement_is_not_completed_eviction_evidence(self):
         values = dict(page_fault_calls=100, stride_detections=10, prefetches_issued=10,
                       lfu_activations=10, lfu_accesses=25600, lfu_sampled_updates=100,

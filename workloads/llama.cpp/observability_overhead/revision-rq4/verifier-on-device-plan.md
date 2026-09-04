@@ -15,6 +15,11 @@ timing remain open. The runner records and independently audits explicit
 STRICT or NO_VERIFY treatment without relabelling the accepted verifier-OFF
 result. A0-01 remains a harness false-negative and A0-02 an intermediate pass;
 neither was overwritten or promoted into the final gate.
+The separate [NO_VERIFY control preflight](results-preflight-575-noverify-a0-01-20260904.md)
+also passes all five correctness cells and one pp32 block on the same
+verifier-enabled binary. Every gpubpf target has exactly one explicit skip and
+zero timing/admission/map/rejection records. This is a treatment prerequisite,
+not a cross-campaign paired result.
 
 ## Question and current boundary
 

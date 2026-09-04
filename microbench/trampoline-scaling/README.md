@@ -36,6 +36,11 @@ oracle, complete BPF-map segment oracle, target-specific attach evidence,
 runtime feature gate, deterministic pairing, ambient-injection rejection, and
 read-only coordination leases. Missing lock files are never created.
 
+After each arm, the runner allows a fixed 120-second window for NVIDIA UVM's
+asynchronous reference release, while continuing to reject a nonzero final
+count, active compute process, new kernel anomaly, or nonempty struct_ops
+state. An arm is checkpointed only after this gate passes.
+
 ## Real execution
 
 Run the three-arm dependency preflight first, using a new output directory:

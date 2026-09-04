@@ -34,6 +34,7 @@ MAX_THREADS = 1_048_576
 THREADS_PER_BLOCK = 256
 COUNTER_KEYS = 5
 SEED = 1797
+POST_RUN_SETTLE_TIMEOUT_SECONDS = 120
 LEASE_PATHS = (
     Path("/tmp/gpubpf-revision-gpu0.lock"),
     Path("/tmp/gpubpf-revision-struct-ops.lock"),
@@ -892,7 +893,9 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                             item["run_id"],
                         )
                     record.update(block=item["block"], order=item["order"], directory=str(run_dir))
-                    record["safety_after"] = safety.wait_for_post_server_safety(before)
+                    record["safety_after"] = safety.wait_for_post_server_safety(
+                        before, timeout=POST_RUN_SETTLE_TIMEOUT_SECONDS,
+                    )
                     result["records"].append(record)
                     completed.add(key)
                     result["last_safety"] = record["safety_after"]
@@ -922,7 +925,9 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                         telemetry_path, allow_fixed_power_cap=True,
                     )
                 if before is not None:
-                    result["safety_after"] = safety.wait_for_post_server_safety(before)
+                    result["safety_after"] = safety.wait_for_post_server_safety(
+                        before, timeout=POST_RUN_SETTLE_TIMEOUT_SECONDS,
+                    )
             except BaseException as error:
                 cleanup_errors.append(str(error))
             if cleanup_errors:

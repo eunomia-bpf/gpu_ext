@@ -435,12 +435,17 @@ class CampaignStateTests(unittest.TestCase):
                 mock.patch.object(
                     runner.safety, "wait_for_post_server_safety",
                     side_effect=[RuntimeError("did not settle"), snapshot],
-                ),
+                ) as wait_for_safety,
                 mock.patch.object(runner.safety, "validate_gpu_telemetry", return_value={"ok": True}),
                 mock.patch.object(runner, "stop_owned"),
             ):
                 with self.assertRaisesRegex(RuntimeError, "did not settle"):
                     runner.run_campaign(args)
+                self.assertEqual(wait_for_safety.call_count, 2)
+                for call in wait_for_safety.call_args_list:
+                    self.assertEqual(
+                        call.kwargs["timeout"], runner.POST_RUN_SETTLE_TIMEOUT_SECONDS,
+                    )
             state = json.loads((args.output / "result.json").read_text())
         self.assertEqual(state["status"], "failed")
         self.assertEqual(state["records"], [])

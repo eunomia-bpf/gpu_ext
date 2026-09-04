@@ -167,8 +167,10 @@ host/device cross-clock `launchlate` comparison remains invalid and is omitted
 from the paper. The [RM/PTIMER recovery canaries](../workloads/llama.cpp/observability_overhead/revision-rq4/launch-clock-recovery/rm-correlation-results.md)
 reached the public 575 timer control through xfer and direct paths with 8/8
 valid samples each, but their 4.759/4.730 us median conservative brackets both
-failed the predeclared <1.5 us precision gate. The next admissible route is a
-separately versioned control returning the driver's selected CPU endpoints.
+failed the predeclared <1.5 us precision gate. A separately versioned driver
+control now returns the selected CPU endpoints and passes Phase 0 with 200/200
+valid samples and a 0.759 us median bracket. This admits, but does not replace,
+the remaining PTIMER/%globaltimer identity and 220-launch gates.
 The performance runtime had GPU verification disabled; NVBit
 uses custom matched adapters while both systems retain native transports. The
 histogram arms close aggregate counts, but only gpubpf retained the complete

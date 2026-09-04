@@ -27,6 +27,14 @@
 | rpc_vs_device_lookup | 16 | 8990.6410 [8793.7436, 9091.8033] | 33827.080719 [33793.565656, 34951.764469] | 95.0% |
 | noop_vs_native | 16 | 1.9912 [1.9148, 2.4731] | 1.972750 [1.847000, 2.290500] | 95.0% |
 
+## Descriptive device/no-op deltas
+
+| Comparison | pairs | median delta us (interval) | confidence |
+|---|---:|---:|---:|
+| device_update_minus_noop | 16 | -0.043500 [-0.107500, 0.011000] | 95.0% |
+| device_lookup_minus_noop | 16 | -0.080750 [-0.156000, -0.003750] | 95.0% |
+
 The two host-mapped/device-resident intervals are the Bonferroni-adjusted co-primary comparisons. RPC and no-op comparisons are descriptive.
+The device-minus-no-op values are within-block arithmetic contrasts only. A negative value does not estimate a negative mechanism cost or a causal benefit from adding the map operation.
 
 Scope: one 32-thread block; current verification-disabled scalar per-thread runtime; RTX 5090; lookup and update only

@@ -28,9 +28,11 @@ The serialized standard-array RPC arms take 33.843 ms/update and 33.831
 ms/lookup, or about 8,844x and 8,991x the corresponding device-resident arms.
 Those values diagnose this prototype's request/response protocol; they are not
 a generic PCIe or map-placement cost. The no-op and native medians are 3.918
-and 1.986 us/launch. Device update and lookup are respectively 0.044 and 0.081
-us below no-op in the paired descriptive medians; these tiny negative
-increments are not interpretable as negative operation cost.
+and 1.986 us/launch. Device update and lookup are respectively 0.044 us (95%
+interval [-0.108, 0.011]) and 0.081 us ([-0.156, -0.004]) below no-op in the
+paired descriptive medians; these tiny negative increments are not
+interpretable as negative operation cost or a causal benefit from adding a map
+operation.
 
 ## Validity evidence
 

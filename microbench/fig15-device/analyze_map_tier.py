@@ -454,7 +454,7 @@ def render_markdown(analysis: dict[str, Any]) -> str:
 
 def write_tsv(path: Path, analysis: dict[str, Any]) -> None:
     with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.writer(stream, delimiter="\t")
+        writer = csv.writer(stream, delimiter="\t", lineterminator="\n")
         writer.writerow(("comparison", "pairs", "ratio", "ratio_low", "ratio_high",
                          "delta_us", "delta_low_us", "delta_high_us", "confidence"))
         for name, item in analysis["effects"].items():

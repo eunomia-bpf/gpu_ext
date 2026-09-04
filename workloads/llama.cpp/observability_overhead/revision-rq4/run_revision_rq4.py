@@ -923,6 +923,7 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "uint64_t sequence;",
         ),
         "inject_funcs.cu": (
+            'asm volatile("mov.u64 %0, %%globaltimer;"',
             "pair_ptr",
             "device_entry_count_ptr",
             "capture_error_count_ptr",

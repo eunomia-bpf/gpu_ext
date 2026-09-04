@@ -978,6 +978,7 @@ class OfflineTests(unittest.TestCase):
             ("clock_domain.h", "int64_t offset_low_ns;"),
             ("clock_domain.h", "CLOCK_MIN_CALIBRATION_SPAN_NS"),
             ("common.h", "struct launch_pair_t"),
+            ("inject_funcs.cu", 'asm volatile("mov.u64 %0, %%globaltimer;"'),
             ("inject_funcs.cu", "pair->gpu_entry_ns = gpu_ns"),
             ("observability.cu", "clock_drift_bounded="),
             ("observability.cu", "wait_for_minimum_clock_span("),

@@ -1,0 +1,1047 @@
+{
+  "complete": true,
+  "formal_complete": true,
+  "protocol": "pod-device-setup-phases-v1",
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "fresh_process_cells": 15,
+  "blocks": 5,
+  "measured_operator_samples_per_cell": 100,
+  "phase_observations_per_arm": 5,
+  "phase_estimator": "median of five fresh-process block durations",
+  "ratio_estimator": "geometric mean of five paired block ratios; lower is better",
+  "uncertainty": {
+    "method": "whole-block percentile bootstrap with shared resamples",
+    "draws": 10000,
+    "seed": 20260907,
+    "confidence": 0.95,
+    "scope": "pointwise intervals; no equivalence test or multiple-comparison adjustment"
+  },
+  "median_phase_ms": {
+    "coordinator_pre_client_ns": {
+      "pod_inline": 2395.808574,
+      "pod_cuda": 2390.039436,
+      "pod_bpf": 2583.972663
+    },
+    "client_lifetime_ns": {
+      "pod_inline": 2802.770661,
+      "pod_cuda": 2602.501842,
+      "pod_bpf": 275610.770879
+    },
+    "pre_python_main_ns": {
+      "pod_inline": 19.812176,
+      "pod_cuda": 21.352642,
+      "pod_bpf": 271224.901753
+    },
+    "stdlib_imports_ns": {
+      "pod_inline": 4.114623,
+      "pod_cuda": 4.190461,
+      "pod_bpf": 4.241769
+    },
+    "pre_runtime_imports_ns": {
+      "pod_inline": 2.215747,
+      "pod_cuda": 2.235759,
+      "pod_bpf": 2.538511
+    },
+    "runtime_imports_ns": {
+      "pod_inline": 737.205238,
+      "pod_cuda": 741.552258,
+      "pod_bpf": 787.572017
+    },
+    "post_import_setup_ns": {
+      "pod_inline": 627.103784,
+      "pod_cuda": 587.784192,
+      "pod_bpf": 948.497984
+    },
+    "first_diagnostic_sync_ns": {
+      "pod_inline": 32.688484,
+      "pod_cuda": 33.046707,
+      "pod_bpf": 33.588224
+    },
+    "warmups_ns": {
+      "pod_inline": 47.654299,
+      "pod_cuda": 47.647957,
+      "pod_bpf": 67.33782
+    },
+    "steady_samples_ns": {
+      "pod_inline": 698.966224,
+      "pod_cuda": 702.988809,
+      "pod_bpf": 1667.910776
+    },
+    "post_steady_process_ns": {
+      "pod_inline": 596.854329,
+      "pod_cuda": 457.22595,
+      "pod_bpf": 978.216631
+    },
+    "post_process_cleanup_ns": {
+      "pod_inline": 2308.612739,
+      "pod_cuda": 2301.671887,
+      "pod_bpf": 2466.213785
+    },
+    "whole_cell_ns": {
+      "pod_inline": 7509.593707,
+      "pod_cuda": 7310.65687,
+      "pod_bpf": 280667.365349
+    }
+  },
+  "block_phase_ms": {
+    "coordinator_pre_client_ns": {
+      "pod_inline": [
+        2393.017528,
+        2387.713554,
+        2395.808574,
+        2410.437322,
+        2398.131788
+      ],
+      "pod_cuda": [
+        2374.616955,
+        2390.039436,
+        2375.185082,
+        2406.608147,
+        2405.202661
+      ],
+      "pod_bpf": [
+        2583.972663,
+        2583.89264,
+        2583.985419,
+        2615.674281,
+        2576.675072
+      ]
+    },
+    "client_lifetime_ns": {
+      "pod_inline": [
+        2602.74924,
+        2802.770661,
+        2602.678158,
+        2802.780209,
+        2802.84918
+      ],
+      "pod_cuda": [
+        2602.501842,
+        2802.585235,
+        2602.30371,
+        2602.758035,
+        2602.1213
+      ],
+      "pod_bpf": [
+        275610.770879,
+        273414.68052,
+        282002.485447,
+        271209.701521,
+        276817.01327
+      ]
+    },
+    "pre_python_main_ns": {
+      "pod_inline": [
+        19.35627,
+        19.812176,
+        19.500244,
+        20.019059,
+        20.711285
+      ],
+      "pod_cuda": [
+        21.261291,
+        21.810386,
+        21.352642,
+        21.36022,
+        21.202571
+      ],
+      "pod_bpf": [
+        271224.901753,
+        268929.824554,
+        277528.943887,
+        266695.46136,
+        272311.067471
+      ]
+    },
+    "stdlib_imports_ns": {
+      "pod_inline": [
+        4.187411,
+        4.076575,
+        4.107112,
+        4.158569,
+        4.114623
+      ],
+      "pod_cuda": [
+        4.13269,
+        4.190461,
+        4.221239,
+        4.216692,
+        4.130208
+      ],
+      "pod_bpf": [
+        4.249464,
+        4.210667,
+        4.189348,
+        4.241769,
+        4.251078
+      ]
+    },
+    "pre_runtime_imports_ns": {
+      "pod_inline": [
+        2.359422,
+        2.199658,
+        2.215747,
+        2.37517,
+        2.208139
+      ],
+      "pod_cuda": [
+        2.323289,
+        2.385654,
+        2.225479,
+        2.235759,
+        2.234149
+      ],
+      "pod_bpf": [
+        2.674293,
+        2.55516,
+        2.538344,
+        2.538511,
+        2.266985
+      ]
+    },
+    "runtime_imports_ns": {
+      "pod_inline": [
+        735.903861,
+        745.289827,
+        737.205238,
+        768.650074,
+        736.204135
+      ],
+      "pod_cuda": [
+        737.811148,
+        736.170985,
+        745.1614,
+        741.552258,
+        748.737754
+      ],
+      "pod_bpf": [
+        787.572017,
+        782.341122,
+        805.298777,
+        783.211809,
+        800.697775
+      ]
+    },
+    "post_import_setup_ns": {
+      "pod_inline": [
+        641.297641,
+        627.103784,
+        575.98526,
+        632.441428,
+        623.83722
+      ],
+      "pod_cuda": [
+        575.800429,
+        644.390672,
+        587.784192,
+        604.893443,
+        585.65091
+      ],
+      "pod_bpf": [
+        951.400011,
+        947.628028,
+        955.826442,
+        948.497984,
+        942.775008
+      ]
+    },
+    "first_diagnostic_sync_ns": {
+      "pod_inline": [
+        32.688484,
+        33.476209,
+        31.318149,
+        31.675349,
+        33.520082
+      ],
+      "pod_cuda": [
+        33.046707,
+        32.878781,
+        34.697074,
+        32.834966,
+        33.346367
+      ],
+      "pod_bpf": [
+        33.588224,
+        31.876551,
+        33.627685,
+        33.749873,
+        31.875442
+      ]
+    },
+    "warmups_ns": {
+      "pod_inline": [
+        47.845798,
+        47.664646,
+        47.354302,
+        47.654299,
+        47.488305
+      ],
+      "pod_cuda": [
+        47.608122,
+        47.647957,
+        47.688993,
+        47.54281,
+        47.870786
+      ],
+      "pod_bpf": [
+        67.33782,
+        67.214055,
+        67.659547,
+        67.37698,
+        66.92298
+      ]
+    },
+    "steady_samples_ns": {
+      "pod_inline": [
+        700.284277,
+        698.966224,
+        699.217266,
+        698.951932,
+        698.777103
+      ],
+      "pod_cuda": [
+        702.988809,
+        704.783083,
+        704.699338,
+        701.693097,
+        701.722605
+      ],
+      "pod_bpf": [
+        1668.822821,
+        1670.813752,
+        1667.910776,
+        1666.333265,
+        1666.719066
+      ]
+    },
+    "post_steady_process_ns": {
+      "pod_inline": [
+        418.826076,
+        624.181562,
+        485.77484,
+        596.854329,
+        635.988288
+      ],
+      "pod_cuda": [
+        477.529357,
+        608.327256,
+        454.473353,
+        446.42879,
+        457.22595
+      ],
+      "pod_bpf": [
+        870.224476,
+        978.216631,
+        936.490641,
+        1008.28997,
+        990.437465
+      ]
+    },
+    "post_process_cleanup_ns": {
+      "pod_inline": [
+        2238.293251,
+        2349.533688,
+        2294.013476,
+        2310.467196,
+        2308.612739
+      ],
+      "pod_cuda": [
+        2285.777623,
+        2301.934306,
+        2301.671887,
+        2301.290688,
+        2316.919478
+      ],
+      "pod_bpf": [
+        2472.621807,
+        2437.702028,
+        2449.846201,
+        2539.196372,
+        2466.213785
+      ]
+    },
+    "whole_cell_ns": {
+      "pod_inline": [
+        7234.060019,
+        7540.017903,
+        7292.500208,
+        7523.684727,
+        7509.593707
+      ],
+      "pod_cuda": [
+        7262.89642,
+        7494.558977,
+        7279.160679,
+        7310.65687,
+        7324.243439
+      ],
+      "pod_bpf": [
+        280667.365349,
+        278436.275188,
+        287036.317067,
+        276364.572174,
+        281859.902127
+      ]
+    }
+  },
+  "paired_ratios": {
+    "device_bpf_vs_cuda_adapter": {
+      "coordinator_pre_client_ns": {
+        "geometric_mean_ratio": 1.0830500381412682,
+        "block_ratios": [
+          1.0881639910635608,
+          1.0811087888676996,
+          1.087909080678539,
+          1.086871697106409,
+          1.0712922922381551
+        ],
+        "confidence_interval_95": [
+          1.076607839341942,
+          1.0878034623181223
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "client_lifetime_ns": {
+        "geometric_mean_ratio": 104.41429300364643,
+        "block_ratios": [
+          105.90223854258467,
+          97.55802503540986,
+          108.3664771192291,
+          104.20088916217678,
+          106.38128717135517
+        ],
+        "confidence_interval_95": [
+          100.8137700546988,
+          107.12338961138897
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "pre_python_main_ns": {
+        "geometric_mean_ratio": 12680.36561999033,
+        "block_ratios": [
+          12756.74660362816,
+          12330.356031021183,
+          12997.405374332599,
+          12485.613975886015,
+          12843.304119627757
+        ],
+        "confidence_interval_95": [
+          12462.429199103677,
+          12887.282777660284
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "stdlib_imports_ns": {
+        "geometric_mean_ratio": 1.0120450374670842,
+        "block_ratios": [
+          1.028256172130017,
+          1.0048219038430377,
+          0.9924451091255435,
+          1.00594707889502,
+          1.0292648699532807
+        ],
+        "confidence_interval_95": [
+          1.0000765927309614,
+          1.0241567149020252
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "pre_runtime_imports_ns": {
+        "geometric_mean_ratio": 1.1013029167012074,
+        "block_ratios": [
+          1.1510806447239237,
+          1.0710522146128483,
+          1.1405832182644724,
+          1.1354135217615138,
+          1.014697318755374
+        ],
+        "confidence_interval_95": [
+          1.0500003210521163,
+          1.1437310300153094
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "runtime_imports_ns": {
+        "geometric_mean_ratio": 1.067257250923787,
+        "block_ratios": [
+          1.0674439104571511,
+          1.062716594297723,
+          1.0807038273855838,
+          1.0561788472094438,
+          1.069396822482121
+        ],
+        "confidence_interval_95": [
+          1.0606705357615023,
+          1.0744260239825811
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_import_setup_ns": {
+        "geometric_mean_ratio": 1.58406700004365,
+        "block_ratios": [
+          1.6523086178527315,
+          1.4705799900219536,
+          1.6261520044417936,
+          1.5680414376718577,
+          1.6097900505268574
+        ],
+        "confidence_interval_95": [
+          1.5246948453189815,
+          1.6332579111259637
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "first_diagnostic_sync_ns": {
+        "geometric_mean_ratio": 0.9873528174848694,
+        "block_ratios": [
+          1.0163864133270526,
+          0.9695174221939676,
+          0.9691792743099893,
+          1.0278638022649391,
+          0.9558894976475248
+        ],
+        "confidence_interval_95": [
+          0.9639085818141289,
+          1.0130479349907773
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "warmups_ns": {
+        "geometric_mean_ratio": 1.4117806696823452,
+        "block_ratios": [
+          1.4144187414071907,
+          1.4106387604404529,
+          1.4187665275297383,
+          1.417185479781275,
+          1.397992086447045
+        ],
+        "confidence_interval_95": [
+          1.4045397305490006,
+          1.4172636600050745
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "steady_samples_ns": {
+        "geometric_mean_ratio": 2.372263830369445,
+        "block_ratios": [
+          2.373896710210646,
+          2.3706780033481594,
+          2.3668402764981735,
+          2.3747323040859274,
+          2.3751822360062063
+        ],
+        "confidence_interval_95": [
+          2.3691841398819498,
+          2.3747451116574507
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_steady_process_ns": {
+        "geometric_mean_ratio": 1.9682972639383396,
+        "block_ratios": [
+          1.8223475965269293,
+          1.6080434032040147,
+          2.0606062705726997,
+          2.2585684270048985,
+          2.166188216132527
+        ],
+        "confidence_interval_95": [
+          1.7500245513602266,
+          2.1771981593592735
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_process_cleanup_ns": {
+        "geometric_mean_ratio": 1.0744600727799465,
+        "block_ratios": [
+          1.0817420654222583,
+          1.0589798421467203,
+          1.0643768187971963,
+          1.1033792407193714,
+          1.0644365539750535
+        ],
+        "confidence_interval_95": [
+          1.0622266578495445,
+          1.0900267791997562
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "whole_cell_ns": {
+        "geometric_mean_ratio": 38.29506118541143,
+        "block_ratios": [
+          38.64399946226963,
+          37.1517891903301,
+          39.43261177007466,
+          37.80297408131535,
+          38.483142248680245
+        ],
+        "confidence_interval_95": [
+          37.59714744784875,
+          38.94349572651426
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      }
+    },
+    "device_bpf_vs_original_inline": {
+      "coordinator_pre_client_ns": {
+        "geometric_mean_ratio": 1.080013861848313,
+        "block_ratios": [
+          1.079796797459981,
+          1.082161901569538,
+          1.0785441904842268,
+          1.085145113348025,
+          1.074450989263147
+        ],
+        "confidence_interval_95": [
+          1.0768073291285516,
+          1.0830026154448291
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "client_lifetime_ns": {
+        "geometric_mean_ratio": 101.35565023287114,
+        "block_ratios": [
+          105.89217226281853,
+          97.55157078119564,
+          108.35088640529483,
+          96.76452711137294,
+          98.76272160673304
+        ],
+        "confidence_interval_95": [
+          97.47624436160636,
+          105.61341993341512
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "pre_python_main_ns": {
+        "geometric_mean_ratio": 13651.570812543026,
+        "block_ratios": [
+          14012.250384655721,
+          13573.96706722169,
+          14232.075449261045,
+          13322.077793966242,
+          13147.95617321668
+        ],
+        "confidence_interval_95": [
+          13301.892798762115,
+          14010.441105586091
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "stdlib_imports_ns": {
+        "geometric_mean_ratio": 1.0241538655061349,
+        "block_ratios": [
+          1.0148189418234799,
+          1.0328932989090105,
+          1.020022828693252,
+          1.0200068821750943,
+          1.033163427123214
+        ],
+        "confidence_interval_95": [
+          1.0179317137849972,
+          1.0304647187450402
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "pre_runtime_imports_ns": {
+        "geometric_mean_ratio": 1.1060140385097221,
+        "block_ratios": [
+          1.1334525998316538,
+          1.1616169422701166,
+          1.1455928858303768,
+          1.0687702353936772,
+          1.0266495904469781
+        ],
+        "confidence_interval_95": [
+          1.057879678664322,
+          1.1495238090164852
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "runtime_imports_ns": {
+        "geometric_mean_ratio": 1.0634227381441275,
+        "block_ratios": [
+          1.0702104700603003,
+          1.0497139416878154,
+          1.0923671394206778,
+          1.0189445568179312,
+          1.087602930945233
+        ],
+        "confidence_interval_95": [
+          1.0391494459044563,
+          1.0859990308567842
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_import_setup_ns": {
+        "geometric_mean_ratio": 1.5317380733262862,
+        "block_ratios": [
+          1.4835545153673815,
+          1.5111183382685505,
+          1.6594633723786612,
+          1.499740437623577,
+          1.5112516178499256
+        ],
+        "confidence_interval_95": [
+          1.4944873361553497,
+          1.5960390692325128
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "first_diagnostic_sync_ns": {
+        "geometric_mean_ratio": 1.0125722369355439,
+        "block_ratios": [
+          1.027524678109881,
+          0.9522150790730217,
+          1.073744332719025,
+          1.0654933273189824,
+          0.9509356808852675
+        ],
+        "confidence_interval_95": [
+          0.9663021177958874,
+          1.0610579405034757
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "warmups_ns": {
+        "geometric_mean_ratio": 1.4138695323768697,
+        "block_ratios": [
+          1.4073925572314625,
+          1.410144848238252,
+          1.4287940935123489,
+          1.4138699217881685,
+          1.409251814736281
+        ],
+        "confidence_interval_95": [
+          1.4086862843473236,
+          1.4214995575158156
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "steady_samples_ns": {
+        "geometric_mean_ratio": 2.385620366030669,
+        "block_ratios": [
+          2.3830648149765614,
+          2.3904069962613814,
+          2.3853970104908706,
+          2.384045581263233,
+          2.3851941611200735
+        ],
+        "confidence_interval_95": [
+          2.3838493957199387,
+          2.388131052851969
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_steady_process_ns": {
+        "geometric_mean_ratio": 1.7521731884361258,
+        "block_ratios": [
+          2.077770525443597,
+          1.5671988577579932,
+          1.9278286232362303,
+          1.6893401304290447,
+          1.5573202898352745
+        ],
+        "confidence_interval_95": [
+          1.586880557285511,
+          1.9346830283976097
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_process_cleanup_ns": {
+        "geometric_mean_ratio": 1.0752061124702341,
+        "block_ratios": [
+          1.104690730714266,
+          1.0375258888392667,
+          1.0679301698225943,
+          1.098996937241086,
+          1.068266558239762
+        ],
+        "confidence_interval_95": [
+          1.055619083813926,
+          1.0961053399855691
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "whole_cell_ns": {
+        "geometric_mean_ratio": 37.85632546294784,
+        "block_ratios": [
+          38.79804212459356,
+          36.927800274481655,
+          39.36048116284127,
+          36.73260937984543,
+          37.5333091408483
+        ],
+        "confidence_interval_95": [
+          36.96966018412395,
+          38.76425616084119
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      }
+    },
+    "cuda_adapter_vs_original_inline": {
+      "coordinator_pre_client_ns": {
+        "geometric_mean_ratio": 0.9971966426425081,
+        "block_ratios": [
+          0.9923107236847619,
+          1.0009741042831974,
+          0.9913918448143928,
+          0.9984114189715486,
+          1.0029484922535874
+        ],
+        "confidence_interval_95": [
+          0.9931597685509851,
+          1.001249925325022
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "client_lifetime_ns": {
+        "geometric_mean_ratio": 0.9707066658903827,
+        "block_ratios": [
+          0.9999049474316627,
+          0.9999338418934591,
+          0.9998561297335788,
+          0.9286343704876645,
+          0.9283843449614366
+        ],
+        "confidence_interval_95": [
+          0.9423177662132896,
+          0.9999067412730358
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "pre_python_main_ns": {
+        "geometric_mean_ratio": 1.076591260982381,
+        "block_ratios": [
+          1.0984188069292276,
+          1.1008576745936438,
+          1.0949935805931454,
+          1.0669942078696109,
+          1.0237206914008474
+        ],
+        "confidence_interval_95": [
+          1.0473396277297629,
+          1.0987071948320233
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "stdlib_imports_ns": {
+        "geometric_mean_ratio": 1.0119647126271734,
+        "block_ratios": [
+          0.9869320207641429,
+          1.0279366870473374,
+          1.0277876522481004,
+          1.0139766828445074,
+          1.0037877103199977
+        ],
+        "confidence_interval_95": [
+          0.9983467255989784,
+          1.0250699409080546
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "pre_runtime_imports_ns": {
+        "geometric_mean_ratio": 1.0042777711173472,
+        "block_ratios": [
+          0.9846856560632222,
+          1.0845567810996075,
+          1.0043921982067447,
+          0.9413048329172228,
+          1.011779149772727
+        ],
+        "confidence_interval_95": [
+          0.9670984391178862,
+          1.0491269512503816
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "runtime_imports_ns": {
+        "geometric_mean_ratio": 0.9964071335412896,
+        "block_ratios": [
+          1.00259176109962,
+          0.9877647035158043,
+          1.0107923297202617,
+          0.9647462259920371,
+          1.0170246517292383
+        ],
+        "confidence_interval_95": [
+          0.9795911426126054,
+          1.0116311493471888
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_import_setup_ns": {
+        "geometric_mean_ratio": 0.966965458711076,
+        "block_ratios": [
+          0.8978676860593661,
+          1.0275662313656202,
+          1.0204847811556843,
+          0.9564418398599911,
+          0.9387880222985091
+        ],
+        "confidence_interval_95": [
+          0.9256433084061937,
+          1.0101322937776938
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "first_diagnostic_sync_ns": {
+        "geometric_mean_ratio": 1.0255424595991098,
+        "block_ratios": [
+          1.0109586911402804,
+          0.9821536542563706,
+          1.1078903162508105,
+          1.0366094466709743,
+          0.9948175842767926
+        ],
+        "confidence_interval_95": [
+          0.9929236110855162,
+          1.0672274315423662
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "warmups_ns": {
+        "geometric_mean_ratio": 1.0014795943444914,
+        "block_ratios": [
+          0.9950324582317552,
+          0.9996498662761494,
+          1.0070678055818456,
+          0.9976604629101773,
+          1.008054214611366
+        ],
+        "confidence_interval_95": [
+          0.9970055736178355,
+          1.00597369205165
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "steady_samples_ns": {
+        "geometric_mean_ratio": 1.0056302909862873,
+        "block_ratios": [
+          1.0038620487262488,
+          1.0083220888224207,
+          1.0078402983830208,
+          1.0039218219086343,
+          1.0042152239782247
+        ],
+        "confidence_interval_95": [
+          1.0039565843664566,
+          1.0073442029555015
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_steady_process_ns": {
+        "geometric_mean_ratio": 0.8901974414831152,
+        "block_ratios": [
+          1.1401614760013175,
+          0.9745998488817906,
+          0.9355637953583599,
+          0.7479694262215865,
+          0.7189219654309106
+        ],
+        "confidence_interval_95": [
+          0.7699117028047195,
+          1.0292758012850751
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "post_process_cleanup_ns": {
+        "geometric_mean_ratio": 1.0006943391468772,
+        "block_ratios": [
+          1.0212145445994556,
+          0.9797409238083673,
+          1.003338433309186,
+          0.9960282889902584,
+          1.0035981517643353
+        ],
+        "confidence_interval_95": [
+          0.9891125874102931,
+          1.0125966824748394
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      },
+      "whole_cell_ns": {
+        "geometric_mean_ratio": 0.9885432818519493,
+        "block_ratios": [
+          1.0039861987492864,
+          0.993970979036812,
+          0.9981707879849812,
+          0.9716857012581197,
+          0.9753182029239175
+        ],
+        "confidence_interval_95": [
+          0.9775603936449222,
+          0.9996495627763494
+        ],
+        "blocks": 5,
+        "lower_is_better": true
+      }
+    }
+  },
+  "bpf_loader_ready_ms": {
+    "blocks": [
+      201.294135,
+      201.128184,
+      201.223593,
+      201.070184,
+      201.164426
+    ],
+    "median": 201.164426
+  },
+  "bpf_share_of_whole_cell": {
+    "pre_python_main_block_fractions": [
+      0.9663571018160281,
+      0.9658577150998688,
+      0.9668774555180039,
+      0.9650132043411401,
+      0.9661220536020144
+    ],
+    "steady_samples_block_fractions": [
+      0.005945909738828657,
+      0.006000704293547482,
+      0.0058108005044207565,
+      0.006029474950034013,
+      0.0059132890255848185
+    ]
+  },
+  "source_preflight": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/phase-preflight-575-02",
+  "claim_boundary": "Fresh-process phases for one frozen POD adapter, operator shape, runtime, and RTX 5090. pre_python_main includes all work before Python main on this injection path; it is not a generic attach-latency estimate. steady_samples covers 100 synchronized operator samples, not an end-to-end serving workload."
+}

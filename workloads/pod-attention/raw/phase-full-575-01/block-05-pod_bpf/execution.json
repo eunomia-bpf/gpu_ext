@@ -1,0 +1,318 @@
+{
+  "arm": "pod_bpf",
+  "block": 5,
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "LD_PRELOAD=/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_launch_bridge.so:/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/agent/libbpftime-agent.so",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/bin/python",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py",
+    "--arm",
+    "pod_bpf",
+    "--block",
+    "5",
+    "--output",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/phase-full-575-01/block-05-pod_bpf/operator.json",
+    "--phase-study"
+  ],
+  "environment": {
+    "BPFTIME_CUDA_DEFER_PTX_EXTRACTION": "1",
+    "BPFTIME_CUDA_DISABLE_CUOBJDUMP": "1",
+    "BPFTIME_CUDA_LATE_PTX_DIR": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device",
+    "BPFTIME_GLOBAL_SHM_NAME": "pod_attention_1492970_69133231429794",
+    "BPFTIME_PTXPASS_LIBRARIES": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_ptx_adapter.so",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64:/usr/lib/x86_64-linux-gnu",
+    "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_launch_bridge.so:/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/agent/libbpftime-agent.so",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "POD_LAUNCH_BRIDGE": "bpf",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "SPDLOG_LEVEL": "warn"
+  },
+  "launch_environment": {
+    "BPFTIME_CUDA_DEFER_PTX_EXTRACTION": "1",
+    "BPFTIME_CUDA_DISABLE_CUOBJDUMP": "1",
+    "BPFTIME_CUDA_LATE_PTX_DIR": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device",
+    "BPFTIME_GLOBAL_SHM_NAME": "pod_attention_1492970_69133231429794",
+    "BPFTIME_PTXPASS_LIBRARIES": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_ptx_adapter.so",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64:/usr/lib/x86_64-linux-gnu",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "POD_LAUNCH_BRIDGE": "bpf",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "SPDLOG_LEVEL": "warn"
+  },
+  "loader_command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/pod-loader",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/selector.bpf.o",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/exact-kernels.txt"
+  ],
+  "loader_environment": {
+    "BPFTIME_GLOBAL_SHM_NAME": "pod_attention_1492970_69133231429794",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64:/usr/lib/x86_64-linux-gnu",
+    "LD_PRELOAD": "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/syscall-server/libbpftime-syscall-server.so",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "SPDLOG_LEVEL": "warn"
+  },
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "phase_study": true,
+  "phase_timestamps": {
+    "cell_start_ns": 69133231451478,
+    "cleanup_complete_ns": 69415091353605,
+    "client_exit_ns": 69412625139820,
+    "client_spawn_ns": 69135808126550,
+    "loader_ready_ns": 69135808080650,
+    "loader_spawn_ns": 69135606916224
+  },
+  "private_segment": "pod_attention_1492970_69133231429794",
+  "private_segment_removed": true,
+  "process_wall_seconds": 276.8170165729971,
+  "returncode": 0,
+  "runtime_after": {
+    "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/agent/libbpftime-agent.so": {
+      "bytes": 242968808,
+      "mtime_ns": 1788281719272447293
+    },
+    "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/syscall-server/libbpftime-syscall-server.so": {
+      "bytes": 237902704,
+      "mtime_ns": 1788281210026629670
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py": {
+      "bytes": 36076,
+      "mtime_ns": 1788480400340122489
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_launch_bridge.so": {
+      "bytes": 33912,
+      "mtime_ns": 1788481755847452168
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_ptx_adapter.so": {
+      "bytes": 431552,
+      "mtime_ns": 1788419550224340055
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/pod-loader": {
+      "bytes": 22720,
+      "mtime_ns": 1788419550471240404
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_fo11_sm80.part-01.ptx": {
+      "bytes": 48814358,
+      "mtime_ns": 1788422913147686251
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_fo9_sm80.part-01.ptx": {
+      "bytes": 57041536,
+      "mtime_ns": 1788422881040978001
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo11_sm80.part-01.ptx": {
+      "bytes": 34318338,
+      "mtime_ns": 1788422927952012882
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo11_sm80.part-02.ptx": {
+      "bytes": 34143801,
+      "mtime_ns": 1788422932419111448
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo9_sm80.part-01.ptx": {
+      "bytes": 38223923,
+      "mtime_ns": 1788422897037330845
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo9_sm80.part-02.ptx": {
+      "bytes": 38379517,
+      "mtime_ns": 1788422901695433602
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/exact-kernels.txt": {
+      "bytes": 1841,
+      "mtime_ns": 1788422932964827679
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/inventory.json": {
+      "bytes": 5672,
+      "mtime_ns": 1788422932973649239
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/python/flash_attn_og.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 29503152,
+      "mtime_ns": 1788422827287792662
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/python/fused_attn.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 719807608,
+      "mtime_ns": 1788422658889083263
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/selector.bin": {
+      "bytes": 856,
+      "mtime_ns": 1788480673536677618
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/selector.bpf.o": {
+      "bytes": 10544,
+      "mtime_ns": 1788480673536677618
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/run_phase_study.py": {
+      "bytes": 17774,
+      "mtime_ns": 1788493162700188601
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/run_study.py": {
+      "bytes": 26330,
+      "mtime_ns": 1788481732218262810
+    }
+  },
+  "runtime_before": {
+    "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/agent/libbpftime-agent.so": {
+      "bytes": 242968808,
+      "mtime_ns": 1788281719272447293
+    },
+    "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/syscall-server/libbpftime-syscall-server.so": {
+      "bytes": 237902704,
+      "mtime_ns": 1788281210026629670
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py": {
+      "bytes": 36076,
+      "mtime_ns": 1788480400340122489
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_launch_bridge.so": {
+      "bytes": 33912,
+      "mtime_ns": 1788481755847452168
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_ptx_adapter.so": {
+      "bytes": 431552,
+      "mtime_ns": 1788419550224340055
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/pod-loader": {
+      "bytes": 22720,
+      "mtime_ns": 1788419550471240404
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_fo11_sm80.part-01.ptx": {
+      "bytes": 48814358,
+      "mtime_ns": 1788422913147686251
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_fo9_sm80.part-01.ptx": {
+      "bytes": 57041536,
+      "mtime_ns": 1788422881040978001
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo11_sm80.part-01.ptx": {
+      "bytes": 34318338,
+      "mtime_ns": 1788422927952012882
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo11_sm80.part-02.ptx": {
+      "bytes": 34143801,
+      "mtime_ns": 1788422932419111448
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo9_sm80.part-01.ptx": {
+      "bytes": 38223923,
+      "mtime_ns": 1788422897037330845
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo9_sm80.part-02.ptx": {
+      "bytes": 38379517,
+      "mtime_ns": 1788422901695433602
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/exact-kernels.txt": {
+      "bytes": 1841,
+      "mtime_ns": 1788422932964827679
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/inventory.json": {
+      "bytes": 5672,
+      "mtime_ns": 1788422932973649239
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/python/flash_attn_og.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 29503152,
+      "mtime_ns": 1788422827287792662
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/python/fused_attn.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 719807608,
+      "mtime_ns": 1788422658889083263
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/selector.bin": {
+      "bytes": 856,
+      "mtime_ns": 1788480673536677618
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/selector.bpf.o": {
+      "bytes": 10544,
+      "mtime_ns": 1788480673536677618
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/run_phase_study.py": {
+      "bytes": 17774,
+      "mtime_ns": 1788493162700188601
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/run_study.py": {
+      "bytes": 26330,
+      "mtime_ns": 1788481732218262810
+    }
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 39.06,
+      "sm_clock_mhz": 2400,
+      "temperature_c": 48,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788495669249994567,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 7001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 27.85,
+      "sm_clock_mhz": 232,
+      "temperature_c": 48,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788495389468995216,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "status": "passed",
+  "telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2895.0,
+    "mean_power_w": 19.631926406926407,
+    "min_sm_clock_mhz": 21.0,
+    "peak_memory_mib": 4187.0,
+    "peak_temperature_c": 52.0,
+    "samples": 1386,
+    "throttled": false
+  },
+  "timeout_seconds": 1800
+}

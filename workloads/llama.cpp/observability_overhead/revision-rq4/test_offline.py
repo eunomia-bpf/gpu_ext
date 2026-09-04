@@ -761,6 +761,54 @@ class OfflineTests(unittest.TestCase):
             self.assertFalse(segment.exists())
             self.assertEqual((result.returncode, result.stdout, result.stderr), (0, "output", "diagnostics"))
 
+    def test_private_launch_probe_preserves_parseable_drift_failure(self):
+        text = lossless_launchlate_log(
+            end_low=20888, end_high=21052, end_gpu=2000021020,
+            change_low=19856, change_high=20184,
+            drift_rate=20184, drift_bounded=0,
+        ) + "\nClock calibration drift exceeds its bound\n"
+        for complete in (True, False):
+            with self.subTest(complete=complete), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                segment = root / f"rq4_{os.getpid()}_123"
+                process = Mock(pid=98765, returncode=runner.errno.ERANGE)
+                process.poll.return_value = None
+
+                def start(*args, **kwargs):
+                    segment.write_text("owned loader state")
+                    emitted = text if complete else text.replace(
+                        "End RM cleanup complete: 1", "End RM cleanup complete: 0")
+                    kwargs["stdout"].write(emitted)
+                    kwargs["stdout"].flush()
+                    return process
+
+                args = SimpleNamespace(
+                    probe_startup_s=0,
+                    uprobe_binary=Path("/target/libggml-cuda.so"),
+                    uprobe_symbol_hint="target",
+                )
+                with (patch.object(runner, "SHM_ROOT", root),
+                      patch.object(runner.time, "monotonic_ns", return_value=123),
+                      patch.object(runner.core, "probe_env", return_value={}),
+                      patch.object(runner.core, "agent_env", return_value={}),
+                      patch.object(runner.subprocess, "Popen", side_effect=start),
+                      patch.object(runner.shared, "stop_owned"),
+                      patch.object(runner.shared, "group_members", return_value=[])):
+                    action = lambda: runner.private_probe(
+                        "launchlate", args, root, root / "cell")
+                    if complete:
+                        with action():
+                            pass
+                    else:
+                        with self.assertRaisesRegex(
+                                RuntimeError, "exited unsuccessfully: 34"):
+                            with action():
+                                pass
+                record = json.loads((root / "cell/probe-execution.json").read_text())
+                self.assertEqual(record["loader_returncode"], runner.errno.ERANGE)
+                self.assertEqual(record.get("semantic_gate_failure"), complete)
+                self.assertTrue(record["private_segment_removed"])
+
     def test_fatal_cleanup_stops_correctness_and_timing_campaigns(self):
         for phase in ("correctness", "timing"):
             with self.subTest(phase=phase), tempfile.TemporaryDirectory() as tmp:
@@ -1170,6 +1218,36 @@ class OfflineTests(unittest.TestCase):
         ):
             self.assertFalse(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text.replace(label, ""))))
         self.assertEqual(runner.parse_nvbit("launchlate", "NVBIT launchlate samples=2")["clock_errors"], -1)
+
+    def test_launchlate_erange_is_only_parseable_for_exact_unbounded_drift(self):
+        text = lossless_launchlate_log(
+            end_low=20888,
+            end_high=21052,
+            end_gpu=2000021020,
+            change_low=19856,
+            change_high=20184,
+            drift_rate=20184,
+            drift_bounded=0,
+        ) + "\nClock calibration drift exceeds its bound\n"
+        probe = runner.parse_gpubpf("launchlate", text)
+        self.assertEqual(runner.launch_clock_model_rate(probe), 20184)
+        self.assertFalse(runner.launch_clock_model_valid(probe))
+        self.assertTrue(runner.launchlate_unbounded_drift_exit(
+            "launchlate", runner.errno.ERANGE, text))
+        mutations = (
+            ("launchlate", 1, text),
+            ("threadhist", runner.errno.ERANGE, text),
+            ("launchlate", runner.errno.ERANGE,
+             text.replace("Clock calibration drift exceeds its bound\n", "")),
+            ("launchlate", runner.errno.ERANGE,
+             text.replace("End RM cleanup complete: 1", "End RM cleanup complete: 0")),
+            ("launchlate", runner.errno.ERANGE,
+             text.replace("Pairing complete: 1", "Pairing complete: 0")),
+        )
+        for tool, returncode, candidate in mutations:
+            with self.subTest(tool=tool, returncode=returncode):
+                self.assertFalse(runner.launchlate_unbounded_drift_exit(
+                    tool, returncode, candidate))
 
     def test_nvbit_launchlate_accounting_and_calibration_gate_is_fail_closed(self):
         probe = runner.parse_nvbit("launchlate", lossless_nvbit_launchlate_log())

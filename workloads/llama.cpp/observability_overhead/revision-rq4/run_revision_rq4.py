@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager, nullcontext
 import csv
+import errno
 import fcntl
 import json
 import math
@@ -833,7 +834,13 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
                         segment.unlink()
                         record["private_segment_removed"] = True
                     if process is not None and process.returncode != 0:
-                        raise RuntimeError("private probe did not exit cleanly")
+                        probe_text = (run_dir / "probe.log").read_text(errors="replace")
+                        semantic = launchlate_unbounded_drift_exit(
+                            tool, process.returncode, probe_text)
+                        record["semantic_gate_failure"] = semantic
+                        if not semantic:
+                            raise RuntimeError(
+                                f"private probe exited unsuccessfully: {process.returncode}")
             except OwnedCleanupError as error:
                 record["cleanup_error"] = str(error)
                 raise
@@ -1828,7 +1835,8 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
     return result
 
 
-def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
+def launch_clock_model_rate(probe: dict[str, Any]) -> int | None:
+    """Recompute a structurally sound clock-model drift rate, bound aside."""
     fields = (
         "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
         "start_clock_uncertainty_ns", "start_clock_host_anchor_ns",
@@ -1839,7 +1847,7 @@ def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
         "clock_drift_limit_ppb", "clock_drift_bounded",
     )
     if any(type(probe.get(key)) is not int for key in fields):
-        return False
+        return None
     start_low = probe["start_clock_offset_lower_ns"]
     start_high = probe["start_clock_offset_upper_ns"]
     end_low = probe["end_clock_offset_lower_ns"]
@@ -1850,11 +1858,11 @@ def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
     change_low = end_low - start_high
     change_high = end_high - start_low
     if elapsed <= 0:
-        return False
+        return None
     expected_rate = (
         max(abs(change_low), abs(change_high)) * 1_000_000_000 + elapsed - 1
     ) // elapsed
-    return (
+    consistent = (
         start_low <= start_high
         and end_low <= end_high
         and probe["start_clock_uncertainty_ns"]
@@ -1867,8 +1875,55 @@ def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
         and elapsed >= LAUNCH_MIN_CALIBRATION_SPAN_NS
         and probe["clock_drift_rate_bound_ppb"] == expected_rate
         and probe["clock_drift_limit_ppb"] == LAUNCH_CLOCK_DRIFT_LIMIT_PPB
+    )
+    return expected_rate if consistent else None
+
+
+def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
+    expected_rate = launch_clock_model_rate(probe)
+    return (
+        expected_rate is not None
         and expected_rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB
-        and probe["clock_drift_bounded"] == 1
+        and probe.get("clock_drift_bounded") == 1
+    )
+
+
+def launchlate_unbounded_drift_exit(tool: str, returncode: int, text: str) -> bool:
+    """Recognize a fully emitted, cleanup-complete drift-gate failure only."""
+    if tool != "launchlate" or returncode != errno.ERANGE:
+        return False
+    if text.count("Clock calibration drift exceeds its bound") != 1:
+        return False
+    probe = parse_gpubpf(tool, text)
+    expected_rate = launch_clock_model_rate(probe)
+    count_names = ("sample_count", "matched_samples", "classified_samples",
+                   "uncertain_samples")
+    if any(type(probe.get(name)) is not int for name in count_names):
+        return False
+    samples = probe["sample_count"]
+    matched = probe["matched_samples"]
+    classified = probe["classified_samples"]
+    uncertain = probe["uncertain_samples"]
+    return (
+        expected_rate is not None
+        and expected_rate > LAUNCH_CLOCK_DRIFT_LIMIT_PPB
+        and probe.get("clock_drift_bounded") == 0
+        and launch_rm_anchors_valid(probe)
+        and probe.get("probes_detached_before_readback") == 1
+        and probe.get("start_rm_cleanup_complete") == 1
+        and probe.get("end_rm_cleanup_complete") == 1
+        and probe.get("clock_errors") == 0
+        and probe.get("queue_underflows") == 0
+        and probe.get("queue_overflows") == 0
+        and probe.get("queue_update_errors") == 0
+        and probe.get("online_accounting_complete") == 1
+        and probe.get("accounting_complete") == 1
+        and probe.get("pairing_complete") == 1
+        and samples > 0
+        and probe.get("host_launches") == probe.get("host_enqueued")
+        == probe.get("device_entries") == matched == samples
+        and probe.get("histogram_samples") == classified
+        and launch_uncertainty_valid(classified, uncertain, matched)
     )
 
 

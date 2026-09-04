@@ -71,6 +71,7 @@ python3 run_raw_map.py preflight --output raw/preflight-575-01 \
 python3 run_raw_map.py full --output raw/full-575-01 \
   --preflight raw/preflight-575-01 \
   --runtime-build ../../../bpftime-table1-575/build-table1-575
+python3 analyze_raw_map.py raw/full-575-02
 ```
 
 The checked 575 Table-1 runtime currently has device verification disabled.
@@ -86,3 +87,12 @@ aggregate control alone.  It does not measure latency or bandwidth, exercise
 an on-chip/shared-memory shard, prove transparent automatic map placement, or
 show that arbitrary unbounded data structures fit the ABI.  Ring capacity is
 finite; its explicit failure mode is detected loss, not lossless streaming.
+
+## Retained result
+
+`raw/full-575-02` is the completed formal campaign. Its independently invoked
+analyzer re-reads every raw log and lifecycle record: all 15 cells passed, the
+10 positive cells recovered all 34,560 bounded raw tuples exactly, and the five
+negative cells accounted for all 2,560 capacity drops and rejected those
+streams as incomplete. See `results-full-575-02.md` for the evidence boundary
+and the retained earlier infrastructure failure.

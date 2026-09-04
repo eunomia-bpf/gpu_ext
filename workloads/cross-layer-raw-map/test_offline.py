@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 
+import analyze_raw_map
 import protocol
 import run_raw_map as runner
 
@@ -64,6 +65,17 @@ def write_events(path: Path, events: list[dict]) -> None:
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_retained_full_campaign_revalidates(self):
+        path = Path(__file__).resolve().parent / "raw/full-575-02"
+        if not path.exists():
+            self.skipTest("retained formal evidence is not present")
+        summary = analyze_raw_map.summarize(path)
+        self.assertEqual(summary["cells"], 15)
+        self.assertEqual(summary["positive_cells"], 10)
+        self.assertEqual(summary["negative_cells"], 5)
+        self.assertEqual(summary["positive_exact_raw_records"], 34560)
+        self.assertEqual(summary["negative_accounted_drops"], 2560)
+
     def test_segment_identity_requires_live_child_mapping(self):
         path = Path("/dev/shm") / f"raw_map_identity_test_{os.getpid()}"
         self.assertFalse(path.exists())

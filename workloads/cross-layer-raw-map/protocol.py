@@ -304,18 +304,20 @@ def validate_cell_logs(native_log: Path, instrumented_log: Path,
     }
 
 
-def validate_preflight_manifest(path: Path) -> dict[str, Any]:
+def validate_campaign_manifest(path: Path, mode: str) -> dict[str, Any]:
+    blocks = blocks_for(mode)
+    expected_cells = blocks * len(ARMS)
     manifest = json.loads((path / "manifest.json").read_text())
     if (manifest.get("schema") != SCHEMA or manifest.get("protocol") != PROTOCOL
-            or manifest.get("mode") != "preflight" or manifest.get("status") != "passed"
-            or manifest.get("cell_count") != len(ARMS)
-            or manifest.get("positive_cells") != 2
-            or manifest.get("negative_drop_gates") != 1):
-        raise EvidenceError("formal run requires one passed protocol-compatible preflight")
+            or manifest.get("mode") != mode or manifest.get("status") != "passed"
+            or manifest.get("cell_count") != expected_cells
+            or manifest.get("positive_cells") != blocks * 2
+            or manifest.get("negative_drop_gates") != blocks):
+        raise EvidenceError(f"expected one passed protocol-compatible {mode} campaign")
     cells = manifest.get("cells")
-    if not isinstance(cells, list) or len(cells) != len(ARMS):
-        raise EvidenceError("preflight does not contain all three arms")
-    expected_order = campaign_order("preflight")
+    if not isinstance(cells, list) or len(cells) != expected_cells:
+        raise EvidenceError(f"{mode} campaign does not contain every planned cell")
+    expected_order = campaign_order(mode)
     dispositions: dict[str, str] = {}
     for recorded, planned in zip(cells, expected_order, strict=True):
         arm = ARM_BY_NAME[planned["name"]]
@@ -326,7 +328,7 @@ def validate_preflight_manifest(path: Path) -> dict[str, Any]:
                 or recorded.get("order") != planned["order"]
                 or recorded.get("arm") != arm.name
                 or recorded.get("directory") != expected_directory):
-            raise EvidenceError("preflight cell order/directory does not match the frozen plan")
+            raise EvidenceError("campaign cell order/directory does not match the frozen plan")
         directory = path / expected_directory
         cell = json.loads((directory / "cell.json").read_text())
         if (cell.get("schema") != SCHEMA or cell.get("protocol") != PROTOCOL
@@ -334,20 +336,24 @@ def validate_preflight_manifest(path: Path) -> dict[str, Any]:
                 or cell.get("cleanup_errors") != []
                 or cell.get("owned_group_survivors") != {}
                 or cell.get("private_segment_removed") is not True):
-            raise EvidenceError("preflight cell lifecycle evidence is incomplete")
+            raise EvidenceError("campaign cell lifecycle evidence is incomplete")
         revalidated = validate_cell_logs(
             directory / "native.log", directory / "instrumented.log",
             directory / "probe.log", arm,
         )
         if cell.get("validation") != revalidated:
-            raise EvidenceError("preflight cell result does not match its raw logs")
+            raise EvidenceError("campaign cell result does not match its raw logs")
         for key, value in revalidated.items():
             if recorded.get(key) != value:
-                raise EvidenceError(f"preflight manifest disagrees with raw cell field {key}")
+                raise EvidenceError(f"campaign manifest disagrees with raw cell field {key}")
         dispositions[arm.name] = revalidated["evidence_disposition"]
     if dispositions != {
             "small": "accepted_complete_raw_stream",
             "large": "accepted_complete_raw_stream",
             "overflow_negative": "rejected_incomplete_raw_stream"}:
-        raise EvidenceError("preflight evidence dispositions are incomplete")
+        raise EvidenceError("campaign evidence dispositions are incomplete")
     return manifest
+
+
+def validate_preflight_manifest(path: Path) -> dict[str, Any]:
+    return validate_campaign_manifest(path, "preflight")

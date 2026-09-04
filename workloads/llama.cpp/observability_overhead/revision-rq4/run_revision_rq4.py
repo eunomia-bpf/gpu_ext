@@ -51,7 +51,7 @@ SHM_ROOT = Path("/dev/shm")
 CLIENT_CPUS = "8-15"
 EXPECTED_GPU_THREAD_SLOTS = 22528
 MIN_RING_ENTRIES_PER_THREAD = 256
-EXIT_RECORD_BYTES = 56
+EXIT_RECORD_BYTES = 80
 CORRECTNESS_EXIT_EVENTS = 720896
 CORRECTNESS_EXIT_LAUNCHES = 220
 CORRECTNESS_EXIT_COORDINATES = 22528
@@ -391,6 +391,31 @@ def validate_launchlate_source_schema(directory: Path) -> None:
             )
 
 
+def validate_kernelretsnoop_source_schema(directory: Path) -> None:
+    """Require the per-launch block-dimension record ABI used by the oracle."""
+    required = {
+        "kernelretsnoop.bpf.c": (
+            "u64 block_dim_x, block_dim_y, block_dim_z;",
+            "bpf_get_block_dim(&data.block_dim_x",
+            "sizeof(struct data)",
+        ),
+        "kernelretsnoop.c": (
+            "uint64_t block_dim_x, block_dim_y, block_dim_z;",
+            "event_coordinate(&state->events[i]",
+            "Invalid launch coordinates:",
+            "sizeof(struct data)",
+        ),
+    }
+    for name, markers in required.items():
+        text = (directory / name).read_text()
+        missing = [marker for marker in markers if marker not in text]
+        if missing:
+            raise RuntimeError(
+                f"kernelretsnoop source lacks the block-dimension record ABI in {name}: "
+                + ", ".join(missing)
+            )
+
+
 def prepare_tool_source(
     spec: core.ToolSpec,
     *,
@@ -453,6 +478,7 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             "multiplicity_22": "Coordinate multiplicity 22",
             "other_multiplicity": "Coordinate multiplicity other",
             "segment_mismatches": "Coordinate segment mismatches",
+            "invalid_launch_coordinates": "Invalid launch coordinates",
             "unique_coordinates": "Unique coordinates",
             "oracle_enabled": "Multiplicity oracle enabled",
             "oracle_total_events": "Multiplicity oracle total events",
@@ -757,6 +783,7 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
             and all(int(probe.get(key, -1)) == 0 for key in (
                 "oob_drops", "full_drops", "bad_size_drops", "other_drops",
                 "dirty_slots", "pending_events", "second_drain_events",
+                "invalid_launch_coordinates",
             ))
             and int(probe.get("final_drain_events", -1)) >= 0
             and int(probe.get("final_drain_events", -1)) <= samples
@@ -865,6 +892,7 @@ def run_cli_separate(
         cmd,
         cwd=str(cwd),
         env=env,
+        stdin=subprocess.DEVNULL,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -1464,6 +1492,8 @@ def run_campaign(args: argparse.Namespace) -> int:
             )
             if tool == "launchlate":
                 validate_launchlate_source_schema(directory)
+            if tool == "kernelretsnoop":
+                validate_kernelretsnoop_source_schema(directory)
             core.build_tool(core.TOOLS[tool], directory)
             tool_dirs[tool] = directory
 

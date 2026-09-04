@@ -5,6 +5,7 @@ import ast
 import io
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,7 +20,7 @@ def lossless_exit_log(**overrides):
         "requested": 22528,
         "allocated": 22528,
         "entries": 256,
-        "record_bytes": 56,
+        "record_bytes": 80,
         "committed": 720896,
         "collected": 720896,
         "runtime_collected": 720896,
@@ -40,6 +41,7 @@ def lossless_exit_log(**overrides):
         "multiplicity_22": 20480,
         "other_multiplicity": 0,
         "segment_mismatches": 0,
+        "invalid_launch_coordinates": 0,
         "unique_coordinates": 22528,
         "oracle_enabled": 1,
         "oracle_total_events": 720896,
@@ -72,6 +74,7 @@ def lossless_exit_log(**overrides):
         f"Coordinate multiplicity 22: {values['multiplicity_22']}",
         f"Coordinate multiplicity other: {values['other_multiplicity']}",
         f"Coordinate segment mismatches: {values['segment_mismatches']}",
+        f"Invalid launch coordinates: {values['invalid_launch_coordinates']}",
         f"Unique coordinates: {values['unique_coordinates']}",
         f"Multiplicity oracle enabled: {values['oracle_enabled']}",
         f"Multiplicity oracle total events: {values['oracle_total_events']}",
@@ -401,6 +404,20 @@ class OfflineTests(unittest.TestCase):
                                         log_path=Path(tmp) / "client.log")
         stop.assert_called_once_with(process)
 
+    def test_cuda_client_never_inherits_parent_stdin(self):
+        process = Mock(pid=98766, returncode=0)
+        process.communicate.return_value = (
+            runner.EXPECTED_NORMALIZED_STDOUT, "diagnostics"
+        )
+        with (tempfile.TemporaryDirectory() as tmp,
+              patch.object(runner.subprocess, "Popen", return_value=process) as popen,
+              patch.object(runner.shared, "stop_owned")):
+            runner.run_cli_separate(
+                ["/client"], cwd=Path(tmp), env={}, timeout=1,
+                log_path=Path(tmp) / "client.log",
+            )
+        self.assertIs(popen.call_args.kwargs["stdin"], subprocess.DEVNULL)
+
     def test_cuda_survivor_preserves_loader_segment_and_fatal_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
@@ -639,6 +656,47 @@ class OfflineTests(unittest.TestCase):
         }
         self.assertIn("validate_launchlate_source_schema", calls)
 
+    def test_native_kernelretsnoop_schema_requires_block_dimension_abi(self):
+        sources = {
+            "kernelretsnoop.bpf.c": "\n".join((
+                "u64 block_dim_x, block_dim_y, block_dim_z;",
+                "bpf_get_block_dim(&data.block_dim_x",
+                "sizeof(struct data)",
+            )),
+            "kernelretsnoop.c": "\n".join((
+                "uint64_t block_dim_x, block_dim_y, block_dim_z;",
+                "event_coordinate(&state->events[i]",
+                "Invalid launch coordinates:",
+                "sizeof(struct data)",
+            )),
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            for name, text in sources.items():
+                (target / name).write_text(text)
+            runner.validate_kernelretsnoop_source_schema(target)
+            self.assertEqual(
+                {name: (target / name).read_text() for name in sources}, sources
+            )
+            (target / "kernelretsnoop.bpf.c").write_text(
+                sources["kernelretsnoop.bpf.c"].replace(
+                    "bpf_get_block_dim(&data.block_dim_x", ""
+                )
+            )
+            with self.assertRaisesRegex(RuntimeError, "bpf_get_block_dim"):
+                runner.validate_kernelretsnoop_source_schema(target)
+
+        tree = ast.parse(Path(runner.__file__).read_text())
+        campaign = next(
+            node for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "run_campaign"
+        )
+        calls = {
+            node.func.id for node in ast.walk(campaign)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        self.assertIn("validate_kernelretsnoop_source_schema", calls)
+
     def test_all_copied_tool_runtime_includes_are_absolute(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -794,7 +852,8 @@ class OfflineTests(unittest.TestCase):
             "pending_events", "final_drain_events", "second_drain_events",
             "cartesian_launches", "cartesian_coordinates", "cartesian_complete",
             "multiplicity_220", "multiplicity_44", "multiplicity_22",
-            "other_multiplicity", "segment_mismatches", "unique_coordinates",
+            "other_multiplicity", "segment_mismatches",
+            "invalid_launch_coordinates", "unique_coordinates",
             "oracle_enabled", "oracle_total_events", "oracle_passed",
             "collector_gate_passed",
         ):
@@ -842,6 +901,18 @@ class OfflineTests(unittest.TestCase):
             "kernelretsnoop", {**nvbit, "selected_launches": 175},
             expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
             expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+        ))
+
+    def test_kernelretsnoop_invalid_launch_coordinates_fail_closed(self):
+        probe = runner.parse_gpubpf("kernelretsnoop", lossless_exit_log())
+        self.assertEqual(probe["invalid_launch_coordinates"], 0)
+        self.assertFalse(runner.gpubpf_probe_valid(
+            "kernelretsnoop", {**probe, "invalid_launch_coordinates": 1},
+            expected_thread_count=runner.EXPECTED_GPU_THREAD_SLOTS,
+            expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
+            expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+            expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
+            exact_exit_oracle=True,
         ))
 
     def test_timed_exit_gate_accepts_accounted_nonuniform_multiplicity(self):

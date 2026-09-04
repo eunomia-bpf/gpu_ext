@@ -391,6 +391,66 @@ def validate_launchlate_source_schema(directory: Path) -> None:
             )
 
 
+def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
+    """Require the fail-closed bounded-clock ABI in the copied NVBit tool."""
+    required = {
+        "Makefile": (
+            "observability.o: observability.cu common.h clock_domain.h",
+            "inject_funcs.o: inject_funcs.cu common.h clock_domain.h",
+        ),
+        "clock_domain.h": (
+            "int64_t offset_low_ns;",
+            "int64_t offset_high_ns;",
+            "uint64_t uncertainty_ns;",
+            "uint64_t valid;",
+            "LAUNCH_SAMPLE_UNCERTAIN",
+            "clock_calibration_valid",
+            "clock_calibration_intersection",
+        ),
+        "inject_funcs.cu": (
+            "uncertain_count_ptr",
+            "LAUNCH_SAMPLE_UNCERTAIN",
+            "clock_error_ptr",
+            "classify_launch_latency(",
+            "reinterpret_cast<unsigned long long*>(uncertain_count_ptr)",
+            "reinterpret_cast<unsigned long long*>(sample_count_ptr), 1ULL",
+        ),
+        "observability.cu": (
+            "bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC",
+            "cudaMallocManaged(&launch_uncertain_samples",
+            "cudaMemset(launch_uncertain_samples",
+            "reinterpret_cast<uint64_t>(launch_uncertain_samples)",
+            "*launch_uncertain_samples",
+            "calibrate_gpu_clock(ctx, state, state->start_calibration)",
+            "calibrate_gpu_clock(ctx, state, &end_calibration)",
+            "clock_calibration_intersection(",
+            'print_clock_calibration("start"',
+            'print_clock_calibration("end"',
+            "%s_clock_offset_lower_ns=",
+            "%s_clock_offset_upper_ns=",
+            "%s_clock_uncertainty_ns=",
+            "%s_clock_calibration_valid=",
+            "clock_endpoint_overlap=",
+            "clock_intersection_lower_ns=",
+            "clock_intersection_upper_ns=",
+            "uncertain_samples=",
+            "samples=%llu clock_errors=%llu",
+        ),
+        "tool_func/flush_channel.cu": (
+            "sample_globaltimer",
+            "%globaltimer",
+        ),
+    }
+    for name, markers in required.items():
+        text = (directory / name).read_text()
+        missing = [marker for marker in markers if marker not in text]
+        if missing:
+            raise RuntimeError(
+                f"NVBit launchlate source lacks bounded calibration fields in {name}: "
+                + ", ".join(missing)
+            )
+
+
 def validate_kernelretsnoop_source_schema(directory: Path) -> None:
     """Require the per-launch block-dimension record ABI used by the oracle."""
     required = {
@@ -565,6 +625,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         Path(shared.run_smoke.__file__),
         Path(shared.safety.__file__),
         NVBIT_SOURCE_DIR / "Makefile",
+        NVBIT_SOURCE_DIR / "clock_domain.h",
         NVBIT_SOURCE_DIR / "common.h",
         NVBIT_SOURCE_DIR / "inject_funcs.cu",
         NVBIT_SOURCE_DIR / "observability.cu",
@@ -664,11 +725,13 @@ def build_nvbit(source_dir: Path, log_dir: Path) -> Path:
 
 
 def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
-    def last(pattern: str, default: int = 0) -> int:
-        values = [int(value) for value in re.findall(pattern, text)]
+    def last(pattern: str, default: int = 0, flags: int = 0) -> int:
+        values = [int(value) for value in re.findall(pattern, text, flags)]
         return values[-1] if values else default
 
-    selected = last(r"NVBIT selected_launches=(\d+)")
+    selected = last(
+        r"^NVBIT selected_launches=(\d+)$", flags=re.MULTILINE
+    )
     if tool == "kernelretsnoop":
         events = last(r"NVBIT kernelretsnoop events=(\d+)")
         nonzero = last(r"NVBIT kernelretsnoop events=\d+ nonzero_timestamps=(\d+)")
@@ -685,16 +748,59 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
             "nonzero_threads": nonzero,
             "selected_launches": selected,
         }
-    samples = last(r"NVBIT launchlate samples=(\d+)")
-    errors = last(r"NVBIT launchlate samples=\d+ clock_errors=(\d+)", -1)
-    bins = [last(rf"NVBIT launchlate bin_{index}=(\d+)") for index in range(10)]
-    return {
+    # NVBit increments samples only for classified, single-bin intervals.
+    samples = last(
+        r"^NVBIT launchlate samples=(\d+) clock_errors=\d+$",
+        flags=re.MULTILINE,
+    )
+    errors = last(
+        r"^NVBIT launchlate samples=\d+ clock_errors=(\d+)$",
+        -1,
+        re.MULTILINE,
+    )
+    bins = [
+        last(
+            rf"^NVBIT launchlate bin_{index}=(\d+)$",
+            -1,
+            re.MULTILINE,
+        )
+        for index in range(10)
+    ]
+    result = {
         "sample_count": samples,
         "clock_errors": errors,
         "histogram": bins,
         "histogram_sum": sum(bins),
         "selected_launches": selected,
     }
+    integer_fields = {
+        "uncertain_samples": r"\d+",
+        "start_clock_offset_lower_ns": r"-?\d+",
+        "start_clock_offset_upper_ns": r"-?\d+",
+        "start_clock_uncertainty_ns": r"\d+",
+        "start_clock_calibration_valid": r"\d+",
+        "end_clock_offset_lower_ns": r"-?\d+",
+        "end_clock_offset_upper_ns": r"-?\d+",
+        "end_clock_uncertainty_ns": r"\d+",
+        "end_clock_calibration_valid": r"\d+",
+        "clock_endpoint_overlap": r"\d+",
+        "clock_intersection_lower_ns": r"-?\d+",
+        "clock_intersection_upper_ns": r"-?\d+",
+    }
+    for key, number in integer_fields.items():
+        values = re.findall(
+            rf"^NVBIT launchlate {key}=({number})$",
+            text,
+            re.MULTILINE,
+        )
+        result[key] = int(values[-1]) if values else None
+    methods = re.findall(
+        r"^NVBIT launchlate clock_calibration_method=(\S+)$",
+        text,
+        re.MULTILINE,
+    )
+    result["clock_calibration_method"] = methods[-1] if methods else ""
+    return result
 
 
 def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
@@ -712,8 +818,51 @@ def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
         )
     if tool == "threadhist":
         return int(probe.get("nonzero_threads", 0)) > 0
+
+    calibration_fields = (
+        "uncertain_samples",
+        "start_clock_offset_lower_ns",
+        "start_clock_offset_upper_ns",
+        "start_clock_uncertainty_ns",
+        "start_clock_calibration_valid",
+        "end_clock_offset_lower_ns",
+        "end_clock_offset_upper_ns",
+        "end_clock_uncertainty_ns",
+        "end_clock_calibration_valid",
+        "clock_endpoint_overlap",
+        "clock_intersection_lower_ns",
+        "clock_intersection_upper_ns",
+    )
+    if any(type(probe.get(key)) is not int for key in calibration_fields):
+        return False
+    start_low = int(probe.get("start_clock_offset_lower_ns", 1))
+    start_high = int(probe.get("start_clock_offset_upper_ns", -1))
+    start_uncertainty = int(probe.get("start_clock_uncertainty_ns", -1))
+    end_low = int(probe.get("end_clock_offset_lower_ns", 1))
+    end_high = int(probe.get("end_clock_offset_upper_ns", -1))
+    end_uncertainty = int(probe.get("end_clock_uncertainty_ns", -1))
+    intersection_low = int(probe.get("clock_intersection_lower_ns", 1))
+    intersection_high = int(probe.get("clock_intersection_upper_ns", -1))
+    histogram = probe.get("histogram", ())
     return (
-        int(probe.get("clock_errors", -1)) == 0
+        probe.get("clock_calibration_method")
+        == "bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC"
+        and int(probe.get("start_clock_calibration_valid", -1)) == 1
+        and int(probe.get("end_clock_calibration_valid", -1)) == 1
+        and start_low <= start_high
+        and end_low <= end_high
+        and start_uncertainty == (start_high - start_low + 1) // 2
+        and end_uncertainty == (end_high - end_low + 1) // 2
+        and int(probe.get("clock_endpoint_overlap", -1)) == 1
+        and intersection_low == max(start_low, end_low)
+        and intersection_high == min(start_high, end_high)
+        and intersection_low <= intersection_high
+        and int(probe.get("clock_errors", -1)) == 0
+        and int(probe.get("uncertain_samples", -1)) == 0
+        and isinstance(histogram, list)
+        and len(histogram) == 10
+        and all(isinstance(count, int) and count >= 0 for count in histogram)
+        and sum(histogram) == samples
         and int(probe.get("histogram_sum", -1)) == samples
         and selected == samples
     )
@@ -1478,6 +1627,7 @@ def run_campaign(args: argparse.Namespace) -> int:
             nvbit_build_dir,
             ignore=shutil.ignore_patterns("*.o", "*.so", "*.fatbin", "flush_channel.c"),
         )
+        validate_nvbit_launchlate_source_schema(nvbit_build_dir)
         args.nvbit_tool = build_nvbit(nvbit_build_dir, output_dir)
 
         build_root = output_dir / "gpubpf_tool_build"

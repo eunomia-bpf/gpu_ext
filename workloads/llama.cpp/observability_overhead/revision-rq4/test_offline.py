@@ -140,6 +140,49 @@ def lossless_launchlate_log(**overrides):
     ))
 
 
+def lossless_nvbit_launchlate_log(**overrides):
+    values = {
+        "selected": 2,
+        "samples": 2,
+        "uncertain": 0,
+        "clock_errors": 0,
+        "start_low": -120,
+        "start_high": -80,
+        "start_uncertainty": 20,
+        "start_valid": 1,
+        "end_low": -100,
+        "end_high": -70,
+        "end_uncertainty": 15,
+        "end_valid": 1,
+        "endpoint_overlap": 1,
+        "intersection_low": -100,
+        "intersection_high": -80,
+    }
+    values.update(overrides)
+    bins = [0, values["samples"], 0, 0, 0, 0, 0, 0, 0, 0]
+    return "\n".join((
+        "NVBIT launchlate clock_calibration_method="
+        "bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC",
+        f"NVBIT launchlate start_clock_offset_lower_ns={values['start_low']}",
+        f"NVBIT launchlate start_clock_offset_upper_ns={values['start_high']}",
+        f"NVBIT launchlate start_clock_uncertainty_ns={values['start_uncertainty']}",
+        f"NVBIT launchlate start_clock_calibration_valid={values['start_valid']}",
+        f"NVBIT launchlate end_clock_offset_lower_ns={values['end_low']}",
+        f"NVBIT launchlate end_clock_offset_upper_ns={values['end_high']}",
+        f"NVBIT launchlate end_clock_uncertainty_ns={values['end_uncertainty']}",
+        f"NVBIT launchlate end_clock_calibration_valid={values['end_valid']}",
+        f"NVBIT launchlate clock_endpoint_overlap={values['endpoint_overlap']}",
+        f"NVBIT launchlate clock_intersection_lower_ns={values['intersection_low']}",
+        f"NVBIT launchlate clock_intersection_upper_ns={values['intersection_high']}",
+        *(f"NVBIT launchlate bin_{index}={count}"
+          for index, count in enumerate(bins)),
+        f"NVBIT launchlate uncertain_samples={values['uncertain']}",
+        f"NVBIT launchlate samples={values['samples']} "
+        f"clock_errors={values['clock_errors']}",
+        f"NVBIT selected_launches={values['selected']}",
+    ))
+
+
 class OfflineTests(unittest.TestCase):
     def test_correctness_keeps_generated_token_output_enabled(self):
         command = runner.llama_cli_cmd(SimpleNamespace(
@@ -268,6 +311,7 @@ class OfflineTests(unittest.TestCase):
                 snapshot = {"gpu": f"RTX 5090, {driver}, 32607, 0, 0, 0", "compute_apps": ""}
                 with (patch.object(runner.core, "nvidia_smi_snapshot", return_value=snapshot),
                       patch.object(runner.shutil, "copytree"),
+                      patch.object(runner, "validate_nvbit_launchlate_source_schema"),
                       patch.object(runner, "build_nvbit", side_effect=RuntimeError("build boundary")) as build):
                     message = "build boundary" if driver == "575.57.08" else "requires driver"
                     with self.assertRaisesRegex(RuntimeError, message):
@@ -697,6 +741,60 @@ class OfflineTests(unittest.TestCase):
         }
         self.assertIn("validate_kernelretsnoop_source_schema", calls)
 
+    def test_nvbit_launchlate_schema_requires_bounded_clock_accounting(self):
+        names = (
+            "Makefile", "clock_domain.h", "inject_funcs.cu",
+            "observability.cu", "tool_func/flush_channel.cu",
+        )
+        sources = {
+            name: (runner.NVBIT_SOURCE_DIR / name).read_text()
+            for name in names
+        }
+        runner.validate_nvbit_launchlate_source_schema(runner.NVBIT_SOURCE_DIR)
+        self.assertEqual({
+            name: (runner.NVBIT_SOURCE_DIR / name).read_text()
+            for name in names
+        }, sources)
+        corruptions = (
+            ("Makefile", "observability.o: observability.cu common.h clock_domain.h"),
+            ("clock_domain.h", "int64_t offset_low_ns;"),
+            (
+                "inject_funcs.cu",
+                "reinterpret_cast<unsigned long long*>(uncertain_count_ptr)",
+            ),
+            ("observability.cu", "clock_endpoint_overlap="),
+            ("tool_func/flush_channel.cu", "%globaltimer"),
+        )
+        for broken_name, marker in corruptions:
+            with self.subTest(source=broken_name), tempfile.TemporaryDirectory() as tmp:
+                target = Path(tmp)
+                for name, text in sources.items():
+                    path = target / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(
+                        text.replace(marker, "") if name == broken_name else text
+                    )
+                with self.assertRaises(RuntimeError) as caught:
+                    runner.validate_nvbit_launchlate_source_schema(target)
+                self.assertIn(marker, str(caught.exception))
+
+        tree = ast.parse(Path(runner.__file__).read_text())
+        campaign = next(
+            node for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "run_campaign"
+        )
+        calls = {
+            node.func.id for node in ast.walk(campaign)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        self.assertIn("validate_nvbit_launchlate_source_schema", calls)
+        manifest = runner.source_manifest(
+            SimpleNamespace(bpftime_root=Path("/missing-bpftime"))
+        )
+        self.assertIn(
+            str(runner.NVBIT_SOURCE_DIR / "clock_domain.h"), manifest
+        )
+
     def test_all_copied_tool_runtime_includes_are_absolute(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -777,9 +875,13 @@ class OfflineTests(unittest.TestCase):
                 tool, {**tool_probe, "sample_count": 0},
                 expected_thread_count=expected_threads,
                 exact_exit_oracle=tool == "kernelretsnoop"))
-            self.assertTrue(runner.nvbit_probe_valid(tool, probe))
+            nvbit_probe = (
+                runner.parse_nvbit("launchlate", lossless_nvbit_launchlate_log())
+                if tool == "launchlate" else probe
+            )
+            self.assertTrue(runner.nvbit_probe_valid(tool, nvbit_probe))
             self.assertFalse(runner.nvbit_probe_valid(
-                tool, {**probe, "sample_count": 0}))
+                tool, {**nvbit_probe, "sample_count": 0}))
         for check in (
             lambda data: runner.gpubpf_probe_valid(
                 "launchlate", data, expected_thread_count=4),
@@ -798,6 +900,106 @@ class OfflineTests(unittest.TestCase):
         ):
             self.assertFalse(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text.replace(label, ""))))
         self.assertEqual(runner.parse_nvbit("launchlate", "NVBIT launchlate samples=2")["clock_errors"], -1)
+
+    def test_nvbit_launchlate_accounting_and_calibration_gate_is_fail_closed(self):
+        probe = runner.parse_nvbit("launchlate", lossless_nvbit_launchlate_log())
+        self.assertTrue(runner.nvbit_probe_valid("launchlate", probe))
+        self.assertEqual(probe["uncertain_samples"], 0)
+        self.assertEqual(probe["start_clock_offset_lower_ns"], -120)
+        self.assertEqual(probe["end_clock_offset_upper_ns"], -70)
+        self.assertEqual(probe["clock_intersection_lower_ns"], -100)
+        corruptions = {
+            "sample_count": 1,
+            "selected_launches": 1,
+            "histogram_sum": 1,
+            "histogram": [-1, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+            "uncertain_samples": 1,
+            "clock_errors": 1,
+            "start_clock_calibration_valid": 2,
+            "end_clock_calibration_valid": 2,
+            "start_clock_offset_lower_ns": -79,
+            "end_clock_offset_lower_ns": -69,
+            "start_clock_uncertainty_ns": 19,
+            "end_clock_uncertainty_ns": 14,
+            "clock_endpoint_overlap": 0,
+            "clock_intersection_lower_ns": -99,
+            "clock_intersection_upper_ns": -81,
+            "clock_calibration_method": "CLOCK_REALTIME_approximation",
+        }
+        for key, value in corruptions.items():
+            with self.subTest(key=key):
+                self.assertFalse(runner.nvbit_probe_valid(
+                    "launchlate", {**probe, key: value}
+                ))
+
+        text = lossless_nvbit_launchlate_log()
+        for label in (
+            "clock_calibration_method=bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC",
+            "uncertain_samples=0",
+            "start_clock_offset_lower_ns=-120",
+            "start_clock_offset_upper_ns=-80",
+            "start_clock_uncertainty_ns=20",
+            "start_clock_calibration_valid=1",
+            "end_clock_offset_lower_ns=-100",
+            "end_clock_offset_upper_ns=-70",
+            "end_clock_uncertainty_ns=15",
+            "end_clock_calibration_valid=1",
+            "clock_endpoint_overlap=1",
+            "clock_intersection_lower_ns=-100",
+            "clock_intersection_upper_ns=-80",
+            "samples=2 clock_errors=0",
+        ):
+            with self.subTest(missing=label):
+                parsed = runner.parse_nvbit("launchlate", text.replace(label, ""))
+                self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
+
+        legal_negative_one = lossless_nvbit_launchlate_log(
+            start_low=-1,
+            start_high=39,
+            start_uncertainty=20,
+            end_low=-1,
+            end_high=29,
+            end_uncertainty=15,
+            intersection_low=-1,
+            intersection_high=29,
+        )
+        parsed = runner.parse_nvbit("launchlate", legal_negative_one)
+        self.assertTrue(runner.nvbit_probe_valid("launchlate", parsed))
+        for label in (
+            "start_clock_offset_lower_ns=-1",
+            "end_clock_offset_lower_ns=-1",
+            "clock_intersection_lower_ns=-1",
+        ):
+            with self.subTest(missing_legal_negative_one=label):
+                parsed = runner.parse_nvbit(
+                    "launchlate", legal_negative_one.replace(label, "")
+                )
+                self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
+
+        for index in range(10):
+            with self.subTest(missing_bin=index):
+                line = next(
+                    line for line in text.splitlines()
+                    if line.startswith(f"NVBIT launchlate bin_{index}=")
+                )
+                parsed = runner.parse_nvbit("launchlate", text.replace(line, ""))
+                self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
+
+        compensated_missing_bin = text.replace(
+            "NVBIT launchlate bin_0=0\n", ""
+        ).replace("NVBIT launchlate bin_1=2", "NVBIT launchlate bin_1=3")
+        parsed = runner.parse_nvbit("launchlate", compensated_missing_bin)
+        self.assertEqual(parsed["histogram_sum"], 2)
+        self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
+        for valid, malformed in (
+            ("uncertain_samples=0", "uncertain_samples=0junk"),
+            ("selected_launches=2", "selected_launches=2junk"),
+        ):
+            with self.subTest(malformed=malformed):
+                parsed = runner.parse_nvbit(
+                    "launchlate", text.replace(valid, malformed)
+                )
+                self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
 
     def test_launchlate_accounting_and_calibration_gate_is_fail_closed(self):
         probe = runner.parse_gpubpf("launchlate", lossless_launchlate_log())

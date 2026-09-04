@@ -1,0 +1,1 @@
+READY. The Makefile change is safe — `dry_run_plan` in `protocol.py` only stringifies the `runtime_build` path without inspecting it, so passing `/does/not/exist/runtime` enforces the no-inspection contract without triggering any file-access errors. No blocker.

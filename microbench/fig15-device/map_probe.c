@@ -126,8 +126,11 @@ int main(int argc, char **argv)
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
 	struct bpf_object *object = bpf_object__open_file(argv[1], NULL);
-	if (!object || libbpf_get_error(object)) {
-		fprintf(stderr, "failed to open BPF object %s\n", argv[1]);
+	const long open_error = object ? libbpf_get_error(object) : -ENOMEM;
+	if (!object || open_error) {
+		fprintf(stderr, "failed to open BPF object %s: error=%ld (%s)\n",
+			argv[1], open_error,
+			open_error < 0 ? strerror((int)-open_error) : "unknown");
 		return 3;
 	}
 	int result = 4;

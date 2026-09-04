@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import os
 import tempfile
 import unittest
 from collections import Counter
@@ -112,6 +113,28 @@ class FrozenScheduleTests(unittest.TestCase):
         self.assertEqual(runner.phase_parameters("preflight"), (1, 1, 2))
         self.assertEqual(runner.phase_parameters("full"), (16, 8, 64))
         self.assertEqual(len(runner.frozen_schedule("full")), 128)
+
+
+class SharedMemoryCleanupTests(unittest.TestCase):
+    def test_owned_regular_segment_identity_is_recorded(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "segment"
+            path.write_bytes(b"created-before-ready")
+            info = path.stat()
+            self.assertEqual(
+                runner.owned_segment_identity(path),
+                (info.st_dev, info.st_ino, os.getuid()),
+            )
+
+    def test_symlink_segment_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = root / "target"
+            target.write_bytes(b"not-the-segment")
+            link = root / "segment"
+            link.symlink_to(target)
+            with self.assertRaisesRegex(RuntimeError, "not an owned file"):
+                runner.owned_segment_identity(link)
 
 
 class IndependentReplayTests(unittest.TestCase):

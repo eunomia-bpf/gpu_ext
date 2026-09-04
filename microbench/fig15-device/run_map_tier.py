@@ -238,13 +238,29 @@ def stop_owned(process: subprocess.Popen[str] | None) -> None:
     raise RuntimeError(f"owned process group survived: {process.pid}")
 
 
-def wait_for_ready(path: Path, process: subprocess.Popen[str]) -> None:
+def owned_segment_identity(path: Path) -> tuple[int, int, int]:
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
+        raise RuntimeError("private shared-memory segment is not an owned file")
+    return info.st_dev, info.st_ino, info.st_uid
+
+
+def wait_for_ready(path: Path, process: subprocess.Popen[str],
+                   segment_path: Path) -> tuple[int, int, int]:
     deadline = time.monotonic() + 30
+    identity: tuple[int, int, int] | None = None
     while time.monotonic() < deadline:
+        # The server creates its segment before opening the BPF object. Record
+        # its identity immediately so an early loader failure remains safely
+        # reclaimable; do not wait until the READY marker.
+        if identity is None and os.path.lexists(segment_path):
+            identity = owned_segment_identity(segment_path)
         if path.exists() and "FIG15_READY\t" in path.read_text(
             encoding="utf-8", errors="replace"
         ):
-            return
+            if identity is None:
+                raise RuntimeError("loader became ready without its shared-memory segment")
+            return identity
         if process.poll() is not None:
             raise RuntimeError("loader exited before readiness")
         time.sleep(0.1)
@@ -407,11 +423,7 @@ def run_attached(arm: str, directory: Path, build: Path, warmup: int,
             env=loader_env, stdout=loader_stream, stderr=subprocess.STDOUT,
             text=True, start_new_session=True,
         )
-        wait_for_ready(loader_log, loader_process)
-        info = segment_path.lstat()
-        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
-            raise RuntimeError("private shared-memory segment is not an owned file")
-        identity = (info.st_dev, info.st_ino, info.st_uid)
+        identity = wait_for_ready(loader_log, loader_process, segment_path)
         application_stream = application_log.open("x", encoding="utf-8")
         application_process = subprocess.Popen(
             application_command(warmup, launches, run_id), cwd=HERE,

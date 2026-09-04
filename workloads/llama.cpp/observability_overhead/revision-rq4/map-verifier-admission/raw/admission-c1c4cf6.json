@@ -1,0 +1,133 @@
+{
+  "schema": "map-verifier-admission-v1",
+  "scope": "CPU-only direct verify_gpu_program admission; not GPU execution or attach safety",
+  "bpftime_source_revision": "c1c4cf639bdc418564a1d5fc8e30f082d737ff48",
+  "build_type": "Release",
+  "elf": {
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/.output/map-probe.bpf.o",
+    "size_bytes": 13136,
+    "section": "kprobe/fig15_map_kernel",
+    "section_instructions": 140,
+    "map_relocations_applied": 9
+  },
+  "maps": [
+    {"name": "device_values", "pseudo_fd": 1, "type": 1503, "key_size": 4, "value_size": 8, "max_entries": 32},
+    {"name": "host_values", "pseudo_fd": 2, "type": 1513, "key_size": 4, "value_size": 8, "max_entries": 32},
+    {"name": "observed_values", "pseudo_fd": 4, "type": 1503, "key_size": 4, "value_size": 8, "max_entries": 32},
+    {"name": "rpc_values", "pseudo_fd": 3, "type": 2, "key_size": 4, "value_size": 8, "max_entries": 32}
+  ],
+  "programs": [
+    {
+      "name": "cuda__noop",
+      "elf_offset_bytes": 0,
+      "elf_size_bytes": 16,
+      "instructions": 2,
+      "helpers": [],
+      "maps": [],
+      "accepted": true,
+      "error": ""
+    },
+    {
+      "name": "cuda__device_update",
+      "elf_offset_bytes": 16,
+      "elf_size_bytes": 160,
+      "instructions": 20,
+      "helpers": [
+        {"id": 2, "known": true, "name": "bpf_map_update_elem", "return_uniformity": "varying", "effect": "none", "behavior": "map_update"},
+        {"id": 511, "known": true, "name": "bpf_get_lane_id", "return_uniformity": "varying", "effect": "none", "behavior": "generic"}
+      ],
+      "maps": [{"name": "device_values", "pseudo_fd": 1}],
+      "accepted": false,
+      "error": "Warp-Uniform Branch Conditions at instruction 3: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 16: map key bytes are lane-varying\nShared Map Value Uniformity at instruction 16: shared map update value is lane-varying\n"
+    },
+    {
+      "name": "cuda__host_update",
+      "elf_offset_bytes": 176,
+      "elf_size_bytes": 160,
+      "instructions": 20,
+      "helpers": [
+        {"id": 2, "known": true, "name": "bpf_map_update_elem", "return_uniformity": "varying", "effect": "none", "behavior": "map_update"},
+        {"id": 511, "known": true, "name": "bpf_get_lane_id", "return_uniformity": "varying", "effect": "none", "behavior": "generic"}
+      ],
+      "maps": [{"name": "host_values", "pseudo_fd": 2}],
+      "accepted": false,
+      "error": "Warp-Uniform Branch Conditions at instruction 3: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 16: map key bytes are lane-varying\nShared Map Value Uniformity at instruction 16: shared map update value is lane-varying\n"
+    },
+    {
+      "name": "cuda__rpc_update",
+      "elf_offset_bytes": 336,
+      "elf_size_bytes": 160,
+      "instructions": 20,
+      "helpers": [
+        {"id": 2, "known": true, "name": "bpf_map_update_elem", "return_uniformity": "varying", "effect": "none", "behavior": "map_update"},
+        {"id": 511, "known": true, "name": "bpf_get_lane_id", "return_uniformity": "varying", "effect": "none", "behavior": "generic"}
+      ],
+      "maps": [{"name": "rpc_values", "pseudo_fd": 3}],
+      "accepted": false,
+      "error": "Warp-Uniform Branch Conditions at instruction 3: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 16: map key bytes are lane-varying\nShared Map Value Uniformity at instruction 16: shared map update value is lane-varying\n"
+    },
+    {
+      "name": "cuda__device_lookup",
+      "elf_offset_bytes": 496,
+      "elf_size_bytes": 208,
+      "instructions": 26,
+      "helpers": [
+        {"id": 1, "known": true, "name": "bpf_map_lookup_elem", "return_uniformity": "uniform", "effect": "none", "behavior": "map_lookup"},
+        {"id": 2, "known": true, "name": "bpf_map_update_elem", "return_uniformity": "varying", "effect": "none", "behavior": "map_update"},
+        {"id": 511, "known": true, "name": "bpf_get_lane_id", "return_uniformity": "varying", "effect": "none", "behavior": "generic"}
+      ],
+      "maps": [
+        {"name": "device_values", "pseudo_fd": 1},
+        {"name": "observed_values", "pseudo_fd": 4}
+      ],
+      "accepted": false,
+      "error": "Warp-Uniform Branch Conditions at instruction 4: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 10: map key bytes are lane-varying\nWarp-Uniform Branch Conditions at instruction 14: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 24: map key bytes are lane-varying\nShared Map Value Uniformity at instruction 24: shared map update value is lane-varying\n"
+    },
+    {
+      "name": "cuda__host_lookup",
+      "elf_offset_bytes": 704,
+      "elf_size_bytes": 208,
+      "instructions": 26,
+      "helpers": [
+        {"id": 1, "known": true, "name": "bpf_map_lookup_elem", "return_uniformity": "uniform", "effect": "none", "behavior": "map_lookup"},
+        {"id": 2, "known": true, "name": "bpf_map_update_elem", "return_uniformity": "varying", "effect": "none", "behavior": "map_update"},
+        {"id": 511, "known": true, "name": "bpf_get_lane_id", "return_uniformity": "varying", "effect": "none", "behavior": "generic"}
+      ],
+      "maps": [
+        {"name": "host_values", "pseudo_fd": 2},
+        {"name": "observed_values", "pseudo_fd": 4}
+      ],
+      "accepted": false,
+      "error": "Warp-Uniform Branch Conditions at instruction 4: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 10: map key bytes are lane-varying\nWarp-Uniform Branch Conditions at instruction 14: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 24: map key bytes are lane-varying\nShared Map Value Uniformity at instruction 24: shared map update value is lane-varying\n"
+    },
+    {
+      "name": "cuda__rpc_lookup",
+      "elf_offset_bytes": 912,
+      "elf_size_bytes": 208,
+      "instructions": 26,
+      "helpers": [
+        {"id": 1, "known": true, "name": "bpf_map_lookup_elem", "return_uniformity": "uniform", "effect": "none", "behavior": "map_lookup"},
+        {"id": 2, "known": true, "name": "bpf_map_update_elem", "return_uniformity": "varying", "effect": "none", "behavior": "map_update"},
+        {"id": 511, "known": true, "name": "bpf_get_lane_id", "return_uniformity": "varying", "effect": "none", "behavior": "generic"}
+      ],
+      "maps": [
+        {"name": "rpc_values", "pseudo_fd": 3},
+        {"name": "observed_values", "pseudo_fd": 4}
+      ],
+      "accepted": false,
+      "error": "Warp-Uniform Branch Conditions at instruction 4: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 10: map key bytes are lane-varying\nWarp-Uniform Branch Conditions at instruction 14: branch predicate is lane-varying\nMap Helper Key Uniformity at instruction 24: map key bytes are lane-varying\nShared Map Value Uniformity at instruction 24: shared map update value is lane-varying\n"
+    }
+  ],
+  "controls": [
+    {"name": "positive_minimal", "expected": "accept", "accepted": true, "error": ""},
+    {"name": "negative_unknown_helper", "expected": "reject", "accepted": false, "error": "0: invalid helper function id\n"},
+    {"name": "negative_varying_branch", "expected": "reject", "accepted": false, "error": "Warp-Uniform Branch Conditions at instruction 1: branch predicate is lane-varying\n"},
+    {"name": "negative_unsupported_gpu_map", "expected": "reject", "accepted": false, "error": "unsupported GPU map type 1599"}
+  ],
+  "summary": {
+    "target_programs": 7,
+    "accepted": 1,
+    "rejected": 6,
+    "control_expectations_met": true
+  }
+}

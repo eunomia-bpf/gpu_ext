@@ -246,21 +246,22 @@ def owned_segment_identity(path: Path) -> tuple[int, int, int]:
 
 
 def wait_for_ready(path: Path, process: subprocess.Popen[str],
-                   segment_path: Path) -> tuple[int, int, int]:
+                   segment_path: Path,
+                   identity: list[tuple[int, int, int]]) -> None:
     deadline = time.monotonic() + 30
-    identity: tuple[int, int, int] | None = None
     while time.monotonic() < deadline:
         # The server creates its segment before opening the BPF object. Record
         # its identity immediately so an early loader failure remains safely
-        # reclaimable; do not wait until the READY marker.
-        if identity is None and os.path.lexists(segment_path):
-            identity = owned_segment_identity(segment_path)
+        # reclaimable; keep it in caller-owned state so an exception cannot
+        # discard the observation before the finally block runs.
+        if not identity and os.path.lexists(segment_path):
+            identity.append(owned_segment_identity(segment_path))
         if path.exists() and "FIG15_READY\t" in path.read_text(
             encoding="utf-8", errors="replace"
         ):
-            if identity is None:
+            if not identity:
                 raise RuntimeError("loader became ready without its shared-memory segment")
-            return identity
+            return
         if process.poll() is not None:
             raise RuntimeError("loader exited before readiness")
         time.sleep(0.1)
@@ -415,7 +416,7 @@ def run_attached(arm: str, directory: Path, build: Path, warmup: int,
     loader_env, agent_env = attached_environment(build, segment, agent_log)
     loader_process = application_process = None
     loader_stream = application_stream = None
-    identity: tuple[int, int, int] | None = None
+    identity: list[tuple[int, int, int]] = []
     try:
         loader_stream = loader_log.open("x", encoding="utf-8")
         loader_process = subprocess.Popen(
@@ -423,7 +424,7 @@ def run_attached(arm: str, directory: Path, build: Path, warmup: int,
             env=loader_env, stdout=loader_stream, stderr=subprocess.STDOUT,
             text=True, start_new_session=True,
         )
-        identity = wait_for_ready(loader_log, loader_process, segment_path)
+        wait_for_ready(loader_log, loader_process, segment_path, identity)
         application_stream = application_log.open("x", encoding="utf-8")
         application_process = subprocess.Popen(
             application_command(warmup, launches, run_id), cwd=HERE,
@@ -456,7 +457,7 @@ def run_attached(arm: str, directory: Path, build: Path, warmup: int,
         if os.path.lexists(segment_path):
             info = segment_path.lstat()
             actual = (info.st_dev, info.st_ino, info.st_uid)
-            if identity is None or actual != identity or not stat.S_ISREG(info.st_mode):
+            if not identity or actual != identity[0] or not stat.S_ISREG(info.st_mode):
                 raise RuntimeError("refusing to remove unknown shared-memory segment")
             segment_path.unlink()
         if os.path.lexists(segment_path):

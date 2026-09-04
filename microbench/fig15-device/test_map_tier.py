@@ -136,6 +136,24 @@ class SharedMemoryCleanupTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "not an owned file"):
                 runner.owned_segment_identity(link)
 
+    def test_identity_survives_pre_ready_loader_failure(self) -> None:
+        class ExitedProcess:
+            @staticmethod
+            def poll() -> int:
+                return 3
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            log = root / "loader.log"
+            log.write_text("loader failed after creating segment\n", encoding="utf-8")
+            segment = root / "segment"
+            segment.write_bytes(b"private-segment")
+            info = segment.stat()
+            identity: list[tuple[int, int, int]] = []
+            with self.assertRaisesRegex(RuntimeError, "before readiness"):
+                runner.wait_for_ready(log, ExitedProcess(), segment, identity)
+            self.assertEqual(identity, [(info.st_dev, info.st_ino, os.getuid())])
+
 
 class IndependentReplayTests(unittest.TestCase):
     def test_complete_raw_fixture_supports_both_primary_operations(self) -> None:

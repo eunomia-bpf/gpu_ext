@@ -7,6 +7,7 @@ import argparse
 import csv
 import fcntl
 import importlib.util
+import itertools
 import json
 import math
 import os
@@ -769,21 +770,36 @@ def frozen_schedule(phase: str) -> list[dict[str, Any]]:
     params = phase_parameters(phase)
     balanced_orders = None
     if BALANCE_ARM_ORDER and phase == "full":
-        if params["blocks"] != 10 or len(ARMS) != 3:
-            raise RuntimeError("balanced arm order is frozen for ten blocks and three arms")
+        if len(ARMS) != 3:
+            raise RuntimeError("balanced arm order requires exactly three arms")
         rng = random.Random(SEED + 20_000)
         labels = list(ARMS)
         rng.shuffle(labels)
-        forward = [tuple(labels[index:] + labels[:index]) for index in range(3)]
-        reverse_labels = [labels[0], labels[2], labels[1]]
-        reverse = [
-            tuple(reverse_labels[index:] + reverse_labels[:index])
-            for index in range(3)
-        ]
-        final_order = list(labels)
-        rng.shuffle(final_order)
-        balanced_orders = [*forward, *reverse, *forward, tuple(final_order)]
-        rng.shuffle(balanced_orders)
+        if params["blocks"] == 10:
+            # Preserve the already-published ten-block fixed-work schedule.
+            forward = [tuple(labels[index:] + labels[:index]) for index in range(3)]
+            reverse_labels = [labels[0], labels[2], labels[1]]
+            reverse = [
+                tuple(reverse_labels[index:] + reverse_labels[:index])
+                for index in range(3)
+            ]
+            final_order = list(labels)
+            rng.shuffle(final_order)
+            balanced_orders = [*forward, *reverse, *forward, tuple(final_order)]
+            rng.shuffle(balanced_orders)
+        elif params["blocks"] % 6 == 0:
+            # A complete set of the six permutations gives exact position
+            # balance. Shuffle within each six-block group prospectively.
+            permutations = list(itertools.permutations(labels))
+            balanced_orders = []
+            for _ in range(params["blocks"] // len(permutations)):
+                group = list(permutations)
+                rng.shuffle(group)
+                balanced_orders.extend(group)
+        else:
+            raise RuntimeError(
+                "balanced arm order requires ten blocks or a multiple of six"
+            )
     schedule = []
     for block in range(params["blocks"]):
         if balanced_orders is None:

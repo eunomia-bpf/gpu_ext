@@ -51,7 +51,10 @@ def percentile(values: list[float], probability: float) -> float:
 def median_interval(
     values: list[float], seed: int, confidence: float = 0.95,
 ) -> dict[str, float]:
-    require(len(values) == runner.FULL_BLOCKS, "primary analysis requires ten pairs")
+    require(
+        len(values) == runner.FULL_BLOCKS,
+        f"primary analysis requires {runner.FULL_BLOCKS} pairs",
+    )
     require(all(math.isfinite(value) for value in values), "non-finite paired value")
     require(0.0 < confidence < 1.0, "invalid confidence level")
     rng = random.Random(seed)
@@ -335,8 +338,12 @@ def validate_result(
     schedule = runner.frozen_schedule("full")
     require(result.get("schedule") == schedule, "schedule or cell order mismatch")
     records = result.get("records")
-    require(isinstance(records, list) and len(records) == 30,
-            "full campaign must contain 30 arm records")
+    expected_arm_records = phase["blocks"] * len(runner.ARMS)
+    expected_measurements = expected_arm_records * len(phase["cell_ids"])
+    require(
+        isinstance(records, list) and len(records) == expected_arm_records,
+        f"full campaign must contain {expected_arm_records} arm records",
+    )
     scheduled = {(item["block"], item["order"], item["arm"]): item for item in schedule}
     lookup: dict[tuple[int, str, int], float] = {}
     seen_arms: set[tuple[int, int, str]] = set()
@@ -380,8 +387,10 @@ def validate_result(
             key = (record["block"], record["arm"], cell_id)
             require(key not in lookup, "duplicate timed cell")
             lookup[key] = float(elapsed)
-    require(len(seen_arms) == len(scheduled) and len(lookup) == 150,
-            "paired measurement matrix is incomplete")
+    require(
+        len(seen_arms) == len(scheduled) and len(lookup) == expected_measurements,
+        "paired measurement matrix is incomplete",
+    )
     return lookup, {
         "timed_cells": len(lookup),
         "arm_directories": len(seen_directories),

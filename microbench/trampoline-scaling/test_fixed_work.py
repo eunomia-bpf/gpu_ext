@@ -86,10 +86,15 @@ def loader_events(mode: str) -> list[dict]:
         ]
     }
     if mode == "counter":
-        for key in range(5):
-            segments[("target_count", key)] = [
-                {"begin": 0, "end": 131_072, "value": 160},
-                {"begin": 131_072, "end": runner.MAX_THREADS, "value": 0},
+        phase = runner.phase_parameters("full")
+        increment = (
+            (phase["warmup"] + phase["launches"]) * phase["hook_repeats"]
+        )
+        for cell in runner.CELLS:
+            segments[("target_count", cell["counter_key"])] = [
+                {"begin": 0, "end": cell["active_threads"], "value": increment},
+                {"begin": cell["active_threads"], "end": runner.MAX_THREADS,
+                 "value": 0},
             ]
     for (name, key), values in segments.items():
         records.extend(

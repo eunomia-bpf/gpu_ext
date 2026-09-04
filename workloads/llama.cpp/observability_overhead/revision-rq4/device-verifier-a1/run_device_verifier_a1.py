@@ -350,6 +350,58 @@ def runtime_binary_contract(root: Path, build_dir: Path) -> dict[str, Any]:
     }
 
 
+def runtime_source_matches_recorded_revision(root: Path, recorded_commit: Any) -> bool:
+    """Allow unrelated HEAD movement, but reject changes to the runtime source."""
+    if not isinstance(recorded_commit, str) or not recorded_commit or recorded_commit == "unknown":
+        return False
+    relative = "attach/nv_attach_impl/nv_attach_impl.cpp"
+    commit = subprocess.run(
+        ["git", "cat-file", "-e", f"{recorded_commit}^{{commit}}"], cwd=root,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    if commit.returncode != 0:
+        return False
+    unchanged = subprocess.run(
+        ["git", "diff", "--quiet", recorded_commit, "--", relative], cwd=root,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    return unchanged.returncode == 0
+
+
+def validate_resume_artifacts(
+    args: argparse.Namespace,
+    state: dict[str, Any],
+    tool_dirs: dict[str, Path],
+    current_validation: dict[str, Any],
+) -> None:
+    """Bind a resumed run to its original runtime DSOs, source, and BPF objects."""
+    runtime = state.get("runtime", {})
+    if not isinstance(runtime, dict):
+        raise RuntimeError("resume runtime inventory is missing")
+    paths = {
+        "agent": args.bpftime_build_dir / "runtime/agent/libbpftime-agent.so",
+        "syscall_server": (
+            args.bpftime_build_dir
+            / "runtime/syscall-server/libbpftime-syscall-server.so"
+        ),
+    }
+    for name, path in paths.items():
+        if runtime.get(name) != file_metadata(path):
+            raise RuntimeError(f"resume runtime {name} metadata differs from initial state")
+    for tool in TOOLS:
+        current = file_metadata(tool_dirs[tool] / ".output" / f"{tool}.bpf.o")
+        if state.get("objects", {}).get(tool) != current:
+            raise RuntimeError(f"resume {tool} object metadata differs from initial state")
+    if runtime.get("source_contract") != current_validation.get("source_contract"):
+        raise RuntimeError("resume runtime source contract differs from initial state")
+    if runtime.get("binary_contract") != current_validation.get("binary_contract"):
+        raise RuntimeError("resume runtime binary contract differs from initial state")
+    if not runtime_source_matches_recorded_revision(
+        args.bpftime_root, runtime.get("git_commit")
+    ):
+        raise RuntimeError("resume runtime source differs from its recorded source revision")
+
+
 def validate_tool_source(tool: str, directory: Path, target_symbol: str) -> None:
     source = directory / f"{tool}.bpf.c"
     text = source.read_text(encoding="utf-8")
@@ -591,6 +643,7 @@ def run(args: argparse.Namespace) -> int:
         }
         if any(not (path / tool).is_file() for tool, path in tool_dirs.items()):
             raise RuntimeError("resume tool build is incomplete")
+        validate_resume_artifacts(args, state, tool_dirs, validation)
     else:
         if output.exists() and any(output.iterdir()):
             raise RuntimeError("refusing to reuse a nonempty output directory")

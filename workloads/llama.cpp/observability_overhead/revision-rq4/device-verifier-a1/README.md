@@ -75,8 +75,11 @@ env PATH="/usr/local/cuda-12.9/bin:$PATH" \
   --output-dir ./raw/a1-575-01
 ```
 
-`--resume` may continue only an identical fixed plan. It does not rerun an
-invalid cell or reuse a partially created unrecorded cell directory.
+`--resume` may continue only an identical fixed plan with unchanged runtime
+agent/syscall-server metadata, built-object metadata, runtime source contract,
+and relevant runtime source relative to the initially recorded Git revision.
+Unrelated bpftime `HEAD` movement is allowed. It does not rerun an invalid cell
+or reuse a partially created unrecorded cell directory.
 
 After the runner reaches `status: complete`, recompute all gates and statistics
 without importing runner code:
@@ -88,7 +91,9 @@ python3 analyze_device_verifier_a1.py ./raw/a1-575-01
 The runner writes incremental machine-readable `result.json`; the analyzer
 writes `analysis.json`. The analyzer independently reopens target logs,
 execution records, probe summaries, safety records, and private-SHM cleanup
-records. Per tool it reports the 10 STRICT `verification_elapsed_ns` samples,
+records. It also requires the exact fixed `taskset`/`llama-cli` argv, including
+the baseline's lack of preload and the instrumented cells' exact agent preload;
+extra or changed generation parameters fail closed. Per tool it reports the 10 STRICT `verification_elapsed_ns` samples,
 mean, median, range, and a fixed-seed 95% bootstrap interval for the mean. The
 NO_VERIFY member is a matched skip control and has no invented numeric
 latency. A valid result requires all 20 pairs across both tools.

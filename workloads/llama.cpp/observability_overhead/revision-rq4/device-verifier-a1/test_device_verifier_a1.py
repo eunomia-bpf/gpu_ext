@@ -11,6 +11,7 @@ from pathlib import Path
 import tempfile
 import types
 import unittest
+from unittest import mock
 
 
 HERE = Path(__file__).resolve().parent
@@ -195,6 +196,109 @@ class RuntimeBinaryContractTests(unittest.TestCase):
             self.assertFalse(runner.runtime_binary_contract(root, build)["passed"])
 
 
+class ResumeArtifactTests(unittest.TestCase):
+    def make_fixture(self, root: Path):
+        build = root / "build"
+        agent = build / "runtime/agent/libbpftime-agent.so"
+        syscall = build / "runtime/syscall-server/libbpftime-syscall-server.so"
+        for path in (agent, syscall):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"runtime")
+        tool_dirs = {}
+        for tool in runner.TOOLS:
+            directory = root / "gpubpf_tool_build" / tool
+            object_path = directory / ".output" / f"{tool}.bpf.o"
+            object_path.parent.mkdir(parents=True)
+            object_path.write_bytes(f"{tool} object".encode())
+            tool_dirs[tool] = directory
+        validation = {
+            "source_contract": {"passed": True, "marker": "fixed"},
+            "binary_contract": {"passed": True, "marker": "fixed"},
+        }
+        state = {
+            "runtime": {
+                "git_commit": "recorded-commit",
+                "agent": runner.file_metadata(agent),
+                "syscall_server": runner.file_metadata(syscall),
+                **copy.deepcopy(validation),
+            },
+            "objects": {
+                tool: runner.file_metadata(directory / ".output" / f"{tool}.bpf.o")
+                for tool, directory in tool_dirs.items()
+            },
+        }
+        args = types.SimpleNamespace(bpftime_build_dir=build, bpftime_root=root)
+        return args, state, tool_dirs, validation
+
+    def validate(self, args, state, tool_dirs, validation, revision_ok=True):
+        with mock.patch.object(
+            runner, "runtime_source_matches_recorded_revision",
+            return_value=revision_ok,
+        ):
+            runner.validate_resume_artifacts(args, state, tool_dirs, validation)
+
+    def test_unchanged_artifacts_allow_resume_without_head_equality(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            values = self.make_fixture(Path(temporary))
+            self.validate(*values)
+
+    def test_source_revision_check_uses_recorded_commit_and_relevant_path(self):
+        completed = types.SimpleNamespace(returncode=0)
+        with mock.patch.object(runner.subprocess, "run", return_value=completed) as run:
+            self.assertTrue(
+                runner.runtime_source_matches_recorded_revision(
+                    Path("/runtime/source"), "initial-commit"
+                )
+            )
+        self.assertEqual(
+            run.call_args_list[0].args[0],
+            ["git", "cat-file", "-e", "initial-commit^{commit}"],
+        )
+        self.assertEqual(
+            run.call_args_list[1].args[0],
+            [
+                "git", "diff", "--quiet", "initial-commit", "--",
+                "attach/nv_attach_impl/nv_attach_impl.cpp",
+            ],
+        )
+
+    def test_runtime_dso_metadata_mutation_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            args, state, tool_dirs, validation = self.make_fixture(Path(temporary))
+            (args.bpftime_build_dir / "runtime/agent/libbpftime-agent.so").write_bytes(
+                b"rebuilt runtime"
+            )
+            with self.assertRaisesRegex(RuntimeError, "agent metadata"):
+                self.validate(args, state, tool_dirs, validation)
+
+    def test_object_metadata_mutation_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            args, state, tool_dirs, validation = self.make_fixture(Path(temporary))
+            (tool_dirs["threadhist"] / ".output/threadhist.bpf.o").write_bytes(
+                b"mutated object"
+            )
+            with self.assertRaisesRegex(RuntimeError, "threadhist object metadata"):
+                self.validate(args, state, tool_dirs, validation)
+
+    def test_source_contract_or_revision_mutation_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            args, state, tool_dirs, validation = self.make_fixture(Path(temporary))
+            changed = copy.deepcopy(validation)
+            changed["source_contract"]["marker"] = "changed"
+            with self.assertRaisesRegex(RuntimeError, "source contract"):
+                self.validate(args, state, tool_dirs, changed)
+            with self.assertRaisesRegex(RuntimeError, "recorded source revision"):
+                self.validate(args, state, tool_dirs, validation, revision_ok=False)
+
+    def test_binary_contract_mutation_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            args, state, tool_dirs, validation = self.make_fixture(Path(temporary))
+            changed = copy.deepcopy(validation)
+            changed["binary_contract"]["marker"] = "changed"
+            with self.assertRaisesRegex(RuntimeError, "binary contract"):
+                self.validate(args, state, tool_dirs, changed)
+
+
 class AnalyzerFixture:
     def __init__(self, root: Path):
         self.root = root
@@ -205,6 +309,7 @@ class AnalyzerFixture:
             "defining_inputs": {
                 "target_symbol": TARGET, "bpftime_build_dir": str(self.root / "build"),
                 "llama_cli": str(self.root / "llama-cli"), "model": str(self.root / "model.gguf"),
+                "n_gpu_layers": 99,
             },
             "host": {"driver": analyzer.EXPECTED_DRIVER,
                      "expected_driver": analyzer.EXPECTED_DRIVER, "boot_id": "fixture"},
@@ -229,6 +334,14 @@ class AnalyzerFixture:
             ))
         self.write()
 
+    def command(self, *, instrumented: bool) -> list[str]:
+        defining = {
+            "bpftime_build_dir": str(self.root / "build"),
+            "llama_cli": str(self.root / "llama-cli"),
+            "model": str(self.root / "model.gguf"),
+        }
+        return analyzer.expected_llama_command(defining, instrumented=instrumented)
+
     def make_baseline(self) -> dict:
         directory = self.root / "correctness-baseline"
         directory.mkdir()
@@ -237,7 +350,7 @@ class AnalyzerFixture:
         (directory / "llama_cli.execution.json").write_text(json.dumps({
             "identity": {"pid": self.pid}, "cleanup_passed": True,
             "timed_out": False, "returncode": 0,
-            "command": [str(self.root / "llama-cli"), "-m", str(self.root / "model.gguf")],
+            "command": self.command(instrumented=False),
         }), encoding="utf-8")
         (directory / "gpu-safety.json").write_text(json.dumps({"passed": True}), encoding="utf-8")
         return {"valid": True, "directory": "correctness-baseline"}
@@ -253,7 +366,7 @@ class AnalyzerFixture:
         (directory / "llama_cli.execution.json").write_text(json.dumps({
             "identity": {"pid": self.pid}, "cleanup_passed": True,
             "timed_out": False, "returncode": 0,
-            "command": [str(self.root / "llama-cli"), "-m", str(self.root / "model.gguf")],
+            "command": self.command(instrumented=True),
         }), encoding="utf-8")
         (directory / "gpu-safety.json").write_text(json.dumps({"passed": True}), encoding="utf-8")
         (directory / "probe-execution.json").write_text(json.dumps({
@@ -323,10 +436,107 @@ class AnalyzerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             fixture = AnalyzerFixture(Path(temporary))
             fixture.state["cells"].pop()
+            fixture.state["status"] = "running"
             fixture.write()
             result = analyzer.analyze(fixture.root)
             self.assertFalse(result["complete"])
             self.assertEqual(result["run_status"], "incomplete")
+
+    def test_explicit_invalid_short_prefix_is_invalid(self):
+        for status in ("invalid_correctness", "invalid_timing", "invalid_cell"):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                fixture = AnalyzerFixture(Path(temporary))
+                fixture.state["cells"] = fixture.state["cells"][:1]
+                fixture.state["status"] = status
+                fixture.write()
+                result = analyzer.analyze(fixture.root)
+                self.assertFalse(result["complete"])
+                self.assertEqual(result["run_status"], "invalid")
+
+    def test_dirty_running_prefix_is_invalid(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = AnalyzerFixture(Path(temporary))
+            fixture.state["cells"] = fixture.state["cells"][:1]
+            fixture.state["a0"] = fixture.state["a0"][:1]
+            fixture.state["status"] = "running"
+            fixture.write()
+            self.assertEqual(analyzer.analyze(fixture.root)["run_status"], "invalid")
+
+    def test_changed_or_extra_llama_arguments_fail_closed(self):
+        mutations = {
+            "model": ("-m", str(HERE / "wrong.gguf")),
+            "prompt": ("-p", "different prompt"),
+            "tokens": ("-n", "9"),
+            "context": ("-c", "513"),
+            "gpu_layers": ("-ngl", "98"),
+            "seed": ("--seed", "1798"),
+            "temperature": ("--temp", "1"),
+        }
+        for name, (flag, replacement) in mutations.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                fixture = AnalyzerFixture(Path(temporary))
+                cell = fixture.state["cells"][0]
+                path = fixture.root / cell["directory"] / "llama_cli.execution.json"
+                execution = json.loads(path.read_text())
+                execution["command"][execution["command"].index(flag) + 1] = replacement
+                path.write_text(json.dumps(execution))
+                self.assertEqual(analyzer.analyze(fixture.root)["run_status"], "invalid")
+
+        for name, argument in (
+            ("missing_no_display", "--no-display-prompt"),
+            ("missing_simple_io", "--simple-io"),
+        ):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                fixture = AnalyzerFixture(Path(temporary))
+                cell = fixture.state["cells"][0]
+                path = fixture.root / cell["directory"] / "llama_cli.execution.json"
+                execution = json.loads(path.read_text())
+                execution["command"].remove(argument)
+                path.write_text(json.dumps(execution))
+                self.assertEqual(analyzer.analyze(fixture.root)["run_status"], "invalid")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = AnalyzerFixture(Path(temporary))
+            cell = fixture.state["cells"][0]
+            path = fixture.root / cell["directory"] / "llama_cli.execution.json"
+            execution = json.loads(path.read_text())
+            execution["command"].extend(["--threads", "99"])
+            path.write_text(json.dumps(execution))
+            self.assertEqual(analyzer.analyze(fixture.root)["run_status"], "invalid")
+
+    def test_recorded_gpu_layer_input_mutation_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = AnalyzerFixture(Path(temporary))
+            fixture.state["defining_inputs"]["n_gpu_layers"] = 98
+            fixture.write()
+            self.assertEqual(analyzer.analyze(fixture.root)["run_status"], "invalid")
+
+    def test_baseline_preload_or_taskset_mutation_fails_closed(self):
+        for mutation in ("preload", "taskset"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
+                fixture = AnalyzerFixture(Path(temporary))
+                path = fixture.root / "correctness-baseline/llama_cli.execution.json"
+                execution = json.loads(path.read_text())
+                if mutation == "preload":
+                    execution["command"].insert(4, "LD_PRELOAD=/unexpected/agent.so")
+                else:
+                    execution["command"][2] = "0-7"
+                path.write_text(json.dumps(execution))
+                self.assertEqual(analyzer.analyze(fixture.root)["run_status"], "invalid")
+
+    def test_instrumented_preload_mutation_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = AnalyzerFixture(Path(temporary))
+            cell = fixture.state["cells"][0]
+            path = fixture.root / cell["directory"] / "llama_cli.execution.json"
+            execution = json.loads(path.read_text())
+            preload = next(
+                index for index, value in enumerate(execution["command"])
+                if value.startswith("LD_PRELOAD=")
+            )
+            execution["command"][preload] = "LD_PRELOAD=/unexpected/agent.so"
+            path.write_text(json.dumps(execution))
+            self.assertEqual(analyzer.analyze(fixture.root)["run_status"], "invalid")
 
     def test_extra_cell_is_invalid(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -24,6 +24,8 @@ PROGRAM = "cuda__retprobe"
 EXPECTED_OUTPUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_DRIVER = "575.57.08"
 BUILD_KEYS = ("ENABLE_EBPF_VERIFIER", "BPFTIME_ENABLE_CUDA_ATTACH", "BPFTIME_LLVM_JIT")
+CLIENT_CPUS = "8-15"
+PROMPT = "Write one sentence explaining why deterministic tests matter."
 
 
 def fixed_schedule(pairs: int) -> list[dict[str, Any]]:
@@ -79,6 +81,25 @@ def read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"expected object in {path}")
     return value
+
+
+def expected_llama_command(defining: dict[str, Any], *, instrumented: bool) -> list[str]:
+    command = ["taskset", "-c", CLIENT_CPUS, "/usr/bin/env"]
+    if instrumented:
+        build = Path(str(defining.get("bpftime_build_dir", "")))
+        command.append(f"LD_PRELOAD={build / 'runtime/agent/libbpftime-agent.so'}")
+    return command + [
+        str(defining.get("llama_cli", "")),
+        "-m", str(defining.get("model", "")),
+        "-p", PROMPT,
+        "-n", "8",
+        "-c", "512",
+        "-ngl", "99",
+        "--seed", str(SCHEDULE_SEED),
+        "--temp", "0",
+        "--no-display-prompt",
+        "--simple-io",
+    ]
 
 
 def logged_stdout(path: Path) -> str:
@@ -286,11 +307,7 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
             == str(build / "runtime/syscall-server/libbpftime-syscall-server.so")
         )
         command = execution.get("command", [])
-        command_ok = (
-            isinstance(command, list)
-            and str(defining.get("llama_cli", "")) in command
-            and str(defining.get("model", "")) in command
-        )
+        command_ok = command == expected_llama_command(defining, instrumented=True)
         valid = (
             identity_ok and recorded_valid and execution_ok and command_ok
             and safety_ok and private_ok and environment_ok
@@ -348,6 +365,9 @@ def analyze(root: Path) -> dict[str, Any]:
         errors.append("fixed seeds differ")
     if plan.get("bootstrap_samples") != BOOTSTRAP_SAMPLES:
         errors.append("bootstrap repetition count differs")
+    defining = state.get("defining_inputs", {})
+    if not isinstance(defining, dict) or defining.get("n_gpu_layers") != 99:
+        errors.append("fixed llama-cli GPU-layer count differs")
     runtime = state.get("runtime", {})
     build = runtime.get("build_configuration", {})
     if any(str(build.get(key, "")).upper() not in {"ON", "YES", "TRUE", "1"}
@@ -369,7 +389,9 @@ def analyze(root: Path) -> dict[str, Any]:
         if metadata.get("exists") is not True or not isinstance(metadata.get("bytes"), int) or metadata["bytes"] <= 0:
             errors.append(f"real {tool} object inventory is missing")
 
+    static_gates_valid = not errors
     baseline = state.get("baseline")
+    baseline_clean = baseline is None
     if not isinstance(baseline, dict) or baseline.get("valid") is not True:
         errors.append("baseline correctness gate is invalid")
     else:
@@ -381,15 +403,18 @@ def analyze(root: Path) -> dict[str, Any]:
                     or execution.get("cleanup_passed") is not True
                     or execution.get("timed_out") is not False
                     or execution.get("returncode") != 0
+                    or execution.get("command")
+                    != expected_llama_command(state.get("defining_inputs", {}), instrumented=False)
                     or safety.get("passed") is not True):
                 errors.append("raw baseline correctness/safety evidence is invalid")
+            else:
+                baseline_clean = True
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
             errors.append(f"cannot audit baseline: {error}")
 
     audited_a0 = []
     seen_segments: list[str] = []
     a0 = state.get("a0", [])
-    defining = state.get("defining_inputs", {})
     for index, tool in enumerate(TOOLS, start=1):
         matches = [cell for cell in a0 if isinstance(cell, dict) and cell.get("tool") == tool]
         if len(matches) != 1:
@@ -403,6 +428,17 @@ def analyze(root: Path) -> dict[str, Any]:
             seen_segments.append(audit["private_segment"])
         if not audit["valid"]:
             errors.append(f"{tool} A0 admission/correctness gate failed")
+    a0_prefix_clean = (
+        isinstance(a0, list)
+        and len(a0) <= len(TOOLS)
+        and len(audited_a0) == len(a0)
+        and all(audit.get("valid") is True for audit in audited_a0)
+        and all(
+            a0[index].get("tool") == TOOLS[index]
+            and a0[index].get("sequence") == index + 1
+            for index in range(len(a0))
+        )
+    )
 
     cells = state.get("cells", [])
     audited_cells: list[dict[str, Any]] = []
@@ -424,6 +460,17 @@ def analyze(root: Path) -> dict[str, Any]:
             seen_segments.append(audit["private_segment"])
     if len(set(seen_segments)) != len(seen_segments):
         errors.append("A1 cells did not use unique private shared-memory names")
+    cells_prefix_clean = (
+        isinstance(cells, list)
+        and len(cells) < len(expected_schedule)
+        and len(audited_cells) == len(cells)
+        and all(cell.get("valid") is True for cell in audited_cells)
+        and all(
+            all(cell.get(key) == value for key, value in expected.items())
+            for cell, expected in zip(cells, expected_schedule)
+        )
+        and len(set(seen_segments)) == len(seen_segments)
+    )
 
     summary: dict[str, Any] = {}
     for tool_index, tool in enumerate(TOOLS):
@@ -460,7 +507,30 @@ def analyze(root: Path) -> dict[str, Any]:
             errors.append(f"{tool} lacks {pairs} complete measured pairs")
 
     complete = not errors and state.get("status") == "complete"
-    run_status = "valid" if complete else ("incomplete" if len(cells) < len(expected_schedule) else "invalid")
+    recorded_status = state.get("status")
+    explicit_invalid = (
+        isinstance(recorded_status, str) and recorded_status.startswith("invalid_")
+    )
+    stage_prefix_clean = (
+        (baseline is None and not a0 and not cells)
+        or (
+            baseline_clean
+            and (
+                (len(a0) < len(TOOLS) and not cells)
+                or len(a0) == len(TOOLS)
+            )
+        )
+    )
+    clean_running_prefix = (
+        recorded_status == "running" and static_gates_valid and baseline_clean
+        and stage_prefix_clean and a0_prefix_clean and cells_prefix_clean
+    )
+    run_status = (
+        "valid" if complete else
+        "invalid" if explicit_invalid else
+        "incomplete" if clean_running_prefix else
+        "invalid"
+    )
     return {
         "schema": SCHEMA, "complete": complete, "run_status": run_status,
         "metric": "STRICT target-log verification_elapsed_ns; NO_VERIFY skip is non-timed control",

@@ -37,6 +37,13 @@ PROGRAM = "cuda__retprobe"
 RUNTIME_TIMING_MARKER = (
     "GPU eBPF verification timing: program={} verification_elapsed_ns={}"
 )
+RUNTIME_BINARY_MARKERS = (
+    RUNTIME_TIMING_MARKER,
+    "GPU eBPF verification accepted: mode=STRICT",
+    "Skipping GPU eBPF verification for {}",
+    "GPU eBPF verified map: program={}",
+    "verifier unavailable",
+)
 DEFAULT_BPFTIME_ROOT = rq4.core.GPU_WORKSPACE / "bpftime-table1-575"
 DEFAULT_BPFTIME_BUILD = DEFAULT_BPFTIME_ROOT / "build-table1-575-strict"
 
@@ -287,6 +294,63 @@ def runtime_source_contract(root: Path) -> dict[str, Any]:
             "passed": source.is_file() and all(present.values())}
 
 
+def _binary_markers(path: Path, markers: tuple[str, ...]) -> dict[str, bool]:
+    """Find literal runtime contract strings without loading a large DSO at once."""
+    encoded = {marker: marker.encode("utf-8") for marker in markers}
+    present = {marker: False for marker in markers}
+    longest = max(map(len, encoded.values()), default=1)
+    overlap = b""
+    try:
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                window = overlap + chunk
+                for marker, value in encoded.items():
+                    if not present[marker] and value in window:
+                        present[marker] = True
+                if all(present.values()):
+                    break
+                overlap = window[-(longest - 1):] if longest > 1 else b""
+    except OSError:
+        pass
+    return present
+
+
+def runtime_binary_contract(root: Path, build_dir: Path) -> dict[str, Any]:
+    """Reject stale or contract-incomplete runtime DSOs before touching the GPU."""
+    source = root / "attach/nv_attach_impl/nv_attach_impl.cpp"
+    source_mtime_ns = source.stat().st_mtime_ns if source.is_file() else None
+    paths = {
+        "agent": build_dir / "runtime/agent/libbpftime-agent.so",
+        "syscall_server": build_dir / "runtime/syscall-server/libbpftime-syscall-server.so",
+    }
+    binaries: dict[str, Any] = {}
+    for name, path in paths.items():
+        exists = path.is_file()
+        mtime_ns = path.stat().st_mtime_ns if exists else None
+        present = _binary_markers(path, RUNTIME_BINARY_MARKERS)
+        fresh = bool(
+            source_mtime_ns is not None
+            and mtime_ns is not None
+            and mtime_ns >= source_mtime_ns
+        )
+        binaries[name] = {
+            "path": str(path.resolve()),
+            "exists": exists,
+            "mtime_ns": mtime_ns,
+            "fresh_vs_source": fresh,
+            "present": present,
+            "passed": exists and fresh and all(present.values()),
+        }
+    return {
+        "source": str(source.resolve()),
+        "source_mtime_ns": source_mtime_ns,
+        "required_markers": list(RUNTIME_BINARY_MARKERS),
+        "binaries": binaries,
+        "passed": source_mtime_ns is not None
+        and all(binary["passed"] for binary in binaries.values()),
+    }
+
+
 def validate_tool_source(tool: str, directory: Path, target_symbol: str) -> None:
     source = directory / f"{tool}.bpf.c"
     text = source.read_text(encoding="utf-8")
@@ -466,7 +530,17 @@ def validate(args: argparse.Namespace) -> dict[str, Any]:
     contract = runtime_source_contract(args.bpftime_root)
     if not contract["passed"]:
         raise RuntimeError("runtime source does not provide the fixed A1 timing/admission contract")
-    return {"build_configuration": build_config, "source_contract": contract}
+    binary_contract = runtime_binary_contract(args.bpftime_root, args.bpftime_build_dir)
+    if not binary_contract["passed"]:
+        raise RuntimeError(
+            "runtime libraries are stale or do not contain the fixed A1 binary contract; "
+            "rebuild the verifier-enabled runtime"
+        )
+    return {
+        "build_configuration": build_config,
+        "source_contract": contract,
+        "binary_contract": binary_contract,
+    }
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

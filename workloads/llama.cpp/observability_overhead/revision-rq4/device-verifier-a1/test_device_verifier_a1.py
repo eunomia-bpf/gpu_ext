@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import types
@@ -155,6 +156,45 @@ class ScheduleTests(unittest.TestCase):
             analyzer.fixed_schedule(9)
 
 
+class RuntimeBinaryContractTests(unittest.TestCase):
+    def make_tree(self, root: Path) -> tuple[Path, Path]:
+        source = root / "attach/nv_attach_impl/nv_attach_impl.cpp"
+        source.parent.mkdir(parents=True)
+        source.write_text("runtime source", encoding="utf-8")
+        build = root / "build"
+        paths = (
+            build / "runtime/agent/libbpftime-agent.so",
+            build / "runtime/syscall-server/libbpftime-syscall-server.so",
+        )
+        payload = b"\x00" + b"\x00".join(
+            marker.encode("utf-8") for marker in runner.RUNTIME_BINARY_MARKERS
+        ) + b"\x00"
+        for path in paths:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(payload)
+        source_time = source.stat().st_mtime_ns
+        for path in paths:
+            os.utime(path, ns=(source_time + 1, source_time + 1))
+        return source, build
+
+    def test_complete_fresh_binary_contract_passes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, build = self.make_tree(root)
+            self.assertTrue(runner.runtime_binary_contract(root, build)["passed"])
+
+    def test_stale_or_missing_marker_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, build = self.make_tree(root)
+            agent = build / "runtime/agent/libbpftime-agent.so"
+            os.utime(agent, ns=(source.stat().st_mtime_ns - 1,) * 2)
+            self.assertFalse(runner.runtime_binary_contract(root, build)["passed"])
+            agent.write_bytes(b"missing timing marker")
+            os.utime(agent, ns=(source.stat().st_mtime_ns + 1,) * 2)
+            self.assertFalse(runner.runtime_binary_contract(root, build)["passed"])
+
+
 class AnalyzerFixture:
     def __init__(self, root: Path):
         self.root = root
@@ -171,6 +211,7 @@ class AnalyzerFixture:
             "runtime": {
                 "build_configuration": {key: "ON" for key in analyzer.BUILD_KEYS},
                 "source_contract": {"passed": True},
+                "binary_contract": {"passed": True},
                 "agent": {"exists": True, "bytes": 100},
                 "syscall_server": {"exists": True, "bytes": 100},
             },

@@ -355,6 +355,8 @@ def analyze(root: Path) -> dict[str, Any]:
         errors.append("runtime is not recorded as verifier/CUDA/LLVM enabled")
     if runtime.get("source_contract", {}).get("passed") is not True:
         errors.append("runtime timing/admission source contract did not pass")
+    if runtime.get("binary_contract", {}).get("passed") is not True:
+        errors.append("runtime timing/admission binary contract did not pass")
     host = state.get("host", {})
     if host.get("driver") != EXPECTED_DRIVER or host.get("expected_driver") != EXPECTED_DRIVER:
         errors.append("host driver admission is missing or wrong")

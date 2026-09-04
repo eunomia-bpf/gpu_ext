@@ -6,10 +6,15 @@ The semantic port is committed as bpftime `b266cf2`, and its separate
 `build-table1-575-strict` completed all 459 build steps. Two fresh real-device
 strict counter pairs pass on the ported runtime; see the
 [result report](../../../bpftime-device-smoke/results-table1-port-strict-575-20260904.md).
-This closes the build/G1 gate only. A0 for the actual `kernelretsnoop` and
-`threadhist` objects, A1 admission timing, and S0 paired steady-state timing
-remain open. The runner now records and independently audits explicit STRICT
-or NO_VERIFY treatment without relabelling the accepted verifier-OFF result.
+This closes the build/G1 gate. The final
+[A0 actual-object campaign](results-preflight-575-strict-a0-03-20260904.md)
+also passes all five correctness cells and its complete pp32 preflight block;
+all four gpubpf cells bind exactly one STRICT acceptance and the expected map
+to the recorded target PID. A1 admission timing and S0 paired steady-state
+timing remain open. The runner records and independently audits explicit
+STRICT or NO_VERIFY treatment without relabelling the accepted verifier-OFF
+result. A0-01 remains a harness false-negative and A0-02 an intermediate pass;
+neither was overwritten or promoted into the final gate.
 
 ## Question and current boundary
 
@@ -81,4 +86,5 @@ cost merely because verification is intended to happen once.
   the same separation between admission latency and steady-state cost. It also
   rejected retroactive verifier-on labelling and cross-session paired claims.
 
-This document is a reviewed execution plan, not a verifier-on result.
+This document records completed G1/A0 gates and the reviewed A1/S0 execution
+plan; it is not an A1 admission-cost or S0 steady-state result.

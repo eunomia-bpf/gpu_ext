@@ -1,0 +1,81 @@
+{
+  "phase": "preflight",
+  "tools": [
+    "kernelretsnoop",
+    "threadhist"
+  ],
+  "configs": [
+    "baseline",
+    "gpubpf_kernelretsnoop",
+    "nvbit_kernelretsnoop",
+    "gpubpf_threadhist",
+    "nvbit_threadhist"
+  ],
+  "verifier_level": "STRICT",
+  "correctness": {
+    "baseline": true,
+    "gpubpf_kernelretsnoop": true,
+    "nvbit_kernelretsnoop": true,
+    "gpubpf_threadhist": true,
+    "nvbit_threadhist": true
+  },
+  "valid_complete_blocks": 1,
+  "required_blocks": 1,
+  "preflight_gate": {
+    "required": false,
+    "campaign": null,
+    "independently_complete": null
+  },
+  "complete": true,
+  "rejected_cells": [],
+  "config_summaries": [
+    {
+      "config": "baseline",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 7034.557925000002
+    },
+    {
+      "config": "gpubpf_kernelretsnoop",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 133.20644000000001
+    },
+    {
+      "config": "nvbit_kernelretsnoop",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 135.56401299999996
+    },
+    {
+      "config": "gpubpf_threadhist",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 5296.527762000001
+    },
+    {
+      "config": "nvbit_threadhist",
+      "valid_blocks": 1,
+      "pp_tok_s_geomean": 6671.404754000004
+    }
+  ],
+  "comparisons": [
+    {
+      "task": "kernelretsnoop",
+      "paired_blocks": 1,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": {
+        "mean": -0.033514160024495254,
+        "ci95_low": -0.033514160024495254,
+        "ci95_high": -0.033514160024495254
+      }
+    },
+    {
+      "task": "threadhist",
+      "paired_blocks": 1,
+      "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+      "bootstrap": {
+        "mean": -19.544611142000093,
+        "ci95_low": -19.544611142000093,
+        "ci95_high": -19.544611142000093
+      }
+    }
+  ],
+  "scope_policy": "Unselected tools are outside this predeclared campaign only; prior failures remain failures and are not reclassified by this analysis."
+}

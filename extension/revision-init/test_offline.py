@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import copy
+import fcntl
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -326,6 +328,65 @@ class ProcessAndInputTests(unittest.TestCase):
                 with self.assertRaises(FileNotFoundError):
                     leases.acquire()
                 self.assertFalse(absent.exists())
+
+    def test_inherited_read_only_descriptors_match_exact_lease_inodes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = (Path(temporary) / "gpu.lock", Path(temporary) / "ops.lock")
+            for path in paths:
+                path.touch()
+            descriptors = tuple(os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+                                for path in paths)
+            try:
+                for descriptor in descriptors:
+                    fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with patch.object(runner, "LEASE_PATHS", paths):
+                    observed = runner.validate_inherited_lease_fds(descriptors)
+                    self.assertEqual([item["path"] for item in observed],
+                                     [str(path) for path in paths])
+                    replacement = paths[1].with_suffix(".new")
+                    replacement.touch()
+                    replacement.replace(paths[1])
+                    with self.assertRaisesRegex(runner.GateError, "no longer names"):
+                        runner.validate_inherited_lease_fds(descriptors)
+            finally:
+                for descriptor in descriptors:
+                    os.close(descriptor)
+
+    def test_inherited_descriptor_must_be_read_only(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "gpu.lock"
+            path.touch()
+            descriptor = os.open(path, os.O_RDWR | os.O_CLOEXEC)
+            try:
+                with patch.object(runner, "LEASE_PATHS", (path,)), \
+                        self.assertRaisesRegex(runner.GateError, "not read-only"):
+                    runner.validate_inherited_lease_fds((descriptor,))
+            finally:
+                os.close(descriptor)
+
+    def test_matrix_body_uses_inherited_leases_without_reacquiring(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = (root / "gpu.lock", root / "ops.lock")
+            for path in paths:
+                path.touch()
+            descriptors = tuple(os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+                                for path in paths)
+            try:
+                for descriptor in descriptors:
+                    fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with patch.object(runner, "LEASE_PATHS", paths), \
+                        patch.object(runner, "matrix_plan", return_value=[]), \
+                        patch.object(runner, "admission", return_value={"ok": True}):
+                    result = runner.run_matrix(
+                        root / "matrix", inherited_lease_fds=descriptors)
+                self.assertTrue(result["complete"])
+                self.assertEqual(result["passed_cells"], 0)
+                self.assertEqual(result["lease_mode"], "validated_inherited")
+                self.assertEqual(len(result["inherited_leases"]), 2)
+            finally:
+                for descriptor in descriptors:
+                    os.close(descriptor)
 
     def test_owned_orphan_is_removed_after_leader_exit(self):
         code = "import os,time\npid=os.fork()\nif pid: os._exit(0)\ntime.sleep(15)\n"

@@ -625,6 +625,33 @@ class ReadOnlyLeases:
         self.descriptors.clear()
 
 
+def validate_inherited_lease_fds(descriptors: tuple[int, ...]) -> list[dict[str, int | str]]:
+    """Validate coordinator-owned lease descriptors without locking them again."""
+    demand(len(descriptors) == len(LEASE_PATHS),
+           "inherited lease descriptor count differs")
+    inventory: list[dict[str, int | str]] = []
+    for path, descriptor in zip(LEASE_PATHS, descriptors, strict=True):
+        demand(type(descriptor) is int and descriptor >= 0,
+               f"invalid inherited lease descriptor for {path}")
+        descriptor_info = os.fstat(descriptor)
+        path_info = path.lstat()
+        demand(stat.S_ISREG(descriptor_info.st_mode),
+               f"inherited lease descriptor is not regular: {path}")
+        demand(stat.S_ISREG(path_info.st_mode) and not path.is_symlink(),
+               f"inherited lease path is not a regular non-symlink: {path}")
+        demand((descriptor_info.st_dev, descriptor_info.st_ino) ==
+               (path_info.st_dev, path_info.st_ino),
+               f"inherited lease descriptor no longer names {path}")
+        access_mode = fcntl.fcntl(descriptor, fcntl.F_GETFL) & os.O_ACCMODE
+        demand(access_mode == os.O_RDONLY,
+               f"inherited lease descriptor is not read-only: {path}")
+        inventory.append({
+            "path": str(path), "device": descriptor_info.st_dev,
+            "inode": descriptor_info.st_ino,
+        })
+    return inventory
+
+
 def atomic_json(path: Path, value: Any) -> None:
     descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
@@ -928,17 +955,24 @@ def admission() -> dict[str, Any]:
             "initial_safety": snapshot}
 
 
-def run_matrix(output: Path) -> dict[str, Any]:
+def run_matrix(output: Path, *,
+               inherited_lease_fds: tuple[int, ...] | None = None) -> dict[str, Any]:
     output.mkdir(parents=True, exist_ok=False)
-    leases = ReadOnlyLeases()
+    leases = None if inherited_lease_fds is not None else ReadOnlyLeases()
     result: dict[str, Any] = {
         "complete": False,
         "scope": "functional cells under an already loaded reviewed core candidate",
         "module_lifecycle_performed": False,
+        "lease_mode": ("validated_inherited" if inherited_lease_fds is not None
+                       else "self_acquired"),
         "plan": matrix_plan(), "cells": [],
     }
     try:
-        leases.acquire()
+        if leases is not None:
+            leases.acquire()
+        else:
+            result["inherited_leases"] = validate_inherited_lease_fds(
+                inherited_lease_fds)
         raise_if_interrupted()
         result["admission"] = admission()
         raise_if_interrupted()
@@ -956,8 +990,22 @@ def run_matrix(output: Path) -> dict[str, Any]:
         result["error"] = f"{type(error).__name__}: {error}"
         raise
     finally:
-        leases.close()
+        lease_validation_error = None
+        if inherited_lease_fds is not None:
+            # Detect path replacement or descriptor closure before publishing.
+            try:
+                validate_inherited_lease_fds(inherited_lease_fds)
+            except BaseException as error:
+                lease_validation_error = error
+                result["complete"] = False
+                result["lease_validation_error"] = (
+                    f"{type(error).__name__}: {error}"
+                )
+        if leases is not None:
+            leases.close()
         atomic_json(output / "result.json", result)
+        if lease_validation_error is not None:
+            raise lease_validation_error
 
 
 def main() -> int:

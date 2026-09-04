@@ -5,6 +5,9 @@ combines:
 
 - `legacy-evidence-audit.md` traces the retained figure inputs and freezes the
   STOP/delete boundary for the unavailable warp-aggregation/eGPU comparison.
+- `warp-source-gap.md` exhaustively classifies the bounded local source and Git
+  history search for that missing implementation and its near misses.
+- `warp-source-gap-review.md` records the independent deny-all Qwen review.
 - `plan.md` defines one prospective RTX 5090 experiment for the runnable map
   placement question: device-resident versus direct host-mapped arrays, with
   the old serialized host-RPC path as a diagnostic.

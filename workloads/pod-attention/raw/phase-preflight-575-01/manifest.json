@@ -1,0 +1,133 @@
+{
+  "arms": [
+    "pod_inline",
+    "pod_cuda",
+    "pod_bpf"
+  ],
+  "complete": false,
+  "completed": [],
+  "error": "PermissionError: [Errno 13] Permission denied: '/tmp/gpubpf-revision-gpu0.lock'",
+  "exact_targets": [
+    "_Z24true_fused_tb_fwd_kernelI23Flash_fwd_kernel_traitsILi128ELi128ELi64ELi4ELb0ELb0EN7cutlass6half_tE19Flash_kernel_traitsILi128ELi128ELi64ELi4ES2_EES0_ILi128ELi16ELi32ELi1ELb0ELb0ES2_S3_ILi128ELi16ELi32ELi1ES2_EELb0ELb1ELb0ELb0ELb0ELb0ELb0ELb1ELb0ELb1ELb0ELb0ELb0ELb0ELb0ELi9ELb0ELb0EEv16Flash_fwd_paramsS8_Pi13PodLaunchView",
+    "_Z24true_fused_tb_fwd_kernelI23Flash_fwd_kernel_traitsILi128ELi128ELi64ELi4ELb0ELb0EN7cutlass6half_tE19Flash_kernel_traitsILi128ELi128ELi64ELi4ES2_EES0_ILi128ELi64ELi128ELi4ELb0ELb0ES2_S3_ILi128ELi64ELi128ELi4ES2_EELb0ELb1ELb0ELb0ELb0ELb0ELb0ELb1ELb0ELb1ELb0ELb0ELb0ELb1ELb0ELi9ELb0ELb0EEv16Flash_fwd_paramsS8_Pi13PodLaunchView",
+    "_Z24true_fused_tb_fwd_kernelI23Flash_fwd_kernel_traitsILi128ELi128ELi64ELi4ELb0ELb0EN7cutlass6half_tE19Flash_kernel_traitsILi128ELi128ELi64ELi4ES2_EES0_ILi128ELi64ELi128ELi4ELb0ELb0ES2_S3_ILi128ELi64ELi128ELi4ES2_EELb0ELb1ELb0ELb0ELb0ELb0ELb0ELb1ELb0ELb1ELb0ELb0ELb0ELb1ELb0ELi9ELb0ELb1EEv16Flash_fwd_paramsS8_Pi13PodLaunchView",
+    "_Z24true_fused_tb_fwd_kernelI23Flash_fwd_kernel_traitsILi128ELi64ELi128ELi4ELb0ELb0EN7cutlass6half_tE19Flash_kernel_traitsILi128ELi64ELi128ELi4ES2_EES0_ILi128ELi16ELi32ELi1ELb0ELb0ES2_S3_ILi128ELi16ELi32ELi1ES2_EELb0ELb1ELb0ELb0ELb0ELb0ELb0ELb1ELb0ELb1ELb0ELb0ELb1ELb0ELb0ELi11ELb0ELb0EEv16Flash_fwd_paramsS8_Pi13PodLaunchView",
+    "_Z24true_fused_tb_fwd_kernelI23Flash_fwd_kernel_traitsILi128ELi64ELi128ELi4ELb0ELb0EN7cutlass6half_tE19Flash_kernel_traitsILi128ELi64ELi128ELi4ES2_EES5_Lb0ELb1ELb0ELb0ELb0ELb0ELb0ELb1ELb0ELb1ELb0ELb0ELb1ELb1ELb0ELi11ELb0ELb1EEv16Flash_fwd_paramsS6_Pi13PodLaunchView",
+    "_Z24true_fused_tb_fwd_kernelI23Flash_fwd_kernel_traitsILi128ELi64ELi128ELi4ELb0ELb0EN7cutlass6half_tE19Flash_kernel_traitsILi128ELi64ELi128ELi4ES2_EES5_Lb0ELb1ELb0ELb0ELb0ELb0ELb0ELb1ELb0ELb1ELb0ELb0ELb1ELb1ELb0ELi11ELb0ELb0EEv16Flash_fwd_paramsS6_Pi13PodLaunchView"
+  ],
+  "excluded_from_formal": true,
+  "fixed_shape": [
+    "llama-3-8b",
+    32
+  ],
+  "fresh_process_per_cell": true,
+  "lease_paths": [
+    "/tmp/gpubpf-revision-gpu0.lock",
+    "/tmp/gpubpf-revision-struct-ops.lock"
+  ],
+  "matched_blocks": [],
+  "mode": "preflight",
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "order": [
+    {
+      "arm": "pod_inline",
+      "block": 1
+    },
+    {
+      "arm": "pod_bpf",
+      "block": 1
+    },
+    {
+      "arm": "pod_cuda",
+      "block": 1
+    }
+  ],
+  "preflight": null,
+  "protocol": "pod-device-setup-phases-v1",
+  "ptx": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01",
+  "runtime": {
+    "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/agent/libbpftime-agent.so": {
+      "bytes": 242968808,
+      "mtime_ns": 1788281719272447293
+    },
+    "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503/runtime/syscall-server/libbpftime-syscall-server.so": {
+      "bytes": 237902704,
+      "mtime_ns": 1788281210026629670
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py": {
+      "bytes": 36076,
+      "mtime_ns": 1788480400340122489
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_launch_bridge.so": {
+      "bytes": 33912,
+      "mtime_ns": 1788481755847452168
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_ptx_adapter.so": {
+      "bytes": 431552,
+      "mtime_ns": 1788419550224340055
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/pod-loader": {
+      "bytes": 22720,
+      "mtime_ns": 1788419550471240404
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_fo11_sm80.part-01.ptx": {
+      "bytes": 48814358,
+      "mtime_ns": 1788422913147686251
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_fo9_sm80.part-01.ptx": {
+      "bytes": 57041536,
+      "mtime_ns": 1788422881040978001
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo11_sm80.part-01.ptx": {
+      "bytes": 34318338,
+      "mtime_ns": 1788422927952012882
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo11_sm80.part-02.ptx": {
+      "bytes": 34143801,
+      "mtime_ns": 1788422932419111448
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo9_sm80.part-01.ptx": {
+      "bytes": 38223923,
+      "mtime_ns": 1788422897037330845
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/device/truefused_fwd_hdim128_fp16_causal_split_fo9_sm80.part-02.ptx": {
+      "bytes": 38379517,
+      "mtime_ns": 1788422901695433602
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/exact-kernels.txt": {
+      "bytes": 1841,
+      "mtime_ns": 1788422932964827679
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01/inventory.json": {
+      "bytes": 5672,
+      "mtime_ns": 1788422932973649239
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/python/flash_attn_og.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 29503152,
+      "mtime_ns": 1788422827287792662
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/python/fused_attn.cpython-312-x86_64-linux-gnu.so": {
+      "bytes": 719807608,
+      "mtime_ns": 1788422658889083263
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/selector.bin": {
+      "bytes": 856,
+      "mtime_ns": 1788480673536677618
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/selector.bpf.o": {
+      "bytes": 10544,
+      "mtime_ns": 1788480673536677618
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/run_phase_study.py": {
+      "bytes": 16227,
+      "mtime_ns": 1788491903992517556
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/run_study.py": {
+      "bytes": 26330,
+      "mtime_ns": 1788481732218262810
+    }
+  },
+  "samples_per_cell": 3,
+  "seed": 20260903,
+  "warmups": 10
+}

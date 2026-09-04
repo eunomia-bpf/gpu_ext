@@ -62,12 +62,22 @@ requires:
   no admission records in control;
 - exactly one valid pp32 or pp512 `llama-bench` JSON row with the fixed model,
   GPU layers, prompt size, one positive sample, and warmup-enabled command;
+  `avg_ts` must agree with both `samples_ts[0]` and `pp*1e9/avg_ns` within the
+  fixed JSON-printing tolerance;
 - exact pp-dependent `kernelretsnoop` events, coordinates, multiplicity,
   map capacity, and zero-drop gates, or complete `threadhist` readback;
 - equal positive STRICT and NO_VERIFY `threadhist` event counts within every
   correctness or timing block;
 - exactly 6 correctness and 60 timing cells, with no missing, extra, or
-  duplicate sequence and ten complete blocks per tool.
+  duplicate sequence and ten complete blocks per tool. Directories must use
+  canonical `<stage>/<three-digit-sequence>-<tool>-<treatment>` names, and all
+  66 `(pid,start_ticks)` target identities and raw directories must be unique.
+
+The exact target command is also reconstructed: CPU binding followed by the
+fixed `-r 1 -o json -p <pp> -n 0 -ngl 99` workload. Control forbids
+`LD_PRELOAD` and all `BPFTIME_*` injection variables. Instrumented cells require
+the exact agent DSO preload and the raw private-probe environment for their
+treatment.
 
 ## Commands
 

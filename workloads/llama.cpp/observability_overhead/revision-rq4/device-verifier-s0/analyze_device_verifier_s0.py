@@ -116,6 +116,8 @@ def bench_gate(stdout: str, pp: int, model: Path, n_gpu_layers: int) -> dict[str
     samples_ns = row.get("samples_ns")
     samples_ts = row.get("samples_ts")
     throughput = row.get("avg_ts")
+    derived = (pp * 1e9 / row["avg_ns"]
+               if type(row.get("avg_ns")) is int and row["avg_ns"] > 0 else math.nan)
     valid = (
         row.get("n_prompt") == pp and row.get("n_gen") == 0
         and row.get("n_gpu_layers") == n_gpu_layers
@@ -125,12 +127,37 @@ def bench_gate(stdout: str, pp: int, model: Path, n_gpu_layers: int) -> dict[str
         and throughput > 0
         and isinstance(samples_ns, list) and len(samples_ns) == 1
         and type(samples_ns[0]) is int and samples_ns[0] > 0
+        and samples_ns[0] == row["avg_ns"]
         and isinstance(samples_ts, list) and len(samples_ts) == 1
         and isinstance(samples_ts[0], (int, float)) and math.isfinite(samples_ts[0])
         and samples_ts[0] > 0
+        and math.isclose(float(throughput), float(samples_ts[0]), rel_tol=1e-6, abs_tol=1e-3)
+        and math.isclose(float(throughput), derived, rel_tol=1e-6, abs_tol=1e-3)
     )
     return {"valid": bool(valid), "pp_tok_s": float(throughput) if valid else None,
             "avg_ns": row.get("avg_ns"), "raw": raw}
+
+
+def injection_environment(environment: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in environment.items()
+            if key == "LD_PRELOAD" or key.startswith("BPFTIME_")}
+
+
+def expected_command(defining: dict[str, Any], treatment: str, pp: int) -> list[str]:
+    command = ["taskset", "-c", "8-15", "/usr/bin/env"]
+    if treatment != "control":
+        build = Path(defining["bpftime_build_dir"])
+        command.append(f"LD_PRELOAD={build / 'runtime/agent/libbpftime-agent.so'}")
+    command.extend([
+        defining["llama_bench"], "-m", defining["model"], "-r", "1", "-o", "json",
+        "-p", str(pp), "-n", "0", "-ngl", str(defining["n_gpu_layers"]),
+    ])
+    return command
+
+
+def canonical_directory(stage: str, expected: dict[str, Any]) -> str:
+    return (f"{stage}/{expected['sequence']:03d}-{expected['tool']}-"
+            f"{expected['treatment'].lower()}")
 
 
 def expected_map(tool: str) -> dict[str, int]:
@@ -267,20 +294,23 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
                defining: dict[str, Any]) -> dict[str, Any]:
     identity_ok = cell.get("stage") == expected["stage"] and all(
         cell.get(key) == value for key, value in expected.items() if key != "stage")
+    canonical = canonical_directory(expected["stage"], expected)
+    directory_name_ok = cell.get("directory") == canonical
     try:
         directory = safe_directory(root, cell.get("directory"))
         execution = read_json(directory / "llama_bench.execution.json")
         stdout, stderr = log_sections(directory / "llama_bench.log")
         pid = execution.get("identity", {}).get("pid")
+        start_ticks = execution.get("identity", {}).get("start_ticks")
+        execution_identity = (pid, start_ticks)
         execution_ok = (type(pid) is int and pid > 0
+                        and type(start_ticks) is int and start_ticks > 0
                         and execution.get("cleanup_passed") is True
                         and execution.get("timed_out") is False
                         and execution.get("returncode") == 0)
         command = execution.get("command", [])
-        command_ok = (isinstance(command, list)
-                      and str(defining.get("llama_bench", "")) in command
-                      and str(defining.get("model", "")) in command
-                      and "--no-warmup" not in command)
+        command_ok = command == expected_command(defining, expected["treatment"], expected["pp"])
+        target_environment = read_json(directory / "target-environment.json")
         safety = read_json(directory / "gpu-safety.json")
         safety_ok = safety.get("passed") is True
         bench = bench_gate(stdout, expected["pp"], Path(defining["model"]),
@@ -293,6 +323,7 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
         segment = None
         if expected["treatment"] == "control":
             private_ok = not (directory / "probe-execution.json").exists() and not (directory / "probe.log").exists()
+            environment_ok = target_environment == {}
         else:
             probe_execution = read_json(directory / "probe-execution.json")
             segment = probe_execution.get("private_segment")
@@ -302,7 +333,9 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
             private_ok = (isinstance(segment, str) and segment.startswith("rq4_")
                           and probe_execution.get("private_segment_removed") is True
                           and probe_execution.get("loader_preserved") is not True)
-            environment_ok = (agent.get("BPFTIME_GLOBAL_SHM_NAME") == segment
+            expected_injection = injection_environment(agent)
+            environment_ok = (target_environment == expected_injection
+                              and agent.get("BPFTIME_GLOBAL_SHM_NAME") == segment
                               and loader.get("BPFTIME_GLOBAL_SHM_NAME") == segment
                               and agent.get("BPFTIME_VERIFIER_LEVEL") == expected["treatment"]
                               and loader.get("BPFTIME_VERIFIER_LEVEL") == expected["treatment"]
@@ -319,10 +352,16 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
         artifacts_ok = (cell.get("artifacts_stable") is True
                         and cell.get("artifacts_before") == expected_artifacts
                         and cell.get("artifacts_after") == expected_artifacts)
-        valid = (identity_ok and cell.get("valid") is True and execution_ok and command_ok
+        recorded_identity_ok = cell.get("execution_identity") == execution.get("identity")
+        valid = (identity_ok and directory_name_ok and recorded_identity_ok
+                 and cell.get("identity_directory_valid") is True
+                 and cell.get("valid") is True and execution_ok and command_ok
                  and safety_ok and bench["valid"] and admission["valid"]
                  and private_ok and environment_ok and probe_ok and artifacts_ok)
         return {"valid": bool(valid), "identity_valid": identity_ok,
+                "directory": str(directory), "canonical_directory_valid": directory_name_ok,
+                "execution_identity": execution_identity,
+                "recorded_execution_identity_valid": recorded_identity_ok,
                 "recorded_valid": cell.get("valid") is True,
                 "execution_valid": execution_ok, "command_valid": command_ok,
                 "safety_valid": safety_ok, "bench": bench, "admission": admission,
@@ -397,6 +436,8 @@ def analyze(root: Path) -> dict[str, Any]:
         errors.append("warmup was not fixed on")
     audited: dict[str, list[dict[str, Any]]] = {"correctness": [], "timing": []}
     segments: list[str] = []
+    raw_directories: list[str] = []
+    execution_identities: list[tuple[int, int]] = []
     for stage, key, schedule in (("correctness", "correctness_cells", correctness_schedule),
                                  ("timing", "timing_cells", timing_schedule)):
         cells = state.get(key, [])
@@ -418,8 +459,18 @@ def analyze(root: Path) -> dict[str, Any]:
                 errors.append(f"{stage} sequence {expected['sequence']} failed")
             if isinstance(audit.get("private_segment"), str):
                 segments.append(audit["private_segment"])
+            if isinstance(audit.get("directory"), str):
+                raw_directories.append(audit["directory"])
+            identity = audit.get("execution_identity")
+            if (isinstance(identity, tuple) and len(identity) == 2
+                    and all(type(value) is int and value > 0 for value in identity)):
+                execution_identities.append(identity)
     if len(segments) != 44 or len(set(segments)) != len(segments):
         errors.append("instrumented cells do not have 44 unique private SHM segments")
+    if len(raw_directories) != 66 or len(set(raw_directories)) != 66:
+        errors.append("the 66 cells do not have unique canonical raw directories")
+    if len(execution_identities) != 66 or len(set(execution_identities)) != 66:
+        errors.append("the 66 target (pid,start_ticks) identities are missing or reused")
     for stage, blocks in (("correctness", (0,)), ("timing", range(1, BLOCKS + 1))):
         for block in blocks:
             cells = [cell for cell in audited[stage]
@@ -454,9 +505,17 @@ def analyze(root: Path) -> dict[str, Any]:
         summaries[tool] = summary
         if complete_blocks != BLOCKS:
             errors.append(f"{tool} lacks ten complete timing blocks")
-    complete = not errors and state.get("status") == "complete"
+    state_status = state.get("status")
+    complete = not errors and state_status == "complete"
     total_cells = len(state.get("correctness_cells", [])) + len(state.get("timing_cells", []))
-    run_status = "valid" if complete else ("incomplete" if total_cells < 66 else "invalid")
+    if complete:
+        run_status = "valid"
+    elif isinstance(state_status, str) and state_status.startswith("invalid_"):
+        run_status = "invalid"
+    elif total_cells < 66 and state_status == "running":
+        run_status = "incomplete"
+    else:
+        run_status = "invalid"
     return {"schema": SCHEMA, "complete": complete, "run_status": run_status,
             "application_throughput_source": "target llama-bench JSON avg_ts only",
             "admission_timing_used_in_throughput": False,

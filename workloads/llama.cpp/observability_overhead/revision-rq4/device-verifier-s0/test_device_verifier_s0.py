@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 import unittest
 
@@ -148,7 +149,8 @@ class ParserTests(unittest.TestCase):
             log = root / "llama_bench.log"
             execution = root / "llama_bench.execution.json"
             log.write_text(target_log(512, root / "model", 100.0, records))
-            execution.write_text(json.dumps({"identity": {"pid": pid}, "cleanup_passed": True,
+            execution.write_text(json.dumps({"identity": {"pid": pid, "start_ticks": 9001},
+                                             "cleanup_passed": True,
                                              "timed_out": False, "returncode": 0}))
             return runner.parse_admission(log, execution, tool=tool, treatment=treatment,
                                           target_symbol=TARGET)
@@ -167,6 +169,21 @@ class ParserTests(unittest.TestCase):
         no_verify = admission("threadhist", "NO_VERIFY", 73) + prefix(73)
         no_verify += "GPU eBPF verification timing: program=cuda__retprobe verification_elapsed_ns=9\n"
         self.assertFalse(self.parse("threadhist", "NO_VERIFY", no_verify)["passed"])
+
+    def test_bench_gate_cross_checks_average_sample_and_elapsed_formula(self):
+        args = runner.parse_args([])
+        args.pp = 512
+        row = {"model_filename": str(args.model), "n_gpu_layers": 99,
+               "n_prompt": 512, "n_gen": 0, "avg_ns": 5_120_000_000,
+               "avg_ts": 100.0, "samples_ns": [5_120_000_000],
+               "samples_ts": [100.0]}
+        parsed = {"raw": [row], "metrics": {"pp_tokens": 512, "pp_tok_s": 100.0}}
+        self.assertTrue(runner.validate_bench_output(parsed, args))
+        row["samples_ts"] = [99.0]
+        self.assertFalse(runner.validate_bench_output(parsed, args))
+        row["samples_ts"] = [100.0]
+        row["avg_ns"] = 4_000_000_000
+        self.assertFalse(runner.validate_bench_output(parsed, args))
 
 
 class Fixture:
@@ -210,11 +227,14 @@ class Fixture:
         (directory / "llama_bench.log").write_text(target_log(
             specification["pp"], self.model, self.throughput(specification),
             admission(specification["tool"], treatment, self.pid)))
+        identity = {"pid": self.pid, "start_ticks": self.pid * 10}
+        defining = self.state["defining_inputs"]
         (directory / "llama_bench.execution.json").write_text(json.dumps({
-            "identity": {"pid": self.pid}, "cleanup_passed": True, "timed_out": False,
-            "returncode": 0, "command": [str(self.bench), "-m", str(self.model),
-                                          "-p", str(specification["pp"])]}))
+            "identity": identity, "cleanup_passed": True, "timed_out": False,
+            "returncode": 0,
+            "command": analyzer.expected_command(defining, treatment, specification["pp"])}))
         (directory / "gpu-safety.json").write_text(json.dumps({"passed": True}))
+        target_environment = {}
         if treatment != "control":
             segment = f"rq4_s0_fixture_{self.pid}"
             (directory / "probe-execution.json").write_text(json.dumps({
@@ -227,10 +247,16 @@ class Fixture:
                                        "LD_PRELOAD": str(self.build / "runtime/syscall-server/libbpftime-syscall-server.so")}}))
             probe = kernel_probe(specification["pp"]) if specification["tool"] == "kernelretsnoop" else thread_probe()
             (directory / "probe.log").write_text(probe)
+            target_environment = {
+                "BPFTIME_GLOBAL_SHM_NAME": segment, "BPFTIME_VERIFIER_LEVEL": treatment,
+                "LD_PRELOAD": str(self.build / "runtime/agent/libbpftime-agent.so"),
+            }
+        (directory / "target-environment.json").write_text(json.dumps(target_environment))
         artifacts = {"agent": self.state["runtime"]["agent"],
                      "syscall_server": self.state["runtime"]["syscall_server"],
                      "object": self.state["objects"][specification["tool"]]}
         return {"stage": stage, **specification, "directory": relative, "valid": True,
+                "execution_identity": identity, "identity_directory_valid": True,
                 "artifacts_before": artifacts, "artifacts_after": artifacts,
                 "artifacts_stable": True}
 
@@ -252,7 +278,7 @@ class AnalyzerTests(unittest.TestCase):
                 self.assertAlmostEqual(summary["no_verify_vs_control"]["mean_percent"], -10.0)
 
     def test_missing_extra_and_duplicate_cells_are_rejected(self):
-        for mutation, expected_status in (("missing", "incomplete"), ("extra", "invalid"),
+        for mutation, expected_status in (("missing", "invalid"), ("extra", "invalid"),
                                           ("duplicate", "invalid")):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 fixture = Fixture(Path(temporary))
@@ -267,8 +293,19 @@ class AnalyzerTests(unittest.TestCase):
                 self.assertFalse(result["complete"])
                 self.assertEqual(result["run_status"], expected_status)
 
+    def test_explicit_invalid_prefix_overrides_short_incomplete_inventory(self):
+        for status, expected in (("invalid_correctness", "invalid"),
+                                 ("invalid_timing", "invalid"), ("running", "incomplete")):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temporary:
+                fixture = Fixture(Path(temporary))
+                fixture.state["status"] = status
+                fixture.state["timing_cells"] = fixture.state["timing_cells"][:3]
+                fixture.write()
+                result = analyzer.analyze(fixture.root)
+                self.assertEqual(result["run_status"], expected)
+
     def test_reused_private_shm_and_raw_throughput_tampering_fail(self):
-        for mutation in ("shm", "throughput", "event_count"):
+        for mutation in ("shm", "throughput", "sample", "elapsed_formula", "event_count"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 fixture = Fixture(Path(temporary))
                 instrumented = [cell for cell in fixture.state["timing_cells"]
@@ -280,15 +317,78 @@ class AnalyzerTests(unittest.TestCase):
                     two["private_segment"] = one["private_segment"]
                     second.write_text(json.dumps(two))
                 else:
-                    if mutation == "throughput":
+                    if mutation in ("throughput", "sample", "elapsed_formula"):
                         path = fixture.root / fixture.state["timing_cells"][0]["directory"] / "llama_bench.log"
-                        path.write_text(path.read_text().replace('"avg_ts":', '"wrong_avg_ts":', 1))
+                        text = path.read_text()
+                        if mutation == "throughput":
+                            text = text.replace('"avg_ts":', '"wrong_avg_ts":', 1)
+                        elif mutation == "sample":
+                            text = text.replace('"samples_ts": [', '"samples_ts": [999,', 1)
+                        else:
+                            text = re.sub(r'"avg_ns":\s*[0-9]+', '"avg_ns": 1', text, count=1)
+                        path.write_text(text)
                     else:
                         cell = next(cell for cell in fixture.state["timing_cells"]
                                     if cell["tool"] == "threadhist" and cell["treatment"] == "STRICT")
                         path = fixture.root / cell["directory"] / "probe.log"
                         path.write_text(path.read_text().replace(
                             "Total exit probes: 720896", "Total exit probes: 720897"))
+                self.assertFalse(analyzer.analyze(fixture.root)["complete"])
+
+    def test_noncanonical_or_reused_directories_and_execution_identity_fail(self):
+        for mutation in ("noncanonical", "reused_directory", "reused_identity"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
+                fixture = Fixture(Path(temporary))
+                first, second = fixture.state["timing_cells"][:2]
+                if mutation == "noncanonical":
+                    old = fixture.root / first["directory"]
+                    new = old.parent / "alias"
+                    old.rename(new)
+                    first["directory"] = str(new.relative_to(fixture.root))
+                elif mutation == "reused_directory":
+                    second["directory"] = first["directory"]
+                else:
+                    first_execution = json.loads((fixture.root / first["directory"] /
+                                                  "llama_bench.execution.json").read_text())
+                    second_path = fixture.root / second["directory"] / "llama_bench.execution.json"
+                    second_execution = json.loads(second_path.read_text())
+                    old_pid = second_execution["identity"]["pid"]
+                    second_execution["identity"] = dict(first_execution["identity"])
+                    second_path.write_text(json.dumps(second_execution))
+                    second["execution_identity"] = dict(first_execution["identity"])
+                    log_path = fixture.root / second["directory"] / "llama_bench.log"
+                    log_path.write_text(log_path.read_text().replace(
+                        f"][{old_pid}] ", f"][{first_execution['identity']['pid']}] "))
+                fixture.write()
+                self.assertFalse(analyzer.analyze(fixture.root)["complete"])
+
+    def test_exact_command_and_environment_isolation_fail_closed(self):
+        for mutation in ("control_preload", "control_bpftime", "wrong_instrumented_preload",
+                         "wrong_fixed_flags"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
+                fixture = Fixture(Path(temporary))
+                if mutation.startswith("control"):
+                    cell = next(cell for cell in fixture.state["timing_cells"]
+                                if cell["treatment"] == "control")
+                else:
+                    cell = next(cell for cell in fixture.state["timing_cells"]
+                                if cell["treatment"] == "STRICT")
+                directory = fixture.root / cell["directory"]
+                execution_path = directory / "llama_bench.execution.json"
+                execution = json.loads(execution_path.read_text())
+                environment_path = directory / "target-environment.json"
+                environment = json.loads(environment_path.read_text())
+                if mutation == "control_preload":
+                    execution["command"].insert(4, "LD_PRELOAD=/wrong.so")
+                elif mutation == "control_bpftime":
+                    environment["BPFTIME_VERIFIER_LEVEL"] = "STRICT"
+                elif mutation == "wrong_instrumented_preload":
+                    environment["LD_PRELOAD"] = "/wrong.so"
+                else:
+                    index = execution["command"].index("-r")
+                    execution["command"][index + 1] = "2"
+                execution_path.write_text(json.dumps(execution))
+                environment_path.write_text(json.dumps(environment))
                 self.assertFalse(analyzer.analyze(fixture.root)["complete"])
 
 

@@ -119,8 +119,11 @@ def read_execution(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     try:
         record = json.loads(path.read_text(encoding="utf-8"))
         pid = record["identity"]["pid"]
+        start_ticks = record["identity"]["start_ticks"]
         if type(pid) is not int or pid <= 0:
             raise ValueError("target pid is not positive")
+        if type(start_ticks) is not int or start_ticks <= 0:
+            raise ValueError("target start_ticks is not positive")
         if (record.get("cleanup_passed") is not True
                 or record.get("timed_out") is not False
                 or record.get("returncode") != 0):
@@ -227,22 +230,47 @@ def validate_bench_output(parsed: dict[str, Any], args: argparse.Namespace) -> b
     row = raw[0]
     samples_ns = row.get("samples_ns")
     samples_ts = row.get("samples_ts")
+    avg_ts = row.get("avg_ts")
+    derived_ts = (
+        args.pp * 1e9 / row["avg_ns"]
+        if type(row.get("avg_ns")) is int and row["avg_ns"] > 0 else math.nan
+    )
     return (
         row.get("n_prompt") == args.pp and row.get("n_gen") == 0
         and row.get("n_gpu_layers") == args.n_gpu_layers
         and Path(str(row.get("model_filename", ""))).resolve() == args.model
         and type(row.get("avg_ns")) is int and row["avg_ns"] > 0
-        and isinstance(row.get("avg_ts"), (int, float)) and math.isfinite(row["avg_ts"])
-        and row["avg_ts"] > 0
+        and isinstance(avg_ts, (int, float)) and math.isfinite(avg_ts) and avg_ts > 0
         and isinstance(samples_ns, list) and len(samples_ns) == 1
         and type(samples_ns[0]) is int and samples_ns[0] > 0
+        and samples_ns[0] == row["avg_ns"]
         and isinstance(samples_ts, list) and len(samples_ts) == 1
         and isinstance(samples_ts[0], (int, float)) and math.isfinite(samples_ts[0])
         and samples_ts[0] > 0
+        and math.isclose(float(avg_ts), float(samples_ts[0]), rel_tol=1e-6, abs_tol=1e-3)
+        and math.isclose(float(avg_ts), derived_ts, rel_tol=1e-6, abs_tol=1e-3)
         and metrics.get("pp_tokens") == args.pp
         and isinstance(metrics.get("pp_tok_s"), float)
         and math.isfinite(metrics["pp_tok_s"]) and metrics["pp_tok_s"] > 0
     )
+
+
+def injection_environment(environment: dict[str, str]) -> dict[str, str]:
+    return {key: value for key, value in environment.items()
+            if key == "LD_PRELOAD" or key.startswith("BPFTIME_")}
+
+
+def expected_target_command(args: argparse.Namespace, treatment: str) -> list[str]:
+    command = ["taskset", "-c", rq4.CLIENT_CPUS, "/usr/bin/env"]
+    if treatment != "control":
+        command.append(
+            f"LD_PRELOAD={args.bpftime_build_dir / 'runtime/agent/libbpftime-agent.so'}"
+        )
+    command.extend([
+        str(args.llama_bench), "-m", str(args.model), "-r", "1", "-o", "json",
+        "-p", str(args.pp), "-n", "0", "-ngl", str(args.n_gpu_layers),
+    ])
+    return command
 
 
 def file_metadata(path: Path) -> dict[str, Any]:
@@ -369,15 +397,21 @@ def run_cell(args: argparse.Namespace, output: Path, tool_dirs: dict[str, Path],
     if artifacts_before != expected_artifacts:
         raise RuntimeError("runtime or object metadata changed before cell")
     directory.mkdir(parents=True)
+    rq4.reject_ambient_injection()
     rq4.idle_gpu_or_error(rq4.core.nvidia_smi_snapshot())
     env = rq4.correctness_env(args)
     probe_context = None
+    expected_injection: dict[str, str] = {}
     if treatment != "control":
         args.verifier_level = treatment
         probe_context = rq4.private_probe(tool, args, tool_dirs[tool], directory,
                                           exact_exit_oracle=False)
     with rq4.cell_safety(directory) as safety:
         if probe_context is None:
+            target_injection = injection_environment(env)
+            (directory / "target-environment.json").write_text(
+                json.dumps(target_injection, indent=2) + "\n", encoding="utf-8"
+            )
             completed = rq4.run_cli_separate(
                 rq4.core.make_llama_cmd(args), cwd=rq4.core.WORKLOAD_DIR, env=env,
                 timeout=args.timeout_s, log_path=directory / "llama_bench.log",
@@ -385,6 +419,11 @@ def run_cell(args: argparse.Namespace, output: Path, tool_dirs: dict[str, Path],
         else:
             with probe_context as probe_env:
                 env.update(probe_env)
+                expected_injection = injection_environment(probe_env)
+                target_injection = injection_environment(env)
+                (directory / "target-environment.json").write_text(
+                    json.dumps(target_injection, indent=2) + "\n", encoding="utf-8"
+                )
                 completed = rq4.run_cli_separate(
                     rq4.core.make_llama_cmd(args), cwd=rq4.core.WORKLOAD_DIR, env=env,
                     timeout=args.timeout_s, log_path=directory / "llama_bench.log",
@@ -398,6 +437,23 @@ def run_cell(args: argparse.Namespace, output: Path, tool_dirs: dict[str, Path],
         directory / "llama_bench.log", directory / "llama_bench.execution.json",
         tool=tool, treatment=treatment, target_symbol=args.target_symbol,
     )
+    execution, execution_error = read_execution(directory / "llama_bench.execution.json")
+    execution_identity = execution.get("identity") if execution is not None else None
+    command_valid = (
+        execution_error is None
+        and execution is not None
+        and execution.get("command") == expected_target_command(args, treatment)
+    )
+    if treatment == "control":
+        environment_valid = target_injection == expected_injection == {}
+    else:
+        environment_valid = (
+            target_injection == expected_injection
+            and target_injection.get("LD_PRELOAD")
+            == str(args.bpftime_build_dir / "runtime/agent/libbpftime-agent.so")
+            and target_injection.get("BPFTIME_VERIFIER_LEVEL") == treatment
+            and target_injection.get("BPFTIME_GLOBAL_SHM_NAME") is not None
+        )
     probe: dict[str, Any] | None = None
     probe_valid = treatment == "control"
     if treatment != "control":
@@ -415,12 +471,16 @@ def run_cell(args: argparse.Namespace, output: Path, tool_dirs: dict[str, Path],
                 tool, probe, expected_thread_count=args.threadhist_gpu_thread_count,
                 exact_exit_oracle=False,
             )
-    valid = output_valid and admission["passed"] and probe_valid and safety["passed"]
+    valid = (output_valid and admission["passed"] and probe_valid and safety["passed"]
+             and command_valid and environment_valid)
     artifacts_after = artifact_snapshot(args, tool_dirs, tool)
     artifacts_stable = artifacts_before == artifacts_after == expected_artifacts
     return {
         "stage": stage, **specification, "directory": str(directory.relative_to(output)),
         "returncode": completed.returncode, "output_valid": bool(output_valid),
+        "execution_identity": execution_identity, "command_valid": command_valid,
+        "target_injection_environment": target_injection,
+        "environment_valid": environment_valid,
         "metrics": parsed.get("metrics", {}), "raw": parsed.get("raw", []),
         "admission": admission, "probe": probe, "probe_valid": bool(probe_valid),
         "safety": safety, "artifacts_before": artifacts_before,
@@ -460,6 +520,11 @@ def defining_inputs(args: argparse.Namespace) -> dict[str, Any]:
         "threadhist_gpu_thread_count": args.threadhist_gpu_thread_count,
         "uvm": args.uvm, "warmup": True,
     }
+
+
+def canonical_cell_directory(stage: str, specification: dict[str, Any]) -> str:
+    return (f"{stage}/{specification['sequence']:03d}-{specification['tool']}-"
+            f"{specification['treatment'].lower()}")
 
 
 def validate(args: argparse.Namespace) -> dict[str, Any]:
@@ -543,6 +608,25 @@ def execute(args: argparse.Namespace) -> int:
             expected_prefix = [cell["sequence"] for cell in schedule[:len(cells)]]
             if len(sequences) != len(cells) or sequences != expected_prefix:
                 raise RuntimeError(f"resume {key} is not an exact schedule prefix")
+            for cell, specification in zip(cells, schedule):
+                if cell.get("directory") != canonical_cell_directory(
+                    "correctness" if key == "correctness_cells" else "timing",
+                    specification,
+                ):
+                    raise RuntimeError(f"resume {key} has a non-canonical directory")
+        existing = state["correctness_cells"] + state["timing_cells"]
+        directories = [cell.get("directory") for cell in existing]
+        identities = [cell.get("execution_identity") for cell in existing]
+        identity_pairs = [
+            (identity.get("pid"), identity.get("start_ticks"))
+            for identity in identities if isinstance(identity, dict)
+        ]
+        if (len(set(directories)) != len(directories)
+                or len(identity_pairs) != len(identities)
+                or len(set(identity_pairs)) != len(identity_pairs)
+                or any(type(pid) is not int or type(ticks) is not int or pid <= 0 or ticks <= 0
+                       for pid, ticks in identity_pairs)):
+            raise RuntimeError("resume reuses a raw directory or target execution identity")
         tool_dirs = {tool: output / "gpubpf_tool_build" / tool for tool in TOOLS}
         if any(not (directory / tool).is_file() for tool, directory in tool_dirs.items()):
             raise RuntimeError("resume tool build is incomplete")
@@ -594,6 +678,26 @@ def execute(args: argparse.Namespace) -> int:
             cell = run_cell(
                 args, output, tool_dirs, specification, stage, expected_artifacts
             )
+            prior_cells = state["correctness_cells"] + state["timing_cells"]
+            prior_identities = {
+                (row["execution_identity"]["pid"], row["execution_identity"]["start_ticks"])
+                for row in prior_cells
+                if isinstance(row.get("execution_identity"), dict)
+            }
+            identity = cell.get("execution_identity")
+            identity_pair = (
+                (identity.get("pid"), identity.get("start_ticks"))
+                if isinstance(identity, dict) else None
+            )
+            if (cell.get("directory") != canonical_cell_directory(stage, specification)
+                    or identity_pair is None
+                    or type(identity_pair[0]) is not int or identity_pair[0] <= 0
+                    or type(identity_pair[1]) is not int or identity_pair[1] <= 0
+                    or identity_pair in prior_identities):
+                cell["identity_directory_valid"] = False
+                cell["valid"] = False
+            else:
+                cell["identity_directory_valid"] = True
             state[key].append(cell)
             block_valid = reconcile_complete_block(state[key], specification)
             write_state(result_path, state)

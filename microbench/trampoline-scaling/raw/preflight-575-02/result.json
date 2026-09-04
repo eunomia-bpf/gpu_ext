@@ -1,0 +1,193 @@
+{
+  "build_logs": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-02/build-01.log"
+  ],
+  "campaign_error": "GateError: GPU did not settle within 120 seconds after server cleanup: {'index': 0, 'name': 'NVIDIA GeForce RTX 5090', 'driver': '575.57.08', 'memory_used_mib': 15, 'memory_total_mib': 32607, 'temperature_c': 48, 'sm_clock_mhz': 22, 'memory_clock_mhz': 405, 'power_w': 13.12, 'utilization_gpu_percent': 0, 'compute_apps': []}; uvm_refcount=4",
+  "compiled_hook_site": {
+    "marker_explicit_stub_calls": 0,
+    "ptx": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/scaling.ptx",
+    "stub_defined": true,
+    "target_explicit_stub_calls": 1
+  },
+  "failures": [
+    {
+      "arm": "baseline",
+      "block": 0,
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/preflight-575-02/block-01-order-1-baseline",
+      "error": "GateError: GPU did not settle within 120 seconds after server cleanup: {'index': 0, 'name': 'NVIDIA GeForce RTX 5090', 'driver': '575.57.08', 'memory_used_mib': 15, 'memory_total_mib': 32607, 'temperature_c': 48, 'sm_clock_mhz': 22, 'memory_clock_mhz': 405, 'power_w': 13.12, 'utilization_gpu_percent': 0, 'compute_apps': []}; uvm_refcount=4",
+      "order": 0,
+      "run_id": 0
+    }
+  ],
+  "kind": "RTX 5090 device-trampoline scaling",
+  "params": {
+    "blocks": 1,
+    "bpftime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "cell_ids": [
+      0
+    ],
+    "expected_driver": "575.57.08",
+    "expected_gpu": "NVIDIA GeForce RTX 5090",
+    "hook_repeats": 1,
+    "launches": 2,
+    "phase": "preflight",
+    "schedule_seed": 1797,
+    "warmup": 1
+  },
+  "records": [],
+  "runtime_configuration": {
+    "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+    "BPFTIME_LLVM_JIT": "ON",
+    "CMAKE_HOME_DIRECTORY": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "ENABLE_EBPF_VERIFIER": "OFF"
+  },
+  "runtime_source_audit": {
+    "default_save_strategy": "minimal",
+    "interpretation": "source does not establish one scalar handler execution per warp; the experiment measures observed scaling",
+    "register_guard_for_default": false,
+    "source": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp",
+    "stub_replacement_instruction": "ordinary PTX call/call.uni"
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 14.99,
+      "sm_clock_mhz": 22,
+      "temperature_c": 48,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788490074361227475,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 12.97,
+      "sm_clock_mhz": 22,
+      "temperature_c": 49,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788489949454651454,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "schedule": [
+    {
+      "arm": "baseline",
+      "block": 0,
+      "order": 0,
+      "run_id": 0
+    },
+    {
+      "arm": "counter",
+      "block": 0,
+      "order": 1,
+      "run_id": 0
+    },
+    {
+      "arm": "noop",
+      "block": 0,
+      "order": 2,
+      "run_id": 0
+    }
+  ],
+  "source_manifest": [
+    {
+      "bytes": 546,
+      "ctime_ns": 1788486681168047943,
+      "device": 66305,
+      "inode": 94388514,
+      "mtime_ns": 1788486681168047943,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/matrix.h"
+    },
+    {
+      "bytes": 11275,
+      "ctime_ns": 1788486872473325834,
+      "device": 66305,
+      "inode": 94388550,
+      "mtime_ns": 1788486872473325834,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/scaling.cu"
+    },
+    {
+      "bytes": 1717,
+      "ctime_ns": 1788486681168047943,
+      "device": 66305,
+      "inode": 94388515,
+      "mtime_ns": 1788486681168047943,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.bpf.c"
+    },
+    {
+      "bytes": 5393,
+      "ctime_ns": 1788486681169669617,
+      "device": 66305,
+      "inode": 94388516,
+      "mtime_ns": 1788486681169669617,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.c"
+    },
+    {
+      "bytes": 1487,
+      "ctime_ns": 1788486760397819433,
+      "device": 66305,
+      "inode": 94388551,
+      "mtime_ns": 1788486760397819433,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/Makefile"
+    },
+    {
+      "bytes": 39893,
+      "ctime_ns": 1788489665253940409,
+      "device": 66305,
+      "inode": 94388507,
+      "mtime_ns": 1788489665253940409,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/run_scaling.py"
+    },
+    {
+      "bytes": 4486,
+      "ctime_ns": 1788437099982237230,
+      "device": 66305,
+      "inode": 92300341,
+      "mtime_ns": 1788437099982237230,
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp"
+    }
+  ],
+  "status": "failed",
+  "telemetry": {
+    "fixed_power_cap_samples": 0,
+    "max_sm_clock_mhz": 2400.0,
+    "mean_power_w": 14.281353996737357,
+    "min_sm_clock_mhz": 21.0,
+    "peak_memory_mib": 517.0,
+    "peak_temperature_c": 50.0,
+    "samples": 613,
+    "throttled": false
+  }
+}

@@ -25,6 +25,7 @@ CORRECTNESS_PP = 32
 TIMING_PP = 512
 EXPECTED_DRIVER = "575.57.08"
 PROGRAM = "cuda__retprobe"
+SAMPLE_TS_SIGNIFICANT_DIGITS = 6
 BUILD_KEYS = ("ENABLE_EBPF_VERIFIER", "BPFTIME_ENABLE_CUDA_ATTACH", "BPFTIME_LLVM_JIT")
 
 
@@ -108,6 +109,16 @@ def parse_one_bench_array(stdout: str) -> list[dict[str, Any]]:
     return candidates[0]
 
 
+def sample_ts_matches_average(average: float, printed_sample: float) -> bool:
+    """Match llama-bench's default-stream, six-significant-digit sample output."""
+    if not (math.isfinite(average) and average > 0
+            and math.isfinite(printed_sample) and printed_sample > 0):
+        return False
+    exponent = math.floor(math.log10(abs(average)))
+    half_print_unit = 0.5 * 10 ** (exponent - SAMPLE_TS_SIGNIFICANT_DIGITS + 1)
+    return abs(average - printed_sample) <= half_print_unit * (1 + 1e-12)
+
+
 def bench_gate(stdout: str, pp: int, model: Path, n_gpu_layers: int) -> dict[str, Any]:
     raw = parse_one_bench_array(stdout)
     if len(raw) != 1:
@@ -131,7 +142,7 @@ def bench_gate(stdout: str, pp: int, model: Path, n_gpu_layers: int) -> dict[str
         and isinstance(samples_ts, list) and len(samples_ts) == 1
         and isinstance(samples_ts[0], (int, float)) and math.isfinite(samples_ts[0])
         and samples_ts[0] > 0
-        and math.isclose(float(throughput), float(samples_ts[0]), rel_tol=1e-6, abs_tol=1e-3)
+        and sample_ts_matches_average(float(throughput), float(samples_ts[0]))
         and math.isclose(float(throughput), derived, rel_tol=1e-6, abs_tol=1e-3)
     )
     return {"valid": bool(valid), "pp_tok_s": float(throughput) if valid else None,

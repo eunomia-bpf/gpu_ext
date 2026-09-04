@@ -185,6 +185,23 @@ class ParserTests(unittest.TestCase):
         row["avg_ns"] = 4_000_000_000
         self.assertFalse(runner.validate_bench_output(parsed, args))
 
+    def test_bench_gate_accepts_only_six_significant_digit_sample_rounding(self):
+        args = runner.parse_args([])
+        args.pp = 512
+        row = {"model_filename": str(args.model), "n_gpu_layers": 99,
+               "n_prompt": 512, "n_gen": 0, "avg_ns": 13_425_897,
+               "avg_ts": 38_135.254576, "samples_ns": [13_425_897],
+               "samples_ts": [38_135.3]}
+        parsed = {"raw": [row], "metrics": {"pp_tokens": 512,
+                                               "pp_tok_s": 38_135.254576}}
+        self.assertTrue(runner.validate_bench_output(parsed, args))
+        self.assertTrue(analyzer.bench_gate(
+            json.dumps([row]), 512, args.model, 99)["valid"])
+        row["samples_ts"] = [38_135.4]
+        self.assertFalse(runner.validate_bench_output(parsed, args))
+        self.assertFalse(analyzer.bench_gate(
+            json.dumps([row]), 512, args.model, 99)["valid"])
+
 
 class Fixture:
     def __init__(self, root: Path):

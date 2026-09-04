@@ -62,8 +62,10 @@ requires:
   no admission records in control;
 - exactly one valid pp32 or pp512 `llama-bench` JSON row with the fixed model,
   GPU layers, prompt size, one positive sample, and warmup-enabled command;
-  `avg_ts` must agree with both `samples_ts[0]` and `pp*1e9/avg_ns` within the
-  fixed JSON-printing tolerance;
+  `avg_ts` must agree exactly with the elapsed-time-derived `pp*1e9/avg_ns`
+  within the fixed six-decimal `avg_ts` tolerance. It must also agree with
+  `samples_ts[0]` within half of that field's six-significant-digit print unit,
+  matching `llama-bench`'s default C++ stream representation;
 - exact pp-dependent `kernelretsnoop` events, coordinates, multiplicity,
   map capacity, and zero-drop gates, or complete `threadhist` readback;
 - equal positive STRICT and NO_VERIFY `threadhist` event counts within every

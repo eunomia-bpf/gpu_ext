@@ -10,11 +10,24 @@ This closes the build/G1 gate. The final
 [A0 actual-object campaign](results-preflight-575-strict-a0-03-20260904.md)
 also passes all five correctness cells and its complete pp32 preflight block;
 all four gpubpf cells bind exactly one STRICT acceptance and the expected map
-to the recorded target PID. A1 admission timing and S0 paired steady-state
-timing remain open. The runner records and independently audits explicit
-STRICT or NO_VERIFY treatment without relabelling the accepted verifier-OFF
-result. A0-01 remains a harness false-negative and A0-02 an intermediate pass;
-neither was overwritten or promoted into the final gate.
+to the recorded target PID. The
+[A1 admission-latency campaign](device-verifier-a1/results-a1-575-02-20260904.md)
+then passed its baseline, both A0 cells and all 40 randomized A1 cells without
+retry; the independent analyzer reopened the raw records and reported a valid,
+complete run. Across ten STRICT processes per object, the 60-instruction
+`kernelretsnoop` verifier call has mean/median 141.266/141.191 ms, range
+140.960--141.633 ms and a 95% bootstrap interval for the mean of
+141.147--141.398 ms. The corresponding 13-instruction `threadhist` values are
+11.767/11.762 ms, 11.740--11.832 ms and 11.753--11.785 ms. Every matched
+NO_VERIFY target records exactly one explicit skip and no timing, acceptance,
+map or rejection record; it is a bypass control, not a measured zero-latency
+sample. A0-01 remains a harness false-negative, A0-02 an intermediate pass and
+[`a1-575-01`](device-verifier-a1/results-a1-575-01-failed-20260904.md) a stale
+runtime-build failure before A1; none was overwritten or promoted. The S0
+harness passed an independent read-only audit covering 12 tests and nine
+failure injections. Its live run is in progress, so no steady-state
+STRICT-versus-NO_VERIFY result is claimed here. The accepted verifier-OFF full
+result is not relabelled.
 The separate [NO_VERIFY control preflight](results-preflight-575-noverify-a0-01-20260904.md)
 also passes all five correctness cells and one pp32 block on the same
 verifier-enabled binary. Every gpubpf target has exactly one explicit skip and
@@ -91,5 +104,6 @@ cost merely because verification is intended to happen once.
   the same separation between admission latency and steady-state cost. It also
   rejected retroactive verifier-on labelling and cross-session paired claims.
 
-This document records completed G1/A0 gates and the reviewed A1/S0 execution
-plan; it is not an A1 admission-cost or S0 steady-state result.
+This document records completed G1, A0 and A1 gates plus the reviewed S0
+execution plan. S0 remains open until its live run and independent analysis
+complete.

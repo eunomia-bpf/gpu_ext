@@ -49,6 +49,25 @@ both 200-sample clock controls before the 220-launch correctness cells. The
 analyzer reopens the raw control, process, cleanup, safety, correctness,
 engagement, and throughput evidence; a stored `valid` flag alone cannot pass.
 
+## CPU-only readiness check (2026-09-04)
+
+The final runtime directory `build-launchlate-575` was freshly configured from
+bpftime revision `133b48e` with the eBPF verifier, CUDA attachment, and LLVM JIT
+enabled, then both the agent and syscall-server targets built successfully.
+The private RAW-clock helper passed the runtime `Test helpers` case (five
+assertions), and the launchlate loader CPU self-test passed.  The gpubpf loader,
+the NVBit adapter for `sm_120`, its clock-domain test, and both clock-control
+self-tests also built and passed without executing a GPU campaign.
+
+The runner/analyzer suite passes 81 CPU-only tests.  The launch-only dry runs
+produce exactly three preflight timing cells and 30 full timing cells over
+`baseline`, `gpubpf_launchlate`, and `nvbit_launchlate`.  Independent OpenCode
+review session `ses_f92e26cfaffeu90Lyc00BpJNHV` returned PASS with no confirmed
+blocker; its request and disposition are retained in
+`../opencode-launchlate-rm-review-02/`.  Real 200-sample controls, the 220-launch
+correctness cells, and throughput blocks remain intentionally pending a GPU
+window.
+
 `rm_globaltimer_identity.cu` implements that second control.  Each trial
 orders an endpoint-v1 RM/PTIMER sample, one device `%globaltimer` read, and a
 second RM/PTIMER sample, then requires both host and device ordering plus

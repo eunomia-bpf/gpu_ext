@@ -1,0 +1,94 @@
+[2026-09-04 11:13:28][info][2865966] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 11:13:28][info][2865966] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 11:13:28][info][2865966] Verifier mode: STRICT
+[2026-09-04 11:13:28][info][2865966] Init bpftime syscall mocking..
+[2026-09-04 11:13:28][info][2865966] The log will be written to: console
+[2026-09-04 11:13:28][info][2865966] Starting syscall server..
+[2026-09-04 11:13:28][info][2865966] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 11:13:28][info][2865966] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 11:13:28][info][2865966] Verifier mode: STRICT
+[2026-09-04 11:13:28][info][2865966] Initialize syscall server
+[2026-09-04 11:13:28][info][2865966] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 11:13:28][info][2865966] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 11:13:28][info][2865966] Verifier mode: STRICT
+[2026-09-04 11:13:28][info][2865966] Global shm constructed. shm_open_type 3 for fig15_uniform_2863072_119353838416381
+[2026-09-04 11:13:28][info][2865966] Global shm initialized
+[2026-09-04 11:13:28][info][2865966] Initializing CUDA at syscall-server side
+[2026-09-04 11:13:28][info][2865966] CUDA initialized at syscall server side
+[2026-09-04 11:13:28][info][2865966] Enabling 44 helpers
+[2026-09-04 11:13:28][info][2865966] bpftime-syscall-server started
+FIG15_UNIFORM_SERVER_PRIMED	1
+libbpf: loading object from /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-uniform-map/.output/uniform-probe.bpf.o
+libbpf: elf: section(3) kprobe/fig15_map_kernel, size 592, link 0, flags 6, type=1
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__noop' at insn offset 0 (0 bytes), code size 2 insns (16 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__dev_up' at insn offset 2 (16 bytes), code size 14 insns (112 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__host_up' at insn offset 16 (128 bytes), code size 14 insns (112 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__dev_look' at insn offset 30 (240 bytes), code size 22 insns (176 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__host_look' at insn offset 52 (416 bytes), code size 22 insns (176 bytes)
+libbpf: elf: section(4) .relkprobe/fig15_map_kernel, size 96, link 26, flags 40, type=9
+libbpf: elf: section(5) .maps, size 96, link 0, flags 3, type=1
+libbpf: elf: section(6) license, size 4, link 0, flags 3, type=1
+libbpf: license of /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-uniform-map/.output/uniform-probe.bpf.o is GPL
+libbpf: elf: section(16) .BTF, size 1625, link 0, flags 0, type=1
+libbpf: elf: section(18) .BTF.ext, size 592, link 0, flags 0, type=1
+libbpf: elf: section(26) .symtab, size 528, link 1, flags 0, type=2
+libbpf: looking for externs among 22 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'device_values': at sec_idx 5, offset 0.
+libbpf: map 'device_values': found type = 1503.
+libbpf: map 'device_values': found key [8], sz = 4.
+libbpf: map 'device_values': found value [12], sz = 8.
+libbpf: map 'device_values': found max_entries = 1.
+libbpf: map 'host_values': at sec_idx 5, offset 32.
+libbpf: map 'host_values': found type = 1513.
+libbpf: map 'host_values': found key [8], sz = 4.
+libbpf: map 'host_values': found value [12], sz = 8.
+libbpf: map 'host_values': found max_entries = 1.
+libbpf: map 'observed_values': at sec_idx 5, offset 64.
+libbpf: map 'observed_values': found type = 1503.
+libbpf: map 'observed_values': found key [8], sz = 4.
+libbpf: map 'observed_values': found value [12], sz = 8.
+libbpf: map 'observed_values': found max_entries = 1.
+libbpf: sec '.relkprobe/fig15_map_kernel': collecting relocation for section(3) 'kprobe/fig15_map_kernel'
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #0: insn #11 against 'device_values'
+libbpf: prog 'cuda__dev_up': found map 0 (device_values, sec 5, off 0) for insn #9
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #1: insn #25 against 'host_values'
+libbpf: prog 'cuda__host_up': found map 1 (host_values, sec 5, off 32) for insn #9
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #2: insn #34 against 'device_values'
+libbpf: prog 'cuda__dev_look': found map 0 (device_values, sec 5, off 0) for insn #4
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #3: insn #47 against 'observed_values'
+libbpf: prog 'cuda__dev_look': found map 2 (observed_values, sec 5, off 64) for insn #17
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #4: insn #56 against 'host_values'
+libbpf: prog 'cuda__host_look': found map 1 (host_values, sec 5, off 32) for insn #4
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #5: insn #69 against 'observed_values'
+libbpf: prog 'cuda__host_look': found map 2 (observed_values, sec 5, off 64) for insn #17
+libbpf: object 'uniform-probe': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+[2026-09-04 11:13:28][info][2865966] syscall server: Set enable_mock_after_initialized to false
+[2026-09-04 11:13:28][info][2865966] CUDA context for thread 2865966 has been set to 5d58a3e034e0
+[2026-09-04 11:13:28][info][2865966] Map device_values (nv_gpu_shared_array_map_impl) shared array
+[2026-09-04 11:13:28][info][2865966] Initializing map type of BPF_MAP_TYPE_GPU_ARRAY_MAP (device), total_buffer_size=8
+[2026-09-04 11:13:28][info][2865966] syscall server: Set enable_mock_after_initialized to true
+libbpf: map 'device_values': created successfully, fd=17
+[2026-09-04 11:13:28][info][2865966] Map host_values (nv_gpu_shared_array_host_map_impl) shared array
+[2026-09-04 11:13:28][info][2865966] Initializing map type of BPF_MAP_TYPE_GPU_ARRAY_HOST_MAP (shared mem), value_size=8, max_entries=1, total_buffer_size=8
+[2026-09-04 11:13:28][info][2865966] Allocated shared memory buffer at 793286e2aa60
+libbpf: map 'host_values': created successfully, fd=18
+[2026-09-04 11:13:28][info][2865966] syscall server: Set enable_mock_after_initialized to false
+[2026-09-04 11:13:28][info][2865966] CUDA context for thread 2865966 has been set to 5d58a4d37260
+[2026-09-04 11:13:28][info][2865966] Map observed_values (nv_gpu_shared_array_map_impl) shared array
+[2026-09-04 11:13:28][info][2865966] Initializing map type of BPF_MAP_TYPE_GPU_ARRAY_MAP (device), total_buffer_size=8
+[2026-09-04 11:13:28][info][2865966] syscall server: Set enable_mock_after_initialized to true
+libbpf: map 'observed_values': created successfully, fd=19
+libbpf: prog 'cuda__noop': skipped loading
+libbpf: prog 'cuda__host_up': skipped loading
+libbpf: prog 'cuda__dev_look': skipped loading
+libbpf: prog 'cuda__host_look': skipped loading
+[2026-09-04 11:13:28][info][2865966] Created kprobe/kretprobe perf event handler, func_name fig15_map_kernel, addr 0
+FIG15_UNIFORM_READY	device_update	1
+FIG15_UNIFORM_MAP	device_values	0	5883894630453346305
+FIG15_UNIFORM_DETACHED	1
+[2026-09-04 11:13:30][warning][2865966] Calling original ioctl: 9 34 140733020287104
+[2026-09-04 11:13:30][warning][2865966] Calling original ioctl: 8 3222292009 140733020287264
+[2026-09-04 11:13:30][warning][2865966] Calling original ioctl: 9 34 140733020287104
+[2026-09-04 11:13:30][warning][2865966] Calling original ioctl: 8 3222292009 140733020287264

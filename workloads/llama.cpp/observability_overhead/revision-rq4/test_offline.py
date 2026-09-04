@@ -132,49 +132,93 @@ def lossless_nvbit_exit_log(**overrides):
 
 def lossless_launchlate_log(**overrides):
     values = {
-        "samples": 2,
-        "histogram": 2,
-        "host_launches": 2,
-        "host_enqueued": 2,
-        "device_entries": 2,
-        "matched": 2,
+        "samples": 220,
+        "histogram": 220,
+        "host_launches": 220,
+        "host_enqueued": 220,
+        "device_entries": 220,
+        "matched": 220,
         "underflows": 0,
         "overflows": 0,
         "update_errors": 0,
-        "classified": 2,
+        "classified": 220,
         "uncertain": 0,
         "clock_errors": 0,
         "online_accounting": 1,
         "accounting": 1,
         "pairing": 1,
         "detached": 1,
-        "start_low": -120,
-        "start_high": -80,
-        "start_uncertainty": 20,
-        "start_anchor": 1000000000,
-        "end_low": -100,
-        "end_high": -70,
-        "end_uncertainty": 15,
-        "end_anchor": 2000000000,
-        "change_low": -20,
-        "change_high": 50,
+        "start_low": 868,
+        "start_high": 1032,
+        "start_uncertainty": 82,
+        "start_anchor": 1000000050,
+        "end_low": 888,
+        "end_high": 1052,
+        "end_uncertainty": 82,
+        "end_anchor": 2000000050,
+        "change_low": -144,
+        "change_high": 184,
         "elapsed": 1000000000,
-        "drift_rate": 50,
+        "drift_rate": 184,
         "drift_limit": 10000,
         "drift_bounded": 1,
+        "rm_samples": 32,
+        "rm_accepted": 32,
+        "rm_rejected": 0,
+        "start_outer_before": 999999900,
+        "start_cpu_before": 1000000000,
+        "start_gpu": 1000001000,
+        "start_cpu_after": 1000000100,
+        "start_outer_after": 1000000200,
+        "end_outer_before": 1999999900,
+        "end_cpu_before": 2000000000,
+        "end_gpu": 2000001020,
+        "end_cpu_after": 2000000100,
+        "end_outer_after": 2000000200,
+        "rm_outer_width": 300,
+        "rm_selected_gap": 100,
+        "rm_bracket_width": 164,
+        "rm_status": 0,
+        "rm_cleanup": 1,
     }
     values.update(overrides)
     return "\n".join((
-        "Clock calibration method: bracketed %globaltimer endpoint intervals with affine CLOCK_MONOTONIC interpolation",
+        "Clock calibration method: " + runner.GPUBPF_LAUNCH_CLOCK_METHOD,
         f"Start clock offset lower: {values['start_low']} ns",
         f"Start clock offset upper: {values['start_high']} ns",
         f"Start clock uncertainty: {values['start_uncertainty']} ns",
         f"Start clock host anchor: {values['start_anchor']} ns",
+        f"Start RM samples requested: {values['rm_samples']}",
+        f"Start RM samples accepted: {values['rm_accepted']}",
+        f"Start RM samples rejected: {values['rm_rejected']}",
+        f"Start RM outer before RAW: {values['start_outer_before']} ns",
+        f"Start RM CPU before RAW: {values['start_cpu_before']} ns",
+        f"Start RM GPU PTIMER: {values['start_gpu']} ns",
+        f"Start RM CPU after RAW: {values['start_cpu_after']} ns",
+        f"Start RM outer after RAW: {values['start_outer_after']} ns",
+        f"Start RM outer width: {values['rm_outer_width']} ns",
+        f"Start RM selected gap: {values['rm_selected_gap']} ns",
+        f"Start RM bracket width: {values['rm_bracket_width']} ns",
+        f"Start RM status: 0x{values['rm_status']:08x}",
+        f"Start RM cleanup complete: {values['rm_cleanup']}",
         f"Probes detached before final readback: {values['detached']}",
         f"End clock offset lower: {values['end_low']} ns",
         f"End clock offset upper: {values['end_high']} ns",
         f"End clock uncertainty: {values['end_uncertainty']} ns",
         f"End clock host anchor: {values['end_anchor']} ns",
+        f"End RM samples requested: {values['rm_samples']}",
+        f"End RM samples accepted: {values['rm_accepted']}",
+        f"End RM samples rejected: {values['rm_rejected']}",
+        f"End RM outer before RAW: {values['end_outer_before']} ns",
+        f"End RM CPU before RAW: {values['end_cpu_before']} ns",
+        f"End RM GPU PTIMER: {values['end_gpu']} ns",
+        f"End RM CPU after RAW: {values['end_cpu_after']} ns",
+        f"End RM outer after RAW: {values['end_outer_after']} ns",
+        f"End RM outer width: {values['rm_outer_width']} ns",
+        f"End RM selected gap: {values['rm_selected_gap']} ns",
+        f"End RM bracket width: {values['rm_bracket_width']} ns",
+        f"End RM status: 0x{values['rm_status']:08x}",
+        f"End RM cleanup complete: {values['rm_cleanup']}",
         f"Clock offset change lower: {values['change_low']} ns",
         f"Clock offset change upper: {values['change_high']} ns",
         f"Clock calibration elapsed: {values['elapsed']} ns",
@@ -201,34 +245,52 @@ def lossless_launchlate_log(**overrides):
 
 def lossless_nvbit_launchlate_log(**overrides):
     values = {
-        "selected": 2,
-        "process_selected": 2,
-        "samples": 2,
+        "selected": 220,
+        "process_selected": 220,
+        "samples": 220,
         "uncertain": 0,
         "clock_errors": 0,
         "pair_capacity": 65536,
-        "stored_pairs": 2,
-        "device_entries": 2,
+        "stored_pairs": 220,
+        "device_entries": 220,
         "pair_overflows": 0,
         "capture_errors": 0,
         "selected_counter_overflow": 0,
         "accounting": 1,
-        "start_low": -120,
-        "start_high": -80,
-        "start_uncertainty": 20,
-        "start_anchor": 1000000000,
+        "start_low": 868,
+        "start_high": 1032,
+        "start_uncertainty": 82,
+        "start_anchor": 1000000050,
         "start_valid": 1,
-        "end_low": -100,
-        "end_high": -70,
-        "end_uncertainty": 15,
-        "end_anchor": 2000000000,
+        "end_low": 888,
+        "end_high": 1052,
+        "end_uncertainty": 82,
+        "end_anchor": 2000000050,
         "end_valid": 1,
-        "change_low": -20,
-        "change_high": 50,
+        "change_low": -144,
+        "change_high": 184,
         "elapsed": 1000000000,
-        "drift_rate": 50,
+        "drift_rate": 184,
         "drift_limit": 10000,
         "drift_bounded": 1,
+        "rm_samples": 32,
+        "rm_accepted": 32,
+        "rm_rejected": 0,
+        "start_outer_before": 999999900,
+        "start_cpu_before": 1000000000,
+        "start_gpu": 1000001000,
+        "start_cpu_after": 1000000100,
+        "start_outer_after": 1000000200,
+        "end_outer_before": 1999999900,
+        "end_cpu_before": 2000000000,
+        "end_gpu": 2000001020,
+        "end_cpu_after": 2000000100,
+        "end_outer_after": 2000000200,
+        "rm_outer_width": 300,
+        "rm_selected_gap": 100,
+        "rm_bracket_width": 164,
+        "rm_status": 0,
+        "rm_cleanup": 1,
     }
     values.update(overrides)
     if "stored_pairs" not in overrides:
@@ -239,19 +301,43 @@ def lossless_nvbit_launchlate_log(**overrides):
         values["process_selected"] = values["selected"]
     bins = [0, values["samples"], 0, 0, 0, 0, 0, 0, 0, 0]
     return "\n".join((
-        "NVBIT launchlate clock_calibration_method="
-        "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_"
-        "with_affine_interpolation_and_drift_bound",
+        "NVBIT launchlate clock_calibration_method=" + runner.NVBIT_LAUNCH_CLOCK_METHOD,
         f"NVBIT launchlate start_clock_offset_lower_ns={values['start_low']}",
         f"NVBIT launchlate start_clock_offset_upper_ns={values['start_high']}",
         f"NVBIT launchlate start_clock_uncertainty_ns={values['start_uncertainty']}",
         f"NVBIT launchlate start_clock_host_anchor_ns={values['start_anchor']}",
         f"NVBIT launchlate start_clock_calibration_valid={values['start_valid']}",
+        f"NVBIT launchlate start_rm_samples_requested={values['rm_samples']}",
+        f"NVBIT launchlate start_rm_samples_accepted={values['rm_accepted']}",
+        f"NVBIT launchlate start_rm_samples_rejected={values['rm_rejected']}",
+        f"NVBIT launchlate start_rm_outer_before_raw_ns={values['start_outer_before']}",
+        f"NVBIT launchlate start_rm_cpu_before_raw_ns={values['start_cpu_before']}",
+        f"NVBIT launchlate start_rm_gpu_ptimer_ns={values['start_gpu']}",
+        f"NVBIT launchlate start_rm_cpu_after_raw_ns={values['start_cpu_after']}",
+        f"NVBIT launchlate start_rm_outer_after_raw_ns={values['start_outer_after']}",
+        f"NVBIT launchlate start_rm_outer_width_ns={values['rm_outer_width']}",
+        f"NVBIT launchlate start_rm_selected_gap_ns={values['rm_selected_gap']}",
+        f"NVBIT launchlate start_rm_bracket_width_ns={values['rm_bracket_width']}",
+        f"NVBIT launchlate start_rm_status={values['rm_status']}",
+        f"NVBIT launchlate start_rm_cleanup_complete={values['rm_cleanup']}",
         f"NVBIT launchlate end_clock_offset_lower_ns={values['end_low']}",
         f"NVBIT launchlate end_clock_offset_upper_ns={values['end_high']}",
         f"NVBIT launchlate end_clock_uncertainty_ns={values['end_uncertainty']}",
         f"NVBIT launchlate end_clock_host_anchor_ns={values['end_anchor']}",
         f"NVBIT launchlate end_clock_calibration_valid={values['end_valid']}",
+        f"NVBIT launchlate end_rm_samples_requested={values['rm_samples']}",
+        f"NVBIT launchlate end_rm_samples_accepted={values['rm_accepted']}",
+        f"NVBIT launchlate end_rm_samples_rejected={values['rm_rejected']}",
+        f"NVBIT launchlate end_rm_outer_before_raw_ns={values['end_outer_before']}",
+        f"NVBIT launchlate end_rm_cpu_before_raw_ns={values['end_cpu_before']}",
+        f"NVBIT launchlate end_rm_gpu_ptimer_ns={values['end_gpu']}",
+        f"NVBIT launchlate end_rm_cpu_after_raw_ns={values['end_cpu_after']}",
+        f"NVBIT launchlate end_rm_outer_after_raw_ns={values['end_outer_after']}",
+        f"NVBIT launchlate end_rm_outer_width_ns={values['rm_outer_width']}",
+        f"NVBIT launchlate end_rm_selected_gap_ns={values['rm_selected_gap']}",
+        f"NVBIT launchlate end_rm_bracket_width_ns={values['rm_bracket_width']}",
+        f"NVBIT launchlate end_rm_status={values['rm_status']}",
+        f"NVBIT launchlate end_rm_cleanup_complete={values['rm_cleanup']}",
         f"NVBIT launchlate clock_offset_change_lower_ns={values['change_low']}",
         f"NVBIT launchlate clock_offset_change_upper_ns={values['change_high']}",
         f"NVBIT launchlate clock_calibration_elapsed_ns={values['elapsed']}",
@@ -403,6 +489,9 @@ class OfflineTests(unittest.TestCase):
                 args = SimpleNamespace(output_dir=Path(tmp), phase="preflight", resume=False)
                 snapshot = {"gpu": f"RTX 5090, {driver}, 32607, 0, 0, 0", "compute_apps": ""}
                 with (patch.object(runner.core, "nvidia_smi_snapshot", return_value=snapshot),
+                      patch.object(runner, "new_state", return_value={}),
+                      patch.object(runner, "write_state"),
+                      patch.object(runner, "run_launch_clock_controls", return_value=None),
                       patch.object(runner.shutil, "copytree"),
                       patch.object(runner, "validate_nvbit_kernelretsnoop_source_schema"),
                       patch.object(runner, "validate_nvbit_launchlate_source_schema"),
@@ -647,6 +736,7 @@ class OfflineTests(unittest.TestCase):
                 failure = runner.OwnedCleanupError("target survived", {"role": "CUDA client", "identity": {"pid": 98766}})
                 snapshot = {"gpu": "RTX 5090, 575.57.08, 32607, 0, 0, 0", "compute_apps": ""}
                 with (patch.object(runner.core, "nvidia_smi_snapshot", return_value=snapshot),
+                      patch.object(runner, "replay_launch_clock_controls", return_value=None),
                       patch.object(runner, "verify_resume", return_value={}),
                       patch.object(runner, "valid_correctness", return_value={"valid": True} if phase == "timing" else None),
                       patch.object(runner, "run_correctness_cell", side_effect=failure) as correctness,
@@ -749,15 +839,20 @@ class OfflineTests(unittest.TestCase):
 
     def test_native_launchlate_schema_is_validated_without_rewriting_source(self):
         sources = {
+            "Makefile": "rm_ptimer_575.c\nrm_ptimer_575.o",
             "launchlate.bpf.c": "\n".join((
                 "BPF_MAP_TYPE_GPU_ARRAY_HOST_MAP",
                 "LAUNCHLATE_TARGET_SYMBOL",
                 "MATCHED_SAMPLES",
                 "UNCERTAIN_SAMPLES",
                 "gpu_entry_ns",
+                "host_raw_ns",
+                "bpftime_ktime_get_raw_ns",
             )),
             "launchlate.c": "\n".join((
-                "affine CLOCK_MONOTONIC interpolation",
+                runner.GPUBPF_LAUNCH_CLOCK_METHOD,
+                "rm_ptimer_575_sample",
+                "RM cleanup complete:",
                 "Host enqueued:",
                 "Matched samples:",
                 "Queue update errors:",
@@ -867,7 +962,7 @@ class OfflineTests(unittest.TestCase):
     def test_nvbit_launchlate_schema_requires_bounded_clock_accounting(self):
         names = (
             "Makefile", "clock_domain.h", "common.h", "inject_funcs.cu",
-            "observability.cu", "tool_func/flush_channel.cu",
+            "observability.cu", "rm_ptimer_575.c",
         )
         sources = {
             name: (runner.NVBIT_SOURCE_DIR / name).read_text()
@@ -886,7 +981,7 @@ class OfflineTests(unittest.TestCase):
             ("inject_funcs.cu", "pair->gpu_entry_ns = gpu_ns"),
             ("observability.cu", "clock_drift_bounded="),
             ("observability.cu", "wait_for_minimum_clock_span("),
-            ("tool_func/flush_channel.cu", "%globaltimer"),
+            ("rm_ptimer_575.c", "RM_ENDPOINTS_V1_COMMAND"),
         )
         for broken_name, marker in corruptions:
             with self.subTest(source=broken_name), tempfile.TemporaryDirectory() as tmp:
@@ -1029,7 +1124,7 @@ class OfflineTests(unittest.TestCase):
         self.assertTrue(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text)))
         for label in (
             "Clock errors: 0", "Queue underflows: 0", "Queue overflows: 0",
-            "Host enqueued: 2", "Matched samples: 2", "Queue update errors: 0",
+            "Host enqueued: 220", "Matched samples: 220", "Queue update errors: 0",
             "Uncertain samples: 0", "Accounting complete: 1",
             "Online accounting complete: 1", "Pairing complete: 1",
             "Clock drift bounded: 1",
@@ -1042,10 +1137,10 @@ class OfflineTests(unittest.TestCase):
         probe = runner.parse_nvbit("launchlate", lossless_nvbit_launchlate_log())
         self.assertTrue(runner.nvbit_probe_valid("launchlate", probe))
         self.assertEqual(probe["uncertain_samples"], 0)
-        self.assertEqual(probe["start_clock_offset_lower_ns"], -120)
-        self.assertEqual(probe["end_clock_offset_upper_ns"], -70)
-        self.assertEqual(probe["clock_offset_change_lower_ns"], -20)
-        self.assertEqual(probe["clock_drift_rate_bound_ppb"], 50)
+        self.assertEqual(probe["start_clock_offset_lower_ns"], 868)
+        self.assertEqual(probe["end_clock_offset_upper_ns"], 1052)
+        self.assertEqual(probe["clock_offset_change_lower_ns"], -144)
+        self.assertEqual(probe["clock_drift_rate_bound_ppb"], 184)
         corruptions = {
             "sample_count": 1,
             "selected_launches": 1,
@@ -1087,33 +1182,37 @@ class OfflineTests(unittest.TestCase):
 
         text = lossless_nvbit_launchlate_log()
         for label in (
-            "clock_calibration_method=bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_with_affine_interpolation_and_drift_bound",
+            f"clock_calibration_method={runner.NVBIT_LAUNCH_CLOCK_METHOD}",
             "uncertain_samples=0",
             "pair_capacity=65536",
-            "stored_pairs=2",
-            "device_entries=2",
+            "stored_pairs=220",
+            "device_entries=220",
             "pair_overflows=0",
             "capture_errors=0",
             "selected_counter_overflow=0",
             "accounting_complete=1",
-            "process_selected_launches=2",
-            "start_clock_offset_lower_ns=-120",
-            "start_clock_offset_upper_ns=-80",
-            "start_clock_uncertainty_ns=20",
-            "start_clock_host_anchor_ns=1000000000",
+            "process_selected_launches=220",
+            "start_clock_offset_lower_ns=868",
+            "start_clock_offset_upper_ns=1032",
+            "start_clock_uncertainty_ns=82",
+            "start_clock_host_anchor_ns=1000000050",
             "start_clock_calibration_valid=1",
-            "end_clock_offset_lower_ns=-100",
-            "end_clock_offset_upper_ns=-70",
-            "end_clock_uncertainty_ns=15",
-            "end_clock_host_anchor_ns=2000000000",
+            "end_clock_offset_lower_ns=888",
+            "end_clock_offset_upper_ns=1052",
+            "end_clock_uncertainty_ns=82",
+            "end_clock_host_anchor_ns=2000000050",
             "end_clock_calibration_valid=1",
-            "clock_offset_change_lower_ns=-20",
-            "clock_offset_change_upper_ns=50",
+            "clock_offset_change_lower_ns=-144",
+            "clock_offset_change_upper_ns=184",
             "clock_calibration_elapsed_ns=1000000000",
-            "clock_drift_rate_bound_ppb=50",
+            "clock_drift_rate_bound_ppb=184",
             "clock_drift_limit_ppb=10000",
             "clock_drift_bounded=1",
-            "samples=2 clock_errors=0",
+            "start_rm_samples_requested=32",
+            "start_rm_bracket_width_ns=164",
+            "end_rm_samples_requested=32",
+            "end_rm_bracket_width_ns=164",
+            "samples=220 clock_errors=0",
         ):
             with self.subTest(missing=label):
                 parsed = runner.parse_nvbit("launchlate", text.replace(label, ""))
@@ -1121,21 +1220,23 @@ class OfflineTests(unittest.TestCase):
 
         legal_negative_one = lossless_nvbit_launchlate_log(
             start_low=-1,
-            start_high=39,
-            start_uncertainty=20,
+            start_high=163,
+            start_uncertainty=82,
+            start_gpu=1000000131,
             end_low=-1,
-            end_high=29,
-            end_uncertainty=15,
-            change_low=-40,
-            change_high=30,
-            drift_rate=40,
+            end_high=163,
+            end_uncertainty=82,
+            end_gpu=2000000131,
+            change_low=-164,
+            change_high=164,
+            drift_rate=164,
         )
         parsed = runner.parse_nvbit("launchlate", legal_negative_one)
         self.assertTrue(runner.nvbit_probe_valid("launchlate", parsed))
         for label in (
             "start_clock_offset_lower_ns=-1",
             "end_clock_offset_lower_ns=-1",
-            "clock_offset_change_lower_ns=-40",
+            "clock_offset_change_lower_ns=-164",
         ):
             with self.subTest(missing_legal_negative_one=label):
                 parsed = runner.parse_nvbit(
@@ -1198,13 +1299,13 @@ class OfflineTests(unittest.TestCase):
 
         compensated_missing_bin = text.replace(
             "NVBIT launchlate bin_0=0\n", ""
-        ).replace("NVBIT launchlate bin_1=2", "NVBIT launchlate bin_1=3")
+        ).replace("NVBIT launchlate bin_1=220", "NVBIT launchlate bin_1=221")
         parsed = runner.parse_nvbit("launchlate", compensated_missing_bin)
-        self.assertEqual(parsed["histogram_sum"], 2)
+        self.assertEqual(parsed["histogram_sum"], 220)
         self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
         for valid, malformed in (
             ("uncertain_samples=0", "uncertain_samples=0junk"),
-            ("selected_launches=2", "selected_launches=2junk"),
+            ("selected_launches=220", "selected_launches=220junk"),
         ):
             with self.subTest(malformed=malformed):
                 parsed = runner.parse_nvbit(
@@ -1215,9 +1316,9 @@ class OfflineTests(unittest.TestCase):
     def test_launchlate_accounting_and_calibration_gate_is_fail_closed(self):
         probe = runner.parse_gpubpf("launchlate", lossless_launchlate_log())
         self.assertTrue(runner.gpubpf_probe_valid("launchlate", probe))
-        self.assertEqual(probe["host_enqueued"], 2)
-        self.assertEqual(probe["matched_samples"], 2)
-        self.assertEqual(probe["clock_offset_change_lower_ns"], -20)
+        self.assertEqual(probe["host_enqueued"], 220)
+        self.assertEqual(probe["matched_samples"], 220)
+        self.assertEqual(probe["clock_offset_change_lower_ns"], -144)
         corruptions = {
             "sample_count": 1,
             "histogram_samples": 1,
@@ -1759,6 +1860,36 @@ class OfflineTests(unittest.TestCase):
                 )
                 self.assertIn("not relabeled", plan["scope_policy"])
                 self.assertEqual(plan["preflight_gate"]["required"], phase == "full")
+
+    def test_launchlate_dry_run_is_exactly_three_arms_and_ten_paired_blocks(self):
+        base = [
+            "--bpftime-root", "/source", "--bpftime-build-dir", "/build",
+            "--gpu-thread-count", "22528", "--dry-run", "--tools", "launchlate",
+        ]
+        preflight = runner.parse_args(base + ["--phase", "preflight"])
+        runner.validate_plan(preflight)
+        preflight_plan = runner.dry_run_plan(preflight)
+        self.assertEqual(preflight_plan["configs"], [
+            "baseline", "gpubpf_launchlate", "nvbit_launchlate",
+        ])
+        self.assertEqual(preflight_plan["timing_cell_count"], 3)
+        self.assertEqual(preflight_plan["engagement_gates"]["launchlate_correctness"], {
+            "gpubpf_exact_launches": 220, "nvbit_exact_launches": 220,
+            "minimum_classified": 198, "maximum_uncertain": 22,
+        })
+
+        full = runner.parse_args(base + [
+            "--phase", "full", "--preflight-dir", "/campaigns/launch-preflight",
+            "--output-dir", "/campaigns/launch-full",
+        ])
+        runner.validate_plan(full)
+        full_plan = runner.dry_run_plan(full)
+        self.assertEqual(full_plan["timing_cell_count"], 30)
+        self.assertEqual(len(full_plan["timing_schedule"]), 10)
+        for order in full_plan["timing_schedule"].values():
+            self.assertEqual(len(order), 3)
+            self.assertEqual(set(order), set(full_plan["configs"]))
+        self.assertTrue(full_plan["preflight_gate"]["required"])
 
     def test_subset_full_requires_independently_complete_matching_preflight(self):
         required = ["--phase", "full", "--bpftime-root", "/source",

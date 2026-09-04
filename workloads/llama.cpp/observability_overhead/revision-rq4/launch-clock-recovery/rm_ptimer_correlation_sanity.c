@@ -766,7 +766,7 @@ finalize:
 		    output_error == 0 && attempted == requested &&
 		    accepted == requested && rejected == 0 &&
 		    cpu_midpoint_regressions == 0 && ptimer_regressions == 0 &&
-		    median_width < TARGET_MEDIAN_BRACKET_NS;
+		    median_width <= TARGET_MEDIAN_BRACKET_NS;
 	exit_code = setup_error || cleanup_error || output_error ? 1 :
 		    gate_pass ? 0 : 2;
 	if (printf("{\"record\":\"summary\",\"setup_stage\":\"%s\","

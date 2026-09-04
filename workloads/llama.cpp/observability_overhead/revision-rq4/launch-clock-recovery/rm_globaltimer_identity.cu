@@ -185,22 +185,34 @@ int main(int argc, char** argv) {
                               !ptimer_regression;
         if (admitted) accepted++; else rejected++;
         printf("{\"type\":\"identity_sample\",\"trial\":%u,"
+               "\"rm_before_outer_before_raw_ns\":%" PRIu64 ","
                "\"rm_before_cpu_before_raw_ns\":%" PRIu64 ","
                "\"rm_before_gpu_ptimer_ns\":%" PRIu64 ","
                "\"rm_before_cpu_after_raw_ns\":%" PRIu64 ","
+               "\"rm_before_outer_after_raw_ns\":%" PRIu64 ","
+               "\"rm_before_offset_low_ns\":%" PRId64 ","
+               "\"rm_before_offset_high_ns\":%" PRId64 ","
                "\"kernel_before_raw_ns\":%" PRIu64 ","
                "\"device_globaltimer_ns\":%" PRIu64 ","
                "\"kernel_after_raw_ns\":%" PRIu64 ","
+               "\"rm_after_outer_before_raw_ns\":%" PRIu64 ","
                "\"rm_after_cpu_before_raw_ns\":%" PRIu64 ","
                "\"rm_after_gpu_ptimer_ns\":%" PRIu64 ","
                "\"rm_after_cpu_after_raw_ns\":%" PRIu64 ","
+               "\"rm_after_outer_after_raw_ns\":%" PRIu64 ","
+               "\"rm_after_offset_low_ns\":%" PRId64 ","
+               "\"rm_after_offset_high_ns\":%" PRId64 ","
                "\"before_bracket_width_ns\":%" PRIu64 ","
                "\"after_bracket_width_ns\":%" PRIu64 ","
                "\"contained\":%s,\"accepted\":%s}\n",
-               trial, before.cpu_before_raw_ns, before.gpu_ptimer_ns,
-               before.cpu_after_raw_ns, kernel_before_raw_ns, *device_value,
-               kernel_after_raw_ns, after.cpu_before_raw_ns,
-               after.gpu_ptimer_ns, after.cpu_after_raw_ns,
+               trial, before.outer_before_raw_ns, before.cpu_before_raw_ns,
+               before.gpu_ptimer_ns, before.cpu_after_raw_ns,
+               before.outer_after_raw_ns, before.offset_low_ns,
+               before.offset_high_ns, kernel_before_raw_ns, *device_value,
+               kernel_after_raw_ns, after.outer_before_raw_ns,
+               after.cpu_before_raw_ns, after.gpu_ptimer_ns,
+               after.cpu_after_raw_ns, after.outer_after_raw_ns,
+               after.offset_low_ns, after.offset_high_ns,
                before.bracket_width_ns, after.bracket_width_ns,
                contained ? "true" : "false", admitted ? "true" : "false");
         previous_raw = after.cpu_before_raw_ns;

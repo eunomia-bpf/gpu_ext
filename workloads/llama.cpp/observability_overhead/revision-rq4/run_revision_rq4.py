@@ -34,6 +34,7 @@ import run_three_way as shared  # noqa: E402
 
 NVBIT_ROOT = HERE / "deps/nvbit_release_x86_64"
 NVBIT_SOURCE_DIR = HERE / "nvbit_adapters/observability"
+CLOCK_CONTROL_SOURCE_DIR = HERE / "launch-clock-recovery"
 CONFIGS = [
     "baseline",
     "gpubpf_kernelretsnoop",
@@ -69,6 +70,16 @@ KERNELRETSNOOP_SHM_MEMORY_MB = 1000
 LAUNCH_CLOCK_DRIFT_LIMIT_PPB = 10000
 LAUNCH_MIN_CALIBRATION_SPAN_NS = 1_000_000_000
 LAUNCH_UNCERTAIN_PERCENT_LIMIT = 10
+LAUNCH_RM_CALIBRATION_SAMPLES = 32
+LAUNCH_RM_MAX_BRACKET_NS = 1500
+LAUNCH_CONTROL_SAMPLES = 200
+GPUBPF_LAUNCH_CLOCK_METHOD = (
+    "RM endpoints-v1 PTIMER intervals with affine CLOCK_MONOTONIC_RAW interpolation"
+)
+NVBIT_LAUNCH_CLOCK_METHOD = (
+    "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_"
+    "with_affine_interpolation_and_drift_bound"
+)
 EXPECTED_NORMALIZED_STDOUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_NORMALIZED_STDOUT_BYTES = 47
 LEASE_PATHS = (
@@ -448,10 +459,23 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
         }
     if "launchlate" in selected_tools(args):
         gates["launchlate_all_cells"] = {
-            "existing_affine_clock_and_accounting_gate": "unchanged; fail closed",
+            "clock_method": "CLOCK_MONOTONIC_RAW translated to RM PTIMER/globaltimer intervals",
+            "rm_endpoint_trials_per_anchor": LAUNCH_RM_CALIBRATION_SAMPLES,
+            "maximum_anchor_bracket_ns": LAUNCH_RM_MAX_BRACKET_NS,
             "zero_clock_queue_capture_overflow_errors": True,
             "bounded_clock_drift_and_uncertainty": True,
             "complete_host_device_pairing": True,
+        }
+        gates["launchlate_correctness"] = {
+            "gpubpf_exact_launches": CORRECTNESS_EXIT_LAUNCHES,
+            "nvbit_exact_launches": CORRECTNESS_EXIT_LAUNCHES,
+            "minimum_classified": 198,
+            "maximum_uncertain": 22,
+        }
+        gates["launchlate_calibration_controls"] = {
+            "endpoint_precision_samples": LAUNCH_CONTROL_SAMPLES,
+            "globaltimer_identity_samples": LAUNCH_CONTROL_SAMPLES,
+            "controls_are_not_performance_results": True,
         }
     return gates
 
@@ -794,15 +818,23 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
 def validate_launchlate_source_schema(directory: Path) -> None:
     """Reject a stale launchlate copy instead of rewriting it at run time."""
     required = {
+        "Makefile": (
+            "rm_ptimer_575.c",
+            "rm_ptimer_575.o",
+        ),
         "launchlate.bpf.c": (
             "BPF_MAP_TYPE_GPU_ARRAY_HOST_MAP",
             "LAUNCHLATE_TARGET_SYMBOL",
             "MATCHED_SAMPLES",
             "UNCERTAIN_SAMPLES",
             "gpu_entry_ns",
+            "host_raw_ns",
+            "bpftime_ktime_get_raw_ns",
         ),
         "launchlate.c": (
-            "affine CLOCK_MONOTONIC interpolation",
+            "RM endpoints-v1 PTIMER intervals with affine CLOCK_MONOTONIC_RAW interpolation",
+            "rm_ptimer_575_sample",
+            "RM cleanup complete:",
             "Host enqueued:",
             "Matched samples:",
             "Queue update errors:",
@@ -866,6 +898,7 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
         "Makefile": (
             "observability.o: observability.cu common.h clock_domain.h",
             "inject_funcs.o: inject_funcs.cu common.h clock_domain.h",
+            "rm_ptimer_575.o",
         ),
         "clock_domain.h": (
             "int64_t offset_low_ns;",
@@ -885,7 +918,7 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
         "common.h": (
             "LAUNCH_PAIR_CAPACITY",
             "struct launch_pair_t",
-            "uint64_t host_mono_ns;",
+            "uint64_t host_raw_ns;",
             "uint64_t gpu_entry_ns;",
             "uint64_t sequence;",
         ),
@@ -897,16 +930,18 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "__threadfence_system()",
         ),
         "observability.cu": (
-            "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_",
+            "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_",
             "with_affine_interpolation_and_drift_bound",
+            "rm_ptimer_575_sample",
+            "monotonic_raw_ns",
             "cudaMallocManaged(\n            &state->launch_pairs",
             "nvbit_set_at_launch(ctx, func, pair_ptr)",
             "state->launch_pair_overflows++",
             "print_launchlate_results(state, end_calibration)",
             "classify_affine_launch_latency(",
             "accounting_complete=",
-            "calibrate_gpu_clock(ctx, state, state->start_calibration)",
-            "calibrate_gpu_clock(ctx, state, &end_calibration)",
+            "calibrate_gpu_clock(state->start_calibration, state->start_rm)",
+            "calibrate_gpu_clock(&end_calibration, &end_rm)",
             "clock_calibration_drift(",
             "wait_for_minimum_clock_span(",
             'print_clock_calibration("start"',
@@ -931,9 +966,10 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "uncertain_samples=",
             "samples=%llu clock_errors=%llu",
         ),
-        "tool_func/flush_channel.cu": (
-            "sample_globaltimer",
-            "%globaltimer",
+        "rm_ptimer_575.c": (
+            "CLOCK_MONOTONIC_RAW",
+            "RM_ENDPOINTS_V1_COMMAND",
+            "RM_PTIMER_QUANTIZATION_NS",
         ),
     }
     for name, markers in required.items():
@@ -1120,6 +1156,36 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             r"^Clock calibration method:\s*(.+)$", text, re.MULTILINE
         )
         result["clock_calibration_method"] = methods[-1].strip() if methods else ""
+        rm_labels = {
+            "rm_samples_requested": "RM samples requested",
+            "rm_samples_accepted": "RM samples accepted",
+            "rm_samples_rejected": "RM samples rejected",
+            "rm_outer_before_raw_ns": "RM outer before RAW",
+            "rm_cpu_before_raw_ns": "RM CPU before RAW",
+            "rm_gpu_ptimer_ns": "RM GPU PTIMER",
+            "rm_cpu_after_raw_ns": "RM CPU after RAW",
+            "rm_outer_after_raw_ns": "RM outer after RAW",
+            "rm_outer_width_ns": "RM outer width",
+            "rm_selected_gap_ns": "RM selected gap",
+            "rm_bracket_width_ns": "RM bracket width",
+            "rm_cleanup_complete": "RM cleanup complete",
+        }
+        for phase in ("start", "end"):
+            display = phase.title()
+            for suffix, label in rm_labels.items():
+                unit = r"\s+ns" if suffix.endswith("_ns") else ""
+                values = re.findall(
+                    rf"^{display} {re.escape(label)}:\s*(\d+){unit}$",
+                    text,
+                    re.MULTILINE,
+                )
+                result[f"{phase}_{suffix}"] = int(values[-1]) if values else None
+            statuses = re.findall(
+                rf"^{display} RM status:\s*0x([0-9a-fA-F]+)$", text, re.MULTILINE
+            )
+            result[f"{phase}_rm_status"] = (
+                int(statuses[-1], 16) if statuses else None
+            )
     return result
 
 
@@ -1142,6 +1208,7 @@ def file_metadata(path: Path) -> dict[str, Any]:
 def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
     paths = [
         Path(__file__).resolve(),
+        HERE / "analyze_revision_rq4.py",
         OBS_ROOT / "run_observability_overhead.py",
         Path(shared.__file__),
         Path(shared.run_smoke.__file__),
@@ -1153,12 +1220,21 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         NVBIT_SOURCE_DIR / "common.h",
         NVBIT_SOURCE_DIR / "inject_funcs.cu",
         NVBIT_SOURCE_DIR / "observability.cu",
+        NVBIT_SOURCE_DIR / "rm_ptimer_575.c",
+        NVBIT_SOURCE_DIR / "rm_ptimer_575.h",
         NVBIT_SOURCE_DIR / "tool_func/flush_channel.cu",
+        CLOCK_CONTROL_SOURCE_DIR / "Makefile",
+        CLOCK_CONTROL_SOURCE_DIR / "rm_ptimer_correlation_sanity.c",
+        CLOCK_CONTROL_SOURCE_DIR / "rm_globaltimer_identity.cu",
+        CLOCK_CONTROL_SOURCE_DIR / "launchlate-frozen-plan.md",
         args.bpftime_root / "runtime/include/bpf_attach_ctx.hpp",
+        args.bpftime_root / "runtime/include/bpftime_helper_group.hpp",
         args.bpftime_root / "runtime/include/bpftime_gpu_ringbuf.h",
+        args.bpftime_root / "runtime/src/bpf_helper.cpp",
         args.bpftime_root / "runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.cpp",
         args.bpftime_root / "runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.hpp",
         args.bpftime_root / "runtime/syscall-server/syscall_server_main.cpp",
+        args.bpftime_root / "runtime/syscall-server/syscall_server_utils.cpp",
         args.bpftime_root / "attach/nv_attach_impl/trampoline/default_trampoline.cu",
         args.bpftime_root / "attach/nv_attach_impl/nv_attach_impl.cpp",
         args.bpftime_root
@@ -1173,6 +1249,11 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
                 args.bpftime_root / spec.example_dir / spec.user_file,
             ]
         )
+        if tool == "launchlate":
+            paths.extend((
+                args.bpftime_root / spec.example_dir / "rm_ptimer_575.c",
+                args.bpftime_root / spec.example_dir / "rm_ptimer_575.h",
+            ))
     return {str(path): file_metadata(path) for path in paths}
 
 
@@ -1266,6 +1347,298 @@ def build_nvbit(source_dir: Path, log_dir: Path) -> Path:
     if not tool.exists():
         raise FileNotFoundError(tool)
     return tool
+
+
+def read_strict_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Read a JSONL control log while rejecting duplicate keys and non-objects."""
+    if not path.is_file():
+        raise ValueError(f"missing raw JSONL: {path}")
+
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    records: list[dict[str, Any]] = []
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            raise ValueError(f"blank JSONL record at line {number}")
+        record = json.loads(line, object_pairs_hook=unique_object)
+        if not isinstance(record, dict):
+            raise ValueError(f"non-object JSONL record at line {number}")
+        records.append(record)
+    return records
+
+
+def integer_median(values: list[int]) -> int:
+    ordered = sorted(values)
+    if not ordered:
+        raise ValueError("cannot take the median of an empty list")
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[middle]
+    return ordered[middle - 1] // 2 + ordered[middle] // 2 + (
+        ordered[middle - 1] % 2 + ordered[middle] % 2
+    ) // 2
+
+
+def endpoint_control_valid(records: list[dict[str, Any]]) -> bool:
+    if len(records) != LAUNCH_CONTROL_SAMPLES + 1:
+        return False
+    samples, summary = records[:-1], records[-1]
+    widths: list[int] = []
+    outer_widths: list[int] = []
+    previous_cpu = previous_gpu = 0
+    for index, sample in enumerate(samples):
+        integer_fields = (
+            "index", "rm_status", "host_before_ns", "host_after_ns",
+            "rm_cpu_before_ns", "rm_cpu_midpoint_ns", "rm_cpu_after_ns",
+            "rm_gpu_ptimer_ns", "outer_width_ns", "max_selected_gap_ns",
+            "cpu_lower_ns", "cpu_upper_ns", "offset_low_ns",
+            "offset_high_ns", "bracket_width_ns",
+        )
+        if any(type(sample.get(key)) is not int for key in integer_fields):
+            return False
+        before = sample["host_before_ns"]
+        after = sample["host_after_ns"]
+        cpu_before = sample["rm_cpu_before_ns"]
+        cpu_after = sample["rm_cpu_after_ns"]
+        midpoint = sample["rm_cpu_midpoint_ns"]
+        gpu = sample["rm_gpu_ptimer_ns"]
+        gap = cpu_after - cpu_before
+        bracket = gap + 64
+        if not (
+            sample.get("record") == "sample"
+            and sample["index"] == index
+            and sample.get("control_transport") == "direct"
+            and sample.get("correlation_command") == "endpoints-v1"
+            and sample.get("valid") is True
+            and sample.get("cpu_midpoint_regression") is False
+            and sample.get("ptimer_regression") is False
+            and sample["rm_status"] == 0
+            and 0 < before <= cpu_before <= cpu_after <= after
+            and gpu > 0
+            and midpoint == cpu_before + gap // 2
+            and sample["outer_width_ns"] == after - before
+            and sample["outer_width_ns"] < 10_000_000
+            and sample["max_selected_gap_ns"] == gap
+            and sample["cpu_lower_ns"] == cpu_before
+            and sample["cpu_upper_ns"] == cpu_after
+            and sample["offset_low_ns"] == gpu - cpu_after - 32
+            and sample["offset_high_ns"] == gpu - cpu_before + 32
+            and sample["bracket_width_ns"] == bracket
+            and (previous_cpu == 0 or midpoint >= previous_cpu)
+            and (previous_gpu == 0 or gpu >= previous_gpu)
+        ):
+            return False
+        previous_cpu, previous_gpu = midpoint, gpu
+        widths.append(bracket)
+        outer_widths.append(after - before)
+    exact_summary = {
+        "record": "summary",
+        "setup_stage": "samples",
+        "control_transport": "direct",
+        "correlation_command": "endpoints-v1",
+        "setup_error": 0,
+        "cleanup_error": 0,
+        "cleanup_rm_status": 0,
+        "output_error": 0,
+        "requested": LAUNCH_CONTROL_SAMPLES,
+        "attempted": LAUNCH_CONTROL_SAMPLES,
+        "accepted": LAUNCH_CONTROL_SAMPLES,
+        "rejected": 0,
+        "cpu_midpoint_regressions": 0,
+        "ptimer_regressions": 0,
+        "min_outer_width_ns": min(outer_widths),
+        "median_outer_width_ns": integer_median(outer_widths),
+        "max_outer_width_ns": max(outer_widths),
+        "min_bracket_width_ns": min(widths),
+        "median_bracket_width_ns": integer_median(widths),
+        "max_bracket_width_ns": max(widths),
+        "target_median_bracket_ns": LAUNCH_RM_MAX_BRACKET_NS,
+        "gate_pass": True,
+    }
+    return summary == exact_summary and integer_median(widths) <= LAUNCH_RM_MAX_BRACKET_NS
+
+
+def identity_control_valid(records: list[dict[str, Any]]) -> bool:
+    if len(records) != LAUNCH_CONTROL_SAMPLES + 1:
+        return False
+    previous_raw = previous_ptimer = 0
+    for index, sample in enumerate(records[:-1]):
+        integer_fields = (
+            "trial", "rm_before_outer_before_raw_ns",
+            "rm_before_cpu_before_raw_ns", "rm_before_gpu_ptimer_ns",
+            "rm_before_cpu_after_raw_ns", "rm_before_outer_after_raw_ns",
+            "rm_before_offset_low_ns", "rm_before_offset_high_ns",
+            "kernel_before_raw_ns", "device_globaltimer_ns",
+            "kernel_after_raw_ns", "rm_after_outer_before_raw_ns",
+            "rm_after_cpu_before_raw_ns", "rm_after_gpu_ptimer_ns",
+            "rm_after_cpu_after_raw_ns", "rm_after_outer_after_raw_ns",
+            "rm_after_offset_low_ns", "rm_after_offset_high_ns",
+            "before_bracket_width_ns", "after_bracket_width_ns",
+        )
+        if any(type(sample.get(key)) is not int for key in integer_fields):
+            return False
+        bo = sample["rm_before_outer_before_raw_ns"]
+        bc = sample["rm_before_cpu_before_raw_ns"]
+        bg = sample["rm_before_gpu_ptimer_ns"]
+        ba = sample["rm_before_cpu_after_raw_ns"]
+        bx = sample["rm_before_outer_after_raw_ns"]
+        ko = sample["kernel_before_raw_ns"]
+        kg = sample["device_globaltimer_ns"]
+        kx = sample["kernel_after_raw_ns"]
+        ao = sample["rm_after_outer_before_raw_ns"]
+        ac = sample["rm_after_cpu_before_raw_ns"]
+        ag = sample["rm_after_gpu_ptimer_ns"]
+        aa = sample["rm_after_cpu_after_raw_ns"]
+        ax = sample["rm_after_outer_after_raw_ns"]
+        if not (
+            sample.get("type") == "identity_sample"
+            and sample["trial"] == index
+            and sample.get("contained") is True
+            and sample.get("accepted") is True
+            and 0 < bo <= bc <= ba <= bx <= ko <= kx <= ao <= ac <= aa <= ax
+            and bx - bo < 10_000_000
+            and ax - ao < 10_000_000
+            and 0 < bg <= kg <= ag
+            and sample["rm_before_offset_low_ns"] == bg - ba - 32
+            and sample["rm_before_offset_high_ns"] == bg - bc + 32
+            and sample["rm_after_offset_low_ns"] == ag - aa - 32
+            and sample["rm_after_offset_high_ns"] == ag - ac + 32
+            and sample["before_bracket_width_ns"] == ba - bc + 64
+            and sample["after_bracket_width_ns"] == aa - ac + 64
+            and (previous_raw == 0 or bc >= previous_raw)
+            and (previous_ptimer == 0 or bg >= previous_ptimer)
+        ):
+            return False
+        previous_raw, previous_ptimer = ac, ag
+    summary = records[-1]
+    return summary == {
+        "type": "identity_summary",
+        "requested": LAUNCH_CONTROL_SAMPLES,
+        "attempted": LAUNCH_CONTROL_SAMPLES,
+        "accepted": LAUNCH_CONTROL_SAMPLES,
+        "rejected": 0,
+        "containment_failures": 0,
+        "raw_regressions": 0,
+        "ptimer_regressions": 0,
+        "cuda_errors": 0,
+        "setup_complete": True,
+        "cleanup_complete": True,
+        "gate_passed": True,
+    }
+
+
+def prepare_clock_controls(output_dir: Path) -> Path:
+    root = output_dir / "clock_control_build"
+    control_dir = root / "launch-clock-recovery"
+    rm_dir = root / "nvbit_adapters" / "observability"
+    control_dir.mkdir(parents=True, exist_ok=False)
+    rm_dir.mkdir(parents=True, exist_ok=False)
+    for name in ("Makefile", "rm_ptimer_correlation_sanity.c",
+                 "rm_globaltimer_identity.cu"):
+        shutil.copy2(CLOCK_CONTROL_SOURCE_DIR / name, control_dir / name)
+    for name in ("rm_ptimer_575.c", "rm_ptimer_575.h"):
+        shutil.copy2(NVBIT_SOURCE_DIR / name, rm_dir / name)
+    core.run_cmd(["make", "-j4"], cwd=control_dir,
+                 log_path=output_dir / "build_clock_controls.log")
+    return control_dir
+
+
+def run_clock_control(command: list[str], run_dir: Path,
+                      validator) -> dict[str, Any]:
+    run_dir.mkdir(parents=True, exist_ok=False)
+    with cell_safety(run_dir) as safety:
+        completed = run_cli_separate(
+            command, cwd=Path(command[0]).parent, env=os.environ.copy(),
+            timeout=300, log_path=run_dir / "process.log",
+        )
+    stdout_path = run_dir / "stdout.jsonl"
+    stderr_path = run_dir / "stderr.log"
+    stdout_path.write_text(completed.stdout, encoding="utf-8")
+    stderr_path.write_text(completed.stderr, encoding="utf-8")
+    valid = False
+    error = None
+    try:
+        valid = completed.returncode == 0 and validator(read_strict_jsonl(stdout_path))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        error = f"{type(exc).__name__}: {exc}"
+    return {
+        "command": command,
+        "returncode": completed.returncode,
+        "stdout": str(stdout_path),
+        "stderr": str(stderr_path),
+        "safety": str(run_dir / "gpu-safety.json"),
+        "valid": valid,
+        "error": error,
+    }
+
+
+def run_launch_clock_controls(output_dir: Path, admission: dict[str, Any]) -> dict[str, Any]:
+    control_dir = prepare_clock_controls(output_dir)
+    endpoint = run_clock_control(
+        [str(control_dir / "rm_ptimer_correlation_sanity"), "--samples",
+         str(LAUNCH_CONTROL_SAMPLES), "--control-transport", "direct",
+         "--correlation-command", "endpoints-v1"],
+        output_dir / "clock_controls" / "endpoint_precision",
+        endpoint_control_valid,
+    )
+    if not endpoint["valid"]:
+        result = {"role": "calibration_only", "boot_id": admission["boot_id"],
+                  "driver": admission["driver"], "endpoint_precision": endpoint,
+                  "globaltimer_identity": None, "passed": False}
+    else:
+        identity = run_clock_control(
+            [str(control_dir / "rm_globaltimer_identity"), "--samples",
+             str(LAUNCH_CONTROL_SAMPLES)],
+            output_dir / "clock_controls" / "globaltimer_identity",
+            identity_control_valid,
+        )
+        result = {"role": "calibration_only", "boot_id": admission["boot_id"],
+                  "driver": admission["driver"], "endpoint_precision": endpoint,
+                  "globaltimer_identity": identity,
+                  "passed": bool(endpoint["valid"] and identity["valid"])}
+    (output_dir / "clock-controls.json").write_text(
+        json.dumps(result, indent=2) + "\n", encoding="utf-8"
+    )
+    if not result["passed"]:
+        raise RuntimeError("launch-clock calibration controls failed; timing is forbidden")
+    return result
+
+
+def replay_launch_clock_controls(output_dir: Path,
+                                 admission: dict[str, Any]) -> dict[str, Any]:
+    record_path = output_dir / "clock-controls.json"
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    if (record.get("role") != "calibration_only" or record.get("passed") is not True or
+            record.get("boot_id") != admission["boot_id"] or
+            record.get("driver") != admission["driver"]):
+        raise RuntimeError("recorded launch-clock controls do not match this stack")
+    for name, validator in (
+        ("endpoint_precision", endpoint_control_valid),
+        ("globaltimer_identity", identity_control_valid),
+    ):
+        item = record.get(name)
+        if (
+            not isinstance(item, dict)
+            or item.get("valid") is not True
+            or item.get("returncode") != 0
+        ):
+            raise RuntimeError(f"recorded {name} control is not complete")
+        raw = Path(item.get("stdout", "")).resolve()
+        safety_path = Path(item.get("safety", "")).resolve()
+        if not raw.is_relative_to(output_dir) or not safety_path.is_relative_to(output_dir):
+            raise RuntimeError(f"recorded {name} evidence escapes the campaign directory")
+        safety = json.loads(safety_path.read_text(encoding="utf-8"))
+        if safety.get("passed") is not True or safety.get("boot_id") != admission["boot_id"]:
+            raise RuntimeError(f"recorded {name} safety gate is invalid")
+        if not validator(read_strict_jsonl(raw)):
+            raise RuntimeError(f"raw replay rejected {name}")
+    return record
 
 
 def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
@@ -1384,6 +1757,32 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
         "clock_drift_rate_bound_ppb": r"\d+",
         "clock_drift_limit_ppb": r"\d+",
         "clock_drift_bounded": r"\d+",
+        "start_rm_samples_requested": r"\d+",
+        "start_rm_samples_accepted": r"\d+",
+        "start_rm_samples_rejected": r"\d+",
+        "start_rm_outer_before_raw_ns": r"\d+",
+        "start_rm_cpu_before_raw_ns": r"\d+",
+        "start_rm_gpu_ptimer_ns": r"\d+",
+        "start_rm_cpu_after_raw_ns": r"\d+",
+        "start_rm_outer_after_raw_ns": r"\d+",
+        "start_rm_outer_width_ns": r"\d+",
+        "start_rm_selected_gap_ns": r"\d+",
+        "start_rm_bracket_width_ns": r"\d+",
+        "start_rm_status": r"\d+",
+        "start_rm_cleanup_complete": r"\d+",
+        "end_rm_samples_requested": r"\d+",
+        "end_rm_samples_accepted": r"\d+",
+        "end_rm_samples_rejected": r"\d+",
+        "end_rm_outer_before_raw_ns": r"\d+",
+        "end_rm_cpu_before_raw_ns": r"\d+",
+        "end_rm_gpu_ptimer_ns": r"\d+",
+        "end_rm_cpu_after_raw_ns": r"\d+",
+        "end_rm_outer_after_raw_ns": r"\d+",
+        "end_rm_outer_width_ns": r"\d+",
+        "end_rm_selected_gap_ns": r"\d+",
+        "end_rm_bracket_width_ns": r"\d+",
+        "end_rm_status": r"\d+",
+        "end_rm_cleanup_complete": r"\d+",
     }
     for key, number in integer_fields.items():
         values = re.findall(
@@ -1444,6 +1843,53 @@ def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
         and expected_rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB
         and probe["clock_drift_bounded"] == 1
     )
+
+
+def launch_rm_anchors_valid(probe: dict[str, Any]) -> bool:
+    """Recompute both endpoint-v1 RAW/PTIMER intervals from emitted fields."""
+    for phase in ("start", "end"):
+        names = (
+            "rm_samples_requested", "rm_samples_accepted",
+            "rm_samples_rejected", "rm_outer_before_raw_ns",
+            "rm_cpu_before_raw_ns", "rm_gpu_ptimer_ns",
+            "rm_cpu_after_raw_ns", "rm_outer_after_raw_ns",
+            "rm_outer_width_ns", "rm_selected_gap_ns",
+            "rm_bracket_width_ns", "rm_status", "rm_cleanup_complete",
+        )
+        values = {name: probe.get(f"{phase}_{name}") for name in names}
+        if any(type(value) is not int for value in values.values()):
+            return False
+        outer_before = values["rm_outer_before_raw_ns"]
+        cpu_before = values["rm_cpu_before_raw_ns"]
+        gpu = values["rm_gpu_ptimer_ns"]
+        cpu_after = values["rm_cpu_after_raw_ns"]
+        outer_after = values["rm_outer_after_raw_ns"]
+        selected_gap = cpu_after - cpu_before
+        bracket = selected_gap + 2 * 32
+        if not (
+            values["rm_samples_requested"] == LAUNCH_RM_CALIBRATION_SAMPLES
+            and values["rm_samples_accepted"] == LAUNCH_RM_CALIBRATION_SAMPLES
+            and values["rm_samples_rejected"] == 0
+            and values["rm_status"] == 0
+            and values["rm_cleanup_complete"] == 1
+            and 0 < outer_before <= cpu_before <= cpu_after <= outer_after
+            and gpu > 0
+            and values["rm_outer_width_ns"] == outer_after - outer_before
+            and values["rm_outer_width_ns"] < 10_000_000
+            and values["rm_selected_gap_ns"] == selected_gap
+            and values["rm_bracket_width_ns"] == bracket
+            and bracket <= LAUNCH_RM_MAX_BRACKET_NS
+            and probe.get(f"{phase}_clock_offset_lower_ns")
+                == gpu - cpu_after - 32
+            and probe.get(f"{phase}_clock_offset_upper_ns")
+                == gpu - cpu_before + 32
+            and probe.get(f"{phase}_clock_uncertainty_ns")
+                == (bracket + 1) // 2
+            and probe.get(f"{phase}_clock_host_anchor_ns")
+                == cpu_before + selected_gap // 2
+        ):
+            return False
+    return True
 
 
 def launch_uncertainty_valid(classified: int, uncertain: int, total: int) -> bool:
@@ -1511,9 +1957,10 @@ def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
     uncertain = int(probe.get("uncertain_samples", -1))
     return (
         probe.get("clock_calibration_method")
-        == "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_with_affine_interpolation_and_drift_bound"
+        == NVBIT_LAUNCH_CLOCK_METHOD
         and int(probe.get("start_clock_calibration_valid", -1)) == 1
         and int(probe.get("end_clock_calibration_valid", -1)) == 1
+        and launch_rm_anchors_valid(probe)
         and launch_clock_model_valid(probe)
         and int(probe.get("clock_errors", -1)) == 0
         and isinstance(histogram, list)
@@ -1533,6 +1980,7 @@ def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
         and int(probe.get("calibration_blocks", -1)) == 1
         and selected == samples + uncertain + int(probe.get("clock_errors", -1))
         and launch_uncertainty_valid(samples, uncertain, selected)
+        and (expected_exit_launches is None or selected == expected_exit_launches)
     )
 
 
@@ -1657,8 +2105,9 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
 
     calibration_valid = (
         probe.get("clock_calibration_method")
-        == "bracketed %globaltimer endpoint intervals with affine CLOCK_MONOTONIC interpolation"
+        == GPUBPF_LAUNCH_CLOCK_METHOD
         and launch_clock_model_valid(probe)
+        and launch_rm_anchors_valid(probe)
     )
     matched = int(probe.get("matched_samples", -1))
     classified = int(probe.get("classified_samples", -1))
@@ -1680,6 +2129,7 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
         == matched
         == samples
         and int(probe.get("histogram_samples", -5)) == classified
+        and (expected_exit_launches is None or matched == expected_exit_launches)
     )
 
 
@@ -1863,7 +2313,8 @@ def run_correctness_cell(
                     CORRECTNESS_EXIT_EVENTS if tool == "kernelretsnoop" else None
                 ),
                 expected_exit_launches=(
-                    CORRECTNESS_EXIT_LAUNCHES if tool == "kernelretsnoop" else None
+                    CORRECTNESS_EXIT_LAUNCHES
+                    if tool in ("kernelretsnoop", "launchlate") else None
                 ),
                 expected_exit_coordinates=(
                     CORRECTNESS_EXIT_COORDINATES if tool == "kernelretsnoop" else None
@@ -1879,7 +2330,8 @@ def run_correctness_cell(
                     CORRECTNESS_EXIT_EVENTS if tool == "kernelretsnoop" else None
                 ),
                 expected_exit_launches=(
-                    CORRECTNESS_EXIT_LAUNCHES if tool == "kernelretsnoop" else None
+                    CORRECTNESS_EXIT_LAUNCHES
+                    if tool in ("kernelretsnoop", "launchlate") else None
                 ),
                 expected_exit_coordinates=(
                     CORRECTNESS_EXIT_COORDINATES if tool == "kernelretsnoop" else None
@@ -2434,6 +2886,25 @@ def run_campaign(args: argparse.Namespace) -> int:
         state = json.loads(result_path.read_text(encoding="utf-8"))
         tool_dirs = verify_resume(state, args, snapshot)
     else:
+        # Freeze the parameters and randomized schedule before any calibration,
+        # correctness, or performance execution starts.
+        state = new_state(args, timestamp, snapshot)
+        write_state(output_dir, state)
+
+    clock_controls = None
+    if "launchlate" in tools:
+        clock_controls = (
+            replay_launch_clock_controls(output_dir, admission)
+            if args.resume else run_launch_clock_controls(output_dir, admission)
+        )
+        if args.resume:
+            if state.get("clock_controls") != clock_controls:
+                raise RuntimeError("result.json launch-clock controls differ from raw replay")
+        else:
+            state["clock_controls"] = clock_controls
+            write_state(output_dir, state)
+
+    if not args.resume:
         nvbit_build_dir = output_dir / "nvbit_tool_build"
         shutil.copytree(
             NVBIT_SOURCE_DIR,
@@ -2463,7 +2934,6 @@ def run_campaign(args: argparse.Namespace) -> int:
             core.build_tool(core.TOOLS[tool], directory)
             tool_dirs[tool] = directory
 
-        state = new_state(args, timestamp, snapshot)
         record_artifacts(state, args, tool_dirs)
         write_state(output_dir, state)
 

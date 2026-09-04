@@ -6,6 +6,49 @@ controls separate from the paired 10-block performance result and requires a
 same-stack PTIMER/`%globaltimer` identity canary before the 220-launch
 correctness rerun.
 
+The runnable campaign is the launch-only three-arm matrix; it never mixes the
+old cross-clock records into a result. From the `revision-rq4` directory, first
+run the CPU-only checks:
+
+```bash
+python3 -m unittest -v test_offline.py test_analyze_revision_rq4.py
+python3 -m py_compile run_revision_rq4.py analyze_revision_rq4.py
+```
+
+Then, during an authorized GPU window, use a runtime freshly built from the
+recorded bpftime source and run preflight followed by the independently gated
+full campaign:
+
+```bash
+cmake -S /home/yunwei37/workspace/gpu/bpftime-table1-575 \
+  -B /home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575 \
+  -DCMAKE_BUILD_TYPE=Debug -DENABLE_EBPF_VERIFIER=ON \
+  -DBPFTIME_ENABLE_CUDA_ATTACH=ON -DBPFTIME_LLVM_JIT=ON
+cmake --build /home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575 -j8
+
+python3 -B run_revision_rq4.py --phase preflight --tools launchlate \
+  --output-dir raw/launchlate-575-preflight \
+  --bpftime-root /home/yunwei37/workspace/gpu/bpftime-table1-575 \
+  --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575 \
+  --gpu-thread-count 22528
+
+python3 -B run_revision_rq4.py --phase full --tools launchlate \
+  --preflight-dir "$PWD/raw/launchlate-575-preflight" \
+  --output-dir raw/launchlate-575-full \
+  --bpftime-root /home/yunwei37/workspace/gpu/bpftime-table1-575 \
+  --bpftime-build-dir /home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575 \
+  --gpu-thread-count 22528
+
+python3 -B analyze_revision_rq4.py raw/launchlate-575-preflight
+python3 -B analyze_revision_rq4.py raw/launchlate-575-full
+```
+
+The matrix is exactly baseline, gpubpf launchlate, and NVBit launchlate: one
+pp=32 preflight block and ten randomized pp=512 blocks. The runner performs
+both 200-sample clock controls before the 220-launch correctness cells. The
+analyzer reopens the raw control, process, cleanup, safety, correctness,
+engagement, and throughput evidence; a stored `valid` flag alone cannot pass.
+
 `rm_globaltimer_identity.cu` implements that second control.  Each trial
 orders an endpoint-v1 RM/PTIMER sample, one device `%globaltimer` read, and a
 second RM/PTIMER sample, then requires both host and device ordering plus
@@ -31,7 +74,7 @@ repeats control `0x20800406` with the
 `PLATFORM_API|CPU` clock source.  Each call is bracketed by
 `CLOCK_MONOTONIC_RAW` and emitted as one JSON line.  The summary passes only
 when every requested call is structurally valid and the median conservative
-bracket, including the 32 ns PTIMER allowance on each side, is below 1.5 us.
+bracket, including the 32 ns PTIMER allowance on each side, is at most 1.5 us.
 The 1.5 us threshold is a Phase-0 admission heuristic: it requires at least a
 threefold improvement over the roughly 5.2 us failed calibration, but it is
 not a launch-latency correctness threshold.  The summary also rejects any
@@ -93,7 +136,7 @@ This audit is a repair note for the `launchlate` correctness arms. It does not
 promote the failed preflight to a result, change any raw file, or relax the
 frozen histogram bins, 10% uncertain-sample limit, or 10,000 ppb drift limit.
 
-## What failed
+## Historical cross-clock run: what failed
 
 The gpubpf arm retained and paired all 220 host/device samples with zero queue
 or clock errors. Its start and end calibration brackets were 5,261 ns and
@@ -121,7 +164,11 @@ whereas a wholly negative interval, malformed pair, overflow, or invalid
 calibration is a clock error. Reclassifying uncertain samples by an interval
 midpoint would silently invent precision and is not an acceptable repair.
 
-## Minimal implemented repair
+## Earlier partial repair (superseded)
+
+This section records the intermediate NVBit-only change that predated the
+endpoint-v1 repair above. It is retained as failure history, not as the current
+runnable design.
 
 NVBit now waits, with an absolute `CLOCK_MONOTONIC` deadline, until its two
 calibration anchors are at least one second apart. The runner independently
@@ -173,7 +220,7 @@ Compile without executing the probe:
   -lcupti -o /tmp/cupti_globaltimer_sanity
 ```
 
-## Principled gpubpf path
+## Design rationale for the implemented gpubpf path
 
 The 575 open driver exposes
 `NV2080_CTRL_CMD_TIMER_GET_GPU_CPU_TIME_CORRELATION_INFO`. Its public control
@@ -196,10 +243,10 @@ narrow, the production repair can add a distinct bpftime host helper for
 end to end. The standard `bpf_ktime_get_ns` helper must remain unchanged.
 
 The public-data bracket stayed too wide in both retained transports, so the
-separate versioned driver control now exposes the selected CPU endpoints while
+separate versioned driver control exposes the selected CPU endpoints while
 leaving the stock command unchanged. Its source build and CPU-only probe tests
-must pass before a module reload; a real endpoint canary must then pass the
-unchanged precision and cleanup gates before any launchlate run.
+pass; the runner requires a fresh endpoint canary to pass the frozen precision
+and cleanup gates before any launchlate correctness or timing cell.
 
 Finally, the current two-anchor interpolation assumes the relative host/device
 clock offset evolves affinely between anchors. The endpoint drift check bounds

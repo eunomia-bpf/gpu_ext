@@ -45,10 +45,31 @@ count is matched, so the diamond constructor necessarily replaces half of the
 linear ALU operations with branches, and the direct API interval combines
 PREVAIL, uniformity, and SIMT passes. The result establishes a program-shape
 boundary: admission cost is not explained by instruction count or CFG density
-alone. Per-pass instrumentation would be needed to attribute the crossover to
-abstract-state propagation, joins, or a particular verifier stage.
+alone. A subsequent phase-timing preflight localizes the crossover to PREVAIL,
+but not to one of PREVAIL's internal routines.
 The bootstrap interval describes run-to-run uncertainty over these 20 blocks;
 it is not an asymptotic complexity proof.
+
+## Follow-up phase attribution
+
+A default-off timer added at bpftime commit `c1c4cf6` measured the existing
+input-copy, validation, PREVAIL, uniformity, and SIMT boundaries without
+changing the verifier API or decision. One fresh process per 4,096-instruction
+arm ran serially on CPU 23:
+
+| Arm | Internal total, ms | PREVAIL, ms (% total) | Uniformity, ms | SIMT, ms |
+|---|---:|---:|---:|---:|
+| Linear | 1,909.423 | 1,907.221 (99.885%) | 2.170 | 0.009 |
+| Uniform diamonds | 586.493 | 583.949 (99.566%) | 2.491 | 0.029 |
+
+The diamonds/linear ratio is 0.3072 for total time and 0.3062 for PREVAIL.
+PREVAIL accounts for 100.026% of the gap because the other phases collectively
+make diamonds about 0.34 ms slower. An independent calculation found no
+arithmetic or validity blocker. This rules out the added uniformity and SIMT
+passes as the cause in these two samples, but the single-sample, two-arm
+preflight is dependency evidence rather than a repeated paper-facing result;
+it does not distinguish CFG construction, abstract interpretation, reporting,
+or another PREVAIL-internal cost.
 
 ## Validity and scope
 

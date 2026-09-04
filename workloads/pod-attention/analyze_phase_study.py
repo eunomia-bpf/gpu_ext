@@ -146,6 +146,8 @@ def audit_campaign(directory):
 
     durations = {name: {arm: {} for arm in phase.ARMS}
                  for name in COMPARABLE_PHASES}
+    operator_latency = {name: {arm: {} for arm in phase.ARMS}
+                        for name in ('cuda_ms', 'host_wall_ms')}
     loader_ready = {}
     previous_end = None
     for item in expected:
@@ -161,12 +163,18 @@ def audit_campaign(directory):
         previous_end = audit_safety(cell, execution, previous_end)
 
         report = read_json(cell / 'operator.json')
+        samples = report['cells'][0]['samples']
         row = re.findall(r'^POD_CELL arm=(\S+) model=(\S+) bs=(\d+) mean_cuda_ms=(\S+)$',
                          (cell / 'client.log').read_text(), re.M)
         require(len(row) == 1 and row[0][:3] == (arm, phase.FIXED_SHAPE[0],
                                                  str(phase.FIXED_SHAPE[1]))
                 and abs(float(row[0][3]) - report['cells'][0]['mean_cuda_ms']) <= 5.01e-7,
                 'client success row is missing or differs from raw samples')
+        for name in operator_latency:
+            value = statistics.fmean(sample[name] for sample in samples)
+            require(math.isfinite(value) and value > 0,
+                    'operator latency is nonpositive or nonfinite')
+            operator_latency[name][arm][block] = value
         for name in COMPARABLE_PHASES:
             value = summary['durations'].get(name)
             require(type(value) is int and value > 0, 'missing/nonpositive phase duration')
@@ -179,11 +187,11 @@ def audit_campaign(directory):
             require(summary['durations'].get('loader_ready_ns') is None,
                     'non-BPF arm reports a loader-ready duration')
     require(set(loader_ready) == set(range(1, 6)), 'missing BPF loader observations')
-    return manifest, durations, loader_ready
+    return manifest, durations, loader_ready, operator_latency
 
 
 def analyze(directory):
-    manifest, measured, loader_ready = audit_campaign(directory)
+    manifest, measured, loader_ready, operator_measured = audit_campaign(directory)
     indices = bootstrap_indices()
     block_ms = {
         name: {arm: [measured[name][arm][block] / 1e6 for block in range(1, 6)]
@@ -194,6 +202,19 @@ def analyze(directory):
         label: {
             name: paired_ratio(block_ms[name][numerator], block_ms[name][denominator], indices)
             for name in COMPARABLE_PHASES
+        }
+        for label, numerator, denominator in COMPARISONS
+    }
+    operator_block_ms = {
+        name: {arm: [operator_measured[name][arm][block] for block in range(1, 6)]
+               for arm in phase.ARMS}
+        for name in operator_measured
+    }
+    operator_ratios = {
+        label: {
+            name: paired_ratio(operator_block_ms[name][numerator],
+                               operator_block_ms[name][denominator], indices)
+            for name in operator_block_ms
         }
         for label, numerator, denominator in COMPARISONS
     }
@@ -225,6 +246,15 @@ def analyze(directory):
         'median_phase_ms': medians,
         'block_phase_ms': block_ms,
         'paired_ratios': ratios,
+        'operator_latency': {
+            'cell_estimator': 'arithmetic mean of all 100 unfiltered synchronized samples',
+            'block_means_ms': operator_block_ms,
+            'median_of_five_cell_means_ms': {
+                name: {arm: statistics.median(values) for arm, values in arms.items()}
+                for name, arms in operator_block_ms.items()
+            },
+            'paired_ratios': operator_ratios,
+        },
         'bpf_loader_ready_ms': {
             'blocks': [loader_ready[block] / 1e6 for block in range(1, 6)],
             'median': statistics.median(loader_ready.values()) / 1e6,
@@ -237,8 +267,9 @@ def analyze(directory):
         'claim_boundary': (
             'Fresh-process phases for one frozen POD adapter, operator shape, runtime, and RTX 5090. '
             'pre_python_main includes all work before Python main on this injection path; it is not '
-            'a generic attach-latency estimate. steady_samples covers 100 synchronized operator '
-            'samples, not an end-to-end serving workload.'
+            'a generic attach-latency estimate. steady_samples covers the complete 100-sample '
+            'measurement loop, including correctness and decision audits outside each timed '
+            'operator; it is not operator latency or an end-to-end serving workload.'
         ),
     }
 

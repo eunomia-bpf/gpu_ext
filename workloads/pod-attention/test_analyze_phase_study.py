@@ -32,6 +32,11 @@ class PhaseAnalysisTests(unittest.TestCase):
                          {'pod_bpf', 'pod_cuda'})
         self.assertEqual(set(phase.ARMS), {'pod_inline', 'pod_cuda', 'pod_bpf'})
 
+    def test_operator_and_whole_loop_are_distinct_estimands(self):
+        self.assertNotIn('cuda_ms', analysis.COMPARABLE_PHASES)
+        self.assertNotIn('host_wall_ms', analysis.COMPARABLE_PHASES)
+        self.assertIn('steady_samples_ns', analysis.COMPARABLE_PHASES)
+
     def test_percentile_is_linear_interpolated(self):
         self.assertEqual(analysis.percentile([0, 10], .25), 2.5)
         self.assertEqual(analysis.percentile([0, 10], .5), 5)

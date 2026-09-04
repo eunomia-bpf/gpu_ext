@@ -761,6 +761,31 @@ def struct_ops_ids() -> tuple[set[int], set[int]]:
             {int(item["id"]) for item in inventory["links"]})
 
 
+def validate_owned_struct_ops(ready: dict[str, Any], owner_pid: int) -> dict[str, Any]:
+    inventory = safety.struct_ops_inventory()
+    map_ids = {int(item["id"]) for item in inventory["maps"]}
+    expected_map = int(ready["struct_ops_map_id"])
+    demand(map_ids == {expected_map},
+           "loaded struct_ops map is not exactly the owned policy")
+    owner_pids = {
+        int(owner["pid"])
+        for item in inventory["maps"]
+        for owner in item.get("pids", ())
+    }
+    demand(owner_pids == {owner_pid},
+           "loaded struct_ops map PID is not exactly the owned loader")
+    link_ids = {int(item["id"]) for item in inventory["links"]}
+    expected_link = int(ready["struct_ops_link_id"])
+    demand(not link_ids or link_ids == {expected_link},
+           "enumerated struct_ops link is not exactly the owned policy")
+    return {
+        "struct_ops_map_id": expected_map,
+        "owner_pid": owner_pid,
+        "link_enumerated": bool(link_ids),
+        "struct_ops_link_id": expected_link if link_ids else None,
+    }
+
+
 def bpf_inventory() -> dict[str, list[int]]:
     inventory = {}
     for kind in ("prog", "map", "link"):
@@ -831,11 +856,8 @@ def run_cell(directory: Path, row: Row, block: int) -> dict[str, Any]:
             loader = start("loader", ["taskset", "-c", "17", str(LOADER),
                                       str(object_path), str(target.pid), "120"], directory, streams)
             ready = wait_ready(directory / "loader.jsonl", "scheduler_init_loader_ready", loader)
-            maps, links = struct_ops_ids()
-            demand(maps == {ready["struct_ops_map_id"]},
-                   "loaded struct_ops map is not exactly the owned policy")
-            demand(links == {ready["struct_ops_link_id"]},
-                   "loaded struct_ops link is not exactly the owned policy")
+            result["struct_ops_ownership"] = validate_owned_struct_ops(
+                ready, loader.pid)
         else:
             demand(struct_ops_ids() == (set(), set()), "native cell has struct_ops state")
         demand(all(process.poll() is None for process in

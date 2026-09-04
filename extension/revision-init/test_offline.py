@@ -286,6 +286,42 @@ class ProcessAndInputTests(unittest.TestCase):
             })
         self.assertEqual(query.call_count, 9)
 
+    def test_struct_ops_ownership_records_unenumerated_link(self):
+        ready = {"struct_ops_map_id": 41, "struct_ops_link_id": 42}
+        inventory = {
+            "maps": [{"id": 41, "pids": [{"pid": TARGET_PID}]}],
+            "links": [],
+        }
+        with patch.object(runner.safety, "struct_ops_inventory",
+                          return_value=inventory):
+            observed = runner.validate_owned_struct_ops(ready, TARGET_PID)
+        self.assertEqual(observed, {
+            "struct_ops_map_id": 41, "owner_pid": TARGET_PID,
+            "link_enumerated": False, "struct_ops_link_id": None,
+        })
+
+        wrong = copy.deepcopy(inventory)
+        wrong["maps"][0]["pids"][0]["pid"] += 1
+        with patch.object(runner.safety, "struct_ops_inventory",
+                          return_value=wrong), self.assertRaisesRegex(
+                              runner.GateError, "owned loader"):
+            runner.validate_owned_struct_ops(ready, TARGET_PID)
+
+    def test_struct_ops_ownership_requires_enumerated_link_identity(self):
+        ready = {"struct_ops_map_id": 41, "struct_ops_link_id": 42}
+        base = {
+            "maps": [{"id": 41, "pids": [{"pid": TARGET_PID}]}],
+            "links": [{"id": 42}],
+        }
+        with patch.object(runner.safety, "struct_ops_inventory", return_value=base):
+            observed = runner.validate_owned_struct_ops(ready, TARGET_PID)
+        self.assertTrue(observed["link_enumerated"])
+        wrong = {**base, "links": [{"id": 43}]}
+        with patch.object(runner.safety, "struct_ops_inventory",
+                          return_value=wrong), self.assertRaisesRegex(
+                              runner.GateError, "enumerated struct_ops link"):
+            runner.validate_owned_struct_ops(ready, TARGET_PID)
+
     def test_json_reader_rejects_partial_json(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "events"

@@ -18,6 +18,10 @@ it from a counter.
 Machine-readable target/probe stdout and runtime diagnostics are retained in
 separate `*.log` and `*.stderr.log` files. This prevents asynchronous agent
 shutdown messages from corrupting a JSON record while preserving both streams.
+The runner records a private shared-memory segment identity only while the
+exact inode is demonstrably open or mapped by its live probe. Cleanup still
+refuses to unlink a missing, unknown, or replaced segment. BPF-object open
+failures report the object path plus both libbpf and `errno` diagnostics.
 
 ## Frozen protocol
 
@@ -43,6 +47,9 @@ new private bpftime syscall-server/probe process, and a separate instrumented
 CUDA truth process.  Exact process groups and the exact owned `/dev/shm`
 segment are cleaned; the runner retains the shared GPU/struct-ops leases and
 the repository's driver, UVM, service, telemetry, and kernel-log safety gates.
+The campaign performs no within-run retries. Infrastructure failures retain a
+failed manifest and require a new output directory, so completed cells cannot
+be silently selected or replaced.
 
 ## Build and inspect the plan
 

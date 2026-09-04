@@ -153,6 +153,53 @@ def segment_identity(path: Path) -> tuple[int, int, int]:
     return info.st_dev, info.st_ino, info.st_uid
 
 
+def process_holds_segment(process: subprocess.Popen[Any],
+                          identity: tuple[int, int, int]) -> bool:
+    """Confirm the live child has the exact segment open or mapped."""
+    device, inode, _uid = identity
+    proc = Path("/proc") / str(process.pid)
+    for descriptor in (proc / "fd").glob("*"):
+        try:
+            info = descriptor.stat()
+        except OSError:
+            continue
+        if (info.st_dev, info.st_ino) == (device, inode):
+            return True
+    try:
+        mappings = (proc / "maps").read_text()
+    except OSError:
+        return False
+    expected_device = f"{os.major(device):02x}:{os.minor(device):02x}"
+    for line in mappings.splitlines():
+        fields = line.split(maxsplit=5)
+        if len(fields) >= 5 and fields[3] == expected_device:
+            try:
+                if int(fields[4]) == inode:
+                    return True
+            except ValueError:
+                continue
+    return False
+
+
+def wait_owned_segment(process: subprocess.Popen[Any], path: Path,
+                       timeout: float = 20) -> tuple[int, int, int]:
+    """Capture identity only while the exact segment is held by our child."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            identity = segment_identity(path)
+        except FileNotFoundError:
+            identity = None
+        if identity is not None and process_holds_segment(process, identity):
+            return identity
+        if process.poll() is not None:
+            raise RuntimeError(
+                "probe exited before shared-segment ownership was confirmed"
+            )
+        time.sleep(0.01)
+    raise RuntimeError("shared-segment ownership confirmation timed out")
+
+
 def unlink_owned_segment(path: Path, identity: tuple[int, int, int] | None) -> None:
     try:
         actual = segment_identity(path)
@@ -268,6 +315,7 @@ def run_cell(directory: Path, arm: protocol.Arm, runtime_build: Path,
             directory / "probe.log", probe_args, {**common, "LD_PRELOAD": server_so},
             processes, streams, stderr_log=probe_stderr,
         )
+        identity = wait_owned_segment(probe, segment_path)
         ready = wait_ready(probe, directory / "probe.log", probe_stderr)
         protocol.require_fields(ready, {
             "thread_slots": arm.threads,
@@ -275,8 +323,6 @@ def run_cell(directory: Path, arm: protocol.Arm, runtime_build: Path,
             "launches": arm.launches,
             "ring_capacity_per_thread": protocol.RING_CAPACITY,
         }, "live.ready")
-        identity = segment_identity(segment_path)
-
         instrumented = run_process(
             directory / "instrumented.log", target_args,
             {**common, "LD_PRELOAD": agent_so}, processes, streams,

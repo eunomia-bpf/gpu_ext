@@ -5,6 +5,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -63,6 +64,33 @@ def write_events(path: Path, events: list[dict]) -> None:
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_segment_identity_requires_live_child_mapping(self):
+        path = Path("/dev/shm") / f"raw_map_identity_test_{os.getpid()}"
+        self.assertFalse(path.exists())
+        identity = None
+        process = subprocess.Popen([
+            sys.executable, "-c",
+            ("import mmap, os, sys, time; "
+             "fd=os.open(sys.argv[1], os.O_CREAT|os.O_EXCL|os.O_RDWR, 0o600); "
+             "os.ftruncate(fd, 4096); mapping=mmap.mmap(fd, 4096); "
+             "print('ready', flush=True); time.sleep(30)"),
+            str(path),
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+           start_new_session=True)
+        try:
+            identity = runner.wait_owned_segment(process, path, timeout=5)
+            self.assertTrue(runner.process_holds_segment(process, identity))
+            replacement = (identity[0], identity[1] + 1, identity[2])
+            self.assertFalse(runner.process_holds_segment(process, replacement))
+        finally:
+            runner.stop_owned(process)
+            assert process.stdout is not None and process.stderr is not None
+            process.stdout.close()
+            process.stderr.close()
+            if identity is not None:
+                runner.unlink_owned_segment(path, identity)
+        self.assertFalse(path.exists())
+
     def test_machine_stdout_is_separate_from_diagnostic_stderr(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

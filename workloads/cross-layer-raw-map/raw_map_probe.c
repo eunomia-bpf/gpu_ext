@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 enum { RING_CAPACITY = 4 };
@@ -117,9 +118,17 @@ int main(int argc, char **argv)
 	signal(SIGINT, on_signal);
 	signal(SIGTERM, on_signal);
 
+	errno = 0;
 	struct bpf_object *object = bpf_object__open_file(argv[1], NULL);
-	if (!object || libbpf_get_error(object)) {
-		fprintf(stderr, "failed to open BPF object\n");
+	int saved_errno = errno;
+	long object_error = libbpf_get_error(object);
+	if (!object || object_error) {
+		int detail = object_error < 0 ? (int)-object_error : saved_errno;
+		fprintf(stderr,
+			"failed to open BPF object: path=%s libbpf_error=%ld "
+			"errno=%d detail=%s\n",
+			argv[1], object_error, saved_errno,
+			detail ? strerror(detail) : "unknown");
 		return 3;
 	}
 	int result = 4;
@@ -268,4 +277,3 @@ done:
 	bpf_object__close(object);
 	return result;
 }
-

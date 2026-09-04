@@ -1,0 +1,300 @@
+$ taskset -c 8-15 /usr/bin/env LD_PRELOAD=/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/agent/libbpftime-agent.so /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli -m /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf -p Write one sentence explaining why deterministic tests matter. -n 8 -c 512 -ngl 99 --seed 1797 --temp 0 --no-display-prompt --simple-io
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp
+
+## stdout
+
+Deterministic tests are essential
+> EOF by user
+
+
+
+## stderr
+Extracting PTX file and ptxas options    1: temp.1.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    2: temp.2.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    3: temp.3.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    4: temp.4.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    5: temp.5.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    6: temp.6.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    7: temp.7.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    8: temp.8.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    9: temp.9.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   10: temp.10.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   11: temp.11.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   12: temp.12.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   13: temp.13.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   14: temp.14.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   15: temp.15.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   16: temp.16.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   17: temp.17.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   18: temp.18.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   19: temp.19.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   20: temp.20.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   21: temp.21.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   22: temp.22.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   23: temp.23.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   24: temp.24.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   25: temp.25.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   26: temp.26.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   27: temp.27.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   28: temp.28.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   29: temp.29.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   30: temp.30.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   31: temp.31.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   32: temp.32.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   33: temp.33.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   34: temp.34.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   35: temp.35.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   36: temp.36.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   37: temp.37.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   38: temp.38.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   39: temp.39.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   40: temp.40.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   41: temp.41.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   42: temp.42.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   43: temp.43.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   44: temp.44.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   45: temp.45.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   46: temp.46.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   47: temp.47.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   48: temp.48.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   49: temp.49.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   50: temp.50.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   51: temp.51.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   52: temp.52.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   53: temp.53.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   54: temp.54.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   55: temp.55.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   56: temp.56.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   57: temp.57.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   58: temp.58.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   59: temp.59.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   60: temp.60.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   61: temp.61.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   62: temp.62.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   63: temp.63.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   64: temp.64.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   65: temp.65.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   66: temp.66.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   67: temp.67.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   68: temp.68.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   69: temp.69.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   70: temp.70.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   71: temp.71.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   72: temp.72.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   73: temp.73.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   74: temp.74.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   75: temp.75.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   76: temp.76.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   77: temp.77.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   78: temp.78.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   79: temp.79.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   80: temp.80.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   81: temp.81.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   82: temp.82.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   83: temp.83.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   84: temp.84.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   85: temp.85.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   86: temp.86.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   87: temp.87.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   88: temp.88.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   89: temp.89.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   90: temp.90.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   91: temp.91.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   92: temp.92.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   93: temp.93.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   94: temp.94.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   95: temp.95.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   96: temp.96.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   97: temp.97.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   98: temp.98.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   99: temp.99.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  100: temp.100.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  101: temp.101.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  102: temp.102.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  103: temp.103.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  104: temp.104.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  105: temp.105.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  106: temp.106.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  107: temp.107.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  108: temp.108.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  109: temp.109.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  110: temp.110.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  111: temp.111.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  112: temp.112.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  113: temp.113.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  114: temp.114.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  115: temp.115.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  116: temp.116.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  117: temp.117.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  118: temp.118.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  119: temp.119.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  120: temp.120.sm_120.ptx -arch=sm_120 
+[ptxpass] kretprobe: matched=1, in=375367, out=379107
+ggml_cuda_init: GGML_CUDA_FORCE_MMQ:    no
+ggml_cuda_init: GGML_CUDA_FORCE_CUBLAS: no
+ggml_cuda_init: found 1 CUDA devices:
+  Device 0: NVIDIA GeForce RTX 5090, compute capability 12.0, VMM: no
+build: 7102 (26836b27) with gcc-12 (Ubuntu 12.4.0-2ubuntu1~24.04.1) 12.4.0 for x86_64-linux-gnu
+main: llama backend init
+main: load the model and apply lora adapter, if any
+llama_model_load_from_file_impl: using device CUDA0 (NVIDIA GeForce RTX 5090) (0000:02:00.0) - 30939 MiB free
+llama_model_loader: loaded meta data with 23 key-value pairs and 201 tensors from /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = llama
+llama_model_loader: - kv   1:                               general.name str              = tinyllama_tinyllama-1.1b-chat-v1.0
+llama_model_loader: - kv   2:                       llama.context_length u32              = 2048
+llama_model_loader: - kv   3:                     llama.embedding_length u32              = 2048
+llama_model_loader: - kv   4:                          llama.block_count u32              = 22
+llama_model_loader: - kv   5:                  llama.feed_forward_length u32              = 5632
+llama_model_loader: - kv   6:                 llama.rope.dimension_count u32              = 64
+llama_model_loader: - kv   7:                 llama.attention.head_count u32              = 32
+llama_model_loader: - kv   8:              llama.attention.head_count_kv u32              = 4
+llama_model_loader: - kv   9:     llama.attention.layer_norm_rms_epsilon f32              = 0.000010
+llama_model_loader: - kv  10:                       llama.rope.freq_base f32              = 10000.000000
+llama_model_loader: - kv  11:                          general.file_type u32              = 15
+llama_model_loader: - kv  12:                       tokenizer.ggml.model str              = llama
+llama_model_loader: - kv  13:                      tokenizer.ggml.tokens arr[str,32000]   = ["<unk>", "<s>", "</s>", "<0x00>", "<...
+llama_model_loader: - kv  14:                      tokenizer.ggml.scores arr[f32,32000]   = [0.000000, 0.000000, 0.000000, 0.0000...
+llama_model_loader: - kv  15:                  tokenizer.ggml.token_type arr[i32,32000]   = [2, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6, 6, ...
+llama_model_loader: - kv  16:                      tokenizer.ggml.merges arr[str,61249]   = ["▁ t", "e r", "i n", "▁ a", "e n...
+llama_model_loader: - kv  17:                tokenizer.ggml.bos_token_id u32              = 1
+llama_model_loader: - kv  18:                tokenizer.ggml.eos_token_id u32              = 2
+llama_model_loader: - kv  19:            tokenizer.ggml.unknown_token_id u32              = 0
+llama_model_loader: - kv  20:            tokenizer.ggml.padding_token_id u32              = 2
+llama_model_loader: - kv  21:                    tokenizer.chat_template str              = {% for message in messages %}\n{% if m...
+llama_model_loader: - kv  22:               general.quantization_version u32              = 2
+llama_model_loader: - type  f32:   45 tensors
+llama_model_loader: - type q4_K:  135 tensors
+llama_model_loader: - type q6_K:   21 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q4_K - Medium
+print_info: file size   = 636.18 MiB (4.85 BPW) 
+load: special_eos_id is not in special_eog_ids - the tokenizer config may be incorrect
+load: printing all EOG tokens:
+load:   - 2 ('</s>')
+load: special tokens cache size = 3
+load: token to piece cache size = 0.1684 MB
+print_info: arch             = llama
+print_info: vocab_only       = 0
+print_info: n_ctx_train      = 2048
+print_info: n_embd           = 2048
+print_info: n_embd_inp       = 2048
+print_info: n_layer          = 22
+print_info: n_head           = 32
+print_info: n_head_kv        = 4
+print_info: n_rot            = 64
+print_info: n_swa            = 0
+print_info: is_swa_any       = 0
+print_info: n_embd_head_k    = 64
+print_info: n_embd_head_v    = 64
+print_info: n_gqa            = 8
+print_info: n_embd_k_gqa     = 256
+print_info: n_embd_v_gqa     = 256
+print_info: f_norm_eps       = 0.0e+00
+print_info: f_norm_rms_eps   = 1.0e-05
+print_info: f_clamp_kqv      = 0.0e+00
+print_info: f_max_alibi_bias = 0.0e+00
+print_info: f_logit_scale    = 0.0e+00
+print_info: f_attn_scale     = 0.0e+00
+print_info: n_ff             = 5632
+print_info: n_expert         = 0
+print_info: n_expert_used    = 0
+print_info: n_expert_groups  = 0
+print_info: n_group_used     = 0
+print_info: causal attn      = 1
+print_info: pooling type     = 0
+print_info: rope type        = 0
+print_info: rope scaling     = linear
+print_info: freq_base_train  = 10000.0
+print_info: freq_scale_train = 1
+print_info: n_ctx_orig_yarn  = 2048
+print_info: rope_finetuned   = unknown
+print_info: model type       = 1B
+print_info: model params     = 1.10 B
+print_info: general.name     = tinyllama_tinyllama-1.1b-chat-v1.0
+print_info: vocab type       = SPM
+print_info: n_vocab          = 32000
+print_info: n_merges         = 0
+print_info: BOS token        = 1 '<s>'
+print_info: EOS token        = 2 '</s>'
+print_info: UNK token        = 0 '<unk>'
+print_info: PAD token        = 2 '</s>'
+print_info: LF token         = 13 '<0x0A>'
+print_info: EOG token        = 2 '</s>'
+print_info: max token length = 48
+load_tensors: loading model tensors, this can take a while... (mmap = true)
+[REGULAR] Unified Memory DISABLED, using cudaMalloc
+load_tensors: offloading 22 repeating layers to GPU
+load_tensors: offloading output layer to GPU
+load_tensors: offloaded 23/23 layers to GPU
+load_tensors:   CPU_Mapped model buffer size =    35.16 MiB
+load_tensors:        CUDA0 model buffer size =   601.02 MiB
+....................................................................................
+llama_context: constructing llama_context
+llama_context: n_seq_max     = 1
+llama_context: n_ctx         = 512
+llama_context: n_ctx_seq     = 512
+llama_context: n_batch       = 512
+llama_context: n_ubatch      = 512
+llama_context: causal_attn   = 1
+llama_context: flash_attn    = auto
+llama_context: kv_unified    = false
+llama_context: freq_base     = 10000.0
+llama_context: freq_scale    = 1
+llama_context: n_ctx_seq (512) < n_ctx_train (2048) -- the full capacity of the model will not be utilized
+llama_context:  CUDA_Host  output buffer size =     0.12 MiB
+llama_kv_cache:      CUDA0 KV buffer size =    11.00 MiB
+llama_kv_cache: size =   11.00 MiB (   512 cells,  22 layers,  1/1 seqs), K (f16):    5.50 MiB, V (f16):    5.50 MiB
+llama_context: Flash Attention was auto, set to enabled
+llama_context:      CUDA0 compute buffer size =    66.50 MiB
+llama_context:  CUDA_Host compute buffer size =     5.01 MiB
+llama_context: graph nodes  = 689
+llama_context: graph splits = 2
+common_init_from_params: added </s> logit bias = -inf
+common_init_from_params: setting dry_penalty_last_n to ctx_size = 512
+common_init_from_params: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+[POOL] Creating pool for device 0
+[POOL] new_pool_for_device called for device 0
+[POOL] GGML_CUDA_ENABLE_UNIFIED_MEMORY = NULL
+[LEGACY] Using legacy pool for device 0
+[POOL] Pool created for device 0
+main: llama threadpool init, n_threads = 4
+main: chat template is available, enabling conversation mode (disable it with -no-cnv)
+*** User-specified prompt will pre-start conversation, did you mean to set --system-prompt (-sys) instead?
+main: chat template example:
+<|system|>
+You are a helpful assistant<|user|>
+Hello<|assistant|>
+Hi there<|user|>
+How are you?<|assistant|>
+
+system_info: n_threads = 4 (n_threads_batch = 4) / 24 | CUDA : ARCHS = 1200 | NO_VMM = 1 | USE_GRAPHS = 1 | PEER_MAX_BATCH_SIZE = 128 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+
+main: interactive mode on.
+sampler seed: 1797
+sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 512
+	top_k = 40, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.000
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000
+sampler chain: logits -> logit-bias -> penalties -> dry -> top-n-sigma -> top-k -> typical -> top-p -> min-p -> xtc -> temp-ext -> dist 
+generate: n_ctx = 512, n_batch = 2048, n_predict = 8, n_keep = 1
+
+== Running in interactive mode. ==
+ - Press Ctrl+C to interject at any time.
+ - Press Return to return control to the AI.
+ - To return control without starting a new line, end your input with '/'.
+ - If you want to submit another line, end your input with '\'.
+ - Not using system message. To change it, set a different value via -sys PROMPT
+
+llama_perf_sampler_print:    sampling time =       0.18 ms /    30 runs   (    0.01 ms per token, 168539.33 tokens per second)
+llama_perf_context_print:        load time =     175.20 ms
+llama_perf_context_print: prompt eval time =     390.36 ms /    22 tokens (   17.74 ms per token,    56.36 tokens per second)
+llama_perf_context_print:        eval time =     128.82 ms /     7 runs   (   18.40 ms per token,    54.34 tokens per second)
+llama_perf_context_print:       total time =     524.34 ms /    29 tokens
+llama_perf_context_print:    graphs reused =          7
+llama_memory_breakdown_print: | memory breakdown [MiB] | total    free    self   model   context   compute    unaccounted |
+llama_memory_breakdown_print: |   - CUDA0 (RTX 5090)   | 32109 = 26341 + ( 678 =   601 +      11 +      66) +        5089 |
+llama_memory_breakdown_print: |   - Host               |                    40 =    35 +       0 +       5                |
+
+# exit: 0

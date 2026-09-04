@@ -21,6 +21,7 @@ from typing import Any
 
 
 HERE = Path(__file__).resolve().parent
+CAPABILITY_HELPER = HERE / "query_opencl_capability.py"
 GPU_EXT = HERE.parents[2]
 SAFETY_SOURCE = GPU_EXT / "workloads/moe-infinity/run_moe_head_to_head.py"
 LEASE_PATHS = (
@@ -255,6 +256,40 @@ def query_opencl_capability(loader_name: str = OPENCL_LOADER) -> dict[str, Any]:
         il_version or ils_with_version
     )
     capability["supports_spirv_il"] = spirv_il_advertised(capability)
+    return capability
+
+
+def query_opencl_capability_isolated() -> dict[str, Any]:
+    """Query in a child so the OpenCL library releases its UVM references."""
+
+    environment = {
+        "PATH": "/usr/bin:/bin",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "CUDA_VISIBLE_DEVICES": "0",
+        "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64",
+    }
+    execution = subprocess.run(
+        [sys.executable, "-B", str(CAPABILITY_HELPER)],
+        cwd=HERE,
+        env=environment,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+    )
+    if execution.returncode != 0:
+        raise RuntimeError(
+            "isolated OpenCL capability query failed "
+            f"({execution.returncode}): {execution.stderr.strip()}"
+        )
+    try:
+        capability = json.loads(execution.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("isolated OpenCL capability query returned invalid JSON") from error
+    if not isinstance(capability, dict):
+        raise RuntimeError("isolated OpenCL capability query did not return an object")
     return capability
 
 
@@ -577,7 +612,7 @@ def main() -> int:
         safety.validate_pre_server_safety(before)
         if before["gpu"]["driver"] != EXPECTED_DRIVER:
             raise RuntimeError(f"driver must be {EXPECTED_DRIVER}")
-        capability = query_opencl_capability()
+        capability = query_opencl_capability_isolated()
         result["device_capability"] = capability
         result["capability_checked_before_demo_process"] = True
         atomic_write_json(output / "device-capability.json", capability)

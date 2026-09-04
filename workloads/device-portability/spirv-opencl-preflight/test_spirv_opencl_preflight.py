@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 HERE = Path(__file__).resolve().parent
@@ -158,6 +159,17 @@ class CapabilityGateTests(unittest.TestCase):
         }
         capability["supports_spirv_il"] = runner.spirv_il_advertised(capability)
         return capability
+
+    def test_capability_query_runs_in_short_lived_child(self):
+        expected = self.capability()
+        completed = subprocess.CompletedProcess(
+            ["helper"], 0, json.dumps(expected), ""
+        )
+        with mock.patch.object(runner.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(runner.query_opencl_capability_isolated(), expected)
+        argv = run.call_args.args[0]
+        self.assertEqual(argv[-1], str(runner.CAPABILITY_HELPER))
+        self.assertEqual(run.call_args.kwargs["env"]["CUDA_VISIBLE_DEVICES"], "0")
 
     def test_decodes_opencl_numeric_version(self):
         encoded = (3 << 22) | (1 << 12) | 7

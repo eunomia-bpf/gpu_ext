@@ -2,8 +2,10 @@
 #ifndef STALE_STATE_575_POLICY_MODEL_H
 #define STALE_STATE_575_POLICY_MODEL_H
 
+#ifndef STALE_STATE_575_TYPES_PROVIDED
 #include <stdbool.h>
 #include <stdint.h>
+#endif
 
 /*
  * Pure decision model intended to be shared by the future native and BPF
@@ -88,4 +90,3 @@ static inline bool stale_state_575_wrong_phase(
 }
 
 #endif
-

@@ -838,9 +838,9 @@ def _validate_policy(
     ages = []
     previous_decision_ns = 0
     expected_read_path = (
-        "native_atomic_snapshot_read"
+        "driver_native_read_only_context"
         if cell.implementation == "native"
-        else "bpf_snapshot_helper"
+        else "driver_bpf_read_only_context"
     )
     for decision_sequence, decision in enumerate(decisions, 1):
         if decision.get("implementation") != cell.implementation:
@@ -899,14 +899,21 @@ def _validate_policy(
     expected_counts = {
         "snapshot_updates": MEASURED_PHASES + 1,
         "callback_invocations": len(decisions),
+        "snapshot_read_attempts": len(decisions),
+        "snapshot_read_successes": len(decisions),
+        "native_callback_invocations": (
+            len(decisions) if cell.implementation == "native" else 0
+        ),
+        "bpf_callback_invocations": (
+            len(decisions) if cell.implementation == "bpf" else 0
+        ),
+        "decision_requests": len(decisions),
         "decisions": len(decisions),
         "decision_records": len(decisions),
         "effect_requests": len(decisions),
         "effect_records": len(decisions),
-        "snapshot_reads": len(decisions),
-        "native_snapshot_reads": len(decisions) if cell.implementation == "native" else 0,
-        "snapshot_helper_calls": len(decisions) if cell.implementation == "bpf" else 0,
-        "snapshot_helper_successes": len(decisions) if cell.implementation == "bpf" else 0,
+        "selected_diagnostics": len(decisions),
+        "finished_diagnostics": len(decisions),
         "dense_prefetch_decisions": dense_actions,
         "discarded_prefetch_decisions": discard_actions,
     }
@@ -918,9 +925,9 @@ def _validate_policy(
         "missing_snapshot_decisions",
         "invalid_snapshot_decisions",
         "request_errors",
+        "effect_errors",
         "decision_record_drops",
         "effect_record_drops",
-        "snapshot_helper_errors",
     ):
         if _integer(final.get(field), field) != 0:
             raise ValidationError(f"policy reported an invalid/lost action: {field}")

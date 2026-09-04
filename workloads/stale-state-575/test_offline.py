@@ -127,9 +127,9 @@ def policy_records(cell: protocol.MatrixCell, intervals: list[dict]) -> tuple[li
     for decision_sequence, decision in enumerate(decisions, 1):
         decision["decision_sequence"] = decision_sequence
         decision["snapshot_read_path"] = (
-            "native_atomic_snapshot_read"
+            "driver_native_read_only_context"
             if cell.implementation == "native"
-            else "bpf_snapshot_helper"
+            else "driver_bpf_read_only_context"
         )
 
     dense = sum(value["action"] == "prefetch_max" for value in decisions)
@@ -139,23 +139,30 @@ def policy_records(cell: protocol.MatrixCell, intervals: list[dict]) -> tuple[li
         "implementation": cell.implementation,
         "snapshot_updates": len(publications),
         "callback_invocations": len(decisions),
+        "snapshot_read_attempts": len(decisions),
+        "snapshot_read_successes": len(decisions),
+        "native_callback_invocations": (
+            len(decisions) if cell.implementation == "native" else 0
+        ),
+        "bpf_callback_invocations": (
+            len(decisions) if cell.implementation == "bpf" else 0
+        ),
+        "decision_requests": len(decisions),
         "decisions": len(decisions),
         "decision_records": len(decisions),
         "effect_requests": len(decisions),
         "effect_records": len(decisions),
-        "snapshot_reads": len(decisions),
-        "native_snapshot_reads": len(decisions) if cell.implementation == "native" else 0,
-        "snapshot_helper_calls": len(decisions) if cell.implementation == "bpf" else 0,
-        "snapshot_helper_successes": len(decisions) if cell.implementation == "bpf" else 0,
+        "selected_diagnostics": len(decisions),
+        "finished_diagnostics": len(decisions),
         "dense_prefetch_decisions": dense,
         "discarded_prefetch_decisions": discard,
         "snapshot_rejections": 0,
         "missing_snapshot_decisions": 0,
         "invalid_snapshot_decisions": 0,
         "request_errors": 0,
+        "effect_errors": 0,
         "decision_record_drops": 0,
         "effect_record_drops": 0,
-        "snapshot_helper_errors": 0,
     }
     return publications, decisions, final
 
@@ -490,7 +497,7 @@ class RawValidationTests(unittest.TestCase):
                 protocol.validate_cell(path, cell)
 
     def test_validator_rejects_numerical_error_event_loss_and_cleanup_failure(self) -> None:
-        mutations = ("numerical", "event_loss", "cleanup", "helper_error")
+        mutations = ("numerical", "event_loss", "cleanup", "effect_error")
         for mutation in mutations:
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
@@ -515,7 +522,7 @@ class RawValidationTests(unittest.TestCase):
                     write_json(path / "execution.json", value)
                 else:
                     value = json.loads((path / "policy-final.json").read_text())
-                    value["snapshot_helper_errors"] = 1
+                    value["effect_errors"] = 1
                     write_json(path / "policy-final.json", value)
                 with self.assertRaises(protocol.ValidationError):
                     protocol.validate_cell(path, cell)

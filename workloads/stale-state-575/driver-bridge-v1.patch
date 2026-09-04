@@ -1,0 +1,1283 @@
+diff --git a/kernel-open/common/inc/nv-gpu-stale-state-v1.h b/kernel-open/common/inc/nv-gpu-stale-state-v1.h
+new file mode 100644
+index 00000000..ca51d6f7
+--- /dev/null
++++ b/kernel-open/common/inc/nv-gpu-stale-state-v1.h
+@@ -0,0 +1,107 @@
++/*
++ * SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES.
++ * SPDX-License-Identifier: MIT
++ */
++
++#ifndef _NV_GPU_STALE_STATE_V1_H_
++#define _NV_GPU_STALE_STATE_V1_H_
++
++#include "nvtypes.h"
++
++#define NV_GPU_STALE_STATE_V1_ABI_VERSION 1U
++
++enum nv_gpu_stale_state_v1_phase
++{
++    NV_GPU_STALE_STATE_V1_PHASE_INVALID = 0,
++    NV_GPU_STALE_STATE_V1_PHASE_DENSE = 1,
++    NV_GPU_STALE_STATE_V1_PHASE_SPARSE = 2,
++};
++
++enum nv_gpu_stale_state_v1_action
++{
++    NV_GPU_STALE_STATE_V1_ACTION_REJECT = 0,
++    NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX = 1,
++    NV_GPU_STALE_STATE_V1_ACTION_DISCARD_PREFETCH = 2,
++};
++
++/* Immutable after publication. One pointer publication exposes all fields. */
++typedef struct
++{
++    NvU64 sequence;
++    NvU64 source_mono_ns;
++    NvU64 published_mono_ns;
++    NvU32 phase;
++    NvU32 reserved;
++} nv_gpu_stale_state_v1_snapshot_t;
++
++typedef struct
++{
++    NvU64 snapshot_sequence;
++    NvU64 decision_age_ns;
++    NvU32 snapshot_phase;
++    NvU32 action;
++} nv_gpu_stale_state_v1_decision_t;
++
++static inline NvBool
++nv_gpu_stale_state_v1_publication_follows(
++    const nv_gpu_stale_state_v1_snapshot_t *current_snapshot,
++    NvU64 sequence,
++    NvU64 source_mono_ns)
++{
++    if ((sequence == 0) || (source_mono_ns == 0))
++        return NV_FALSE;
++
++    if (current_snapshot == 0)
++        return sequence == 1 ? NV_TRUE : NV_FALSE;
++
++    if ((current_snapshot->sequence == ~(NvU64)0) ||
++        (sequence != current_snapshot->sequence + 1) ||
++        (source_mono_ns <= current_snapshot->source_mono_ns))
++        return NV_FALSE;
++
++    return NV_TRUE;
++}
++
++static inline NvBool
++nv_gpu_stale_state_v1_snapshot_valid(const nv_gpu_stale_state_v1_snapshot_t *snapshot,
++                                     NvU64 decision_mono_ns)
++{
++    if ((snapshot == 0) || (snapshot->sequence == 0) ||
++        (snapshot->reserved != 0))
++        return NV_FALSE;
++
++    if ((snapshot->phase != NV_GPU_STALE_STATE_V1_PHASE_DENSE) &&
++        (snapshot->phase != NV_GPU_STALE_STATE_V1_PHASE_SPARSE))
++        return NV_FALSE;
++
++    if ((snapshot->source_mono_ns == 0) ||
++        (snapshot->published_mono_ns == 0) ||
++        (snapshot->published_mono_ns < snapshot->source_mono_ns) ||
++        (decision_mono_ns < snapshot->published_mono_ns))
++        return NV_FALSE;
++
++    return NV_TRUE;
++}
++
++static inline enum nv_gpu_stale_state_v1_action
++nv_gpu_stale_state_v1_choose(const nv_gpu_stale_state_v1_snapshot_t *snapshot,
++                             NvU64 decision_mono_ns,
++                             nv_gpu_stale_state_v1_decision_t *decision)
++{
++    enum nv_gpu_stale_state_v1_action action;
++
++    if ((decision == 0) ||
++        !nv_gpu_stale_state_v1_snapshot_valid(snapshot, decision_mono_ns))
++        return NV_GPU_STALE_STATE_V1_ACTION_REJECT;
++
++    action = snapshot->phase == NV_GPU_STALE_STATE_V1_PHASE_DENSE ?
++                 NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX :
++                 NV_GPU_STALE_STATE_V1_ACTION_DISCARD_PREFETCH;
++    decision->snapshot_sequence = snapshot->sequence;
++    decision->decision_age_ns = decision_mono_ns - snapshot->source_mono_ns;
++    decision->snapshot_phase = snapshot->phase;
++    decision->action = action;
++    return action;
++}
++
++#endif
+diff --git a/kernel-open/nvidia-uvm/nvidia-uvm-sources.Kbuild b/kernel-open/nvidia-uvm/nvidia-uvm-sources.Kbuild
+index cd41227a..881d67f4 100644
+--- a/kernel-open/nvidia-uvm/nvidia-uvm-sources.Kbuild
++++ b/kernel-open/nvidia-uvm/nvidia-uvm-sources.Kbuild
+@@ -9,6 +9,7 @@ NVIDIA_UVM_SOURCES += nvidia-uvm/nv-kthread-q.c
+ NVIDIA_UVM_SOURCES += nvidia-uvm/nv-kthread-q-selftest.c
+ NVIDIA_UVM_SOURCES += nvidia-uvm/uvm.c
+ NVIDIA_UVM_SOURCES += nvidia-uvm/uvm_bpf_struct_ops.c
++NVIDIA_UVM_SOURCES += nvidia-uvm/uvm_stale_state_v1.c
+ NVIDIA_UVM_SOURCES += nvidia-uvm/uvm_tools.c
+ NVIDIA_UVM_SOURCES += nvidia-uvm/uvm_global.c
+ NVIDIA_UVM_SOURCES += nvidia-uvm/uvm_gpu.c
+diff --git a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c
+index 55f7edf0..db63849c 100644
+--- a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c
++++ b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.c
+@@ -56,8 +56,16 @@ struct gpu_mem_ops {
+ 		uvm_pmm_gpu_t *pmm,
+ 		struct list_head *va_block_used,
+ 		struct list_head *va_block_unused);
++
++	/* Versioned, read-only stale-state decision hook. */
++	int (*gpu_stale_state_prefetch_v1)(
++		uvm_stale_state_v1_decision_ctx_t *decision_ctx);
+ };
+ 
++static_assert(offsetof(struct gpu_mem_ops, gpu_stale_state_prefetch_v1) ==
++	      6 * sizeof(void *));
++static_assert(sizeof(struct gpu_mem_ops) == 7 * sizeof(void *));
++
+ 
+ /* Define our custom struct_ops operations */
+ /* Global instance that BPF programs will implement */
+@@ -115,6 +123,12 @@ static int gpu_mem_ops__gpu_evict_prepare(
+ 	return UVM_BPF_ACTION_DEFAULT;
+ }
+ 
++static int gpu_mem_ops__gpu_stale_state_prefetch_v1(
++	uvm_stale_state_v1_decision_ctx_t *decision_ctx)
++{
++	return NV_GPU_STALE_STATE_V1_ACTION_REJECT;
++}
++
+ /* CFI stubs structure */
+ static struct gpu_mem_ops __bpf_ops_gpu_mem_ops = {
+ 	.gpu_test_trigger = gpu_mem_ops__gpu_test_trigger,
+@@ -123,6 +137,7 @@ static struct gpu_mem_ops __bpf_ops_gpu_mem_ops = {
+ 	.gpu_block_activate = gpu_mem_ops__gpu_block_activate,
+ 	.gpu_block_access = gpu_mem_ops__gpu_block_access,
+ 	.gpu_evict_prepare = gpu_mem_ops__gpu_evict_prepare,
++	.gpu_stale_state_prefetch_v1 = gpu_mem_ops__gpu_stale_state_prefetch_v1,
+ };
+ 
+ /* Begin kfunc definitions */
+@@ -161,20 +176,43 @@ __bpf_kfunc int bpf_gpu_request_reorder(uvm_bpf_pmm_decision_ctx_t *decision_ctx
+ 					    position);
+ }
+ 
++/* Submit one action while keeping the versioned context driver-owned. */
++__bpf_kfunc int bpf_gpu_stale_state_v1_request(
++	uvm_stale_state_v1_decision_ctx_t *decision_ctx,
++	u32 action)
++{
++	return uvm_stale_state_v1_record_bpf_action(decision_ctx, action);
++}
++
+ /* End kfunc definitions */
+ __bpf_kfunc_end_defs();
+ 
+-/* Define the BTF kfuncs ID set */
+-BTF_KFUNCS_START(uvm_bpf_kfunc_ids_set)
++/*
++ * A module may register only one kfunc set per hook. Keep the mutating
++ * stale-state request API out of the KPROBE hook: only gpu_mem_ops callbacks
++ * receive a trusted decision context that is valid for this setter.
++ */
++BTF_KFUNCS_START(uvm_bpf_struct_ops_kfunc_ids_set)
+ BTF_ID_FLAGS(func, bpf_gpu_strstr)
+ BTF_ID_FLAGS(func, bpf_gpu_set_prefetch_region, KF_TRUSTED_ARGS)
+ BTF_ID_FLAGS(func, bpf_gpu_request_reorder, KF_TRUSTED_ARGS)
+-BTF_KFUNCS_END(uvm_bpf_kfunc_ids_set)
++BTF_ID_FLAGS(func, bpf_gpu_stale_state_v1_request, KF_TRUSTED_ARGS)
++BTF_KFUNCS_END(uvm_bpf_struct_ops_kfunc_ids_set)
+ 
+-/* Register the kfunc ID set */
+-static const struct btf_kfunc_id_set uvm_bpf_kfunc_set = {
++BTF_KFUNCS_START(uvm_bpf_kprobe_kfunc_ids_set)
++BTF_ID_FLAGS(func, bpf_gpu_strstr)
++BTF_ID_FLAGS(func, bpf_gpu_set_prefetch_region, KF_TRUSTED_ARGS)
++BTF_ID_FLAGS(func, bpf_gpu_request_reorder, KF_TRUSTED_ARGS)
++BTF_KFUNCS_END(uvm_bpf_kprobe_kfunc_ids_set)
++
++static const struct btf_kfunc_id_set uvm_bpf_struct_ops_kfunc_set = {
++	.owner = THIS_MODULE,
++	.set = &uvm_bpf_struct_ops_kfunc_ids_set,
++};
++
++static const struct btf_kfunc_id_set uvm_bpf_kprobe_kfunc_set = {
+ 	.owner = THIS_MODULE,
+-	.set = &uvm_bpf_kfunc_ids_set,
++	.set = &uvm_bpf_kprobe_kfunc_ids_set,
+ };
+ 
+ /* BTF and verifier callbacks */
+@@ -303,16 +341,29 @@ int uvm_bpf_struct_ops_init(void)
+ {
+ 	int ret;
+ 
++	/* Make all fallible proc setup complete before publishing struct_ops. */
++	ret = uvm_stale_state_v1_init();
++	if (ret)
++		return ret;
++
++	trigger_file = proc_create("bpf_testmod_trigger", 0222, NULL, &trigger_proc_ops);
++	if (!trigger_file) {
++		ret = -ENOMEM;
++		goto error_stale_state;
++	}
++
+ 	/* Register the kfunc ID set for struct_ops programs */
+-	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS, &uvm_bpf_kfunc_set);
++	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS,
++				       &uvm_bpf_struct_ops_kfunc_set);
+ 	if (ret) {
+ 		pr_err("UVM: Failed to register BTF kfunc ID set: %d\n", ret);
+-		return ret;
++		goto error_proc;
+ 	}
+ 	pr_info("UVM: kfunc ID set registered successfully\n");
+ 
+ 	/* Also register for tracing programs (kprobe/uprobe) so they can call gpu kfuncs */
+-	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_KPROBE, &uvm_bpf_kfunc_set);
++	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_KPROBE,
++				       &uvm_bpf_kprobe_kfunc_set);
+ 	if (ret) {
+ 		pr_warn("UVM: Failed to register kfunc for kprobe progs: %d (non-fatal)\n", ret);
+ 		/* Non-fatal: struct_ops still works */
+@@ -322,20 +373,23 @@ int uvm_bpf_struct_ops_init(void)
+ 	ret = register_bpf_struct_ops(&gpu_mem_ops_struct_ops, gpu_mem_ops);
+ 	if (ret) {
+ 		pr_err("UVM: Failed to register struct_ops: %d\n", ret);
+-		return ret;
++		goto error_proc;
+ 	}
+ 
+-	/* Create proc file for triggering */
+-	trigger_file = proc_create("bpf_testmod_trigger", 0222, NULL, &trigger_proc_ops);
+-	if (!trigger_file)
+-		return -ENOMEM;
+-
+ 	pr_info("UVM: bpf_struct_ops initialized\n");
+ 	return 0;
++
++error_proc:
++	proc_remove(trigger_file);
++	trigger_file = NULL;
++error_stale_state:
++	uvm_stale_state_v1_exit();
++	return ret;
+ }
+ 
+ void uvm_bpf_struct_ops_exit(void)
+ {
++	uvm_stale_state_v1_exit();
+ 	if (trigger_file)
+ 		proc_remove(trigger_file);
+ 	/* Note: struct_ops unregister happens automatically on module unload */
+@@ -397,6 +451,20 @@ NvS64 uvm_bpf_call_gpu_page_prefetch_iter(
+ 	return (NvS64)ret;
+ }
+ 
++NvS64 uvm_bpf_call_gpu_stale_state_v1(
++	uvm_stale_state_v1_decision_ctx_t *decision_ctx)
++{
++	struct gpu_mem_ops *ops;
++	NvS64 ret = NV_GPU_STALE_STATE_V1_ACTION_REJECT;
++
++	rcu_read_lock();
++	ops = rcu_dereference(uvm_ops);
++	if (ops && ops->gpu_stale_state_prefetch_v1)
++		ret = ops->gpu_stale_state_prefetch_v1(decision_ctx);
++	rcu_read_unlock();
++	return ret;
++}
++
+ /* PMM eviction policy hook wrappers */
+ void uvm_bpf_call_gpu_block_activate(
+ 	uvm_pmm_gpu_t *pmm,
+diff --git a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h
+index 962de551..fe90087d 100644
+--- a/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h
++++ b/kernel-open/nvidia-uvm/uvm_bpf_struct_ops.h
+@@ -5,6 +5,7 @@
+ #include "uvm_perf_prefetch.h"
+ #include "uvm_pmm_gpu.h"
+ #include "nv-gpu-transition-validator.h"
++#include "uvm_stale_state_v1.h"
+ 
+ typedef struct uvm_bpf_prefetch_decision
+ {
+@@ -72,6 +73,9 @@ NvS64 uvm_bpf_call_gpu_page_prefetch_iter(
+     unsigned int counter,
+     nv_gpu_prefetch_decision_t *decision);
+ 
++NvS64 uvm_bpf_call_gpu_stale_state_v1(
++    uvm_stale_state_v1_decision_ctx_t *decision_ctx);
++
+ /* PMM eviction policy hook wrapper functions */
+ void uvm_bpf_call_gpu_block_activate(
+     uvm_pmm_gpu_t *pmm,
+diff --git a/kernel-open/nvidia-uvm/uvm_perf_prefetch.c b/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
+index 4f5d136e..63ed2ec5 100644
+--- a/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
++++ b/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
+@@ -113,12 +113,23 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
+     enum nv_gpu_prefetch_initial_effect initial_effect;
+     NvS64 raw_action;
+     struct uvm_bpf_prefetch_diagnostic_ctx diagnostic = {0};
++    uvm_stale_state_v1_decision_ctx_t stale_decision_ctx = {0};
++    struct uvm_stale_state_v1_diagnostic stale_diagnostic = {0};
++    bool stale_state_active;
+     const NvU64 type_outer = (NvU64)(uvm_page_index_t)~0U;
+ 
+-    raw_action = uvm_bpf_call_gpu_page_prefetch(page_index,
+-                                                bitmap_tree,
+-                                                &max_prefetch_region,
+-                                                &initial_decision);
++    stale_state_active =
++        uvm_stale_state_v1_begin(page_index,
++                                 &max_prefetch_region,
++                                 &stale_decision_ctx,
++                                 &stale_diagnostic,
++                                 &raw_action,
++                                 &initial_decision);
++    if (!stale_state_active)
++        raw_action = uvm_bpf_call_gpu_page_prefetch(page_index,
++                                                    bitmap_tree,
++                                                    &max_prefetch_region,
++                                                    &initial_decision);
+     region_result = nv_gpu_transition_validate_region(&initial_decision,
+                                                        max_prefetch_region.first,
+                                                        max_prefetch_region.outer,
+@@ -127,6 +138,10 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
+                                                        &validated_region);
+     initial_effect = nv_gpu_transition_prefetch_initial_effect(raw_action,
+                                                                region_result);
++    if (stale_state_active)
++        uvm_stale_state_v1_selected(&stale_diagnostic,
++                                    region_result,
++                                    initial_effect);
+ 
+     diagnostic.raw_action = raw_action;
+     diagnostic.requested_first = initial_decision.first;
+@@ -230,6 +245,8 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
+     diagnostic.output_outer = prefetch_region.outer;
+     diagnostic.phase = UVM_BPF_PREFETCH_DIAG_FINISHED;
+     uvm_bpf_prefetch_diagnostic(&diagnostic);
++    if (stale_state_active)
++        uvm_stale_state_v1_finished(&stale_diagnostic, &prefetch_region);
+ 
+     return prefetch_region;
+ }
+diff --git a/kernel-open/nvidia-uvm/uvm_stale_state_v1.c b/kernel-open/nvidia-uvm/uvm_stale_state_v1.c
+new file mode 100644
+index 00000000..8e3a9790
+--- /dev/null
++++ b/kernel-open/nvidia-uvm/uvm_stale_state_v1.c
+@@ -0,0 +1,624 @@
++/* SPDX-License-Identifier: MIT */
++
++#include <linux/atomic.h>
++#include <linux/capability.h>
++#include <linux/ktime.h>
++#include <linux/mutex.h>
++#include <linux/proc_fs.h>
++#include <linux/rcupdate.h>
++#include <linux/seq_file.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++#include <linux/uaccess.h>
++#include <linux/wait.h>
++
++#include "uvm_bpf_struct_ops.h"
++#include "uvm_stale_state_v1.h"
++
++#define UVM_STALE_STATE_V1_CONTROL "uvm_stale_state_v1"
++#define UVM_STALE_STATE_V1_REQUEST_COOKIE 0x53545631U
++
++struct uvm_stale_state_v1_snapshot_node
++{
++    nv_gpu_stale_state_v1_snapshot_t snapshot;
++    NvU64 generation;
++    struct rcu_head rcu;
++};
++
++struct uvm_stale_state_v1_stats
++{
++    atomic64_t snapshot_updates;
++    atomic64_t snapshot_rejections;
++    atomic64_t callback_invocations;
++    atomic64_t snapshot_read_attempts;
++    atomic64_t snapshot_read_successes;
++    atomic64_t missing_snapshot_decisions;
++    atomic64_t invalid_snapshot_decisions;
++    atomic64_t native_callback_invocations;
++    atomic64_t bpf_callback_invocations;
++    atomic64_t decision_requests;
++    atomic64_t decisions;
++    atomic64_t decision_records;
++    atomic64_t effect_requests;
++    atomic64_t effect_records;
++    atomic64_t dense_prefetch_decisions;
++    atomic64_t discarded_prefetch_decisions;
++    atomic64_t request_errors;
++    atomic64_t effect_errors;
++    atomic64_t selected_diagnostics;
++    atomic64_t finished_diagnostics;
++};
++
++static DEFINE_MUTEX(g_uvm_stale_state_v1_control_lock);
++static struct uvm_stale_state_v1_snapshot_node __rcu *g_uvm_stale_state_v1_snapshot;
++static atomic_t g_uvm_stale_state_v1_mode = ATOMIC_INIT(UVM_STALE_STATE_V1_MODE_OFF);
++static atomic_t g_uvm_stale_state_v1_active_callbacks = ATOMIC_INIT(0);
++static DECLARE_WAIT_QUEUE_HEAD(g_uvm_stale_state_v1_callback_waitq);
++static atomic64_t g_uvm_stale_state_v1_generation = ATOMIC64_INIT(0);
++static atomic64_t g_uvm_stale_state_v1_decision_sequence = ATOMIC64_INIT(0);
++static struct uvm_stale_state_v1_stats g_uvm_stale_state_v1_stats;
++static struct proc_dir_entry *g_uvm_stale_state_v1_control;
++
++static void uvm_stale_state_v1_reset_stats(void)
++{
++#define RESET(field) atomic64_set(&g_uvm_stale_state_v1_stats.field, 0)
++    RESET(snapshot_updates);
++    RESET(snapshot_rejections);
++    RESET(callback_invocations);
++    RESET(snapshot_read_attempts);
++    RESET(snapshot_read_successes);
++    RESET(missing_snapshot_decisions);
++    RESET(invalid_snapshot_decisions);
++    RESET(native_callback_invocations);
++    RESET(bpf_callback_invocations);
++    RESET(decision_requests);
++    RESET(decisions);
++    RESET(decision_records);
++    RESET(effect_requests);
++    RESET(effect_records);
++    RESET(dense_prefetch_decisions);
++    RESET(discarded_prefetch_decisions);
++    RESET(request_errors);
++    RESET(effect_errors);
++    RESET(selected_diagnostics);
++    RESET(finished_diagnostics);
++#undef RESET
++    atomic64_set(&g_uvm_stale_state_v1_decision_sequence, 0);
++}
++
++/*
++ * Control changes first close the callback gate and then wait for callbacks
++ * that crossed the old gate. This keeps generation-scoped counters and
++ * snapshot state from being mixed while avoiding a sleeping lock in the
++ * page-fault path.
++ */
++static void uvm_stale_state_v1_quiesce_callbacks_locked(void)
++{
++    atomic_set(&g_uvm_stale_state_v1_mode, UVM_STALE_STATE_V1_MODE_OFF);
++    smp_mb();
++    wait_event(g_uvm_stale_state_v1_callback_waitq,
++               atomic_read(&g_uvm_stale_state_v1_active_callbacks) == 0);
++}
++
++static bool uvm_stale_state_v1_callback_get(enum uvm_stale_state_v1_mode *mode)
++{
++    enum uvm_stale_state_v1_mode observed;
++
++    for (;;) {
++        observed = atomic_read_acquire(&g_uvm_stale_state_v1_mode);
++        if (observed == UVM_STALE_STATE_V1_MODE_OFF)
++            return false;
++
++        atomic_inc(&g_uvm_stale_state_v1_active_callbacks);
++        smp_mb__after_atomic();
++        if (atomic_read_acquire(&g_uvm_stale_state_v1_mode) == observed) {
++            *mode = observed;
++            return true;
++        }
++
++        if (atomic_dec_and_test(&g_uvm_stale_state_v1_active_callbacks))
++            wake_up_all(&g_uvm_stale_state_v1_callback_waitq);
++    }
++}
++
++static void uvm_stale_state_v1_callback_put(void)
++{
++    if (atomic_dec_and_test(&g_uvm_stale_state_v1_active_callbacks))
++        wake_up_all(&g_uvm_stale_state_v1_callback_waitq);
++}
++
++static const char *uvm_stale_state_v1_mode_name(enum uvm_stale_state_v1_mode mode)
++{
++    switch (mode) {
++        case UVM_STALE_STATE_V1_MODE_NATIVE:
++            return "native";
++        case UVM_STALE_STATE_V1_MODE_BPF:
++            return "bpf";
++        default:
++            return "off";
++    }
++}
++
++static bool uvm_stale_state_v1_read_snapshot(
++    NvU64 generation,
++    nv_gpu_stale_state_v1_snapshot_t *snapshot)
++{
++    struct uvm_stale_state_v1_snapshot_node *node;
++    bool found = false;
++
++    rcu_read_lock();
++    node = rcu_dereference(g_uvm_stale_state_v1_snapshot);
++    if ((node != NULL) && (node->generation == generation)) {
++        *snapshot = node->snapshot;
++        found = true;
++    }
++    rcu_read_unlock();
++    return found;
++}
++
++static void uvm_stale_state_v1_replace_snapshot_locked(
++    struct uvm_stale_state_v1_snapshot_node *replacement)
++{
++    struct uvm_stale_state_v1_snapshot_node *old;
++
++    old = rcu_dereference_protected(g_uvm_stale_state_v1_snapshot,
++                                    lockdep_is_held(&g_uvm_stale_state_v1_control_lock));
++    rcu_assign_pointer(g_uvm_stale_state_v1_snapshot, replacement);
++    if (old != NULL)
++        kfree_rcu(old, rcu);
++}
++
++static int uvm_stale_state_v1_configure(enum uvm_stale_state_v1_mode mode,
++                                        NvU64 generation)
++{
++    if ((generation == 0) ||
++        ((mode != UVM_STALE_STATE_V1_MODE_NATIVE) &&
++         (mode != UVM_STALE_STATE_V1_MODE_BPF)))
++        return -EINVAL;
++
++    mutex_lock(&g_uvm_stale_state_v1_control_lock);
++    uvm_stale_state_v1_quiesce_callbacks_locked();
++    uvm_stale_state_v1_replace_snapshot_locked(NULL);
++    uvm_stale_state_v1_reset_stats();
++    atomic64_set(&g_uvm_stale_state_v1_generation, generation);
++    atomic_set_release(&g_uvm_stale_state_v1_mode, mode);
++    mutex_unlock(&g_uvm_stale_state_v1_control_lock);
++    return 0;
++}
++
++static int uvm_stale_state_v1_disable(NvU64 generation)
++{
++    int ret = 0;
++
++    mutex_lock(&g_uvm_stale_state_v1_control_lock);
++    if ((generation == 0) ||
++        (generation != (NvU64)atomic64_read(&g_uvm_stale_state_v1_generation))) {
++        ret = -ESTALE;
++        goto out;
++    }
++
++    uvm_stale_state_v1_quiesce_callbacks_locked();
++    uvm_stale_state_v1_replace_snapshot_locked(NULL);
++out:
++    mutex_unlock(&g_uvm_stale_state_v1_control_lock);
++    return ret;
++}
++
++static int uvm_stale_state_v1_publish(NvU64 generation,
++                                      NvU64 sequence,
++                                      NvU32 phase,
++                                      NvU64 source_mono_ns)
++{
++    struct uvm_stale_state_v1_snapshot_node *replacement;
++    struct uvm_stale_state_v1_snapshot_node *current_node;
++    NvU64 now;
++    int ret = 0;
++
++    replacement = kzalloc(sizeof(*replacement), GFP_KERNEL);
++    if (replacement == NULL)
++        return -ENOMEM;
++
++    mutex_lock(&g_uvm_stale_state_v1_control_lock);
++    if ((atomic_read(&g_uvm_stale_state_v1_mode) == UVM_STALE_STATE_V1_MODE_OFF) ||
++        (generation == 0) ||
++        (generation != (NvU64)atomic64_read(&g_uvm_stale_state_v1_generation))) {
++        ret = -ESTALE;
++        goto reject;
++    }
++
++    if ((sequence == 0) || (source_mono_ns == 0) ||
++        ((phase != NV_GPU_STALE_STATE_V1_PHASE_DENSE) &&
++         (phase != NV_GPU_STALE_STATE_V1_PHASE_SPARSE))) {
++        ret = -EINVAL;
++        goto reject;
++    }
++
++    current_node = rcu_dereference_protected(g_uvm_stale_state_v1_snapshot,
++                                             lockdep_is_held(&g_uvm_stale_state_v1_control_lock));
++    if (!nv_gpu_stale_state_v1_publication_follows(
++            current_node == NULL ? NULL : &current_node->snapshot,
++            sequence,
++            source_mono_ns)) {
++        ret = -ERANGE;
++        goto reject;
++    }
++
++    now = ktime_get_ns();
++    if (source_mono_ns > now) {
++        ret = -ERANGE;
++        goto reject;
++    }
++
++    replacement->generation = generation;
++    replacement->snapshot.sequence = sequence;
++    replacement->snapshot.phase = phase;
++    replacement->snapshot.source_mono_ns = source_mono_ns;
++    replacement->snapshot.published_mono_ns = now;
++    uvm_stale_state_v1_replace_snapshot_locked(replacement);
++    atomic64_inc(&g_uvm_stale_state_v1_stats.snapshot_updates);
++    mutex_unlock(&g_uvm_stale_state_v1_control_lock);
++    return 0;
++
++reject:
++    atomic64_inc(&g_uvm_stale_state_v1_stats.snapshot_rejections);
++    mutex_unlock(&g_uvm_stale_state_v1_control_lock);
++    kfree(replacement);
++    return ret;
++}
++
++static int uvm_stale_state_v1_control_show(struct seq_file *seq, void *unused)
++{
++    nv_gpu_stale_state_v1_snapshot_t snapshot = {0};
++    enum uvm_stale_state_v1_mode mode;
++    NvU64 generation;
++    bool present;
++
++    (void)unused;
++    mutex_lock(&g_uvm_stale_state_v1_control_lock);
++    mode = atomic_read(&g_uvm_stale_state_v1_mode);
++    generation = (NvU64)atomic64_read(&g_uvm_stale_state_v1_generation);
++    present = uvm_stale_state_v1_read_snapshot(generation, &snapshot);
++    seq_printf(seq,
++               "abi_version=%u mode=%s generation=%llu snapshot_present=%u "
++               "snapshot_sequence=%llu snapshot_phase=%u source_mono_ns=%llu "
++               "published_mono_ns=%llu\n",
++               NV_GPU_STALE_STATE_V1_ABI_VERSION,
++               uvm_stale_state_v1_mode_name(mode),
++               (unsigned long long)generation,
++               present ? 1U : 0U,
++               (unsigned long long)snapshot.sequence,
++               snapshot.phase,
++               (unsigned long long)snapshot.source_mono_ns,
++               (unsigned long long)snapshot.published_mono_ns);
++#define SHOW(field)                                                              \
++    seq_printf(seq, #field "=%llu\n",                                           \
++               (unsigned long long)atomic64_read(&g_uvm_stale_state_v1_stats.field))
++    SHOW(snapshot_updates);
++    SHOW(snapshot_rejections);
++    SHOW(callback_invocations);
++    SHOW(snapshot_read_attempts);
++    SHOW(snapshot_read_successes);
++    SHOW(missing_snapshot_decisions);
++    SHOW(invalid_snapshot_decisions);
++    SHOW(native_callback_invocations);
++    SHOW(bpf_callback_invocations);
++    SHOW(decision_requests);
++    SHOW(decisions);
++    SHOW(decision_records);
++    SHOW(effect_requests);
++    SHOW(effect_records);
++    SHOW(dense_prefetch_decisions);
++    SHOW(discarded_prefetch_decisions);
++    SHOW(request_errors);
++    SHOW(effect_errors);
++    SHOW(selected_diagnostics);
++    SHOW(finished_diagnostics);
++    seq_printf(seq, "active_callbacks=%d\n",
++               atomic_read(&g_uvm_stale_state_v1_active_callbacks));
++#undef SHOW
++    mutex_unlock(&g_uvm_stale_state_v1_control_lock);
++    return 0;
++}
++
++static int uvm_stale_state_v1_control_open(struct inode *inode, struct file *file)
++{
++    return single_open(file, uvm_stale_state_v1_control_show, NULL);
++}
++
++static ssize_t uvm_stale_state_v1_control_write(struct file *file,
++                                                const char __user *buffer,
++                                                size_t count,
++                                                loff_t *position)
++{
++    char input[160];
++    char mode_name[8];
++    char trailing;
++    unsigned long long generation;
++    unsigned long long sequence;
++    unsigned long long source_mono_ns;
++    unsigned int phase;
++    int ret;
++
++    (void)file;
++    (void)position;
++    if (!capable(CAP_SYS_ADMIN))
++        return -EPERM;
++    if ((count == 0) || (count >= sizeof(input)))
++        return -E2BIG;
++    if (copy_from_user(input, buffer, count))
++        return -EFAULT;
++    input[count] = '\0';
++    strim(input);
++
++    if (sscanf(input, "configure %7s %llu %c", mode_name, &generation,
++               &trailing) == 2) {
++        enum uvm_stale_state_v1_mode mode;
++
++        if (strcmp(mode_name, "native") == 0)
++            mode = UVM_STALE_STATE_V1_MODE_NATIVE;
++        else if (strcmp(mode_name, "bpf") == 0)
++            mode = UVM_STALE_STATE_V1_MODE_BPF;
++        else
++            return -EINVAL;
++        ret = uvm_stale_state_v1_configure(mode, (NvU64)generation);
++    }
++    else if (sscanf(input, "publish %llu %llu %u %llu %c",
++                    &generation, &sequence, &phase, &source_mono_ns,
++                    &trailing) == 4) {
++        ret = uvm_stale_state_v1_publish((NvU64)generation,
++                                         (NvU64)sequence,
++                                         (NvU32)phase,
++                                         (NvU64)source_mono_ns);
++    }
++    else if (sscanf(input, "disable %llu %c", &generation, &trailing) == 1) {
++        ret = uvm_stale_state_v1_disable((NvU64)generation);
++    }
++    else {
++        return -EINVAL;
++    }
++
++    return ret == 0 ? (ssize_t)count : ret;
++}
++
++static const struct proc_ops uvm_stale_state_v1_control_ops = {
++    .proc_open = uvm_stale_state_v1_control_open,
++    .proc_read = seq_read,
++    .proc_write = uvm_stale_state_v1_control_write,
++    .proc_lseek = seq_lseek,
++    .proc_release = single_release,
++};
++
++int uvm_stale_state_v1_init(void)
++{
++    atomic_set(&g_uvm_stale_state_v1_mode, UVM_STALE_STATE_V1_MODE_OFF);
++    atomic_set(&g_uvm_stale_state_v1_active_callbacks, 0);
++    atomic64_set(&g_uvm_stale_state_v1_generation, 0);
++    uvm_stale_state_v1_reset_stats();
++    RCU_INIT_POINTER(g_uvm_stale_state_v1_snapshot, NULL);
++    g_uvm_stale_state_v1_control =
++        proc_create(UVM_STALE_STATE_V1_CONTROL, 0600, NULL,
++                    &uvm_stale_state_v1_control_ops);
++    return g_uvm_stale_state_v1_control == NULL ? -ENOMEM : 0;
++}
++
++void uvm_stale_state_v1_exit(void)
++{
++    struct uvm_stale_state_v1_snapshot_node *old;
++
++    if (g_uvm_stale_state_v1_control != NULL) {
++        proc_remove(g_uvm_stale_state_v1_control);
++        g_uvm_stale_state_v1_control = NULL;
++    }
++
++    mutex_lock(&g_uvm_stale_state_v1_control_lock);
++    uvm_stale_state_v1_quiesce_callbacks_locked();
++    old = rcu_dereference_protected(g_uvm_stale_state_v1_snapshot,
++                                    lockdep_is_held(&g_uvm_stale_state_v1_control_lock));
++    RCU_INIT_POINTER(g_uvm_stale_state_v1_snapshot, NULL);
++    mutex_unlock(&g_uvm_stale_state_v1_control_lock);
++    synchronize_rcu();
++    kfree(old);
++}
++
++static int uvm_stale_state_v1_record_action(
++    uvm_stale_state_v1_decision_ctx_t *decision_ctx,
++    NvU32 action)
++{
++    if ((decision_ctx == NULL) ||
++        (decision_ctx->input.abi_version != NV_GPU_STALE_STATE_V1_ABI_VERSION) ||
++        (decision_ctx->input.reserved != 0))
++        return NV_GPU_TRANSITION_REJECT_IDENTITY;
++
++    ++decision_ctx->request_calls;
++    decision_ctx->request_cookie = UVM_STALE_STATE_V1_REQUEST_COOKIE;
++    atomic64_inc(&g_uvm_stale_state_v1_stats.decision_requests);
++
++    if ((action != NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX) &&
++        (action != NV_GPU_STALE_STATE_V1_ACTION_DISCARD_PREFETCH))
++        return NV_GPU_TRANSITION_REJECT_ACTION;
++
++    return nv_gpu_transition_record_u32(&decision_ctx->action_request, action);
++}
++
++int uvm_stale_state_v1_record_bpf_action(
++    uvm_stale_state_v1_decision_ctx_t *decision_ctx,
++    NvU32 action)
++{
++    return uvm_stale_state_v1_record_action(decision_ctx, action);
++}
++
++bool uvm_stale_state_v1_begin(uvm_page_index_t page_index,
++                              const uvm_va_block_region_t *maximum,
++                              uvm_stale_state_v1_decision_ctx_t *decision_ctx,
++                              struct uvm_stale_state_v1_diagnostic *diagnostic,
++                              NvS64 *raw_action,
++                              nv_gpu_prefetch_decision_t *request)
++{
++    enum uvm_stale_state_v1_mode mode;
++    enum nv_gpu_stale_state_v1_action action;
++    nv_gpu_stale_state_v1_decision_t model_decision = {0};
++    struct uvm_stale_state_v1_input input_before;
++    NvU64 generation;
++    int request_result;
++
++    if (!uvm_stale_state_v1_callback_get(&mode))
++        return false;
++
++    memset(decision_ctx, 0, sizeof(*decision_ctx));
++    memset(diagnostic, 0, sizeof(*diagnostic));
++    *raw_action = NV_GPU_TRANSITION_ACTION_DEFAULT;
++    generation = (NvU64)atomic64_read(&g_uvm_stale_state_v1_generation);
++    diagnostic->mode = mode;
++    diagnostic->input.abi_version = NV_GPU_STALE_STATE_V1_ABI_VERSION;
++    diagnostic->input.generation = generation;
++    diagnostic->input.decision_sequence =
++        (NvU64)atomic64_inc_return(&g_uvm_stale_state_v1_decision_sequence);
++    diagnostic->input.page_index = page_index;
++    diagnostic->input.max_first = maximum->first;
++    diagnostic->input.max_outer = maximum->outer;
++    atomic64_inc(&g_uvm_stale_state_v1_stats.callback_invocations);
++    atomic64_inc(&g_uvm_stale_state_v1_stats.snapshot_read_attempts);
++
++    if (!uvm_stale_state_v1_read_snapshot(generation,
++                                          &diagnostic->input.snapshot)) {
++        diagnostic->status = UVM_STALE_STATE_V1_STATUS_MISSING_SNAPSHOT;
++        atomic64_inc(&g_uvm_stale_state_v1_stats.missing_snapshot_decisions);
++        return true;
++    }
++
++    atomic64_inc(&g_uvm_stale_state_v1_stats.snapshot_read_successes);
++    diagnostic->input.decision_mono_ns = ktime_get_ns();
++    if (!nv_gpu_stale_state_v1_snapshot_valid(&diagnostic->input.snapshot,
++                                               diagnostic->input.decision_mono_ns)) {
++        diagnostic->status = UVM_STALE_STATE_V1_STATUS_INVALID_SNAPSHOT;
++        atomic64_inc(&g_uvm_stale_state_v1_stats.invalid_snapshot_decisions);
++        return true;
++    }
++
++    decision_ctx->input = diagnostic->input;
++    input_before = decision_ctx->input;
++    if (mode == UVM_STALE_STATE_V1_MODE_NATIVE) {
++        action = nv_gpu_stale_state_v1_choose(&decision_ctx->input.snapshot,
++                                              decision_ctx->input.decision_mono_ns,
++                                              &model_decision);
++        diagnostic->callback_return = action;
++        request_result = uvm_stale_state_v1_record_action(decision_ctx,
++                                                          action);
++        atomic64_inc(&g_uvm_stale_state_v1_stats.native_callback_invocations);
++    }
++    else {
++        atomic64_inc(&g_uvm_stale_state_v1_stats.bpf_callback_invocations);
++        diagnostic->callback_return =
++            uvm_bpf_call_gpu_stale_state_v1(decision_ctx);
++        request_result = decision_ctx->action_request.attempted ?
++                             NV_GPU_TRANSITION_APPLY :
++                             NV_GPU_TRANSITION_NOOP_DEFAULT;
++    }
++
++    diagnostic->action_attempted = decision_ctx->action_request.attempted;
++    diagnostic->action_conflict = decision_ctx->action_request.conflict;
++    diagnostic->action_request_calls = decision_ctx->request_calls;
++    diagnostic->action = decision_ctx->action_request.value;
++
++    if ((memcmp(&input_before, &decision_ctx->input, sizeof(input_before)) != 0) ||
++        (request_result != NV_GPU_TRANSITION_APPLY) ||
++        (decision_ctx->request_cookie != UVM_STALE_STATE_V1_REQUEST_COOKIE) ||
++        (decision_ctx->request_calls != 1) ||
++        !decision_ctx->action_request.attempted ||
++        decision_ctx->action_request.conflict ||
++        ((NvU64)diagnostic->callback_return !=
++         (NvU64)decision_ctx->action_request.value) ||
++        ((decision_ctx->action_request.value !=
++          NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX) &&
++         (decision_ctx->action_request.value !=
++          NV_GPU_STALE_STATE_V1_ACTION_DISCARD_PREFETCH))) {
++        diagnostic->status = UVM_STALE_STATE_V1_STATUS_REQUEST_ERROR;
++        atomic64_inc(&g_uvm_stale_state_v1_stats.request_errors);
++        return true;
++    }
++
++    action = decision_ctx->action_request.value;
++    request_result = action == NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX ?
++                         nv_gpu_transition_record_prefetch(request,
++                                                           maximum->first,
++                                                           maximum->outer) :
++                         nv_gpu_transition_record_prefetch(request, 0, 0);
++    if (request_result != NV_GPU_TRANSITION_APPLY) {
++        diagnostic->status = UVM_STALE_STATE_V1_STATUS_REQUEST_ERROR;
++        atomic64_inc(&g_uvm_stale_state_v1_stats.request_errors);
++        return true;
++    }
++
++    diagnostic->decision_age_ns = model_decision.decision_age_ns;
++    if (mode == UVM_STALE_STATE_V1_MODE_BPF)
++        diagnostic->decision_age_ns = diagnostic->input.decision_mono_ns -
++                                      diagnostic->input.snapshot.source_mono_ns;
++    diagnostic->requested_first = request->first;
++    diagnostic->requested_outer = request->outer;
++    diagnostic->status = UVM_STALE_STATE_V1_STATUS_DECISION_READY;
++    *raw_action = NV_GPU_TRANSITION_ACTION_BYPASS;
++    atomic64_inc(&g_uvm_stale_state_v1_stats.decisions);
++    atomic64_inc(&g_uvm_stale_state_v1_stats.effect_requests);
++    if (action == NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX)
++        atomic64_inc(&g_uvm_stale_state_v1_stats.dense_prefetch_decisions);
++    else
++        atomic64_inc(&g_uvm_stale_state_v1_stats.discarded_prefetch_decisions);
++    return true;
++}
++
++void uvm_stale_state_v1_selected(
++    struct uvm_stale_state_v1_diagnostic *diagnostic,
++    enum nv_gpu_transition_result region_result,
++    enum nv_gpu_prefetch_initial_effect initial_effect)
++{
++    diagnostic->diagnostic_phase = UVM_STALE_STATE_V1_DIAG_SELECTED;
++    diagnostic->region_result = region_result;
++    diagnostic->initial_effect = initial_effect;
++    if (diagnostic->status == UVM_STALE_STATE_V1_STATUS_DECISION_READY) {
++        atomic64_inc(&g_uvm_stale_state_v1_stats.decision_records);
++        if ((region_result != NV_GPU_TRANSITION_APPLY) ||
++            (initial_effect != NV_GPU_PREFETCH_INITIAL_BYPASS)) {
++            diagnostic->status = UVM_STALE_STATE_V1_STATUS_EFFECT_ERROR;
++            atomic64_inc(&g_uvm_stale_state_v1_stats.effect_errors);
++        }
++    }
++    atomic64_inc(&g_uvm_stale_state_v1_stats.selected_diagnostics);
++    uvm_stale_state_v1_diagnostic(diagnostic);
++}
++
++void uvm_stale_state_v1_finished(
++    struct uvm_stale_state_v1_diagnostic *diagnostic,
++    const uvm_va_block_region_t *output)
++{
++    bool output_matches;
++
++    diagnostic->diagnostic_phase = UVM_STALE_STATE_V1_DIAG_FINISHED;
++    diagnostic->output_first = output->first;
++    diagnostic->output_outer = output->outer;
++    if (diagnostic->status == UVM_STALE_STATE_V1_STATUS_DECISION_READY) {
++        output_matches =
++            (diagnostic->action == NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX) ?
++                ((diagnostic->output_first == diagnostic->input.max_first) &&
++                 (diagnostic->output_outer == diagnostic->input.max_outer)) :
++                ((diagnostic->output_first == 0) &&
++                 (diagnostic->output_outer == 0));
++        if (output_matches) {
++            diagnostic->status = UVM_STALE_STATE_V1_STATUS_EFFECT_APPLIED;
++            atomic64_inc(&g_uvm_stale_state_v1_stats.effect_records);
++        }
++        else {
++            diagnostic->status = UVM_STALE_STATE_V1_STATUS_EFFECT_ERROR;
++            atomic64_inc(&g_uvm_stale_state_v1_stats.effect_errors);
++        }
++    }
++    atomic64_inc(&g_uvm_stale_state_v1_stats.finished_diagnostics);
++    uvm_stale_state_v1_diagnostic(diagnostic);
++    uvm_stale_state_v1_callback_put();
++}
++
++noinline void uvm_stale_state_v1_diagnostic(
++    const struct uvm_stale_state_v1_diagnostic *diagnostic)
++{
++    if (diagnostic != NULL)
++        barrier();
++}
+diff --git a/kernel-open/nvidia-uvm/uvm_stale_state_v1.h b/kernel-open/nvidia-uvm/uvm_stale_state_v1.h
+new file mode 100644
+index 00000000..2a6ff61f
+--- /dev/null
++++ b/kernel-open/nvidia-uvm/uvm_stale_state_v1.h
+@@ -0,0 +1,108 @@
++/* SPDX-License-Identifier: MIT */
++#ifndef _UVM_STALE_STATE_V1_H_
++#define _UVM_STALE_STATE_V1_H_
++
++#include "nv-gpu-stale-state-v1.h"
++#include "nv-gpu-transition-validator.h"
++#include "uvm_va_block_types.h"
++
++enum uvm_stale_state_v1_mode
++{
++    UVM_STALE_STATE_V1_MODE_OFF = 0,
++    UVM_STALE_STATE_V1_MODE_NATIVE = 1,
++    UVM_STALE_STATE_V1_MODE_BPF = 2,
++};
++
++enum uvm_stale_state_v1_status
++{
++    UVM_STALE_STATE_V1_STATUS_UNSET = 0,
++    UVM_STALE_STATE_V1_STATUS_MISSING_SNAPSHOT = 1,
++    UVM_STALE_STATE_V1_STATUS_INVALID_SNAPSHOT = 2,
++    UVM_STALE_STATE_V1_STATUS_REQUEST_ERROR = 3,
++    UVM_STALE_STATE_V1_STATUS_DECISION_READY = 4,
++    UVM_STALE_STATE_V1_STATUS_EFFECT_APPLIED = 5,
++    UVM_STALE_STATE_V1_STATUS_EFFECT_ERROR = 6,
++};
++
++enum uvm_stale_state_v1_diagnostic_phase
++{
++    UVM_STALE_STATE_V1_DIAG_SELECTED = 1,
++    UVM_STALE_STATE_V1_DIAG_FINISHED = 2,
++};
++
++/*
++ * This prefix is driver-owned and read-only to BPF. The timestamp is captured
++ * once in the driver so native and BPF consumers use the same clock boundary.
++ */
++struct uvm_stale_state_v1_input
++{
++    nv_gpu_stale_state_v1_snapshot_t snapshot;
++    NvU64 generation;
++    NvU64 decision_sequence;
++    NvU64 decision_mono_ns;
++    NvU64 page_index;
++    NvU64 max_first;
++    NvU64 max_outer;
++    NvU32 abi_version;
++    NvU32 reserved;
++};
++
++/*
++ * BPF cannot write this context directly. It submits one action through the
++ * trusted kfunc, which latches the request in the private suffix.
++ */
++typedef struct uvm_stale_state_v1_decision_ctx
++{
++    struct uvm_stale_state_v1_input input;
++    nv_gpu_transition_u32_request_t action_request;
++    NvU32 request_calls;
++    NvU32 request_cookie;
++} uvm_stale_state_v1_decision_ctx_t;
++
++/* Address-free record consumed by a privileged fentry/fexit observer. */
++struct uvm_stale_state_v1_diagnostic
++{
++    struct uvm_stale_state_v1_input input;
++    NvS64 callback_return;
++    NvU64 decision_age_ns;
++    NvU64 requested_first;
++    NvU64 requested_outer;
++    NvU64 output_first;
++    NvU64 output_outer;
++    NvU32 diagnostic_phase;
++    NvU32 mode;
++    NvU32 status;
++    NvU32 action;
++    NvU32 action_attempted;
++    NvU32 action_conflict;
++    NvU32 action_request_calls;
++    NvU32 region_result;
++    NvU32 initial_effect;
++    NvU32 reserved;
++};
++
++int uvm_stale_state_v1_init(void);
++void uvm_stale_state_v1_exit(void);
++
++/* Returns false only when the versioned bridge is disabled. */
++bool uvm_stale_state_v1_begin(uvm_page_index_t page_index,
++                              const uvm_va_block_region_t *maximum,
++                              uvm_stale_state_v1_decision_ctx_t *decision_ctx,
++                              struct uvm_stale_state_v1_diagnostic *diagnostic,
++                              NvS64 *raw_action,
++                              nv_gpu_prefetch_decision_t *request);
++
++void uvm_stale_state_v1_selected(struct uvm_stale_state_v1_diagnostic *diagnostic,
++                                 enum nv_gpu_transition_result region_result,
++                                 enum nv_gpu_prefetch_initial_effect initial_effect);
++
++void uvm_stale_state_v1_finished(struct uvm_stale_state_v1_diagnostic *diagnostic,
++                                 const uvm_va_block_region_t *output);
++
++int uvm_stale_state_v1_record_bpf_action(uvm_stale_state_v1_decision_ctx_t *decision_ctx,
++                                         NvU32 action);
++
++void uvm_stale_state_v1_diagnostic(
++    const struct uvm_stale_state_v1_diagnostic *diagnostic);
++
++#endif
+diff --git a/kernel-open/tests/Makefile b/kernel-open/tests/Makefile
+index 4b0db81e..960ff7e1 100644
+--- a/kernel-open/tests/Makefile
++++ b/kernel-open/tests/Makefile
+@@ -2,9 +2,12 @@
+ 
+ all:
+ 	$(MAKE) -C transition-validator all
++	$(MAKE) -C stale-state-v1 all
+ 
+ test:
+ 	$(MAKE) -C transition-validator test
++	$(MAKE) -C stale-state-v1 test
+ 
+ clean:
+ 	$(MAKE) -C transition-validator clean
++	$(MAKE) -C stale-state-v1 clean
+diff --git a/kernel-open/tests/stale-state-v1/Makefile b/kernel-open/tests/stale-state-v1/Makefile
+new file mode 100644
+index 00000000..059e059c
+--- /dev/null
++++ b/kernel-open/tests/stale-state-v1/Makefile
+@@ -0,0 +1,18 @@
++CC ?= cc
++CFLAGS ?= -O2
++CFLAGS += -std=c11 -Wall -Wextra -Werror -I../../common/inc
++
++.PHONY: all test clean
++
++all: stale_state_v1_test
++
++stale_state_v1_test: stale_state_v1_test.c \
++		../../common/inc/nv-gpu-stale-state-v1.h \
++		../../common/inc/nvtypes.h
++	$(CC) $(CFLAGS) -o $@ stale_state_v1_test.c
++
++test: stale_state_v1_test
++	./stale_state_v1_test
++
++clean:
++	$(RM) stale_state_v1_test
+diff --git a/kernel-open/tests/stale-state-v1/stale_state_v1_test.c b/kernel-open/tests/stale-state-v1/stale_state_v1_test.c
+new file mode 100644
+index 00000000..6222bf00
+--- /dev/null
++++ b/kernel-open/tests/stale-state-v1/stale_state_v1_test.c
+@@ -0,0 +1,117 @@
++/* SPDX-License-Identifier: MIT */
++
++#include <stddef.h>
++#include <stdio.h>
++#include <stdlib.h>
++
++#include "nv-gpu-stale-state-v1.h"
++
++static unsigned int assertion_count;
++
++#define EXPECT(condition)                                                        \
++    do {                                                                         \
++        ++assertion_count;                                                       \
++        if (!(condition)) {                                                      \
++            fprintf(stderr, "%s:%d: expectation failed: %s\n",                 \
++                    __FILE__, __LINE__, #condition);                             \
++            exit(EXIT_FAILURE);                                                  \
++        }                                                                        \
++    } while (0)
++
++static nv_gpu_stale_state_v1_snapshot_t snapshot(NvU32 phase)
++{
++    nv_gpu_stale_state_v1_snapshot_t value = {
++        .sequence = 7,
++        .source_mono_ns = 100,
++        .published_mono_ns = 120,
++        .phase = phase,
++    };
++    return value;
++}
++
++static void test_abi(void)
++{
++    EXPECT(NV_GPU_STALE_STATE_V1_ABI_VERSION == 1);
++    EXPECT(sizeof(nv_gpu_stale_state_v1_snapshot_t) == 32);
++    EXPECT(offsetof(nv_gpu_stale_state_v1_snapshot_t, sequence) == 0);
++    EXPECT(offsetof(nv_gpu_stale_state_v1_snapshot_t, source_mono_ns) == 8);
++    EXPECT(offsetof(nv_gpu_stale_state_v1_snapshot_t, published_mono_ns) == 16);
++    EXPECT(offsetof(nv_gpu_stale_state_v1_snapshot_t, phase) == 24);
++    EXPECT(sizeof(nv_gpu_stale_state_v1_decision_t) == 24);
++}
++
++static void test_dense_and_sparse(void)
++{
++    nv_gpu_stale_state_v1_snapshot_t dense =
++        snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    nv_gpu_stale_state_v1_snapshot_t sparse =
++        snapshot(NV_GPU_STALE_STATE_V1_PHASE_SPARSE);
++    nv_gpu_stale_state_v1_decision_t decision = {0};
++
++    EXPECT(nv_gpu_stale_state_v1_choose(&dense, 170, &decision) ==
++           NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX);
++    EXPECT(decision.snapshot_sequence == 7);
++    EXPECT(decision.snapshot_phase == NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    EXPECT(decision.decision_age_ns == 70);
++    EXPECT(decision.action == NV_GPU_STALE_STATE_V1_ACTION_PREFETCH_MAX);
++
++    decision = (nv_gpu_stale_state_v1_decision_t){0};
++    EXPECT(nv_gpu_stale_state_v1_choose(&sparse, 180, &decision) ==
++           NV_GPU_STALE_STATE_V1_ACTION_DISCARD_PREFETCH);
++    EXPECT(decision.snapshot_phase == NV_GPU_STALE_STATE_V1_PHASE_SPARSE);
++    EXPECT(decision.decision_age_ns == 80);
++}
++
++static void test_rejections(void)
++{
++    nv_gpu_stale_state_v1_snapshot_t value =
++        snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    nv_gpu_stale_state_v1_decision_t decision = {0};
++
++    EXPECT(nv_gpu_stale_state_v1_choose(NULL, 170, &decision) ==
++           NV_GPU_STALE_STATE_V1_ACTION_REJECT);
++    EXPECT(nv_gpu_stale_state_v1_choose(&value, 170, NULL) ==
++           NV_GPU_STALE_STATE_V1_ACTION_REJECT);
++    value.sequence = 0;
++    EXPECT(!nv_gpu_stale_state_v1_snapshot_valid(&value, 170));
++    value = snapshot(NV_GPU_STALE_STATE_V1_PHASE_INVALID);
++    EXPECT(!nv_gpu_stale_state_v1_snapshot_valid(&value, 170));
++    value = snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    value.reserved = 1;
++    EXPECT(!nv_gpu_stale_state_v1_snapshot_valid(&value, 170));
++    value = snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    value.source_mono_ns = 0;
++    EXPECT(!nv_gpu_stale_state_v1_snapshot_valid(&value, 170));
++    value = snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    value.published_mono_ns = 0;
++    EXPECT(!nv_gpu_stale_state_v1_snapshot_valid(&value, 170));
++    value = snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    value.published_mono_ns = 99;
++    EXPECT(!nv_gpu_stale_state_v1_snapshot_valid(&value, 170));
++    value = snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++    EXPECT(!nv_gpu_stale_state_v1_snapshot_valid(&value, 119));
++}
++
++static void test_publication_order(void)
++{
++    nv_gpu_stale_state_v1_snapshot_t current_snapshot =
++        snapshot(NV_GPU_STALE_STATE_V1_PHASE_DENSE);
++
++    EXPECT(nv_gpu_stale_state_v1_publication_follows(NULL, 1, 100));
++    EXPECT(!nv_gpu_stale_state_v1_publication_follows(NULL, 2, 100));
++    EXPECT(nv_gpu_stale_state_v1_publication_follows(&current_snapshot, 8, 101));
++    EXPECT(!nv_gpu_stale_state_v1_publication_follows(&current_snapshot, 9, 101));
++    EXPECT(!nv_gpu_stale_state_v1_publication_follows(&current_snapshot, 8, 100));
++    current_snapshot.sequence = ~(NvU64)0;
++    EXPECT(!nv_gpu_stale_state_v1_publication_follows(&current_snapshot, 1, 101));
++}
++
++int main(void)
++{
++    test_abi();
++    test_dense_and_sparse();
++    test_rejections();
++    test_publication_order();
++    printf("stale_state_v1_test: %u assertions passed\n", assertion_count);
++    return 0;
++}

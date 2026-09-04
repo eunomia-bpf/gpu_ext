@@ -79,8 +79,9 @@ A cell is valid only when:
   publication, and joins to exactly one host-truth interval;
 - policy final counters equal the retained per-decision records, dense-prefetch
   and sparse-discard actions are both nonzero, and missing/invalid snapshot,
-  request-error, helper-error, and record-drop counters are zero; callback,
-  snapshot-read/helper, effect-request, and effect-record totals close exactly;
+  request-error, effect-error, and record-drop counters are zero; callback,
+  snapshot-read, decision-request, effect-request, diagnostic, and
+  effect-record totals close exactly;
 - UVM Tools observes nonzero GPU faults and migrations, with zero dropped GPU
   fault and migration events;
 - continuous GPU, compute-client, and kernel monitors cover the cell; no
@@ -102,5 +103,6 @@ valid negative boundary. Numerical, engagement, monitor, or fairness failure
 makes the affected comparison invalid rather than favorable to either arm.
 
 No live command is authorized until the driver-owned shared snapshot and
-matched native/BPF diagnostic interface exists. A new private-map-only BPF
+matched native/BPF diagnostic interface is installed and passes a controlled
+load/attach preflight. A new private-map-only BPF
 policy or a userspace prefetch substitute is insufficient.

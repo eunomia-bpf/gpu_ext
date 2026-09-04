@@ -11,7 +11,7 @@ UBPF_LIB ?= $(BPFTIME_BUILD)/vm/compat/ubpf-vm/ubpf/lib/libubpf.a
 BPF_CLANG ?= /usr/bin/clang-18
 OBJCOPY ?= /usr/bin/llvm-objcopy-18
 
-.PHONY: test-offline build-sources clean
+.PHONY: test-offline test-driver-bridge build-sources clean
 
 test_policy_model: test_policy_model.c stale_state_policy_model.h
 	$(CC) $(CFLAGS) -std=c11 test_policy_model.c -o $@
@@ -36,7 +36,10 @@ uvm_event_monitor: uvm_event_monitor.c
 stale_state_workload: stale_state_workload.cu
 	$(NVCC) $(NVCCFLAGS) stale_state_workload.cu -o $@
 
-test-offline: test_policy_model uvm_event_monitor build/test_policy_jit
+test-driver-bridge:
+	$(MAKE) -C driver-bridge-v1 test
+
+test-offline: test_policy_model uvm_event_monitor build/test_policy_jit test-driver-bridge
 	./test_policy_model
 	./build/test_policy_jit ./build/stale_state_policy.bin
 	PYTHONDONTWRITEBYTECODE=1 python3 -B test_offline.py
@@ -46,3 +49,4 @@ build-sources: stale_state_workload uvm_event_monitor test_policy_model
 clean:
 	rm -f stale_state_workload uvm_event_monitor test_policy_model
 	rm -rf build
+	$(MAKE) -C driver-bridge-v1 clean

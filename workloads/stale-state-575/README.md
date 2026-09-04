@@ -37,29 +37,37 @@ The default-UVM row is a context control, not a substitute member of either
 causal pair. A delayed row with no extra wrong-phase decisions, migrations, or
 slowdown is retained as a valid negative result.
 
-## Current hard boundary
+## Source/build boundary now closed
 
 Live execution is intentionally refused by `run_study.py live`. The current
-575 `gpu_mem_ops.gpu_page_prefetch` ABI supplies a fault-local page index,
-bitmap tree, maximum region, and decision object. It supplies no atomically
-published cross-layer snapshot or source timestamp. Existing BPF policies can
-own private maps, but the driver has no native same-algorithm consumer of such
-a map. A userspace `cudaMemPrefetchAsync` approximation would change both the
-decision point and actuation mechanism, so it is not used as the native arm.
+installed 575 module still has only the legacy
+`gpu_mem_ops.gpu_page_prefetch` ABI. The source artifact
+[`driver-bridge-v1.patch`](driver-bridge-v1.patch) now adds the missing
+driver-owned snapshot, matched native consumer, append-only BPF callback and
+setter, common diagnostics, and lifecycle counters against driver revision
+`6a5b3bb5`. [`driver-bridge-v1/`](driver-bridge-v1/) contains the matching
+read-only BPF policy and CPU ABI test. The exact source/build evidence and the
+remaining live gate are recorded in
+[`driver-bridge-v1-readiness.md`](driver-bridge-v1-readiness.md).
 
-The minimum missing interface is one driver-owned, atomically readable record
-containing `(sequence, phase, source_mono_ns, published_mono_ns)`, exposed
-read-only to both:
+The patch implements one driver-owned, atomically readable record containing
+`(sequence, phase, source_mono_ns, published_mono_ns)`, exposed read-only to
+both:
 
 - a native in-driver implementation of `stale_state_policy_model.h`; and
 - a uniquely named BPF policy implementing the same model.
 
-The driver must also expose matched decision diagnostics for both arms:
+It also exposes matched decision diagnostics for both arms:
 snapshot sequence and phase, decision monotonic time, requested/output region,
 and final effect. Those diagnostics are needed to join decisions to the
 host-truth timeline and count decision age and wrong-phase decisions without
-host-generated proxy counters. A private BPF map alone does not close this
-boundary. No existing policy source is modified here.
+host-generated proxy counters. A private BPF map alone would not close this
+boundary.
+
+This is not yet a live result: the patch has not been installed, the new
+module has not been loaded, the BPF policy has not passed the live verifier or
+attached, and no GPU cell has run. Those operations require a controlled
+module-load window followed by an excluded seven-cell preflight.
 
 ## Real records required from every future cell
 
@@ -80,8 +88,9 @@ counts.
   prefetch must equal the full legal maximum and sparse-snapshot discard must
   equal the empty region; both must engage. Missing snapshots, record loss,
   and request errors invalidate a row.
-  Callback, snapshot-read/helper, effect-request, and retained-record totals
-  must close exactly; any helper or record error invalidates the row.
+  Callback, snapshot-read, decision-request, effect-request, diagnostic, and
+  retained-record totals must close exactly; any request, effect, or record
+  error invalidates the row.
 - `execution.json`, `safety-before.json`, `safety-after.json`,
   `gpu-telemetry.csv`, `compute-apps.jsonl`, and `kernel-monitor.log` for
   ownership, exclusivity, cleanup, telemetry, and kernel-safety evidence.
@@ -94,6 +103,7 @@ inferred from a difference between request counts and migration counts.
 
 ```bash
 make test-offline
+make test-driver-bridge
 python3 -B run_study.py dry-run full \
   --output /absolute/future/raw/stale-state-575-full-01 \
   --preflight /absolute/future/raw/stale-state-575-preflight-01

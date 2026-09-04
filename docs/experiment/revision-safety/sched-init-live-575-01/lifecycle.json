@@ -1,0 +1,80 @@
+{
+  "arguments": {
+    "candidate_dir": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open",
+    "output": "/home/yunwei37/workspace/gpu/gpu_ext/docs/experiment/revision-safety/sched-init-live-575-01",
+    "restore_dir": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11",
+    "stage": "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-01"
+  },
+  "complete": false,
+  "completion_linearization": {
+    "leases_closed_ns": 1788487792212242373,
+    "prepublish_signals": []
+  },
+  "finalization_errors": [],
+  "finished_ns": 1788487792212230175,
+  "interrupt_signals": [],
+  "leases": [
+    {
+      "device": 66308,
+      "inode": 54525959,
+      "path": "/tmp/gpubpf-revision-gpu0.lock"
+    },
+    {
+      "device": 66308,
+      "inode": 54525960,
+      "path": "/tmp/gpubpf-revision-struct-ops.lock"
+    }
+  ],
+  "primary_error": "LifecycleError: preemption kfunc C signature differs",
+  "recovery_errors": [],
+  "runtime_state": {
+    "candidate_insert_started": false,
+    "candidate_loaded": [],
+    "candidate_services_restored": false,
+    "destructive_started": false,
+    "matrix_complete": false,
+    "native_preflight_complete": false,
+    "old_removal_complete": false,
+    "old_restored": false,
+    "services_restored": false,
+    "services_stopped": []
+  },
+  "started_ns": 1788487791796581830,
+  "transitions": [
+    {
+      "name": "lease_acquired",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": false,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": []
+      },
+      "status": "passed",
+      "timestamp_ns": 1788487791796592379
+    },
+    {
+      "error": "LifecycleError: preemption kfunc C signature differs",
+      "name": "campaign_body",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": false,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": []
+      },
+      "status": "failed",
+      "timestamp_ns": 1788487792197414905
+    }
+  ]
+}

@@ -16,6 +16,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import signal
 import stat
 import subprocess
@@ -56,6 +57,19 @@ ANALYZER = HERE.parent / "analyze_revision_rq4.py"
 BPFTIME_ROOT = WORKSPACE / "bpftime-table1-575"
 BPFTIME_BUILD = BPFTIME_ROOT / "build-launchlate-575"
 CHILD_MODES = ("none", "preflight", "preflight-full")
+CHILD_PATH = (
+    "/usr/local/cuda-12.9/bin:/usr/local/sbin:/usr/local/bin:"
+    "/usr/sbin:/usr/bin:/sbin:/bin"
+)
+REQUIRED_CHILD_COMMANDS = {
+    "cuobjdump": Path("/usr/local/cuda-12.9/bin/cuobjdump"),
+    "nvcc": Path("/usr/local/cuda-12.9/bin/nvcc"),
+    "git": Path("/usr/bin/git"),
+    "make": Path("/usr/bin/make"),
+    "nvidia-smi": Path("/usr/bin/nvidia-smi"),
+    "patch": Path("/usr/bin/patch"),
+    "taskset": Path("/usr/bin/taskset"),
+}
 TARGET_LABELS = (
     "fleet.yunwei37.com/gpu",
     "monitoring.yunwei37.com/managed",
@@ -365,6 +379,7 @@ def dry_run(candidate_dir: Path, stage: Path, output: Path,
     source = validate_candidate_source(candidate_dir)
     candidate = describe_directory(candidate_dir, candidate=True)
     restore = describe_directory(RESTORE_DIR, candidate=False)
+    child_commands = validate_child_command_lookup(child_environment())
     for name in base.LOAD_ORDER:
         demand(candidate[name]["parameter_names"] == restore[name]["parameter_names"],
                f"candidate/restore parameter inventories differ: {name}")
@@ -374,6 +389,7 @@ def dry_run(candidate_dir: Path, stage: Path, output: Path,
             "remove_order": list(base.REMOVE_ORDER),
             "probe": [str(PROBE), *PROBE_ARGS],
             "child_mode": child_mode,
+            "child_path": CHILD_PATH, "child_commands": child_commands,
             "stage": str(stage), "output": str(output)}
 
 
@@ -386,7 +402,26 @@ def child_environment() -> dict[str, str]:
             value.pop(key)
     value["CUDA_VISIBLE_DEVICES"] = "0"
     value["PYTHONDONTWRITEBYTECODE"] = "1"
+    value["PATH"] = CHILD_PATH
+    validate_child_command_lookup(value)
     return value
+
+
+def validate_child_command_lookup(environment: dict[str, str]) -> dict[str, str]:
+    demand(environment.get("PATH") == CHILD_PATH,
+           "child PATH differs from the fixed allowlist")
+    observed: dict[str, str] = {}
+    for command, expected in REQUIRED_CHILD_COMMANDS.items():
+        found = shutil.which(command, path=environment["PATH"])
+        demand(found is not None, f"required child command is absent: {command}")
+        path = Path(found)
+        demand(path.is_file() and not path.is_symlink() and os.access(path, os.X_OK),
+               f"required child command is not an executable regular file: {path}")
+        demand(path == expected,
+               f"required child command resolved outside its fixed path: "
+               f"{command}={path}")
+        observed[command] = str(path)
+    return observed
 
 
 def campaign_argv(phase: str, directory: Path,
@@ -480,6 +515,7 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
     demand(os.geteuid() == 0, "--execute is root-only")
     demand(child_mode in CHILD_MODES, f"invalid child mode: {child_mode}")
     validate_paths(candidate_dir, stage, output)
+    child_commands = validate_child_command_lookup(child_environment())
     state = State()
     leases = base.LifecycleLeases()
     initial: dict[str, Any] | None = None
@@ -487,7 +523,9 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
         "complete": False, "state": asdict(state), "events": [],
         "started_ns": time.time_ns(),
         "arguments": {"candidate_dir": str(candidate_dir), "stage": str(stage),
-                      "output": str(output), "child_mode": child_mode},
+                      "output": str(output), "child_mode": child_mode,
+                      "child_path": CHILD_PATH,
+                      "child_commands": child_commands},
     }
     primary: BaseException | None = None
     recovery_errors: list[str] = []

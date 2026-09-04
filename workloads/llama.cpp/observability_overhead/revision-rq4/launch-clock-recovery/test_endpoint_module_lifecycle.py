@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
+import tempfile
 import unittest
+from unittest.mock import patch
 
 
 HERE = Path(__file__).resolve().parent
@@ -59,6 +62,31 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
         full = lifecycle.campaign_argv(
             "full", HERE.parent / "raw/example-full", (71, 72), output)
         self.assertEqual(full[full.index("--preflight-dir") + 1], str(output))
+
+    def test_child_path_and_cuda_command_lookup_are_fixed(self) -> None:
+        with patch.dict(os.environ, {"PATH": "/hostile", "BPFTIME_BAD": "1"}):
+            environment = lifecycle.child_environment()
+        self.assertEqual(environment["PATH"], lifecycle.CHILD_PATH)
+        self.assertNotIn("BPFTIME_BAD", environment)
+        commands = lifecycle.validate_child_command_lookup(environment)
+        self.assertEqual(commands["cuobjdump"],
+                         "/usr/local/cuda-12.9/bin/cuobjdump")
+        self.assertEqual(commands["nvcc"], "/usr/local/cuda-12.9/bin/nvcc")
+
+    def test_child_command_lookup_rejects_path_mutation(self) -> None:
+        environment = lifecycle.child_environment()
+        environment["PATH"] = "/usr/bin:/bin"
+        with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
+                                    "PATH differs"):
+            lifecycle.validate_child_command_lookup(environment)
+        with tempfile.TemporaryDirectory() as temp:
+            fake = Path(temp) / "cuobjdump"
+            fake.write_text("#!/bin/sh\nexit 0\n")
+            fake.chmod(0o755)
+            environment["PATH"] = f"{temp}:{lifecycle.CHILD_PATH}"
+            with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
+                                        "PATH differs"):
+                lifecycle.validate_child_command_lookup(environment)
 
     def test_probe_gate_accepts_only_complete_fixed_run(self) -> None:
         result = lifecycle.validate_probe_output(valid_probe_output())

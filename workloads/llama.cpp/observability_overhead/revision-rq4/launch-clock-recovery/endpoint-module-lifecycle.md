@@ -39,13 +39,21 @@ ambient injection environment. Each child argv, return code, stdout, stderr,
 and independent analyzer result is retained in `lifecycle.json`; wrapper
 completion requires every requested child gate before rollback.
 
+The child does not inherit the invoking shell's executable search path. Its
+PATH is fixed to the CUDA 12.9, standard local, and system binary directories,
+and admission resolves `cuobjdump`, `nvcc`, `git`, `make`, `nvidia-smi`,
+`patch`, and `taskset` to their exact allowlisted locations. This specifically
+prevents a repeat of attempt 06, where the endpoint probe passed but the child
+stopped before any workload because `cuobjdump` was outside the inherited
+minimal sudo PATH.
+
 The only admitted live invocation for the next fresh attempt is:
 
 ```bash
 sudo -n python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/launch-clock-recovery/run_endpoint_module_lifecycle.py \
   --candidate-dir /home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open \
-  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-01 \
-  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-06-endpoint-lifecycle \
+  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-02 \
+  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-07-endpoint-lifecycle \
   --child-mode preflight-full \
   --execute
 ```

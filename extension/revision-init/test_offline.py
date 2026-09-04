@@ -322,6 +322,18 @@ class ProcessAndInputTests(unittest.TestCase):
                               runner.GateError, "enumerated struct_ops link"):
             runner.validate_owned_struct_ops(ready, TARGET_PID)
 
+    def test_bpf_cleanup_allows_removal_but_rejects_survivors(self):
+        before = {"prog": [1, 2], "map": [3, 4], "link": []}
+        after = {"prog": [1], "map": [3], "link": []}
+        self.assertEqual(runner.validate_bpf_cleanup(before, after), {
+            "prog": [2], "map": [4], "link": [],
+        })
+        with self.assertRaisesRegex(runner.GateError, "survived cleanup"):
+            runner.validate_bpf_cleanup(
+                before, {"prog": [1, 2, 5], "map": [3, 4], "link": []})
+        with self.assertRaisesRegex(runner.GateError, "schema"):
+            runner.validate_bpf_cleanup(before, {"prog": [], "map": []})
+
     def test_json_reader_rejects_partial_json(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "events"

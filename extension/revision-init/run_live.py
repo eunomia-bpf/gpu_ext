@@ -802,6 +802,22 @@ def bpf_inventory() -> dict[str, list[int]]:
     return inventory
 
 
+def validate_bpf_cleanup(before: dict[str, list[int]],
+                         after: dict[str, list[int]]) -> dict[str, list[int]]:
+    demand(set(before) == set(after) == {"prog", "map", "link"},
+           "BPF object inventory schema changed")
+    added = {
+        kind: sorted(set(after[kind]) - set(before[kind]))
+        for kind in before
+    }
+    demand(not any(added.values()),
+           f"new BPF objects survived cleanup: {added}")
+    return {
+        kind: sorted(set(before[kind]) - set(after[kind]))
+        for kind in before
+    }
+
+
 def run_cell(directory: Path, row: Row, block: int) -> dict[str, Any]:
     directory.mkdir(parents=True, exist_ok=False)
     streams: list[Any] = []
@@ -945,7 +961,8 @@ def run_cell(directory: Path, row: Row, block: int) -> dict[str, Any]:
             try:
                 bpf_after = bpf_inventory()
                 result["bpf_after"] = bpf_after
-                demand(bpf_after == bpf_before, "BPF object inventory changed after cleanup")
+                result["ambient_bpf_objects_removed"] = validate_bpf_cleanup(
+                    bpf_before, bpf_after)
             except BaseException as error:
                 cleanup_errors.append(str(error))
         if pre_valid:

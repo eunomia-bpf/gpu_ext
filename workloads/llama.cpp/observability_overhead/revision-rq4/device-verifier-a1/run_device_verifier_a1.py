@@ -42,7 +42,6 @@ RUNTIME_BINARY_MARKERS = (
     "GPU eBPF verification accepted: mode=STRICT",
     "Skipping GPU eBPF verification for {}",
     "GPU eBPF verified map: program={}",
-    "verifier unavailable",
 )
 DEFAULT_BPFTIME_ROOT = rq4.core.GPU_WORKSPACE / "bpftime-table1-575"
 DEFAULT_BPFTIME_BUILD = DEFAULT_BPFTIME_ROOT / "build-table1-575-strict"

@@ -45,10 +45,13 @@ elapsed values are never substituted for verifier latency.
 The strict runtime must include the timing/guard contract introduced by
 bpftime commit `8eb27cf`, and its existing build must report all of
 `ENABLE_EBPF_VERIFIER`, `BPFTIME_ENABLE_CUDA_ATTACH`, and `BPFTIME_LLVM_JIT` as
-enabled. Before touching the GPU, the runner also checks that both runtime
-libraries contain every fixed timing/admission marker and are no older than the
-source that implements the contract. Rebuild the runtime after that commit
-before running A1.
+enabled. Before touching the GPU, the runner also checks that both
+verifier-enabled runtime libraries contain every marker reachable in that build
+(timing, acceptance, skip, and map) and are no older than the source that
+implements the contract. The separately tested verifier-disabled build contains
+the fail-closed unavailable-verifier path, which preprocessing correctly omits
+from these enabled libraries. Rebuild the runtime after that commit before
+running A1.
 
 ## Commands
 

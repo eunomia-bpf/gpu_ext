@@ -1,0 +1,18 @@
+$ /home/yunwei37/workspace/gpu/bpftime-spirv-build-20260904/example/spirv/spirv_opencl_test
+
+## stdout
+SPIR-V target found successfully
+Generating SPIR-V from eBPF program...
+Generated SPIR-V binary: 540 bytes
+Patching SPIR-V to add kernel entry point...
+Patched SPIR-V binary: 528 bytes
+SPIR-V binary saved to bpf_program.spv
+Found GPU on platform: NVIDIA CUDA
+Using OpenCL device: NVIDIA GeForce RTX 5090
+Loading SPIR-V binary into OpenCL...
+
+## stderr
+Failed to create program from SPIR-V (error code: -59)
+Your OpenCL implementation may not support SPIR-V IL
+
+# exit: 1

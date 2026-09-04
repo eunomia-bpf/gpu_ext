@@ -37,6 +37,12 @@ OpenCL device currently exposed by this host.
   SPIR-V target, generation and patching; selects the RTX 5090 OpenCL GPU;
   loads, builds and launches `bpf_main`; and reports input 100, expected 142,
   actual 142 and `Test PASSED`.
+- Capability gate: before starting that demo process, query the exact selected
+  OpenCL GPU for `CL_DEVICE_IL_VERSION`, `CL_DEVICE_ILS_WITH_VERSION`, and its
+  extension inventory.  Record the raw advertised values and require SPIR-V to
+  appear in at least one standard IL query.  OpenCL 3.0 or extension presence
+  without an advertised SPIR-V version is insufficient.  An unsupported device
+  exits 2 with status `unsupported`, without running the generator or a kernel.
 - Structure oracle: emitted `bpf_program.spv` is word-aligned, has the SPIR-V
   magic word, has the byte count printed by the demo, passes `spirv-val`, and
   disassembles with one `OpEntryPoint Kernel ... "bpf_main"`, an OpenCL memory
@@ -48,11 +54,15 @@ OpenCL device currently exposed by this host.
   driver, active 400 W limit service, idle device, zero UVM reference count,
   empty struct-ops inventory and clean current-boot GPU/kernel diagnostics;
   require the same conditions after process-group cleanup and unchanged boot.
-- Completion: exactly one positive execution, one positive validation and
-  disassembly, one rejected tampered validation, no owned process survivors,
-  and `result.json` status `complete`.
-- Raw output: `raw/spirv-opencl-575-01/`; analysis output:
-  `raw/spirv-opencl-575-01/analysis.json`.
+- Completion: either (a) exactly one positive execution, one positive validation
+  and disassembly, one rejected tampered validation, no owned process
+  survivors, and `result.json` status `complete`; or (b) one internally
+  consistent unsupported capability record, no demo execution artifacts, no
+  owned process survivors, and status `unsupported`.  Only (a) is a successful
+  device execution.  Outcome (b) is valid negative capability evidence.
+- Raw output: attempt 01 is retained at `raw/spirv-opencl-575-01/`; the next
+  execution uses `raw/spirv-opencl-575-02/`.  Each attempt keeps its own
+  `analysis.json`.
 - Retry rule: no automatic retry or relabeling.  A failed directory remains
   retained; a repaired attempt uses a new directory.
 
@@ -67,3 +77,18 @@ OpenCL device currently exposed by this host.
 - This result never supports performance, gpubpf attach integration,
   cross-layer-map integration, verifier coverage, or cross-vendor claims.
 
+## Attempt-01 deviation and repair
+
+Attempt 01 generated and retained a validator-accepted module, but
+`clCreateProgramWithIL` returned `CL_INVALID_OPERATION` (`-59`) before kernel
+creation. The original runner queried no IL capabilities before generation and
+classified every nonzero demo exit as `invalid`. Khronos defines this exact
+error as no device in the context supporting IL programs, so the independent
+analyzer now recognizes the retained terminal failure as a valid contradictory
+result while keeping `device_kernel_executed=false`.
+
+The new pre-execution capability gate is a fail-closed repair, not a changed
+positive oracle. No attempt-01 raw execution record was rewritten. A fresh
+attempt is required to exercise the repaired ordering and record the three
+capability fields; it must use attempt 02 rather than resuming or relabeling
+attempt 01.

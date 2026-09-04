@@ -1,0 +1,47 @@
+{
+  "private_segment": "rq4_1902646_83573256798884",
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "LD_PRELOAD=/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/syscall-server/libbpftime-syscall-server.so",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-03/gpubpf_tool_build/kernelretsnoop/kernelretsnoop"
+  ],
+  "loader_environment": {
+    "BPFTIME_LOG_OUTPUT": "console",
+    "SPDLOG_LEVEL": "warn",
+    "LD_PRELOAD": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/syscall-server/libbpftime-syscall-server.so",
+    "BPFTIME_MAP_GPU_THREAD_COUNT": "22528",
+    "BPFTIME_SHM_MEMORY_MB": "1000",
+    "BPFTIME_GLOBAL_SHM_NAME": "rq4_1902646_83573256798884",
+    "BPFTIME_KERNELRETSNOOP_RING_ENTRIES": "256",
+    "BPFTIME_KERNELRETSNOOP_EXACT_ORACLE": "1"
+  },
+  "agent_environment": {
+    "BPFTIME_LOG_OUTPUT": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-03/correctness/gpubpf_kernelretsnoop/attempt_01/agent.log",
+    "SPDLOG_LEVEL": "warn",
+    "BPFTIME_CUDA_DEFER_PTX_EXTRACTION": "1",
+    "BPFTIME_CUDA_TARGETED_LATE_BOOTSTRAP": "1",
+    "BPFTIME_MAP_GPU_THREAD_COUNT": "22528",
+    "GGML_NO_BACKTRACE": "1",
+    "LD_PRELOAD": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/agent/libbpftime-agent.so",
+    "BPFTIME_GLOBAL_SHM_NAME": "rq4_1902646_83573256798884",
+    "BPFTIME_KERNELRETSNOOP_RING_ENTRIES": "256",
+    "BPFTIME_SHM_MEMORY_MB": "1000",
+    "BPFTIME_KERNELRETSNOOP_EXACT_ORACLE": "1"
+  },
+  "private_segment_removed": true,
+  "loader_identity": {
+    "pid": 1904113,
+    "pgid": 1904113,
+    "sid": 1904113,
+    "start_ticks": 8357325
+  },
+  "segment_identity": [
+    28,
+    356,
+    1000
+  ],
+  "loader_returncode": 0
+}

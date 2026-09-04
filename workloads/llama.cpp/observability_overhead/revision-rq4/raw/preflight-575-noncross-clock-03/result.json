@@ -1,0 +1,1768 @@
+{
+  "timestamp": "20260904_011634",
+  "phase": "preflight",
+  "params": {
+    "phase": "preflight",
+    "tools": [
+      "kernelretsnoop",
+      "threadhist"
+    ],
+    "preflight_campaign": null,
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "llama_cli": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "bpftime_build_dir": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575",
+    "nvbit_root": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "runs": 1,
+    "pp": 32,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "timeout_s": 300,
+    "probe_startup_s": 3.0,
+    "gpu_thread_count": 22528,
+    "threadhist_gpu_thread_count": 1048576,
+    "kernelretsnoop_shm_memory_mb": 1000,
+    "kernelretsnoop_correctness_exact_oracle": true,
+    "kernelretsnoop_timing_exact_oracle": false,
+    "kernelretsnoop_correctness_thread_slots": 22528,
+    "kernelretsnoop_correctness_ring_entries_per_thread": 256,
+    "kernelretsnoop_timing_thread_slots": 32768,
+    "kernelretsnoop_timing_ring_entries_per_thread": 44,
+    "kernelretsnoop_timing_expected_launches": 44,
+    "kernelretsnoop_timing_expected_coordinates": 32768,
+    "kernelretsnoop_timing_expected_events": 1441792,
+    "kernelretsnoop_timing_shared_bytes": 58458144,
+    "uprobe_binary": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+    "uprobe_symbol_hint": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "uvm": false,
+    "no_warmup": false,
+    "cuda_graphs_disabled": true,
+    "schedule_seed": 1797,
+    "bootstrap_samples": 10000,
+    "expected_driver": "575.57.08",
+    "worker_cpus": "8-15",
+    "telemetry_cpu": 16,
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "launch_environment": {
+      "PATH": "/usr/local/cuda-12.9/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64",
+      "CUDA_VISIBLE_DEVICES": "0",
+      "OMP_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "provenance": {
+    "gpu_ext_git": "43d72da",
+    "bpftime_git": "209d978",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 15, 0, 13.59",
+      "compute_apps": ""
+    },
+    "driver": "575.57.08",
+    "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+    "nvbit_driver_supported": true,
+    "cuda_ptx": {
+      "libggml_cuda": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+      "has_ptx": true,
+      "ptx_count": 120,
+      "cuobjdump_returncode": 0
+    },
+    "model_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+      "exists": true,
+      "bytes": 668788096,
+      "device": 66305,
+      "inode": 92561303,
+      "mtime_ns": 1772776302766880924,
+      "ctime_ns": 1786245720455318115
+    },
+    "llama_bench_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+      "exists": true,
+      "bytes": 527880,
+      "device": 66305,
+      "inode": 92556388,
+      "mtime_ns": 1783383234718689913,
+      "ctime_ns": 1786245718135780259
+    },
+    "llama_cli_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+      "exists": true,
+      "bytes": 2716232,
+      "device": 66305,
+      "inode": 92556389,
+      "mtime_ns": 1772776388902529402,
+      "ctime_ns": 1786245718138989568
+    },
+    "libggml_cuda_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so",
+      "exists": true,
+      "bytes": 48833696,
+      "device": 66305,
+      "inode": 92556385,
+      "mtime_ns": 1783383226290119050,
+      "ctime_ns": 1786245718129982510
+    },
+    "bpftime_agent_file": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/agent/libbpftime-agent.so",
+      "exists": true,
+      "bytes": 243127032,
+      "device": 66305,
+      "inode": 92304692,
+      "mtime_ns": 1788485229081620604,
+      "ctime_ns": 1788485229082603882
+    },
+    "bpftime_syscall_server_file": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/runtime/syscall-server/libbpftime-syscall-server.so",
+      "exists": true,
+      "bytes": 238083568,
+      "device": 66305,
+      "inode": 92304718,
+      "mtime_ns": 1788485228988618519,
+      "ctime_ns": 1788485228988923146
+    },
+    "nvbit_artifact_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit-Linux-x86_64-1.8.tar.bz2",
+      "exists": true,
+      "bytes": 937918,
+      "device": 66305,
+      "inode": 92705477,
+      "mtime_ns": 1788164260417865281,
+      "ctime_ns": 1788164260417865281
+    },
+    "source_manifest": {
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/run_revision_rq4.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/run_revision_rq4.py",
+        "exists": true,
+        "bytes": 99796,
+        "device": 66305,
+        "inode": 92705562,
+        "mtime_ns": 1788508872740364596,
+        "ctime_ns": 1788508872740364596
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/run_observability_overhead.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/run_observability_overhead.py",
+        "exists": true,
+        "bytes": 30176,
+        "device": 66305,
+        "inode": 92561305,
+        "mtime_ns": 1788260008996758255,
+        "ctime_ns": 1788260008996758255
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_three_way.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_three_way.py",
+        "exists": true,
+        "bytes": 24757,
+        "device": 66305,
+        "inode": 92419114,
+        "mtime_ns": 1788398187107976594,
+        "ctime_ns": 1788398187107976594
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_smoke.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/run_smoke.py",
+        "exists": true,
+        "bytes": 4724,
+        "device": 66305,
+        "inode": 92422258,
+        "mtime_ns": 1788396752511627295,
+        "ctime_ns": 1788396752511627295
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/run_moe_head_to_head.py",
+        "exists": true,
+        "bytes": 120167,
+        "device": 66305,
+        "inode": 92448857,
+        "mtime_ns": 1788501883052662932,
+        "ctime_ns": 1788501883052662932
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/kernelretsnoop-phase-capacity.patch": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/kernelretsnoop-phase-capacity.patch",
+        "exists": true,
+        "bytes": 10233,
+        "device": 66305,
+        "inode": 92705852,
+        "mtime_ns": 1788508377084512540,
+        "ctime_ns": 1788508377084512540
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/Makefile": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/Makefile",
+        "exists": true,
+        "bytes": 1592,
+        "device": 66305,
+        "inode": 92705557,
+        "mtime_ns": 1788488124112478143,
+        "ctime_ns": 1788488124112478143
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/clock_domain.h": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/clock_domain.h",
+        "exists": true,
+        "bytes": 10012,
+        "device": 66305,
+        "inode": 92705839,
+        "mtime_ns": 1788495319878512127,
+        "ctime_ns": 1788495319878512127
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/common.h": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/common.h",
+        "exists": true,
+        "bytes": 764,
+        "device": 66305,
+        "inode": 92705553,
+        "mtime_ns": 1788507503473626736,
+        "ctime_ns": 1788507503473626736
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/inject_funcs.cu": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/inject_funcs.cu",
+        "exists": true,
+        "bytes": 2684,
+        "device": 66305,
+        "inode": 92705554,
+        "mtime_ns": 1788507503481626922,
+        "ctime_ns": 1788507503481626922
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/observability.cu": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/observability.cu",
+        "exists": true,
+        "bytes": 30777,
+        "device": 66305,
+        "inode": 92705556,
+        "mtime_ns": 1788507915052200797,
+        "ctime_ns": 1788507915052200797
+      },
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/tool_func/flush_channel.cu": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability/tool_func/flush_channel.cu",
+        "exists": true,
+        "bytes": 311,
+        "device": 66305,
+        "inode": 92705555,
+        "mtime_ns": 1788488124111478122,
+        "ctime_ns": 1788488124111478122
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/include/bpf_attach_ctx.hpp": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/include/bpf_attach_ctx.hpp",
+        "exists": true,
+        "bytes": 7908,
+        "device": 66305,
+        "inode": 92301080,
+        "mtime_ns": 1788477668612826542,
+        "ctime_ns": 1788477668612826542
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/include/bpftime_gpu_ringbuf.h": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/include/bpftime_gpu_ringbuf.h",
+        "exists": true,
+        "bytes": 546,
+        "device": 66305,
+        "inode": 92298994,
+        "mtime_ns": 1788474751363954769,
+        "ctime_ns": 1788474751363954769
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.cpp": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.cpp",
+        "exists": true,
+        "bytes": 5893,
+        "device": 66305,
+        "inode": 92301114,
+        "mtime_ns": 1788475971576100195,
+        "ctime_ns": 1788475971576100195
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.hpp": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/src/bpf_map/gpu/nv_gpu_ringbuf_map.hpp",
+        "exists": true,
+        "bytes": 2641,
+        "device": 66305,
+        "inode": 92301115,
+        "mtime_ns": 1788478207353388935,
+        "ctime_ns": 1788478207353388935
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/syscall-server/syscall_server_main.cpp": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/runtime/syscall-server/syscall_server_main.cpp",
+        "exists": true,
+        "bytes": 8180,
+        "device": 66305,
+        "inode": 92301198,
+        "mtime_ns": 1788474786819749044,
+        "ctime_ns": 1788474786819749044
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/trampoline/default_trampoline.cu": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/trampoline/default_trampoline.cu",
+        "exists": true,
+        "bytes": 22808,
+        "device": 66305,
+        "inode": 92300362,
+        "mtime_ns": 1788478671633104773,
+        "ctime_ns": 1788478671633104773
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/Makefile": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/Makefile",
+        "exists": true,
+        "bytes": 4806,
+        "device": 66305,
+        "inode": 92300832,
+        "mtime_ns": 1788474939971179913,
+        "ctime_ns": 1788474939971179913
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.bpf.c",
+        "exists": true,
+        "bytes": 1310,
+        "device": 66305,
+        "inode": 92300834,
+        "mtime_ns": 1788486956357202120,
+        "ctime_ns": 1788486956357202120
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/kernelretsnoop/kernelretsnoop.c",
+        "exists": true,
+        "bytes": 17619,
+        "device": 66305,
+        "inode": 92300835,
+        "mtime_ns": 1788491217971378848,
+        "ctime_ns": 1788491217971378848
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/Makefile": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/Makefile",
+        "exists": true,
+        "bytes": 4775,
+        "device": 66305,
+        "inode": 92300886,
+        "mtime_ns": 1788437100048869900,
+        "ctime_ns": 1788437100048869900
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.bpf.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.bpf.c",
+        "exists": true,
+        "bytes": 861,
+        "device": 66305,
+        "inode": 92300888,
+        "mtime_ns": 1788437100048869900,
+        "ctime_ns": 1788437100048869900
+      },
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.c": {
+        "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/example/gpu/threadhist/threadhist.c",
+        "exists": true,
+        "bytes": 3724,
+        "device": 66305,
+        "inode": 92300889,
+        "mtime_ns": 1788481221456501244,
+        "ctime_ns": 1788481221456501244
+      }
+    }
+  },
+  "schedule": {
+    "1": [
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "nvbit_threadhist",
+      "baseline",
+      "gpubpf_threadhist"
+    ]
+  },
+  "correctness": {
+    "baseline": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/baseline/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788509821219105712,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 22,
+                "memory_clock_mhz": 405,
+                "power_w": 13.99,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788509824645374977,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 52,
+                "sm_clock_mhz": 300,
+                "memory_clock_mhz": 14001,
+                "power_w": 34.64,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 5,
+              "peak_memory_mib": 575.0,
+              "peak_temperature_c": 52.0,
+              "mean_power_w": 16.668,
+              "min_sm_clock_mhz": 22.0,
+              "max_sm_clock_mhz": 2452.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          }
+        }
+      ]
+    },
+    "gpubpf_kernelretsnoop": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/gpubpf_kernelretsnoop/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788509827114858850,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 51,
+                "sm_clock_mhz": 30,
+                "memory_clock_mhz": 405,
+                "power_w": 14.93,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788509935555423378,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 52,
+                "sm_clock_mhz": 82,
+                "memory_clock_mhz": 7001,
+                "power_w": 39.01,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 529,
+              "peak_memory_mib": 5769.0,
+              "peak_temperature_c": 54.0,
+              "mean_power_w": 30.167939508506617,
+              "min_sm_clock_mhz": 21.0,
+              "max_sm_clock_mhz": 2895.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 720896,
+            "nonzero_timestamps": 720896,
+            "requested_thread_slots": 22528,
+            "allocated_thread_slots": 22528,
+            "entries_per_thread": 256,
+            "requested_entries_per_thread": 256,
+            "record_bytes": 32,
+            "committed_events": 720896,
+            "runtime_collected_events": 720896,
+            "oob_drops": 0,
+            "full_drops": 0,
+            "bad_size_drops": 0,
+            "other_drops": 0,
+            "dirty_slots": 0,
+            "pending_events": 0,
+            "final_drain_events": 0,
+            "second_drain_events": 0,
+            "cartesian_launches": 220,
+            "cartesian_coordinates": 22528,
+            "cartesian_complete": 1,
+            "extent_x": 88,
+            "extent_y": 256,
+            "extent_z": 1,
+            "multiplicity_220": 1024,
+            "multiplicity_44": 1024,
+            "multiplicity_22": 20480,
+            "other_multiplicity": 0,
+            "segment_mismatches": 0,
+            "invalid_launch_coordinates": 0,
+            "unique_coordinates": 22528,
+            "oracle_enabled": 1,
+            "oracle_total_events": 720896,
+            "oracle_passed": 1,
+            "collector_gate_passed": 1
+          },
+          "matches_baseline": true
+        }
+      ]
+    },
+    "nvbit_kernelretsnoop": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/nvbit_kernelretsnoop/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788509937986572509,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 52,
+                "sm_clock_mhz": 22,
+                "memory_clock_mhz": 405,
+                "power_w": 14.0,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788509942122699256,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 1852,
+                "memory_clock_mhz": 7001,
+                "power_w": 81.08,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 8,
+              "peak_memory_mib": 1475.0,
+              "peak_temperature_c": 53.0,
+              "mean_power_w": 18.755,
+              "min_sm_clock_mhz": 22.0,
+              "max_sm_clock_mhz": 2422.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 720896,
+            "nonzero_timestamps": 720896,
+            "selected_launches": 220,
+            "record_bytes": 32,
+            "bad_size_bytes": 0,
+            "cartesian_launches": 220,
+            "cartesian_coordinates": 22528,
+            "cartesian_complete": 1,
+            "extent_x": 88,
+            "extent_y": 256,
+            "extent_z": 1,
+            "multiplicity_220": 1024,
+            "multiplicity_44": 1024,
+            "multiplicity_22": 20480,
+            "other_multiplicity": 0,
+            "segment_mismatches": 0,
+            "invalid_launch_coordinates": 0,
+            "unique_coordinates": 22528,
+            "collector_gate_passed": 1,
+            "validation_blocks": 1,
+            "process_selected_launches": 220
+          },
+          "matches_baseline": true
+        }
+      ]
+    },
+    "gpubpf_threadhist": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/gpubpf_threadhist/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788509951138303625,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 52,
+                "sm_clock_mhz": 22,
+                "memory_clock_mhz": 405,
+                "power_w": 16.25,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788510059195377859,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 105,
+                "memory_clock_mhz": 7001,
+                "power_w": 46.47,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 527,
+              "peak_memory_mib": 5781.0,
+              "peak_temperature_c": 54.0,
+              "mean_power_w": 30.36675521821632,
+              "min_sm_clock_mhz": 22.0,
+              "max_sm_clock_mhz": 2595.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 720896,
+            "nonzero_threads": 22528,
+            "configured_entries": 1048576,
+            "readback_entries": 1048576,
+            "readback_bytes": 8388608,
+            "readback_complete": 1
+          },
+          "matches_baseline": true
+        }
+      ]
+    },
+    "nvbit_threadhist": {
+      "attempts": [
+        {
+          "attempt": 1,
+          "returncode": 0,
+          "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+          "stdout_bytes": 47,
+          "log": "correctness/nvbit_threadhist/attempt_01/llama_cli.log",
+          "valid": true,
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788509944657911341,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 52,
+                "sm_clock_mhz": 25,
+                "memory_clock_mhz": 810,
+                "power_w": 18.93,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788509948650153741,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 1125,
+                "memory_clock_mhz": 7001,
+                "power_w": 51.33,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 7,
+              "peak_memory_mib": 1401.0,
+              "peak_temperature_c": 53.0,
+              "mean_power_w": 18.868571428571432,
+              "min_sm_clock_mhz": 25.0,
+              "max_sm_clock_mhz": 2512.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "probe": {
+            "sample_count": 720896,
+            "nonzero_threads": 22528,
+            "selected_launches": 220
+          },
+          "matches_baseline": true
+        }
+      ]
+    }
+  },
+  "artifacts": {
+    "nvbit_tool": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-03/nvbit_tool_build/observability.so",
+      "exists": true,
+      "bytes": 3199864,
+      "device": 66305,
+      "inode": 94391859,
+      "mtime_ns": 1788509796540245620,
+      "ctime_ns": 1788509796541711350
+    },
+    "gpubpf_kernelretsnoop": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-03/gpubpf_tool_build/kernelretsnoop/kernelretsnoop",
+      "exists": true,
+      "bytes": 1550320,
+      "device": 66305,
+      "inode": 94391865,
+      "mtime_ns": 1788509807662283085,
+      "ctime_ns": 1788509807662293185
+    },
+    "gpubpf_threadhist": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-03/gpubpf_tool_build/threadhist/threadhist",
+      "exists": true,
+      "bytes": 1535840,
+      "device": 66305,
+      "inode": 94391981,
+      "mtime_ns": 1788509818759662677,
+      "ctime_ns": 1788509818759671875
+    }
+  },
+  "configs": {
+    "baseline": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "baseline_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 7052.770593,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              7052.77
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-04T08:23:06Z",
+              "avg_ns": 4537224,
+              "stddev_ns": 0,
+              "avg_ts": 7052.770593,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                4537224
+              ],
+              "samples_ts": [
+                7052.77
+              ]
+            }
+          ],
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788510185263468307,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 23,
+                "memory_clock_mhz": 405,
+                "power_w": 14.84,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788510188978538895,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 54,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 30.55,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 6,
+              "peak_memory_mib": 1143.0,
+              "peak_temperature_c": 54.0,
+              "mean_power_w": 15.746666666666668,
+              "min_sm_clock_mhz": 23.0,
+              "max_sm_clock_mhz": 1395.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "block": 1,
+          "attempt": 1
+        }
+      ]
+    },
+    "gpubpf_kernelretsnoop": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "kernelretsnoop_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 131.603947,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              131.604
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-04T08:22:45Z",
+              "avg_ns": 243153801,
+              "stddev_ns": 0,
+              "avg_ts": 131.603947,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                243153801
+              ],
+              "samples_ts": [
+                131.604
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 1441792,
+            "nonzero_timestamps": 1441792,
+            "requested_thread_slots": 32768,
+            "allocated_thread_slots": 32768,
+            "entries_per_thread": 44,
+            "requested_entries_per_thread": 44,
+            "record_bytes": 32,
+            "committed_events": 1441792,
+            "runtime_collected_events": 1441792,
+            "oob_drops": 0,
+            "full_drops": 0,
+            "bad_size_drops": 0,
+            "other_drops": 0,
+            "dirty_slots": 0,
+            "pending_events": 0,
+            "final_drain_events": 0,
+            "second_drain_events": 0,
+            "cartesian_launches": 44,
+            "cartesian_coordinates": 32768,
+            "cartesian_complete": 1,
+            "extent_x": 128,
+            "extent_y": 256,
+            "extent_z": 1,
+            "multiplicity_220": 0,
+            "multiplicity_44": 32768,
+            "multiplicity_22": 0,
+            "other_multiplicity": 0,
+            "segment_mismatches": 0,
+            "invalid_launch_coordinates": 0,
+            "unique_coordinates": 32768,
+            "oracle_enabled": 0,
+            "oracle_total_events": 1441792,
+            "oracle_passed": 0,
+            "collector_gate_passed": 1
+          },
+          "probe_log": "kernelretsnoop_run_101/probe.log",
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788510061673233650,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 37,
+                "memory_clock_mhz": 810,
+                "power_w": 15.96,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788510169649578863,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 592,
+                "memory_clock_mhz": 810,
+                "power_w": 37.87,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 526,
+              "peak_memory_mib": 5657.0,
+              "peak_temperature_c": 55.0,
+              "mean_power_w": 31.30583650190114,
+              "min_sm_clock_mhz": 21.0,
+              "max_sm_clock_mhz": 2895.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "block": 1,
+          "attempt": 1,
+          "kernelret_pair": {
+            "matched": true,
+            "matched_fields": [
+              "sample_count",
+              "nonzero_timestamps",
+              "record_bytes",
+              "cartesian_launches",
+              "cartesian_coordinates",
+              "cartesian_complete",
+              "extent_x",
+              "extent_y",
+              "extent_z",
+              "multiplicity_220",
+              "multiplicity_44",
+              "multiplicity_22",
+              "other_multiplicity",
+              "segment_mismatches",
+              "invalid_launch_coordinates",
+              "unique_coordinates",
+              "collector_gate_passed"
+            ],
+            "gpubpf_events": 1441792,
+            "nvbit_events": 1441792,
+            "gpubpf_launches": 44,
+            "nvbit_launches": 44
+          }
+        }
+      ]
+    },
+    "nvbit_kernelretsnoop": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "nvbit_kernelretsnoop_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 135.632316,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              135.632
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-04T08:22:53Z",
+              "avg_ns": 235931974,
+              "stddev_ns": 0,
+              "avg_ts": 135.632316,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                235931974
+              ],
+              "samples_ts": [
+                135.632
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 1441792,
+            "nonzero_timestamps": 1441792,
+            "selected_launches": 44,
+            "record_bytes": 32,
+            "bad_size_bytes": 0,
+            "cartesian_launches": 44,
+            "cartesian_coordinates": 32768,
+            "cartesian_complete": 1,
+            "extent_x": 128,
+            "extent_y": 256,
+            "extent_z": 1,
+            "multiplicity_220": 0,
+            "multiplicity_44": 32768,
+            "multiplicity_22": 0,
+            "other_multiplicity": 0,
+            "segment_mismatches": 0,
+            "invalid_launch_coordinates": 0,
+            "unique_coordinates": 32768,
+            "collector_gate_passed": 1,
+            "validation_blocks": 1,
+            "process_selected_launches": 44
+          },
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788510172009617613,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 26,
+                "memory_clock_mhz": 405,
+                "power_w": 16.8,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788510176540176978,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 54,
+                "sm_clock_mhz": 2895,
+                "memory_clock_mhz": 810,
+                "power_w": 82.47,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 10,
+              "peak_memory_mib": 1363.0,
+              "peak_temperature_c": 56.0,
+              "mean_power_w": 30.679999999999996,
+              "min_sm_clock_mhz": 26.0,
+              "max_sm_clock_mhz": 2895.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "block": 1,
+          "attempt": 1,
+          "kernelret_pair": {
+            "matched": true,
+            "matched_fields": [
+              "sample_count",
+              "nonzero_timestamps",
+              "record_bytes",
+              "cartesian_launches",
+              "cartesian_coordinates",
+              "cartesian_complete",
+              "extent_x",
+              "extent_y",
+              "extent_z",
+              "multiplicity_220",
+              "multiplicity_44",
+              "multiplicity_22",
+              "other_multiplicity",
+              "segment_mismatches",
+              "invalid_launch_coordinates",
+              "unique_coordinates",
+              "collector_gate_passed"
+            ],
+            "gpubpf_events": 1441792,
+            "nvbit_events": 1441792,
+            "gpubpf_launches": 44,
+            "nvbit_launches": 44
+          }
+        }
+      ]
+    },
+    "gpubpf_threadhist": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "threadhist_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 4773.508223,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              4773.51
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-04T08:24:58Z",
+              "avg_ns": 6703665,
+              "stddev_ns": 0,
+              "avg_ts": 4773.508223,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                6703665
+              ],
+              "samples_ts": [
+                4773.51
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 1441792,
+            "nonzero_threads": 32768,
+            "configured_entries": 1048576,
+            "readback_entries": 1048576,
+            "readback_bytes": 8388608,
+            "readback_complete": 1
+          },
+          "probe_log": "threadhist_run_101/probe.log",
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788510191349364804,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 23,
+                "memory_clock_mhz": 405,
+                "power_w": 14.52,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788510301222210376,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 84,
+                "memory_clock_mhz": 810,
+                "power_w": 30.31,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 536,
+              "peak_memory_mib": 5033.0,
+              "peak_temperature_c": 55.0,
+              "mean_power_w": 30.627686567164176,
+              "min_sm_clock_mhz": 21.0,
+              "max_sm_clock_mhz": 2580.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "block": 1,
+          "attempt": 1
+        }
+      ]
+    },
+    "nvbit_threadhist": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "nvbit_threadhist_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 6677.753128,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              6677.75
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-04T08:23:00Z",
+              "avg_ns": 4792031,
+              "stddev_ns": 0,
+              "avg_ts": 6677.753128,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                4792031
+              ],
+              "samples_ts": [
+                6677.75
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 1441792,
+            "nonzero_threads": 32768,
+            "selected_launches": 44
+          },
+          "safety": {
+            "passed": true,
+            "worker_cpus": "8-15",
+            "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+            "before": {
+              "timestamp_ns": 1788510178934565798,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 53,
+                "sm_clock_mhz": 30,
+                "memory_clock_mhz": 405,
+                "power_w": 16.8,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "after": {
+              "timestamp_ns": 1788510182896680919,
+              "power_limit_service": "active",
+              "power_limit_w": 400.0,
+              "gpu": {
+                "index": 0,
+                "name": "NVIDIA GeForce RTX 5090",
+                "driver": "575.57.08",
+                "memory_used_mib": 15,
+                "memory_total_mib": 32607,
+                "temperature_c": 54,
+                "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001,
+                "power_w": 41.19,
+                "utilization_gpu_percent": 0,
+                "compute_apps": []
+              },
+              "uvm_refcount": 0,
+              "struct_ops": {
+                "maps": [],
+                "links": []
+              },
+              "dmesg_abnormal": [],
+              "journal_abnormal": [],
+              "xids": []
+            },
+            "telemetry": {
+              "samples": 7,
+              "peak_memory_mib": 1345.0,
+              "peak_temperature_c": 54.0,
+              "mean_power_w": 20.118571428571432,
+              "min_sm_clock_mhz": 30.0,
+              "max_sm_clock_mhz": 2437.0,
+              "throttled": false,
+              "fixed_power_cap_samples": 0
+            }
+          },
+          "block": 1,
+          "attempt": 1
+        }
+      ]
+    }
+  },
+  "summary": {
+    "configs": [
+      {
+        "config": "baseline",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 7052.770592999999
+      },
+      {
+        "config": "gpubpf_kernelretsnoop",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 131.60394700000003
+      },
+      {
+        "config": "nvbit_kernelretsnoop",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 135.63231599999997
+      },
+      {
+        "config": "gpubpf_threadhist",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 4773.508222999999
+      },
+      {
+        "config": "nvbit_threadhist",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 6677.753128000006
+      }
+    ],
+    "comparisons": [
+      {
+        "task": "kernelretsnoop",
+        "paired_blocks": 1,
+        "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+        "paired": [
+          {
+            "block": 1,
+            "baseline_pp_tok_s": 7052.770593,
+            "gpubpf_overhead_pct": 98.13401066623918,
+            "nvbit_overhead_pct": 98.07689312715463,
+            "effect_pct_points": -0.05711753908454398
+          }
+        ],
+        "bootstrap": {
+          "mean": -0.05711753908454398,
+          "ci95_low": -0.05711753908454398,
+          "ci95_high": -0.05711753908454398
+        }
+      },
+      {
+        "task": "threadhist",
+        "paired_blocks": 1,
+        "effect_definition": "NVBit overhead - gpubpf overhead (percentage points)",
+        "paired": [
+          {
+            "block": 1,
+            "baseline_pp_tok_s": 7052.770593,
+            "gpubpf_overhead_pct": 32.31726227225097,
+            "nvbit_overhead_pct": 5.317307008003513,
+            "effect_pct_points": -26.999955264247458
+          }
+        ],
+        "bootstrap": {
+          "mean": -26.999955264247458,
+          "ci95_low": -26.999955264247458,
+          "ci95_high": -26.999955264247458
+        }
+      }
+    ]
+  }
+}

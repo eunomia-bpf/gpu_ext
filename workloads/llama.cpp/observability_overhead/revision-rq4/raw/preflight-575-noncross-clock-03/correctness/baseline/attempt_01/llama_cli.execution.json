@@ -1,0 +1,34 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+    "-m",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "-p",
+    "Write one sentence explaining why deterministic tests matter.",
+    "-n",
+    "8",
+    "-c",
+    "512",
+    "-ngl",
+    "99",
+    "--seed",
+    "1797",
+    "--temp",
+    "0",
+    "--no-display-prompt",
+    "--simple-io"
+  ],
+  "identity": {
+    "pid": 1903859,
+    "pgid": 1903859,
+    "sid": 1903859,
+    "start_ticks": 8356736
+  },
+  "cleanup_passed": true,
+  "returncode": 0,
+  "timed_out": false
+}

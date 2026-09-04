@@ -1,0 +1,217 @@
+{
+  "claim_scope": "one-time direct verify_gpu_program admission latency for accepted synthetic linear and warp-uniform-diamond programs at 16--4096 instructions",
+  "complete": true,
+  "errors": [],
+  "excluded_claims": [
+    "verifier soundness",
+    "GPU execution or device overhead",
+    "attach, JIT, or bootstrap latency",
+    "cross-vendor portability",
+    "the 65536-instruction runtime boundary"
+  ],
+  "mode": "full",
+  "next_paper_decision": "result review before any paper use",
+  "paper_impact": "additional RQ4 evidence",
+  "research_value": "supporting",
+  "run_status": "valid",
+  "schema": "device-verifier-scaling-analysis-v1",
+  "summary": {
+    "arms": {
+      "diamonds-1024": {
+        "involuntary_context_switches": 946,
+        "major_faults": 0,
+        "max_ns": 157581987,
+        "median_95_ci_ns": [
+          134030998.5,
+          135792033.5
+        ],
+        "median_ns": 135116214.5,
+        "median_process_cpu_ns": 135086625.0,
+        "min_ns": 132746004,
+        "samples": 20
+      },
+      "diamonds-16": {
+        "involuntary_context_switches": 0,
+        "major_faults": 0,
+        "max_ns": 2084653,
+        "median_95_ci_ns": [
+          1928830.5,
+          1988219.5
+        ],
+        "median_ns": 1981977.0,
+        "median_process_cpu_ns": 1988386.5,
+        "min_ns": 1887625,
+        "samples": 20
+      },
+      "diamonds-256": {
+        "involuntary_context_switches": 11,
+        "major_faults": 0,
+        "max_ns": 33937415,
+        "median_95_ci_ns": [
+          31998804.0,
+          32572008.5
+        ],
+        "median_ns": 32412407.5,
+        "median_process_cpu_ns": 32329872.0,
+        "min_ns": 31387576,
+        "samples": 20
+      },
+      "diamonds-4096": {
+        "involuntary_context_switches": 129,
+        "major_faults": 0,
+        "max_ns": 586580461,
+        "median_95_ci_ns": [
+          569691665.5,
+          575172851.5
+        ],
+        "median_ns": 572025234.0,
+        "median_process_cpu_ns": 571906511.5,
+        "min_ns": 566871168,
+        "samples": 20
+      },
+      "diamonds-64": {
+        "involuntary_context_switches": 5,
+        "major_faults": 0,
+        "max_ns": 8147999,
+        "median_95_ci_ns": [
+          7723665.5,
+          7926160.0
+        ],
+        "median_ns": 7837817.0,
+        "median_process_cpu_ns": 7842741.0,
+        "min_ns": 7635855,
+        "samples": 20
+      },
+      "linear-1024": {
+        "involuntary_context_switches": 211,
+        "major_faults": 0,
+        "max_ns": 159789672,
+        "median_95_ci_ns": [
+          155553538.5,
+          157338480.0
+        ],
+        "median_ns": 156075268.5,
+        "median_process_cpu_ns": 155589022.0,
+        "min_ns": 154059292,
+        "samples": 20
+      },
+      "linear-16": {
+        "involuntary_context_switches": 2,
+        "major_faults": 0,
+        "max_ns": 969404,
+        "median_95_ci_ns": [
+          870523.0,
+          908050.0
+        ],
+        "median_ns": 880239.0,
+        "median_process_cpu_ns": 886966.5,
+        "min_ns": 844075,
+        "samples": 20
+      },
+      "linear-256": {
+        "involuntary_context_switches": 6,
+        "major_faults": 0,
+        "max_ns": 19933016,
+        "median_95_ci_ns": [
+          17988178.0,
+          18615721.5
+        ],
+        "median_ns": 18374884.5,
+        "median_process_cpu_ns": 18380329.5,
+        "min_ns": 17057551,
+        "samples": 20
+      },
+      "linear-4096": {
+        "involuntary_context_switches": 679,
+        "major_faults": 0,
+        "max_ns": 1930067159,
+        "median_95_ci_ns": [
+          1895920927.0,
+          1907625394.0
+        ],
+        "median_ns": 1899001364.5,
+        "median_process_cpu_ns": 1897969863.0,
+        "min_ns": 1887073215,
+        "samples": 20
+      },
+      "linear-64": {
+        "involuntary_context_switches": 20,
+        "major_faults": 0,
+        "max_ns": 5006121,
+        "median_95_ci_ns": [
+          3266043.0,
+          3412297.5
+        ],
+        "median_ns": 3366404.5,
+        "median_process_cpu_ns": 3376079.5,
+        "min_ns": 3180984,
+        "samples": 20
+      }
+    },
+    "diagnostics": {
+      "major_faults": 0,
+      "noise_veto": false,
+      "wall_over_cpu_gt_1_25_cells": 1,
+      "wall_over_cpu_gt_1_25_fraction": 0.005
+    },
+    "diamonds_over_linear": {
+      "1024": {
+        "median_95_ci": [
+          0.8593097347458601,
+          0.8719390339477
+        ],
+        "median_ratio": 0.8631826966305121,
+        "paired_blocks": 20
+      },
+      "16": {
+        "median_95_ci": [
+          2.172524276640595,
+          2.2401082283262608
+        ],
+        "median_ratio": 2.2096544338958046,
+        "paired_blocks": 20
+      },
+      "256": {
+        "median_95_ci": [
+          1.7286137066082397,
+          1.8136706630710329
+        ],
+        "median_ratio": 1.7573755735342909,
+        "paired_blocks": 20
+      },
+      "4096": {
+        "median_95_ci": [
+          0.3000318709070847,
+          0.3016427855407501
+        ],
+        "median_ratio": 0.30096171779827635,
+        "paired_blocks": 20
+      },
+      "64": {
+        "median_95_ci": [
+          2.2738020219197725,
+          2.3915032769788773
+        ],
+        "median_ratio": 2.3233370910212123,
+        "paired_blocks": 20
+      }
+    },
+    "scaling_exponents": {
+      "diamonds": {
+        "bootstrap_95_ci": [
+          1.021495871311008,
+          1.0314567193405846
+        ],
+        "theil_sen": 1.0254562369038318
+      },
+      "linear": {
+        "bootstrap_95_ci": [
+          1.3813479031937406,
+          1.389834907460405
+        ],
+        "theil_sen": 1.3840523266690652
+      }
+    },
+    "tested_hypothesis": "contradicted"
+  }
+}

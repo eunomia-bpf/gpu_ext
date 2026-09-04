@@ -1,0 +1,116 @@
+{
+  "blocks": 1,
+  "cells": [
+    {
+      "block": 1,
+      "directory": "cells/seq-001-block-01-pos-01-linear-16",
+      "family": "linear",
+      "instructions": 16,
+      "position": 1,
+      "sequence": 1,
+      "valid": true
+    },
+    {
+      "block": 1,
+      "directory": "cells/seq-002-block-01-pos-02-diamonds-4096",
+      "family": "diamonds",
+      "instructions": 4096,
+      "position": 2,
+      "sequence": 2,
+      "valid": true
+    }
+  ],
+  "cpu": 23,
+  "descriptions": [
+    {
+      "directory": "descriptions/linear-16",
+      "family": "linear",
+      "instructions": 16
+    },
+    {
+      "directory": "descriptions/diamonds-4096",
+      "family": "diamonds",
+      "instructions": 4096
+    }
+  ],
+  "end_environment": {
+    "bpftime_current_revision": "39d099198938c122e67372d02eaaabd3aaf86436",
+    "bpftime_verifier_status": [],
+    "captured_utc": "2026-09-04T17:17:20.578998+00:00",
+    "cpufreq": {
+      "driver": "intel_pstate",
+      "energy_performance_preference": "performance",
+      "governor": "powersave"
+    },
+    "probe": {
+      "mtime_ns": 1788541667931113904,
+      "path": "/home/yunwei37/workspace/gpu/bpftime-device-verifier-scaling-build/verifier_scaling_probe",
+      "size": 1661480
+    },
+    "runner_affinity": [
+      23
+    ]
+  },
+  "environment": {
+    "argv": [
+      "run_verifier_scaling.py",
+      "--preflight",
+      "--probe",
+      "/home/yunwei37/workspace/gpu/bpftime-device-verifier-scaling-build/verifier_scaling_probe",
+      "--bpftime-root",
+      "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+      "--output-dir",
+      "raw/preflight-01"
+    ],
+    "bpftime_current_revision": "39d099198938c122e67372d02eaaabd3aaf86436",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "bpftime_verifier_status": [],
+    "captured_utc": "2026-09-04T17:17:19.939399+00:00",
+    "cmake_version_line": "cmake version 3.28.3",
+    "compiler": {
+      "path": "/usr/bin/c++",
+      "version_line": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+    },
+    "cpu_model": "Intel(R) Core(TM) Ultra 9 285K",
+    "cpufreq": {
+      "driver": "intel_pstate",
+      "energy_performance_preference": "performance",
+      "governor": "powersave"
+    },
+    "cuda_visible_devices": "",
+    "cwd": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/device-verifier-scaling",
+    "kernel": "6.15.11-061511-generic",
+    "ld_preload": null,
+    "machine": "x86_64",
+    "probe": {
+      "cmake_bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+      "cmake_build_type": "Release",
+      "mtime_ns": 1788541667931113904,
+      "path": "/home/yunwei37/workspace/gpu/bpftime-device-verifier-scaling-build/verifier_scaling_probe",
+      "size": 1661480
+    },
+    "python": "3.12.3",
+    "runner_affinity": [
+      23
+    ]
+  },
+  "error": null,
+  "families": [
+    "linear",
+    "diamonds"
+  ],
+  "mode": "preflight",
+  "probe_source_revision": "39d099198938c122e67372d02eaaabd3aaf86436",
+  "schema": "device-verifier-scaling-run-v1",
+  "seed": 1797,
+  "sizes": [
+    16,
+    64,
+    256,
+    1024,
+    4096
+  ],
+  "status": "complete",
+  "timeout_seconds": 60,
+  "warmups": []
+}

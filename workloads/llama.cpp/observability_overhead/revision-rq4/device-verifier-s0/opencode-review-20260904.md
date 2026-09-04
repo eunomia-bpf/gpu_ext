@@ -60,3 +60,23 @@ The final claim remains limited to the ten-block paired pp512 throughput
 effects for `kernelretsnoop` and `threadhist` on this RTX 5090/driver/workload
 configuration. It is not an equivalence result, device-versus-host cost
 decomposition, or a general claim over other tools or GPUs.
+
+## Completed-result review
+
+After attempt 02 completed, a fourth deny-all review attached the frozen plan,
+`result.json`, `analysis.json`, and the independent analyzer. Session
+`ses_f92d4ba46ffe7ZP0JK3f6spU4f` returned `VERDICT: PASS` with no blocker. It
+confirmed 6/6 valid correctness cells, 60/60 valid timing cells, ten complete
+blocks per tool, one llama.cpp build across all 66 cells, and the paired-effect
+calculation. It agreed that the result supports only “no directional
+steady-state throughput difference detected” on this configuration, not
+equivalence or zero overhead.
+
+The review found one nonblocking provenance issue. In the runner, an `all(...)`
+test over the timing records was vacuously true for an empty NO_VERIFY list,
+so its derived `timing_positive` field was true even though `timing_records`
+was zero. That field did not decide the NO_VERIFY gate, and the independent
+analyzer reparsed the log and correctly reported no positive timing record.
+The completed raw file was not edited. The runner now requires exactly one
+positive record before setting the field, with a regression assertion for all
+three treatments.

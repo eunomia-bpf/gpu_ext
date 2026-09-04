@@ -1,0 +1,936 @@
+$ taskset -c 8-15 /usr/bin/env LD_PRELOAD=/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/runtime/agent/libbpftime-agent.so /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench -m /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf -r 1 -o json -p 512 -n 0 -ngl 99
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp
+
+## stdout
+[
+  {
+    "build_commit": "26836b27",
+    "build_number": 7102,
+    "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+    "gpu_info": "NVIDIA GeForce RTX 5090",
+    "backends": "CUDA",
+    "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "model_type": "llama 1B Q4_K - Medium",
+    "model_size": 667078656,
+    "model_n_params": 1100048384,
+    "n_batch": 2048,
+    "n_ubatch": 512,
+    "n_threads": 4,
+    "cpu_mask": "0x0",
+    "cpu_strict": false,
+    "poll": 50,
+    "type_k": "f16",
+    "type_v": "f16",
+    "n_gpu_layers": 99,
+    "n_cpu_moe": 0,
+    "split_mode": "layer",
+    "main_gpu": 0,
+    "no_kv_offload": false,
+    "flash_attn": false,
+    "devices": "auto",
+    "tensor_split": "0.00",
+    "tensor_buft_overrides": "none",
+    "use_mmap": true,
+    "embeddings": false,
+    "no_op_offload": 0,
+    "no_host": false,
+    "n_prompt": 512,
+    "n_gen": 0,
+    "n_depth": 0,
+    "test_time": "2026-09-04T15:29:58Z",
+    "avg_ns": 14054757,
+    "stddev_ns": 0,
+    "avg_ts": 36428.947153,
+    "stddev_ts": 0.000000,
+    "samples_ns": [ 14054757 ],
+    "samples_ts": [ 36428.9 ]
+  }
+]
+
+## stderr
+[2026-09-04 08:28:43][info][2549737] bpf_attach_ctx constructed
+[2026-09-04 08:28:43][info][2549737] Initializing CUDA shared memory
+[2026-09-04 08:28:43][info][2549737] CommSharedMem host 0x7800ed2fb7d8 mapped to device 0x7800ed2fb7d8
+[2026-09-04 08:28:43][info][2549737] CUDA context created
+[2026-09-04 08:28:43][info][2549737] Register attach-impl defined helper bpf_get_func_arg, index 183
+[2026-09-04 08:28:43][info][2549737] Register attach-impl defined helper bpf_get_func_ret_id, index 184
+[2026-09-04 08:28:43][info][2549737] Register attach-impl defined helper bpf_get_retval, index 186
+[2026-09-04 08:28:43][info][2549737] Starting nv_attach_impl
+[2026-09-04 08:28:43][info][2549737] Parsing bundled libraries: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-04 08:28:43][info][2549737] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so, executing..
+[2026-09-04 08:28:43][info][2549737] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[2026-09-04 08:28:43][info][2549737] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so, executing..
+[2026-09-04 08:28:43][info][2549737] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[2026-09-04 08:28:43][info][2549737] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so, executing..
+[2026-09-04 08:28:43][info][2549737] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-04 08:28:43][info][2549737] Initializing agent..
+[2026-09-04 08:28:43][info][2549737] bpftime: shm epoch_seq = 2
+[2026-09-04 08:28:43][info][2549737] Instantiating bpf link 43 and the corresponding program cuda__retprobe is cuda program
+[2026-09-04 08:28:43][info][2549737] Skipping nv attach handler 43 since we are not handling nv handles
+[2026-09-04 08:28:43][info][2549737] Instantiating bpf link 43 and the corresponding program cuda__retprobe is cuda program
+[2026-09-04 08:28:43][info][2549737] Handling link to CUDA program: 43, recording it..
+[2026-09-04 08:28:43][info][2549737] Loaded 13 instructions (original) for cuda ebpf program
+[2026-09-04 08:28:43][info][2549737] Initializing nv_gpu_array_map_impl at pid 2549737
+[2026-09-04 08:28:43][info][2549737] Mapped GPU memory for gpu array map: 131936345391104
+[2026-09-04 08:28:43][info][2549737] Copying map fd 16 to device, key size=4, value size=8, max ent=1, map_type = 1502, gpu_buffer = 77fed3000000
+[2026-09-04 08:28:43][info][2549737] Skipping GPU eBPF verification for cuda__retprobe
+[2026-09-04 08:28:43][info][2549737] Cached shared_mem_ptr at 7800ed2fb7d8
+[2026-09-04 08:28:43][info][2549737] Recorded pass /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so for func _Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli
+[2026-09-04 08:28:43][info][2549737] nv_attach_impl: cached 340949 host symbols
+[2026-09-04 08:28:43][info][2549737] nv_attach_impl: late attach bootstrap scanning fatbins..
+[2026-09-04 08:28:44][info][2549737] nv_attach_impl: targeted late bootstrap selected 1 of 27 loaded module(s)
+[2026-09-04 08:28:44][info][2549737] Temporary fatbin written to /tmp/bpftime-fatbin-work.C8gwfn/temp.fatbin
+[2026-09-04 08:28:44][info][2549737] Extracting PTX in the fatbin...
+[2026-09-04 08:28:44][info][2549737] Calling cuobjdump: /usr/local/cuda-12.9/bin/cuobjdump --extract-ptx all /tmp/bpftime-fatbin-work.C8gwfn/temp.fatbin
+Extracting PTX file and ptxas options    1: temp.1.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    2: temp.2.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    3: temp.3.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    4: temp.4.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    5: temp.5.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    6: temp.6.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    7: temp.7.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    8: temp.8.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options    9: temp.9.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   10: temp.10.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   11: temp.11.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   12: temp.12.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   13: temp.13.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   14: temp.14.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   15: temp.15.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   16: temp.16.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   17: temp.17.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   18: temp.18.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   19: temp.19.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   20: temp.20.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   21: temp.21.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   22: temp.22.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   23: temp.23.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   24: temp.24.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   25: temp.25.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   26: temp.26.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   27: temp.27.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   28: temp.28.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   29: temp.29.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   30: temp.30.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   31: temp.31.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   32: temp.32.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   33: temp.33.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   34: temp.34.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   35: temp.35.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   36: temp.36.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   37: temp.37.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   38: temp.38.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   39: temp.39.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   40: temp.40.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   41: temp.41.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   42: temp.42.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   43: temp.43.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   44: temp.44.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   45: temp.45.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   46: temp.46.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   47: temp.47.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   48: temp.48.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   49: temp.49.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   50: temp.50.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   51: temp.51.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   52: temp.52.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   53: temp.53.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   54: temp.54.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   55: temp.55.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   56: temp.56.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   57: temp.57.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   58: temp.58.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   59: temp.59.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   60: temp.60.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   61: temp.61.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   62: temp.62.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   63: temp.63.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   64: temp.64.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   65: temp.65.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   66: temp.66.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   67: temp.67.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   68: temp.68.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   69: temp.69.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   70: temp.70.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   71: temp.71.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   72: temp.72.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   73: temp.73.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   74: temp.74.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   75: temp.75.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   76: temp.76.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   77: temp.77.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   78: temp.78.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   79: temp.79.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   80: temp.80.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   81: temp.81.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   82: temp.82.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   83: temp.83.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   84: temp.84.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   85: temp.85.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   86: temp.86.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   87: temp.87.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   88: temp.88.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   89: temp.89.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   90: temp.90.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   91: temp.91.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   92: temp.92.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   93: temp.93.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   94: temp.94.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   95: temp.95.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   96: temp.96.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   97: temp.97.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   98: temp.98.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options   99: temp.99.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  100: temp.100.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  101: temp.101.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  102: temp.102.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  103: temp.103.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  104: temp.104.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  105: temp.105.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  106: temp.106.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  107: temp.107.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  108: temp.108.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  109: temp.109.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  110: temp.110.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  111: temp.111.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  112: temp.112.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  113: temp.113.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  114: temp.114.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  115: temp.115.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  116: temp.116.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  117: temp.117.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  118: temp.118.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  119: temp.119.sm_120.ptx -arch=sm_120 
+Extracting PTX file and ptxas options  120: temp.120.sm_120.ptx -arch=sm_120 
+[2026-09-04 08:28:45][info][2549737] Remove extracted files..
+[2026-09-04 08:28:45][info][2549737] Got 120 PTX files
+[2026-09-04 08:28:45][info][2549737] Loading & patching current fatbin..
+[2026-09-04 08:28:45][info][2549791] Patching PTX: temp.1.sm_120.ptx
+[2026-09-04 08:28:45][info][2549792] Patching PTX: temp.10.sm_120.ptx
+[2026-09-04 08:28:45][info][2549792] Patching request eba7b172d06bac642fa7aa95c0218e9dcb5d52f458ef6ff248971f19d00c26c1 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549791] Patching request bc7e077d09a63556d0522ec8e9ed9e73f3b224196f7d9db8ce72bd9e06728f3d not found in cache, patching..
+[2026-09-04 08:28:45][info][2549793] Patching PTX: temp.100.sm_120.ptx
+[2026-09-04 08:28:45][info][2549795] Patching PTX: temp.102.sm_120.ptx
+[2026-09-04 08:28:45][info][2549794] Patching PTX: temp.101.sm_120.ptx
+[2026-09-04 08:28:45][info][2549796] Patching PTX: temp.103.sm_120.ptx
+[2026-09-04 08:28:45][info][2549797] Patching PTX: temp.104.sm_120.ptx
+[2026-09-04 08:28:45][info][2549798] Patching PTX: temp.105.sm_120.ptx
+[2026-09-04 08:28:45][info][2549802] Patching PTX: temp.106.sm_120.ptx
+[2026-09-04 08:28:45][info][2549799] Patching PTX: temp.107.sm_120.ptx
+[2026-09-04 08:28:45][info][2549800] Patching PTX: temp.108.sm_120.ptx
+[2026-09-04 08:28:45][info][2549801] Patching PTX: temp.11.sm_120.ptx
+[2026-09-04 08:28:45][info][2549803] Patching PTX: temp.109.sm_120.ptx
+[2026-09-04 08:28:45][info][2549801] Patching request 4f57cf057d155277dd44720e9feab6709922866f9746549a9ed57cea2e876a25 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549795] Patching request 132d8876e6fb738c393934d274634ffef42a8839b9d0e62022c1eca798b136f8 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549808] Patching PTX: temp.110.sm_120.ptx
+[2026-09-04 08:28:45][info][2549796] Patching request 9da3be39b257bf4c8664fbfd7d98c1766b8e1c3c85368c8ad2b37db89b83a3b2 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549814] Patching PTX: temp.116.sm_120.ptx
+[2026-09-04 08:28:45][info][2549797] Patching request 3d3b9385eec3ebe8f9c5284e6fd53457f2d79cd49188a9d37158ca9b34917b21 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549805] Patching PTX: temp.117.sm_120.ptx
+[2026-09-04 08:28:45][info][2549809] Patching PTX: temp.111.sm_120.ptx
+[2026-09-04 08:28:45][info][2549807] Patching PTX: temp.118.sm_120.ptx
+[2026-09-04 08:28:45][info][2549810] Patching PTX: temp.112.sm_120.ptx
+[2026-09-04 08:28:45][info][2549804] Patching PTX: temp.119.sm_120.ptx
+[2026-09-04 08:28:45][info][2549811] Patching PTX: temp.113.sm_120.ptx
+[2026-09-04 08:28:45][info][2549791] Patching PTX: temp.120.sm_120.ptx
+[2026-09-04 08:28:45][info][2549812] Patching PTX: temp.114.sm_120.ptx
+[2026-09-04 08:28:45][info][2549792] Patching PTX: temp.13.sm_120.ptx
+[2026-09-04 08:28:45][info][2549813] Patching PTX: temp.115.sm_120.ptx
+[2026-09-04 08:28:45][info][2549806] Patching PTX: temp.12.sm_120.ptx
+[2026-09-04 08:28:45][info][2549806] Patching request 5ac42c140ec2ff5205fefcd77b4803a343a6a744b7e59470b391136aa2b791de not found in cache, patching..
+[2026-09-04 08:28:45][info][2549794] Patching request 216447116f19eff5eb99368b137dc731417fd28e4c6345991c13b9f3bf6f6642 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549792] Patching request c13322775626f43ff5c9d2d4b683f6d88b22722c3f0dd5f3475a51ee367b437a not found in cache, patching..
+[2026-09-04 08:28:45][info][2549793] Patching request f48af8ef4a03e036f2b1998fafd6aafbdc5a88ba30671da116bc57929b830d74 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549791] Patching request e904626a946e361f092b1ae7442228d5691c1df4a842377d7a2e397ac21946a6 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549804] Patching request 431f2d699d5d78710ad3aee79e4f00478b83964e114c82d8bd3f02f351ac2365 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549810] Patching request 58ce08ed21c95b86db5e663309490a61b42c7733059cb45f3365ea384a6f340e not found in cache, patching..
+[2026-09-04 08:28:45][info][2549808] Patching request 851481b0c2e61f67c6d7d96ed0a5b17cae67de88aa2d5a8cdb6be6ae131f1000 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549802] Patching request 078f2a3201e4dda84daf74133796674186820fd5c8abb00d432609add5f46b95 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549809] Patching request 8b241d16416f3cdb78ca88c9e2c09d2eb51bc24c09a89a953490f6c4bc0e6a50 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549798] Patching request 36e4fee0b9d667da47093a18774c2fd2545b8d3b222c6654aca93c88aeb45ad1 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549812] Patching request e2f56712fe75b990032c088c1b8a5ad9bc27e425bfc4b438f824bad10c4ee138 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549814] Patching request 206ea11591795301523155c8e2275dd62f2010090fafc19fd1dd53c9a1d78306 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549811] Patching request c07b71e31f2588e36514fc07af093bb192d47d538988bd5b2f263ece8be97167 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549801] Patching PTX: temp.14.sm_120.ptx
+[2026-09-04 08:28:45][info][2549813] Patching request c64ed6b67f8bdd30362638faf79dfd0ee59782022c58e9349c3dc19a3ec37e5e not found in cache, patching..
+[2026-09-04 08:28:45][info][2549801] Patching request 4a3a7a8629cfecf4ac6b7ddead4b275729785277fd426c23c31d8610eb38d3c7 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549803] Patching request 117ab1cc67e245cc2c85eb85c355195bdc654f3e21eda7aefd63930ee1121a97 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549799] Patching request dc51180b1becfe86f55099f63c2ea176467fd5cc6eb07a83cf7d659a1f84bff9 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549800] Patching request e6496f3160f9517700bb48228c47e816346b8193bb0d7d009339eea9d1175986 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549805] Patching request 8d790d171f535d59f43e8493c1f009c8ecfafdd2688b45470b6e818562d6e501 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549807] Patching request bb66e00de10b9ddaf29056745dc5c0a8b1344050b92223a5156f05731b3689bd not found in cache, patching..
+[2026-09-04 08:28:45][info][2549806] Patching PTX: temp.15.sm_120.ptx
+[2026-09-04 08:28:45][info][2549806] Patching request f1342a0e97f6659d9667cd90ba13eddc2893ec1aaee7c74393576d3bec303af5 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549801] Patching PTX: temp.16.sm_120.ptx
+[2026-09-04 08:28:45][info][2549801] Patching request c80a853f4c2a66f5b53df779150c67fdb8f3e563040c649c03ed2f6117e20a9d not found in cache, patching..
+[2026-09-04 08:28:45][info][2549792] Patching PTX: temp.17.sm_120.ptx
+[2026-09-04 08:28:45][info][2549792] Patching request ea6a25109761626b3643aed3203a06dbe9fffb1a0ea8b40a060994e1b439bf7d not found in cache, patching..
+[2026-09-04 08:28:45][info][2549801] Patching PTX: temp.18.sm_120.ptx
+[2026-09-04 08:28:45][info][2549801] Patching request ae2f9562e1183d8fee6ce09e20952e632e06bea31f87c8224fbc5d3a7a0847fa not found in cache, patching..
+[2026-09-04 08:28:45][info][2549792] Patching PTX: temp.19.sm_120.ptx
+[2026-09-04 08:28:45][info][2549792] Patching request 41e3f02c82d44ff06c3df107710cac00006d90a05cc13c90ee81635b0656ff5a not found in cache, patching..
+[2026-09-04 08:28:45][info][2549801] Patching PTX: temp.2.sm_120.ptx
+[2026-09-04 08:28:45][info][2549801] Patching request a106ee0c48d6be93d71c08f38b31ab3b1721d521b07f988b94ee20f0d4678990 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549801] Patching PTX: temp.20.sm_120.ptx
+[2026-09-04 08:28:45][info][2549801] Patching request ae2f9562e1183d8fee6ce09e20952e632e06bea31f87c8224fbc5d3a7a0847fa found in cache
+[2026-09-04 08:28:45][info][2549801] Patching PTX: temp.21.sm_120.ptx
+[2026-09-04 08:28:45][info][2549801] Patching request 59d6fbdafda5f29cf7d9d29ba540b33fdd1b71c30848e642a556a63d80165a91 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549806] Patching PTX: temp.22.sm_120.ptx
+[2026-09-04 08:28:45][info][2549806] Patching request 5361bb4420bab20f8277b251bc74f6eb17ede6e094ced4d1de0e3a9dd4f1ea27 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549806] Patching PTX: temp.23.sm_120.ptx
+[2026-09-04 08:28:45][info][2549806] Patching request 31251838f50c19302715d967a981f536ce0d79966f963cb8220888fa38c8b9d5 not found in cache, patching..
+[2026-09-04 08:28:45][info][2549806] Patching PTX: temp.24.sm_120.ptx
+[2026-09-04 08:28:45][info][2549792] Patching PTX: temp.25.sm_120.ptx
+[2026-09-04 08:28:45][info][2549806] Patching request 9c2a87f84d3350efad26366df9e1db23ea58281926b11f633cafe787e0a1e09d not found in cache, patching..
+[2026-09-04 08:28:45][info][2549792] Patching request 3196577998ff794ec01d36cf0e78138019d0236fdeff6b5ceb719aecef808e85 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.26.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request ae2f9562e1183d8fee6ce09e20952e632e06bea31f87c8224fbc5d3a7a0847fa found in cache
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.27.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 0c3bb50c688734450e040442caa2050ee1e6188c6db39d90348bb7f49021518f not found in cache, patching..
+[2026-09-04 08:28:46][info][2549801] Patching PTX: temp.28.sm_120.ptx
+[2026-09-04 08:28:46][info][2549801] Patching request ae2f9562e1183d8fee6ce09e20952e632e06bea31f87c8224fbc5d3a7a0847fa found in cache
+[2026-09-04 08:28:46][info][2549801] Patching PTX: temp.29.sm_120.ptx
+[2026-09-04 08:28:46][info][2549792] Patching PTX: temp.3.sm_120.ptx
+[2026-09-04 08:28:46][info][2549792] Patching request 6cf125645347e35405e9f831095f1074f41e5839cc4e0c010e564755a9b4f51c not found in cache, patching..
+[2026-09-04 08:28:46][info][2549792] Patching PTX: temp.30.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.31.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 682bc42e5925e0bf1447a8774582cccba8848bda30dc1f691242289219e95d34 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549801] Patching request be3f3c0e226428cd0f12843461e65bcbe60f72e5e0d204b539f86fc1294ef39b not found in cache, patching..
+[2026-09-04 08:28:46][info][2549792] Patching request 2b5575b36ac66628388538a2238087168fb8c3dec6d4343ee06bcf1f46872589 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.32.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request f168ea092de21a3a6306d4673a265412f4cee51c319ea4be87d5714865dbe4a1 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.33.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 25a68a58645df4e13be3072341b4ade902f48d31c54d76b40b7592ae5c83cfa6 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.34.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request ae2f9562e1183d8fee6ce09e20952e632e06bea31f87c8224fbc5d3a7a0847fa found in cache
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.35.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 8876a9f0250e17667a1cfb1ed0d6c576a06c2798ca974b2fa3332254f3d77e0e not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.36.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 71f7856a1eba795f5c4ddf8e12cc95db8734bd5f01de1d71771e52ce08295b75 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.37.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 2e81095b2d0e30502522bc1beb12923f50a30303af26cac8edff44a96e6faee5 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.38.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 5f4161e29d914f1d7748524ab5cc49652f727e20360f4039454effb982608f72 not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.39.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request 8734fa36a18d48d7ad81b5706f3da7d0f47fe511822ae3992e20c565706da2ed not found in cache, patching..
+[2026-09-04 08:28:46][info][2549806] Patching PTX: temp.4.sm_120.ptx
+[2026-09-04 08:28:46][info][2549806] Patching request c02985c3b2393c8195cb70579c980c97d9bfc96131c5ddce7b72c13fa7ca93c9 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549795] Patching PTX: temp.40.sm_120.ptx
+[2026-09-04 08:28:47][info][2549795] Patching request 83327a2322e6155fa2ad5c2446d617d4f692291575716ef43d9dc8008e1e916e not found in cache, patching..
+[2026-09-04 08:28:47][info][2549806] Patching PTX: temp.41.sm_120.ptx
+[2026-09-04 08:28:47][info][2549806] Patching request 3a6a6ba5a0ad8d441005759aa5890450ccdfcd14d4e116746a31dd1e4162aa73 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549806] Patching PTX: temp.42.sm_120.ptx
+[2026-09-04 08:28:47][info][2549806] Patching request e22576933ac2d6a15dbad983b1b100dd7bcd9abe8f779ecea49bb478aaf86aa1 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549791] Patching PTX: temp.43.sm_120.ptx
+[2026-09-04 08:28:47][info][2549791] Patching request ae2f9562e1183d8fee6ce09e20952e632e06bea31f87c8224fbc5d3a7a0847fa found in cache
+[2026-09-04 08:28:47][info][2549791] Patching PTX: temp.44.sm_120.ptx
+[2026-09-04 08:28:47][info][2549791] Patching request 53fddb1396219ab02a43e4b30c9d7ce4a8f4b3445182f63c040a2c9c6ab1baf0 not found in cache, patching..
+[ptxpass] kretprobe: matched=1, in=375367, out=376814
+[2026-09-04 08:28:47][info][2549791] Patching PTX: temp.45.sm_120.ptx
+[2026-09-04 08:28:47][info][2549791] Patching request ab4125f21cddaf14765261d46fae5c6bafafaf1078a6b460fc4c6280680eec4b not found in cache, patching..
+[2026-09-04 08:28:47][info][2549795] Patching PTX: temp.46.sm_120.ptx
+[2026-09-04 08:28:47][info][2549795] Patching request 8593b68717c703d2c3b7dfbf70f1826eff04126421e8bbf45f5e0baf96f71128 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549808] Patching PTX: temp.47.sm_120.ptx
+[2026-09-04 08:28:47][info][2549795] Patching PTX: temp.48.sm_120.ptx
+[2026-09-04 08:28:47][info][2549795] Patching request 3e01fdd250010003d3ea81e79edd19769b57bf4345a3fa38475122b17e6e97b6 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549808] Patching request ba5a9971e4d9ca0c34831743eeaa3d26e11269a0d1a8e921809cc246c69489d3 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549810] Patching PTX: temp.49.sm_120.ptx
+[2026-09-04 08:28:47][info][2549810] Patching request 0811e7a58fc9d323a2c5a41b80db768817f3fabf7879e82067908481b89f70cd not found in cache, patching..
+[2026-09-04 08:28:47][info][2549806] Patching PTX: temp.5.sm_120.ptx
+[2026-09-04 08:28:47][info][2549791] Patching PTX: temp.50.sm_120.ptx
+[2026-09-04 08:28:47][info][2549806] Patching request 213d1e490b7ef9a0971bd1dc66c9d60f5abfbb474480500f85fe5f924dc16254 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549791] Patching request 65d8d9006f49295414ee23819cc17b00c83e4c35c46fc3ddd4f3916ba50cd1a1 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549810] Patching PTX: temp.51.sm_120.ptx
+[2026-09-04 08:28:47][info][2549810] Patching request a5a4fa46c39d964ce38bfd91088408be67abfa0adf9884bb882ddc68ab034dab not found in cache, patching..
+[2026-09-04 08:28:47][info][2549809] Patching PTX: temp.52.sm_120.ptx
+[2026-09-04 08:28:47][info][2549809] Patching request 619293876e72fb3bfd5a5508515ebd5a63aa4605c3eba79b40bea85789533289 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549804] Patching PTX: temp.53.sm_120.ptx
+[2026-09-04 08:28:47][info][2549804] Patching request 85de50da3e1681c9f00dcc3fcd1587879c3c2b82836f59fcfb93fc3a5eda609c not found in cache, patching..
+[2026-09-04 08:28:47][info][2549795] Patching PTX: temp.54.sm_120.ptx
+[2026-09-04 08:28:47][info][2549795] Patching request 8e7575075ee0fc1541e181e3d42756d7fb206f5511c89977b567e6ea0b411a84 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549810] Patching PTX: temp.55.sm_120.ptx
+[2026-09-04 08:28:47][info][2549804] Patching PTX: temp.57.sm_120.ptx
+[2026-09-04 08:28:47][info][2549811] Patching PTX: temp.56.sm_120.ptx
+[2026-09-04 08:28:47][info][2549810] Patching request ea4aae389784fd650a6c88ad32466c0f330807c3dc59dccc11027c97522ab78f not found in cache, patching..
+[2026-09-04 08:28:47][info][2549809] Patching PTX: temp.58.sm_120.ptx
+[2026-09-04 08:28:47][info][2549812] Patching PTX: temp.59.sm_120.ptx
+[2026-09-04 08:28:47][info][2549795] Patching PTX: temp.6.sm_120.ptx
+[2026-09-04 08:28:47][info][2549812] Patching request aee77ec8e026250f4ac785c115ef874cec2f091fa69566ba05a43befa6556ad8 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549811] Patching request 251e8c8c71497af645597bcdfeeb499ef9961fa6229ae9ae64495e06677e1b59 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549809] Patching request 0bf660eb2a7e84813e9c441e5643a407931909239c4230a6d0b0fdba599dc7a6 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549813] Patching PTX: temp.60.sm_120.ptx
+[2026-09-04 08:28:47][info][2549795] Patching request 214d46f1ee33b481944958b24048659c37d35ebf7e041f4ddec2d52294132421 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549813] Patching request 0f1622b17656166e7b4319c767cdb95756892997db7f260dfb117fbb26ac0261 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549791] Patching PTX: temp.61.sm_120.ptx
+[2026-09-04 08:28:47][info][2549814] Patching PTX: temp.62.sm_120.ptx
+[2026-09-04 08:28:47][info][2549804] Patching request 1642540fff21fba337c0000ecd36bdfdf27e2b9b9c09b78f144fc173171dcfcb not found in cache, patching..
+[2026-09-04 08:28:47][info][2549808] Patching PTX: temp.63.sm_120.ptx
+[2026-09-04 08:28:47][info][2549814] Patching request 728f8d00b595fc371282da1fe59e941bdeaa5f2b1bdab454981d400303f65bc9 not found in cache, patching..
+[2026-09-04 08:28:47][info][2549791] Patching request e679eb3f833b50ae0bfb32ffc590396c0c09ab8a8523b7c19498e7344b70c07b not found in cache, patching..
+[2026-09-04 08:28:47][info][2549808] Patching request d37b9a6fc5e2fbc9b479d3b0468b3924f0a83179d414200f47438bc04d41798b not found in cache, patching..
+[2026-09-04 08:28:47][info][2549807] Patching PTX: temp.64.sm_120.ptx
+[2026-09-04 08:28:47][info][2549807] Patching request 8e06af40e2e5b9bd54f5a96b5237066cf9ff6630d53f41c57af00cdd2896ab0c not found in cache, patching..
+[2026-09-04 08:28:48][info][2549806] Patching PTX: temp.65.sm_120.ptx
+[2026-09-04 08:28:48][info][2549806] Patching request dff241733f5f6e0464e763fd18bfb2a9e5d8a2da90a11d60d10172be35ef05fd not found in cache, patching..
+[2026-09-04 08:28:48][info][2549812] Patching PTX: temp.66.sm_120.ptx
+[2026-09-04 08:28:48][info][2549805] Patching PTX: temp.67.sm_120.ptx
+[2026-09-04 08:28:48][info][2549812] Patching request a34f378fc4f008955cbf6c399f609822add613abb7b3bc64123b09ea4d6eb577 not found in cache, patching..
+[2026-09-04 08:28:48][info][2549805] Patching request 237352fcbcd7f7524bae6887dd507859878fd4dc6ba869b9f7e1b650ab51c028 not found in cache, patching..
+[2026-09-04 08:28:48][info][2549807] Patching PTX: temp.68.sm_120.ptx
+[2026-09-04 08:28:48][info][2549807] Patching request 27c3c806fb3574d5e68ec910306e89507aa3fe84d86e1e94a270c737afc57657 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549813] Patching PTX: temp.69.sm_120.ptx
+[2026-09-04 08:28:49][info][2549813] Patching request 43dc69e2cc4771b759c0eb01a1c100b2680f5cf7b05a46e4ce58b039bb164ad0 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549797] Patching PTX: temp.7.sm_120.ptx
+[2026-09-04 08:28:49][info][2549797] Patching request 3e6e35032ab9eb68f4703a02290a352654661172e9837c2449c73d5abf72b2c9 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549797] Patching PTX: temp.70.sm_120.ptx
+[2026-09-04 08:28:49][info][2549796] Patching PTX: temp.71.sm_120.ptx
+[2026-09-04 08:28:49][info][2549797] Patching request 906cdbef95fc268f150044133f09860140435811fad9ab666e0287e6047e8d3d not found in cache, patching..
+[2026-09-04 08:28:49][info][2549796] Patching request a43a6f26b0dcd6e5a88f5761b6c9c77a0603cc7423148a957ccefac61d72efa9 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549814] Patching PTX: temp.72.sm_120.ptx
+[2026-09-04 08:28:49][info][2549795] Patching PTX: temp.73.sm_120.ptx
+[2026-09-04 08:28:49][info][2549813] Patching PTX: temp.74.sm_120.ptx
+[2026-09-04 08:28:49][info][2549814] Patching request 9f497777f978a543efb07a101b191a57b4200722d8ad62c2c1cfc433cc8d4dcc not found in cache, patching..
+[2026-09-04 08:28:49][info][2549813] Patching request f6423844b6e0a51fbb3abe2d53260b0dea09e5f8458cc810f6af095ca3eeda23 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549810] Patching PTX: temp.75.sm_120.ptx
+[2026-09-04 08:28:49][info][2549795] Patching request bacf24892f3f3108158d3f4bad1b5d0b0f7131c37c9036e90aced07251d94592 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549810] Patching request 37337415c0d48b2bf8425c4fdcd5e2dd1a6d2f7d80b63b3e038768a4ddfc1bc1 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549808] Patching PTX: temp.76.sm_120.ptx
+[2026-09-04 08:28:49][info][2549808] Patching request f72c1fdbb2ffddb9bec8f6890abda12df6c139f6372991b5e5133a1f4038a945 not found in cache, patching..
+[2026-09-04 08:28:49][info][2549806] Patching PTX: temp.77.sm_120.ptx
+[2026-09-04 08:28:49][info][2549798] Patching PTX: temp.78.sm_120.ptx
+[2026-09-04 08:28:50][info][2549806] Patching request a11044e28b612d7356f1ab4e30fae9df5a1ac10f59474a3aa9130def7969aa0a not found in cache, patching..
+[2026-09-04 08:28:50][info][2549798] Patching request 32af460bd628b37174e8f081461a27fc104e56ddc246a9da41b89553ef24d695 not found in cache, patching..
+[2026-09-04 08:28:50][info][2549802] Patching PTX: temp.79.sm_120.ptx
+[2026-09-04 08:28:50][info][2549809] Patching PTX: temp.8.sm_120.ptx
+[2026-09-04 08:28:50][info][2549809] Patching request b8a132cf5454037ce1d7cb2046b9ce15ebd0a8b6709a908d9f60fe68fe4367dc not found in cache, patching..
+[2026-09-04 08:28:50][info][2549813] Patching PTX: temp.80.sm_120.ptx
+[2026-09-04 08:28:50][info][2549802] Patching request 7c3a112f6bf4e383e24749d4d04facc54419ebec4c703b43324fb166c5e851df not found in cache, patching..
+[2026-09-04 08:28:50][info][2549799] Patching PTX: temp.81.sm_120.ptx
+[2026-09-04 08:28:50][info][2549813] Patching request 7b68da11443673595ee5569cafd1639da970e2c286c6b8b5d2cb3ed42fe8710f not found in cache, patching..
+[2026-09-04 08:28:50][info][2549809] Patching PTX: temp.82.sm_120.ptx
+[2026-09-04 08:28:50][info][2549799] Patching request e86cbf047b9d592ac4a0754f7dad5801a3d807113795f273eeb6a527ea75605a not found in cache, patching..
+[2026-09-04 08:28:50][info][2549800] Patching PTX: temp.83.sm_120.ptx
+[2026-09-04 08:28:50][info][2549809] Patching request 996568d735ecd24c0b04e1c686f9954d4a4276704c17fbd0fec0ebb1244150d2 not found in cache, patching..
+[2026-09-04 08:28:50][info][2549803] Patching PTX: temp.84.sm_120.ptx
+[2026-09-04 08:28:50][info][2549800] Patching request 5812b7646ade06e338c4ba505da5f24e5b40ce51f87b033d8acd332e2d03680e not found in cache, patching..
+[2026-09-04 08:28:50][info][2549812] Patching PTX: temp.85.sm_120.ptx
+[2026-09-04 08:28:50][info][2549803] Patching request d3158513c59ec63965d00dc769c32c957181a5912456c656cd88b13aeae69539 not found in cache, patching..
+[2026-09-04 08:28:50][info][2549812] Patching request df6b36e572e62b9ca4744735654f978d4d7085cc07ed0595651429040988391f not found in cache, patching..
+[2026-09-04 08:28:50][info][2549805] Patching PTX: temp.86.sm_120.ptx
+[2026-09-04 08:28:51][info][2549805] Patching request ceb51ce1302252b9facc219b467bda772692b347575cc81f4f3e1fb6eaefa6ac not found in cache, patching..
+[2026-09-04 08:28:51][info][2549797] Patching PTX: temp.87.sm_120.ptx
+[2026-09-04 08:28:51][info][2549810] Patching PTX: temp.88.sm_120.ptx
+[2026-09-04 08:28:51][info][2549797] Patching request 7e30ff85b3003a7abff6a7351795fd343edff360ac30fc92258cb00b66aec2fc not found in cache, patching..
+[2026-09-04 08:28:51][info][2549810] Patching request 95c5dec994724093168e94869f359285b7f1a4b724258934f45dd1d1e0dda1d0 not found in cache, patching..
+[2026-09-04 08:28:52][info][2549796] Patching PTX: temp.89.sm_120.ptx
+[2026-09-04 08:28:52][info][2549802] Patching PTX: temp.9.sm_120.ptx
+[2026-09-04 08:28:52][info][2549802] Patching request f12766029f65d77907bac7dafcbf5a9991e297b97575786fe2955c978825f1c6 not found in cache, patching..
+[2026-09-04 08:28:52][info][2549802] Patching PTX: temp.90.sm_120.ptx
+[2026-09-04 08:28:52][info][2549796] Patching request c84f0e6f635ce4971bf6b5cd4e5ce155e442c9c828de88f3c8b8e0f7c885b07c not found in cache, patching..
+[2026-09-04 08:28:52][info][2549808] Patching PTX: temp.91.sm_120.ptx
+[2026-09-04 08:28:52][info][2549802] Patching request 0e21ead674c376bc7a782ce617aebe99d287fdc997ea7dee891615bea38d881e not found in cache, patching..
+[2026-09-04 08:28:52][info][2549808] Patching request 1a2c1c6629ec1d429fcc3d823587fbba28230a869f028a45b83a29b4feb3f623 not found in cache, patching..
+[2026-09-04 08:28:52][info][2549814] Patching PTX: temp.92.sm_120.ptx
+[2026-09-04 08:28:52][info][2549813] Patching PTX: temp.93.sm_120.ptx
+[2026-09-04 08:28:52][info][2549806] Patching PTX: temp.94.sm_120.ptx
+[2026-09-04 08:28:52][info][2549813] Patching request 5b9babe95dd028d9e19c888c50f51b94716a0d0a824228a61a651fa7fe281396 not found in cache, patching..
+[2026-09-04 08:28:52][info][2549814] Patching request 7d75606ca7858704e84b2e51f8afe28e2f680aa2664cda113b93284c653fbf53 not found in cache, patching..
+[2026-09-04 08:28:52][info][2549806] Patching request f9de24f3ea06ea10f0fbdb25c9d72e8d21bd8f2d2078f48e4a67717f87cfa420 not found in cache, patching..
+[2026-09-04 08:28:52][info][2549799] Patching PTX: temp.95.sm_120.ptx
+[2026-09-04 08:28:52][info][2549791] Patching PTX: temp.96.sm_120.ptx
+[2026-09-04 08:28:53][info][2549799] Patching request de13cef26a10e842eda3c1e5e972eae52e2c1b245cd4daaa3bd6f981c6a61644 not found in cache, patching..
+[2026-09-04 08:28:53][info][2549791] Patching request e723334135194a944202d26c01c37afbaab61147a39add5216c8110cc23bcdb4 not found in cache, patching..
+[2026-09-04 08:28:53][info][2549811] Patching PTX: temp.97.sm_120.ptx
+[2026-09-04 08:28:53][info][2549811] Patching request fbff813fb1fa4bebf35235241a5d45985b9c98037f8dc1d7363fa348b4da9092 not found in cache, patching..
+[2026-09-04 08:28:54][info][2549807] Patching PTX: temp.98.sm_120.ptx
+[2026-09-04 08:28:54][info][2549807] Patching request fb97396363fb91029bcea772ce5258f6e5e0d7e7d00479d83df27f3ccab89a35 not found in cache, patching..
+[2026-09-04 08:28:55][info][2549795] Patching PTX: temp.99.sm_120.ptx
+[2026-09-04 08:28:55][info][2549795] Patching request 49dd067e2f4ce3b4669e1b94c4e734fabfe93bc2f83ecacba7ea1f65f0ce7cf4 not found in cache, patching..
+[2026-09-04 08:29:10][info][2549737] Auto-detected GPU SM arch: sm_120 (compute capability 12.0)
+[2026-09-04 08:29:10][info][2549737] Compiling PTXs with sm_arch sm_120
+[2026-09-04 08:29:10][info][2549737] Compiler version: 12.9
+[2026-09-04 08:29:10][info][2550227] Start compiling patched.temp.1.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550229] Start compiling patched.temp.10.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550228] Start compiling patched.temp.100.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550231] Start compiling patched.temp.102.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550233] Start compiling patched.temp.103.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550230] Start compiling patched.temp.101.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550234] Start compiling patched.temp.104.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550232] Start compiling patched.temp.105.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550236] Start compiling patched.temp.106.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550235] Start compiling patched.temp.107.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550238] Start compiling patched.temp.108.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550241] Start compiling patched.temp.11.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550239] Start compiling patched.temp.109.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550242] Start compiling patched.temp.110.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550246] Start compiling patched.temp.111.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550243] Start compiling patched.temp.112.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550227] Compile of patched.temp.1.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550245] Start compiling patched.temp.113.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550248] Start compiling patched.temp.114.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550227] Start compiling patched.temp.115.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550247] Start compiling patched.temp.116.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550244] Start compiling patched.temp.12.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550250] Start compiling patched.temp.118.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550249] Start compiling patched.temp.119.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550240] Start compiling patched.temp.117.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550237] Start compiling patched.temp.120.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550229] Compile of patched.temp.10.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550229] Start compiling patched.temp.13.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550241] Compile of patched.temp.11.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550241] Start compiling patched.temp.14.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550241] Compile of patched.temp.14.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550241] Start compiling patched.temp.15.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550244] Compile of patched.temp.12.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550244] Start compiling patched.temp.16.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550244] Compile of patched.temp.16.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550244] Start compiling patched.temp.17.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550244] Compile of patched.temp.17.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550244] Start compiling patched.temp.18.sm_120.ptx, not found in cache
+[2026-09-04 08:29:10][info][2550244] Compile of patched.temp.18.sm_120.ptx done
+[2026-09-04 08:29:10][info][2550244] Start compiling patched.temp.19.sm_120.ptx, not found in cache
+[2026-09-04 08:29:11][info][2550229] Compile of patched.temp.13.sm_120.ptx done
+[2026-09-04 08:29:11][info][2550229] Start compiling patched.temp.2.sm_120.ptx, not found in cache
+[2026-09-04 08:29:11][info][2550229] Compile of patched.temp.2.sm_120.ptx done
+[2026-09-04 08:29:11][info][2550229] PTX patched.temp.20.sm_120.ptx (4d2952f2bf647bdfcce59156232251bbbe1c5dc35a2cac586d1ce8857c8698c3) found in cache
+[2026-09-04 08:29:11][info][2550229] Start compiling patched.temp.21.sm_120.ptx, not found in cache
+[2026-09-04 08:29:12][info][2550241] Compile of patched.temp.15.sm_120.ptx done
+[2026-09-04 08:29:12][info][2550241] Start compiling patched.temp.22.sm_120.ptx, not found in cache
+[2026-09-04 08:29:12][info][2550241] Compile of patched.temp.22.sm_120.ptx done
+[2026-09-04 08:29:12][info][2550241] Start compiling patched.temp.23.sm_120.ptx, not found in cache
+[2026-09-04 08:29:12][info][2550244] Compile of patched.temp.19.sm_120.ptx done
+[2026-09-04 08:29:12][info][2550244] Start compiling patched.temp.24.sm_120.ptx, not found in cache
+[2026-09-04 08:29:12][info][2550241] Compile of patched.temp.23.sm_120.ptx done
+[2026-09-04 08:29:12][info][2550241] Start compiling patched.temp.25.sm_120.ptx, not found in cache
+[2026-09-04 08:29:12][info][2550241] Compile of patched.temp.25.sm_120.ptx done
+[2026-09-04 08:29:12][info][2550241] PTX patched.temp.26.sm_120.ptx (4d2952f2bf647bdfcce59156232251bbbe1c5dc35a2cac586d1ce8857c8698c3) found in cache
+[2026-09-04 08:29:12][info][2550241] Start compiling patched.temp.27.sm_120.ptx, not found in cache
+[2026-09-04 08:29:12][info][2550244] Compile of patched.temp.24.sm_120.ptx done
+[2026-09-04 08:29:12][info][2550244] PTX patched.temp.28.sm_120.ptx (4d2952f2bf647bdfcce59156232251bbbe1c5dc35a2cac586d1ce8857c8698c3) found in cache
+[2026-09-04 08:29:12][info][2550244] Start compiling patched.temp.29.sm_120.ptx, not found in cache
+[2026-09-04 08:29:13][info][2550241] Compile of patched.temp.27.sm_120.ptx done
+[2026-09-04 08:29:13][info][2550241] Start compiling patched.temp.3.sm_120.ptx, not found in cache
+[2026-09-04 08:29:13][info][2550241] Compile of patched.temp.3.sm_120.ptx done
+[2026-09-04 08:29:13][info][2550241] Start compiling patched.temp.30.sm_120.ptx, not found in cache
+[2026-09-04 08:29:13][info][2550229] Compile of patched.temp.21.sm_120.ptx done
+[2026-09-04 08:29:13][info][2550229] Start compiling patched.temp.31.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.31.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.32.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.32.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.33.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.33.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] PTX patched.temp.34.sm_120.ptx (4d2952f2bf647bdfcce59156232251bbbe1c5dc35a2cac586d1ce8857c8698c3) found in cache
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.35.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.35.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.36.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.36.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.37.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.37.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.38.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.38.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.39.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.39.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.4.sm_120.ptx, not found in cache
+[2026-09-04 08:29:14][info][2550229] Compile of patched.temp.4.sm_120.ptx done
+[2026-09-04 08:29:14][info][2550229] Start compiling patched.temp.40.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550237] Compile of patched.temp.120.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550237] Start compiling patched.temp.41.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550231] Compile of patched.temp.102.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550231] Start compiling patched.temp.42.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550237] Compile of patched.temp.41.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550237] PTX patched.temp.43.sm_120.ptx (4d2952f2bf647bdfcce59156232251bbbe1c5dc35a2cac586d1ce8857c8698c3) found in cache
+[2026-09-04 08:29:15][info][2550237] Start compiling patched.temp.44.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550237] Compile of patched.temp.44.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550237] Start compiling patched.temp.45.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550229] Compile of patched.temp.40.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550229] Start compiling patched.temp.46.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550242] Compile of patched.temp.110.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550242] Start compiling patched.temp.47.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550243] Compile of patched.temp.112.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550243] Start compiling patched.temp.48.sm_120.ptx, not found in cache
+[2026-09-04 08:29:15][info][2550229] Compile of patched.temp.46.sm_120.ptx done
+[2026-09-04 08:29:15][info][2550229] Start compiling patched.temp.49.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550229] Compile of patched.temp.49.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550229] Start compiling patched.temp.5.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550246] Compile of patched.temp.111.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550246] Start compiling patched.temp.50.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550231] Compile of patched.temp.42.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550231] Start compiling patched.temp.51.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550231] Compile of patched.temp.51.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550231] Start compiling patched.temp.52.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550243] Compile of patched.temp.48.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550243] Start compiling patched.temp.53.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550245] Compile of patched.temp.113.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550245] Start compiling patched.temp.54.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550243] Compile of patched.temp.53.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550243] Start compiling patched.temp.55.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550237] Compile of patched.temp.45.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550237] Start compiling patched.temp.56.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550248] Compile of patched.temp.114.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550248] Start compiling patched.temp.57.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550231] Compile of patched.temp.52.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550231] Start compiling patched.temp.58.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550245] Compile of patched.temp.54.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550245] Start compiling patched.temp.59.sm_120.ptx, not found in cache
+[2026-09-04 08:29:16][info][2550227] Compile of patched.temp.115.sm_120.ptx done
+[2026-09-04 08:29:16][info][2550227] Start compiling patched.temp.6.sm_120.ptx, not found in cache
+[2026-09-04 08:29:17][info][2550246] Compile of patched.temp.50.sm_120.ptx done
+[2026-09-04 08:29:17][info][2550246] Start compiling patched.temp.60.sm_120.ptx, not found in cache
+[2026-09-04 08:29:17][info][2550242] Compile of patched.temp.47.sm_120.ptx done
+[2026-09-04 08:29:17][info][2550242] Start compiling patched.temp.61.sm_120.ptx, not found in cache
+[2026-09-04 08:29:17][info][2550247] Compile of patched.temp.116.sm_120.ptx done
+[2026-09-04 08:29:17][info][2550247] Start compiling patched.temp.62.sm_120.ptx, not found in cache
+[2026-09-04 08:29:17][info][2550249] Compile of patched.temp.119.sm_120.ptx done
+[2026-09-04 08:29:17][info][2550249] Start compiling patched.temp.63.sm_120.ptx, not found in cache
+[2026-09-04 08:29:18][info][2550240] Compile of patched.temp.117.sm_120.ptx done
+[2026-09-04 08:29:18][info][2550240] Start compiling patched.temp.64.sm_120.ptx, not found in cache
+[2026-09-04 08:29:18][info][2550234] Compile of patched.temp.104.sm_120.ptx done
+[2026-09-04 08:29:18][info][2550234] Start compiling patched.temp.65.sm_120.ptx, not found in cache
+[2026-09-04 08:29:18][info][2550233] Compile of patched.temp.103.sm_120.ptx done
+[2026-09-04 08:29:18][info][2550233] Start compiling patched.temp.66.sm_120.ptx, not found in cache
+[2026-09-04 08:29:18][info][2550227] Compile of patched.temp.6.sm_120.ptx done
+[2026-09-04 08:29:18][info][2550227] Start compiling patched.temp.67.sm_120.ptx, not found in cache
+[2026-09-04 08:29:18][info][2550232] Compile of patched.temp.105.sm_120.ptx done
+[2026-09-04 08:29:18][info][2550232] Start compiling patched.temp.68.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550236] Compile of patched.temp.106.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550236] Start compiling patched.temp.69.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550245] Compile of patched.temp.59.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550245] Start compiling patched.temp.7.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550250] Compile of patched.temp.118.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550250] Start compiling patched.temp.70.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550245] Compile of patched.temp.7.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550245] Start compiling patched.temp.71.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550235] Compile of patched.temp.107.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550235] Start compiling patched.temp.72.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550238] Compile of patched.temp.108.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550238] Start compiling patched.temp.73.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550229] Compile of patched.temp.5.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550229] Start compiling patched.temp.74.sm_120.ptx, not found in cache
+[2026-09-04 08:29:19][info][2550239] Compile of patched.temp.109.sm_120.ptx done
+[2026-09-04 08:29:19][info][2550239] Start compiling patched.temp.75.sm_120.ptx, not found in cache
+[2026-09-04 08:29:20][info][2550246] Compile of patched.temp.60.sm_120.ptx done
+[2026-09-04 08:29:20][info][2550246] Start compiling patched.temp.76.sm_120.ptx, not found in cache
+[2026-09-04 08:29:21][info][2550231] Compile of patched.temp.58.sm_120.ptx done
+[2026-09-04 08:29:21][info][2550231] Start compiling patched.temp.77.sm_120.ptx, not found in cache
+[2026-09-04 08:29:21][info][2550247] Compile of patched.temp.62.sm_120.ptx done
+[2026-09-04 08:29:21][info][2550247] Start compiling patched.temp.78.sm_120.ptx, not found in cache
+[2026-09-04 08:29:22][info][2550240] Compile of patched.temp.64.sm_120.ptx done
+[2026-09-04 08:29:22][info][2550240] Start compiling patched.temp.79.sm_120.ptx, not found in cache
+[2026-09-04 08:29:22][info][2550243] Compile of patched.temp.55.sm_120.ptx done
+[2026-09-04 08:29:22][info][2550243] Start compiling patched.temp.8.sm_120.ptx, not found in cache
+[2026-09-04 08:29:22][info][2550243] Compile of patched.temp.8.sm_120.ptx done
+[2026-09-04 08:29:22][info][2550243] Start compiling patched.temp.80.sm_120.ptx, not found in cache
+[2026-09-04 08:29:22][info][2550236] Compile of patched.temp.69.sm_120.ptx done
+[2026-09-04 08:29:22][info][2550236] Start compiling patched.temp.81.sm_120.ptx, not found in cache
+[2026-09-04 08:29:22][info][2550249] Compile of patched.temp.63.sm_120.ptx done
+[2026-09-04 08:29:22][info][2550249] Start compiling patched.temp.82.sm_120.ptx, not found in cache
+[2026-09-04 08:29:23][info][2550229] Compile of patched.temp.74.sm_120.ptx done
+[2026-09-04 08:29:23][info][2550229] Start compiling patched.temp.83.sm_120.ptx, not found in cache
+[2026-09-04 08:29:24][info][2550234] Compile of patched.temp.65.sm_120.ptx done
+[2026-09-04 08:29:24][info][2550234] Start compiling patched.temp.84.sm_120.ptx, not found in cache
+[2026-09-04 08:29:25][info][2550242] Compile of patched.temp.61.sm_120.ptx done
+[2026-09-04 08:29:25][info][2550242] Start compiling patched.temp.85.sm_120.ptx, not found in cache
+[2026-09-04 08:29:25][info][2550250] Compile of patched.temp.70.sm_120.ptx done
+[2026-09-04 08:29:25][info][2550250] Start compiling patched.temp.86.sm_120.ptx, not found in cache
+[2026-09-04 08:29:26][info][2550239] Compile of patched.temp.75.sm_120.ptx done
+[2026-09-04 08:29:26][info][2550239] Start compiling patched.temp.87.sm_120.ptx, not found in cache
+[2026-09-04 08:29:27][info][2550233] Compile of patched.temp.66.sm_120.ptx done
+[2026-09-04 08:29:27][info][2550233] Start compiling patched.temp.88.sm_120.ptx, not found in cache
+[2026-09-04 08:29:27][info][2550245] Compile of patched.temp.71.sm_120.ptx done
+[2026-09-04 08:29:27][info][2550245] Start compiling patched.temp.89.sm_120.ptx, not found in cache
+[2026-09-04 08:29:27][info][2550237] Compile of patched.temp.56.sm_120.ptx done
+[2026-09-04 08:29:27][info][2550237] Start compiling patched.temp.9.sm_120.ptx, not found in cache
+[2026-09-04 08:29:28][info][2550237] Compile of patched.temp.9.sm_120.ptx done
+[2026-09-04 08:29:28][info][2550237] Start compiling patched.temp.90.sm_120.ptx, not found in cache
+[2026-09-04 08:29:28][info][2550227] Compile of patched.temp.67.sm_120.ptx done
+[2026-09-04 08:29:28][info][2550227] Start compiling patched.temp.91.sm_120.ptx, not found in cache
+[2026-09-04 08:29:28][info][2550241] Compile of patched.temp.30.sm_120.ptx done
+[2026-09-04 08:29:28][info][2550241] Start compiling patched.temp.92.sm_120.ptx, not found in cache
+[2026-09-04 08:29:28][info][2550240] Compile of patched.temp.79.sm_120.ptx done
+[2026-09-04 08:29:28][info][2550240] Start compiling patched.temp.93.sm_120.ptx, not found in cache
+[2026-09-04 08:29:28][info][2550246] Compile of patched.temp.76.sm_120.ptx done
+[2026-09-04 08:29:28][info][2550246] Start compiling patched.temp.94.sm_120.ptx, not found in cache
+[2026-09-04 08:29:29][info][2550235] Compile of patched.temp.72.sm_120.ptx done
+[2026-09-04 08:29:29][info][2550235] Start compiling patched.temp.95.sm_120.ptx, not found in cache
+[2026-09-04 08:29:29][info][2550244] Compile of patched.temp.29.sm_120.ptx done
+[2026-09-04 08:29:29][info][2550244] Start compiling patched.temp.96.sm_120.ptx, not found in cache
+[2026-09-04 08:29:31][info][2550243] Compile of patched.temp.80.sm_120.ptx done
+[2026-09-04 08:29:31][info][2550243] Start compiling patched.temp.97.sm_120.ptx, not found in cache
+[2026-09-04 08:29:31][info][2550231] Compile of patched.temp.77.sm_120.ptx done
+[2026-09-04 08:29:31][info][2550231] Start compiling patched.temp.98.sm_120.ptx, not found in cache
+[2026-09-04 08:29:32][info][2550236] Compile of patched.temp.81.sm_120.ptx done
+[2026-09-04 08:29:32][info][2550236] Start compiling patched.temp.99.sm_120.ptx, not found in cache
+[2026-09-04 08:29:33][info][2550232] Compile of patched.temp.68.sm_120.ptx done
+[2026-09-04 08:29:34][info][2550238] Compile of patched.temp.73.sm_120.ptx done
+[2026-09-04 08:29:37][info][2550247] Compile of patched.temp.78.sm_120.ptx done
+[2026-09-04 08:29:38][info][2550249] Compile of patched.temp.82.sm_120.ptx done
+[2026-09-04 08:29:39][info][2550230] Compile of patched.temp.101.sm_120.ptx done
+[2026-09-04 08:29:41][info][2550248] Compile of patched.temp.57.sm_120.ptx done
+[2026-09-04 08:29:48][info][2550250] Compile of patched.temp.86.sm_120.ptx done
+[2026-09-04 08:29:49][info][2550239] Compile of patched.temp.87.sm_120.ptx done
+[2026-09-04 08:29:49][info][2550228] Compile of patched.temp.100.sm_120.ptx done
+[2026-09-04 08:29:49][info][2550233] Compile of patched.temp.88.sm_120.ptx done
+[2026-09-04 08:29:50][info][2550244] Compile of patched.temp.96.sm_120.ptx done
+[2026-09-04 08:29:52][info][2550242] Compile of patched.temp.85.sm_120.ptx done
+[2026-09-04 08:29:54][info][2550236] Compile of patched.temp.99.sm_120.ptx done
+[2026-09-04 08:29:55][info][2550245] Compile of patched.temp.89.sm_120.ptx done
+[2026-09-04 08:29:55][info][2550229] Compile of patched.temp.83.sm_120.ptx done
+[2026-09-04 08:29:55][info][2550246] Compile of patched.temp.94.sm_120.ptx done
+[2026-09-04 08:29:55][info][2550237] Compile of patched.temp.90.sm_120.ptx done
+[2026-09-04 08:29:56][info][2550235] Compile of patched.temp.95.sm_120.ptx done
+[2026-09-04 08:29:56][info][2550241] Compile of patched.temp.92.sm_120.ptx done
+[2026-09-04 08:29:56][info][2550227] Compile of patched.temp.91.sm_120.ptx done
+[2026-09-04 08:29:57][info][2550240] Compile of patched.temp.93.sm_120.ptx done
+[2026-09-04 08:29:57][info][2550234] Compile of patched.temp.84.sm_120.ptx done
+[2026-09-04 08:29:58][info][2550243] Compile of patched.temp.97.sm_120.ptx done
+[2026-09-04 08:29:58][info][2550231] Compile of patched.temp.98.sm_120.ptx done
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.1.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.1.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.10.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.10.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.100.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.100.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.101.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.101.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.102.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.102.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.103.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.103.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.104.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.104.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.105.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.105.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.106.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.106.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.107.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.107.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.108.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.108.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.109.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.109.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.11.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.11.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.110.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.110.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.111.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.111.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.112.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.112.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.113.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.113.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.114.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.114.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.115.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.115.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.116.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.116.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.117.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.117.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.118.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.118.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.119.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.119.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.12.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.12.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.120.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.120.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.13.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.13.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.14.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.14.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.15.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.15.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.16.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.16.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.17.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.17.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.18.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.18.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.19.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.19.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.2.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.2.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Module patched.temp.20.sm_120.ptx found in cache
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.21.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.21.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.22.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.22.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.23.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.23.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.24.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.24.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.25.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.25.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Module patched.temp.26.sm_120.ptx found in cache
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.27.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.27.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Module patched.temp.28.sm_120.ptx found in cache
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.29.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.29.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.3.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.3.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.30.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.30.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.31.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.31.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.32.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.32.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.33.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.33.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Module patched.temp.34.sm_120.ptx found in cache
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.35.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.35.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.36.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.36.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.37.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.37.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.38.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.38.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.39.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.39.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.4.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.4.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.40.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Copying trampoline data to device
+[2026-09-04 08:29:58][info][2549737] constData symbol device_ptr=77fed3961000 size=8 shared_mem_ptr=7800ed2fb7d8
+[2026-09-04 08:29:58][info][2549737] map_info symbol device_ptr=77fed3961008 size=40960
+[2026-09-04 08:29:58][info][2549737] Trampoline data copied
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.40.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.41.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.41.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.42.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.42.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Module patched.temp.43.sm_120.ptx found in cache
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.44.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.44.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.45.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.45.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.46.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.46.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.47.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.47.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.48.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.48.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.49.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.49.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.5.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.5.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.50.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.50.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.51.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.51.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.52.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.52.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.53.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.53.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.54.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.54.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.55.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.55.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.56.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.56.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.57.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.57.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.58.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.58.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.59.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.59.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.6.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.6.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.60.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.60.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.61.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.61.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.62.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.62.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.63.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.63.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.64.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.64.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.65.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.65.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.66.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.66.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.67.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.67.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.68.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.68.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.69.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.69.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.7.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.7.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.70.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.70.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.71.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.71.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.72.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.72.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.73.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.73.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.74.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.74.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.75.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.75.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.76.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.76.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.77.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.77.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.78.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.78.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.79.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.79.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.8.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.8.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.80.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.80.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.81.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.81.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.82.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.82.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.83.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.83.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.84.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.84.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.85.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.85.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.86.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.86.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.87.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.87.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.88.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.88.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.89.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.89.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.9.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.9.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.90.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.90.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.91.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.91.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.92.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.92.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.93.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.93.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.94.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.94.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.95.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.95.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.96.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.96.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.97.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.97.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.98.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.98.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] Loading module: patched.temp.99.sm_120.ptx, not found in cache
+[2026-09-04 08:29:58][info][2549737] Loaded module: patched.temp.99.sm_120.ptx
+[2026-09-04 08:29:58][info][2549737] nv_attach_impl: ingested fatbin from .nv_fatbin in /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0
+[2026-09-04 08:29:58][info][2549737] nv_attach_impl: late attach bootstrap ingested 1 fatbin(s)
+[2026-09-04 08:29:58][info][2549737] agent ipc: listening (abstract) for pid 2549737
+[2026-09-04 08:29:58][info][2549737] Attach successfully
+ggml_cuda_init: GGML_CUDA_FORCE_MMQ:    no
+ggml_cuda_init: GGML_CUDA_FORCE_CUBLAS: no
+ggml_cuda_init: found 1 CUDA devices:
+  Device 0: NVIDIA GeForce RTX 5090, compute capability 12.0, VMM: no
+[2026-09-04 08:29:58][info][2549761] Exiting CUDA watcher thread
+
+# exit: 0

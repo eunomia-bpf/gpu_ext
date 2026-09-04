@@ -197,8 +197,10 @@ class ParserTests(unittest.TestCase):
     def test_all_treatments_have_disjoint_exact_admission_contracts(self):
         for treatment in runner.TREATMENTS:
             with self.subTest(treatment=treatment):
-                self.assertTrue(self.parse("kernelretsnoop", treatment,
-                                           admission("kernelretsnoop", treatment, 73))["passed"])
+                parsed = self.parse("kernelretsnoop", treatment,
+                                    admission("kernelretsnoop", treatment, 73))
+                self.assertTrue(parsed["passed"])
+                self.assertEqual(parsed["timing_positive"], treatment == "STRICT")
 
     def test_wrong_pid_duplicate_timing_and_noverify_timing_fail(self):
         strict = admission("threadhist", "STRICT", 73)

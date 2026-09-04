@@ -188,7 +188,8 @@ def parse_admission(log_path: Path, execution_path: Path, *, tool: str,
     maps = [{name: int(match.group(name))
              for name in ("fd", "type", "key_size", "value_size", "max_entries")}
             for match in records["map"]]
-    timing_positive = all(int(match.group("elapsed")) > 0 for match in records["timing"])
+    timing_positive = (len(records["timing"]) == 1
+                       and int(records["timing"][0].group("elapsed")) > 0)
     common = (
         execution_error is None and log_path.is_file() and foreign == 0 and unparsed == 0
         and not records["reject"] and not records["unavailable"]

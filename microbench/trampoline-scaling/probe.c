@@ -90,10 +90,20 @@ int main(int argc, char **argv)
     struct bpf_program *program;
     bpf_object__for_each_program(program, object)
         ++program_count;
-    if (program_count != 2) {
+    struct bpf_program *target_program =
+        bpf_object__find_program_by_name(object, "cuda__scale_target");
+    struct bpf_program *marker_program =
+        bpf_object__find_program_by_name(object, "cuda__scale_marker");
+    if (program_count != 2 || !target_program || !marker_program ||
+        strcmp(bpf_program__section_name(target_program),
+               "kprobe/trampoline_scale_kernel") != 0 ||
+        strcmp(bpf_program__section_name(marker_program),
+               "kprobe/trampoline_marker_kernel") != 0) {
         fprintf(stderr, "expected two BPF programs, found %zu\n", program_count);
         goto done;
     }
+    /* The entry pass resolves the module-wide explicit stub for the first link. */
+    struct bpf_program *attach_order[] = {target_program, marker_program};
     links = calloc(program_count, sizeof(*links));
     if (!links)
         goto done;
@@ -103,7 +113,8 @@ int main(int argc, char **argv)
     }
 
     size_t link_count = 0;
-    bpf_object__for_each_program(program, object) {
+    for (size_t i = 0; i < program_count; ++i) {
+        program = attach_order[i];
         struct bpf_link *link = bpf_program__attach(program);
         if (!link || libbpf_get_error(link)) {
             fprintf(stderr, "failed to attach BPF program %s\n",
@@ -122,9 +133,12 @@ int main(int argc, char **argv)
     }
 
     printf("{\"event\":\"ready\",\"mode\":\"%s\",\"programs\":%zu,"
-           "\"gpu_threads\":%u,\"target_map\":%s}\n",
+           "\"gpu_threads\":%u,\"target_map\":%s,"
+           "\"attach_order\":[\"%s\",\"%s\"]}\n",
            argv[2], program_count, SCALE_MAX_THREADS,
-           target ? "true" : "false");
+           target ? "true" : "false",
+           bpf_program__name(attach_order[0]),
+           bpf_program__name(attach_order[1]));
 
     const double deadline = monotonic_seconds() + (double)parsed_timeout;
     struct timespec pause_time = {.tv_sec = 0, .tv_nsec = 100000000};
@@ -173,4 +187,3 @@ done:
     bpf_object__close(object);
     return result;
 }
-

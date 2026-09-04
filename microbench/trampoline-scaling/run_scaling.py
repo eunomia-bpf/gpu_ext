@@ -247,15 +247,41 @@ def audit_runtime_source(root: Path) -> dict[str, Any]:
     missing = [marker for marker in required if marker not in text]
     if missing:
         raise RuntimeError(f"runtime entry pass differs from audited source: {missing}")
+    stub_search = text.find("while ((pos = out.find(pat, pos))")
+    fallback_search = text.find("find_kernel_body(ptx, kernel)")
+    if stub_search < 0 or fallback_search < 0 or stub_search >= fallback_search:
+        raise RuntimeError("runtime no longer resolves the module-wide stub before fallback entry")
     return {
         "source": str(source_path.resolve()),
         "default_save_strategy": "minimal",
         "register_guard_for_default": False,
         "stub_replacement_instruction": "ordinary PTX call/call.uni",
+        "explicit_stub_resolution_scope": "whole PTX module before named-kernel fallback",
+        "required_attach_order": ["cuda__scale_target", "cuda__scale_marker"],
         "interpretation": (
             "source does not establish one scalar handler execution per warp; "
             "the experiment measures observed scaling"
         ),
+    }
+
+
+def audit_loader_source() -> dict[str, Any]:
+    source_path = HERE / "probe.c"
+    text = source_path.read_text(errors="replace")
+    required = (
+        'bpf_object__find_program_by_name(object, "cuda__scale_target")',
+        'bpf_object__find_program_by_name(object, "cuda__scale_marker")',
+        "struct bpf_program *attach_order[] = {target_program, marker_program};",
+        '"kprobe/trampoline_scale_kernel"',
+        '"kprobe/trampoline_marker_kernel"',
+    )
+    missing = [marker for marker in required if marker not in text]
+    if missing:
+        raise RuntimeError(f"loader routing differs from audited source: {missing}")
+    return {
+        "source": str(source_path.resolve()),
+        "attach_order": ["cuda__scale_target", "cuda__scale_marker"],
+        "reason": "the first link owns the runtime's module-wide explicit stub",
     }
 
 
@@ -368,6 +394,7 @@ def validate_loader_events(
     if ready != [{
         "event": "ready", "mode": mode, "programs": 2,
         "gpu_threads": MAX_THREADS, "target_map": mode == "counter",
+        "attach_order": ["cuda__scale_target", "cuda__scale_marker"],
     }]:
         raise RuntimeError("loader readiness gate failed")
     if detached != [{"event": "detached", "links": 2}]:
@@ -410,10 +437,19 @@ def validate_agent_log(text: str) -> dict[str, Any]:
     counts = {name: len(re.findall(pattern, text)) for name, pattern in exact_patterns.items()}
     if counts["marker_recorded"] != 1 or counts["target_recorded"] != 1:
         raise RuntimeError(f"exact target pass recording gate failed: {counts}")
-    if counts["marker_fallback_transform"] < 1 or counts["target_stub_transform"] < 1:
+    if counts["marker_fallback_transform"] != 1 or counts["target_stub_transform"] != 1:
         raise RuntimeError(f"exact marker/target PTX transform gate failed: {counts}")
     if counts["module_loaded"] < 1 or counts["attach_success"] < 1:
         raise RuntimeError(f"module load/attach gate failed: {counts}")
+    route = (
+        text.find(" for func trampoline_scale_kernel"),
+        text.find("[ptxpass] kprobe_entry_stub: matched=1,"),
+        text.find(" for func trampoline_marker_kernel"),
+        text.find("[ptxpass] kprobe_entry: matched=1,"),
+    )
+    if min(route) < 0 or list(route) != sorted(route):
+        raise RuntimeError(f"target-stub/marker-fallback routing order failed: {route}")
+    counts["routing_order_valid"] = True
     return counts
 
 
@@ -627,10 +663,11 @@ def run_attached(
         engagement = validate_loader_events(
             json_events(loader_log), mode, cell_ids, warmup, launches, hook_repeats,
         )
-        agent_gate = validate_agent_log(agent_log.read_text(errors="replace"))
+        agent_gate = validate_agent_log(application_log.read_text(errors="replace"))
         record.update(
             valid=True, measurements=measurements, engagement=engagement,
-            agent_gate=agent_gate, application_returncode=target_returncode,
+            agent_gate=agent_gate, agent_evidence_log=str(application_log),
+            application_returncode=target_returncode,
             loader_returncode=loader_returncode,
         )
         return record
@@ -843,6 +880,7 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
         "runtime_configuration": runtime_configuration(args.bpftime_build),
         "compiled_hook_site": validate_compiled_hook_site(HERE / ".output/scaling.ptx"),
         "runtime_source_audit": audit_runtime_source(args.bpftime_root),
+        "loader_source_audit": audit_loader_source(),
         "source_manifest": source_manifest(args.bpftime_root),
     }
     if args.resume:

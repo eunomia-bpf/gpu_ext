@@ -66,6 +66,7 @@ def loader_fixture(
     records = [{
         "event": "ready", "mode": mode, "programs": 2,
         "gpu_threads": runner.MAX_THREADS, "target_map": mode == "counter",
+        "attach_order": ["cuda__scale_target", "cuda__scale_marker"],
     }]
     for (name, key), segments in expected.items():
         records.extend({"event": "counter_segment", "map": name, "key": key, **segment}
@@ -192,12 +193,23 @@ class PtxAndRuntimeGateTests(unittest.TestCase):
                 'bool add_register_guard = params.save_strategy == "full";',
                 'auto a = "call " + stub_name;',
                 'auto b = "call.uni " + stub_name;',
+                'while ((pos = out.find(pat, pos)) != std::string::npos) {}',
+                'auto body = find_kernel_body(ptx, kernel);',
                 'log_transform_stats("kprobe_entry_stub", 1, 2, 3);',
                 'log_transform_stats("kprobe_entry", 1, 2, 3);',
             )))
             audit = runner.audit_runtime_source(root)
         self.assertFalse(audit["register_guard_for_default"])
         self.assertIn("does not establish", audit["interpretation"])
+        self.assertEqual(audit["required_attach_order"], [
+            "cuda__scale_target", "cuda__scale_marker",
+        ])
+
+    def test_loader_source_routes_target_before_marker(self) -> None:
+        audit = runner.audit_loader_source()
+        self.assertEqual(audit["attach_order"], [
+            "cuda__scale_target", "cuda__scale_marker",
+        ])
 
 
 class ApplicationGateTests(unittest.TestCase):
@@ -296,10 +308,10 @@ class CounterOracleTests(unittest.TestCase):
 
 class AgentEvidenceTests(unittest.TestCase):
     LOG = "\n".join((
-        "Recorded pass /runtime/libptxpass_kprobe_entry.so for func trampoline_marker_kernel",
         "Recorded pass /runtime/libptxpass_kprobe_entry.so for func trampoline_scale_kernel",
-        "[ptxpass] kprobe_entry: matched=1, in=1, out=2",
         "[ptxpass] kprobe_entry_stub: matched=1, in=1, out=2",
+        "Recorded pass /runtime/libptxpass_kprobe_entry.so for func trampoline_marker_kernel",
+        "[ptxpass] kprobe_entry: matched=1, in=1, out=2",
         "Loaded module: scaling.fatbin",
         "Attach successfully",
     ))
@@ -315,6 +327,18 @@ class AgentEvidenceTests(unittest.TestCase):
         ).replace("[ptxpass] kprobe_entry_stub: matched=1, in=1, out=2\n", "")
         with self.assertRaises(RuntimeError):
             runner.validate_agent_log(text)
+
+    def test_rejects_the_observed_marker_first_misroute(self) -> None:
+        wrong = "\n".join((
+            "Recorded pass /runtime/libptxpass_kprobe_entry.so for func trampoline_marker_kernel",
+            "[ptxpass] kprobe_entry_stub: matched=1, in=1, out=2",
+            "Recorded pass /runtime/libptxpass_kprobe_entry.so for func trampoline_scale_kernel",
+            "[ptxpass] kprobe_entry: matched=1, in=1, out=2",
+            "Loaded module: scaling.fatbin",
+            "Attach successfully",
+        ))
+        with self.assertRaisesRegex(RuntimeError, "routing order"):
+            runner.validate_agent_log(wrong)
 
     def test_duplicate_target_record_is_rejected(self) -> None:
         duplicate = self.LOG + "\nRecorded pass /runtime/libptxpass_kprobe_entry.so for func trampoline_scale_kernel"

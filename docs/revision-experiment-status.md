@@ -44,7 +44,11 @@ paired intervals above 1. This is a single-block scalar-runtime placement
 result, not the old generic 6000x RPC/PCIe claim. A strict check on the exact
 object accepts only its no-op callback: all six per-lane map callbacks violate
 the current branch/key/value uniformity rules, so the placement result remains
-explicitly verifier-off. The CPU-only
+explicitly verifier-off. A distinct [strict-uniform campaign](../microbench/fig15-device/strict-uniform-map/results-full-575-01-20260904.md)
+then completes 72/72 processes and 60/60 target-PID STRICT admissions. Its
+host/device update ratio is 1.0008x [0.9891, 1.0143] (unresolved), while lookup
+is 1.0778x [1.0644, 1.0833]; this is a constant-key/value, same-key-contended
+map-type result and is not pooled with the per-lane run. The CPU-only
 [device-verifier scaling campaign](../workloads/llama.cpp/observability_overhead/revision-rq4/device-verifier-scaling/results-verifier-scaling-575-01-20260904.md)
 accepted 200/200 programs through 4,096 instructions but contradicted the
 near-linear hypothesis for straight-line programs; it is a program-shape

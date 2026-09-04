@@ -43,6 +43,13 @@ python3 launch-clock-tsc/analyze_tsc_ptimer.py \
   raw/tsc-ptimer-575-02/records.jsonl
 ```
 
+A separate [raw-only review](independent-review.md) confirms the result without
+calling that analyzer. It also records one non-fatal plan deviation: the runner
+did not gate affine residual coverage, while the independent calculation finds
+all 210 points covered. Precision and endpoint-rate gates fail independently.
+The 7.073 us value is a conservative certification bound, not a measured lower
+bound on physical clock error.
+
 The first retained probe used the whole neighboring-midpoint span and reported
 a 21,089 ns median.  That was safe but unnecessarily loose.  Before interpreting
 the result, the implementation applied the NVIDIA source's stronger fact that
@@ -81,4 +88,3 @@ to keep `launchlate` omitted and retain the already valid two-tool subset.
 - next paper decision: keep `launchlate` out of Table 1; do not replace its
   endpoint with kernel duration or CUPTI activity and do not change modules in
   this safe follow-up
-

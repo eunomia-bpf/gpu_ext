@@ -204,6 +204,16 @@ replaces the old undifferentiated 6000x map claim. It is a one-block,
 diagnose that protocol rather than PCIe placement. Five earlier invalid full
 attempts remain excluded.
 
+The exact per-lane object is not STRICT-admissible: only its no-op passes, and
+all six map callbacks violate current SIMT branch/key/value uniformity rules.
+A deliberately separate [strict-uniform campaign](../microbench/fig15-device/strict-uniform-map/results-full-575-01-20260904.md)
+closes the positive end-to-end boundary with 72/72 valid processes and 60/60
+target-PID STRICT admissions. Host/device is 1.0008x [0.9891, 1.0143] for
+constant-key update and 1.0778x [1.0644, 1.0833] for lookup. The update effect
+is unresolved; the lookup result covers the complete host-map implementation,
+including cache/coherence behavior, not pure PCIe latency. These semantically
+different workloads remain separate.
+
 ## 3. Agent prompts, original logs and harness release
 
 The [public index](eval/agent/README.md) and benchmark/extractor sources exist.

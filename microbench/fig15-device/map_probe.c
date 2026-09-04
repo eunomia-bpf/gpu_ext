@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,13 @@
 #define LOOKUP_MAGIC UINT64_C(0x10c4000000000000)
 
 static volatile sig_atomic_t stopping;
+
+static int capture_libbpf_log(enum libbpf_print_level level,
+			      const char *format, va_list arguments)
+{
+	(void)level;
+	return vfprintf(stderr, format, arguments);
+}
 
 static const char *const modes[] = {
 	"noop",          "device_update", "host_update", "rpc_update",
@@ -124,6 +132,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, handle_signal);
 	signal(SIGTERM, handle_signal);
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
+	libbpf_set_print(capture_libbpf_log);
 
 	errno = 0;
 	struct bpf_object *object = bpf_object__open_file(argv[1], NULL);

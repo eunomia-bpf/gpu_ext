@@ -163,6 +163,7 @@ class LoaderDiagnosticTests(unittest.TestCase):
         self.assertIn("const int saved_open_errno = errno;", source)
         self.assertIn("saved_open_errno ? saved_open_errno", source)
         self.assertNotIn("object ? libbpf_get_error(object) : -ENOMEM", source)
+        self.assertIn("libbpf_set_print(capture_libbpf_log);", source)
 
 
 class IndependentReplayTests(unittest.TestCase):

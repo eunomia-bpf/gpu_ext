@@ -5,7 +5,6 @@ import ast
 import io
 import json
 import os
-import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -78,6 +77,63 @@ def lossless_exit_log(**overrides):
         f"Multiplicity oracle total events: {values['oracle_total_events']}",
         f"Multiplicity oracle passed: {values['oracle_passed']}",
         f"Collector gate passed: {values['collector_gate']}",
+    ))
+
+
+def lossless_launchlate_log(**overrides):
+    values = {
+        "samples": 2,
+        "histogram": 2,
+        "host_launches": 2,
+        "host_enqueued": 2,
+        "device_entries": 2,
+        "matched": 2,
+        "underflows": 0,
+        "overflows": 0,
+        "update_errors": 0,
+        "classified": 2,
+        "uncertain": 0,
+        "clock_errors": 0,
+        "accounting": 1,
+        "pairing": 1,
+        "detached": 1,
+        "start_low": -120,
+        "start_high": -80,
+        "start_uncertainty": 20,
+        "end_low": -100,
+        "end_high": -70,
+        "end_uncertainty": 15,
+        "endpoint_overlap": 1,
+        "intersection_low": -100,
+        "intersection_high": -80,
+    }
+    values.update(overrides)
+    return "\n".join((
+        "Clock calibration method: bracketed %globaltimer kernel against CLOCK_MONOTONIC",
+        f"Start clock offset lower: {values['start_low']} ns",
+        f"Start clock offset upper: {values['start_high']} ns",
+        f"Start clock uncertainty: {values['start_uncertainty']} ns",
+        f"Probes detached before final readback: {values['detached']}",
+        f"End clock offset lower: {values['end_low']} ns",
+        f"End clock offset upper: {values['end_high']} ns",
+        f"End clock uncertainty: {values['end_uncertainty']} ns",
+        f"Clock calibration endpoint overlap: {values['endpoint_overlap']}",
+        f"Clock offset intersection lower: {values['intersection_low']} ns",
+        f"Clock offset intersection upper: {values['intersection_high']} ns",
+        f"Histogram samples: {values['histogram']}",
+        f"Total samples: {values['samples']}",
+        f"Host launches: {values['host_launches']}",
+        f"Host enqueued: {values['host_enqueued']}",
+        f"Device entries: {values['device_entries']}",
+        f"Matched samples: {values['matched']}",
+        f"Queue underflows: {values['underflows']}",
+        f"Queue overflows: {values['overflows']}",
+        f"Queue update errors: {values['update_errors']}",
+        f"Classified samples: {values['classified']}",
+        f"Uncertain samples: {values['uncertain']}",
+        f"Clock errors: {values['clock_errors']}",
+        f"Accounting complete: {values['accounting']}",
+        f"Pairing complete: {values['pairing']}",
     ))
 
 
@@ -231,7 +287,7 @@ class OfflineTests(unittest.TestCase):
                 "--gpu-thread-count", "22528"]
         with (patch.dict(os.environ, {}, clear=True), patch.object(runner.sys, "argv", argv),
               patch.object(runner, "validate"),
-              patch.object(runner.shared, "Leases", side_effect=lambda: events.append("lease") or lease),
+              patch.object(runner, "ReadOnlyLeases", side_effect=lambda: events.append("lease") or lease),
               patch.object(runner, "run_campaign", side_effect=campaign)):
             self.assertEqual(runner.main(), 2)
         self.assertEqual(events, ["lease", "campaign"])
@@ -244,12 +300,77 @@ class OfflineTests(unittest.TestCase):
         argv = ["runner", "--bpftime-root", "/source", "--bpftime-build-dir", "/build",
                 "--gpu-thread-count", "22528"]
         with (patch.dict(os.environ, {}, clear=True), patch.object(runner.sys, "argv", argv),
-              patch.object(runner, "validate"), patch.object(runner.shared, "Leases", return_value=lease),
+              patch.object(runner, "validate"), patch.object(runner, "ReadOnlyLeases", return_value=lease),
               patch.object(runner, "run_campaign", side_effect=KeyboardInterrupt("campaign interrupted"))):
             with self.assertRaises(KeyboardInterrupt):
                 runner.main()
         self.assertIs(runner.core.run_cmd, original)
         lease.close.assert_called_once()
+
+    def test_read_only_leases_lock_precreated_nonwritable_inodes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = tuple(Path(tmp) / name for name in ("gpu0.lock", "struct-ops.lock"))
+            for path in paths:
+                path.write_text("pre-created by coordinator\n")
+                path.chmod(0o444)
+            before = [(path.stat().st_dev, path.stat().st_ino, path.stat().st_mode,
+                       path.stat().st_size) for path in paths]
+            lease = runner.ReadOnlyLeases(paths)
+            try:
+                self.assertEqual([stream.mode for stream in lease.files], ["r", "r"])
+                contender = paths[0].open("r")
+                try:
+                    with self.assertRaises(BlockingIOError):
+                        runner.fcntl.flock(
+                            contender.fileno(),
+                            runner.fcntl.LOCK_EX | runner.fcntl.LOCK_NB,
+                        )
+                finally:
+                    contender.close()
+            finally:
+                lease.close()
+            after = [(path.stat().st_dev, path.stat().st_ino, path.stat().st_mode,
+                      path.stat().st_size) for path in paths]
+            self.assertEqual(after, before)
+
+    def test_read_only_leases_never_create_missing_path_and_release_partial_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "gpu0.lock"
+            missing = Path(tmp) / "struct-ops.lock"
+            first.write_text("existing\n")
+            with self.assertRaises(FileNotFoundError):
+                runner.ReadOnlyLeases((first, missing))
+            self.assertFalse(missing.exists())
+            stream = first.open("r")
+            try:
+                runner.fcntl.flock(
+                    stream.fileno(), runner.fcntl.LOCK_EX | runner.fcntl.LOCK_NB
+                )
+            finally:
+                stream.close()
+
+    def test_read_only_leases_fail_when_an_existing_inode_is_locked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "gpu0.lock"
+            path.write_text("existing\n")
+            blocker = path.open("r")
+            try:
+                runner.fcntl.flock(
+                    blocker.fileno(), runner.fcntl.LOCK_EX | runner.fcntl.LOCK_NB
+                )
+                with self.assertRaises(BlockingIOError):
+                    runner.ReadOnlyLeases((path,))
+            finally:
+                blocker.close()
+
+    def test_read_only_leases_reject_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "target.lock"
+            link = Path(tmp) / "gpu0.lock"
+            target.write_text("existing\n")
+            link.symlink_to(target)
+            with self.assertRaisesRegex(RuntimeError, "not a regular file"):
+                runner.ReadOnlyLeases((link,))
 
     def test_ambient_injection_is_rejected_before_launch(self):
         with patch.dict(os.environ, {}, clear=True):
@@ -468,21 +589,55 @@ class OfflineTests(unittest.TestCase):
                     "1" if exact else "0",
                 )
 
-    def test_clock_patch_matches_real_source_without_modifying_it(self):
-        source = runner.core.DEFAULT_BPFTIME_ROOT / "example/gpu/launchlate"
-        originals = {name: (source / name).read_text() for name in ("launchlate.c", "launchlate.bpf.c")}
+    def test_native_launchlate_schema_is_validated_without_rewriting_source(self):
+        sources = {
+            "launchlate.bpf.c": "\n".join((
+                "BPF_MAP_TYPE_GPU_ARRAY_HOST_MAP",
+                "LAUNCHLATE_TARGET_SYMBOL",
+                "MATCHED_SAMPLES",
+                "UNCERTAIN_SAMPLES",
+            )),
+            "launchlate.c": "\n".join((
+                "bracketed %%globaltimer kernel against CLOCK_MONOTONIC",
+                "Host enqueued:",
+                "Matched samples:",
+                "Queue update errors:",
+                "Uncertain samples:",
+                "Accounting complete:",
+                "Pairing complete:",
+                "Probes detached before final readback:",
+                "Clock calibration endpoint overlap:",
+            )),
+        }
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp)
-            for name in originals:
-                shutil.copyfile(source / name, target / name)
-            runner.patch_launchlate_clock(target)
-            self.assertIn("if (gpu_ts < *launch_ts)", (target / "launchlate.bpf.c").read_text())
-            self.assertIn("__uint(max_entries, 5)", (target / "launchlate.bpf.c").read_text())
-            self.assertIn("Clock errors:", (target / "launchlate.c").read_text())
-            with self.assertRaisesRegex(RuntimeError, "does not match"):
-                runner.patch_launchlate_clock(target)
-        for name, before in originals.items():
-            self.assertEqual((source / name).read_text(), before)
+            for name, text in sources.items():
+                (target / name).write_text(text)
+            runner.validate_launchlate_source_schema(target)
+            self.assertEqual(
+                {name: (target / name).read_text() for name in sources}, sources
+            )
+            (target / "launchlate.c").write_text(
+                sources["launchlate.c"].replace("Accounting complete:", "")
+            )
+            with self.assertRaisesRegex(RuntimeError, "Accounting complete"):
+                runner.validate_launchlate_source_schema(target)
+
+        tree = ast.parse(Path(runner.__file__).read_text())
+        definitions = {
+            node.name for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        self.assertNotIn("patch_launchlate_clock", definitions)
+        campaign = next(
+            node for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "run_campaign"
+        )
+        calls = {
+            node.func.id for node in ast.walk(campaign)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        self.assertIn("validate_launchlate_source_schema", calls)
 
     def test_all_probe_paths_need_real_samples_and_complete_clock_counters(self):
         probe = dict(sample_count=2, nonzero_timestamps=2, selected_launches=2, nonzero_threads=1,
@@ -492,6 +647,8 @@ class OfflineTests(unittest.TestCase):
         gpubpf_probes = {tool: probe for tool in runner.TASKS}
         gpubpf_probes["kernelretsnoop"] = runner.parse_gpubpf(
             "kernelretsnoop", lossless_exit_log())
+        gpubpf_probes["launchlate"] = runner.parse_gpubpf(
+            "launchlate", lossless_launchlate_log())
         for tool, tool_probe in gpubpf_probes.items():
             expected_threads = (runner.EXPECTED_GPU_THREAD_SLOTS
                                 if tool == "kernelretsnoop" else 4)
@@ -512,11 +669,52 @@ class OfflineTests(unittest.TestCase):
         ):
             self.assertFalse(check({**probe, "clock_errors": 1}))
             self.assertFalse(check({key: value for key, value in probe.items() if key != "clock_errors"}))
-        text = "Total samples: 2\nHost launches: 2\nDevice entries: 2\nQueue underflows: 0\nQueue overflows: 0\nClock errors: 0\n"
+        text = lossless_launchlate_log()
         self.assertTrue(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text)))
-        for label in ("Clock errors: 0\n", "Queue underflows: 0\n", "Queue overflows: 0\n"):
+        for label in (
+            "Clock errors: 0", "Queue underflows: 0", "Queue overflows: 0",
+            "Host enqueued: 2", "Matched samples: 2", "Queue update errors: 0",
+            "Uncertain samples: 0", "Accounting complete: 1",
+            "Pairing complete: 1", "Clock calibration endpoint overlap: 1",
+            "Probes detached before final readback: 1",
+        ):
             self.assertFalse(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text.replace(label, ""))))
         self.assertEqual(runner.parse_nvbit("launchlate", "NVBIT launchlate samples=2")["clock_errors"], -1)
+
+    def test_launchlate_accounting_and_calibration_gate_is_fail_closed(self):
+        probe = runner.parse_gpubpf("launchlate", lossless_launchlate_log())
+        self.assertTrue(runner.gpubpf_probe_valid("launchlate", probe))
+        self.assertEqual(probe["host_enqueued"], 2)
+        self.assertEqual(probe["matched_samples"], 2)
+        self.assertEqual(probe["clock_intersection_lower_ns"], -100)
+        corruptions = {
+            "sample_count": 1,
+            "histogram_samples": 1,
+            "host_launches": 1,
+            "host_enqueued": 1,
+            "device_entries": 1,
+            "matched_samples": 1,
+            "classified_samples": 1,
+            "queue_underflows": 1,
+            "queue_overflows": 1,
+            "queue_update_errors": 1,
+            "uncertain_samples": 1,
+            "clock_errors": 1,
+            "accounting_complete": 0,
+            "pairing_complete": 0,
+            "probes_detached_before_readback": 0,
+            "clock_endpoint_overlap": 0,
+            "start_clock_uncertainty_ns": 19,
+            "end_clock_uncertainty_ns": 14,
+            "clock_intersection_lower_ns": -99,
+            "clock_intersection_upper_ns": -81,
+            "clock_calibration_method": "CLOCK_REALTIME approximation",
+        }
+        for key, value in corruptions.items():
+            with self.subTest(key=key):
+                self.assertFalse(runner.gpubpf_probe_valid(
+                    "launchlate", {**probe, key: value}
+                ))
 
     def test_lossless_exit_parser_and_correctness_oracle_are_fail_closed(self):
         probe = runner.parse_gpubpf("kernelretsnoop", lossless_exit_log())

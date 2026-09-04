@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager, nullcontext
 import csv
+import fcntl
 import json
 import math
 import os
@@ -60,6 +61,10 @@ CORRECTNESS_MULTIPLICITY_22 = 20480
 KERNELRETSNOOP_SHM_MEMORY_MB = 1000
 EXPECTED_NORMALIZED_STDOUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_NORMALIZED_STDOUT_BYTES = 47
+LEASE_PATHS = (
+    Path("/tmp/gpubpf-revision-gpu0.lock"),
+    Path("/tmp/gpubpf-revision-struct-ops.lock"),
+)
 
 
 class OwnedCleanupError(RuntimeError):
@@ -68,6 +73,41 @@ class OwnedCleanupError(RuntimeError):
     def __init__(self, message: str, details: dict[str, Any]):
         super().__init__(message)
         self.details = details
+
+
+class ReadOnlyLeases:
+    """Lock pre-created coordination inodes without write or create access."""
+
+    def __init__(self, paths: tuple[Path, ...] = LEASE_PATHS):
+        self.files = []
+        try:
+            for path in paths:
+                before = path.lstat()
+                if not stat.S_ISREG(before.st_mode):
+                    raise RuntimeError(f"lease path is not a regular file: {path}")
+                stream = path.open("r")
+                try:
+                    opened = os.fstat(stream.fileno())
+                    current = path.lstat()
+                    expected = (before.st_dev, before.st_ino)
+                    if ((opened.st_dev, opened.st_ino) != expected
+                            or (current.st_dev, current.st_ino) != expected
+                            or not stat.S_ISREG(opened.st_mode)
+                            or not stat.S_ISREG(current.st_mode)):
+                        raise RuntimeError(f"lease inode changed while opening: {path}")
+                    fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    self.files.append(stream)
+                except BaseException:
+                    stream.close()
+                    raise
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        for stream in reversed(self.files):
+            stream.close()
+        self.files.clear()
 
 
 def process_identity(process) -> dict[str, Any]:
@@ -318,35 +358,35 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
                 (run_dir / "probe-execution.json").write_text(json.dumps(record, indent=2) + "\n")
 
 
-def patch_launchlate_clock(directory: Path) -> None:
-    """Patch only the per-run copy; do not change the shared bpftime checkout."""
-    replacements = {
-        "launchlate.bpf.c": [
-            ("__uint(max_entries, 4);", "__uint(max_entries, 5);"),
-            ("u64 delta_ns = gpu_ts > *launch_ts ? gpu_ts - *launch_ts : 0;",
-             "if (gpu_ts < *launch_ts) {\n\t\tu32 error_key = 4;\n"
-             "\t\tu64 *errors = bpf_map_lookup_elem(&queue_state, &error_key);\n"
-             "\t\tif (errors)\n\t\t\t__sync_fetch_and_add(errors, 1);\n\t\treturn 0;\n\t}\n"
-             "\tu64 delta_ns = gpu_ts - *launch_ts;"),
-        ],
-        "launchlate.c": [
-            ("uint64_t queue_values[4] = {0};", "uint64_t queue_values[5] = {0};"),
-            ("for (i = 0; i < 4; i++) {", "for (i = 0; i < 5; i++) {"),
-            ('printf("Queue overflows: %" PRIu64 "\\n", queue_values[3]);',
-             'printf("Queue overflows: %" PRIu64 "\\n", queue_values[3]);\n'
-             '\tprintf("Clock errors: %" PRIu64 "\\n", queue_values[4]);'),
-        ],
+def validate_launchlate_source_schema(directory: Path) -> None:
+    """Reject a stale launchlate copy instead of rewriting it at run time."""
+    required = {
+        "launchlate.bpf.c": (
+            "BPF_MAP_TYPE_GPU_ARRAY_HOST_MAP",
+            "LAUNCHLATE_TARGET_SYMBOL",
+            "MATCHED_SAMPLES",
+            "UNCERTAIN_SAMPLES",
+        ),
+        "launchlate.c": (
+            "bracketed %%globaltimer kernel against CLOCK_MONOTONIC",
+            "Host enqueued:",
+            "Matched samples:",
+            "Queue update errors:",
+            "Uncertain samples:",
+            "Accounting complete:",
+            "Pairing complete:",
+            "Probes detached before final readback:",
+            "Clock calibration endpoint overlap:",
+        ),
     }
-    updated = {}
-    for name, edits in replacements.items():
+    for name, markers in required.items():
         text = (directory / name).read_text()
-        for before, after in edits:
-            if text.count(before) != 1:
-                raise RuntimeError(f"private launchlate clock patch does not match {name}")
-            text = text.replace(before, after)
-        updated[name] = text
-    for name, text in updated.items():
-        (directory / name).write_text(text)
+        missing = [marker for marker in markers if marker not in text]
+        if missing:
+            raise RuntimeError(
+                f"launchlate source lacks native accounting/calibration fields in {name}: "
+                + ", ".join(missing)
+            )
 
 
 def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
@@ -394,10 +434,48 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             values = re.findall(rf"^{label}:\s*(\d+)$", text, re.MULTILINE)
             result[key] = int(values[-1]) if values else -1
     if tool == "launchlate":
-        for key, label in (("clock_errors", "Clock errors"), ("queue_underflows", "Queue underflows"),
-                           ("queue_overflows", "Queue overflows")):
-            values = re.findall(rf"^{label}:\s*(\d+)$", text, re.MULTILINE)
+        labels = {
+            "sample_count": "Total samples",
+            "histogram_samples": "Histogram samples",
+            "host_launches": "Host launches",
+            "host_enqueued": "Host enqueued",
+            "device_entries": "Device entries",
+            "matched_samples": "Matched samples",
+            "queue_underflows": "Queue underflows",
+            "queue_overflows": "Queue overflows",
+            "queue_update_errors": "Queue update errors",
+            "classified_samples": "Classified samples",
+            "uncertain_samples": "Uncertain samples",
+            "clock_errors": "Clock errors",
+            "accounting_complete": "Accounting complete",
+            "pairing_complete": "Pairing complete",
+            "probes_detached_before_readback": "Probes detached before final readback",
+            "clock_endpoint_overlap": "Clock calibration endpoint overlap",
+            "start_clock_offset_lower_ns": "Start clock offset lower",
+            "start_clock_offset_upper_ns": "Start clock offset upper",
+            "start_clock_uncertainty_ns": "Start clock uncertainty",
+            "end_clock_offset_lower_ns": "End clock offset lower",
+            "end_clock_offset_upper_ns": "End clock offset upper",
+            "end_clock_uncertainty_ns": "End clock uncertainty",
+            "clock_intersection_lower_ns": "Clock offset intersection lower",
+            "clock_intersection_upper_ns": "Clock offset intersection upper",
+        }
+        signed = {
+            "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
+            "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
+            "clock_intersection_lower_ns", "clock_intersection_upper_ns",
+        }
+        for key, label in labels.items():
+            unit = r"\s+ns" if key.endswith("_ns") else ""
+            number = r"(-?\d+)" if key in signed else r"(\d+)"
+            values = re.findall(
+                rf"^{re.escape(label)}:\s*{number}{unit}$", text, re.MULTILINE
+            )
             result[key] = int(values[-1]) if values else -1
+        methods = re.findall(
+            r"^Clock calibration method:\s*(.+)$", text, re.MULTILINE
+        )
+        result["clock_calibration_method"] = methods[-1].strip() if methods else ""
     return result
 
 
@@ -674,12 +752,43 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
                 and probe.get("readback_entries") == expected_thread_count
                 and probe.get("readback_bytes") == expected_thread_count * 8
                 and probe.get("readback_complete") == 1)
+
+    start_low = int(probe.get("start_clock_offset_lower_ns", 1))
+    start_high = int(probe.get("start_clock_offset_upper_ns", -1))
+    start_uncertainty = int(probe.get("start_clock_uncertainty_ns", -1))
+    end_low = int(probe.get("end_clock_offset_lower_ns", 1))
+    end_high = int(probe.get("end_clock_offset_upper_ns", -1))
+    end_uncertainty = int(probe.get("end_clock_uncertainty_ns", -1))
+    intersection_low = int(probe.get("clock_intersection_lower_ns", 1))
+    intersection_high = int(probe.get("clock_intersection_upper_ns", -1))
+    calibration_valid = (
+        probe.get("clock_calibration_method")
+        == "bracketed %globaltimer kernel against CLOCK_MONOTONIC"
+        and start_low <= start_high
+        and end_low <= end_high
+        and start_uncertainty == (start_high - start_low + 1) // 2
+        and end_uncertainty == (end_high - end_low + 1) // 2
+        and intersection_low == max(start_low, end_low)
+        and intersection_high == min(start_high, end_high)
+        and intersection_low <= intersection_high
+        and int(probe.get("clock_endpoint_overlap", -1)) == 1
+    )
     return (
-        int(probe.get("clock_errors", -1)) == 0
+        calibration_valid
+        and int(probe.get("probes_detached_before_readback", -1)) == 1
+        and int(probe.get("clock_errors", -1)) == 0
         and int(probe.get("queue_underflows", -1)) == 0
         and int(probe.get("queue_overflows", -1)) == 0
+        and int(probe.get("queue_update_errors", -1)) == 0
+        and int(probe.get("uncertain_samples", -1)) == 0
+        and int(probe.get("accounting_complete", -1)) == 1
+        and int(probe.get("pairing_complete", -1)) == 1
         and int(probe.get("host_launches", -1))
+        == int(probe.get("host_enqueued", -2))
         == int(probe.get("device_entries", -2))
+        == int(probe.get("matched_samples", -3))
+        == int(probe.get("classified_samples", -4))
+        == int(probe.get("histogram_samples", -5))
         == samples
     )
 
@@ -1247,7 +1356,7 @@ def main() -> int:
     reject_ambient_injection()
     validate(args)
 
-    lease = shared.Leases()
+    lease = ReadOnlyLeases()
     def interrupted(signum, frame):
         raise KeyboardInterrupt(f"signal {signum}")
     previous_handler = signal.signal(signal.SIGTERM, interrupted)
@@ -1318,7 +1427,7 @@ def run_campaign(args: argparse.Namespace) -> int:
                 target_symbol=args.target_symbol,
             )
             if tool == "launchlate":
-                patch_launchlate_clock(directory)
+                validate_launchlate_source_schema(directory)
             core.build_tool(core.TOOLS[tool], directory)
             tool_dirs[tool] = directory
 

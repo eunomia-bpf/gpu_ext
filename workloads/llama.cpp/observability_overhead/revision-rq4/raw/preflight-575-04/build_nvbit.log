@@ -1,0 +1,16 @@
+$ make CXX=g++ NVBIT_ROOT=/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64 ARCH=sm_120
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-04/nvbit_tool_build
+# started: 2026-09-03T18:27:39
+
+## output
+nvcc -ccbin=g++ -D_FORCE_INLINES -arch=sm_120 -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -O3 -fatbin tool_func/flush_channel.cu -o tool_func/flush_channel.fatbin
+bin2c -c --name flush_channel_bin tool_func/flush_channel.fatbin > tool_func/flush_channel.c
+nvcc -ccbin=g++ -D_FORCE_INLINES -dc -c -std=c++14 -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -Xptxas -cloning=no \
+	-Xcompiler -Wall -arch=sm_120 -O3 -Xcompiler -fPIC observability.cu -o observability.o
+nvcc -ccbin=g++ -D_FORCE_INLINES -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -Xptxas -astoolspatch --keep-device-functions \
+	-arch=sm_120 -Xcompiler -Wall -Xcompiler -fPIC -c inject_funcs.cu -o inject_funcs.o
+nvcc -ccbin=g++ -D_FORCE_INLINES -arch=sm_120 -O3 observability.o inject_funcs.o -L/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -lnvbit -L /usr/local/cuda-12.9/lib64 \
+	-lcuda -lcudart_static -shared -o observability.so
+rm tool_func/flush_channel.fatbin
+
+# exit: 0

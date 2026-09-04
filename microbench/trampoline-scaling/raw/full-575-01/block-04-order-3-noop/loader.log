@@ -1,0 +1,29 @@
+[2026-09-03 20:15:04][info][1414477] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-03 20:15:04][info][1414477] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-03 20:15:04][info][1414477] Verifier mode: WARNING
+[2026-09-03 20:15:04][info][1414477] Init bpftime syscall mocking..
+[2026-09-03 20:15:04][info][1414477] The log will be written to: console
+[2026-09-03 20:15:04][info][1414477] Starting syscall server..
+[2026-09-03 20:15:04][info][1414477] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-03 20:15:04][info][1414477] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-03 20:15:04][info][1414477] Verifier mode: WARNING
+[2026-09-03 20:15:04][info][1414477] Initialize syscall server
+[2026-09-03 20:15:04][info][1414477] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-03 20:15:04][info][1414477] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-03 20:15:04][info][1414477] Verifier mode: WARNING
+[2026-09-03 20:15:04][info][1414477] Global shm constructed. shm_open_type 3 for trampoline_scaling_1411712_65449468365178
+[2026-09-03 20:15:04][info][1414477] Global shm initialized
+[2026-09-03 20:15:04][info][1414477] Initializing CUDA at syscall-server side
+[2026-09-03 20:15:04][info][1414477] CUDA initialized at syscall server side
+[2026-09-03 20:15:04][info][1414477] bpftime-syscall-server started
+[2026-09-03 20:15:04][info][1414477] syscall server: Set enable_mock_after_initialized to false
+[2026-09-03 20:15:04][info][1414477] CUDA context for thread 1414477 has been set to 570c738c0500
+[2026-09-03 20:15:04][info][1414477] Map marker_count (nv_gpu_per_thread_array_map_impl) has space for thread count 1048576
+[2026-09-03 20:15:04][info][1414477] Initializing map type of BPF_MAP_TYPE_PERGPUTD_ARRAY_MAP, total_buffer_size=8388608
+[2026-09-03 20:15:04][info][1414477] syscall server: Set enable_mock_after_initialized to true
+[2026-09-03 20:15:04][info][1414477] Created kprobe/kretprobe perf event handler, func_name trampoline_scale_kernel, addr 0
+[2026-09-03 20:15:04][info][1414477] Created kprobe/kretprobe perf event handler, func_name trampoline_marker_kernel, addr 0
+{"event":"ready","mode":"noop","programs":2,"gpu_threads":1048576,"target_map":false,"attach_order":["cuda__scale_target","cuda__scale_marker"]}
+{"event":"counter_segment","map":"marker_count","key":0,"begin":0,"end":32,"value":1}
+{"event":"counter_segment","map":"marker_count","key":0,"begin":32,"end":1048576,"value":0}
+{"event":"detached","links":2}

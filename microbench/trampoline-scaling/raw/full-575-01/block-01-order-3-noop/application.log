@@ -1,0 +1,102 @@
+[2026-09-03 20:14:24][info][1412261] bpf_attach_ctx constructed
+[2026-09-03 20:14:24][info][1412261] Initializing CUDA shared memory
+[2026-09-03 20:14:24][info][1412261] CommSharedMem host 0x717ec96297d8 mapped to device 0x717ec96297d8
+[2026-09-03 20:14:24][info][1412261] CUDA context created
+[2026-09-03 20:14:24][info][1412261] Register attach-impl defined helper bpf_get_func_arg, index 183
+[2026-09-03 20:14:24][info][1412261] Register attach-impl defined helper bpf_get_func_ret_id, index 184
+[2026-09-03 20:14:24][info][1412261] Register attach-impl defined helper bpf_get_retval, index 186
+[2026-09-03 20:14:24][info][1412261] Starting nv_attach_impl
+[2026-09-03 20:14:24][info][1412261] Parsing bundled libraries: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-03 20:14:24][info][1412261] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so, executing..
+[2026-09-03 20:14:24][info][1412261] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[2026-09-03 20:14:24][info][1412261] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so, executing..
+[2026-09-03 20:14:24][info][1412261] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[2026-09-03 20:14:24][info][1412261] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so, executing..
+[2026-09-03 20:14:24][info][1412261] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-03 20:14:24][info][1412261] Initializing agent..
+[2026-09-03 20:14:24][info][1412261] bpftime: shm epoch_seq = 2
+[2026-09-03 20:14:24][info][1412261] Instantiating bpf link 43 and the corresponding program cuda__scale_tar is cuda program
+[2026-09-03 20:14:24][info][1412261] Skipping nv attach handler 43 since we are not handling nv handles
+[2026-09-03 20:14:24][info][1412261] Instantiating bpf link 50 and the corresponding program cuda__scale_mar is cuda program
+[2026-09-03 20:14:24][info][1412261] Skipping nv attach handler 50 since we are not handling nv handles
+[2026-09-03 20:14:24][info][1412261] Instantiating bpf link 43 and the corresponding program cuda__scale_tar is cuda program
+[2026-09-03 20:14:24][info][1412261] Handling link to CUDA program: 43, recording it..
+[2026-09-03 20:14:24][info][1412261] Loaded 2 instructions (original) for cuda ebpf program
+[2026-09-03 20:14:24][info][1412261] Initializing nv_gpu_array_map_impl at pid 1412261
+[2026-09-03 20:14:24][info][1412261] Mapped GPU memory for gpu array map: 124780325896192
+[2026-09-03 20:14:24][info][1412261] Copying map fd 17 to device, key size=4, value size=8, max ent=1, map_type = 1502, gpu_buffer = 717caf000000
+[2026-09-03 20:14:24][info][1412261] Cached shared_mem_ptr at 717ec96297d8
+[2026-09-03 20:14:24][info][1412261] Recorded pass /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so for func trampoline_scale_kernel
+[2026-09-03 20:14:25][info][1412261] nv_attach_impl: cached 301216 host symbols
+[2026-09-03 20:14:25][info][1412261] nv_attach_impl: late attach bootstrap scanning fatbins..
+[2026-09-03 20:14:25][info][1412261] nv_attach_impl: targeted late bootstrap selected 1 of 19 loaded module(s)
+[2026-09-03 20:14:25][info][1412261] Temporary fatbin written to /tmp/bpftime-fatbin-work.n3sbOW/temp.fatbin
+[2026-09-03 20:14:25][info][1412261] Extracting PTX in the fatbin...
+[2026-09-03 20:14:25][info][1412261] Calling cuobjdump: /usr/local/cuda-12.9/bin/cuobjdump --extract-ptx all /tmp/bpftime-fatbin-work.n3sbOW/temp.fatbin
+Extracting PTX file and ptxas options    1: scaling.sm_120.ptx -arch=sm_120  --generate-line-info 
+[2026-09-03 20:14:25][info][1412261] Remove extracted files..
+[2026-09-03 20:14:25][info][1412261] Got 1 PTX files
+[2026-09-03 20:14:25][info][1412261] Loading & patching current fatbin..
+[2026-09-03 20:14:25][info][1412299] Patching PTX: scaling.sm_120.ptx
+[2026-09-03 20:14:25][info][1412299] Patching request d0265b11858b0deb1cbebcc486487c212c3c0a62598f56d547e44e51f71d1aea not found in cache, patching..
+[ptxpass] kprobe_entry_stub: matched=1, in=2494, out=2624
+[2026-09-03 20:14:25][info][1412261] Using SM arch from BPFTIME_SM_ARCH: sm_120
+[2026-09-03 20:14:25][info][1412261] Compiling PTXs with sm_arch sm_120
+[2026-09-03 20:14:25][info][1412261] Compiler version: 12.9
+[2026-09-03 20:14:25][info][1412321] Start compiling patched.scaling.sm_120.ptx, not found in cache
+[2026-09-03 20:14:25][info][1412321] Compile of patched.scaling.sm_120.ptx done
+[2026-09-03 20:14:25][info][1412261] Loading module: patched.scaling.sm_120.ptx, not found in cache
+[2026-09-03 20:14:25][info][1412261] Copying trampoline data to device
+[2026-09-03 20:14:25][info][1412261] constData symbol device_ptr=717caf800000 size=8 shared_mem_ptr=717ec96297d8
+[2026-09-03 20:14:25][info][1412261] map_info symbol device_ptr=717caf800008 size=40960
+[2026-09-03 20:14:25][info][1412261] Trampoline data copied
+[2026-09-03 20:14:25][info][1412261] Loaded module: patched.scaling.sm_120.ptx
+[2026-09-03 20:14:25][info][1412261] nv_attach_impl: ingested fatbin from .nv_fatbin in /home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/scaling
+[2026-09-03 20:14:25][info][1412261] nv_attach_impl: late attach bootstrap ingested 1 fatbin(s)
+[2026-09-03 20:14:25][info][1412261] Instantiating bpf link 50 and the corresponding program cuda__scale_mar is cuda program
+[2026-09-03 20:14:25][info][1412261] Handling link to CUDA program: 50, recording it..
+[2026-09-03 20:14:25][info][1412261] Loaded 13 instructions (original) for cuda ebpf program
+[2026-09-03 20:14:25][info][1412261] Copying map fd 17 to device, key size=4, value size=8, max ent=1, map_type = 1502, gpu_buffer = 717caf000000
+[2026-09-03 20:14:25][info][1412261] nv_attach_impl: new hook added after bootstrap; rerunning late bootstrap
+[2026-09-03 20:14:25][info][1412261] Recorded pass /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so for func trampoline_marker_kernel
+[2026-09-03 20:14:25][info][1412261] nv_attach_impl: late attach bootstrap scanning fatbins..
+[2026-09-03 20:14:26][info][1412261] nv_attach_impl: targeted late bootstrap selected 1 of 19 loaded module(s)
+[2026-09-03 20:14:26][info][1412261] Temporary fatbin written to /tmp/bpftime-fatbin-work.bIU1b7/temp.fatbin
+[2026-09-03 20:14:26][info][1412261] Extracting PTX in the fatbin...
+[2026-09-03 20:14:26][info][1412261] Calling cuobjdump: /usr/local/cuda-12.9/bin/cuobjdump --extract-ptx all /tmp/bpftime-fatbin-work.bIU1b7/temp.fatbin
+Extracting PTX file and ptxas options    1: scaling.sm_120.ptx -arch=sm_120  --generate-line-info 
+[2026-09-03 20:14:26][info][1412261] Remove extracted files..
+[2026-09-03 20:14:26][info][1412261] Got 1 PTX files
+[2026-09-03 20:14:26][info][1412261] Loading & patching current fatbin..
+[2026-09-03 20:14:26][info][1412364] Patching PTX: scaling.sm_120.ptx
+[2026-09-03 20:14:26][info][1412364] Patching request d0265b11858b0deb1cbebcc486487c212c3c0a62598f56d547e44e51f71d1aea found in cache
+[2026-09-03 20:14:26][info][1412364] Patching request 313b7416bcf0a9b8c0018f110bab6c01cb7e5e08c15cee8ae2ca37fb2a49d3cf not found in cache, patching..
+[ptxpass] kprobe_entry: matched=1, in=2624, out=3911
+[2026-09-03 20:14:26][info][1412261] Using SM arch from BPFTIME_SM_ARCH: sm_120
+[2026-09-03 20:14:26][info][1412261] Compiling PTXs with sm_arch sm_120
+[2026-09-03 20:14:26][info][1412261] Compiler version: 12.9
+[2026-09-03 20:14:26][info][1412387] Start compiling patched.scaling.sm_120.ptx, not found in cache
+[2026-09-03 20:14:26][info][1412387] Compile of patched.scaling.sm_120.ptx done
+[2026-09-03 20:14:26][info][1412261] Loading module: patched.scaling.sm_120.ptx, not found in cache
+[2026-09-03 20:14:26][info][1412261] Copying trampoline data to device
+[2026-09-03 20:14:26][info][1412261] constData symbol device_ptr=717caf80aa00 size=8 shared_mem_ptr=717ec96297d8
+[2026-09-03 20:14:26][info][1412261] map_info symbol device_ptr=717caf80aa08 size=40960
+[2026-09-03 20:14:26][info][1412261] Trampoline data copied
+[2026-09-03 20:14:26][info][1412261] Loaded module: patched.scaling.sm_120.ptx
+[2026-09-03 20:14:26][info][1412261] nv_attach_impl: ingested fatbin from .nv_fatbin in /home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/scaling
+[2026-09-03 20:14:26][info][1412261] nv_attach_impl: late attach bootstrap ingested 1 fatbin(s)
+[2026-09-03 20:14:26][info][1412261] agent ipc: listening (abstract) for pid 1412261
+[2026-09-03 20:14:26][info][1412261] Attach successfully
+[2026-09-03 20:14:26][info][1412266] Exiting CUDA watcher thread
+{"event":"device","name":"NVIDIA GeForce RTX 5090","major":12,"minor":0,"warp_size":32,"max_threads_per_block":1024,"max_grid_x":2147483647}
+{"event":"marker","threads":32,"mismatches":0}
+{"event":"measurement","cell":0,"blocks":256,"threads_per_block":256,"launched_threads":65536,"active_threads":65536,"active_warps":2048,"counter_key":0,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0335679986,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":1,"blocks":512,"threads_per_block":256,"launched_threads":131072,"active_threads":65536,"active_warps":2048,"counter_key":1,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0328640006,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":2,"blocks":1024,"threads_per_block":256,"launched_threads":262144,"active_threads":65536,"active_warps":2048,"counter_key":2,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0335999988,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":3,"blocks":2048,"threads_per_block":256,"launched_threads":524288,"active_threads":65536,"active_warps":2048,"counter_key":3,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0361599997,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":4,"blocks":4096,"threads_per_block":256,"launched_threads":1048576,"active_threads":65536,"active_warps":2048,"counter_key":4,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0335999988,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":5,"blocks":4096,"threads_per_block":256,"launched_threads":1048576,"active_threads":131072,"active_warps":4096,"counter_key":4,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0359679982,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":6,"blocks":4096,"threads_per_block":256,"launched_threads":1048576,"active_threads":262144,"active_warps":8192,"counter_key":4,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0353280008,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":7,"blocks":4096,"threads_per_block":256,"launched_threads":1048576,"active_threads":524288,"active_warps":16384,"counter_key":4,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0360639989,"checked_values":1048576,"mismatches":0}
+{"event":"measurement","cell":8,"blocks":4096,"threads_per_block":256,"launched_threads":1048576,"active_threads":1048576,"active_warps":32768,"counter_key":4,"warmup":2,"launches":8,"hook_repeats":2,"elapsed_ms":0.0378240012,"checked_values":1048576,"mismatches":0}
+{"event":"complete","cells":9,"run_id":0}

@@ -1,0 +1,67 @@
+[2026-09-04 09:59:34][info][2735835] bpf_attach_ctx constructed
+[2026-09-04 09:59:34][info][2735835] Initializing CUDA shared memory
+[2026-09-04 09:59:34][info][2735835] CommSharedMem host 0x7229778297d8 mapped to device 0x7229778297d8
+[2026-09-04 09:59:34][info][2735835] CUDA context created
+[2026-09-04 09:59:34][info][2735835] Register attach-impl defined helper bpf_get_func_arg, index 183
+[2026-09-04 09:59:34][info][2735835] Register attach-impl defined helper bpf_get_func_ret_id, index 184
+[2026-09-04 09:59:34][info][2735835] Register attach-impl defined helper bpf_get_retval, index 186
+[2026-09-04 09:59:34][info][2735835] Starting nv_attach_impl
+[2026-09-04 09:59:34][info][2735835] Parsing bundled libraries: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-04 09:59:34][info][2735835] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so, executing..
+[2026-09-04 09:59:34][info][2735835] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[2026-09-04 09:59:34][info][2735835] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so, executing..
+[2026-09-04 09:59:34][info][2735835] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[2026-09-04 09:59:34][info][2735835] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so, executing..
+[2026-09-04 09:59:34][info][2735835] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-04 09:59:34][info][2735835] Initializing agent..
+[2026-09-04 09:59:34][info][2735835] bpftime: shm epoch_seq = 2
+[2026-09-04 09:59:34][info][2735835] Instantiating bpf link 61 and the corresponding program cuda__host_look is cuda program
+[2026-09-04 09:59:34][info][2735835] Skipping nv attach handler 61 since we are not handling nv handles
+[2026-09-04 09:59:34][info][2735835] Instantiating bpf link 61 and the corresponding program cuda__host_look is cuda program
+[2026-09-04 09:59:34][info][2735835] Handling link to CUDA program: 61, recording it..
+[2026-09-04 09:59:34][info][2735835] Loaded 26 instructions (original) for cuda ebpf program
+[2026-09-04 09:59:34][info][2735835] Initializing nv_gpu_shared_array_map_impl at pid 2735835
+[2026-09-04 09:59:34][info][2735835] Mapped GPU memory for shared array map: 125513356017664
+[2026-09-04 09:59:34][info][2735835] Copying map fd 17 to device, key size=4, value size=8, max ent=32, map_type = 1503, gpu_buffer = 72275b000000
+[2026-09-04 09:59:34][info][2735835] Initializing nv_gpu_shared_array_host_map_impl at pid 2735835, shared mem addr=722977a29a60
+[2026-09-04 09:59:34][info][2735835] Mapped shared memory for GPU access: cpu=722977a29a60, gpu=722977a29a60
+[2026-09-04 09:59:34][info][2735835] Copying map fd 18 to device, key size=4, value size=8, max ent=32, map_type = 1513, gpu_buffer = 722977a29a60
+[2026-09-04 09:59:34][warning][2735835] Not a GPU map!
+[2026-09-04 09:59:34][info][2735835] Copying map fd 19 to device, key size=4, value size=8, max ent=32, map_type = 2, gpu_buffer = 0
+[2026-09-04 09:59:34][info][2735835] Initializing nv_gpu_shared_array_map_impl at pid 2735835
+[2026-09-04 09:59:34][info][2735835] Mapped GPU memory for shared array map: 125513358114816
+[2026-09-04 09:59:34][info][2735835] Copying map fd 20 to device, key size=4, value size=8, max ent=32, map_type = 1503, gpu_buffer = 72275b200000
+[2026-09-04 09:59:34][info][2735835] Cached shared_mem_ptr at 7229778297d8
+[2026-09-04 09:59:34][info][2735835] Recorded pass /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so for func fig15_map_kernel
+[2026-09-04 09:59:34][info][2735835] nv_attach_impl: cached 301188 host symbols
+[2026-09-04 09:59:34][info][2735835] nv_attach_impl: late attach bootstrap scanning fatbins..
+[2026-09-04 09:59:35][info][2735835] nv_attach_impl: targeted late bootstrap selected 1 of 19 loaded module(s)
+[2026-09-04 09:59:35][info][2735835] Temporary fatbin written to /tmp/bpftime-fatbin-work.jcpc8Z/temp.fatbin
+[2026-09-04 09:59:35][info][2735835] Extracting PTX in the fatbin...
+[2026-09-04 09:59:35][info][2735835] Calling cuobjdump: /usr/local/cuda-12.9/bin/cuobjdump --extract-ptx all /tmp/bpftime-fatbin-work.jcpc8Z/temp.fatbin
+Extracting PTX file and ptxas options    1: map_bench.sm_120.ptx -arch=sm_120  --generate-line-info 
+[2026-09-04 09:59:35][info][2735835] Remove extracted files..
+[2026-09-04 09:59:35][info][2735835] Got 1 PTX files
+[2026-09-04 09:59:35][info][2735835] Loading & patching current fatbin..
+[2026-09-04 09:59:35][info][2735872] Patching PTX: map_bench.sm_120.ptx
+[2026-09-04 09:59:35][info][2735872] Patching request 73192a9f238375b7168ca7ac31c1a719ca6b59d5be0b466eddd7522b9f9b9485 not found in cache, patching..
+[ptxpass] kprobe_entry_stub: matched=1, in=1760, out=3994
+[2026-09-04 09:59:35][info][2735835] Using SM arch from BPFTIME_SM_ARCH: sm_120
+[2026-09-04 09:59:35][info][2735835] Compiling PTXs with sm_arch sm_120
+[2026-09-04 09:59:35][info][2735835] Compiler version: 12.9
+[2026-09-04 09:59:35][info][2735895] Start compiling patched.map_bench.sm_120.ptx, not found in cache
+[2026-09-04 09:59:35][info][2735895] Compile of patched.map_bench.sm_120.ptx done
+[2026-09-04 09:59:35][info][2735835] Loading module: patched.map_bench.sm_120.ptx, not found in cache
+[2026-09-04 09:59:35][info][2735835] Copying trampoline data to device
+[2026-09-04 09:59:35][info][2735835] constData symbol device_ptr=72275b600000 size=8 shared_mem_ptr=7229778297d8
+[2026-09-04 09:59:35][info][2735835] map_info symbol device_ptr=72275b600008 size=40960
+[2026-09-04 09:59:35][info][2735835] Trampoline data copied
+[2026-09-04 09:59:35][info][2735835] Loaded module: patched.map_bench.sm_120.ptx
+[2026-09-04 09:59:35][info][2735835] nv_attach_impl: ingested fatbin from .nv_fatbin in /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/.output/map-bench
+[2026-09-04 09:59:35][info][2735835] nv_attach_impl: late attach bootstrap ingested 1 fatbin(s)
+[2026-09-04 09:59:35][info][2735835] agent ipc: listening (abstract) for pid 2735835
+[2026-09-04 09:59:35][info][2735835] Attach successfully
+[2026-09-04 09:59:35][info][2735840] Exiting CUDA watcher thread
+FIG15_DEVICE	NVIDIA GeForce RTX 5090	12	0	32
+FIG15_MEASUREMENT	8	64	0.267551988
+FIG15_CORRECT	32	0

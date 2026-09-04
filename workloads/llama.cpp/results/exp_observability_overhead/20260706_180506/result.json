@@ -1,0 +1,497 @@
+{
+  "timestamp": "20260706_180506",
+  "params": {
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "tools": [
+      "kernelretsnoop",
+      "threadhist"
+    ],
+    "runs": 3,
+    "pp": 512,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "uvm": false,
+    "no_warmup": false,
+    "cuda_graphs_disabled": true,
+    "gpu_thread_count": 8192,
+    "threadhist_gpu_thread_count": 1048576,
+    "uprobe_binary": "/usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08",
+    "uprobe_symbol_hint": "cuLaunchKernel"
+  },
+  "provenance": {
+    "gpu_ext_git": "d5ff7b5",
+    "bpftime_git": "6bd5319",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 15, 0, 12.07",
+      "compute_apps": ""
+    },
+    "cuda_ptx": {
+      "libggml_cuda": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+      "has_ptx": true,
+      "ptx_count": 120,
+      "cuobjdump_returncode": 0
+    }
+  },
+  "configs": {
+    "baseline": {
+      "runs": [
+        {
+          "run": 1,
+          "log": "baseline_run_01/llama_bench.log",
+          "returncode": 0,
+          "metrics": {
+            "pp_tok_s": 39023.890548,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              39023.9
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-07T01:05:09Z",
+              "avg_ns": 13120168,
+              "stddev_ns": 0,
+              "avg_ts": 39023.890548,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13120168
+              ],
+              "samples_ts": [
+                39023.9
+              ]
+            }
+          ]
+        },
+        {
+          "run": 2,
+          "log": "baseline_run_02/llama_bench.log",
+          "returncode": 0,
+          "metrics": {
+            "pp_tok_s": 39108.996238,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              39109
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-07T01:05:12Z",
+              "avg_ns": 13091617,
+              "stddev_ns": 0,
+              "avg_ts": 39108.996238,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13091617
+              ],
+              "samples_ts": [
+                39109
+              ]
+            }
+          ]
+        },
+        {
+          "run": 3,
+          "log": "baseline_run_03/llama_bench.log",
+          "returncode": 0,
+          "metrics": {
+            "pp_tok_s": 39067.85025,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              39067.9
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-07T01:05:14Z",
+              "avg_ns": 13105405,
+              "stddev_ns": 0,
+              "avg_ts": 39067.85025,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13105405
+              ],
+              "samples_ts": [
+                39067.9
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "kernelretsnoop": {
+      "tool_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/results/exp_observability_overhead/20260706_180506/tool_build/kernelretsnoop",
+      "runs": [
+        {
+          "run": 1,
+          "log": "kernelretsnoop_run_01/llama_bench.log",
+          "returncode": 0,
+          "metrics": {
+            "pp_tok_s": 38146.787348,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              38146.8
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-07T01:05:53Z",
+              "avg_ns": 13421838,
+              "stddev_ns": 0,
+              "avg_ts": 38146.787348,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13421838
+              ],
+              "samples_ts": [
+                38146.8
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 8192
+          },
+          "probe_log": "kernelretsnoop_run_01/probe.log"
+        },
+        {
+          "run": 2,
+          "log": "kernelretsnoop_run_02/llama_bench.log",
+          "returncode": -11,
+          "error": "llama-bench exited -11",
+          "probe": {
+            "sample_count": 0
+          },
+          "probe_log": "kernelretsnoop_run_02/probe.log"
+        },
+        {
+          "run": 3,
+          "log": "kernelretsnoop_run_03/llama_bench.log",
+          "returncode": 0,
+          "metrics": {
+            "pp_tok_s": 38021.201424,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              38021.2
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-07T01:06:29Z",
+              "avg_ns": 13466171,
+              "stddev_ns": 0,
+              "avg_ts": 38021.201424,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13466171
+              ],
+              "samples_ts": [
+                38021.2
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 16384
+          },
+          "probe_log": "kernelretsnoop_run_03/probe.log"
+        }
+      ]
+    },
+    "threadhist": {
+      "tool_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/results/exp_observability_overhead/20260706_180506/tool_build/threadhist",
+      "runs": [
+        {
+          "run": 1,
+          "log": "threadhist_run_01/llama_bench.log",
+          "returncode": -11,
+          "error": "llama-bench exited -11",
+          "probe": {
+            "sample_count": 0
+          },
+          "probe_log": "threadhist_run_01/probe.log"
+        },
+        {
+          "run": 2,
+          "log": "threadhist_run_02/llama_bench.log",
+          "returncode": 0,
+          "metrics": {
+            "pp_tok_s": 37356.733825,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              37356.7
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-07T01:07:17Z",
+              "avg_ns": 13705695,
+              "stddev_ns": 0,
+              "avg_ts": 37356.733825,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13705695
+              ],
+              "samples_ts": [
+                37356.7
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 308
+          },
+          "probe_log": "threadhist_run_02/probe.log"
+        },
+        {
+          "run": 3,
+          "log": "threadhist_run_03/llama_bench.log",
+          "returncode": -11,
+          "error": "llama-bench exited -11",
+          "probe": {
+            "sample_count": 0
+          },
+          "probe_log": "threadhist_run_03/probe.log"
+        }
+      ]
+    }
+  },
+  "summary": [
+    {
+      "config": "baseline",
+      "successful_runs": 3,
+      "pp_tok_s_geomean": 39066.896889384894,
+      "pp_tok_s_runs": [
+        39023.890548,
+        39108.996238,
+        39067.85025
+      ],
+      "overhead_pct_vs_baseline": null,
+      "max_probe_samples": 0
+    },
+    {
+      "config": "kernelretsnoop",
+      "successful_runs": 2,
+      "pp_tok_s_geomean": 38083.94261938753,
+      "pp_tok_s_runs": [
+        38146.787348,
+        38021.201424
+      ],
+      "overhead_pct_vs_baseline": 2.516079720333368,
+      "max_probe_samples": 16384
+    },
+    {
+      "config": "threadhist",
+      "successful_runs": 1,
+      "pp_tok_s_geomean": 37356.733825,
+      "pp_tok_s_runs": [
+        37356.733825
+      ],
+      "overhead_pct_vs_baseline": 4.377524709032035,
+      "max_probe_samples": 308
+    }
+  ]
+}

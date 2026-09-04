@@ -1,0 +1,105 @@
+{
+  "timestamp": "20260706_164909",
+  "params": {
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "tools": [
+      "kernelretsnoop"
+    ],
+    "runs": 1,
+    "pp": 32,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "uvm": false,
+    "no_warmup": false,
+    "uprobe_binary": "/usr/local/cuda-12.9/targets/x86_64-linux/lib/libcudart.so.12.9.79"
+  },
+  "provenance": {
+    "gpu_ext_git": "d5ff7b5",
+    "bpftime_git": "6bd5319",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 15, 0, 12.59",
+      "compute_apps": ""
+    }
+  },
+  "configs": {
+    "baseline": {
+      "runs": [
+        {
+          "run": 1,
+          "returncode": 0,
+          "log": "baseline_run_01/llama_bench.log",
+          "metrics": {
+            "pp_tok_s": 7140.934829,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              7140.93
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "6e603612",
+              "build_number": 7101,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-06T23:49:12Z",
+              "avg_ns": 4481206,
+              "stddev_ns": 0,
+              "avg_ts": 7140.934829,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                4481206
+              ],
+              "samples_ts": [
+                7140.93
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "summary": [
+    {
+      "config": "baseline",
+      "successful_runs": 1,
+      "pp_tok_s_geomean": 7140.934828999997,
+      "pp_tok_s_runs": [
+        7140.934829
+      ],
+      "overhead_pct_vs_baseline": null,
+      "max_probe_samples": 0
+    }
+  ]
+}

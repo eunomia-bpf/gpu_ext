@@ -1,0 +1,1166 @@
+                                             UrgenGo: Urgency-Aware Transparent GPU Kernel
+                                                   Launching for Autonomous Driving
+                                                   Hanqi Zhu† , Wuyang Zhang† , Xinran Zhang† , Ziyang Tao† , Xinrui Lin† , Yu
+                                                                  Zhang†,♦ , Jianmin Ji†,♦ , Yanyong Zhang†,♦
+                                             † University of Science and Technology of China                ♦ Institute of Artificial Intelligence, Hefei Comprehensive National Science Center
+
+                                                            {zhuhanqi, zxrr, ziyang, xinruilin}@mail.ustc.edu.cn, {wuyangz, yuzhang, jianmin, yanyongz}@ustc.edu.cn
+
+                                         Abstract                                                                             ACM Reference Format:
+                                                                                                                              Hanqi Zhu, Wuyang Zhang, Xinran Zhang, Ziyang Tao, Xinrui Lin,
+arXiv:2509.12207v1 [cs.OS] 26 Aug 2025
+
+
+
+
+                                         The rapid advancements in autonomous driving have in-
+                                                                                                                              Yu Zhang, Jianmin Ji, Yanyong Zhang. 2025. UrgenGo: Urgency-
+                                         troduced increasingly complex, real-time GPU-bound tasks
+                                                                                                                              Aware Transparent GPU Kernel Launching for Autonomous Driv-
+                                         critical for reliable vehicle operation. However, the propri-
+                                                                                                                              ing. In . ACM, New York, NY, USA, 15 pages. https://doi.org/xx.
+                                         etary nature of these autonomous systems and closed-source                           xxxx/xxxxxxx.xxxxxxx
+                                         GPU drivers hinder fine-grained control over GPU execu-
+                                         tions, often resulting in missed deadlines that compromise
+                                                                                                                              1    Introduction
+                                         vehicle performance. To address this, we present UrgenGo, a
+                                         non-intrusive, urgency-aware GPU scheduling system that                              Autonomous driving has emerged as a transformative tech-
+                                         operates without access to application source code. UrgenGo                          nology with the potential to revolutionize transportation by
+                                         implicitly prioritizes GPU executions through transparent                            enhancing safety, improving efficiency, and simplifying daily
+                                         kernel launch manipulation, employing task-level stream                              life. However, before these promises can be fully realized, key
+                                         binding, delayed kernel launching, and batched kernel launch                         technical challenges need to be addressed–chief among them
+                                         synchronization. We conducted extensive real-world evalua-                           is meeting the processing demands and real-time deadlines of
+                                         tions in collaboration with a self-driving startup, developing                       various tasks within autonomous driving systems. As vehicle
+                                         11 GPU-bound task chains for a realistic autonomous navi-                            sensors increase in resolution, deep learning models grow
+                                         gation application and implementing our system on a self-                            in complexity, and self-driving cars expand in services, the
+                                         driving bus. Our results show a significant 61% reduction in                         computational requirements outpace the capabilities of in-
+                                         the overall deadline miss ratio, compared to the state-of-the-                       vehicle computing platforms. This growing disparity makes
+                                         art GPU scheduler that requires source code modifications.                           it increasingly difficult to meet the time constraints of the ap-
+                                                                                                                              plications, thereby undermining system functionality [5, 31].
+                                                                                                                                  Fig. 1 shows a representative yet simplified workflow of
+                                         CCS Concepts
+                                                                                                                              an autonomous driving system. Despite the dynamic envi-
+                                         • Computer systems organization → Real-time systems;                                 ronment, the system follows a relatively fixed workflow at
+                                         Heterogeneous (hybrid) systems; • Software and its                                   the task level, typically involving tasks related to percep-
+                                         engineering → Middleware.                                                            tion [38, 53], navigation [20], localization [40, 49], calibra-
+                                                                                                                              tion [26], etc. These tasks are organized into task chains, with
+                                         Keywords                                                                             each chain initiated by periodically arriving sensor data and
+                                         Real-Time, GPU Scheduling, ROS, CUDA, Task Chains                                    tasks triggered sequentially in a data-driven manner. Each
+                                                                                                                              chain usually adheres to a predefined end-to-end deadline.
+                                                                                                                              For example, among the 9 task chains shown in Fig. 1, some
+                                         Permission to make digital or hard copies of all or part of this work for            (e.g., path planning) operate under tight deadlines, while
+                                         personal or classroom use is granted without fee provided that copies                others (e.g., online calibration) can tolerate longer delays.
+                                         are not made or distributed for profit or commercial advantage and that
+                                         copies bear this notice and the full citation on the first page. Copyrights              In this workflow, tasks that leverage GPU processing
+                                         for components of this work owned by others than the author(s) must                  often become the most time-consuming components (e.g.,
+                                         be honored. Abstracting with credit is permitted. To copy otherwise, or              those highlighted in yellow in Fig. 1), with a single task
+                                         republish, to post on servers or to redistribute to lists, requires prior specific   involving hundreds of GPU kernels. Effectively schedul-
+                                         permission and/or a fee. Request permissions from permissions@acm.org.               ing these kernels across the CPU and GPU is critical, es-
+                                         Conference’17, Washington, DC, USA
+                                                                                                                              pecially in systems with multiple chains and varying timing
+                                         © 2025 Copyright held by the owner/author(s). Publication rights licensed
+                                         to ACM.                                                                              requirements. This challenge has received attention in robot-
+                                         ACM ISBN xxx-x-xxxx-xxxx-x/xx/xx                                                     ics [14, 28, 50], AR/VR services [47], and other cyber-physical
+                                         https://doi.org/xx.xxxx/xxxxxxx.xxxxxxx                                              systems [18, 51]. Existing techniques generally fall into three
+Conference’17, July 2017, Washington, DC, USA                                                                                                                                         Zhu et al.
+
+
+categories: (1) GPU time-sharing, (2) GPU space-sharing, and                  Sensors                Deadline * Last Task of Chain                                on CPU               on GPU
+
+(3) kernel launch prioritization. For instance, Heimdall [47]                 LiDAR 0/1
+                                                                                             Perception                                          100ms                   Power Management
+
+
+
+
+                                                                     10 Hz
+                                                                                               Ground
+and dCUDA [36] enable time-sharing by partitioning applica-                                                  3D Obj. Detection    Particle Filtering*
+
+
+
+
+                                                                                                                                                                         20 Hz
+                                                                                               Filtering
+
+tions into groups and executing them in distinct time slices.                 Camera 0/1        2D Obj. Detection
+                                                                                                                         Traffic Sign Classification*             70ms
+                                                                                                                                                                                         500ms
+cCUDA [36] enhances GPU concurrency through space shar-
+
+
+
+
+                                                                     35 Hz
+                                                                                                                         Face Detection*         100ms                             Battery
+                                                                                               Image Segmentation                                                                Management*
+ing by splitting kernels into sub-kernels. PAAM [14] and
+DART [44] implement kernel launch prioritization by bind-                        GPS         Localization                                           Navigation
+
+
+
+
+                                                                     0-5 Hz
+                                                                                                                     Simultaneous Localization
+ing tasks to CUDA streams based on predefined criticality.                                     ICP Registration
+                                                                                                                           and Mapping
+                                                                                                                                                                  Path Planning*          70ms
+
+
+   However, most of these methods require modifying the                       Fused Sensor   Calibration                                 300ms
+
+
+
+
+                                                                     10 Hz
+                                                                                                                                                    Actuation
+application source code, which is impractical for autonomous                                    Feature Extraction           ICP Alignment
+
+driving systems relying on closed-source, third-party li-                     Microphone     Interaction                                 300ms
+
+
+
+
+                                                                                                                                                         100 Hz
+                                                                     30 Hz
+braries. For example, many original equipment manufactur-                                         Audio
+                                                                                                Processing
+                                                                                                                  LLAMA2            Voice
+                                                                                                                                  Assistance*
+ers (OEMs) utilize vendor-optimized frameworks like Ten-
+sorRT [1] for kernel acceleration, along with algorithm li-         Figure 1: An example with 4 different sensors and 9 task
+                                                                    chains. The last task of a chain is marked with a star.
+braries [3, 4] provided by tier 1/2 suppliers, to minimize costs.
+While overall task topologies are known, task implementa-           execution collisions, and batched kernel launching to bal-
+tions remain hidden within proprietary frameworks.                  ance task urgency tracking with execution efficiency. Over-
+   Furthermore, many existing GPU prioritization works rely         all, UrgenGo is a plugin-compatible framework that enables
+heavily on static priorities. For example, PAAM [14] and            urgency-aware scheduling for autonomous driving, address-
+DART [44] assign priorities based on the criticality of each        ing priority-aware GPU kernel launch challenges and opti-
+task chain, as predefined by the application. While static          mizing scheduling for real-time closed-source applications.
+                                                                                                                          2
+prioritization provides better determinism, it becomes less            To proceed with a realistic evaluation, we collaborated
+practical in autonomous driving, where multiple chains may          with a pioneering self-driving startup and selected 11 repre-
+share similar levels of criticality. In such cases, dynamic         sentative AI-driven task chains from an autonomous naviga-
+prioritization, which accounts for real-time factors such as        tion application. These task chains span 6 service domains:
+urgency and deadline, is more appropriate. Specifically, we         3D perception, 2D perception, localization, navigation, cal-
+determine a task’s dynamic priority based on its urgency [41],      ibration, and interaction. We implemented the system on
+defined as inversely proportional to its laxity. However, this      a self-driving bus and collected data over two weeks in a
+introduces new challenges, including (1) how to accurately          480,000-square-meter campus with diverse conditions. This
+estimate the execution status and urgency of GPU kernels            paper makes four primary contributions:
+from the CPU with minimal overhead, and (2) how to utilize             (1) We propose a transparent, urgency-aware GPU sched-
+the dynamic urgency to guide GPU kernel launches such that                 uling framework that operates without source code
+their execution aligns with corresponding urgency levels.                  access. To the best of our knowledge, we are the first to
+   In response to these challenges, we present UrgenGo,                    manipulate all key kernel launch parameters – priority,
+an urgency-centric, transparent task scheduling system, de-                timing, and synchronization mode – specifically for au-
+signed for closed-source multi-task-chain applications with                tonomous driving systems that rely on closed-source
+mixed real-time constraints and hybrid CPU-GPU execution.                  libraries with time constraints.
+The key idea behind UrgenGo is to dynamically schedule                 (2) We design and implement key system components: a
+GPU kernels based on their changing urgency level – e.g.,                  transparent kernel launch manipulation module that
+tasks become more urgent as deadlines approach with in-                    integrates priority, timing, and synchronization in a
+sufficient progress, or less urgent after missing deadlines.               unified framework, and an urgency-centric scheduler
+This is achieved through non-intrusive CUDA kernel launch                  that manages chain-level CPU prioritization, task-level
+manipulation: UrgenGo intercepts CUDA function calls by                    CUDA stream binding, kernel-level delayed launch-
+replacing the default CUDA dynamic library with a custom                   ing, and kernel batch-level synchronization. Together,
+variant, allowing GPU execution prioritization without mod-                these modules enable fine-grained real-time GPU
+ifying the application source code at all. UrgenGo provides                scheduling under dynamic workloads.
+refined control over kernel launch priority, timing, and syn-          (3) We conducted a comprehensive real-world evaluation
+chronization within a unified framework. In particular, it                 using 11 representative task chains deployed on a self-
+introduces task-level CUDA stream binding to minimize pri-                 driving bus with TensorRT [1] and ROS2 [33]. Our re-
+ority collisions, delayed kernel launching to prevent GPU                  sults show that our schemes effectively prevent dead-
+                                                                           line misses, achieving a 61% reduction in the dead-
+                                                                           line miss ratio and reducing kernel collisions by up to
+UrgenGo: Urgency-Aware Kernel Launching                                                                                                                                                                   Conference’17, July 2017, Washington, DC, USA
+
+        Kernel Launch   Kernel Execution    Memory Copy         Suspend        Sync.        CPU Computation                                                                                                                                                                      
+
+
+
+
+                                                                                                                                                                                                                                                      3UREDELOLW\
+                                                                                                                   3UREDELOLW\
+    G                                                                                                                                                                                                                                                                                
+    P                       Overlapped Through
+    U                       Asynchronous Launching
+                                                                                                                                                                                7UDIILF6LJQ&ODVVLILFDWLRQ
+                                                                                                                                                                                                                                                                                         
+                                                                                                                                                                                    ,PDJH6HJPHQWDWLRQ                                                                                                       ([FOXVLYH([HFXWLRQ
+    C                                                Suspend until kernels complete and sync.                                                                                   )DFH'HWHFWLRQ                                                                                                           +LJK6WUHDP3ULRULW\
+    P        CPU                    7ms               GPU                                          CPU                                                                              '2EM'HWHFWLRQ                                                                                                         1R6WUHDP3ULRULW\
+    U       Segment                                  Segment                                      Segment                                                                                                                                                                                
+                                                                                                                                                                                                                                                                                                      
+                                                                                                            Time
+                                                                                                                                                                      
+                                                                                                                                                                         /DWHQF\ PV                                     
+                                                                                                                                                                                                                                                                                                          /DWHQF\PV                                
+
+Figure 2: The kernel launching and segmented structure for                                                                       Figure 3: CDF of individual Figure 4: CDF of 2D detec-
+2D object detection [15] using TensorRT [1].                                                                                     kernel execution time mea- tion latency when executed
+                                                                                                                                 sured in NVIDIA 3070Ti.    alongside 3D detection.
+        51% compared to state-of-the-art methods that require
+                                                                                                                    and priority set by the CPU, leading to misaligned GPU exe-
+        source code modifications.
+                                                                                                                    cutions. To address this, we intend to modify how kernels are
+    (4) Our proposed kernel scheduling strategies can be eas-
+                                                                                                                    launched to better align GPU execution with CPU priorities.
+        ily extended to similar CPS applications with pre-
+                                                                                                                    The standard CUDA kernel launch API is shown as follows:
+        dictable task graphs and dynamic data. Moreover, our
+        investigation into GPU kernel launch mechanisms,                                                                          cuLaunchKernel (𝑓𝑝 , 𝐷𝑔 , 𝐷𝑏 , 𝑆𝑚 , stream, args).
+        such as overlapping batched launches and handling                                                          Here, 𝑓𝑝 is the pointer to the kernel function; 𝐷𝑔 /𝐷𝑏
+        kernel collisions, provides rich insights to optimize                                                      denote grid/block dimensions; 𝑆𝑚 specifies dynamic shared
+        GPU scheduling across various applications.                                                                memory; stream determines the execution stream, and args
+                                                                                                                   points to input/output data. Of these, stream is the only
+2        Preliminaries and Challenges                                                                              controllable parameter, offering preset priority levels (e.g.,
+Autonomous Driving Application Characteristics. We                                                                 -5-0 for NVIDIA 3070Ti). Besides these parameters, we can
+use Autoware [22], a widely adopted autonomous driving                                                             also control kernel launch timing, e.g., delaying a kernel
+framework, to illustrate application characteristics. Auto-                                                        launch call. By carefully controlling these two factors, we
+ware implements a publish-subscribe paradigm in ROS2 [33],                                                         aim to align GPU execution with the task’s urgency level.
+allowing developers to create custom applications by con-                                                          Urgency Level. We define a task chain’s urgency level
+necting input/output topics. While task chain topologies are                                                       𝑈 𝐿𝐶 (𝑡), focusing only on GPU execution, as:
+known, individual task implementations often remain hidden                                                                                            1
+                                                                                                                               𝑈 𝐿𝐶 (𝑡) =                          ,         (1)
+within proprietary libraries. Though chains can be config-                                                                                𝑡 +𝐷 −           𝐸˜ −𝑡
+                                                                                                                                                   Í𝑁 −1 𝑔𝑝𝑢
+                                                                                                                                                                                                                 𝑎𝑟𝑟                                                                                 ˜
+ured with deadlines to ensure quality of service, maintaining                                                                                                                                                                                                                                   𝑘=𝐼 𝑔𝑝𝑢   𝑘
+                                                                                                                   where 𝑡𝑎𝑟𝑟 is the arrival time of the task chain’s current data
+hard real-time guarantees is challenging in unpredictable en-
+                                                                                                                   frame; 𝑡 is the current time; 𝐷 is the task chain’s deadline;
+vironments. Factors like unsynchronized sensors and varying                                                                                                                     ˜ is
+                                                                                                                   𝑁 is the total number of kernels in the task chain; 𝐼 𝑔𝑝𝑢
+processing latencies make deterministic scheduling difficult.                                                                                                             ˜
+                                                                                                                                                                         𝑔𝑝𝑢
+Given these uncertainties, many systems advocate soft real-                                                        the index of the currently executing kernel, and 𝐸𝑘 is the
+time objectives, such as minimizing deadline miss rates [27]                                                       estimated execution time for each kernel. Since the kernels
+rather than enforcing strict guarantees across all tasks.                                                          in the task chain are launched sequentially on the CUDA
+                                                                                                                   stream, the task chain’s overall urgency is driven by the
+GPU Execution Patterns. Beyond application-level charac-
+                                                                                                                   urgency of the currently active task/kernel.
+teristics, GPU execution patterns significantly impact overall
+delay. In CUDA GPUs, a stream orchestrates sequentially                                                            Mismatch between Static Stream Priority and Dynamic
+executed kernels, with each task’s kernels bound to a sin-                                                         Kernel Urgency Level. We aim to schedule more urgent
+gle stream to preserve data dependencies. Kernels in each                                                          tasks earlier to decrease deadline misses. However, accurately
+stream are launched from CPU to GPU, with optional syn-                                                            evaluating a task’s urgency level is difficult due to the chal-
+                                                                                                                   lenge of tracking its remaining execution time, 𝑘=
+                                                                                                                                                                     Í𝑁 −1 𝑔𝑝𝑢    ˜
+chronization points. Such sequential kernel launches create                                                                                                                  ˜ 𝐸𝑘 .
+                                                                                                                                                                          𝐼 𝑔𝑝𝑢
+substantial CPU overhead. As shown in Fig. 2, launching 323                                                        Accurately estimating the currently executing kernel 𝐼 𝑔𝑝𝑢      ˜
+kernels for a 2D object detection task takes 7 ms, accounting                                                      is feasible only with synchronous kernel launches. How-
+for 35% of its 20 ms total GPU execution time. As a result,                                                        ever, this approach incurs high launch and synchronization
+commercial inference engines like TensorRT [1] often adopt                                                         overhead, costing tens of microseconds – comparable to the
+asynchronous launching to minimize this overhead, insert-                                                          kernel execution time (e.g., under 100 µs, as shown in Fig. 3).
+ing a single blocking synchronization function after the last                                                      When using asynchronous launches, we know which kernel
+kernel launch that suspends the CPU, as illustrated in Fig. 2,                                                     is being launched, but not which kernel is executed on the
+until all kernels in the stream complete execution.                                                                GPU, leading to inaccurate urgency level evaluation.
+Kernel Launch Manipulation. The default CUDA sched-                                                                   Furthermore, even with an accurate urgency level, priori-
+uler in closed-source drivers lacks awareness of task urgency                                                      tizing kernel executions remains challenging, largely due to
+Conference’17, July 2017, Washington, DC, USA                                                                                                                                                    Zhu et al.
+
+
+    §4.1 Task Chain Deployment                                             §4.4 Urgency aware GPU Prioritization
+             Deployment                             Profiling              Kernel Launch Manipulation              Stream Binding (Priority)            Delayed Launching (Timing)
+                                          (ID, Dg , Db )      (E, U, … )            Mirrored CUDA API               Task-Level Dynamic Binding          Kernel-Level Collision Reduction
+      Library   Executor    Thread          Query                Result      cuLaunchKernel(…)                       𝐂𝟎     𝐓𝟎   𝐓𝟏    𝐓𝟐              𝐂𝟎   𝐓𝟎        𝐓𝟏          𝐓𝟐
+                                                                             cuMemcpy (…)
+    §4.2 Task Chain Urgency Estimation                                       cuStreamSynchornization(...)              Stream Reservation              𝐂𝟏   𝐓𝟑        Delay               Sleep
+                                                                            … …
+                                                                                                                           ULC t < τ   ULC t > τ        UL𝐂𝟎 t < 0 < UL𝐂1 t
+     Bookkeeping                                    1
+                       ULC t =                              ෧
+                                                            𝒈𝒑𝒖
+      Prediction                  t arr + 𝐷 − σ𝑁−1෧
+                                               𝑘=𝑰𝒈 𝒑𝒖 𝑬𝒌           −𝑡     Priority Timing Synchronization
+                                                                                                                             Periodic Urgency Evaluation (Synchronization)
+                                                                                                                                                               ULC t
+
+    §4.3 Urgency-Centric CPU Scheduling                                        Active Kernel Buffer                Asynchronous 𝐊 𝟎     𝐊𝟏    𝐊𝟐   𝐊𝟑                       DDL
+                                                                                                                                                                            miss
+                                                                                                                                                                                        ULC t
+                                                                                                                                                                                                DDL
+                                                                                                                                                                                                meet
+      Task Chain Prioritization                Early-Chain-Exit                                                    Batched        𝐊𝟎    𝐊𝟏    𝐊𝟐   𝐊𝟑
+                                                                                                                                                                               t
+                                                                           Urgency Utilization Stream Priority                                               Asynchronous                              t
+    𝐂𝟎 𝐓𝟎            if UL𝐂1 t > UL𝐂0 t      𝐂𝟎     𝐓𝟎     if UL𝐂1 t < 0                                                                                                                Batched
+                𝐓𝟐 then PRI𝐂1 < PRI𝐂0                       𝐓𝟐              (K, 𝐔LC TK , 𝐔K , 𝐒K , … )             Synchronous    𝐊𝟎    𝐊𝟏    𝐊𝟐   𝐊𝟑
+     𝐂𝟏 𝐓𝟏                                   𝐂𝟏 𝐓𝟏                 exit                                                                                           Evaluation Accuracy
+
+Figure 5: System overview. UrgenGo provides refined control for both CPU/GPU prioritization within a unified framework.
+the closed-source GPU drivers. While we can bind a task’s                                                GPU Prioritization. UrgenGo addresses the more complex
+kernels to a CUDA stream based on urgency, the limited                                                   challenge of GPU prioritization, due to the closed-source na-
+number of priority levels (e.g., 6 in the NVIDIA 3070Ti) often                                           ture of the GPU libraries and drivers, by intercepting kernel
+leads to collisions among tasks. Moreover, CUDA stream                                                   launch APIs that overhaul the default CUDA dynamic library
+prioritization does not strictly enforce kernel execution or-                                            with a custom variant when CUDA function calls are invoked
+der: resource contention [25, 50], such as cache and memory                                              from applications. This interception enables manipulation
+bus contention, can still cause delays; the non-preemptive                                               of otherwise inaccessible parameters: stream priority, launch
+nature of kernel block execution [7, 45] further exacerbates                                             timing, and synchronization mode. Specifically, UrgenGo ad-
+this issue, where low-priority kernels can block high-priority                                           dresses the following key design questions:
+ones, resulting in missed deadlines. For example, as shown                                                  1) To which priority-level CUDA stream do we bind a task’s
+in Fig. 4, sharing the GPU with 3D object detection [24] in-                                             kernels? By default, all kernels within a task are statically
+creases the end-to-end latency of 2D object detection [15] by                                            bound to a single CUDA stream, respecting data dependen-
+30% at 95𝑝𝑒𝑟𝑐𝑒𝑛𝑡𝑖𝑙𝑒, even when assigned a higher priority.                                               cies but remaining oblivious to urgency. UrgenGo introduces
+                                                                                                         a dynamic, urgency-aware task-to-stream binding mecha-
+                                                                                                         nism, allowing the stream priority to change across different
+3    System Overview                                                                                     instances (the arrival of the input data activates a new in-
+UrgenGo transparently prioritizes task execution at runtime                                              stance of a task ) without compromising execution coherence.
+on both CPU and GPU based on each task’s continuously                                                    This flexibility, in contrast to static binding methods [14, 44],
+changing urgency. Unlike existing solutions that either re-                                              enables dynamic prioritization based on task urgency. Ad-
+quire source code access or rely on static task-to-stream                                                ditionally, to address the limited number of CUDA stream
+priorities, UrgenGo introduces a holistic kernel launch ma-                                              priority levels and the potential for kernel collisions, we de-
+nipulation framework integrated into our custom CUDA                                                     vise a reservation scheme that reserves the highest stream
+driver library. As illustrated in Fig. 5, this framework dynam-                                          priority for the most urgent task.
+ically adjusts a task’s CUDA stream priority (binding urgent                                                2) How do we control the launch timing of kernels for tasks
+tasks to higher-priority streams), launch timing (delaying                                               with varying urgency levels? A critical challenge is the mis-
+less urgent kernels to prioritize critical ones), and synchro-                                           match between dynamic task urgency and fixed stream pri-
+nization mode (enabling efficient periodic urgency evalu-                                                orities. For example, a task that has recently missed its dead-
+ation). What distinguishes UrgenGo from state-of-the-art                                                 line may retain a high-priority stream despite decreased ur-
+methods [14, 25, 35, 44] is its unified approach to managing                                             gency, while an increasingly urgent task might remain stuck
+kernel launches, addressing dynamic urgency needs during                                                 with a low-priority stream allocation. UrgenGo resolves this
+asynchronous and time-shared GPU operations.                                                             through a delayed launching mechanism inspired by wire-
+Urgency Evaluation and CPU Prioritization. UrgenGo                                                       less MAC protocols [46]. When detecting potential kernel
+leverages OS scheduling to implement urgency-aware CPU                                                   collisions between low-urgency and high-urgency kernels,
+execution by setting chain-level priority based on each task                                             UrgenGo briefly delays the low-urgency launch, making crit-
+chain’s urgency level. After deploying task chains to mid-                                               ical tasks execute first regardless of their stream assignment.
+dleware entities, we profile kernel parameters including                                                    3) How frequently should we evaluate a task’s ur-
+kernel execution times. At runtime, key variables like seg-                                              gency level? While task urgency continuously changes as
+ment/kernel indices are estimated. These elements are com-                                               kernels launch and execute, frequent evaluations intro-
+bined to evaluate each chain’s urgency, which is then mapped                                             duce costly synchronization overhead by serializing CPU
+to appropriate CPU scheduler priorities.                                                                 launch/synchronization and GPU execution times. UrgenGo
+UrgenGo: Urgency-Aware Kernel Launching                                                                  Conference’17, July 2017, Washington, DC, USA
+
+
+balances accuracy and efficiency through periodic urgency                      Application         Perception       Localization            Navigation           …
+
+evaluation using batched kernel synchronization, evaluating                    Middleware
+                                                                                               Task Chain Configuration          Deadline       Input/Output Message
+
+urgency after launching multiple kernels rather than individ-                                      Single-Threaded Executor         Single Process Consolidation
+
+ually. We further optimize performance with batch overlap-                      Library        TensorRT         OpenCV          Isaac VSLAM              cuPCL         …
+
+ping, allowing CPU kernel launches to proceed concurrently                     GPU Driver          GPU Driver API         Stream Synchronize         Kernel Launch
+
+with GPU execution across batches.                                                OS               CPU Scheduler              Closed-source GPU Scheduler
+
+
+4     System Design                                                      Figure 6: Components in an autonomous driving system.
+This section presents the detailed design of UrgenGo, out-               4.2     Task Chain Urgency Estimation
+lining our design goals, and diving into its core modules.               With task chains set up, UrgenGo is ready to operate
+                                                                                                                          5       at run-
+UrgenGo supports transparent and efficient real-time sched-              time. To facilitate the prioritization of task chain instances
+uling for multi-task chains, with the following objectives:              (i.e., each data frame initiates an instance of the task chain),
+Deadline Compliance. Minimize missed deadlines of task                   we refine the definition of urgency level given in Eq. (1) to:
+chains of time-sensitive autonomous driving applications;                                                    1
+Transparency. Operate seamlessly with closed-source ap-                     𝑈 𝐿𝐶 (𝑡) =                                             , (2)
+                                                                                                           𝐸 ˜ − 𝑀 −1 𝐸 ˜ − 𝑡
+                                                                                                  Í𝑁 −1 𝑔𝑝𝑢       Í         𝑐𝑝𝑢
+                                                                                       𝑡 +𝐷 −𝑎𝑟𝑟                     ˜                             ˜
+plications and GPUs without requiring access to source code.                                                    𝑘=𝐼 𝑔𝑝𝑢     𝑘                 𝑗=𝐼 𝑐𝑝𝑢     𝑗
+Efficiency. Ensure low complexity and minimal delays to                  where 𝑈 𝐿𝐶 (𝑡) denotes the urgency level for task chain 𝐶, 𝑡𝑎𝑟𝑟
+maintain fast, responsive GPU scheduling.                                denotes the arrival time of the input data frame, 𝐷 denotes
+                                                                         the task chain’s deadline which is usually made known by
+4.1      Task Chain Deployment                                           the applications, 𝑁 denotes the total number of GPU kernels
+Autonomous driving systems are typically organized as mod-                                     ˜ denotes the index of the currently
+                                                                         in the task chain, 𝐼 𝑔𝑝𝑢
+ular task chains deployed using middleware frameworks like
+                                                                         executing kernel, and 𝐸𝑘˜ denotes the estimated execution
+                                                                                                  𝑔𝑝𝑢
+ROS2. The deployment process involves four key steps, fol-
+                                                                         time for each kernel. Additionally, 𝑀 is the number of CPU
+lowing the approach in [22]: (1) implementing tasks using                                               ˜ is the index of the currently
+                                                                         segments in the task chain, 𝐼 𝑐𝑝𝑢
+ROS2 interface with closed-source libraries like cuPCL [4]                                           ˜
+                                                                                                    𝑐𝑝𝑢
+for point cloud filtering, TensorRT [1] for neural networks;             executing CPU segment, 𝐸 𝑗 is the estimated execution time
+(2) defining inter-task message formats; (3) connecting tasks            for each CPU segment, and 𝑡 denotes the current time.
+into chains with application-defined deadlines; and (4) map-                The value of 𝑈 𝐿𝐶 (𝑡) is evaluated in the runtime. On the
+ping each task to a single-threaded ROS2 executor. To allow              one hand, we perform simple bookkeeping, such as the ar-
+concurrent GPU execution of kernels from multiple execu-                 rival time of the input data frame 𝑡𝑎𝑟𝑟 . On the other hand,
+tors within the same address space, we consolidate all execu-            we perform prediction of several important variables such
+                                                                         as execution times of GPU kernels 𝐸𝑘˜ and CPU segments
+                                                                                                               𝑔𝑝𝑢
+tors into a single process. This setup ensures that UrgenGo
+operates cohesively and efficiently. Fig. 6 shows the resulting          𝐸 ˜ , as well as the index of the currently executing GPU
+                                                                           𝑐𝑝𝑢
+                                                                          𝑗
+system architecture after deployment.                                              ˜ and CPU segment 𝐼 𝑐𝑝𝑢 ˜ .
+                                                                         kernel 𝐼 𝑔𝑝𝑢
+   At this stage, we have multiple task chains deployed, each
+                                                                            To predict the execution time of CPU segments 𝐸 𝑗˜ for the
+                                                                                                                             𝑐𝑝𝑢
+consisting of several tasks with CPU/GPU segments as il-
+lustrated in Fig. 2. We further propose incorporating a non-             current data frame, we use the POSIX API clock_gettime() to
+intrusive offline profiling stage, where each chain processes            record and calculate moving averages across recent instances
+                                                                         as 𝐸 𝑗˜ . For GPU kernels, instead of directly measuring po-
+                                                                              𝑐𝑝𝑢
+test data in isolation and execution statistics are collected
+through API interception. This profiling captures the num-               tentially inaccurate execution times due to GPU sharing and
+ber of GPU kernels 𝑁 and CPU segments 𝑀 per chain, plus                  closed-source GPU drivers, we record grid size 𝐷𝑔 and block
+creates a lookup table (Tab. 1) recording key parameters:                size 𝐷𝑏 for each kernel, then query the lookup table illus-
+                                                            𝑔𝑝𝑢
+grid dimension 𝐷𝑔 , block dimension 𝐷𝑏 , execution time 𝐸𝑘 ,             trated in Tab. 1 to obtain the corresponding execution times.
+GPU utilization 𝑈𝑘 , and the corresponding GPU segment ID.               The averaging recent results are then to predict 𝐸𝑘˜ .
+                                                                                                                             𝑔𝑝𝑢
+This lookup table maps input parameters to their correspond-                                                                   ˜ is the
+                                                                            Tracking the currently executing kernel index 𝐼 𝑔𝑝𝑢
+ing kernel execution time and utilization, accommodating
+                                                                         most challenging. We maintain a kernel launch counter for
+variations due to dynamic scene complexity.
+                                        𝑔𝑝𝑢
+                                                                         each chain, reset at new instances and incremented by one
+    Kernel ID Grid Size 𝐷𝑔 Block Size 𝐷𝑏 𝐸𝑘 (ms) 𝑈𝑘 (%) GPU Segment ID   with each kernel launch within the chain. However, due to
+        0          22           512        0.028  19          0
+        0          32           512        0.037  33          0          asynchronous kernel launching, 𝐼 𝑔𝑝𝑢˜ only reflects which ker-
+        1          40           512        0.044  42          1          nel is being launched, not which is currently executing on the
+      Table 1: Example lookup table for path finder [9].                 GPU. This “kernel execute-launch gap" can lead to inaccurate
+                                                                         urgency estimation, an issue addressed in Sec. 4.4.5. Once
+Conference’17, July 2017, Washington, DC, USA                                                                                                            Zhu et al.
+
+
+the last kernel of a GPU segment launches (identified during                       Task Thread in ROS2                  Closed-Source Library
+                                                                                    void callback(input):      Call     libraryAPI(input):
+                                             ˜ incremented
+profiling), a new CPU segment starts with 𝐼 𝑐𝑝𝑢                                        if not earlyChainExit(akb):         … invisible code …
+                                                                                          exit()                           # opaque cuda call
+by 1. Finally, we evaluate chain urgency 𝑈 𝐿𝐶 (𝑡) at three key                         output = libraryAPI(input)          kernel<<<…,stream𝐨𝐥𝐝 >>>(buffer)
+                                                                                       if deadlineMiss(akb):               … invisible code …
+points: when a new data frame arrives, when a new CPU seg-                                exit()                           return output
+                                                                                       publish(output)
+ment starts, and when a new kernel launches. Tab. 2 shows
+example results, including their total execution times.                            Mirrored CUDA API                   ① API Interception
+                                                                                    cuLaunchKernel(function *f, buffer, …, stream𝐨𝐥𝐝 ):
+                                                                                       # task-level CUDA stream binding
+4.3        Urgency-Centric CPU Scheduling                                              stream𝐧𝐞𝐰 = getStreamPriority(stream pool,akb)                                 ② In
+                                                                                       # kernel-level delayed launching
+Each time a task chain starts a new CPU segment at 𝑡 0 , we                            delayKernelLaunch(akb)
+                                                                                                                                ② Invoke
+calculate 𝑈 𝐿𝐶 (𝑡 0 ) and then map the urgency level to the                            functionEntry(f, buffer, …, stream𝐧𝐞𝐰 )
+                                                                                       # periodic urgency evaluation                               Invoke directly
+corresponding CPU priority 𝑃𝑅𝐼𝐶 for all active chains. We                              evaluateUrgencyLevel(akb)
+                                                                                       # update all necessary information to AKB                   if without
+do so by ranking their urgency levels at 𝑡 0 . More urgent task                        updateAKB(akb)                                              UrgenGo
+
+chains receive a lower 𝑃𝑅𝐼𝐶 , which translates to a higher                         Closed-source NVIDIA GPU Driver        …                 libcuda.so
+CPU priority. This priority 𝑃𝑅𝐼𝐶 is further normalized to
+  ¯ 𝐶 ∈ (1, 𝑁𝑈 𝑀_𝑃𝑅𝐼 ), where 𝑁𝑈 𝑀_𝑃𝑅𝐼 represents the
+𝑃𝑅𝐼                                                                               Figure 7: Kernel manipulation with a mirrored CUDA API.
+total number of priority levels supported by the operating
+system. Tab. 2 illustrates the chain priority assignment using                    implement such prioritization in the library. Thus, we de-
+an example workflow. This priority is then passed into the                        velop an API interception technique to achieve GPU priori-
+CPU scheduler to prioritize task threads:                                         tization through transparently manipulating kernel launch
+                                                    ¯ 𝐶 );
+sched_setscheduler(thread_id, SCHED_FIFO, priority=𝑃𝑅𝐼                            parameters such as priority, timing, and synchronization.
+  In addition, UrgenGo implements an early-chain-exit                                In particular, we create a mirrored version of the CUDA
+mechanism to conserve resources. Suppose a task starts exe-                       driver library, using the POSIX API dlsym() to wrap CUDA
+cution at time 𝑡 1 . If the chain urgency 𝑈 𝐿𝐶 (𝑡 1 ) < 0, then we                functions from the original driver library. By modifying the
+exit the chain without executing the remaining tasks.                             environment parameters 𝐿𝐷_𝐿𝐼 𝐵𝑅𝐴𝑅𝑌 _𝑃𝐴𝑇 𝐻 , we instruct
+                                                                                  the Linux dynamic linker ld.so to load our custom mirrored
+4.4        Urgency-Aware GPU Prioritization                                       library at runtime. When a task invokes CUDA function
+           through Transparent Kernel Launch                                      calls, such as cuLaunchKernel() shown in Fig. 7 (see its API
+           Manipulation                                                           details in Sec. 2), the dynamic linker resolves the symbols
+4.4.1 Kernel Launch Manipulation through API Interception.                        and redirects the calls to our custom implementations.
+The core innovation of UrgenGo lies in prioritizing kernels                          Here, we mainly intercept the function calls correspond-
+that are launched and executed on GPU. The closed-source                          ing to the following three operations: kernel launch, memory
+nature of third-party libraries makes it impossible to directly                   copy, and stream synchronization, as summarized in Tab. 3.
+                                                                                  Among these three operations, we focus primarily on sched-
+                         Period 𝐷     𝑐𝑝𝑢       𝑔𝑝𝑢    Urgency Priority
+                                                                                  uling kernel launches because they offer the most prioriti-
+Chain       Modality                      (ms) 𝐸𝐶 (ms)
+                                    𝐸
+                          (ms) (ms) 𝐶                  𝑈 𝐿𝐶 (𝑡 ) 𝑃𝑅𝐼𝐶             zation capability by manipulating both the timing and the
+ 𝐶0          LiDAR        150     120   17.4 (± 4.9) 28.4 (± 3.0)   0.0134    6   stream priority of the kernels. Memory copy operations rank
+ 𝐶1          LiDAR        150     120   16.2 (± 3.2) 28.4 (± 3.1)   0.0132    7   second by supporting the timing control. The last category,
+ 𝐶2          Camera       500     120   21.0 (± 4.6) 27.0 (± 1.3)   0.0138    5
+ 𝐶3          Camera       200     120   20.2 (± 1.7) 30.2 (± 1.3)   0.0143    2   stream synchronization, provides various synchronization
+ 𝐶4          Camera       150     120   21.8 (± 2.7) 19.5 (± 2.8)   0.0127    8   mechanisms. When teamed with cuLaunchKernel(), kernel
+ 𝐶5          Camera       200     120   20.2 (± 1.7) 30.2 (± 1.3)   0.0143    3
+ 𝐶6          Camera       200     120   21.8 (± 2.7) 19.5 (± 2.8)   0.0127    9   launch synchronization is achieved.
+ 𝐶7          Camera       500     120   21.0 (± 4.6) 27.0 (± 1.3)   0.0138    4
+ 𝐶8          LiDAR        200     120   21.3 (± 3.9) 19.7 (± 2.9)   0.0126   10   4.4.2 Active Kernel Buffer. Once a kernel launch is in-
+ 𝐶9       Camera+LiDAR    500     120   11.2 (± 1.4) 46.1 (± 4.2)   0.0159    1
+ 𝐶 10         Text        5000    200   17.8 (± 4.6) 6.7 (± 2.9)    0.0050   11
+                                                                                  tercepted, the kernel to be launched becomes “active” in
+                                                                                  our notion, until it completes execution and synchronizes
+Table 2: Characteristics of an example workflow. Please refer
+to Sec. 5 for a detailed setting for 𝐶 0 to 𝐶 10 .
+                                                                                  with the cuStreamSynchronize()/cuEventSynchronize(). To
+                                                                                  record the state of the active kernel, we define a data class
+                                                                                  𝐴𝑐𝑡𝑖𝑣𝑒𝐾𝑒𝑟𝑛𝑒𝑙𝐵𝑢 𝑓 𝑓 𝑒𝑟 (AKB) in component_manager.hpp
+        Function Name            Timing               CUDA Stream Pirority
+                                                                                  within ROS2, which is shared among all task chains. Each
+   cuLaunchKernel()    Delayed Launching    Dynamic Stream Binding
+      cuMemCpy()       Delayed Launching        No Stream Priority                task chain maintains its own instance of AKB to prevent
+ cuStreamSycnhronize()     Zero Load     Consistent with cuLaunchKernel()         race conditions. For each active kernel 𝐾, we maintain its
+Table 3: Intercepted function calls and their modifications.                                                  ¯ 𝐶 ,𝑇𝐾 , 𝑈 𝐿𝐶 (𝑇𝐾 )), with Kernel ID
+                                                                                  AKB entry (𝐾, 𝑈𝐾 , 𝑆𝐾 , 𝐶, 𝑃𝑅𝐼
+                                                                                  𝐾, Profiled GPU utilization 𝑈𝐾 , Stream ID 𝑆𝐾 which denotes
+UrgenGo: Urgency-Aware Kernel Launching                                                    Conference’17, July 2017, Washington, DC, USA
+
+
+
+
+    (a) Without Stream Binding (b) With Stream Binding
+Figure 8: Estimated urgency and the number of collisions
+across different instances of 𝐶 2 , when co-running 𝐶 0 to 𝐶 7 .
+Compared to (a), (b) has many more lighter-shaded points
+which indicates significantly fewer collisions.                     Figure 9: Urgency evaluation methods: (a) asynchronous
+                                                                    launching renders urgency evaluation challenging, (b) syn-
+the ID of the CUDA stream this kernel is bound to, Chain            chronous launching with per-kernel evaluation, (c) synchro-
+ID 𝐶, CPU priority 𝑃𝑅𝐼¯ 𝐶 . Most recent urgency level evaluation    nous batched launching, (d) overlapping batched launching.
+timestamp 𝑇𝐾 , and the last-evaluated urgency level 𝑈 𝐿𝐶 (𝑇𝐾 ).     𝑇 𝐻𝑢𝑟𝑔𝑒𝑛𝑡 . If a task’s urgency level 𝑈 𝐿𝐶 (𝑡) exceeds this thresh-
+Once the kernel completes execution and synchronizes, its           old – indicating a higher likelihood of missing its deadline –
+record is deleted from the AKB.                                     it is assigned the highest stream priority. For the remaining
+   The overhead for accessing/updating AKB is minimal, e.g.,        tasks, we access AKB and rank their 𝑈 𝐿𝐶 (𝑡) values, then
+0.5 µs for updating with an 11th Gen Intel Core i7-11800H pro-      normalize these rankings to the range (1, 𝑁𝑈 𝑀_𝑃𝑅𝐼 − 1) to
+cessor, and its memory consumption is also modest, amount-          select 𝑠𝑡𝑟𝑒𝑎𝑚𝑛𝑒𝑤 accordingly. With this binding policy, we
+ing to 1KB for all 9 task chains described in Tab. 2.               effectively reduce the total number of kernel collisions, as
+                                                                    illustrated in Fig. 8, where the presence of lighter-shaded
+4.4.3 Task-Level Stream Binding with Reservation. When a
+                                                                    points indicates fewer collisions.
+task’s first kernel is about to be launched, we intercept the
+kernel launch API and perform stream binding, which in-             4.4.4 Delayed Kernel Launching. Since multiple task chains
+volves binding the kernel to a CUDA stream dynamically              execute simultaneously, there are often multiple active ker-
+with a suitable priority level to ensure urgency-aware ex-          nels whose executions may collide on the GPU. To minimize
+ecution. Specifically, UrgenGo maintains a pool of CUDA             deadline misses, it is important to prioritize these kernels
+streams for each task, with each stream assigned a different        and have the most urgent kernel execute early and if possible
+priority. The number of streams in this pool equals the maxi-       execute alone. Please note that the task-level stream bind-
+mum number of stream priorities (𝑁𝑈 𝑀_𝑃𝑅𝐼 ) supported by            ing only considers the urgency level when the first kernel
+the GPU hardware. Upon intercepting a kernel launch, Ur-            of a task is about to be launched, without considering the
+genGo replaces the original stream identifier 𝑠𝑡𝑟𝑒𝑎𝑚𝑜𝑙𝑑 , with      dynamically changing urgency level as kernels of the same
+a new stream identifier 𝑠𝑡𝑟𝑒𝑎𝑚𝑛𝑒𝑤 , as illustrated in Fig. 7.       task proceed. For example, a task that has just missed its
+Once 𝑠𝑡𝑟𝑒𝑎𝑚𝑛𝑒𝑤 is selected for the first kernel, all subse-         deadline will likely have a significant drop in urgency but
+quent kernels in that task are bound to the same 𝑠𝑡𝑟𝑒𝑎𝑚𝑛𝑒𝑤          may remain bound to a high-priority stream.
+to respect data dependencies between these kernels.                    To minimize collisions among active kernels, we learn
+   However, selecting 𝑠𝑡𝑟𝑒𝑎𝑚𝑛𝑒𝑤 for each task is non-trivial        from the rich experience in wireless MAC protocols [46] and
+due to the limited number of available priorities (𝑁𝑈 𝑀_𝑃𝑅𝐼 ),      propose delayed launching. When a task is about to launch
+a large number of tasks, as well as unpredictable launch times.     a kernel 𝐾, it first accesses AKB to check the urgency lev-
+It is likely to have the problem of priority collision – i.e., a    els of all other active kernels. If there exists a kernel with
+very urgent task is bound to the same stream priority as a          an urgency level that exceeds the high urgency threshold
+non-urgency task, or even worse inverted binding – i.e., a          𝑇 𝐻𝑢𝑟𝑔𝑒𝑛𝑡 , the task delays kernel 𝐾’s launch by entering a
+very urgent task is inversely bound to a stream with lower          sleep loop. During the sleep loop, the task periodically sleeps
+priority than a non-urgency task. We collectively refer to          and wakes up (e.g., every 1 ms used in our evaluation) to
+these issues as kernel collision. To address this, we propose       evaluate its urgency and consult AKB. If the urgent kernels
+to reserve the highest stream priority (i.e., -5) for those tasks   are still in AKB, the task remains in the loop; otherwise, it ex-
+whose urgency are above the truly urgent threshold 𝑇 𝐻𝑢𝑟𝑔𝑒𝑛𝑡 .      its the loop and proceeds to launch kernel 𝐾 and subsequent
+   To properly set up the threshold, we profile the urgency         kernels in the task. Here, we choose a relatively large delay
+level distribution by periodically recording the highest ur-        duration for two reasons: (1) the subsequent kernels for the
+gency value among all active kernels in AKB. We then calcu-         truly urgent kernel are usually also truly urgent, and (2) a
+late the 95th percentile urgency from the collected data to set     longer sleep can better amortize the context switch overhead.
+Conference’17, July 2017, Washington, DC, USA                                                                              Zhu et al.
+
+
+Finally, please note that kernels with extremely low GPU
+utilization (e.g., less than 0.1) are exempt from the delayed
+launching process, as they are considered less disruptive.
+4.4.5 Periodic Urgency Evaluation through Batched Kernel
+Launching. As mentioned earlier in Sec. 4.2, tracking which
+kernel is being executed on the GPU is challenging due
+to the lack of synchronization for kernel launches. Firstly,
+                                                                   Figure 10: Data collection and evaluation are conducted on
+the default asynchronous kernel launching mode illustrated
+                                                                   a self-driving bus, which is equipped with 3 LiDARs and 6
+in Fig. 9(a), only requires kernel synchronization after launch-   cameras. The collected data is visualized to showcase the
+ing the last kernel of a stream. As a result, we are unable        output from different task chains.
+to obtain the index of the kernel that is executing on the          createStreamPool(Stream Pool) → void;
+GPU at a given time. This will hinder the accurate estima-          getStreamPriority(Stream Pool, AKB) → stream ID;
+tion of the urgency level during the execution of a stream          delayKernelLaunch(AKB) → flag;
+of kernels. Secondly, a straightforward method to address           evaluateUrgencyLevel(AKB) → urgency;
+this issue is to adopt synchronous kernel launching, which          updateAKB(AKB) → void;
+inserts synchronization calls cudaStreamSynchronize() after        Experiment Platform. We implement UrgenGo using
+each kernel launch to track kernel completion, as illustrated      ROS2 Foxy Fitzroy [33] on Ubuntu 20.04. The experiment
+in Fig. 9(b). However, with such synchronous mode, the ker-        platform features an industrial-grade Nuvo-8108GC [2]
+nel launch/synchronization time on the CPU and the kernel          server, designed for in-vehicle applications. It is equipped
+execution time on the GPU are serialized. Given that both          with an NVIDIA RTX 3070Ti GPU operating at 1.44 GHz,
+times can be substantial (e.g., accounting for 7 ms for launch-    and an Intel(R) Core(TM) i7-9700E CPU processor (8 cores)
+ing 323 kernels in 2D object detection, and 10~200 µs for each     running at 2.6 GHz. The GPU has 46 stream multiprocessors
+synchronization call in NVIDIA 3070Ti), this serial execution      (SMs), each containing 128 CUDA cores and 4 tensor cores.
+pattern incurs an excessive overhead.                              All GPU tasks are written and compiled with CUDA 11.4.
+   To strike a balance between accurate kernel execution           Task Chain Setup. We collaborate with a self-driving start-
+tracking and low launching overhead, we propose batched            up to develop a realistic autonomous navigation applica-
+kernel launching, where a synchronization call is inserted         tion, comprising 11 task chains across 6 service domains. As
+after launching a batch of kernels rather than after each          shown in Tab. 2, the 3D perception chains (𝐶 0, 𝐶 1 ) integrate
+kernel, enabling periodic urgency evaluation , illustrated in      PointPillars [24] for 3D detection, and particle filtering [9]
+Fig. 9(c). Specifically, we define a maximum interval Δ𝑒𝑣𝑎𝑙 ,      for tracking; the 2D perception chains (𝐶 2 to 𝐶 7 ) utilize 2D
+during which kernels are launched without synchronization,         object detection [15], face detection [11], traffic sign classifi-
+as long as the sum of their estimated GPU execution time           cation [19], and segmentation [32]; the localization and nav-
+remains less than Δ𝑒𝑣𝑎𝑙 . Once this sum exceeds the interval,      igation chain (𝐶 8 ) employs ICP for LiDAR-based SLAM [12],
+a synchronization call is inserted, and a new batch is started.    feeding results into a path finding algorithm for global/local
+   Batched kernel launching improves overhead overlap, but         planning; the calibration chain [21] (𝐶 9 ) leverages OpenCV
+synchronizes each batch. Small Δ𝑒𝑣𝑎𝑙 values may still cause        and cuPCL [4] for fast feature extraction and alignment;
+synchronization bottlenecks. To alleviate it, we employ a          the interaction chain (𝐶 10 ) runs a LLAMA2-7B [42] for text
+batch overlapping scheme, where synchronization calls wait         generation. These chains execute periodically with a 15 𝑚𝑠
+for the previous batch to complete, rather than the current        jitter using closed-source frameworks like TensorRT [1] and
+one. We implement this using lightweight CUDA events to            cuPCL [4]. Profiling results (Tab. 4) provide key performance
+mark batch starts and cuEventSynchronize(CUevent event)            metrics for each task, including kernel count 𝑁 , GPU execu-
+to wait for specific launching events. This allows UrgenGo         tion time 𝐸𝑔𝑝𝑢 , and input size 𝑁𝑠 . Input size varies based on
+to maximize the overlap between CPU kernel launching               the task – image resolutions for 2D tasks, point cloud count
+overheads and GPU executions, minimizing periodic urgency          for 3D detection and registration, particle count for tracking,
+evaluation overhead. To ensure that all the overheads are          map size for planning, and text length for LLM processing.
+fully overlapped, we set Δ𝑒𝑣𝑎𝑙 to a slightly larger value of
+0.5 𝑚𝑠, without compromising estimation accuracy.                  6 Evaluation
+5     Implementation                                               6.1 Experiment Setting
+We have implemented a prototype UrgenGo system in C++              To evaluate UrgenGo, we implemented an autonomous nav-
+with about 4.5K lines of code. The source code will be released    igation application on a self-driving bus equipped with
+before the conference. Below we list five key functions:           cutting-edge sensors: 3 Robosense RS-Helios LiDARs and
+UrgenGo: Urgency-Aware Kernel Launching                                                                       Conference’17, July 2017, Washington, DC, USA
+
+
+6 FLIR Blackfly color cameras. Our data collection spanned                               6.3    Comparison with Baseline Schedulers
+an extensive two-week period with ROSBAG, recording di-                                  Baseline Schedulers. We compare UrgenGo against four
+verse scenarios across a 480,000 square meter testing campus,                            baselines: PAAM [14], dCUDA [17], cCUDA [36], and vanilla
+under various environmental conditions. The LiDAR point                                  CUDA. PAAM [14], the latest state-of-the-art scheduler for
+clouds were captured at 10FPS, while image streams were                                  multi-task-chain applications, assigns predefined critical-
+recorded at 15FPS. Our evaluation consisted of two phases:                               ity levels to each chain and statically sets CPU and GPU
+(1) a trace-based evaluation, where data was recorded and                                priorities using the CAPA policy [10]. Tasks with tighter
+replayed using ROSBAG to isolate scheduling effects from                                 deadlines are assigned higher criticality, determined via of-
+navigation behavior, ensuring a repeatable environment for                               fline profiling. dCUDA is a dynamic GPU scheduling frame-
+fair comparison. Each experiment lasted 10 minutes; and (2)                              work optimized for multi-tenant GPU serving. It maximizes
+a long-term evaluation, where all data was generated and                                 GPU utilization by grouping kernels with complementary
+processed in real-time over a two-hour period, providing                                 occupancy levels. Within each group, low-utilization ker-
+deeper insights into system performance. Fig. 10 shows our                               nels receive higher CUDA priority, while groups execute
+vehicle and sample data collected during experiments.                                    in a Round-Robin manner. cCUDA introduces kernel split-
+                                                                                         ting, a new dimension for kernel manipulation. It categorizes
+6.2      Evaluation Metrics
+                                                                                         kernels into compute-bound or memory-bound, then splits
+The primary metric used is the overall deadline miss ratio, de-                          them into sub-kernels for optimized co-scheduling, improv-
+fined as the average of individual miss ratios across multiple                           ing concurrency and resource utilization.
+task chains. It is calculated as follows:                                                Overall Performance with Different Arrival Rates. In
+                                                          𝑁 −1 𝑚𝑖𝑠𝑠
+                                                       1 ∑︁ 𝑀𝐶𝑖                          the first experiment, we evaluate how UrgenGo adapts to
+           Overall Deadline Miss Ratio =                ∗            ,            (3)
+                                                       𝑁 𝑖=0 𝑀 𝑡𝑜𝑡𝑎𝑙                     varying task arrival rates while keeping 𝑓𝑑 and 𝑓𝑡𝑖𝑔ℎ𝑡 fixed.
+                                                                   𝐶𝑖
+                                                                                         As shown in Fig. 11, performance declines across all meth-
+where 𝑀𝐶𝑚𝑖𝑠𝑠
+           𝑖
+               and 𝑀𝐶𝑡𝑜𝑡𝑎𝑙
+                       𝑖
+                           represent missed and total task in-                           ods as the arrival rate increases. However, UrgenGo con-
+stances of chain 𝐶𝑖 , and 𝑁 is the total number of chains. The                           sistently outperforms the baselines, demonstrating its ro-
+second metric is task chain latency, reflecting the execution                            bustness even under heavy loads. For example, at 𝑓𝑎 = 0.9,
+time and overhead introduced by UrgenGo. The execution                                   UrgenGo achieves a deadline miss rate of 3.8%, representing
+time of each task chain is reported in Tab. 2. To ensure a                               relative reductions of 79%, 61%, and 76% compared to vanilla
+comprehensive evaluation, we divide the 11 task chains into                              CUDA, PAAM, and dCUDA, respectively. We also observe
+two workflows: the first includes 𝐶 0 to 𝐶 9 , and the second                            that dCUDA’s performance falls between that of UrgenGo
+includes 𝐶 6 to 𝐶 10 . We use a base deadline of 120 ms and                              and vanilla CUDA. This is because dCUDA considers only
+set arrival rates as the reciprocal of the periods listed in the                         task utilization and employs a fairness-oriented round-robin
+table. To simulate varying deadline constraints, we modify                               scheduling policy, whereas UrgenGo is both utilization- and
+the base setting by halving the deadlines for a subset of task                           deadline-aware, making it better suited for real-time tasks.
+chains, controlled by a factor 𝑓𝑡𝑖𝑔ℎ𝑡 . Additionally, we scale                           Overall Performance with Different Deadlines. In the
+the base arrival rates by a factor 𝑓𝑎 , ranging from [0.5, 1.3],                         second experiment, we investigate how UrgenGo responds
+and the base deadlines by a factor 𝑓𝑑 , ranging from [0.7, 1.5].                         to varying deadlines. We fix 𝑓𝑎 and 𝑓𝑡𝑖𝑔ℎ𝑡 while scaling 𝑓𝑑 .
+This setup effectively simulates real-world conditions. Un-                              As shown in Fig. 12, all methods experience a reduction in
+less stated otherwise, we use task chains 𝐶 0 to 𝐶 9 , set 𝑓𝑡𝑖𝑔ℎ𝑡                        deadline miss rates as 𝑓𝑑 increases, with UrgenGo continues
+to 40%, 𝑓𝑑 to 1.0, and 𝑓𝑎 to 1.0 as the default setting.                                 to outperform the other methods. At 𝑓𝑑 = 1.5, both UrgenGo
+                                                                                         and PAAM maintain miss rates below 1.5%, significantly
+                                                                                         outperforming dCUDA and the native GPU scheduler. Under
+                                                          # of
+             Task                 Input Size 𝑁𝑠                   TensorRT 𝐸𝑔𝑝𝑢 (ms)     a stricter deadline of 𝑓𝑑 = 1.0, UrgenGo achieves a miss ratio
+                                                       Kernels 𝑁𝑘
+  3D Object Detection [24] 22 000 ≤ 𝑁𝑠 ≤ 25 000            41       Y     13.4 (± 1.3)   of 6.4%, resulting in a relative reduction of 54%, 63%, and
+     Particle Filtering [9]      2 500 ≤ 𝑁𝑠 ≤ 8 000        16       N     15.0 (± 2.8)   68%, compared to PAAM, dCUDA, and vanilla CUDA. These
+  2D Object Detection [15]         𝑁𝑠 =1x640x640           323      Y     19.8 (± 1.2)
+      Face Detection [11]         𝑁𝑠 =10x112x112           225      Y     7.1 (± 1.3)    results emphasize UrgenGo ’s strength in handling kernel
+Traffic Sign Classification [19] 𝑁𝑠 =1x224x224             65       Y     10.4 (± 1.2)   collisions, even as deadlines become more flexible.
+  Image Segmentation [32]          𝑁𝑠 =1x640x640           63       Y     11.5 (± 1.2)
+        Path Finding [9]        6 400 ≤ 𝑁𝑠 ≤ 15 360        256      N     8.0 (± 2.9)
+                                                                                         Overall Performance with Varying Tight Deadline Ra-
+      ICP Registration [4]      22 000 ≤ 𝑁𝑠 ≤ 65 000       40       N     21.3 (± 3.9)   tios. In this experiment, we examine how UrgenGo responds
+   Online Calibration [21]         𝑁𝑠 =1x640x640           133      N     11.2 (± 1.4)   to different proportions of tight deadline task chains, as some
+       LLAMA2-8B [42]                𝑁𝑠 ≤ 400             1106      N     17.8 (± 4.6)
+                                                                                         tasks may have stricter deadlines while others allow more
+              Table 4: GPU task profiling results.                                       flexibility. We fix 𝑓𝑎 and 𝑓𝑑 while scaling 𝑓𝑡𝑖𝑔ℎ𝑡 . As shown
+Conference’17, July 2017, Washington, DC, USA                                                                                                                                                                                                                                                                                                                                                                                                                                        Zhu et al.
+
+                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                   8UJHQ*R                                                                                                                                      8UJHQ*R                                                                         8UJHQ*R                                                                                                                   8UJHQ*R
+
+
+
+
+                                                                                                                                                                                                                                                   2YHUDOO0LVV5DWLR
+   2YHUDOO0LVV5DWLR
+
+
+
+
+                                                                                                                        2YHUDOO0LVV5DWLR
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                  2YHUDOO0LVV5DWLR
+                                                               9DQLOOD&8'$                                                                                                                        9DQLOOD&8'$                                                           9DQLOOD&8'$                                                                                                     9DQLOOD&8'$
+                                                                   3$$0                                                                                                                                            3$$0                                                                               3$$0                                                                                                                         3$$0
+                                                               G&8'$
+                                                                                                                                                                                                                   G&8'$
+                                                                                                                                                                                                                                                                                                          G&8'$
+                                                                                                                                                                                                                                                                                                                                                                                                                                           G&8'$
+                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                             
+                                                                                                                                                                                                                                                                                                      
+                                                                 1RUPDOL]HG$UULYDO5DWH                                                                               1RUPDOL]HG'HDGOLQH                                                                       1XPRI&KDLQVZLWK7LJKW'HDGOLQHV                                                              1RUPDOL]HG$UULYDO5DWH
+ Figure 11: Performance with Figure 12: Performance with Figure 13: Performance with Figure 14: Performance on
+ different arrival rates.                                                                                               different deadlines.                                                                                                       different tightness.                                                                                                           different workflow.
+                                                  
+                                                                                      8UJHQ*R                                                                                         8UJHQ*R
+ 2YHUDOO0LVV5DWLR
+
+
+
+
+                                                                                                                          2YHUDOO0LVV5DWLR
+
+                                                                                                                                                                                                                                                                                                                       VWUHDPV                                                                                                       8UJHQ*R               /8)
+
+
+
+
+                                                                                                                                                                                                                                                     2YHUDOO0LVV5DWLR
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                  2YHUDOO0LVV5DWLR
+                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                      9DQLOOD&8'$                                                                               ZR'HOD\HG/DXQFKLQJ                                                                                VWUHDPV                                                                                                       3$$0                     +551
+                                                                                  3$$0                                                                                           ZR6WUHDP%LQGLQJ                                                                                  VWUHDPV                                                                                                   (')                       6-)
+                                                                                      G&8'$                                                                                         ZR%RWK0RGXOHV                                                                                      VWUHDP                                                                                                     6$(')                   9DQLOOD&8'$
+                                                  
+                                                                                                                                                                                         9DQLOOD&8'$                                                                                              9DQLOOD&8'$                                                                                             (4')
+                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                             
+                                                                                                                                                                                                                                                                                                                                                           
+                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+         1RUPDOL]HG'HDGOLQH                                                                                                                                         1RUPDOL]HG$UULYDO5DWH                                                                                1RUPDOL]HG$UULYDO5DWH                                                                         1RUPDOL]HG$UULYDO5DWH
+ Figure 15: Performance on                                                                                              Figure 16: Ablation studies                                                                                                Figure 17: Impact of differ- Figure 18: Impact of differ-
+ NVIDIA Jetson AGX Orin.                                                                                                on key modules.                                                                                                            ent stream numbers.                                                                                                            ent scheduling policies.
+in Fig. 13, deadline miss rates increase across all methods                                                                                                                                                                                                                         section uses the default settings of 𝑓𝑡𝑖𝑔ℎ𝑡 = 40% and 𝑓𝑑 = 1.0
+as 𝑓𝑡𝑖𝑔ℎ𝑡 increases. When 𝑓𝑡𝑖𝑔ℎ𝑡 = 0, all methods maintain                                                                                                                                                                                                                          to ensure consistent comparison across experiments.
+a deadline miss rate below 1.5%. However, as 𝑓𝑡𝑖𝑔ℎ𝑡 grows,                                                                                                                                                                                                                          Stream Binding and Delayed Launching. To understand
+the performance gap between UrgenGo and the baseline                                                                                                                                                                                                                                the independent and combined impact of stream binding
+methods widens. For instance, compared to PAAM, this gap                                                                                                                                                                                                                            and delayed launching, we evaluate them in isolation and
+increases from 4.6% to 12.4% as 𝑓𝑡𝑖𝑔ℎ𝑡 rises from 10% to 60%.                                                                                                                                                                                                                       together. Fig. 16 shows that when 𝑓𝑎 = 1.0, delayed launch-
+Overall Performance with Different Workflows. The                                                                                                                                                                                                                                   ing alone reduces the deadline miss rate by 5.7%, while
+previous experiments were conducted using task chains 𝐶 0                                                                                                                                                                                                                           stream binding reduces it by 10.1%. When used together,
+to 𝐶 9 . To further validate the performance of UrgenGo across                                                                                                                                                                                                                      they achieve a 15.8% reduction. This confirms that these tech-
+different workflows, we evaluate it using task chains 𝐶 6 to                                                                                                                                                                                                                        niques complement each other—delayed launching mitigates
+𝐶 10 , which includes an LLM-based task chain. Unlike conven-                                                                                                                                                                                                                       kernel collisions, while dynamic stream binding efficiently
+tional chains, the LLM task chain uses the interval between                                                                                                                                                                                                                         allocates stream priorities based on task urgency.
+adjacent token generations as its deadline, based on human                                                                                                                                                                                                                          Number of Binding Streams. We also examine the effect
+reading speed [30] (e.g., 5 tokens/s). We fix 𝑓𝑎 , 𝑓𝑑 and 𝑓𝑡𝑖𝑔ℎ𝑡 at                                                                                                                                                                                                                 of varying the number of available streams on performance,
+their default settings, Fig. 14 shows that UrgenGo achieves                                                                                                                                                                                                                         as shown in Fig. 17. As expected, increasing the number of
+a deadline miss rate below 5% across different arrival rates                                                                                                                                                                                                                        streams from 1 to 6 consistently reduces the deadline miss
+and continues to outperform the baseline methods.                                                                                                                                                                                                                                   rate. The most significant drop, 7.1%, occurs when increasing
+Overall Performance with Different Hardware. In this                                                                                                                                                                                                                                from 1 to 2 streams, because this avoids the most frequent
+experiment, we evaluate the performance of UrgenGo on                                                                                                                                                                                                                               cases when two tasks collide. This highlights the importance
+a less powerful embedded device, the NVIDIA Jetson AGX                                                                                                                                                                                                                              of having multiple binding streams to reduce task contention,
+Orin. The Orin platform has a computational capability of 3.3                                                                                                                                                                                                                       though the benefit diminishes after reaching a threshold
+TFLOPS and 8 SMs, lower than the 21.7 TFLOPS and 46 SMs                                                                                                                                                                                                                             where additional streams provide little further improvement.
+of the NVIDIA RTX 3070 Ti. To accommodate Orin’s lower                                                                                                                                                                                                                              Comparison of different Policies. To assess the necessity
+computing power, we apply INT8 quantization to all neural                                                                                                                                                                                                                           of UrgenGo’s urgency-based policy, we compare it against
+networks. As shown in Fig. 15, the performance trend is simi-                                                                                                                                                                                                                       alternative approaches, including EDF-family such as EDF,
+lar to that observed in Fig. 12. At 𝑓𝑑 = 1.0, UrgenGo achieves                                                                                                                                                                                                                      SAEDF [16], and EQDF [16], utilization-based policy such
+a deadline miss rate of 7.8%, significantly outperforming the                                                                                                                                                                                                                       as Lowest Chain Utilization First [8], as well as SJF-family
+vanilla CUDA’s 29.9%, PAAM’s 20.1%, and dCUDA’s 20.6%.                                                                                                                                                                                                                              such as SJF and Highest Response Ratio Next (HRRN). Fig. 18
+                                                                                                                                                                                                                                                                                    shows that UrgenGo consistently outperforms all other poli-
+                                                                                                                                                                                                                                                                                    cies. When 𝑓𝑎 is 1.0, EQDF achieves the best performance
+6.4                                                       Exploring UrgenGo Design Options                                                                                                                                                                                          among the baseline policies with a deadline miss rate of
+Next, we examine the core modules of UrgenGo to quantify                                                                                                                                                                                                                            13.05%, while UrgenGo achieves 7%. This result highlights
+their contributions and evaluate key design options. This
+UrgenGo: Urgency-Aware Kernel Launching                                                                                                                                                                                                                                                                                                                  Conference’17, July 2017, Washington, DC, USA
+
+                                                                                                                                                                                                                                                                                             
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                         2SHUDWLRQDO2YHUKHDG
+                                                                                            ZR'HOD\HG/DXQFK                                                                  8UJHQ*R       6\QF%DWFKHG                                                                          PV
+
+
+
+
+                                                                                                                                   2YHUDOO0LVV5DWLR
+
+
+
+
+                                                                                                                                                                                                                                                  2YHUDOO0LVV5DWLR
+ 1XPRI&ROOLVLRQVî 
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                         9DQLOOD&8'$(($V\QF/DXQFK
+                                                                                            Z'HOD\HG/DXQFK                                                                6\QF             9DQLOOD&8'$                                                                          PV                                                                                          8UJHQ*R((%DWFKHGPV
+                                                                                                                                                                                                  $V\QF                                                                                                         PV                                                                                                8UJHQ*R((%DWFKHGPV
+                                                                                                                                                                                                                                                                                                           PV                                                                                            8UJHQ*R((6\QF/DXQFK
+                                                                                                                                                                                                                                                                                                                     PV                                                                                                    8UJHQ*R&38%DWFKHGPV
+                                                                                                                                                                                                                                                                                                                 9DQLOOD&8'$                                                                           
+                                                    
+                                                                                                                                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                   
+                                                         
+                                                                                                                                                                                                                                                                                           
+                                                                                                                             ''HWHFWLRQ 6HJPHQWDWLRQ )DFH'HWHFWLRQ
+        1XPRI&ROOLGLQJ7DVNV            1RUPDOL]HG$UULYDO5DWH                 1RUPDOL]HG$UULYDO5DWH                                           7DVN
+Figure 19: Impact of delayed Figure 20: Impact of synchro- Figure 21: Impact of urgency Figure 22: Operational over-
+launching on collisions.                             nization mechanisms.                                           evaluation intervals.                                          head across different tasks.
+                                                                                                                                                                                                                                                                                                     
+ 6FKHGXOLQJ2YHUKHDGV
+
+
+
+
+                                                                       6FKHGXOLQJ2YHUKHDGIRU&                                                                                          8UJHQ*R                                                                                            8UJHQ*R          3$$0                 9DQLOOD&8'$
+                                                                                                                                   7KURXJKSXWUHTV
+
+                                                                                                                                                                                                                 3$$0                                                                                
+                                                                                                                                                                                  
+
+
+
+
+                                                                                                                                                                                                                                                                                    /DWHQF\PV
+                                                                                                                                                                                                                       9DQLOOD&8'$
+                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                       
+                                                                                                                                                                                  
+                                                                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                                                                                                                                                                          
+           1XPRI7DVN&KDLQV         1RUPDOL]HG$UULYDO5DWH                                                                                                                                                                                                                                    7DVN&KDLQ,'
+ Figure 23: Scheduling over- Figure 24: Throughput of                                                                                                                                                                                                                                                                   Figure 25: Latency of different task chains.
+ head for task chain 𝐶 3 .                      different methods.
+that urgency-based policy leads to better prioritization for                                                                                                                                                                                                                       6.5                                  Evaluation of System Overhead
+multi-task chains under hybrid CPU and GPU execution.                                                                                                                                                                                                                            Operational Overhead. We first present the operational
+Delayed Launching Schemes. To investigate how delayed                                                                                                                                                                                                                            overhead of UrgenGo in Fig. 22 and Tab. 5, with each task
+launching reduces collisions, we track the number of kernel                                                                                                                                                                                                                      executed in isolation. Fig. 22 reports results for neural net-
+collisions for urgent kernels in Fig. 19. Most collisions occur                                                                                                                                                                                                                  work–based tasks, while Tab. 5 shows results for basic CUDA
+with two or three active tasks. Delayed launching reduces                                                                                                                                                                                                                        operations. Compared to vanilla CUDA (1.0×), UrgenGo–
+collisions by 41.1%, 55.7%, 46.0%, and 22.1% for 2, 3, 4, and                                                                                                                                                                                                                    using batched launching and a 0.5 ms urgency evaluation in-
+5 colliding tasks, respectively. This indicates that delayed                                                                                                                                                                                                                     terval – increases execution time by only 1% across all three
+launching is particularly effective in managing moderate                                                                                                                                                                                                                         tasks, indicating minimal overhead. The segmentation task is
+contention scenarios, typical in multi-task environments.                                                                                                                                                                                                                        less affected by the launching method due to its lower num-
+Kernel Launch Synchronization Mechanisms. We com-                                                                                                                                                                                                                                ber of kernel invocations (Tab. 4). We also report CPU-side
+pare kernel launch synchronization mechanisms to un-                                                                                                                                                                                                                             overhead, which is about 17% compared to vanilla CUDA.
+derstand how UrgenGo minimizes synchronization delays.                                                                                                                                                                                                                           Given that CPU launching time is typically small – e.g., 7 ms
+Fig. 20 shows that UrgenGo consistently outperforms syn-                                                                                                                                                                                                                         for 2D detection and 2 ms for face detection – and can often
+chronous and asynchronous approaches. At 𝑓𝑎 = 1.0, Ur-                                                                                                                                                                                                                           be hidden through asynchronous execution, this overhead
+genGo achieves a 7.0% miss rate, reducing miss rates by 5.6%,                                                                                                                                                                                                                    remains acceptable. Basic CUDA operations follow a sim-
+6.3%, and 16.2% compared to synchronous batched launch-                                                                                                                                                                                                                          ilar trend. Notably, we include the cudaGetDevice API in
+ing, asynchronous launching, and synchronous launching, re-                                                                                                                                                                                                                      Tab. 5 to explicitly measure API interception cost. cudaGet-
+spectively. This demonstrates that UrgenGo’s delayed launch-                                                                                                                                                                                                                     Device is a lightweight query requiring neither computation
+ing and dynamic urgency evaluation effectively balance syn-                                                                                                                                                                                                                      nor memory copying, and thus isolates the interception cost
+chronization overhead and task prioritization.                                                                                                                                                                                                                                   from kernel manipulation. Results show that API intercep-
+Urgency Evaluation Interval Δ𝑒𝑣𝑎𝑙 . We then investigate                                                                                                                                                                                                                          tion overhead is negligible at the microsecond level. Overall,
+the impact of different urgency evaluation intervals, Δ𝑒𝑣𝑎𝑙 ,                                                                                                                                                                                                                    the small operational overhead validates the efficiency of our
+on system performance in Fig. 21. Small intervals introduce                                                                                                                                                                                                                      custom GPU libraries.
+excessive overhead, while large intervals delay task prior-                                                                                                                                                                                                                      Scheduling Overhead. To further evaluate the implemen-
+itization updates. At 𝑓𝑎 = 1.0, a 0.5 ms interval achieves                                                                                                                                                                                                                       tation of our urgency-based scheduler, we measure the accu-
+the optimal balance, reducing the miss rate by up to 5.3%                                                                                                                                                                                                                        mulated scheduling overhead for task chain 𝐶 3 throughout
+compared to other intervals. This shows that UrgenGo’s de-                                                                                                                                                                                                                       its execution. Unlike operational overhead, which depends
+fault urgency evaluation settings provide a well-balanced                                                                                                                                                                                                                        mainly on the number of kernels within a task, scheduling
+trade-off between evaluation accuracy and synchronization                                                                                                                                                                                                                        overhead is determined primarily by the total number of task
+overhead.                                                                                                                                                                                                                                                                        chains due to the scheduler’s 𝑂 (𝑁 ) complexity. As shown
+                                                                                                                                                                                                                                                                                 in Fig. 23, the scheduling overhead scales linearly with the
+Conference’17, July 2017, Washington, DC, USA                                                                                                                                                                                                                                                                                                                                                                                                                  Zhu et al.
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                    8UJHQ*R                                                                                                            8UJHQ*R            9DQLOOD&8'$                                                              8UJHQ*R        $V\QF/DXQFK
+
+
+
+
+                                                                                                                       2YHUDOO0LVV5DWLR
+
+
+
+
+                                                                                                                                                                                                                                               2YHUDOO0LVV5DWLR
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                     2YHUDOO0LVV5DWLR
+                                                                  1RLVH 
+ 2YHUDOO0LVV5DWLR
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                        
+                                                                  1RLVH                                                                                             8UJHQ*RZR6KDULQJ                                                                                    F&8'$                G&8'$                                                                            F&8'$            G&8'$
+                                                              1RLVH 
+                                                                                                                                                                                F&8'$                                                                                                            3$$0                                                                                                    3$$0
+                                                              9DQLOOD&8'$                                                                                      3$$0                                                                                                                                                                                                                    
+                                                                                                                                                                            G&8'$                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                                                                                                
+                                                                                                                                                                                                                                                                                                                                                                                                 
+                                                                                        
+                                                                1RUPDOL]HG$UULYDO5DWH                   .HUQHO8WLOL]DWLRQ                                                                                 .HUQHO([HFXWLRQ7LPHPV         1XPEHURIFXGD)UHH
+ Figure 26: Impact of urgency                                                                                         Figure 27: Impact of GPU                                                                                                 Figure 28: Impact of the exe- Figure 29: Impact of the
+ evaluation error.                                                                                                    utilization of kernels.                                                                                                  cution time of kernels.                                     number of cudaFree calls.
+number of task chains. Specifically, when there are 20 task                                                                                                                                                                                                                  in task execution. To evaluate this, we introduce noise to
+chains, the total scheduling overhead is 34 𝜇s – only 0.07% of                                                                                                                                                                                                               the estimated execution times used to calculate task urgency,
+𝐶 3 ’s 48 ms execution time – indicating a negligible impact.                                                                                                                                                                                                                with noise uniformly sampled for each task instance (Fig. 26).
+Overall, these results confirm that the scheduling overhead                                                                                                                                                                                                                  Even with 30% of added noise, UrgenGo maintains an 8.9%
+of UrgenGo remains minimal across various scenarios.                                                                                                                                                                                                                         advantage over PAAM at 𝑓𝑎 = 1.0. This demonstrates that
+Overall Throughput. We then present the overall through-                                                                                                                                                                                                                     UrgenGo is resilient to imperfect urgency estimations, which
+put. The experiment is conducted on four task chains, each                                                                                                                                                                                                                   is critical to support real-world deployment where exact task
+configured identically to task chain 𝐶 3 . All task chains are                                                                                                                                                                                                               execution times are difficult to predict.
+executed without deadlines to better isolate the effect of Ur-                                                                                                                                                                                                               Impact of Kernel GPU utilization. Since high GPU uti-
+genGo on throughput. As shown in Fig. 24, at an arrival rate                                                                                                                                                                                                                 lization is common in resource-constrained environments,
+of 1.0, UrgenGo achieves a throughput of 19.60 req/s, slightly                                                                                                                                                                                                               it’s important to see how UrgenGo handles increasing uti-
+below PAAM’s 19.66 and vanilla CUDA’s 20.12. At an arrival                                                                                                                                                                                                                   lization without compromising scheduling performance. In
+rate of 4.0, UrgenGo reaches 42.45 req/s, compared to 43.35                                                                                                                                                                                                                  Fig. 27, we replace half of the GPU tasks with custom oper-
+for PAAM and 43.22 for vanilla CUDA. Although UrgenGo                                                                                                                                                                                                                        ations (vector addition [9] and histogram computation [9])
+incurs a slight throughput reduction due to its operational                                                                                                                                                                                                                  to control execution time and utilization, enabling fair com-
+overhead, the degradation remains modest – under 2.6%.                                                                                                                                                                                                                       parisons with cCUDA. We then incrementally increase the
+Latency for Each Task Chain. We include additional la-                                                                                                                                                                                                                       utilization levels of these custom kernels. As utilization rises,
+tency metrics to further illustrate UrgenGo’s performance.                                                                                                                                                                                                                   the deadline miss rate of UrgenGo increases from 4.1% to
+As shown in Fig.25, with 𝑓𝑡𝑖𝑔ℎ𝑡 = 30%, 𝑓𝑑 = 1.0, and 𝑓𝑎 = 1.0,                                                                                                                                                                                                               12.1%. However, UrgenGo consistently outperforms all other
+we report the latency of each task chain for UrgenGo, PAAM,                                                                                                                                                                                                                  methods across different utilization levels, indicating its ef-
+and vanilla CUDA. UrgenGo achieves the lowest average la-                                                                                                                                                                                                                    fectiveness in managing heavy GPU workloads. By contrast,
+tency at 74.0 ms, compared to 74.7 ms for PAAM and 78.7 ms                                                                                                                                                                                                                   cCUDA focuses solely on maximizing overall system utiliza-
+for vanilla CUDA. While UrgenGo is not explicitly designed                                                                                                                                                                                                                   tion without considering per-task time constraints, limiting
+to minimize task-chain latency, its dynamic prioritization                                                                                                                                                                                                                   its suitability for real-time workloads.
+strategy reduces kernel execution collisions, thereby indi-                                                                                                                                                                                                                  Impact of Kernel Execution Time. Since kernel execu-
+rectly lowering the latency.                                                                                                                                                                                                                                                 tion times vary significantly across workloads, it is crucial
+6.6                                                    Evaluation of Workload Parameters                                                                                                                                                                                     to study their impact on task performance. In Fig. 28, we
+                                                                                                                                                                                                                                                                             increase the execution time of custom kernels while main-
+In this section, we study the impact of key workload parame-                                                                                                                                                                                                                 taining a constant total task execution time by reducing the
+ters on the performance of UrgenGo, helping us understand                                                                                                                                                                                                                    number of kernels. As kernel execution times grow from
+its robustness under varied real-world conditions.                                                                                                                                                                                                                           0.05 ms to 2.0 ms, UrgenGo ’s miss rate increases by 4.9%, pri-
+Impact of Task Urgency Estimation Error. Understand-                                                                                                                                                                                                                         marily due to longer kernel collisions. This result highlights
+ing how sensitive UrgenGo is to errors in task urgency esti-                                                                                                                                                                                                                 a trade-off in task granularity – longer kernel durations lead
+mation is important, as real-world systems face uncertainty                                                                                                                                                                                                                  to higher contention and reduced overall efficiency.
+                                                                                                                                                                                                                                                                             Performance with cudaFree. cudaFree calls introduce
+                                                                                               UrgenGo                                                                                   Vanilla CUDA
+                                                                                                                                                                                                                                                                             global synchronization [45], which can significantly im-
+       Operation                                                          End-to-End Execution Time                                                                        End-to-End Execution Time
+                                                                          Latency (µs ) on CPU (µs )                                                                       Latency (µs ) on CPU (µs )                                                                        pact system performance, especially under heavy workloads.
+  vectorAdd   3341 (± 98)                                                                                  1152 (± 43)                                                     3312 (± 124)                        993 (± 35)                                                    To evaluate UrgenGo’s ability to handle this overhead, we
+  matrixMult   377 (± 47 )                                                                                  229 (± 45 )                                                     374 (± 47 )                        224 (± 37 )                                                   change the number of cudaFree calls across tasks in Fig. 29.
+   cudaFree    191 (± 42)                                                                                   188 (± 41)                                                      183 (± 41)                         180 (± 41)
+cudaGetDevice 4.16 (± 1.24)                                                                                1.19 (± 0.16)                                                   3.77 (± 1.08)                      1.16 (± 0.07)
+                                                                                                                                                                                                                                                                             When 4 tasks invoke cudaFree, PAAM’s miss rate drops from
+ Table 5: Operational overhead for basic operations.                                                                                                                                                                                                                         14.3% to 24.5%, and asynchronous launching drops from
+UrgenGo: Urgency-Aware Kernel Launching                                                 Conference’17, July 2017, Washington, DC, USA
+
+
+12.6% to 20.1%. In contrast, UrgenGo sees only a minor de-
+cline from 7.5% to 9.0%. demonstrating its resilience to global
+synchronization, whether introduced by frequent memory
+deallocation or other synchronization operations.
+
+6.7    Long Term Evaluation
+In this section, we study the long-term behavior of UrgenGo
+to understand how it performs over extended periods of
+operations. We conducted a two-hour live experiment using
+the default settings from the previous section.
+Runtime Resource Utilization. Fig. 30(a)(b) tracks CPU
+and GPU utilization averaged over one-second intervals. Ur-
+                                                                   Figure 30: Runtime statistics collected over a two-hour
+genGo shows 4.5% higher CPU usage and 4.8% higher GPU              period, with the X-axis representing time in minutes.
+usage than PAAM. This increase reflects the higher num-
+ber of tasks successfully scheduled on both the CPU and
+GPU, preventing idle cycles. In contrast, PAAM’s higher rate
+                                                                   prioritize kernel launches using CUDA streams based on
+of missed deadlines results in early task termination, lead-
+                                                                   predefined task criticality, with PAAM further optimizing
+ing to reduced resource utilization. This observation shows
+                                                                   both CPU/GPU prioritization for task chains and achiev-
+that UrgenGo, with its sustained higher utilization, can better
+                                                                   ing state-of-the-art performance. However, none of these
+handle continuous, real-time workloads without bottlenecks.
+                                                                   approaches considers priority, timing, and synchronization
+Runtime Kernel Collision Avoidance. Fig. 30(c)(d)
+                                                                   within a unified scheduling framework.
+presents the number of kernel collisions and task deadline
+                                                                   Transparent GPU Management. Several recent efforts
+misses over time. UrgenGo consistently experiences fewer
+                                                                   have focused on transparent GPU management. GPES [52]
+kernel collisions and a lower deadline miss rate than PAAM,
+                                                                   utilizes just-in-time binary code rewriting to insert SASS
+with average reductions of 51% and 48%, respectively, high-
+                                                                   code into GPU kernels, enabling faster preemption. TGS [43]
+lighting its effectiveness of task prioritization. Additionally,
+                                                                   intercepts interactions between containers and GPUs to facil-
+we observe that both collisions and deadline misses show pe-
+                                                                   itate performance isolation and memory over-subscription.
+riodic peaks and valleys, corresponding to synchronized sen-
+                                                                   VCUDA [37] employs API interception for GPU virtualiza-
+sor input cycles. Interestingly, these collisions and deadline
+                                                                   tion. GPUSync [13] and BWLOCK++[6] also adopt API inter-
+misses are not strictly correlated, suggesting an opportunity
+                                                                   ception, targeting deterministic execution. However, these
+to further optimize UrgenGo by focusing on mitigating only
+                                                                   methods focus primarily on kernel launch timing and are
+those collisions that lead to deadline misses.
+                                                                   not designed for real-time autonomous systems.
+7     Related Work                                                 8    Conclusion
+Task Scheduling for Mobile/Edge Applications. Many
+                                                                   In this paper, we presented UrgenGo, an urgency-centric,
+techniques have been proposed for scheduling mobile appli-
+                                                                   transparent task scheduling system for closed-source, multi-
+cations: RT-mDL [29] jointly considers DNN model scaling
+                                                                   task-chain applications with mixed real-time constraints and
+and scheduling at the task level. Miriam and nnJIT [34, 50]
+                                                                   hybrid CPU-GPU usage. Our results show that UrgenGo out-
+leverage compile-time optimizations at the kernel level, im-
+                                                                   performs the state-of-the-art in overall deadline miss rates
+proving their performance on edge devices. Soar [39] mit-
+                                                                   under realistic autonomous driving scenarios. We believe Ur-
+igates resource contention from multiple concurrent tasks
+                                                                   genGo will enable more responsive and adaptive autonomous
+through edge-node collaboration. Similarly, AccuMO [23]
+                                                                   driving systems in the future. Further, we believe UrgenGo’s
+and Elf [48] use edge offloading to distribute tasks to remote
+                                                                   scheduling strategies could be extended to similar CPS ap-
+devices. Despite their contributions, these solutions do not
+                                                                   plications with predictable workflows and dynamic data,
+address fine-grained GPU kernel manipulation at runtime.
+                                                                   offering insights to optimize mobile GPU tasks.
+GPU Kernel Scheduling and Manipulation. Several re-
+cent studies have explored fine-grained GPU kernel manip-
+ulation at runtime. Heimdall [47] and dCUDA [36] enable            Acknowledgments
+GPU time-sharing by partitioning applications into groups          This work was supported by the National Natural Science
+and executing them in distinct time slices, while cCUDA [36]       Foundation of China (No. 62332016) and the Key Research
+improves GPU concurrency through space sharing by split-           Program of Frontier Sciences, CAS (No. ZDBS-LY-JSC001).
+ting kernels into sub-kernels. PAAM [14] and DART [44]             Yanyong Zhang is the corresponding author.
+Conference’17, July 2017, Washington, DC, USA                                                                                                   Zhu et al.
+
+
+References                                                                      [19] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. 2016. Deep
+ [1] 2016. TensorRT. https://developer.nvidia.com/tensorrt.                          Residual Learning for Image Recognition. In 2016 IEEE Conference on
+ [2] 2020. Nuvo-8108GC. https://www.neousys-tech.com/en/product/                     Computer Vision and Pattern Recognition (CVPR). 770–778.
+     product-lines/edge-ai-gpu-computing/nuvo-8108gc-intel-9th-gen-             [20] Yuze He, Chen Bian, Jingfei Xia, Shuyao Shi, Zhenyu Yan, Qun Song,
+     nvidia-rtx-2080-250w-gpu-computing-platform/.                                   and Guoliang Xing. 2023. Vi-map: Infrastructure-assisted real-time
+ [3] 2021. ISAAC SLAM. https://github.com/NVIDIA-ISAAC-ROS/isaac_                    hd mapping for autonomous driving. In Proceedings of the 29th An-
+     ros_visual_slam.                                                                nual International Conference on Mobile Computing and Networking
+ [4] 2023. Lidar AI Solution. https://github.com/NVIDIA-AI-IOT/Lidar_                (MobiCom), pages=1–15.
+     AI_Solution.                                                               [21] Ryoichi Ishikawa, Takeshi Oishi, and Katsushi Ikeuchi. 2018. LiDAR
+ [5] Miguel Alcon, Hamid Tabani, Leonidas Kosmidis, Enrico Mezzetti,                 and Camera Calibration Using Motions Estimated by Sensor Fusion
+     Jaume Abella, and Francisco J Cazorla. 2020. Timing of autonomous               Odometry. In 2018 IEEE/RSJ International Conference on Intelligent
+     driving software: Problem analysis and prospects for future solutions.          Robots and Systems (IROS). 7342–7349. doi:10.1109/IROS.2018.8593360
+     In IEEE Real-Time and Embedded Technology and Applications Sympo-          [22] Shinpei Kato, Shota Tokunaga, Yuya Maruyama, Seiya Maeda, Manato
+     sium (RTAS). IEEE, 267–280.                                                     Hirabayashi, Yuki Kitsukawa, Abraham Monrroy, Tomohito Ando,
+ [6] Waqar Ali and Heechul Yun. 2018. Protecting Real-Time GPU Kernels               Yusuke Fujii, and Takuya Azumi. 2018. Autoware on board: Enabling
+     on Integrated CPU-GPU SoC Platforms. In 30th Euromicro Conference               autonomous vehicles with embedded systems. In ACM/IEEE 9th Inter-
+     on Real-Time Systems (ECRTS). Schloss-Dagstuhl-Leibniz Zentrum für              national Conference on Cyber-Physical Systems (ICCPS). 287–296.
+     Informatik.                                                                [23] Z Jonny Kong, Qiang Xu, Jiayi Meng, and Y Charlie Hu. 2023. Ac-
+ [7] Tanya Amert, Nathan Otterness, Ming Yang, James H Anderson, and                 cuMO: Accuracy-centric multitask offloading in edge-assisted mobile
+     F Donelson Smith. 2017. GPU scheduling on the NVIDIA TX2: Hidden                augmented reality. In Proceedings of the 29th Annual International
+     details revealed. In IEEE Real-Time Systems Symposium (RTSS). 104–              Conference on Mobile Computing and Networking (MobiCom). 1–16.
+     115.                                                                       [24] Alex H Lang, Sourabh Vora, Holger Caesar, Lubing Zhou, Jiong Yang,
+ [8] James H Anderson, Vasile Bud, and UC Devi. 2005. An EDF-based                   and Oscar Beijbom. 2019. Pointpillars: Fast encoders for object detec-
+     scheduling algorithm for multiprocessor soft real-time systems. In 17th         tion from point clouds. In Proceedings of the IEEE/CVF conference on
+     Euromicro Conference on Real-Time Systems (ECRTS’05). IEEE, 199–208.            computer vision and pattern recognition (CVPR). 12697–12705.
+ [9] Shuai Che, Michael Boyer, Jiayuan Meng, David Tarjan, Jeremy W.            [25] Ruoxiang Li, Tao Hu, Xu Jiang, Laiwen Li, Wenxuan Xing, Qingxu
+     Sheaffer, Sang-Ha Lee, and Kevin Skadron. 2009. Rodinia: A benchmark            Deng, and Nan Guan. 2023. Rosgm: A real-time gpu management
+     suite for heterogeneous computing. In IEEE International Symposium              framework with plug-in policies for ros 2. In IEEE 29th Real-Time and
+     on Workload Characterization (IISWC). 44–54.                                    Embedded Technology and Applications Symposium (RTAS). 93–105.
+[10] Hyunjong Choi, Yecheng Xiang, and Hyoseung Kim. 2021. PiCAS: New           [26] Xingchen Li, Yuxuan Xiao, Beibei Wang, Haojie Ren, Yanyong Zhang,
+     design of priority-driven chain-aware scheduling for ROS2. In IEEE              and Jianmin Ji. 2023. Automatic targetless LiDAR–camera calibration:
+     27th Real-Time and Embedded Technology and Applications Symposium               a survey. Artificial Intelligence Review 56, 9 (2023), 9949–9987.
+     (RTAS). 251–263.                                                           [27] Zexin Li, Tao Ren, Xiaoxi He, and Cong Liu. 2023. Red: A systematic
+[11] Jiankang Deng, Jia Guo, Niannan Xue, and Stefanos Zafeiriou. 2019.              real-time scheduling approach for robotic environmental dynamics.
+     ArcFace: Additive Angular Margin Loss for Deep Face Recognition.                In Real-Time Systems Symposium (RTSS). IEEE, 210–223.
+     In IEEE/CVF Conference on Computer Vision and Pattern Recognition          [28] Neiwen Ling, Xuan Huang, Zhihe Zhao, Nan Guan, Zhenyu Yan,
+     (CVPR). 4685–4694.                                                              and Guoliang Xing. 2022. Blastnet: Exploiting duo-blocks for cross-
+[12] Yifan Duan, Jie Peng, Yu Zhang, Jianmin Ji, and Yanyong Zhang. 2022.            processor real-time dnn inference. In Proceedings of the 20th ACM
+     Pfilter: Building persistent maps through feature filtering for fast and        Conference on Embedded Networked Sensor Systems (SenSys). 91–105.
+     accurate lidar-based slam. In 2022 IEEE/RSJ International Conference       [29] Neiwen Ling, Kai Wang, Yuze He, Guoliang Xing, and Daqi Xie. 2021.
+     on Intelligent Robots and Systems (IROS). IEEE, 11087–11093.                    Rt-mdl: Supporting real-time mixed deep learning tasks on edge plat-
+[13] Glenn A Elliott, Bryan C Ward, and James H Anderson. 2013. GPUSync:             forms. In Proceedings of the 19th ACM conference on embedded net-
+     A framework for real-time GPU management. In IEEE 34th Real-Time                worked sensor systems (SenSys). 1–14.
+     Systems Symposium (RTSS). 33–44.                                           [30] Jiachen Liu, Jae-Won Chung, Zhiyu Wu, Fan Lai, Myungjin Lee, and
+[14] Daniel Enright, Yecheng Xiang, Hyunjong Choi, and Hyoseung Kim.                 Mosharaf Chowdhury. 2024. Andes: Defining and enhancing quality-
+     2024. PAAM: A Framework for Coordinated and Priority-Driven Ac-                 of-experience in llm-based text streaming services. arXiv preprint
+     celerator Management in ROS 2. In 30th IEEE Real-Time and Embedded              arXiv:2404.16283 (2024).
+     Technology and Applications Symposium, (RTAS). IEEE, 81–94.                [31] Liangkai Liu, Sidi Lu, Ren Zhong, Baofu Wu, Yongtao Yao, Qingyang
+[15] Zheng Ge, Songtao Liu, Feng Wang, Zeming Li, and Jian Sun. 2021.                Zhang, and Weisong Shi. 2020. Computing systems for autonomous
+     Yolox: Exceeding yolo series in 2021. arXiv preprint arXiv:2107.08430           driving: State of the art and challenges. Internet of Things Journal
+     (2021).                                                                         (IoT-J) 8, 8 (2020), 6469–6486.
+[16] Mario Günzel, Georg von der Brüggen, Kuan-Hsun Chen, and Jian-Jia          [32] Jonathan Long, Evan Shelhamer, and Trevor Darrell. 2015. Fully con-
+     Chen. 2022. EDF-like scheduling for self-suspending real-time tasks.            volutional networks for semantic segmentation. In Proceedings of the
+     In 2022 IEEE Real-Time Systems Symposium (RTSS). IEEE, 172–184.                 IEEE conference on computer vision and pattern recognition (CVPR).
+[17] Fan Guo, Yongkun Li, John CS Lui, and Yinlong Xu. 2019. Dcuda:                  3431–3440.
+     Dynamic gpu scheduling with live migration support. In Proceedings         [33] Steven Macenski, Tully Foote, Brian Gerkey, Chris Lalancette, and
+     of the ACM Symposium on Cloud Computing. 114–125.                               William Woodall. 2022. Robot Operating System 2: Design, architec-
+[18] Lixiang Han, Zimu Zhou, and Zhenjiang Li. 2024. Pantheon: Pre-                  ture, and uses in the wild. Science Robotics 7, 66 (2022), eabm6074.
+     emptible Multi-DNN Inference on Mobile Edge GPUs. In Proceedings           [34] Kshiteej Mahajan, Ching-Hsiang Chu, Srinivas Sridharan, and Aditya
+     of the 22nd Annual International Conference on Mobile Systems, Appli-           Akella. 2023. Better Together: Jointly Optimizing {ML} Collective
+     cations and Services (MobiSys). 465–478.                                        Scheduling and Execution Planning using {SYNDICATE}. In 20th
+                                                                                     USENIX Symposium on Networked Systems Design and Implementation
+UrgenGo: Urgency-Aware Kernel Launching                                                                  Conference’17, July 2017, Washington, DC, USA
+
+
+     (NSDI). 809–824.                                                          [50] Zhihe Zhao, Neiwen Ling, Nan Guan, and Guoliang Xing. 2023. Miriam:
+[35] Weiguang Pang, Xiantong Luo, Kailun Chen, Dong Ji, Lei Qiao, and               Exploiting elastic kernels for real-time multi-dnn inference on edge
+     Wang Yi. 2023. Efficient CUDA stream management for multi-DNN                  gpu. In Proceedings of the 21st ACM Conference on Embedded Networked
+     real-time inference on embedded GPUs. Journal of Systems Architecture          Sensor Systems (SenSys). 97–110.
+     (JSA) 139 (2023), 102888.                                                 [51] Husheng Zhou, Soroush Bateni, and Cong Liu. 2018. Sˆ 3dnn: Su-
+[36] S-Kazem Shekofteh, Hamid Noori, Mahmoud Naghibzadeh, Hol-                      pervised streaming and scheduling for gpu-accelerated real-time dnn
+     ger Fröning, and Hadi Sadoghi Yazdi. 2019. cCUDA: Effective co-                workloads. In IEEE Real-Time and Embedded Technology and Applica-
+     scheduling of concurrent kernels on GPUs. IEEE Transactions on                 tions Symposium (RTAS). IEEE, 190–201.
+     Parallel and Distributed Systems 31, 4 (2019), 766–778.                   [52] Husheng Zhou, Guangmo Tong, and Cong Liu. 2015. GPES: a preemp-
+[37] Lin Shi, Hao Chen, Jianhua Sun, and Kenli Li. 2011. vCUDA: GPU-                tive execution system for GPGPU computing. In IEEE Real-Time and
+     accelerated high-performance computing in virtual machines. IEEE               Embedded Technology and Applications Symposium (RTAS). 87–97.
+     Transactions on Computers (TC) 61, 6 (2011), 804–816.                     [53] Hanqi Zhu, Jiajun Deng, Yu Zhang, Jianmin Ji, Qiuyu Mao, Houqiang
+[38] Shuyao Shi, Jiahe Cui, Zhehao Jiang, Zhenyu Yan, Guoliang Xing,                Li, and Yanyong Zhang. 2022. Vpfnet: Improving 3d object detection
+     Jianwei Niu, and Zhenchao Ouyang. 2022. VIPS: Real-time perception             with virtual point based lidar and stereo data fusion. IEEE Transactions
+     fusion for infrastructure-assisted autonomous driving. In Proceedings          on Multimedia (TMM) 25 (2022), 5291–5304.
+     of the 28th annual international conference on mobile computing and
+     networking (MobiCom). 133–146.
+[39] Shuyao Shi, Neiwen Ling, Zhehao Jiang, Xuan Huang, Yuze He, Xi-
+     aoguang Zhao, Bufang Yang, Chen Bian, Jingfei Xia, Zhenyu Yan,
+     et al. 2024. Soar: Design and Deployment of A Smart Roadside Infras-
+     tructure System for Autonomous Driving. In Proceedings of the 30th
+     Annual International Conference on Mobile Computing and Networking
+     (MobiCom). 139–154.
+[40] Emerson Sie, Xinyu Wu, Heyu Guo, and Deepak Vasisht. 2024.
+     Radarize: Enhancing Radar SLAM with Generalizable Doppler-Based
+     Odometry. In Proceedings of the 22nd Annual International Conference
+     on Mobile Systems, Applications and Services (MobiSys). 331–344.
+[41] David B Stewart and Pradeep K Khosla. 1991. Real-time scheduling of
+     sensor-based control systems. IFAC Proceedings Volumes 24, 2 (1991),
+     139–144.
+[42] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Alma-
+     hairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal
+     Bhargava, Shruti Bhosale, et al. 2023. Llama 2: Open foundation and
+     fine-tuned chat models. arXiv preprint arXiv:2307.09288 (2023).
+[43] Bingyang Wu, Zili Zhang, Zhihao Bai, Xuanzhe Liu, and Xin Jin. 2023.
+     Transparent GPU Sharing in Container Clouds for Deep Learning
+     Workloads. In 20th USENIX Symposium on Networked Systems Design
+     and Implementation (NSDI). 69–85.
+[44] Yecheng Xiang and Hyoseung Kim. 2019. Pipelined data-parallel
+     CPU/GPU scheduling for multi-DNN real-time inference. In IEEE Real-
+     Time Systems Symposium (RTSS). IEEE, 392–405.
+[45] Ming Yang. 2018. Avoiding pitfalls when using NVIDIA GPUs for real-
+     time tasks in autonomous systems. In Proceedings of the 30th Euromicro
+     Conference on Real-Time Systems (ECRTS).
+[46] Wei Ye, John Heidemann, and Deborah Estrin. 2004. Medium ac-
+     cess control with coordinated adaptive sleeping for wireless sensor
+     networks. IEEE/ACM Transactions on networking (TON) 12, 3 (2004),
+     493–506.
+[47] Juheon Yi and Youngki Lee. 2020. Heimdall: mobile GPU coordination
+     platform for augmented reality applications. In Proceedings of the 26th
+     Annual International Conference on Mobile Computing and Networking
+     (MobiCom). 1–14.
+[48] Wuyang Zhang, Zhezhi He, Luyang Liu, Zhenhua Jia, Yunxin Liu,
+     Marco Gruteser, Dipankar Raychaudhuri, and Yanyong Zhang. 2021.
+     Elf: accelerate high-resolution mobile deep vision with content-aware
+     parallel offloading. In Proceedings of the 27th Annual International
+     Conference on Mobile Computing and Networking (MobiCom). 201–214.
+[49] Xinran Zhang, Hanqi Zhu, Yifan Duan, Wuyang Zhang, Longfei Shang-
+     guan, Yu Zhang, Jianmin Ji, and Yanyong Zhang. 2024. Map++: To-
+     wards User-Participatory Visual SLAM Systems with Efficient Map
+     Expansion and Sharing. In Proceedings of the 30th Annual International
+     Conference on Mobile Computing and Networking (MobiCom). 633–647.
+

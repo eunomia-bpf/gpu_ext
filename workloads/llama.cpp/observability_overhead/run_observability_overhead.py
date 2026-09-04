@@ -445,6 +445,7 @@ def gpu_thread_count_for_tool(args: argparse.Namespace, tool: str) -> int:
 def probe_env(args: argparse.Namespace, tool: str) -> dict[str, str]:
     env = os.environ.copy()
     env["BPFTIME_LOG_OUTPUT"] = "console"
+    env["SPDLOG_LEVEL"] = "warn"
     env["LD_PRELOAD"] = str(
         args.bpftime_build_dir / "runtime/syscall-server/libbpftime-syscall-server.so"
     )
@@ -459,9 +460,11 @@ def probe_env(args: argparse.Namespace, tool: str) -> dict[str, str]:
 def agent_env(args: argparse.Namespace, run_dir: Path, tool: str) -> dict[str, str]:
     env = {
         "BPFTIME_LOG_OUTPUT": str(run_dir / "agent.log"),
+        "SPDLOG_LEVEL": "warn",
         "BPFTIME_CUDA_DEFER_PTX_EXTRACTION": "1",
         "BPFTIME_CUDA_TARGETED_LATE_BOOTSTRAP": "1",
         "BPFTIME_MAP_GPU_THREAD_COUNT": str(gpu_thread_count_for_tool(args, tool)),
+        "GGML_NO_BACKTRACE": "1",
         "LD_PRELOAD": str(args.bpftime_build_dir / "runtime/agent/libbpftime-agent.so"),
     }
     return env

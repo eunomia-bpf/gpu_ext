@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Visualize GCN benchmark results comparing prefetch and eBPF scheduler impact.
+Visualize GCN benchmark results comparing prefetch and gpubpf scheduler impact.
 
 5 Lines:
 1. No UVM (Baseline)
 2. UVM without prefetch (Baseline)
-3. UVM without prefetch + eBPF
+3. UVM without prefetch + gpubpf
 4. UVM with prefetch (Baseline)
-5. UVM with prefetch + eBPF
+5. UVM with prefetch + gpubpf
 """
 
 import json
@@ -23,10 +23,10 @@ RESULT_DIRS = {
     "No UVM (Baseline)": BASE_DIR / "without-user-prefetch" / "result_no_uvm1",
     # Without prefetch
     "UVM (no prefetch)": BASE_DIR / "without-user-prefetch" / "result_uvm_baseline1",
-    "UVM (no prefetch) eBPF": BASE_DIR / "without-user-prefetch" / "result_uvm_ebpf1",
+    "UVM (no prefetch) gpubpf": BASE_DIR / "without-user-prefetch" / "result_uvm_ebpf1",
     # With prefetch
     "UVM (prefetch)": BASE_DIR / "with-user-prefetch" / "result_uvm_baseline",
-    "UVM (prefetch) eBPF": BASE_DIR / "with-user-prefetch" / "result_uvm_ebpf",
+    "UVM (prefetch) gpubpf": BASE_DIR / "with-user-prefetch" / "result_uvm_ebpf",
 }
 
 
@@ -64,7 +64,7 @@ def main():
         plot_data[name] = {"nodes": nodes, "times": times}
 
     # Create figure - adjusted height (1.3x again)
-    fig, ax = plt.subplots(figsize=(14, 8.5))
+    fig, ax = plt.subplots(figsize=(14, 7.5))
 
     # Style definitions - thicker lines, larger markers
     styles = {
@@ -74,13 +74,13 @@ def main():
         "UVM (no prefetch)": {
             "color": "#e74c3c", "marker": "s", "linestyle": "-", "linewidth": 3.5
         },
-        "UVM (no prefetch) eBPF": {
+        "UVM (no prefetch) gpubpf": {
             "color": "#e74c3c", "marker": "s", "linestyle": "--", "linewidth": 3.5
         },
         "UVM (prefetch)": {
             "color": "#3498db", "marker": "^", "linestyle": "-", "linewidth": 3.5
         },
-        "UVM (prefetch) eBPF": {
+        "UVM (prefetch) gpubpf": {
             "color": "#3498db", "marker": "^", "linestyle": "--", "linewidth": 3.5
         },
     }
@@ -89,9 +89,9 @@ def main():
     plot_order = [
         "No UVM (Baseline)",
         "UVM (no prefetch)",
-        "UVM (no prefetch) eBPF",
+        "UVM (no prefetch) gpubpf",
         "UVM (prefetch)",
-        "UVM (prefetch) eBPF",
+        "UVM (prefetch) gpubpf",
     ]
 
     # Plot each condition
@@ -115,10 +115,10 @@ def main():
 
     # Labels - enlarged fonts (3x), no title
     ax.set_xlabel("Number of Nodes (Millions)", fontsize=36)
-    ax.set_ylabel("Epoch Time (seconds)", fontsize=36)
+    ax.set_ylabel("Epoch (s)", fontsize=36)
 
     # Legend at bottom - below x-axis label
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.18),
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.22),
               fontsize=22, framealpha=0.95, ncol=3)
 
     # Enlarge tick labels
@@ -147,7 +147,7 @@ def main():
     print("COMPREHENSIVE SUMMARY TABLE")
     print("="*100)
 
-    header = f"{'Nodes':<8} {'No UVM':<10} {'UVM':<12} {'UVM+eBPF':<12} {'UVM(pf)':<12} {'UVM(pf)+eBPF':<14} {'Prefetch':<10} {'eBPF(pf)':<10}"
+    header = f"{'Nodes':<8} {'No UVM':<10} {'UVM':<12} {'UVM+gpubpf':<12} {'UVM(pf)':<12} {'UVM(pf)+gpubpf':<14} {'Prefetch':<10} {'gpubpf(pf)':<10}"
     print(header)
     print(f"{'':8} {'':10} {'(no pf)':12} {'(no pf)':12} {'':12} {'':14} {'Speedup':10} {'Speedup':10}")
     print("-"*100)
@@ -174,8 +174,8 @@ def main():
         else:
             row += "-".ljust(12)
 
-        # UVM no prefetch + eBPF
-        uvm_nopf_ebpf = all_results.get("UVM (no prefetch) eBPF", {})
+        # UVM no prefetch + gpubpf
+        uvm_nopf_ebpf = all_results.get("UVM (no prefetch) gpubpf", {})
         if n in uvm_nopf_ebpf:
             t = uvm_nopf_ebpf[n]["avg_epoch_time_s"]
             row += f"{t:.2f}s".ljust(12)
@@ -190,8 +190,8 @@ def main():
         else:
             row += "-".ljust(12)
 
-        # UVM prefetch + eBPF
-        uvm_pf_ebpf = all_results.get("UVM (prefetch) eBPF", {})
+        # UVM prefetch + gpubpf
+        uvm_pf_ebpf = all_results.get("UVM (prefetch) gpubpf", {})
         if n in uvm_pf_ebpf:
             t = uvm_pf_ebpf[n]["avg_epoch_time_s"]
             row += f"{t:.2f}s".ljust(14)
@@ -205,7 +205,7 @@ def main():
         else:
             row += "-".ljust(10)
 
-        # eBPF speedup (with prefetch)
+        # gpubpf speedup (with prefetch)
         if n in uvm_pf and n in uvm_pf_ebpf:
             speedup = uvm_pf[n]["avg_epoch_time_s"] / uvm_pf_ebpf[n]["avg_epoch_time_s"]
             row += f"{speedup:.2f}x".ljust(10)
@@ -227,9 +227,9 @@ def main():
 
     for n in sorted(all_nodes):
         uvm_nopf = all_results.get("UVM (no prefetch)", {})
-        uvm_nopf_ebpf = all_results.get("UVM (no prefetch) eBPF", {})
+        uvm_nopf_ebpf = all_results.get("UVM (no prefetch) gpubpf", {})
         uvm_pf = all_results.get("UVM (prefetch)", {})
-        uvm_pf_ebpf = all_results.get("UVM (prefetch) eBPF", {})
+        uvm_pf_ebpf = all_results.get("UVM (prefetch) gpubpf", {})
 
         if n in uvm_nopf and n in uvm_pf:
             prefetch_speedups.append(uvm_nopf[n]["avg_epoch_time_s"] / uvm_pf[n]["avg_epoch_time_s"])
@@ -243,9 +243,9 @@ def main():
     if prefetch_speedups:
         print(f"1. Prefetch speedup (avg): {sum(prefetch_speedups)/len(prefetch_speedups):.2f}x")
     if ebpf_nopf_speedups:
-        print(f"2. eBPF speedup without prefetch (avg): {sum(ebpf_nopf_speedups)/len(ebpf_nopf_speedups):.2f}x")
+        print(f"2. gpubpf speedup without prefetch (avg): {sum(ebpf_nopf_speedups)/len(ebpf_nopf_speedups):.2f}x")
     if ebpf_pf_speedups:
-        print(f"3. eBPF speedup with prefetch (avg): {sum(ebpf_pf_speedups)/len(ebpf_pf_speedups):.2f}x")
+        print(f"3. gpubpf speedup with prefetch (avg): {sum(ebpf_pf_speedups)/len(ebpf_pf_speedups):.2f}x")
 
     plt.show()
 

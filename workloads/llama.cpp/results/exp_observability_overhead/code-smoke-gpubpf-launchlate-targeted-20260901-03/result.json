@@ -1,0 +1,146 @@
+{
+  "timestamp": "20260901_034922",
+  "params": {
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime",
+    "bpftime_build_dir": "/home/yunwei37/workspace/gpu/bpftime/build-cuda-pr503",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "tools": [
+      "launchlate"
+    ],
+    "runs": 1,
+    "pp": 32,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "uvm": false,
+    "no_warmup": true,
+    "cuda_graphs_disabled": true,
+    "gpu_thread_count": 8192,
+    "threadhist_gpu_thread_count": 1048576,
+    "uprobe_binary": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+    "uprobe_symbol_hint": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli"
+  },
+  "provenance": {
+    "gpu_ext_git": "1536aa0",
+    "bpftime_git": "d6316fa",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 610.43.02, 32607, 15, 0, 15.30",
+      "compute_apps": ""
+    },
+    "cuda_ptx": {
+      "libggml_cuda": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+      "has_ptx": true,
+      "ptx_count": 120,
+      "cuobjdump_returncode": 0
+    }
+  },
+  "configs": {
+    "baseline": {
+      "runs": [
+        {
+          "run": 1,
+          "log": "baseline_run_01/llama_bench.log",
+          "returncode": 0,
+          "metrics": {
+            "pp_tok_s": 290.732711,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              290.733
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-01T10:49:23Z",
+              "avg_ns": 110066734,
+              "stddev_ns": 0,
+              "avg_ts": 290.732711,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                110066734
+              ],
+              "samples_ts": [
+                290.733
+              ]
+            }
+          ],
+          "valid": true
+        }
+      ]
+    },
+    "launchlate": {
+      "tool_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/results/exp_observability_overhead/code-smoke-gpubpf-launchlate-targeted-20260901-03/tool_build/launchlate",
+      "runs": [
+        {
+          "run": 1,
+          "log": "launchlate_run_01/llama_bench.log",
+          "returncode": -1,
+          "error": "llama-bench timed out after 20s",
+          "probe": {
+            "sample_count": 0,
+            "host_launches": 0,
+            "device_entries": 0,
+            "queue_underflows": 0,
+            "queue_overflows": 0
+          },
+          "probe_log": "launchlate_run_01/probe.log",
+          "valid": false
+        }
+      ]
+    }
+  },
+  "summary": [
+    {
+      "config": "baseline",
+      "successful_runs": 1,
+      "pp_tok_s_geomean": 290.7327109999999,
+      "pp_tok_s_runs": [
+        290.732711
+      ],
+      "overhead_pct_vs_baseline": null,
+      "max_probe_samples": 0
+    },
+    {
+      "config": "launchlate",
+      "successful_runs": 0,
+      "pp_tok_s_geomean": null,
+      "pp_tok_s_runs": [],
+      "overhead_pct_vs_baseline": null,
+      "max_probe_samples": 0
+    }
+  ]
+}

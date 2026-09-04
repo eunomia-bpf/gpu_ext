@@ -1,0 +1,64 @@
+{
+  "timestamp": "20260706_174716",
+  "params": {
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "tools": [
+      "launchlate"
+    ],
+    "runs": 0,
+    "pp": 32,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "uvm": false,
+    "no_warmup": false,
+    "cuda_graphs_disabled": true,
+    "gpu_thread_count": 8192,
+    "threadhist_gpu_thread_count": 1048576,
+    "uprobe_binary": "/usr/lib/x86_64-linux-gnu/libcuda.so.575.57.08",
+    "uprobe_symbol_hint": "cuLaunchKernel"
+  },
+  "provenance": {
+    "gpu_ext_git": "d5ff7b5",
+    "bpftime_git": "6bd5319",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 15, 0, 13.63",
+      "compute_apps": ""
+    },
+    "cuda_ptx": {
+      "libggml_cuda": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+      "has_ptx": true,
+      "ptx_count": 120,
+      "cuobjdump_returncode": 0
+    }
+  },
+  "configs": {
+    "baseline": {
+      "runs": []
+    },
+    "launchlate": {
+      "tool_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/results/exp_observability_overhead/launchlate_drybuild/tool_build/launchlate",
+      "runs": []
+    }
+  },
+  "summary": [
+    {
+      "config": "baseline",
+      "successful_runs": 0,
+      "pp_tok_s_geomean": null,
+      "pp_tok_s_runs": [],
+      "overhead_pct_vs_baseline": null,
+      "max_probe_samples": 0
+    },
+    {
+      "config": "launchlate",
+      "successful_runs": 0,
+      "pp_tok_s_geomean": null,
+      "pp_tok_s_runs": [],
+      "overhead_pct_vs_baseline": null,
+      "max_probe_samples": 0
+    }
+  ]
+}

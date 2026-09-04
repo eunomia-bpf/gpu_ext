@@ -1,0 +1,112 @@
+{
+  "timestamp": "20260706_171538",
+  "params": {
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "tools": [
+      "kernelretsnoop"
+    ],
+    "runs": 1,
+    "pp": 32,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "uvm": false,
+    "no_warmup": false,
+    "uprobe_binary": "/usr/local/cuda-12.9/targets/x86_64-linux/lib/libcudart.so.12.9.79"
+  },
+  "provenance": {
+    "gpu_ext_git": "d5ff7b5",
+    "bpftime_git": "6bd5319",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 15, 0, 14.84",
+      "compute_apps": ""
+    },
+    "cuda_ptx": {
+      "libggml_cuda": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+      "has_ptx": true,
+      "ptx_count": 120,
+      "cuobjdump_returncode": 0
+    }
+  },
+  "configs": {
+    "baseline": {
+      "runs": [
+        {
+          "run": 1,
+          "returncode": 0,
+          "log": "baseline_run_01/llama_bench.log",
+          "metrics": {
+            "pp_tok_s": 7128.793688,
+            "pp_stddev": 0.0,
+            "pp_tokens": 32,
+            "pp_samples_tok_s": [
+              7128.79
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 32,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-07-07T00:15:41Z",
+              "avg_ns": 4488838,
+              "stddev_ns": 0,
+              "avg_ts": 7128.793688,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                4488838
+              ],
+              "samples_ts": [
+                7128.79
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "summary": [
+    {
+      "config": "baseline",
+      "successful_runs": 1,
+      "pp_tok_s_geomean": 7128.793688000001,
+      "pp_tok_s_runs": [
+        7128.793688
+      ],
+      "overhead_pct_vs_baseline": null,
+      "max_probe_samples": 0
+    }
+  ]
+}

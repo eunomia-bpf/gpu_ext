@@ -33,6 +33,16 @@ bracket. PTIMER/%globaltimer identity and the 220-launch gates are still open,
 so this is not completion of the original three-tool campaign. A separate
 [verifier-on device plan](../workloads/llama.cpp/observability_overhead/revision-rq4/verifier-on-device-plan.md)
 also preserves the accepted verifier-off result rather than relabelling it.
+The separate operation-matched
+[device-map campaign](../microbench/fig15-device/results-map-tier-full-575-06-20260904.md)
+completed 128/128 fresh processes: direct host mapping is 9.4307x the
+device-resident update latency and 1.0904x the lookup latency, with both 97.5%
+paired intervals above 1. This is a single-block scalar-runtime placement
+result, not the old generic 6000x RPC/PCIe claim. The CPU-only
+[device-verifier scaling campaign](../workloads/llama.cpp/observability_overhead/revision-rq4/device-verifier-scaling/results-verifier-scaling-575-01-20260904.md)
+accepted 200/200 programs through 4,096 instructions but contradicted the
+near-linear hypothesis for straight-line programs; it is a program-shape
+admission boundary, not device execution or verifier soundness evidence.
 Original agent transcripts also remain unavailable. LMCache local disk is
 explicitly **paused by user
 direction** after its cross-arm correctness failure and has no formal

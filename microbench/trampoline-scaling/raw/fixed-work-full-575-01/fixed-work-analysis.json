@@ -1,0 +1,232 @@
+{
+  "cells": [
+    {
+      "active_warps": 4096,
+      "blocks": 128,
+      "cell": 0,
+      "counter": {
+        "ci95_high_us": 560.1279994999999,
+        "ci95_low_us": 555.2000013,
+        "median_delta_us": 558.8159768,
+        "median_ns_per_dynamic_warp_call": 1.0658568893432618
+      },
+      "noop": {
+        "ci95_high_us": 2.3200009000000006,
+        "ci95_low_us": 0.8959993999999999,
+        "median_delta_us": 1.8400009499999967,
+        "median_ns_per_dynamic_warp_call": 0.003509523296356195
+      },
+      "threads_per_block": 1024
+    },
+    {
+      "active_warps": 4096,
+      "blocks": 256,
+      "cell": 1,
+      "counter": {
+        "ci95_high_us": 584.5599973,
+        "ci95_low_us": 579.5199758,
+        "median_delta_us": 582.11200325,
+        "median_ns_per_dynamic_warp_call": 1.1102905335426332
+      },
+      "noop": {
+        "ci95_high_us": 3.0720010000000046,
+        "ci95_low_us": 0.3199987000000043,
+        "median_delta_us": 1.4240015000000008,
+        "median_ns_per_dynamic_warp_call": 0.0027160673141479507
+      },
+      "threads_per_block": 512
+    },
+    {
+      "active_warps": 4096,
+      "blocks": 1024,
+      "cell": 2,
+      "counter": {
+        "ci95_high_us": 577.1839915,
+        "ci95_low_us": 576.223981,
+        "median_delta_us": 576.4480123,
+        "median_ns_per_dynamic_warp_call": 1.099487328147888
+      },
+      "noop": {
+        "ci95_high_us": 3.4400001000000033,
+        "ci95_low_us": 0.3200006000000019,
+        "median_delta_us": 1.3440009500000003,
+        "median_ns_per_dynamic_warp_call": 0.002563478374481202
+      },
+      "threads_per_block": 128
+    },
+    {
+      "active_warps": 4096,
+      "blocks": 2048,
+      "cell": 3,
+      "counter": {
+        "ci95_high_us": 589.6320268,
+        "ci95_low_us": 584.8960148,
+        "median_delta_us": 587.6639968999999,
+        "median_ns_per_dynamic_warp_call": 1.120880121040344
+      },
+      "noop": {
+        "ci95_high_us": 1.9520000000000024,
+        "ci95_low_us": -0.5439985500000009,
+        "median_delta_us": 0.2719982999999995,
+        "median_ns_per_dynamic_warp_call": 0.0005187955856323233
+      },
+      "threads_per_block": 64
+    },
+    {
+      "active_warps": 4096,
+      "blocks": 4096,
+      "cell": 4,
+      "counter": {
+        "ci95_high_us": 585.7920012999999,
+        "ci95_low_us": 579.4240067999999,
+        "median_delta_us": 581.9199758,
+        "median_ns_per_dynamic_warp_call": 1.1099242702484131
+      },
+      "noop": {
+        "ci95_high_us": 3.008000550000004,
+        "ci95_low_us": -0.06400049999999435,
+        "median_delta_us": 0.9759981500000008,
+        "median_ns_per_dynamic_warp_call": 0.0018615687370300308
+      },
+      "threads_per_block": 32
+    }
+  ],
+  "claim_boundary": "fixed total work and dynamic warps on this kernel and RTX 5090; not universal block-count independence or warp-leader execution",
+  "kind": "RTX 5090 fixed-work trampoline block organization",
+  "organization_guard": {
+    "contrasts": [
+      {
+        "blocks": 256,
+        "cell": 1,
+        "ci_high": 7.491017934135587,
+        "ci_low": -4.68799217991489,
+        "confidence": 0.9875,
+        "median": -1.4065956220510687,
+        "paired_values_pct": [
+          -1.1611006798378039,
+          -1.9455177512621002,
+          -5.070701753179069,
+          -1.6520905642643335,
+          -4.305282606650711,
+          3.729151679004142,
+          2.9980772032447294,
+          -8.263655632476086,
+          13.076921835706354,
+          7.491017934135587
+        ],
+        "status": "inconclusive",
+        "threads_per_block": 512
+      },
+      {
+        "blocks": 1024,
+        "cell": 2,
+        "ci_high": 8.073047464722205,
+        "ci_low": -6.273741949921899,
+        "confidence": 0.9875,
+        "median": 0.8767732179538887,
+        "paired_values_pct": [
+          -3.522508620883662,
+          0.2836790729843944,
+          7.221953603953625,
+          1.4698673629233832,
+          -9.284336391859707,
+          6.022352890159423,
+          -3.358015652644656,
+          -8.927705409118202,
+          8.073047464722205,
+          23.065540907306463
+        ],
+        "status": "inconclusive",
+        "threads_per_block": 128
+      },
+      {
+        "blocks": 2048,
+        "cell": 3,
+        "ci_high": 1.3122708969103485,
+        "ci_low": -9.655816291131256,
+        "confidence": 0.9875,
+        "median": -2.7463867423241606,
+        "paired_values_pct": [
+          -5.555564069817145,
+          -0.19093257728083635,
+          -5.405412436084671,
+          -12.337353112788374,
+          0.39369217701322184,
+          2.230849616807475,
+          -9.655816291131256,
+          -3.2640967646870673,
+          3.180724569458496,
+          -2.2286767199612534
+        ],
+        "status": "inconclusive",
+        "threads_per_block": 64
+      },
+      {
+        "blocks": 4096,
+        "cell": 4,
+        "ci_high": 5.708858969494129,
+        "ci_low": -5.635103759420552,
+        "confidence": 0.9875,
+        "median": -2.7049007848414552,
+        "paired_values_pct": [
+          -2.578277498079486,
+          2.037030931177223,
+          -5.473502779615584,
+          0.5573658896658538,
+          -5.635103759420552,
+          -4.860150251005771,
+          5.708858969494129,
+          -2.831524071603424,
+          14.472457023386706,
+          -9.425491956788209
+        ],
+        "status": "inconclusive",
+        "threads_per_block": 32
+      }
+    ],
+    "definition": "four paired no-op-minus-native organization contrasts versus 128x1024, normalized by each contrast's mean native time",
+    "equivalence_margin_pct": 1.0,
+    "familywise_confidence": 0.95,
+    "multiplicity_control": "Bonferroni over four predeclared contrasts",
+    "per_contrast_confidence": 0.9875,
+    "reference_cell": 0,
+    "status": "inconclusive"
+  },
+  "primary_metric": {
+    "ci95_high": 3.1331124295799913,
+    "ci95_low": -5.473502779615584,
+    "definition": "paired endpoint difference-in-differences, normalized by the mean endpoint native batch time (percent)",
+    "equivalence_margin_pct": 1.0,
+    "high_endpoint": "4096 blocks x 32 threads",
+    "low_endpoint": "128 blocks x 1024 threads",
+    "median": -2.7049007848414552,
+    "paired_values_pct": [
+      -2.578277498079486,
+      2.037030931177223,
+      -5.473502779615584,
+      0.5573658896658538,
+      -5.635103759420552,
+      -4.860150251005771,
+      5.708858969494129,
+      -2.831524071603424,
+      14.472457023386706,
+      -9.425491956788209
+    ],
+    "pairs": 10,
+    "status": "inconclusive"
+  },
+  "raw_evidence_audit": {
+    "agent_bootstrap_logs": 20,
+    "application_logs": 30,
+    "arm_directories": 30,
+    "arm_safety_pairs": 30,
+    "lifecycle_records": 30,
+    "loader_map_logs": 20,
+    "telemetry_logs": 30,
+    "timed_cells": 150,
+    "unique_private_segments": 20
+  },
+  "research_value": "supporting",
+  "run_status": "valid",
+  "tested_hypothesis": "inconclusive"
+}

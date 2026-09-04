@@ -1,0 +1,5696 @@
+{
+  "build_logs": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/build-01.log"
+  ],
+  "compiled_hook_site": {
+    "marker_explicit_stub_calls": 0,
+    "ptx": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling.ptx",
+    "stub_defined": true,
+    "target_explicit_stub_calls": 1
+  },
+  "failures": [],
+  "kind": "RTX 5090 fixed-work trampoline block organization",
+  "last_safety": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 810,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 19.55,
+      "sm_clock_mhz": 487,
+      "temperature_c": 51,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788532065402664124,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "loader_source_audit": {
+    "attach_order": [
+      "cuda__scale_target",
+      "cuda__scale_marker"
+    ],
+    "reason": "the first link owns the runtime's module-wide explicit stub",
+    "source": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.c"
+  },
+  "params": {
+    "balance_arm_order": true,
+    "blocks": 10,
+    "bpftime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "cell_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "expected_driver": "575.57.08",
+    "expected_gpu": "NVIDIA GeForce RTX 5090",
+    "hook_repeats": 16,
+    "independent_raw_evidence": true,
+    "kind": "RTX 5090 fixed-work trampoline block organization",
+    "launches": 8,
+    "matrix": [
+      {
+        "active_threads": 131072,
+        "blocks": 128,
+        "counter_key": 0,
+        "id": 0,
+        "threads_per_block": 1024
+      },
+      {
+        "active_threads": 131072,
+        "blocks": 256,
+        "counter_key": 1,
+        "id": 1,
+        "threads_per_block": 512
+      },
+      {
+        "active_threads": 131072,
+        "blocks": 1024,
+        "counter_key": 2,
+        "id": 2,
+        "threads_per_block": 128
+      },
+      {
+        "active_threads": 131072,
+        "blocks": 2048,
+        "counter_key": 3,
+        "id": 3,
+        "threads_per_block": 64
+      },
+      {
+        "active_threads": 131072,
+        "blocks": 4096,
+        "counter_key": 4,
+        "id": 4,
+        "threads_per_block": 32
+      }
+    ],
+    "phase": "full",
+    "randomize_cell_order": true,
+    "schedule_seed": 1797,
+    "warmup": 2
+  },
+  "records": [
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-01-order-1-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 0,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "1,0,3,2,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "0"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-01-order-1-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.613695979,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.592703998,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.623456001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.609152019,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.618623972,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105571406265845",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 31.29,
+          "sm_clock_mhz": 75,
+          "temperature_c": 50,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531831260009787,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-01/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 37.20466666666667,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 51.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-01-order-2-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 0,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "1,0,3,2,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "0"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-01-order-2-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0349120013,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0343040004,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.034111999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0334080011,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0377600007,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105580306550735",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 39.91,
+          "sm_clock_mhz": 90,
+          "temperature_c": 50,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531839963460433,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-02/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2407.0,
+          "mean_power_w": 35.35,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 4945.0,
+          "peak_temperature_c": 51.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 0,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "1,0,3,2,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "0"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-01-order-3-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0335679986,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0325759985,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0342399999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0328320004,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0369280018,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 42.87,
+          "sm_clock_mhz": 61,
+          "temperature_c": 50,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531846596668721,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-03/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 22.0,
+          "mean_power_w": 13.485,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 50.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 1,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,3,4,0,1",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "1"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-02-order-1-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0349760018,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0343360007,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0364160016,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0327039994,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0330879986,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 52.46,
+          "sm_clock_mhz": 2400,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531853358924884,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-04/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 22.0,
+          "mean_power_w": 13.93,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 50.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-02-order-2-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 1,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,3,4,0,1",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "1"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-02-order-2-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.611199975,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.619328022,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.616959989,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.590879977,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.617536008,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105602408872500",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 24.41,
+          "sm_clock_mhz": 690,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531862268705284,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-05/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 38.13733333333334,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 51.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-02-order-3-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 1,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,3,4,0,1",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "1"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-02-order-3-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0354879983,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0346879996,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.037535999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0331199989,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0328640006,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105611311147301",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 38.8,
+          "sm_clock_mhz": 712,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531870956566922,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-06/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2400.0,
+          "mean_power_w": 36.824285714285715,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 1031.0,
+          "peak_temperature_c": 51.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 2,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,0,3,1,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "2"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-03-order-1-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.03376,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0327039994,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.032416001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0329280011,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.040959999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 37.52,
+          "sm_clock_mhz": 118,
+          "temperature_c": 50,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531877679520721,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-07/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 292.0,
+          "mean_power_w": 14.9375,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 51.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-03-order-2-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 2,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,0,3,1,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "2"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-03-order-2-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.609983981,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.590175986,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.620191991,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.616959989,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.618463993,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105626803257380",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 38.97,
+          "sm_clock_mhz": 73,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531886615767578,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-08/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2400.0,
+          "mean_power_w": 35.706,
+          "min_sm_clock_mhz": 21.0,
+          "peak_memory_mib": 1624.0,
+          "peak_temperature_c": 51.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-03-order-3-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 2,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,0,3,1,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "2"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-03-order-3-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0381119996,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0346559994,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0326079987,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0332159996,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0408959985,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105635630853402",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 19.33,
+          "sm_clock_mhz": 795,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531895267859150,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-09/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 36.325,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 4935.0,
+          "peak_temperature_c": 52.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-04-order-1-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 3,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "1,0,2,4,3",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "3"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-04-order-1-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.618528008,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.591871977,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.609344006,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.617824018,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.61878401,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105644270558724",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 17.89,
+          "sm_clock_mhz": 772,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531904094458078,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-10/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2452.0,
+          "mean_power_w": 34.81133333333333,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 52.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-04-order-2-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 3,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "1,0,2,4,3",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "3"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-04-order-2-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0349440016,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0344640017,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0354240015,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0387200005,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.031936001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105653115066549",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 21.64,
+          "sm_clock_mhz": 95,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531912798413663,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-11/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 36.57285714285714,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 4935.0,
+          "peak_temperature_c": 51.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 3,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "1,0,2,4,3",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "3"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-04-order-3-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0334400013,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.032416001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0328960009,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0364799984,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0339840017,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 44.63,
+          "sm_clock_mhz": 183,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531919467511832,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-12/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 22.0,
+          "mean_power_w": 14.11,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 517.0,
+          "peak_temperature_c": 50.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-05-order-1-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 4,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,3,1,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "4"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-05-order-1-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.622367978,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.585023999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.622143984,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.613695979,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.608128011,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105668528055623",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 38.82,
+          "sm_clock_mhz": 300,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531928457491033,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-13/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 38.071333333333335,
+          "min_sm_clock_mhz": 24.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 52.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-05-order-2-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 4,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,3,1,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "4"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-05-order-2-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.037312001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0351999998,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0351359993,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0339840017,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0330879986,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105677498543194",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 27.98,
+          "sm_clock_mhz": 64,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531937204103319,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-14/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2407.0,
+          "mean_power_w": 33.354285714285716,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 4945.0,
+          "peak_temperature_c": 51.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 4,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,3,1,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "4"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-05-order-3-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0366719998,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0326079987,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.032416001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0328000002,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0335679986,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 26.66,
+          "sm_clock_mhz": 49,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531943863946004,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-15/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 180.0,
+          "mean_power_w": 13.72,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 51.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 5,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "0,2,3,1,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "5"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-06-order-1-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0332800001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0326079987,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0327039994,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.031936001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0365119986,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 33.2,
+          "sm_clock_mhz": 42,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531950521657704,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-16/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 22.0,
+          "mean_power_w": 13.21,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 50.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-06-order-2-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 5,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "0,2,3,1,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "5"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-06-order-2-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0345599987,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0358720012,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0347199999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0344320014,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0360959992,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105699575108732",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 32.45,
+          "sm_clock_mhz": 76,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531959214799737,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-17/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2400.0,
+          "mean_power_w": 34.915,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 4935.0,
+          "peak_temperature_c": 51.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-06-order-3-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 5,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "0,2,3,1,4",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "5"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-06-order-3-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.593312025,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.609088004,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.616512001,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.610015988,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.61865598,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105708287125081",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 19.11,
+          "sm_clock_mhz": 97,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531968204179784,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-18/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 35.15333333333333,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 52.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-07-order-1-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 6,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,1,3,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "6"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-07-order-1-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0388160013,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0345279984,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0368000008,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0333440006,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0333440006,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105717257441140",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 37.86,
+          "sm_clock_mhz": 697,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531976940288080,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-19/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 37.223571428571425,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 1083.0,
+          "peak_temperature_c": 52.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 6,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,1,3,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "6"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-07-order-2-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0348160006,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0324480012,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0337279998,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0344959982,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0323520005,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 43.32,
+          "sm_clock_mhz": 62,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531983529796174,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-20/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 22.0,
+          "mean_power_w": 15.74,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 51.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-07-order-3-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 6,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,1,3,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "6"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-07-order-3-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.620320022,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.592863977,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.614975989,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.619455993,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.609535992,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105732538511991",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 24.91,
+          "sm_clock_mhz": 300,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788531992380604466,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-21/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2452.0,
+          "mean_power_w": 40.48466666666666,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 52.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-08-order-1-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 7,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,1,3,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "7"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-08-order-1-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0375999995,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0352640003,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0331199989,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0344000012,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.03376,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105741399443597",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 31.15,
+          "sm_clock_mhz": 592,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532001068682180,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-22/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2430.0,
+          "mean_power_w": 35.03285714285714,
+          "min_sm_clock_mhz": 23.0,
+          "peak_memory_mib": 4935.0,
+          "peak_temperature_c": 52.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-08-order-2-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 7,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,1,3,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "7"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-08-order-2-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.62163198,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.590240002,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.610943973,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.620000005,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.610144019,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105750120489669",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 25.9,
+          "sm_clock_mhz": 217,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532009960874651,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-23/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2407.0,
+          "mean_power_w": 36.466,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 52.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 7,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "4,0,1,3,2",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "7"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-08-order-3-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0355519988,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0322559997,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0328000002,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0324480012,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0336959995,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 40.79,
+          "sm_clock_mhz": 61,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532016619884237,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-24/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 25.0,
+          "mean_power_w": 12.95,
+          "min_sm_clock_mhz": 25.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 51.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-09-order-1-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 8,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,1,4,3,0",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "8"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-09-order-1-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0343360007,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0359679982,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0385599993,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0325120017,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0329600014,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105765672241557",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 17.37,
+          "sm_clock_mhz": 712,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532025321572279,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-25/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2400.0,
+          "mean_power_w": 36.230000000000004,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 4935.0,
+          "peak_temperature_c": 52.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 8,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,1,4,3,0",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "8"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-09-order-2-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0326399989,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0326079987,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0345919989,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0324480012,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0339520015,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 34.51,
+          "sm_clock_mhz": 53,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532031921962288,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-26/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 180.0,
+          "mean_power_w": 13.55,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 16.0,
+          "peak_temperature_c": 51.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-09-order-3-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 8,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "2,1,4,3,0",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "8"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-09-order-3-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.609856009,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.615584016,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.621951997,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.622080028,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.585503995,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105780974093197",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 17.51,
+          "sm_clock_mhz": 96,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532040892367390,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-27/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2437.0,
+          "mean_power_w": 36.117333333333335,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 52.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-10-order-1-counter/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "counter",
+      "block": 9,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "3,2,4,1,0",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "9"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-10-order-1-counter",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 12,
+        "target_counter_exact": true
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-counter.bpf.o",
+        "counter",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.626016021,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.610176027,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.614655972,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.616159976,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.592832029,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        }
+      ],
+      "order": 0,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105789939806152",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 7001,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 19.02,
+          "sm_clock_mhz": 96,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532049846618593,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-28/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2437.0,
+          "mean_power_w": 38.428,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 5476.0,
+          "peak_temperature_c": 52.0,
+          "samples": 15,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "application_returncode": 0,
+      "arm": "baseline",
+      "block": 9,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "3,2,4,1,0",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "9"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-10-order-2-baseline",
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0335999988,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0324800014,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0388480015,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.0299200006,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0324480012,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        }
+      ],
+      "order": 1,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 43.25,
+          "sm_clock_mhz": 487,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532056539371448,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-29/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 22.0,
+          "mean_power_w": 13.1375,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 15.0,
+          "peak_temperature_c": 51.0,
+          "samples": 4,
+          "throttled": false
+        }
+      },
+      "valid": true
+    },
+    {
+      "agent_bootstrap_gate": {
+        "cuda_registration": 1,
+        "shared_memory_constructed": 1,
+        "shared_memory_initialized": 1,
+        "verifier_warning": 1
+      },
+      "agent_evidence_log": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-10-order-3-noop/application.log",
+      "agent_gate": {
+        "attach_success": 1,
+        "marker_fallback_transform": 1,
+        "marker_recorded": 1,
+        "module_loaded": 2,
+        "routing_order_valid": true,
+        "target_recorded": 1,
+        "target_stub_transform": 1
+      },
+      "application_returncode": 0,
+      "arm": "noop",
+      "block": 9,
+      "command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-scaling",
+        "--cells",
+        "3,2,4,1,0",
+        "--warmup",
+        "2",
+        "--launches",
+        "8",
+        "--hook-repeats",
+        "16",
+        "--run-id",
+        "9"
+      ],
+      "directory": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/block-10-order-3-noop",
+      "engagement": {
+        "clean_detach": true,
+        "marker_callbacks": 32,
+        "segment_records": 2,
+        "target_counter_exact": false
+      },
+      "loader_command": [
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe",
+        "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/.output/fixed-work-probe-noop.bpf.o",
+        "noop",
+        "1048576",
+        "300"
+      ],
+      "loader_returncode": 0,
+      "measurements": [
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 2048,
+          "cell": 3,
+          "checked_values": 1048576,
+          "counter_key": 3,
+          "elapsed_ms": 0.0342399999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 64,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 1024,
+          "cell": 2,
+          "checked_values": 1048576,
+          "counter_key": 2,
+          "elapsed_ms": 0.0413439982,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 128,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 4096,
+          "cell": 4,
+          "checked_values": 1048576,
+          "counter_key": 4,
+          "elapsed_ms": 0.0368640013,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 32,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 256,
+          "cell": 1,
+          "checked_values": 1048576,
+          "counter_key": 1,
+          "elapsed_ms": 0.033631999,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 512,
+          "warmup": 2
+        },
+        {
+          "active_threads": 131072,
+          "active_warps": 4096,
+          "blocks": 128,
+          "cell": 0,
+          "checked_values": 1048576,
+          "counter_key": 0,
+          "elapsed_ms": 0.0338240005,
+          "event": "measurement",
+          "hook_repeats": 16,
+          "launched_threads": 131072,
+          "launches": 8,
+          "mismatches": 0,
+          "threads_per_block": 1024,
+          "warmup": 2
+        }
+      ],
+      "order": 2,
+      "owned_group_survivors": {},
+      "private_segment": "trampoline_scaling_2445511_105805626677103",
+      "private_segment_removed": true,
+      "safety_after": {
+        "dmesg_abnormal": [],
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 810,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 15,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 19.55,
+          "sm_clock_mhz": 487,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "journal_abnormal": [],
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        },
+        "timestamp_ns": 1788532065402664124,
+        "uvm_refcount": 0,
+        "xids": []
+      },
+      "telemetry": {
+        "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/raw/fixed-work-full-575-01/telemetry-30/gpu-telemetry.csv",
+        "summary": {
+          "fixed_power_cap_samples": 0,
+          "max_sm_clock_mhz": 2400.0,
+          "mean_power_w": 35.11714285714286,
+          "min_sm_clock_mhz": 22.0,
+          "peak_memory_mib": 4935.0,
+          "peak_temperature_c": 52.0,
+          "samples": 14,
+          "throttled": false
+        }
+      },
+      "valid": true
+    }
+  ],
+  "runtime_configuration": {
+    "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+    "BPFTIME_LLVM_JIT": "ON",
+    "CMAKE_HOME_DIRECTORY": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "ENABLE_EBPF_VERIFIER": "OFF"
+  },
+  "runtime_source_audit": {
+    "default_save_strategy": "minimal",
+    "explicit_stub_resolution_scope": "whole PTX module before named-kernel fallback",
+    "interpretation": "source does not establish one scalar handler execution per warp; the experiment measures observed scaling",
+    "register_guard_for_default": false,
+    "required_attach_order": [
+      "cuda__scale_target",
+      "cuda__scale_marker"
+    ],
+    "source": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp",
+    "stub_replacement_instruction": "ordinary PTX call/call.uni"
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 13.33,
+      "sm_clock_mhz": 22,
+      "temperature_c": 51,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788532068390263587,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 14.86,
+      "sm_clock_mhz": 22,
+      "temperature_c": 50,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788531822349724922,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "schedule": [
+    {
+      "arm": "counter",
+      "block": 0,
+      "cell_ids": [
+        1,
+        0,
+        3,
+        2,
+        4
+      ],
+      "order": 0,
+      "run_id": 0
+    },
+    {
+      "arm": "noop",
+      "block": 0,
+      "cell_ids": [
+        1,
+        0,
+        3,
+        2,
+        4
+      ],
+      "order": 1,
+      "run_id": 0
+    },
+    {
+      "arm": "baseline",
+      "block": 0,
+      "cell_ids": [
+        1,
+        0,
+        3,
+        2,
+        4
+      ],
+      "order": 2,
+      "run_id": 0
+    },
+    {
+      "arm": "baseline",
+      "block": 1,
+      "cell_ids": [
+        2,
+        3,
+        4,
+        0,
+        1
+      ],
+      "order": 0,
+      "run_id": 1
+    },
+    {
+      "arm": "counter",
+      "block": 1,
+      "cell_ids": [
+        2,
+        3,
+        4,
+        0,
+        1
+      ],
+      "order": 1,
+      "run_id": 1
+    },
+    {
+      "arm": "noop",
+      "block": 1,
+      "cell_ids": [
+        2,
+        3,
+        4,
+        0,
+        1
+      ],
+      "order": 2,
+      "run_id": 1
+    },
+    {
+      "arm": "baseline",
+      "block": 2,
+      "cell_ids": [
+        2,
+        0,
+        3,
+        1,
+        4
+      ],
+      "order": 0,
+      "run_id": 2
+    },
+    {
+      "arm": "counter",
+      "block": 2,
+      "cell_ids": [
+        2,
+        0,
+        3,
+        1,
+        4
+      ],
+      "order": 1,
+      "run_id": 2
+    },
+    {
+      "arm": "noop",
+      "block": 2,
+      "cell_ids": [
+        2,
+        0,
+        3,
+        1,
+        4
+      ],
+      "order": 2,
+      "run_id": 2
+    },
+    {
+      "arm": "counter",
+      "block": 3,
+      "cell_ids": [
+        1,
+        0,
+        2,
+        4,
+        3
+      ],
+      "order": 0,
+      "run_id": 3
+    },
+    {
+      "arm": "noop",
+      "block": 3,
+      "cell_ids": [
+        1,
+        0,
+        2,
+        4,
+        3
+      ],
+      "order": 1,
+      "run_id": 3
+    },
+    {
+      "arm": "baseline",
+      "block": 3,
+      "cell_ids": [
+        1,
+        0,
+        2,
+        4,
+        3
+      ],
+      "order": 2,
+      "run_id": 3
+    },
+    {
+      "arm": "counter",
+      "block": 4,
+      "cell_ids": [
+        4,
+        0,
+        3,
+        1,
+        2
+      ],
+      "order": 0,
+      "run_id": 4
+    },
+    {
+      "arm": "noop",
+      "block": 4,
+      "cell_ids": [
+        4,
+        0,
+        3,
+        1,
+        2
+      ],
+      "order": 1,
+      "run_id": 4
+    },
+    {
+      "arm": "baseline",
+      "block": 4,
+      "cell_ids": [
+        4,
+        0,
+        3,
+        1,
+        2
+      ],
+      "order": 2,
+      "run_id": 4
+    },
+    {
+      "arm": "baseline",
+      "block": 5,
+      "cell_ids": [
+        0,
+        2,
+        3,
+        1,
+        4
+      ],
+      "order": 0,
+      "run_id": 5
+    },
+    {
+      "arm": "noop",
+      "block": 5,
+      "cell_ids": [
+        0,
+        2,
+        3,
+        1,
+        4
+      ],
+      "order": 1,
+      "run_id": 5
+    },
+    {
+      "arm": "counter",
+      "block": 5,
+      "cell_ids": [
+        0,
+        2,
+        3,
+        1,
+        4
+      ],
+      "order": 2,
+      "run_id": 5
+    },
+    {
+      "arm": "noop",
+      "block": 6,
+      "cell_ids": [
+        4,
+        0,
+        1,
+        3,
+        2
+      ],
+      "order": 0,
+      "run_id": 6
+    },
+    {
+      "arm": "baseline",
+      "block": 6,
+      "cell_ids": [
+        4,
+        0,
+        1,
+        3,
+        2
+      ],
+      "order": 1,
+      "run_id": 6
+    },
+    {
+      "arm": "counter",
+      "block": 6,
+      "cell_ids": [
+        4,
+        0,
+        1,
+        3,
+        2
+      ],
+      "order": 2,
+      "run_id": 6
+    },
+    {
+      "arm": "noop",
+      "block": 7,
+      "cell_ids": [
+        4,
+        0,
+        1,
+        3,
+        2
+      ],
+      "order": 0,
+      "run_id": 7
+    },
+    {
+      "arm": "counter",
+      "block": 7,
+      "cell_ids": [
+        4,
+        0,
+        1,
+        3,
+        2
+      ],
+      "order": 1,
+      "run_id": 7
+    },
+    {
+      "arm": "baseline",
+      "block": 7,
+      "cell_ids": [
+        4,
+        0,
+        1,
+        3,
+        2
+      ],
+      "order": 2,
+      "run_id": 7
+    },
+    {
+      "arm": "noop",
+      "block": 8,
+      "cell_ids": [
+        2,
+        1,
+        4,
+        3,
+        0
+      ],
+      "order": 0,
+      "run_id": 8
+    },
+    {
+      "arm": "baseline",
+      "block": 8,
+      "cell_ids": [
+        2,
+        1,
+        4,
+        3,
+        0
+      ],
+      "order": 1,
+      "run_id": 8
+    },
+    {
+      "arm": "counter",
+      "block": 8,
+      "cell_ids": [
+        2,
+        1,
+        4,
+        3,
+        0
+      ],
+      "order": 2,
+      "run_id": 8
+    },
+    {
+      "arm": "counter",
+      "block": 9,
+      "cell_ids": [
+        3,
+        2,
+        4,
+        1,
+        0
+      ],
+      "order": 0,
+      "run_id": 9
+    },
+    {
+      "arm": "baseline",
+      "block": 9,
+      "cell_ids": [
+        3,
+        2,
+        4,
+        1,
+        0
+      ],
+      "order": 1,
+      "run_id": 9
+    },
+    {
+      "arm": "noop",
+      "block": 9,
+      "cell_ids": [
+        3,
+        2,
+        4,
+        1,
+        0
+      ],
+      "order": 2,
+      "run_id": 9
+    }
+  ],
+  "source_manifest": [
+    {
+      "bytes": 683,
+      "ctime_ns": 1788528398373461601,
+      "device": 66305,
+      "inode": 94395811,
+      "mtime_ns": 1788528398373461601,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/fixed_work_matrix.h"
+    },
+    {
+      "bytes": 11639,
+      "ctime_ns": 1788528398373461601,
+      "device": 66305,
+      "inode": 94388550,
+      "mtime_ns": 1788528398373461601,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/scaling.cu"
+    },
+    {
+      "bytes": 1847,
+      "ctime_ns": 1788528398374461623,
+      "device": 66305,
+      "inode": 94388515,
+      "mtime_ns": 1788528398374461623,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.bpf.c"
+    },
+    {
+      "bytes": 6341,
+      "ctime_ns": 1788528398374461623,
+      "device": 66305,
+      "inode": 94388516,
+      "mtime_ns": 1788528398374461623,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/probe.c"
+    },
+    {
+      "bytes": 2975,
+      "ctime_ns": 1788528398374461623,
+      "device": 66305,
+      "inode": 94388551,
+      "mtime_ns": 1788528398374461623,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/Makefile"
+    },
+    {
+      "bytes": 51787,
+      "ctime_ns": 1788529697250091031,
+      "device": 66305,
+      "inode": 94388507,
+      "mtime_ns": 1788529697250091031,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/run_scaling.py"
+    },
+    {
+      "bytes": 4486,
+      "ctime_ns": 1788437099982237230,
+      "device": 66305,
+      "inode": 92300341,
+      "mtime_ns": 1788437099982237230,
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp"
+    },
+    {
+      "bytes": 2076,
+      "ctime_ns": 1788530308975805785,
+      "device": 66305,
+      "inode": 94395737,
+      "mtime_ns": 1788530308975805785,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/run_fixed_work.py"
+    },
+    {
+      "bytes": 24945,
+      "ctime_ns": 1788530308974805756,
+      "device": 66305,
+      "inode": 94395738,
+      "mtime_ns": 1788530308974805756,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/analyze_fixed_work.py"
+    },
+    {
+      "bytes": 11595,
+      "ctime_ns": 1788530245499952967,
+      "device": 66305,
+      "inode": 94395459,
+      "mtime_ns": 1788530245499952967,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/trampoline-scaling/fixed-work-plan.md"
+    }
+  ],
+  "status": "complete",
+  "summary": [
+    {
+      "active_warps": 4096,
+      "arm": "noop",
+      "blocks": 128,
+      "bootstrap_median_overhead_high_pct": 7.133421476250568,
+      "bootstrap_median_overhead_low_pct": 2.756321499815728,
+      "cell": 0,
+      "median_delta_ms": 0.0018400009499999967,
+      "median_overhead_pct": 5.63660684785996,
+      "pairs": 10,
+      "threads_per_block": 1024
+    },
+    {
+      "active_warps": 4096,
+      "arm": "counter",
+      "blocks": 128,
+      "bootstrap_median_overhead_high_pct": 1727.0217180588613,
+      "bootstrap_median_overhead_low_pct": 1693.6936737165279,
+      "cell": 0,
+      "median_delta_ms": 0.5588159768000001,
+      "median_overhead_pct": 1713.1007049686575,
+      "pairs": 10,
+      "threads_per_block": 1024
+    },
+    {
+      "active_warps": 4096,
+      "arm": "noop",
+      "blocks": 256,
+      "bootstrap_median_overhead_high_pct": 9.10816241169452,
+      "bootstrap_median_overhead_low_pct": 0.9756057867341239,
+      "cell": 1,
+      "median_delta_ms": 0.0014240015000000009,
+      "median_overhead_pct": 4.2507148717650045,
+      "pairs": 10,
+      "threads_per_block": 512
+    },
+    {
+      "active_warps": 4096,
+      "arm": "counter",
+      "blocks": 256,
+      "bootstrap_median_overhead_high_pct": 1791.891899155734,
+      "bootstrap_median_overhead_low_pct": 1745.425708106316,
+      "cell": 1,
+      "median_delta_ms": 0.58211200325,
+      "median_overhead_pct": 1768.684355980156,
+      "pairs": 10,
+      "threads_per_block": 512
+    },
+    {
+      "active_warps": 4096,
+      "arm": "noop",
+      "blocks": 1024,
+      "bootstrap_median_overhead_high_pct": 10.287910296117152,
+      "bootstrap_median_overhead_low_pct": 0.9721615427726538,
+      "cell": 2,
+      "median_delta_ms": 0.0013440009500000002,
+      "median_overhead_pct": 4.131177700847766,
+      "pairs": 10,
+      "threads_per_block": 128
+    },
+    {
+      "active_warps": 4096,
+      "arm": "counter",
+      "blocks": 1024,
+      "bootstrap_median_overhead_high_pct": 1773.2652469756686,
+      "bootstrap_median_overhead_low_pct": 1709.227410261774,
+      "cell": 2,
+      "median_delta_ms": 0.5764480123,
+      "median_overhead_pct": 1753.847628479658,
+      "pairs": 10,
+      "threads_per_block": 128
+    },
+    {
+      "active_warps": 4096,
+      "arm": "noop",
+      "blocks": 2048,
+      "bootstrap_median_overhead_high_pct": 6.0157788702251525,
+      "bootstrap_median_overhead_low_pct": -1.5711353248746618,
+      "cell": 3,
+      "median_delta_ms": 0.0002719982999999995,
+      "median_overhead_pct": 0.8087264273888506,
+      "pairs": 10,
+      "threads_per_block": 64
+    },
+    {
+      "active_warps": 4096,
+      "arm": "counter",
+      "blocks": 2048,
+      "bootstrap_median_overhead_high_pct": 1813.9546151767277,
+      "bootstrap_median_overhead_low_pct": 1712.2845114155557,
+      "cell": 3,
+      "median_delta_ms": 0.5876639968999999,
+      "median_overhead_pct": 1774.1351126961126,
+      "pairs": 10,
+      "threads_per_block": 64
+    },
+    {
+      "active_warps": 4096,
+      "arm": "noop",
+      "blocks": 4096,
+      "bootstrap_median_overhead_high_pct": 8.615720028308438,
+      "bootstrap_median_overhead_low_pct": -0.1562512245178338,
+      "cell": 4,
+      "median_delta_ms": 0.0009759981500000008,
+      "median_overhead_pct": 2.664296871504057,
+      "pairs": 10,
+      "threads_per_block": 32
+    },
+    {
+      "active_warps": 4096,
+      "arm": "counter",
+      "blocks": 4096,
+      "bootstrap_median_overhead_high_pct": 1648.5148542478012,
+      "bootstrap_median_overhead_low_pct": 1537.9020299682088,
+      "cell": 4,
+      "median_delta_ms": 0.5819199758,
+      "median_overhead_pct": 1594.2955711153106,
+      "pairs": 10,
+      "threads_per_block": 32
+    }
+  ]
+}

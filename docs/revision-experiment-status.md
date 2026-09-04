@@ -16,27 +16,39 @@ hardware, transport, or headline performance numbers.
 
 ### Active follow-on objective
 
-The user now requests a meaningful GPreempt/native difference for **both**
-original C and BPF, plus experiments on FineMoE's dynamic prefetch sets,
-Hummingbird's idle-interval scheduling and POD-Attention's device-local task
-selection. The 45-cell GPreempt study is completed and pushed. FineMoE's
-20-cell comparison and Hummingbird's 50-cell comparison are also complete;
-POD remains open.
+The requested MoE-Infinity, XSched, GPreempt, Expert Buffering, FineMoE,
+Hummingbird and POD-Attention comparisons are complete within the boundaries
+below. Matching an existing policy is sufficient; none of the close native/BPF
+results is promoted to formal equivalence. The canonical 48-paper
+[expressibility ledger](experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md)
+separates whole-system feasibility from the strongest local evidence.
 
-GPreempt satisfies that bounded comparison: all three prespecified loads have
-original-C/native and BPF/native foreground-response paired 95% intervals
-strictly below one. Under continuous BE supply, C/native reduces LC p99 by
-9.61% [6.46%, 11.91%], and BPF/native by 10.81% [9.91%, 11.70%], with the
-background-throughput cost disclosed below. This does not mean BPF beats C.
+The remaining hard experimental commitment is RTX 5090 Table 1. Its full
+launch-latency preflight and first non-cross-clock preflight are both retained
+failures, and the latest phase-capacity repair is build/readiness evidence only;
+there are **zero valid formal timing blocks**. Original agent transcripts also
+remain unavailable. LMCache local disk is explicitly **paused by user
+direction** after its cross-arm correctness failure and has no formal
+performance result.
 
-Source and algorithm checks run in parallel; GPU correctness and timing remain
-exclusive. FineMoE has measured actual useful/unused transfers; Hummingbird has tested
-background recovery with foreground protection, and POD-Attention must execute
-a BPF-returned task choice on the device. Builds, trace-only replay and host-JIT
-callbacks alone cannot close those respective requirements. The existing
-GPreempt runtime and unrelated work remain frozen. Following the user's renewed
-request to finish all remaining commitments, scoped paper integration proceeds
-separately from the GPU campaigns.
+### Current baseline -> native policy -> BPF ledger
+
+| Comparison | Primary measured sequence | Completion and boundary |
+| --- | --- | --- |
+| MoE-Infinity | **11.8964 -> 11.2233 -> 11.1900 token/s** | [Five blocks / 15 cells complete](../workloads/moe-infinity/results-paper-v3-protected-575.md). This is a same-frontend paper-algorithm port; the baseline alone has a prefill overload shortcut, so baseline/policy is not a pure policy contrast. |
+| XSched HPF | LC p99 **76.8780 -> 26.9784 -> 27.2502 s**; BE **10.2377 -> 10.1497 -> 10.1616 kernels/s** | [Ten blocks plus controls / 46 cells complete](../workloads/xsched/performance-full-575-20260903.md). Original Level-1 executes suspend/resume; BPF supplies bounded HPF decisions. No Level-3 or formal equivalence claim. |
+| GPreempt, continuous BE | LC response p99 **1.795937 -> 1.614817 -> 1.610008 ms**; BE **197.717 -> 179.967 -> 180.100 req/s** | [45-cell load study complete](../workloads/gpreempt/results-load-study-575-20260903.md); the separate [27-cell knee sweep](../workloads/gpreempt/results-lc-knee-575-20260903.md) exposes increasing BE starvation and conditional overload at 800 LC requests/s. Host-mapped compatibility is not original GDRCopy reproduction. |
+| Expert Buffering Section VI | Same-K FIFO -> native -> BPF **5.508 -> 5.663 -> 5.621 token/s** | [Five blocks / 15 cells complete](../workloads/expert-buffering-policy/section-vi/results-performance-575-20260903.md). Native/BPF decisions match; BPF/native throughput is -0.74% [-1.40%, -0.20%]. This is not the original distributed system. |
+| FineMoE dynamic set | Demand-only **5.1713**, all-positive **3.6228** -> native **4.4994** -> BPF **4.5144 token/s** | [Five blocks / 20 cells complete](../workloads/finemoe/results-performance.md). Dynamic selection cuts unused speculation versus all-positive but remains 12.62% below demand-only; BPF/native is inconclusive. |
+| Hummingbird idle admission | Periodic BE native/fixed controls **179.2333 / 164.1500** -> C **133.2167** -> BPF **133.0500 req/s**; BurstGPT **179.1500 / 164.6167 -> 133.1667 -> 132.8167** | [Five-arm 50-cell study complete](../workloads/hummingbird/results-575-20260903.md), with a separate [40-cell bound-2 ablation](../workloads/hummingbird/pipeline/results-575-20260903.md). The conservative ports lose 19--20% to fixed GPreempt; bound 2 recovers about 15% over bound 1 without proving unchanged LC protection. |
+| POD-Attention device selector | At the fixed phase shape, inline -> CUDA adapter -> BPF **3.4430 -> 3.4567 -> 3.5120 ms** CUDA-event latency | [250-cell shape study](../workloads/pod-attention/results-575-20260903.md) and [15-cell phase decomposition](../workloads/pod-attention/results-phase-full-575-01.md) complete. Matched BPF/CUDA operator cost is +1.78% [1.64%, 1.92%]; the current fresh-process pre-Python path is about 271 s and strict verification was off. |
+
+These are the authoritative completed performance comparisons. Strict-device
+engagement, raw-map readback and trampoline scaling are separate mechanism
+studies, not extra policy-performance rows. GPU timing was exclusive; builds,
+preflights, partial attempts and failed cells are not pooled into these values.
+
+### Historical execution trace (superseded by the ledger above)
 
 The next real-GPU dependency is now complete: Hummingbird's split-model/copy
 calibration verified 23 ResNet152 and 102 VGG19 outputs, and an isolated
@@ -117,11 +129,12 @@ required-RPC context canaries passed 2,048 exact outputs and 17 negative cases.
 Hummingbird's unchanged full 50-cell batch completed at 10:53 UTC under exclusive leases.
 See the [restoration and pending service cleanup](experiment/driver-575-linux-6.15-runtime.md#second-unexpected-reboot-and-follow-on-restoration).
 
-The active paper draft now includes Q2 pseudocode/algorithm/TCB/rejection
+At that historical checkpoint, the active paper draft included Q2
+pseudocode/algorithm/TCB/rejection
 examples, the policy-expressibility table, completed matched comparisons and
 the scheduling figure, calibrated headline attribution, discussion topics and
 typographic repairs. A fresh three-pass LaTeX/BibTeX build and two-figure
-render check passed, without undefined references/citations. The draft is
+render check passed, without undefined references/citations. That draft was
 18 total pages with conclusion on page 16, so condensation and a fresh final
 build remain necessary before claiming paper integration complete. The checked
 draft source is committed and pushed as paper revision `b5e2f25`.
@@ -186,8 +199,8 @@ of that completed campaign and is now proceeding separately.
 
 This section supersedes the dated August 31 execution state below. The
 user-requested GPreempt, MoE-Infinity, and XSched comparisons are complete.
-LMCache was paused at this historical milestone; its disk-tier follow-up is now
-queued under the user's request to finish the remaining commitments.
+LMCache was paused at this historical milestone and remains paused by explicit
+user direction.
 The host is Linux `6.15.11-061511-generic`, RTX 5090, and NVIDIA 575.57.08 with
 the temporarily loaded `849ea75d` scheduling port. After an unexpected reboot
 at 01:37:41 UTC, the verified modules were restored with ordinary unload/load;
@@ -252,19 +265,19 @@ cannot be mistaken for a completed experiment.
 
 | Revision item | Required experiment or evidence | Acceptance boundary | Current disposition |
 | --- | --- | --- | --- |
-| R1: MoE research baseline | Same-model, same-workload head-to-head against a runnable research MoE offload system on the RTX 5090. | Correct outputs, actual baseline-offload and gpubpf-hook engagement, valid paired blocks; a host-only policy remains an ablation, not the submitted full device-observed policy. | No runnable exact-model research artifact remains: MoE-Infinity exhausted three preflights, DeepSpeed is source-confirmed unable to manage GPT-OSS's non-Parameter MXFP4 expert tensors through official ZeRO-3, and PowerInfer lacks a GPT-OSS path. Do not weaken the workload. Proceed with the separately promised Expert Buffering policy implementation and record the three named artifact reasons. |
-| R1: scheduling research baseline | XSched on sm_120, explicitly labeled public Level-1 inter-kernel preemption. | Correct epoch/timestamp proof, matched multi-tenant workload, policy engagement, and a predeclared interpretation that permits regressions. | First proposal closed after three reviews; a repaired proposal is needed. Orion is the named fallback if XSched cannot yield an accepted run. |
-| R1: storage-tier KV baseline | LMCache local-NVMe backend versus CPU retention and recomputation. | Exact cache hits, O_DIRECT proof, deterministic outputs, and valid paired blocks; no failed preflight may become a performance sample. | First protocol closed after three failed real preflights and no served request. A new reviewed protocol or an explicitly documented fallback is required. |
-| R1: existing GPREEMPT-equivalent evidence | Re-establish the foreground launch-latency and best-effort throughput claims on a matched, interleaved schedule. | Measure the intended host-submit-to-kernel-entry event, prove timeslice and preemption engagement per run, and report robust run-level effects rather than an outlier-driven mean. | Historical evidence audit found that the submitted 96% aggregation is driven by one native run and that the launcher does not establish preemption engagement. Fresh evidence is required before retaining the strong numeric claim. |
-| R3: expert-management granularity | Quantify page-granular partial-expert reuse and compute/transfer overlap against an expert-atomic design. | Treat the MoE-Infinity deployment comparison separately from any causal granularity comparison; report unsupported cases as unavailable, not reproduced. | No dedicated accepted protocol yet. MoE-Infinity can provide system-level context but cannot alone identify the granularity effect. |
-| R4: mechanism versus policy | Re-run the memory-policy and scheduling-policy comparison underlying Fig. 13. | Matched repeated blocks, successful attach and live-hit evidence, correct concurrent completion-time estimand, and separately reported memory/scheduling effects. | A new 15-pair same-policy page-fault study passed independent review and measures a 3.219% general-mechanism cost (95% CI 2.247--4.202%) for one scoped memory path. This answers one Shepherd question but does not repair the historical Fig. 13 policy-benefit or scheduling evidence; the 55--92% and under-1% claims remain unsupported by fresh revision runs. |
-| R5: safety and design depth | Executable verifier/transition rejection cases plus a source-backed re-count of the 50 agent safety events. | Demonstrate lane-varying, loop/bounds, overflow, stale, and conflicting-transition handling without claiming full-stack formal verification. | Reviewed `PARTIAL`: five full-pipeline verifier tests pass (28 targeted assertions; full suite 137/23), covering seven unsafe/control pairs. Scheduler, UVM prefetch, and PMM consume the shared validator on both 575 and 610; host tests pass at 12 cases/145 assertions and both five-module builds pass. The PMM kernel-native ioctl and two PMM admission fixtures pass live with exact 2/1/1/2 outcomes. Five scheduler fixture outcomes and live scheduler commit remain open. The 50-row inventory remains 46 `SUPPORTED` plus 4 `PARTIAL`; original sessions are absent. |
-| R6: current-hardware overhead | RTX 5090 Table 1 comparison including NVBit, plus the gpubpf device-side tools. | Same benchmark and measurement boundary, supported NVBit stack, exact tool/source identities, correctness before timing, repeated runs. | Hard rebuttal commitment. Current 610 driver is outside NVBit's frozen supported stack; the first proposal is closed and a new 575 execution protocol is required. |
+| R1: MoE research baseline | Same-model, same-workload head-to-head against a runnable research MoE offload system on the RTX 5090. | Correct outputs, actual baseline-offload and gpubpf-hook engagement, valid paired blocks; a host-only policy remains an ablation, not the submitted full device-observed policy. | **Complete as a scoped paper-algorithm port, not an original binary/system reproduction.** [Five blocks / 15 cells](../workloads/moe-infinity/results-paper-v3-protected-575.md) report baseline/native/BPF 11.8964/11.2233/11.1900 token/s and actual host-uBPF engagement. The baseline's distinct prefill overload shortcut prevents a pure baseline-policy attribution. |
+| R1: scheduling research baseline | XSched on sm_120, explicitly labeled public Level-1 inter-kernel preemption. | Correct epoch/timestamp proof, matched multi-tenant workload, policy engagement, and a predeclared interpretation that permits regressions. | **Complete within public Level-1 scope.** [All 46 cells](../workloads/xsched/performance-full-575-20260903.md) pass: native/original/BPF LC p99 is 76.8780/26.9784/27.2502 s and BE is 10.2377/10.1497/10.1616 kernels/s. This is neither Level-3 nor a formal BPF/original equivalence result. |
+| R1: storage-tier KV baseline | LMCache local-NVMe backend versus CPU retention and recomputation. | Exact cache hits, O_DIRECT proof, deterministic outputs, and valid paired blocks; no failed preflight may become a performance sample. | **Paused by user direction, incomplete.** Storage engagement was observed, but warm CPU/disk outputs disagree with recompute. No formal cells or valid performance result exist; see the [retained status](revision-completion-checklist.md). |
+| R1: existing GPREEMPT-equivalent evidence | Re-establish foreground latency and best-effort throughput on a matched, interleaved schedule without retaining the unsupported historical 96% proxy. | Complete response timestamps, policy engagement per run, request/backlog accounting, and robust run-level effects rather than an outlier-driven mean. | **Complete scoped compatibility evidence.** The [45-cell load study](../workloads/gpreempt/results-load-study-575-20260903.md) and [27-cell knee sweep](../workloads/gpreempt/results-lc-knee-575-20260903.md) show both original C and BPF protecting LC at substantial BE cost. The 800-rate tail is conditional, and host-mapped signaling is not original GDRCopy/hardware reproduction. |
+| R3: expert-management granularity | Implement the promised Expert Buffering hot-residency policy and keep any page-granularity causal claim separate. | A matched baseline/native/BPF comparison may establish policy portability; it cannot by itself reproduce the distributed original system or isolate page-versus-expert granularity. | **Matched policy port complete:** [15/15 cells](../workloads/expert-buffering-policy/section-vi/results-performance-575-20260903.md) report FIFO/native/BPF 5.508/5.663/5.621 token/s, identical native/BPF decisions and 12.85% less logical copy payload. Original distributed-system reproduction and a causal page-granularity comparison remain unclaimed. |
+| R4: mechanism versus policy | Separate policy benefit from the cost of executing the same decision through gpubpf. | Matched repeated blocks, successful engagement, and explicit execution/actuation boundaries. | **Supported by multiple completed ports.** The [48-paper evidence ledger](experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md) links MoE-Infinity, XSched, GPreempt, Expert Buffering, FineMoE, Hummingbird and POD results; the separate [UVM study](../workloads/uvm-policy-mechanism/results/analysis.md) measures +3.219% [2.247%, 4.202%] on one matched fault path. Historical Fig. 13's fresh engaged matrix remains unmeasured and its old 55--92%/under-1% causal wording remains unsupported. |
+| R5: safety and design depth | Executable verifier/transition rejection cases plus a source-backed re-count of the 50 agent safety events. | Demonstrate scoped rejected programs and invalid transitions without claiming full-stack formal verification or universal fallback semantics. | **Substantially complete, with explicit limits.** [Two strict device pairs](../workloads/bpftime-device-smoke/results-strict-575-20260903.md) each admit 32,768 callbacks and reject the lane-varying negative before hook creation. [Invalid-prefetch](experiment/revision-safety/prefetch-invalid-575-02/result-review.md) and [scheduler-init](experiment/revision-safety/sched-init-live-575-05/result.md) live controls pass; the loader study shows strict rejection while warning/default modes admit. These scoped controls do not retroactively verify performance runs, and original agent sessions remain absent. |
+| R6: current-hardware overhead | RTX 5090 Table 1 comparison including NVBit, plus the gpubpf device-side tools. | Same benchmark and measurement boundary, supported NVBit stack, exact tool/source identities, correctness before timing, repeated runs. | **Incomplete; zero valid formal timing blocks.** Full preflight 08 still fails gpubpf launch-clock classification. The [first two-tool preflight](../workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-01/summary.md) also fails one gpubpf kernel-return cell (991,232/1,441,792 events; 450,560 exact drops). The [capacity repair](../workloads/llama.cpp/observability_overhead/revision-rq4/table1-phase-capacity-build-readiness.md) is clean-build/CPU-test evidence only; a fresh passing real preflight is required before full timing. |
 | R7: study artifacts | Publish prompts, interaction logs, metric extraction, and benchmark harnesses. | Redact secrets/private data, retain raw provenance and explicit public inventories, and make every reported aggregate reproducible without file/content hash gates. | Hard artifact commitment. Public index and path-parameterized extractor are pushed; the original study sessions are still absent from the local archive. |
-| R8: portability/deployment evidence | Audit the SASS patching prototype, the reported 273 ms one-time ptrace attach, the LD_PRELOAD route, and the approximately 100-LOC open-module patch boundary. | Bind each statement to runnable code or retained raw evidence; otherwise narrow it to design discussion. | The 610 Open Kernel Modules port is built and pushed, but that port is not a substitute for the promised SASS/attach/deployment evidence. |
-| R2, R9, and LOC corrections | Expressibility table, design/discussion text, and corrected policy LOC arithmetic. | Cite concrete in-tree programs and distinguish measured, inferred, and out-of-scope claims. No fabricated experiment. | Pending paper work. CXL/GDS implementation, multi-vendor campaigns, LithOS-scale experiments, and upstream GPREEMPT binary reproduction remain explicitly out of scope. |
-| Shepherd: policy versus mechanism | For each existing policy, establish whether gpubpf implements it and, when the original artifact is runnable, compare against the original ad-hoc/unsafe/monolithic implementation. Audit headline claims in the abstract and introduction for policy/mechanism attribution and disclose any general-mechanism cost. | Matching SOTA remains a valid outcome; no result may imply that a policy improvement was caused by the mechanism. Novel-policy claims require concrete code and evidence, especially for agent-discovered policies. | The first fresh matched result is complete: the same no-prefetch outcome through gpubpf costs 3.219% on a scoped real UVM fault path, with independent review and explicit limitation. Existing-policy coverage, application/SOTA comparisons, novel-policy evidence, and the paper-wide claim audit remain pending. |
-| Shepherd: exposition and typography | Regroup scattered safety and SOTA-reimplementation answers under common labeled headings; fix Section 5.3 paragraph headings with two trailing periods and audit bibliography curly-brace escaping. | Preserve technical meaning and bibliography semantics; compile the paper and inspect the affected output. | Pending after experiment evidence stabilizes; the verbatim source comment is retained in the repository. |
+| R8: portability/deployment evidence | Audit the SASS patching prototype, the reported 273 ms one-time ptrace attach, the LD_PRELOAD route, and the approximately 100-LOC open-module patch boundary. | Bind each statement to runnable code or retained raw evidence; otherwise narrow it to design discussion. | The [deployment audit](experiment/revision-deployment-575/RESULTS.md) validates scoped CPU-only LD_PRELOAD and running-process lifecycle paths, but does not validate working SASS, the historical 273-ms number or an unqualified approximately-100-LOC claim. The 610 port remains separate build/portability evidence. |
+| R2, R9, and LOC corrections | Expressibility table, design/discussion text, and corrected policy LOC arithmetic. | Cite concrete in-tree programs and distinguish measured, inferred, and out-of-scope claims. No fabricated experiment. | The [48-paper inventory](experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md) and grouped discussion are integrated in the latest paper source; [eval.tex](paper/tex/eval.tex) contains the corrected sequential-prefetch 573 LOC and composite 1334 LOC values. No surveyed whole system is classified `FULL`. CXL/GDS implementation, multi-vendor campaigns, LithOS-scale experiments and upstream GPREEMPT binary reproduction remain out of scope; a final paper build/placement check remains open. |
+| Shepherd: policy versus mechanism | For each existing policy, establish whether gpubpf implements it and, when the original artifact is runnable, compare against the original ad-hoc/unsafe/monolithic implementation. Audit headline claims in the abstract and introduction for policy/mechanism attribution and disclose any general-mechanism cost. | Matching SOTA remains a valid outcome; no result may imply that a policy improvement was caused by the mechanism. Novel-policy claims require concrete code and evidence, especially for agent-discovered policies. | Existing-policy coverage now has completed matched ports and explicit mechanism costs in the [reviewer-facing ledger](experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md). The draft attributes fusion/scheduling/cache gains to policies, not BPF. No existing-policy port is called an agent-discovered policy, and no formal native/BPF equivalence claim is made. Original transcript recovery and any genuinely new-policy claim remain open. |
+| Shepherd: exposition and typography | Regroup scattered safety and SOTA-reimplementation answers under common labeled headings; fix Section 5.3 paragraph headings with two trailing periods and audit bibliography curly-brace escaping. | Preserve technical meaning and bibliography semantics; compile the paper and inspect the affected output. | Grouped safety/SOTA exposition and both reported typography fixes are in the latest paper source. The last documented build passes without undefined references/citations; later source additions still need the final build/placement and citation-metadata audit. |
 
 The two author-response commitments that cannot be dropped are R6's RTX 5090
 Table 1/NVBit result and R7's public prompts and benchmark harnesses. The fuller
@@ -273,7 +286,11 @@ quantification. Evidence defects discovered during revision are treated as
 requirements to repair, even when the original plan described the old figure
 as merely being foregrounded.
 
-## Live state and next actions
+## Historical August 31 machine state (superseded)
+
+The following section is retained only to explain the old 610/7.1 preparation.
+It is not the current host or experiment queue; the completed comparisons above
+ran on Linux 6.15.11 and NVIDIA 575.57.08.
 
 The host changed from Linux `6.15.11-061511-generic` to
 `7.1.12-070112-generic` during this work. The installed driver remains official

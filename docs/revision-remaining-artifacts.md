@@ -151,62 +151,35 @@ adds enough new evidence.
 
 ## 2. RTX 5090 / NVBit Table 1
 
-Current update: the controlled 575 runtime builds, and 24 CPU tests pass.
-Three retained preflights culminate in all seven real correctness arms, but
-four fail; no timing cell started. Full BPF histogram readback is confirmed,
-while stdout contamination, unequal event totals and both launch-latency
-paths require diagnosis. See the [current preflight report](../workloads/llama.cpp/observability_overhead/revision-rq4/preflight-575-results.md).
-The historical preparation details below are not a completed Table 1 result.
+The predeclared non-cross-clock subset is complete. The repaired
+[preflight](../workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-04/README.md)
+passes all five configurations, and the
+[paper-value run](../workloads/llama.cpp/observability_overhead/revision-rq4/result-review.md)
+passes all five correctness cells and 10/10 randomized pp512 blocks with no
+rejected or retried cell. Exit-record overhead is 99.663% for gpubpf and
+99.621% for matched NVBit; exit-count-histogram overhead is 4.007% and 10.301%.
+The result is mixed: NVBit is 0.04185 percentage points lower-overhead for the
+full record stream, whereas gpubpf is 6.29351 points lower-overhead for the
+histogram. The two corrected rows are integrated into the 16-page paper build.
 
-The [paper table](paper/tex/eval.tex) still reports P40 results. The dedicated
-[RQ4 plan](../workloads/llama.cpp/observability_overhead/revision-rq4/plan.md)
-has matched adapters but no completed seven-path 575 campaign. TinyLlama,
-PTX-enabled llama-bench/llama-cli, libggml-cuda, the NVBit library/adapter and
-CUDA-enabled bpftime agent/server libraries are present. Their presence and old
-610 diagnostics do not prove correct probe execution. The pinned NVBit README
-allows sm_120 and driver <=575.xx, so the current 575 stack removes the old
-published-driver-range objection, not the need for real qualification.
+This does not complete the original three-tool/seven-arm campaign. The
+host/device cross-clock `launchlate` comparison remains invalid and is omitted
+from the paper. The performance runtime had GPU verification disabled; NVBit
+uses custom matched adapters while both systems retain native transports. The
+histogram arms close aggregate counts, but only gpubpf retained the complete
+vector. The frozen plan named llama.cpp build 7101; every accepted preflight
+and full arm consistently used build 7102, so the disclosed deviation creates
+no cross-arm binary mismatch.
 
-Remaining work:
+Remaining work is limited to these explicit boundaries:
 
-The 2026-09-03 runner repair now reuses both existing leases, exact 575.57.08
-admission, target-only injection after CPU placement, private per-cell SHM and
-owned-process cleanup, before/after safety plus continuous GPU telemetry, and
-explicit clock-error rejection in both launch-latency arms. Fifteen CPU tests
-pass. Coordinator affinity must retain CPU 16 for telemetry; clients and loaders
-are placed on CPUs 8–15 internally. These repairs do not establish live probe
-engagement or overhead. The runtime's GPU verifier is disabled, so this
-performance comparison does not establish strict verification enforcement.
-
-1. Freeze the exact current sources and tool semantics in a scoped execution
-   record; preserve the unrelated dirty bpftime and llama.cpp changes. Rebuild
-   only per-run adapter copies when the CPU/GPU coordinator permits, not shared
-   dependencies during another timing campaign. Replace obsolete content-integrity
-   wording in the historical plan with normal revisions/file inventories.
-2. Check seven deterministic generation outputs and actual engagement, then one
-   pp=32 preflight per path: no probe and three matched tasks in both systems.
-   Zero probe events are invalid, not zero overhead. Exit timestamps are
-   per-logical-thread, the histogram covers the configured map, and launch
-   latency must preserve host/device correlation without overflow/underflow.
-3. Complete seven configurations × ten interleaved pp=512 blocks. Report each
-   task's paired overhead and interval versus no-probe throughput; preserve
-   regressions and disclose different native host hook points for launch latency.
-4. Only then add actual 5090 rows and definitions to Table 1. A passed CPU test,
-   source repair or baseline-only run cannot provide those numbers.
-
-Existing entry points, from
-`workloads/llama.cpp/observability_overhead/revision-rq4`:
-
-```sh
-python3 -B run_revision_rq4.py --phase preflight --output-dir raw/preflight-575-01
-python3 -B run_revision_rq4.py --phase full --output-dir raw/full-575-01
-```
-
-These commands build private tool copies before running GPU work; they must not
-be launched during Hummingbird/POD timing. Reserve approximately 15–30 minutes
-for qualification and 30–90 minutes for the full matrix, excluding compatibility
-repairs. This range is uncalibrated: replace it using the seven actual preflight
-durations; the 300-second per-command timeout is not a measured runtime estimate.
+1. Preserve every earlier failure and do not rerun or pool the accepted two-tool
+   cells merely to seek a more favorable result.
+2. Treat a future same-clock or principled RM-correlation `launchlate` repair as
+   a separate experiment; until then the row remains absent, not zero-overhead.
+3. Keep strict device-verifier enforcement separate from this verifier-off
+   performance study.
+4. Repeat the whole-paper build/placement review after any later source edits.
 
 ## 3. Agent prompts, original logs and harness release
 

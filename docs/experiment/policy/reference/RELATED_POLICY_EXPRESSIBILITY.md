@@ -88,14 +88,16 @@ complete repeated campaign and retain adverse outcomes.
 | POD-Attention selector | FA serial/streams -> POD inline and matched CUDA adapter -> device-BPF | [`performance`](../../../../workloads/pod-attention/results-575-20260903.md), 250 cells; [`phase decomposition`](../../../../workloads/pod-attention/results-phase-full-575-01.md), 15 cells | BPF/CUDA costs 0.51--1.18% in nine shapes and is 0.44% faster in one; the fixed shape shows +1.78% [1.64%, 1.92%]. Fusion gains are POD policy gains. Current fresh-process BPF setup is about 271 s and strict verification was off. |
 | Same-policy UVM no-prefetch | Built-in no-prefetch -> identical decision through gpubpf | [`performance`](../../../../workloads/uvm-policy-mechanism/results/analysis.md), 15 paired blocks | gpubpf adds 3.219% [2.247%, 4.202%] kernel time on one CPU-resident, non-first-touch fault path. This isolates mechanism cost, not an application-policy benefit. |
 | Device callback and trampoline | Native kernel -> BPF return-only -> BPF per-thread counter | [`performance`](../../../../microbench/trampoline-scaling/results-575-20260903.md), 270 measurements; separate [`strict engagement`](../../../../workloads/bpftime-device-smoke/results-strict-575-20260903.md) | Return-only adds 0.0012--0.0022 ms at fixed geometry; counter cost grows with active work. The performance runtime disables verification and uses per-thread calls, so it does not prove once-per-warp or arbitrary-handler constant cost. |
+| RTX 5090 observability | No probe -> matched NVBit and gpubpf exit records / exit-count histogram | [`performance`](../../../../workloads/llama.cpp/observability_overhead/revision-rq4/result-review.md), ten blocks / 50 timing cells | Exit-record overhead is 99.663%/99.621% for gpubpf/NVBit; histogram overhead is 4.007%/10.301%. The mixed result is task-specific. Adapters retain native transports, histogram validation is aggregate, verification was disabled, and cross-clock `launchlate` remains invalid. |
 | Raw non-composable map state | Native control -> instrumented producer -> host probe, plus overflow-negative control | [`engagement`](../../../../workloads/cross-layer-raw-map/results-full-575-02.md), five blocks / 15 cells | All 34,560 bounded tuples and all 2,560 deliberate drops reconcile. This is raw host readback, not a latency/bandwidth, on-chip-shard, automatic-placement, or unbounded-data result. |
 | LMCache local disk | Planned recompute / original CPU / original disk; no BPF arm | **Paused by user** after correctness failure; see [retained status](../../../revision-completion-checklist.md) | No formal performance cells and no BPF storage policy. Cold outputs agree, but all warm CPU/disk outputs disagree with recompute. Do not claim completion or storage-tier performance. |
 
 The ledger is intentionally broader than the fixed 48-paper JSON matrix: POD,
-Hummingbird, FineMoE, the UVM control, the raw-map check, and trampoline scaling
-are local policy/mechanism studies rather than reclassifications of rows in that
-survey.  RTX 5090 Table 1 remains incomplete; the retained two-tool preflight
-does not become performance evidence for the full NVBit comparison.
+Hummingbird, FineMoE, the UVM control, the raw-map check, trampoline scaling and
+the RTX 5090 observability comparison are local policy/mechanism studies rather
+than reclassifications of rows in that survey. The valid two-tool device result
+is performance evidence for those two tasks, not completion of the invalid
+cross-clock `launchlate` comparison or the original three-tool campaign.
 
 ## Survey matrix
 

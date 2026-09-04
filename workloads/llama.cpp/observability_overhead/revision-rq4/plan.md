@@ -115,7 +115,7 @@ earlier diagnostics, and use fresh 575 preflight/full directories.
 
 ## Published Precedent And Real Assets
 - Closest published protocol: NVBit MICRO'19 evaluates application slowdown under dynamic SASS instrumentation; the paper's submitted Table 1 measures llama.cpp prefill token/s degradation for three observability tasks.
-- Official system/model/data/benchmark/tool and version: gpubpf/bpftime at the checked-out commits; llama.cpp build 7102 (`26836b27`); TinyLlama 1.1B Q4_K_M; official NVlabs NVBit v1.8 (latest as of 2026-08-31), identified by its release path and ordinary artifact metadata. The frozen text originally named build 7101, but the accepted preflight and every full-run arm consistently used the same build-7102 binary, so this recorded bookkeeping deviation does not create an H2H mismatch.
+- Official system/model/data/benchmark/tool and version: gpubpf/bpftime at the checked-out commits; the frozen plan named llama.cpp build 7101; TinyLlama 1.1B Q4_K_M; official NVlabs NVBit v1.8 (latest as of 2026-08-31), identified by its release path and ordinary artifact metadata. The accepted execution deviated to build 7102 (`26836b27`), but its preflight and every full-run arm consistently used the same binary, so the disclosed deviation does not create an H2H mismatch.
 - What is reused: `run_observability_overhead.py`, the PTX-enabled llama-bench build, the real model, bpftime example tools, and official NVBit release examples/APIs.
 - Necessary deviations or custom glue: Add three matched custom adapters using the official NVBit release and runner support; repair the current bpftime-agent build/path and the three gpubpf tool semantics below. No new experiment-control schema or result gate will be introduced.
 

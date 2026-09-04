@@ -1,0 +1,3001 @@
+{
+  "arguments": {
+    "candidate_dir": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open",
+    "output": "/home/yunwei37/workspace/gpu/gpu_ext/docs/experiment/revision-safety/sched-init-live-575-02",
+    "restore_dir": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11",
+    "stage": "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02"
+  },
+  "candidate": {
+    "device_nodes": [
+      {
+        "gid": 0,
+        "major": 511,
+        "minor": 1,
+        "mode": 256,
+        "path": "/dev/nvidia-caps/nvidia-cap1",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 511,
+        "minor": 2,
+        "mode": 292,
+        "path": "/dev/nvidia-caps/nvidia-cap2",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 254,
+        "mode": 438,
+        "path": "/dev/nvidia-modeset",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 508,
+        "minor": 0,
+        "mode": 438,
+        "path": "/dev/nvidia-uvm",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 508,
+        "minor": 1,
+        "mode": 438,
+        "path": "/dev/nvidia-uvm-tools",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 0,
+        "mode": 438,
+        "path": "/dev/nvidia0",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 255,
+        "mode": 438,
+        "path": "/dev/nvidiactl",
+        "uid": 0
+      }
+    ],
+    "load": [
+      {
+        "argv": [
+          "sudo",
+          "-n",
+          "insmod",
+          "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia.ko",
+          "NVreg_CreateImexChannel0=0",
+          "NVreg_DeviceFileGID=0",
+          "NVreg_DeviceFileMode=438",
+          "NVreg_DeviceFileUID=0",
+          "NVreg_DmaRemapPeerMmio=1",
+          "NVreg_DynamicPowerManagement=3",
+          "NVreg_DynamicPowerManagementVideoMemoryThreshold=200",
+          "NVreg_EnableDbgBreakpoint=0",
+          "NVreg_EnableGpuFirmware=18",
+          "NVreg_EnableGpuFirmwareLogs=2",
+          "NVreg_EnableMSI=1",
+          "NVreg_EnablePCIERelaxedOrderingMode=0",
+          "NVreg_EnablePCIeGen3=0",
+          "NVreg_EnableResizableBar=0",
+          "NVreg_EnableS0ixPowerManagement=0",
+          "NVreg_EnableStreamMemOPs=0",
+          "NVreg_EnableUserNUMAManagement=1",
+          "NVreg_GrdmaPciTopoCheckOverride=0",
+          "NVreg_IgnoreMMIOCheck=0",
+          "NVreg_ImexChannelCount=2048",
+          "NVreg_InitializeSystemMemoryAllocations=1",
+          "NVreg_KMallocHeapMaxSize=0",
+          "NVreg_MemoryPoolSize=0",
+          "NVreg_ModifyDeviceFiles=1",
+          "NVreg_NvLinkDisable=0",
+          "NVreg_OpenRmEnableUnsupportedGpus=1",
+          "NVreg_PreserveVideoMemoryAllocations=0",
+          "NVreg_RegisterPCIDriver=1",
+          "NVreg_ResmanDebugLevel=-1",
+          "NVreg_RmLogonRC=1",
+          "NVreg_RmNvlinkBandwidthLinkCount=0",
+          "NVreg_RestrictProfilingToAdminUsers=1",
+          "NVreg_S0ixPowerManagementVideoMemoryThreshold=256",
+          "NVreg_UsePageAttributeTable=-1",
+          "NVreg_VMallocHeapMaxSize=0"
+        ],
+        "live": {
+          "btf": {
+            "ctime_ns": 1788488063912221617,
+            "device": 24,
+            "gid": 0,
+            "inode": 184937,
+            "mode": 292,
+            "mtime_ns": 1788488063912221617,
+            "path": "/sys/kernel/btf/nvidia",
+            "size_bytes": 127079,
+            "uid": 0
+          },
+          "holders": [],
+          "interface": {
+            "required_names": [
+              "nv_gpu_sched_ops",
+              "bpf_nv_gpu_preempt_tsg"
+            ],
+            "scheduler_base": {
+              "preempt_signature": "s32(u32,u32)",
+              "struct_members": [
+                [
+                  "on_task_init",
+                  "0"
+                ],
+                [
+                  "on_bind",
+                  "64"
+                ],
+                [
+                  "on_task_destroy",
+                  "128"
+                ],
+                [
+                  "on_timeslice_control",
+                  "192"
+                ]
+              ],
+              "struct_size": 32
+            },
+            "scheduler_diagnostics": [
+              "nv_gpu_sched_init_diagnostic",
+              "nv_gpu_sched_gsp_control_complete"
+            ]
+          },
+          "name": "nvidia",
+          "parameters": {
+            "CreateImexChannel0": "0",
+            "DeviceFileGID": "0",
+            "DeviceFileMode": "438",
+            "DeviceFileUID": "0",
+            "DmaRemapPeerMmio": "1",
+            "DynamicPowerManagement": "3",
+            "DynamicPowerManagementVideoMemoryThreshold": "200",
+            "EnableDbgBreakpoint": "0",
+            "EnableGpuFirmware": "18",
+            "EnableGpuFirmwareLogs": "2",
+            "EnableMSI": "1",
+            "EnablePCIERelaxedOrderingMode": "0",
+            "EnablePCIeGen3": "0",
+            "EnableResizableBar": "0",
+            "EnableS0ixPowerManagement": "0",
+            "EnableStreamMemOPs": "0",
+            "EnableUserNUMAManagement": "1",
+            "ExcludedGpus": "",
+            "GpuBlacklist": "",
+            "GrdmaPciTopoCheckOverride": "0",
+            "IgnoreMMIOCheck": "0",
+            "ImexChannelCount": "2048",
+            "InitializeSystemMemoryAllocations": "1",
+            "KMallocHeapMaxSize": "0",
+            "MemoryPoolSize": "0",
+            "ModifyDeviceFiles": "1",
+            "NvLinkDisable": "0",
+            "OpenRmEnableUnsupportedGpus": "1",
+            "PreserveVideoMemoryAllocations": "0",
+            "RegisterPCIDriver": "1",
+            "RegistryDwords": "",
+            "RegistryDwordsPerDevice": "",
+            "ResmanDebugLevel": "-1",
+            "RmLogonRC": "1",
+            "RmMsg": "",
+            "RmNvlinkBandwidthLinkCount": "0",
+            "RmProfilingAdminOnly": "1",
+            "S0ixPowerManagementVideoMemoryThreshold": "256",
+            "TemporaryFilePath": "",
+            "UsePageAttributeTable": "-1",
+            "VMallocHeapMaxSize": "0"
+          },
+          "version": "575.57.08"
+        },
+        "module": "nvidia"
+      },
+      {
+        "argv": [
+          "sudo",
+          "-n",
+          "insmod",
+          "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia-modeset.ko",
+          "conceal_vrr_caps=N",
+          "debug_force_color_space=0",
+          "disable_hdmi_frl=N",
+          "disable_vrr_memclk_switch=N",
+          "enable_overlay_layers=Y",
+          "fail_alloc_core_channel=-1",
+          "fail_malloc=-1",
+          "hdmi_deepcolor=Y",
+          "malloc_verbose=N",
+          "opportunistic_display_sync=Y",
+          "output_rounding_fix=Y",
+          "vblank_sem_control=Y"
+        ],
+        "live": {
+          "btf": {
+            "ctime_ns": 1788488064087225258,
+            "device": 24,
+            "gid": 0,
+            "inode": 185048,
+            "mode": 292,
+            "mtime_ns": 1788488064087225258,
+            "path": "/sys/kernel/btf/nvidia_modeset",
+            "size_bytes": 33289,
+            "uid": 0
+          },
+          "holders": [],
+          "interface": {
+            "required_names": [
+              "nvKmsKapiGetFunctionsTable",
+              "nvkms_alloc"
+            ]
+          },
+          "name": "nvidia_modeset",
+          "parameters": {
+            "conceal_vrr_caps": "N",
+            "config_file": "(null)",
+            "debug_force_color_space": "0",
+            "disable_hdmi_frl": "N",
+            "disable_vrr_memclk_switch": "N",
+            "enable_overlay_layers": "Y",
+            "fail_alloc_core_channel": "-1",
+            "fail_malloc": "-1",
+            "hdmi_deepcolor": "Y",
+            "malloc_verbose": "N",
+            "opportunistic_display_sync": "Y",
+            "output_rounding_fix": "Y",
+            "vblank_sem_control": "Y"
+          },
+          "version": "575.57.08"
+        },
+        "module": "nvidia_modeset"
+      },
+      {
+        "argv": [
+          "sudo",
+          "-n",
+          "insmod",
+          "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia-drm.ko",
+          "fbdev=Y",
+          "modeset=Y"
+        ],
+        "live": {
+          "btf": {
+            "ctime_ns": 1788488065406252697,
+            "device": 24,
+            "gid": 0,
+            "inode": 188853,
+            "mode": 292,
+            "mtime_ns": 1788488065406252697,
+            "path": "/sys/kernel/btf/nvidia_drm",
+            "size_bytes": 44161,
+            "uid": 0
+          },
+          "holders": [],
+          "interface": {
+            "required_names": [
+              "nv_drm_atomic_commit",
+              "nv_drm_probe_devices"
+            ]
+          },
+          "name": "nvidia_drm",
+          "parameters": {
+            "fbdev": "Y",
+            "modeset": "Y"
+          },
+          "version": "575.57.08"
+        },
+        "module": "nvidia_drm"
+      },
+      {
+        "argv": [
+          "sudo",
+          "-n",
+          "insmod",
+          "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia-uvm.ko",
+          "uvm_ats_mode=1",
+          "uvm_block_cpu_to_cpu_copy_with_ce=0",
+          "uvm_channel_gpfifo_loc=auto",
+          "uvm_channel_gpput_loc=auto",
+          "uvm_channel_num_gpfifo_entries=1024",
+          "uvm_channel_pushbuffer_loc=auto",
+          "uvm_conf_computing_channel_iv_rotation_limit=2147483648",
+          "uvm_cpu_chunk_allocation_sizes=2166784",
+          "uvm_debug_enable_push_acquire_info=0",
+          "uvm_debug_enable_push_desc=0",
+          "uvm_debug_prints=0",
+          "uvm_disable_hmm=N",
+          "uvm_downgrade_force_membar_sys=1",
+          "uvm_enable_builtin_tests=0",
+          "uvm_enable_debug_procfs=0",
+          "uvm_enable_va_space_mm=1",
+          "uvm_exp_gpu_cache_peermem=0",
+          "uvm_exp_gpu_cache_sysmem=0",
+          "uvm_fault_force_sysmem=0",
+          "uvm_force_prefetch_fault_support=0",
+          "uvm_global_oversubscription=1",
+          "uvm_leak_checker=0",
+          "uvm_peer_copy=phys",
+          "uvm_perf_access_counter_batch_count=256",
+          "uvm_perf_access_counter_migration_enable=-1",
+          "uvm_perf_access_counter_threshold=256",
+          "uvm_perf_fault_batch_count=256",
+          "uvm_perf_fault_coalesce=1",
+          "uvm_perf_fault_max_batches_per_service=20",
+          "uvm_perf_fault_max_throttle_per_service=5",
+          "uvm_perf_fault_replay_policy=2",
+          "uvm_perf_fault_replay_update_put_ratio=50",
+          "uvm_perf_map_remote_on_eviction=1",
+          "uvm_perf_map_remote_on_native_atomics_fault=0",
+          "uvm_perf_migrate_cpu_preunmap_block_order=2",
+          "uvm_perf_migrate_cpu_preunmap_enable=1",
+          "uvm_perf_pma_batch_nonpinned_order=6",
+          "uvm_perf_prefetch_enable=1",
+          "uvm_perf_prefetch_min_faults=1",
+          "uvm_perf_prefetch_threshold=51",
+          "uvm_perf_reenable_prefetch_faults_lapse_msec=1000",
+          "uvm_perf_thrashing_enable=1",
+          "uvm_perf_thrashing_epoch=2000",
+          "uvm_perf_thrashing_lapse_usec=500",
+          "uvm_perf_thrashing_max_resets=4",
+          "uvm_perf_thrashing_nap=1",
+          "uvm_perf_thrashing_pin=300",
+          "uvm_perf_thrashing_pin_threshold=10",
+          "uvm_perf_thrashing_threshold=3",
+          "uvm_release_asserts=1",
+          "uvm_release_asserts_dump_stack=0",
+          "uvm_release_asserts_set_global_error=0"
+        ],
+        "live": {
+          "btf": {
+            "ctime_ns": 1788488065595307892,
+            "device": 24,
+            "gid": 0,
+            "inode": 189225,
+            "mode": 292,
+            "mtime_ns": 1788488065595307892,
+            "path": "/sys/kernel/btf/nvidia_uvm",
+            "size_bytes": 269623,
+            "uid": 0
+          },
+          "holders": [],
+          "interface": {
+            "gpu_mem_ops_members": [
+              "gpu_test_trigger",
+              "gpu_page_prefetch",
+              "gpu_page_prefetch_iter",
+              "gpu_block_activate",
+              "gpu_block_access",
+              "gpu_evict_prepare"
+            ],
+            "required_functions": [
+              "bpf_gpu_request_reorder",
+              "bpf_gpu_set_prefetch_region",
+              "uvm_bpf_call_gpu_page_prefetch"
+            ]
+          },
+          "name": "nvidia_uvm",
+          "parameters": {
+            "uvm_ats_mode": "1",
+            "uvm_block_cpu_to_cpu_copy_with_ce": "0",
+            "uvm_channel_gpfifo_loc": "auto",
+            "uvm_channel_gpput_loc": "auto",
+            "uvm_channel_num_gpfifo_entries": "1024",
+            "uvm_channel_pushbuffer_loc": "auto",
+            "uvm_conf_computing_channel_iv_rotation_limit": "2147483648",
+            "uvm_cpu_chunk_allocation_sizes": "2166784",
+            "uvm_debug_enable_push_acquire_info": "0",
+            "uvm_debug_enable_push_desc": "0",
+            "uvm_debug_prints": "0",
+            "uvm_disable_hmm": "N",
+            "uvm_downgrade_force_membar_sys": "1",
+            "uvm_enable_builtin_tests": "0",
+            "uvm_enable_debug_procfs": "0",
+            "uvm_enable_va_space_mm": "1",
+            "uvm_exp_gpu_cache_peermem": "0",
+            "uvm_exp_gpu_cache_sysmem": "0",
+            "uvm_fault_force_sysmem": "0",
+            "uvm_force_prefetch_fault_support": "0",
+            "uvm_global_oversubscription": "1",
+            "uvm_leak_checker": "0",
+            "uvm_page_table_location": "(null)",
+            "uvm_peer_copy": "phys",
+            "uvm_perf_access_counter_batch_count": "256",
+            "uvm_perf_access_counter_migration_enable": "-1",
+            "uvm_perf_access_counter_threshold": "256",
+            "uvm_perf_fault_batch_count": "256",
+            "uvm_perf_fault_coalesce": "1",
+            "uvm_perf_fault_max_batches_per_service": "20",
+            "uvm_perf_fault_max_throttle_per_service": "5",
+            "uvm_perf_fault_replay_policy": "2",
+            "uvm_perf_fault_replay_update_put_ratio": "50",
+            "uvm_perf_map_remote_on_eviction": "1",
+            "uvm_perf_map_remote_on_native_atomics_fault": "0",
+            "uvm_perf_migrate_cpu_preunmap_block_order": "2",
+            "uvm_perf_migrate_cpu_preunmap_enable": "1",
+            "uvm_perf_pma_batch_nonpinned_order": "6",
+            "uvm_perf_prefetch_enable": "1",
+            "uvm_perf_prefetch_min_faults": "1",
+            "uvm_perf_prefetch_threshold": "51",
+            "uvm_perf_reenable_prefetch_faults_lapse_msec": "1000",
+            "uvm_perf_thrashing_enable": "1",
+            "uvm_perf_thrashing_epoch": "2000",
+            "uvm_perf_thrashing_lapse_usec": "500",
+            "uvm_perf_thrashing_max_resets": "4",
+            "uvm_perf_thrashing_nap": "1",
+            "uvm_perf_thrashing_pin": "300",
+            "uvm_perf_thrashing_pin_threshold": "10",
+            "uvm_perf_thrashing_threshold": "3",
+            "uvm_release_asserts": "1",
+            "uvm_release_asserts_dump_stack": "0",
+            "uvm_release_asserts_set_global_error": "0"
+          },
+          "version": "575.57.08"
+        },
+        "module": "nvidia_uvm"
+      }
+    ],
+    "runtime": {
+      "nvidia": {
+        "btf": {
+          "ctime_ns": 1788488063912221617,
+          "device": 24,
+          "gid": 0,
+          "inode": 184937,
+          "mode": 292,
+          "mtime_ns": 1788488063912221617,
+          "path": "/sys/kernel/btf/nvidia",
+          "size_bytes": 127079,
+          "uid": 0
+        },
+        "holders": [
+          "nvidia_modeset",
+          "nvidia_uvm"
+        ],
+        "interface": {
+          "required_names": [
+            "nv_gpu_sched_ops",
+            "bpf_nv_gpu_preempt_tsg"
+          ],
+          "scheduler_base": {
+            "preempt_signature": "s32(u32,u32)",
+            "struct_members": [
+              [
+                "on_task_init",
+                "0"
+              ],
+              [
+                "on_bind",
+                "64"
+              ],
+              [
+                "on_task_destroy",
+                "128"
+              ],
+              [
+                "on_timeslice_control",
+                "192"
+              ]
+            ],
+            "struct_size": 32
+          },
+          "scheduler_diagnostics": [
+            "nv_gpu_sched_init_diagnostic",
+            "nv_gpu_sched_gsp_control_complete"
+          ]
+        },
+        "name": "nvidia",
+        "parameters": {
+          "CreateImexChannel0": "0",
+          "DeviceFileGID": "0",
+          "DeviceFileMode": "438",
+          "DeviceFileUID": "0",
+          "DmaRemapPeerMmio": "1",
+          "DynamicPowerManagement": "3",
+          "DynamicPowerManagementVideoMemoryThreshold": "200",
+          "EnableDbgBreakpoint": "0",
+          "EnableGpuFirmware": "18",
+          "EnableGpuFirmwareLogs": "2",
+          "EnableMSI": "1",
+          "EnablePCIERelaxedOrderingMode": "0",
+          "EnablePCIeGen3": "0",
+          "EnableResizableBar": "0",
+          "EnableS0ixPowerManagement": "0",
+          "EnableStreamMemOPs": "0",
+          "EnableUserNUMAManagement": "1",
+          "ExcludedGpus": "",
+          "GpuBlacklist": "",
+          "GrdmaPciTopoCheckOverride": "0",
+          "IgnoreMMIOCheck": "0",
+          "ImexChannelCount": "2048",
+          "InitializeSystemMemoryAllocations": "1",
+          "KMallocHeapMaxSize": "0",
+          "MemoryPoolSize": "0",
+          "ModifyDeviceFiles": "1",
+          "NvLinkDisable": "0",
+          "OpenRmEnableUnsupportedGpus": "1",
+          "PreserveVideoMemoryAllocations": "0",
+          "RegisterPCIDriver": "1",
+          "RegistryDwords": "",
+          "RegistryDwordsPerDevice": "",
+          "ResmanDebugLevel": "-1",
+          "RmLogonRC": "1",
+          "RmMsg": "",
+          "RmNvlinkBandwidthLinkCount": "0",
+          "RmProfilingAdminOnly": "1",
+          "S0ixPowerManagementVideoMemoryThreshold": "256",
+          "TemporaryFilePath": "",
+          "UsePageAttributeTable": "-1",
+          "VMallocHeapMaxSize": "0"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_drm": {
+        "btf": {
+          "ctime_ns": 1788488065406252697,
+          "device": 24,
+          "gid": 0,
+          "inode": 188853,
+          "mode": 292,
+          "mtime_ns": 1788488065406252697,
+          "path": "/sys/kernel/btf/nvidia_drm",
+          "size_bytes": 44161,
+          "uid": 0
+        },
+        "holders": [],
+        "interface": {
+          "required_names": [
+            "nv_drm_atomic_commit",
+            "nv_drm_probe_devices"
+          ]
+        },
+        "name": "nvidia_drm",
+        "parameters": {
+          "fbdev": "Y",
+          "modeset": "Y"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_modeset": {
+        "btf": {
+          "ctime_ns": 1788488064087225258,
+          "device": 24,
+          "gid": 0,
+          "inode": 185048,
+          "mode": 292,
+          "mtime_ns": 1788488064087225258,
+          "path": "/sys/kernel/btf/nvidia_modeset",
+          "size_bytes": 33289,
+          "uid": 0
+        },
+        "holders": [
+          "nvidia_drm"
+        ],
+        "interface": {
+          "required_names": [
+            "nvKmsKapiGetFunctionsTable",
+            "nvkms_alloc"
+          ]
+        },
+        "name": "nvidia_modeset",
+        "parameters": {
+          "conceal_vrr_caps": "N",
+          "config_file": "(null)",
+          "debug_force_color_space": "0",
+          "disable_hdmi_frl": "N",
+          "disable_vrr_memclk_switch": "N",
+          "enable_overlay_layers": "Y",
+          "fail_alloc_core_channel": "-1",
+          "fail_malloc": "-1",
+          "hdmi_deepcolor": "Y",
+          "malloc_verbose": "N",
+          "opportunistic_display_sync": "Y",
+          "output_rounding_fix": "Y",
+          "vblank_sem_control": "Y"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_uvm": {
+        "btf": {
+          "ctime_ns": 1788488065595307892,
+          "device": 24,
+          "gid": 0,
+          "inode": 189225,
+          "mode": 292,
+          "mtime_ns": 1788488065595307892,
+          "path": "/sys/kernel/btf/nvidia_uvm",
+          "size_bytes": 269623,
+          "uid": 0
+        },
+        "holders": [],
+        "interface": {
+          "gpu_mem_ops_members": [
+            "gpu_test_trigger",
+            "gpu_page_prefetch",
+            "gpu_page_prefetch_iter",
+            "gpu_block_activate",
+            "gpu_block_access",
+            "gpu_evict_prepare"
+          ],
+          "required_functions": [
+            "bpf_gpu_request_reorder",
+            "bpf_gpu_set_prefetch_region",
+            "uvm_bpf_call_gpu_page_prefetch"
+          ]
+        },
+        "name": "nvidia_uvm",
+        "parameters": {
+          "uvm_ats_mode": "1",
+          "uvm_block_cpu_to_cpu_copy_with_ce": "0",
+          "uvm_channel_gpfifo_loc": "auto",
+          "uvm_channel_gpput_loc": "auto",
+          "uvm_channel_num_gpfifo_entries": "1024",
+          "uvm_channel_pushbuffer_loc": "auto",
+          "uvm_conf_computing_channel_iv_rotation_limit": "2147483648",
+          "uvm_cpu_chunk_allocation_sizes": "2166784",
+          "uvm_debug_enable_push_acquire_info": "0",
+          "uvm_debug_enable_push_desc": "0",
+          "uvm_debug_prints": "0",
+          "uvm_disable_hmm": "N",
+          "uvm_downgrade_force_membar_sys": "1",
+          "uvm_enable_builtin_tests": "0",
+          "uvm_enable_debug_procfs": "0",
+          "uvm_enable_va_space_mm": "1",
+          "uvm_exp_gpu_cache_peermem": "0",
+          "uvm_exp_gpu_cache_sysmem": "0",
+          "uvm_fault_force_sysmem": "0",
+          "uvm_force_prefetch_fault_support": "0",
+          "uvm_global_oversubscription": "1",
+          "uvm_leak_checker": "0",
+          "uvm_page_table_location": "(null)",
+          "uvm_peer_copy": "phys",
+          "uvm_perf_access_counter_batch_count": "256",
+          "uvm_perf_access_counter_migration_enable": "-1",
+          "uvm_perf_access_counter_threshold": "256",
+          "uvm_perf_fault_batch_count": "256",
+          "uvm_perf_fault_coalesce": "1",
+          "uvm_perf_fault_max_batches_per_service": "20",
+          "uvm_perf_fault_max_throttle_per_service": "5",
+          "uvm_perf_fault_replay_policy": "2",
+          "uvm_perf_fault_replay_update_put_ratio": "50",
+          "uvm_perf_map_remote_on_eviction": "1",
+          "uvm_perf_map_remote_on_native_atomics_fault": "0",
+          "uvm_perf_migrate_cpu_preunmap_block_order": "2",
+          "uvm_perf_migrate_cpu_preunmap_enable": "1",
+          "uvm_perf_pma_batch_nonpinned_order": "6",
+          "uvm_perf_prefetch_enable": "1",
+          "uvm_perf_prefetch_min_faults": "1",
+          "uvm_perf_prefetch_threshold": "51",
+          "uvm_perf_reenable_prefetch_faults_lapse_msec": "1000",
+          "uvm_perf_thrashing_enable": "1",
+          "uvm_perf_thrashing_epoch": "2000",
+          "uvm_perf_thrashing_lapse_usec": "500",
+          "uvm_perf_thrashing_max_resets": "4",
+          "uvm_perf_thrashing_nap": "1",
+          "uvm_perf_thrashing_pin": "300",
+          "uvm_perf_thrashing_pin_threshold": "10",
+          "uvm_perf_thrashing_threshold": "3",
+          "uvm_release_asserts": "1",
+          "uvm_release_asserts_dump_stack": "0",
+          "uvm_release_asserts_set_global_error": "0"
+        },
+        "version": "575.57.08"
+      }
+    },
+    "safety": {
+      "dmesg_abnormal": [],
+      "gpu": {
+        "compute_apps": [],
+        "driver": "575.57.08",
+        "index": 0,
+        "memory_clock_mhz": 14001,
+        "memory_total_mib": 32607,
+        "memory_used_mib": 2,
+        "name": "NVIDIA GeForce RTX 5090",
+        "power_w": 57.67,
+        "sm_clock_mhz": 2400,
+        "temperature_c": 52,
+        "utilization_gpu_percent": 0
+      },
+      "journal_abnormal": [],
+      "power_limit_service": "active",
+      "power_limit_w": 400.0,
+      "struct_ops": {
+        "links": [],
+        "maps": []
+      },
+      "timestamp_ns": 1788488067814126657,
+      "uvm_refcount": 0,
+      "xids": []
+    }
+  },
+  "complete": false,
+  "completion_linearization": {
+    "leases_closed_ns": 1788488094041485312,
+    "prepublish_signals": []
+  },
+  "final": {
+    "device_nodes": [
+      {
+        "gid": 0,
+        "major": 511,
+        "minor": 1,
+        "mode": 256,
+        "path": "/dev/nvidia-caps/nvidia-cap1",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 511,
+        "minor": 2,
+        "mode": 292,
+        "path": "/dev/nvidia-caps/nvidia-cap2",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 254,
+        "mode": 438,
+        "path": "/dev/nvidia-modeset",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 508,
+        "minor": 0,
+        "mode": 438,
+        "path": "/dev/nvidia-uvm",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 508,
+        "minor": 1,
+        "mode": 438,
+        "path": "/dev/nvidia-uvm-tools",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 0,
+        "mode": 438,
+        "path": "/dev/nvidia0",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 255,
+        "mode": 438,
+        "path": "/dev/nvidiactl",
+        "uid": 0
+      }
+    ],
+    "runtime": {
+      "nvidia": {
+        "btf": {
+          "ctime_ns": 1788488086779697923,
+          "device": 24,
+          "gid": 0,
+          "inode": 189959,
+          "mode": 292,
+          "mtime_ns": 1788488086779697923,
+          "path": "/sys/kernel/btf/nvidia",
+          "size_bytes": 125993,
+          "uid": 0
+        },
+        "holders": [
+          "nvidia_modeset",
+          "nvidia_uvm"
+        ],
+        "interface": {
+          "required_names": [
+            "nv_gpu_sched_ops",
+            "bpf_nv_gpu_preempt_tsg"
+          ],
+          "scheduler_base": {
+            "preempt_signature": "s32(u32,u32)",
+            "struct_members": [
+              [
+                "on_task_init",
+                "0"
+              ],
+              [
+                "on_bind",
+                "64"
+              ],
+              [
+                "on_task_destroy",
+                "128"
+              ],
+              [
+                "on_timeslice_control",
+                "192"
+              ]
+            ],
+            "struct_size": 32
+          },
+          "scheduler_diagnostics": [
+            "nv_gpu_sched_gsp_control_complete"
+          ]
+        },
+        "name": "nvidia",
+        "parameters": {
+          "CreateImexChannel0": "0",
+          "DeviceFileGID": "0",
+          "DeviceFileMode": "438",
+          "DeviceFileUID": "0",
+          "DmaRemapPeerMmio": "1",
+          "DynamicPowerManagement": "3",
+          "DynamicPowerManagementVideoMemoryThreshold": "200",
+          "EnableDbgBreakpoint": "0",
+          "EnableGpuFirmware": "18",
+          "EnableGpuFirmwareLogs": "2",
+          "EnableMSI": "1",
+          "EnablePCIERelaxedOrderingMode": "0",
+          "EnablePCIeGen3": "0",
+          "EnableResizableBar": "0",
+          "EnableS0ixPowerManagement": "0",
+          "EnableStreamMemOPs": "0",
+          "EnableUserNUMAManagement": "1",
+          "ExcludedGpus": "",
+          "GpuBlacklist": "",
+          "GrdmaPciTopoCheckOverride": "0",
+          "IgnoreMMIOCheck": "0",
+          "ImexChannelCount": "2048",
+          "InitializeSystemMemoryAllocations": "1",
+          "KMallocHeapMaxSize": "0",
+          "MemoryPoolSize": "0",
+          "ModifyDeviceFiles": "1",
+          "NvLinkDisable": "0",
+          "OpenRmEnableUnsupportedGpus": "1",
+          "PreserveVideoMemoryAllocations": "0",
+          "RegisterPCIDriver": "1",
+          "RegistryDwords": "",
+          "RegistryDwordsPerDevice": "",
+          "ResmanDebugLevel": "-1",
+          "RmLogonRC": "1",
+          "RmMsg": "",
+          "RmNvlinkBandwidthLinkCount": "0",
+          "RmProfilingAdminOnly": "1",
+          "S0ixPowerManagementVideoMemoryThreshold": "256",
+          "TemporaryFilePath": "",
+          "UsePageAttributeTable": "-1",
+          "VMallocHeapMaxSize": "0"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_drm": {
+        "btf": {
+          "ctime_ns": 1788488088255728711,
+          "device": 24,
+          "gid": 0,
+          "inode": 193875,
+          "mode": 292,
+          "mtime_ns": 1788488088255728711,
+          "path": "/sys/kernel/btf/nvidia_drm",
+          "size_bytes": 44161,
+          "uid": 0
+        },
+        "holders": [],
+        "interface": {
+          "required_names": [
+            "nv_drm_atomic_commit",
+            "nv_drm_probe_devices"
+          ]
+        },
+        "name": "nvidia_drm",
+        "parameters": {
+          "fbdev": "Y",
+          "modeset": "Y"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_modeset": {
+        "btf": {
+          "ctime_ns": 1788488086957750613,
+          "device": 24,
+          "gid": 0,
+          "inode": 190070,
+          "mode": 292,
+          "mtime_ns": 1788488086957750613,
+          "path": "/sys/kernel/btf/nvidia_modeset",
+          "size_bytes": 33289,
+          "uid": 0
+        },
+        "holders": [
+          "nvidia_drm"
+        ],
+        "interface": {
+          "required_names": [
+            "nvKmsKapiGetFunctionsTable",
+            "nvkms_alloc"
+          ]
+        },
+        "name": "nvidia_modeset",
+        "parameters": {
+          "conceal_vrr_caps": "N",
+          "config_file": "(null)",
+          "debug_force_color_space": "0",
+          "disable_hdmi_frl": "N",
+          "disable_vrr_memclk_switch": "N",
+          "enable_overlay_layers": "Y",
+          "fail_alloc_core_channel": "-1",
+          "fail_malloc": "-1",
+          "hdmi_deepcolor": "Y",
+          "malloc_verbose": "N",
+          "opportunistic_display_sync": "Y",
+          "output_rounding_fix": "Y",
+          "vblank_sem_control": "Y"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_uvm": {
+        "btf": {
+          "ctime_ns": 1788488088447349367,
+          "device": 24,
+          "gid": 0,
+          "inode": 194247,
+          "mode": 292,
+          "mtime_ns": 1788488088447349367,
+          "path": "/sys/kernel/btf/nvidia_uvm",
+          "size_bytes": 268940,
+          "uid": 0
+        },
+        "holders": [],
+        "interface": {
+          "gpu_mem_ops_members": [
+            "gpu_test_trigger",
+            "gpu_page_prefetch",
+            "gpu_page_prefetch_iter",
+            "gpu_block_activate",
+            "gpu_block_access",
+            "gpu_evict_prepare"
+          ],
+          "required_functions": [
+            "bpf_gpu_request_reorder",
+            "bpf_gpu_set_prefetch_region",
+            "uvm_bpf_call_gpu_page_prefetch"
+          ]
+        },
+        "name": "nvidia_uvm",
+        "parameters": {
+          "uvm_ats_mode": "1",
+          "uvm_block_cpu_to_cpu_copy_with_ce": "0",
+          "uvm_channel_gpfifo_loc": "auto",
+          "uvm_channel_gpput_loc": "auto",
+          "uvm_channel_num_gpfifo_entries": "1024",
+          "uvm_channel_pushbuffer_loc": "auto",
+          "uvm_conf_computing_channel_iv_rotation_limit": "2147483648",
+          "uvm_cpu_chunk_allocation_sizes": "2166784",
+          "uvm_debug_enable_push_acquire_info": "0",
+          "uvm_debug_enable_push_desc": "0",
+          "uvm_debug_prints": "0",
+          "uvm_disable_hmm": "N",
+          "uvm_downgrade_force_membar_sys": "1",
+          "uvm_enable_builtin_tests": "0",
+          "uvm_enable_debug_procfs": "0",
+          "uvm_enable_va_space_mm": "1",
+          "uvm_exp_gpu_cache_peermem": "0",
+          "uvm_exp_gpu_cache_sysmem": "0",
+          "uvm_fault_force_sysmem": "0",
+          "uvm_force_prefetch_fault_support": "0",
+          "uvm_global_oversubscription": "1",
+          "uvm_leak_checker": "0",
+          "uvm_page_table_location": "(null)",
+          "uvm_peer_copy": "phys",
+          "uvm_perf_access_counter_batch_count": "256",
+          "uvm_perf_access_counter_migration_enable": "-1",
+          "uvm_perf_access_counter_threshold": "256",
+          "uvm_perf_fault_batch_count": "256",
+          "uvm_perf_fault_coalesce": "1",
+          "uvm_perf_fault_max_batches_per_service": "20",
+          "uvm_perf_fault_max_throttle_per_service": "5",
+          "uvm_perf_fault_replay_policy": "2",
+          "uvm_perf_fault_replay_update_put_ratio": "50",
+          "uvm_perf_map_remote_on_eviction": "1",
+          "uvm_perf_map_remote_on_native_atomics_fault": "0",
+          "uvm_perf_migrate_cpu_preunmap_block_order": "2",
+          "uvm_perf_migrate_cpu_preunmap_enable": "1",
+          "uvm_perf_pma_batch_nonpinned_order": "6",
+          "uvm_perf_prefetch_enable": "1",
+          "uvm_perf_prefetch_min_faults": "1",
+          "uvm_perf_prefetch_threshold": "51",
+          "uvm_perf_reenable_prefetch_faults_lapse_msec": "1000",
+          "uvm_perf_thrashing_enable": "1",
+          "uvm_perf_thrashing_epoch": "2000",
+          "uvm_perf_thrashing_lapse_usec": "500",
+          "uvm_perf_thrashing_max_resets": "4",
+          "uvm_perf_thrashing_nap": "1",
+          "uvm_perf_thrashing_pin": "300",
+          "uvm_perf_thrashing_pin_threshold": "10",
+          "uvm_perf_thrashing_threshold": "3",
+          "uvm_release_asserts": "1",
+          "uvm_release_asserts_dump_stack": "0",
+          "uvm_release_asserts_set_global_error": "0"
+        },
+        "version": "575.57.08"
+      }
+    },
+    "safety": {
+      "dmesg_abnormal": [],
+      "gpu": {
+        "compute_apps": [],
+        "driver": "575.57.08",
+        "index": 0,
+        "memory_clock_mhz": 14001,
+        "memory_total_mib": 32607,
+        "memory_used_mib": 15,
+        "name": "NVIDIA GeForce RTX 5090",
+        "power_w": 55.49,
+        "sm_clock_mhz": 2400,
+        "temperature_c": 46,
+        "utilization_gpu_percent": 0
+      },
+      "journal_abnormal": [],
+      "power_limit_service": "active",
+      "power_limit_w": 400.0,
+      "struct_ops": {
+        "links": [],
+        "maps": []
+      },
+      "timestamp_ns": 1788488093646346919,
+      "uvm_refcount": 0,
+      "xids": []
+    },
+    "services": {
+      "gdm.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "static"
+      },
+      "nvidia-persistenced.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "enabled"
+      }
+    }
+  },
+  "finalization_errors": [],
+  "finished_ns": 1788488094041475301,
+  "initial": {
+    "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+    "candidate": {
+      "nvidia": {
+        "candidate_role": true,
+        "depends": [],
+        "interface": {
+          "required_names": [
+            "nv_gpu_sched_ops",
+            "bpf_nv_gpu_preempt_tsg"
+          ],
+          "scheduler_base": {
+            "preempt_signature": "s32(u32,u32)",
+            "struct_members": [
+              [
+                "on_task_init",
+                "0"
+              ],
+              [
+                "on_bind",
+                "64"
+              ],
+              [
+                "on_task_destroy",
+                "128"
+              ],
+              [
+                "on_timeslice_control",
+                "192"
+              ]
+            ],
+            "struct_size": 32
+          },
+          "scheduler_diagnostics": [
+            "nv_gpu_sched_init_diagnostic",
+            "nv_gpu_sched_gsp_control_complete"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788479552190578982,
+          "device": 66305,
+          "gid": 1000,
+          "inode": 92298939,
+          "mode": 436,
+          "mtime_ns": 1788479552190578982,
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia.ko",
+          "size_bytes": 30125152,
+          "uid": 1000
+        },
+        "name": "nvidia",
+        "parameter_names": [
+          "NVreg_CreateImexChannel0",
+          "NVreg_DeviceFileGID",
+          "NVreg_DeviceFileMode",
+          "NVreg_DeviceFileUID",
+          "NVreg_DmaRemapPeerMmio",
+          "NVreg_DynamicPowerManagement",
+          "NVreg_DynamicPowerManagementVideoMemoryThreshold",
+          "NVreg_EnableDbgBreakpoint",
+          "NVreg_EnableGpuFirmware",
+          "NVreg_EnableGpuFirmwareLogs",
+          "NVreg_EnableMSI",
+          "NVreg_EnableNonblockingOpen",
+          "NVreg_EnablePCIERelaxedOrderingMode",
+          "NVreg_EnablePCIeGen3",
+          "NVreg_EnableResizableBar",
+          "NVreg_EnableS0ixPowerManagement",
+          "NVreg_EnableStreamMemOPs",
+          "NVreg_EnableUserNUMAManagement",
+          "NVreg_ExcludedGpus",
+          "NVreg_GpuBlacklist",
+          "NVreg_GrdmaPciTopoCheckOverride",
+          "NVreg_IgnoreMMIOCheck",
+          "NVreg_ImexChannelCount",
+          "NVreg_InitializeSystemMemoryAllocations",
+          "NVreg_KMallocHeapMaxSize",
+          "NVreg_MemoryPoolSize",
+          "NVreg_ModifyDeviceFiles",
+          "NVreg_NvLinkDisable",
+          "NVreg_OpenRmEnableUnsupportedGpus",
+          "NVreg_PreserveVideoMemoryAllocations",
+          "NVreg_RegisterPCIDriver",
+          "NVreg_RegistryDwords",
+          "NVreg_RegistryDwordsPerDevice",
+          "NVreg_ResmanDebugLevel",
+          "NVreg_RestrictProfilingToAdminUsers",
+          "NVreg_RmLogonRC",
+          "NVreg_RmMsg",
+          "NVreg_RmNvlinkBandwidth",
+          "NVreg_RmNvlinkBandwidthLinkCount",
+          "NVreg_S0ixPowerManagementVideoMemoryThreshold",
+          "NVreg_TemporaryFilePath",
+          "NVreg_UsePageAttributeTable",
+          "NVreg_VMallocHeapMaxSize",
+          "NvSwitchBlacklist",
+          "NvSwitchRegDwords",
+          "rm_firmware_active"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      },
+      "nvidia_drm": {
+        "candidate_role": false,
+        "depends": [
+          "drm_ttm_helper",
+          "nvidia-modeset"
+        ],
+        "interface": {
+          "required_names": [
+            "nv_drm_atomic_commit",
+            "nv_drm_probe_devices"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788479553587081147,
+          "device": 66305,
+          "gid": 1000,
+          "inode": 92298944,
+          "mode": 436,
+          "mtime_ns": 1788479553587076095,
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia-drm.ko",
+          "size_bytes": 5444696,
+          "uid": 1000
+        },
+        "name": "nvidia_drm",
+        "parameter_names": [
+          "fbdev",
+          "modeset"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      },
+      "nvidia_modeset": {
+        "candidate_role": false,
+        "depends": [
+          "nvidia",
+          "video"
+        ],
+        "interface": {
+          "required_names": [
+            "nvKmsKapiGetFunctionsTable",
+            "nvkms_alloc"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788479553312499544,
+          "device": 66305,
+          "gid": 1000,
+          "inode": 92298931,
+          "mode": 436,
+          "mtime_ns": 1788479553312494474,
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia-modeset.ko",
+          "size_bytes": 3898904,
+          "uid": 1000
+        },
+        "name": "nvidia_modeset",
+        "parameter_names": [
+          "conceal_vrr_caps",
+          "config_file",
+          "debug_force_color_space",
+          "disable_hdmi_frl",
+          "disable_vrr_memclk_switch",
+          "enable_overlay_layers",
+          "fail_alloc_core_channel",
+          "fail_malloc",
+          "hdmi_deepcolor",
+          "malloc_verbose",
+          "opportunistic_display_sync",
+          "output_rounding_fix",
+          "vblank_sem_control"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      },
+      "nvidia_uvm": {
+        "candidate_role": false,
+        "depends": [
+          "nvidia"
+        ],
+        "interface": {
+          "gpu_mem_ops_members": [
+            "gpu_test_trigger",
+            "gpu_page_prefetch",
+            "gpu_page_prefetch_iter",
+            "gpu_block_activate",
+            "gpu_block_access",
+            "gpu_evict_prepare"
+          ],
+          "required_functions": [
+            "bpf_gpu_request_reorder",
+            "bpf_gpu_set_prefetch_region",
+            "uvm_bpf_call_gpu_page_prefetch"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788479553008365203,
+          "device": 66305,
+          "gid": 1000,
+          "inode": 92298858,
+          "mode": 436,
+          "mtime_ns": 1788479553008365203,
+          "path": "/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open/nvidia-uvm.ko",
+          "size_bytes": 61919280,
+          "uid": 1000
+        },
+        "name": "nvidia_uvm",
+        "parameter_names": [
+          "uvm_ats_mode",
+          "uvm_block_cpu_to_cpu_copy_with_ce",
+          "uvm_channel_gpfifo_loc",
+          "uvm_channel_gpput_loc",
+          "uvm_channel_num_gpfifo_entries",
+          "uvm_channel_pushbuffer_loc",
+          "uvm_conf_computing_channel_iv_rotation_limit",
+          "uvm_cpu_chunk_allocation_sizes",
+          "uvm_debug_enable_push_acquire_info",
+          "uvm_debug_enable_push_desc",
+          "uvm_debug_prints",
+          "uvm_disable_hmm",
+          "uvm_downgrade_force_membar_sys",
+          "uvm_enable_builtin_tests",
+          "uvm_enable_debug_procfs",
+          "uvm_enable_va_space_mm",
+          "uvm_exp_gpu_cache_peermem",
+          "uvm_exp_gpu_cache_sysmem",
+          "uvm_fault_force_sysmem",
+          "uvm_force_prefetch_fault_support",
+          "uvm_global_oversubscription",
+          "uvm_leak_checker",
+          "uvm_page_table_location",
+          "uvm_peer_copy",
+          "uvm_perf_access_counter_batch_count",
+          "uvm_perf_access_counter_migration_enable",
+          "uvm_perf_access_counter_threshold",
+          "uvm_perf_fault_batch_count",
+          "uvm_perf_fault_coalesce",
+          "uvm_perf_fault_max_batches_per_service",
+          "uvm_perf_fault_max_throttle_per_service",
+          "uvm_perf_fault_replay_policy",
+          "uvm_perf_fault_replay_update_put_ratio",
+          "uvm_perf_map_remote_on_eviction",
+          "uvm_perf_map_remote_on_native_atomics_fault",
+          "uvm_perf_migrate_cpu_preunmap_block_order",
+          "uvm_perf_migrate_cpu_preunmap_enable",
+          "uvm_perf_pma_batch_nonpinned_order",
+          "uvm_perf_prefetch_enable",
+          "uvm_perf_prefetch_min_faults",
+          "uvm_perf_prefetch_threshold",
+          "uvm_perf_reenable_prefetch_faults_lapse_msec",
+          "uvm_perf_thrashing_enable",
+          "uvm_perf_thrashing_epoch",
+          "uvm_perf_thrashing_lapse_usec",
+          "uvm_perf_thrashing_max_resets",
+          "uvm_perf_thrashing_nap",
+          "uvm_perf_thrashing_pin",
+          "uvm_perf_thrashing_pin_threshold",
+          "uvm_perf_thrashing_threshold",
+          "uvm_release_asserts",
+          "uvm_release_asserts_dump_stack",
+          "uvm_release_asserts_set_global_error"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      }
+    },
+    "device_nodes": [
+      {
+        "gid": 0,
+        "major": 511,
+        "minor": 1,
+        "mode": 256,
+        "path": "/dev/nvidia-caps/nvidia-cap1",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 511,
+        "minor": 2,
+        "mode": 292,
+        "path": "/dev/nvidia-caps/nvidia-cap2",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 254,
+        "mode": 438,
+        "path": "/dev/nvidia-modeset",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 508,
+        "minor": 0,
+        "mode": 438,
+        "path": "/dev/nvidia-uvm",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 508,
+        "minor": 1,
+        "mode": 438,
+        "path": "/dev/nvidia-uvm-tools",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 0,
+        "mode": 438,
+        "path": "/dev/nvidia0",
+        "uid": 0
+      },
+      {
+        "gid": 0,
+        "major": 195,
+        "minor": 255,
+        "mode": 438,
+        "path": "/dev/nvidiactl",
+        "uid": 0
+      }
+    ],
+    "kernel": "6.15.11-061511-generic",
+    "local_sessions": [
+      {
+        "Active": "yes",
+        "Class": "user",
+        "Id": "16",
+        "Name": "yunwei37",
+        "Remote": "yes",
+        "Seat": "",
+        "Service": "sshd",
+        "State": "closing",
+        "Type": "tty",
+        "User": "1000"
+      },
+      {
+        "Active": "yes",
+        "Class": "user",
+        "Id": "7",
+        "Name": "yunwei37",
+        "Remote": "yes",
+        "Seat": "",
+        "Service": "sshd",
+        "State": "closing",
+        "Type": "tty",
+        "User": "1000"
+      },
+      {
+        "Active": "yes",
+        "Class": "greeter",
+        "Id": "c10",
+        "Name": "gdm",
+        "Remote": "no",
+        "Seat": "seat0",
+        "Service": "gdm-launch-environment",
+        "State": "active",
+        "Type": "x11",
+        "User": "120"
+      }
+    ],
+    "module_subset": [
+      "nvidia",
+      "nvidia_modeset",
+      "nvidia_drm",
+      "nvidia_uvm"
+    ],
+    "parameters": {
+      "nvidia": {
+        "CreateImexChannel0": "0",
+        "DeviceFileGID": "0",
+        "DeviceFileMode": "438",
+        "DeviceFileUID": "0",
+        "DmaRemapPeerMmio": "1",
+        "DynamicPowerManagement": "3",
+        "DynamicPowerManagementVideoMemoryThreshold": "200",
+        "EnableDbgBreakpoint": "0",
+        "EnableGpuFirmware": "18",
+        "EnableGpuFirmwareLogs": "2",
+        "EnableMSI": "1",
+        "EnablePCIERelaxedOrderingMode": "0",
+        "EnablePCIeGen3": "0",
+        "EnableResizableBar": "0",
+        "EnableS0ixPowerManagement": "0",
+        "EnableStreamMemOPs": "0",
+        "EnableUserNUMAManagement": "1",
+        "ExcludedGpus": "",
+        "GpuBlacklist": "",
+        "GrdmaPciTopoCheckOverride": "0",
+        "IgnoreMMIOCheck": "0",
+        "ImexChannelCount": "2048",
+        "InitializeSystemMemoryAllocations": "1",
+        "KMallocHeapMaxSize": "0",
+        "MemoryPoolSize": "0",
+        "ModifyDeviceFiles": "1",
+        "NvLinkDisable": "0",
+        "OpenRmEnableUnsupportedGpus": "1",
+        "PreserveVideoMemoryAllocations": "0",
+        "RegisterPCIDriver": "1",
+        "RegistryDwords": "",
+        "RegistryDwordsPerDevice": "",
+        "ResmanDebugLevel": "-1",
+        "RmLogonRC": "1",
+        "RmMsg": "",
+        "RmNvlinkBandwidthLinkCount": "0",
+        "RmProfilingAdminOnly": "1",
+        "S0ixPowerManagementVideoMemoryThreshold": "256",
+        "TemporaryFilePath": "",
+        "UsePageAttributeTable": "-1",
+        "VMallocHeapMaxSize": "0"
+      },
+      "nvidia_drm": {
+        "fbdev": "Y",
+        "modeset": "Y"
+      },
+      "nvidia_modeset": {
+        "conceal_vrr_caps": "N",
+        "config_file": "(null)",
+        "debug_force_color_space": "0",
+        "disable_hdmi_frl": "N",
+        "disable_vrr_memclk_switch": "N",
+        "enable_overlay_layers": "Y",
+        "fail_alloc_core_channel": "-1",
+        "fail_malloc": "-1",
+        "hdmi_deepcolor": "Y",
+        "malloc_verbose": "N",
+        "opportunistic_display_sync": "Y",
+        "output_rounding_fix": "Y",
+        "vblank_sem_control": "Y"
+      },
+      "nvidia_uvm": {
+        "uvm_ats_mode": "1",
+        "uvm_block_cpu_to_cpu_copy_with_ce": "0",
+        "uvm_channel_gpfifo_loc": "auto",
+        "uvm_channel_gpput_loc": "auto",
+        "uvm_channel_num_gpfifo_entries": "1024",
+        "uvm_channel_pushbuffer_loc": "auto",
+        "uvm_conf_computing_channel_iv_rotation_limit": "2147483648",
+        "uvm_cpu_chunk_allocation_sizes": "2166784",
+        "uvm_debug_enable_push_acquire_info": "0",
+        "uvm_debug_enable_push_desc": "0",
+        "uvm_debug_prints": "0",
+        "uvm_disable_hmm": "N",
+        "uvm_downgrade_force_membar_sys": "1",
+        "uvm_enable_builtin_tests": "0",
+        "uvm_enable_debug_procfs": "0",
+        "uvm_enable_va_space_mm": "1",
+        "uvm_exp_gpu_cache_peermem": "0",
+        "uvm_exp_gpu_cache_sysmem": "0",
+        "uvm_fault_force_sysmem": "0",
+        "uvm_force_prefetch_fault_support": "0",
+        "uvm_global_oversubscription": "1",
+        "uvm_leak_checker": "0",
+        "uvm_page_table_location": "(null)",
+        "uvm_peer_copy": "phys",
+        "uvm_perf_access_counter_batch_count": "256",
+        "uvm_perf_access_counter_migration_enable": "-1",
+        "uvm_perf_access_counter_threshold": "256",
+        "uvm_perf_fault_batch_count": "256",
+        "uvm_perf_fault_coalesce": "1",
+        "uvm_perf_fault_max_batches_per_service": "20",
+        "uvm_perf_fault_max_throttle_per_service": "5",
+        "uvm_perf_fault_replay_policy": "2",
+        "uvm_perf_fault_replay_update_put_ratio": "50",
+        "uvm_perf_map_remote_on_eviction": "1",
+        "uvm_perf_map_remote_on_native_atomics_fault": "0",
+        "uvm_perf_migrate_cpu_preunmap_block_order": "2",
+        "uvm_perf_migrate_cpu_preunmap_enable": "1",
+        "uvm_perf_pma_batch_nonpinned_order": "6",
+        "uvm_perf_prefetch_enable": "1",
+        "uvm_perf_prefetch_min_faults": "1",
+        "uvm_perf_prefetch_threshold": "51",
+        "uvm_perf_reenable_prefetch_faults_lapse_msec": "1000",
+        "uvm_perf_thrashing_enable": "1",
+        "uvm_perf_thrashing_epoch": "2000",
+        "uvm_perf_thrashing_lapse_usec": "500",
+        "uvm_perf_thrashing_max_resets": "4",
+        "uvm_perf_thrashing_nap": "1",
+        "uvm_perf_thrashing_pin": "300",
+        "uvm_perf_thrashing_pin_threshold": "10",
+        "uvm_perf_thrashing_threshold": "3",
+        "uvm_release_asserts": "1",
+        "uvm_release_asserts_dump_stack": "0",
+        "uvm_release_asserts_set_global_error": "0"
+      }
+    },
+    "restore": {
+      "nvidia": {
+        "candidate_role": false,
+        "depends": [],
+        "interface": {
+          "required_names": [
+            "nv_gpu_sched_ops",
+            "bpf_nv_gpu_preempt_tsg"
+          ],
+          "scheduler_base": {
+            "preempt_signature": "s32(u32,u32)",
+            "struct_members": [
+              [
+                "on_task_init",
+                "0"
+              ],
+              [
+                "on_bind",
+                "64"
+              ],
+              [
+                "on_task_destroy",
+                "128"
+              ],
+              [
+                "on_timeslice_control",
+                "192"
+              ]
+            ],
+            "struct_size": 32
+          },
+          "scheduler_diagnostics": [
+            "nv_gpu_sched_gsp_control_complete"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788398391444031016,
+          "device": 66308,
+          "gid": 0,
+          "inode": 3014682,
+          "mode": 420,
+          "mtime_ns": 1788398391442612001,
+          "path": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia.ko",
+          "size_bytes": 30120600,
+          "uid": 0
+        },
+        "name": "nvidia",
+        "parameter_names": [
+          "NVreg_CreateImexChannel0",
+          "NVreg_DeviceFileGID",
+          "NVreg_DeviceFileMode",
+          "NVreg_DeviceFileUID",
+          "NVreg_DmaRemapPeerMmio",
+          "NVreg_DynamicPowerManagement",
+          "NVreg_DynamicPowerManagementVideoMemoryThreshold",
+          "NVreg_EnableDbgBreakpoint",
+          "NVreg_EnableGpuFirmware",
+          "NVreg_EnableGpuFirmwareLogs",
+          "NVreg_EnableMSI",
+          "NVreg_EnableNonblockingOpen",
+          "NVreg_EnablePCIERelaxedOrderingMode",
+          "NVreg_EnablePCIeGen3",
+          "NVreg_EnableResizableBar",
+          "NVreg_EnableS0ixPowerManagement",
+          "NVreg_EnableStreamMemOPs",
+          "NVreg_EnableUserNUMAManagement",
+          "NVreg_ExcludedGpus",
+          "NVreg_GpuBlacklist",
+          "NVreg_GrdmaPciTopoCheckOverride",
+          "NVreg_IgnoreMMIOCheck",
+          "NVreg_ImexChannelCount",
+          "NVreg_InitializeSystemMemoryAllocations",
+          "NVreg_KMallocHeapMaxSize",
+          "NVreg_MemoryPoolSize",
+          "NVreg_ModifyDeviceFiles",
+          "NVreg_NvLinkDisable",
+          "NVreg_OpenRmEnableUnsupportedGpus",
+          "NVreg_PreserveVideoMemoryAllocations",
+          "NVreg_RegisterPCIDriver",
+          "NVreg_RegistryDwords",
+          "NVreg_RegistryDwordsPerDevice",
+          "NVreg_ResmanDebugLevel",
+          "NVreg_RestrictProfilingToAdminUsers",
+          "NVreg_RmLogonRC",
+          "NVreg_RmMsg",
+          "NVreg_RmNvlinkBandwidth",
+          "NVreg_RmNvlinkBandwidthLinkCount",
+          "NVreg_S0ixPowerManagementVideoMemoryThreshold",
+          "NVreg_TemporaryFilePath",
+          "NVreg_UsePageAttributeTable",
+          "NVreg_VMallocHeapMaxSize",
+          "NvSwitchBlacklist",
+          "NvSwitchRegDwords",
+          "rm_firmware_active"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      },
+      "nvidia_drm": {
+        "candidate_role": false,
+        "depends": [
+          "drm_ttm_helper",
+          "nvidia-modeset"
+        ],
+        "interface": {
+          "required_names": [
+            "nv_drm_atomic_commit",
+            "nv_drm_probe_devices"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788398391481828769,
+          "device": 66308,
+          "gid": 0,
+          "inode": 3014684,
+          "mode": 420,
+          "mtime_ns": 1788398391480612866,
+          "path": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia-drm.ko",
+          "size_bytes": 5444696,
+          "uid": 0
+        },
+        "name": "nvidia_drm",
+        "parameter_names": [
+          "fbdev",
+          "modeset"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      },
+      "nvidia_modeset": {
+        "candidate_role": false,
+        "depends": [
+          "nvidia",
+          "video"
+        ],
+        "interface": {
+          "required_names": [
+            "nvKmsKapiGetFunctionsTable",
+            "nvkms_alloc"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788398391483783538,
+          "device": 66308,
+          "gid": 0,
+          "inode": 3014685,
+          "mode": 420,
+          "mtime_ns": 1788398391482612911,
+          "path": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia-modeset.ko",
+          "size_bytes": 3898904,
+          "uid": 0
+        },
+        "name": "nvidia_modeset",
+        "parameter_names": [
+          "conceal_vrr_caps",
+          "config_file",
+          "debug_force_color_space",
+          "disable_hdmi_frl",
+          "disable_vrr_memclk_switch",
+          "enable_overlay_layers",
+          "fail_alloc_core_channel",
+          "fail_malloc",
+          "hdmi_deepcolor",
+          "malloc_verbose",
+          "opportunistic_display_sync",
+          "output_rounding_fix",
+          "vblank_sem_control"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      },
+      "nvidia_uvm": {
+        "candidate_role": false,
+        "depends": [
+          "nvidia"
+        ],
+        "interface": {
+          "gpu_mem_ops_members": [
+            "gpu_test_trigger",
+            "gpu_page_prefetch",
+            "gpu_page_prefetch_iter",
+            "gpu_block_activate",
+            "gpu_block_access",
+            "gpu_evict_prepare"
+          ],
+          "required_functions": [
+            "bpf_gpu_request_reorder",
+            "bpf_gpu_set_prefetch_region",
+            "uvm_bpf_call_gpu_page_prefetch"
+          ]
+        },
+        "inventory": {
+          "ctime_ns": 1788398391479299025,
+          "device": 66308,
+          "gid": 0,
+          "inode": 3014683,
+          "mode": 420,
+          "mtime_ns": 1788398391477612797,
+          "path": "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia-uvm.ko",
+          "size_bytes": 61914016,
+          "uid": 0
+        },
+        "name": "nvidia_uvm",
+        "parameter_names": [
+          "uvm_ats_mode",
+          "uvm_block_cpu_to_cpu_copy_with_ce",
+          "uvm_channel_gpfifo_loc",
+          "uvm_channel_gpput_loc",
+          "uvm_channel_num_gpfifo_entries",
+          "uvm_channel_pushbuffer_loc",
+          "uvm_conf_computing_channel_iv_rotation_limit",
+          "uvm_cpu_chunk_allocation_sizes",
+          "uvm_debug_enable_push_acquire_info",
+          "uvm_debug_enable_push_desc",
+          "uvm_debug_prints",
+          "uvm_disable_hmm",
+          "uvm_downgrade_force_membar_sys",
+          "uvm_enable_builtin_tests",
+          "uvm_enable_debug_procfs",
+          "uvm_enable_va_space_mm",
+          "uvm_exp_gpu_cache_peermem",
+          "uvm_exp_gpu_cache_sysmem",
+          "uvm_fault_force_sysmem",
+          "uvm_force_prefetch_fault_support",
+          "uvm_global_oversubscription",
+          "uvm_leak_checker",
+          "uvm_page_table_location",
+          "uvm_peer_copy",
+          "uvm_perf_access_counter_batch_count",
+          "uvm_perf_access_counter_migration_enable",
+          "uvm_perf_access_counter_threshold",
+          "uvm_perf_fault_batch_count",
+          "uvm_perf_fault_coalesce",
+          "uvm_perf_fault_max_batches_per_service",
+          "uvm_perf_fault_max_throttle_per_service",
+          "uvm_perf_fault_replay_policy",
+          "uvm_perf_fault_replay_update_put_ratio",
+          "uvm_perf_map_remote_on_eviction",
+          "uvm_perf_map_remote_on_native_atomics_fault",
+          "uvm_perf_migrate_cpu_preunmap_block_order",
+          "uvm_perf_migrate_cpu_preunmap_enable",
+          "uvm_perf_pma_batch_nonpinned_order",
+          "uvm_perf_prefetch_enable",
+          "uvm_perf_prefetch_min_faults",
+          "uvm_perf_prefetch_threshold",
+          "uvm_perf_reenable_prefetch_faults_lapse_msec",
+          "uvm_perf_thrashing_enable",
+          "uvm_perf_thrashing_epoch",
+          "uvm_perf_thrashing_lapse_usec",
+          "uvm_perf_thrashing_max_resets",
+          "uvm_perf_thrashing_nap",
+          "uvm_perf_thrashing_pin",
+          "uvm_perf_thrashing_pin_threshold",
+          "uvm_perf_thrashing_threshold",
+          "uvm_release_asserts",
+          "uvm_release_asserts_dump_stack",
+          "uvm_release_asserts_set_global_error"
+        ],
+        "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+        "version": "575.57.08"
+      }
+    },
+    "runtime": {
+      "nvidia": {
+        "btf": {
+          "ctime_ns": 1788474059575085591,
+          "device": 24,
+          "gid": 0,
+          "inode": 88365,
+          "mode": 292,
+          "mtime_ns": 1788474059575085591,
+          "path": "/sys/kernel/btf/nvidia",
+          "size_bytes": 125993,
+          "uid": 0
+        },
+        "holders": [
+          "nvidia_modeset",
+          "nvidia_uvm"
+        ],
+        "interface": {
+          "required_names": [
+            "nv_gpu_sched_ops",
+            "bpf_nv_gpu_preempt_tsg"
+          ],
+          "scheduler_base": {
+            "preempt_signature": "s32(u32,u32)",
+            "struct_members": [
+              [
+                "on_task_init",
+                "0"
+              ],
+              [
+                "on_bind",
+                "64"
+              ],
+              [
+                "on_task_destroy",
+                "128"
+              ],
+              [
+                "on_timeslice_control",
+                "192"
+              ]
+            ],
+            "struct_size": 32
+          },
+          "scheduler_diagnostics": [
+            "nv_gpu_sched_gsp_control_complete"
+          ]
+        },
+        "name": "nvidia",
+        "parameters": {
+          "CreateImexChannel0": "0",
+          "DeviceFileGID": "0",
+          "DeviceFileMode": "438",
+          "DeviceFileUID": "0",
+          "DmaRemapPeerMmio": "1",
+          "DynamicPowerManagement": "3",
+          "DynamicPowerManagementVideoMemoryThreshold": "200",
+          "EnableDbgBreakpoint": "0",
+          "EnableGpuFirmware": "18",
+          "EnableGpuFirmwareLogs": "2",
+          "EnableMSI": "1",
+          "EnablePCIERelaxedOrderingMode": "0",
+          "EnablePCIeGen3": "0",
+          "EnableResizableBar": "0",
+          "EnableS0ixPowerManagement": "0",
+          "EnableStreamMemOPs": "0",
+          "EnableUserNUMAManagement": "1",
+          "ExcludedGpus": "",
+          "GpuBlacklist": "",
+          "GrdmaPciTopoCheckOverride": "0",
+          "IgnoreMMIOCheck": "0",
+          "ImexChannelCount": "2048",
+          "InitializeSystemMemoryAllocations": "1",
+          "KMallocHeapMaxSize": "0",
+          "MemoryPoolSize": "0",
+          "ModifyDeviceFiles": "1",
+          "NvLinkDisable": "0",
+          "OpenRmEnableUnsupportedGpus": "1",
+          "PreserveVideoMemoryAllocations": "0",
+          "RegisterPCIDriver": "1",
+          "RegistryDwords": "",
+          "RegistryDwordsPerDevice": "",
+          "ResmanDebugLevel": "-1",
+          "RmLogonRC": "1",
+          "RmMsg": "",
+          "RmNvlinkBandwidthLinkCount": "0",
+          "RmProfilingAdminOnly": "1",
+          "S0ixPowerManagementVideoMemoryThreshold": "256",
+          "TemporaryFilePath": "",
+          "UsePageAttributeTable": "-1",
+          "VMallocHeapMaxSize": "0"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_drm": {
+        "btf": {
+          "ctime_ns": 1788488057972098100,
+          "device": 24,
+          "gid": 0,
+          "inode": 92297,
+          "mode": 292,
+          "mtime_ns": 1788488057972098100,
+          "path": "/sys/kernel/btf/nvidia_drm",
+          "size_bytes": 44161,
+          "uid": 0
+        },
+        "holders": [],
+        "interface": {
+          "required_names": [
+            "nv_drm_atomic_commit",
+            "nv_drm_probe_devices"
+          ]
+        },
+        "name": "nvidia_drm",
+        "parameters": {
+          "fbdev": "Y",
+          "modeset": "Y"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_modeset": {
+        "btf": {
+          "ctime_ns": 1788488057843095419,
+          "device": 24,
+          "gid": 0,
+          "inode": 88492,
+          "mode": 292,
+          "mtime_ns": 1788488057843095419,
+          "path": "/sys/kernel/btf/nvidia_modeset",
+          "size_bytes": 33289,
+          "uid": 0
+        },
+        "holders": [
+          "nvidia_drm"
+        ],
+        "interface": {
+          "required_names": [
+            "nvKmsKapiGetFunctionsTable",
+            "nvkms_alloc"
+          ]
+        },
+        "name": "nvidia_modeset",
+        "parameters": {
+          "conceal_vrr_caps": "N",
+          "config_file": "(null)",
+          "debug_force_color_space": "0",
+          "disable_hdmi_frl": "N",
+          "disable_vrr_memclk_switch": "N",
+          "enable_overlay_layers": "Y",
+          "fail_alloc_core_channel": "-1",
+          "fail_malloc": "-1",
+          "hdmi_deepcolor": "Y",
+          "malloc_verbose": "N",
+          "opportunistic_display_sync": "Y",
+          "output_rounding_fix": "Y",
+          "vblank_sem_control": "Y"
+        },
+        "version": "575.57.08"
+      },
+      "nvidia_uvm": {
+        "btf": {
+          "ctime_ns": 1788484989886655604,
+          "device": 24,
+          "gid": 0,
+          "inode": 170125,
+          "mode": 292,
+          "mtime_ns": 1788484989886655604,
+          "path": "/sys/kernel/btf/nvidia_uvm",
+          "size_bytes": 268940,
+          "uid": 0
+        },
+        "holders": [],
+        "interface": {
+          "gpu_mem_ops_members": [
+            "gpu_test_trigger",
+            "gpu_page_prefetch",
+            "gpu_page_prefetch_iter",
+            "gpu_block_activate",
+            "gpu_block_access",
+            "gpu_evict_prepare"
+          ],
+          "required_functions": [
+            "bpf_gpu_request_reorder",
+            "bpf_gpu_set_prefetch_region",
+            "uvm_bpf_call_gpu_page_prefetch"
+          ]
+        },
+        "name": "nvidia_uvm",
+        "parameters": {
+          "uvm_ats_mode": "1",
+          "uvm_block_cpu_to_cpu_copy_with_ce": "0",
+          "uvm_channel_gpfifo_loc": "auto",
+          "uvm_channel_gpput_loc": "auto",
+          "uvm_channel_num_gpfifo_entries": "1024",
+          "uvm_channel_pushbuffer_loc": "auto",
+          "uvm_conf_computing_channel_iv_rotation_limit": "2147483648",
+          "uvm_cpu_chunk_allocation_sizes": "2166784",
+          "uvm_debug_enable_push_acquire_info": "0",
+          "uvm_debug_enable_push_desc": "0",
+          "uvm_debug_prints": "0",
+          "uvm_disable_hmm": "N",
+          "uvm_downgrade_force_membar_sys": "1",
+          "uvm_enable_builtin_tests": "0",
+          "uvm_enable_debug_procfs": "0",
+          "uvm_enable_va_space_mm": "1",
+          "uvm_exp_gpu_cache_peermem": "0",
+          "uvm_exp_gpu_cache_sysmem": "0",
+          "uvm_fault_force_sysmem": "0",
+          "uvm_force_prefetch_fault_support": "0",
+          "uvm_global_oversubscription": "1",
+          "uvm_leak_checker": "0",
+          "uvm_page_table_location": "(null)",
+          "uvm_peer_copy": "phys",
+          "uvm_perf_access_counter_batch_count": "256",
+          "uvm_perf_access_counter_migration_enable": "-1",
+          "uvm_perf_access_counter_threshold": "256",
+          "uvm_perf_fault_batch_count": "256",
+          "uvm_perf_fault_coalesce": "1",
+          "uvm_perf_fault_max_batches_per_service": "20",
+          "uvm_perf_fault_max_throttle_per_service": "5",
+          "uvm_perf_fault_replay_policy": "2",
+          "uvm_perf_fault_replay_update_put_ratio": "50",
+          "uvm_perf_map_remote_on_eviction": "1",
+          "uvm_perf_map_remote_on_native_atomics_fault": "0",
+          "uvm_perf_migrate_cpu_preunmap_block_order": "2",
+          "uvm_perf_migrate_cpu_preunmap_enable": "1",
+          "uvm_perf_pma_batch_nonpinned_order": "6",
+          "uvm_perf_prefetch_enable": "1",
+          "uvm_perf_prefetch_min_faults": "1",
+          "uvm_perf_prefetch_threshold": "51",
+          "uvm_perf_reenable_prefetch_faults_lapse_msec": "1000",
+          "uvm_perf_thrashing_enable": "1",
+          "uvm_perf_thrashing_epoch": "2000",
+          "uvm_perf_thrashing_lapse_usec": "500",
+          "uvm_perf_thrashing_max_resets": "4",
+          "uvm_perf_thrashing_nap": "1",
+          "uvm_perf_thrashing_pin": "300",
+          "uvm_perf_thrashing_pin_threshold": "10",
+          "uvm_perf_thrashing_threshold": "3",
+          "uvm_release_asserts": "1",
+          "uvm_release_asserts_dump_stack": "0",
+          "uvm_release_asserts_set_global_error": "0"
+        },
+        "version": "575.57.08"
+      }
+    },
+    "safety": {
+      "dmesg_abnormal": [],
+      "gpu": {
+        "compute_apps": [],
+        "driver": "575.57.08",
+        "index": 0,
+        "memory_clock_mhz": 405,
+        "memory_total_mib": 32607,
+        "memory_used_mib": 15,
+        "name": "NVIDIA GeForce RTX 5090",
+        "power_w": 13.1,
+        "sm_clock_mhz": 22,
+        "temperature_c": 51,
+        "utilization_gpu_percent": 0
+      },
+      "journal_abnormal": [],
+      "power_limit_service": "active",
+      "power_limit_w": 400.0,
+      "struct_ops": {
+        "links": [],
+        "maps": []
+      },
+      "timestamp_ns": 1788488059735204222,
+      "uvm_refcount": 0,
+      "xids": []
+    },
+    "services": {
+      "gdm.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "static"
+      },
+      "nvidia-persistenced.service": {
+        "ActiveState": "active",
+        "LoadState": "loaded",
+        "Result": "success",
+        "SubState": "running",
+        "UnitFileState": "enabled"
+      }
+    }
+  },
+  "interrupt_signals": [],
+  "leases": [
+    {
+      "device": 66308,
+      "inode": 54525959,
+      "path": "/tmp/gpubpf-revision-gpu0.lock"
+    },
+    {
+      "device": 66308,
+      "inode": 54525960,
+      "path": "/tmp/gpubpf-revision-struct-ops.lock"
+    }
+  ],
+  "primary_error": "GateError: BPF object inventory changed after cleanup",
+  "recovery_errors": [],
+  "runtime_state": {
+    "candidate_insert_started": true,
+    "candidate_loaded": [
+      "nvidia",
+      "nvidia_modeset",
+      "nvidia_drm",
+      "nvidia_uvm"
+    ],
+    "candidate_services_restored": true,
+    "destructive_started": true,
+    "matrix_complete": false,
+    "native_preflight_complete": true,
+    "old_removal_complete": true,
+    "old_restored": true,
+    "services_restored": true,
+    "services_stopped": [
+      "gdm.service",
+      "nvidia-persistenced.service"
+    ]
+  },
+  "staged_candidate": {
+    "nvidia": {
+      "candidate_role": true,
+      "depends": [],
+      "interface": {
+        "required_names": [
+          "nv_gpu_sched_ops",
+          "bpf_nv_gpu_preempt_tsg"
+        ],
+        "scheduler_base": {
+          "preempt_signature": "s32(u32,u32)",
+          "struct_members": [
+            [
+              "on_task_init",
+              "0"
+            ],
+            [
+              "on_bind",
+              "64"
+            ],
+            [
+              "on_task_destroy",
+              "128"
+            ],
+            [
+              "on_timeslice_control",
+              "192"
+            ]
+          ],
+          "struct_size": 32
+        },
+        "scheduler_diagnostics": [
+          "nv_gpu_sched_init_diagnostic",
+          "nv_gpu_sched_gsp_control_complete"
+        ]
+      },
+      "inventory": {
+        "ctime_ns": 1788488060172143837,
+        "device": 66308,
+        "gid": 0,
+        "inode": 3014690,
+        "mode": 420,
+        "mtime_ns": 1788488060172143837,
+        "path": "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia.ko",
+        "size_bytes": 30125152,
+        "uid": 0
+      },
+      "name": "nvidia",
+      "parameter_names": [
+        "NVreg_CreateImexChannel0",
+        "NVreg_DeviceFileGID",
+        "NVreg_DeviceFileMode",
+        "NVreg_DeviceFileUID",
+        "NVreg_DmaRemapPeerMmio",
+        "NVreg_DynamicPowerManagement",
+        "NVreg_DynamicPowerManagementVideoMemoryThreshold",
+        "NVreg_EnableDbgBreakpoint",
+        "NVreg_EnableGpuFirmware",
+        "NVreg_EnableGpuFirmwareLogs",
+        "NVreg_EnableMSI",
+        "NVreg_EnableNonblockingOpen",
+        "NVreg_EnablePCIERelaxedOrderingMode",
+        "NVreg_EnablePCIeGen3",
+        "NVreg_EnableResizableBar",
+        "NVreg_EnableS0ixPowerManagement",
+        "NVreg_EnableStreamMemOPs",
+        "NVreg_EnableUserNUMAManagement",
+        "NVreg_ExcludedGpus",
+        "NVreg_GpuBlacklist",
+        "NVreg_GrdmaPciTopoCheckOverride",
+        "NVreg_IgnoreMMIOCheck",
+        "NVreg_ImexChannelCount",
+        "NVreg_InitializeSystemMemoryAllocations",
+        "NVreg_KMallocHeapMaxSize",
+        "NVreg_MemoryPoolSize",
+        "NVreg_ModifyDeviceFiles",
+        "NVreg_NvLinkDisable",
+        "NVreg_OpenRmEnableUnsupportedGpus",
+        "NVreg_PreserveVideoMemoryAllocations",
+        "NVreg_RegisterPCIDriver",
+        "NVreg_RegistryDwords",
+        "NVreg_RegistryDwordsPerDevice",
+        "NVreg_ResmanDebugLevel",
+        "NVreg_RestrictProfilingToAdminUsers",
+        "NVreg_RmLogonRC",
+        "NVreg_RmMsg",
+        "NVreg_RmNvlinkBandwidth",
+        "NVreg_RmNvlinkBandwidthLinkCount",
+        "NVreg_S0ixPowerManagementVideoMemoryThreshold",
+        "NVreg_TemporaryFilePath",
+        "NVreg_UsePageAttributeTable",
+        "NVreg_VMallocHeapMaxSize",
+        "NvSwitchBlacklist",
+        "NvSwitchRegDwords",
+        "rm_firmware_active"
+      ],
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+      "version": "575.57.08"
+    },
+    "nvidia_drm": {
+      "candidate_role": false,
+      "depends": [
+        "drm_ttm_helper",
+        "nvidia-modeset"
+      ],
+      "interface": {
+        "required_names": [
+          "nv_drm_atomic_commit",
+          "nv_drm_probe_devices"
+        ]
+      },
+      "inventory": {
+        "ctime_ns": 1788488060212144668,
+        "device": 66308,
+        "gid": 0,
+        "inode": 3014692,
+        "mode": 420,
+        "mtime_ns": 1788488060212144668,
+        "path": "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia-drm.ko",
+        "size_bytes": 5444696,
+        "uid": 0
+      },
+      "name": "nvidia_drm",
+      "parameter_names": [
+        "fbdev",
+        "modeset"
+      ],
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+      "version": "575.57.08"
+    },
+    "nvidia_modeset": {
+      "candidate_role": false,
+      "depends": [
+        "nvidia",
+        "video"
+      ],
+      "interface": {
+        "required_names": [
+          "nvKmsKapiGetFunctionsTable",
+          "nvkms_alloc"
+        ]
+      },
+      "inventory": {
+        "ctime_ns": 1788488060198144377,
+        "device": 66308,
+        "gid": 0,
+        "inode": 3014691,
+        "mode": 420,
+        "mtime_ns": 1788488060198144377,
+        "path": "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia-modeset.ko",
+        "size_bytes": 3898904,
+        "uid": 0
+      },
+      "name": "nvidia_modeset",
+      "parameter_names": [
+        "conceal_vrr_caps",
+        "config_file",
+        "debug_force_color_space",
+        "disable_hdmi_frl",
+        "disable_vrr_memclk_switch",
+        "enable_overlay_layers",
+        "fail_alloc_core_channel",
+        "fail_malloc",
+        "hdmi_deepcolor",
+        "malloc_verbose",
+        "opportunistic_display_sync",
+        "output_rounding_fix",
+        "vblank_sem_control"
+      ],
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+      "version": "575.57.08"
+    },
+    "nvidia_uvm": {
+      "candidate_role": false,
+      "depends": [
+        "nvidia"
+      ],
+      "interface": {
+        "gpu_mem_ops_members": [
+          "gpu_test_trigger",
+          "gpu_page_prefetch",
+          "gpu_page_prefetch_iter",
+          "gpu_block_activate",
+          "gpu_block_access",
+          "gpu_evict_prepare"
+        ],
+        "required_functions": [
+          "bpf_gpu_request_reorder",
+          "bpf_gpu_set_prefetch_region",
+          "uvm_bpf_call_gpu_page_prefetch"
+        ]
+      },
+      "inventory": {
+        "ctime_ns": 1788488060249145437,
+        "device": 66308,
+        "gid": 0,
+        "inode": 3014693,
+        "mode": 420,
+        "mtime_ns": 1788488060249145437,
+        "path": "/opt/gpubpf/modules/575.57.08/sched-init-candidate-6a5b3bb5-575-02/nvidia-uvm.ko",
+        "size_bytes": 61919280,
+        "uid": 0
+      },
+      "name": "nvidia_uvm",
+      "parameter_names": [
+        "uvm_ats_mode",
+        "uvm_block_cpu_to_cpu_copy_with_ce",
+        "uvm_channel_gpfifo_loc",
+        "uvm_channel_gpput_loc",
+        "uvm_channel_num_gpfifo_entries",
+        "uvm_channel_pushbuffer_loc",
+        "uvm_conf_computing_channel_iv_rotation_limit",
+        "uvm_cpu_chunk_allocation_sizes",
+        "uvm_debug_enable_push_acquire_info",
+        "uvm_debug_enable_push_desc",
+        "uvm_debug_prints",
+        "uvm_disable_hmm",
+        "uvm_downgrade_force_membar_sys",
+        "uvm_enable_builtin_tests",
+        "uvm_enable_debug_procfs",
+        "uvm_enable_va_space_mm",
+        "uvm_exp_gpu_cache_peermem",
+        "uvm_exp_gpu_cache_sysmem",
+        "uvm_fault_force_sysmem",
+        "uvm_force_prefetch_fault_support",
+        "uvm_global_oversubscription",
+        "uvm_leak_checker",
+        "uvm_page_table_location",
+        "uvm_peer_copy",
+        "uvm_perf_access_counter_batch_count",
+        "uvm_perf_access_counter_migration_enable",
+        "uvm_perf_access_counter_threshold",
+        "uvm_perf_fault_batch_count",
+        "uvm_perf_fault_coalesce",
+        "uvm_perf_fault_max_batches_per_service",
+        "uvm_perf_fault_max_throttle_per_service",
+        "uvm_perf_fault_replay_policy",
+        "uvm_perf_fault_replay_update_put_ratio",
+        "uvm_perf_map_remote_on_eviction",
+        "uvm_perf_map_remote_on_native_atomics_fault",
+        "uvm_perf_migrate_cpu_preunmap_block_order",
+        "uvm_perf_migrate_cpu_preunmap_enable",
+        "uvm_perf_pma_batch_nonpinned_order",
+        "uvm_perf_prefetch_enable",
+        "uvm_perf_prefetch_min_faults",
+        "uvm_perf_prefetch_threshold",
+        "uvm_perf_reenable_prefetch_faults_lapse_msec",
+        "uvm_perf_thrashing_enable",
+        "uvm_perf_thrashing_epoch",
+        "uvm_perf_thrashing_lapse_usec",
+        "uvm_perf_thrashing_max_resets",
+        "uvm_perf_thrashing_nap",
+        "uvm_perf_thrashing_pin",
+        "uvm_perf_thrashing_pin_threshold",
+        "uvm_perf_thrashing_threshold",
+        "uvm_release_asserts",
+        "uvm_release_asserts_dump_stack",
+        "uvm_release_asserts_set_global_error"
+      ],
+      "vermagic": "6.15.11-061511-generic SMP preempt mod_unload modversions",
+      "version": "575.57.08"
+    }
+  },
+  "started_ns": 1788488057453486345,
+  "transitions": [
+    {
+      "name": "lease_acquired",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": false,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": []
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488057453495192
+    },
+    {
+      "name": "admission",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": false,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": []
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488060124474422
+    },
+    {
+      "name": "candidate_staged",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": false,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": []
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488060500301658
+    },
+    {
+      "local_sessions": [
+        {
+          "Active": "yes",
+          "Class": "user",
+          "Id": "16",
+          "Name": "yunwei37",
+          "Remote": "yes",
+          "Seat": "",
+          "Service": "sshd",
+          "State": "closing",
+          "Type": "tty",
+          "User": "1000"
+        },
+        {
+          "Active": "yes",
+          "Class": "user",
+          "Id": "7",
+          "Name": "yunwei37",
+          "Remote": "yes",
+          "Seat": "",
+          "Service": "sshd",
+          "State": "closing",
+          "Type": "tty",
+          "User": "1000"
+        },
+        {
+          "Active": "yes",
+          "Class": "greeter",
+          "Id": "c10",
+          "Name": "gdm",
+          "Remote": "no",
+          "Seat": "seat0",
+          "Service": "gdm-launch-environment",
+          "State": "active",
+          "Type": "x11",
+          "User": "120"
+        }
+      ],
+      "name": "stop_gdm.service",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": false,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488061368310569
+    },
+    {
+      "local_sessions": [],
+      "name": "stop_nvidia-persistenced.service",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": false,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488061607342594
+    },
+    {
+      "first_removal_gate": {
+        "gpu": {
+          "compute_apps": [],
+          "driver": "575.57.08",
+          "index": 0,
+          "memory_clock_mhz": 405,
+          "memory_total_mib": 32607,
+          "memory_used_mib": 2,
+          "name": "NVIDIA GeForce RTX 5090",
+          "power_w": 16.08,
+          "sm_clock_mhz": 22,
+          "temperature_c": 51,
+          "utilization_gpu_percent": 0
+        },
+        "holders": {
+          "paths": [
+            "/dev/nvidia-caps/nvidia-cap1",
+            "/dev/nvidia-caps/nvidia-cap2",
+            "/dev/nvidia-modeset",
+            "/dev/nvidia-uvm",
+            "/dev/nvidia-uvm-tools",
+            "/dev/nvidia0",
+            "/dev/nvidiactl"
+          ],
+          "returncode": 1,
+          "stderr": "",
+          "stdout": ""
+        },
+        "leaf_modules": [
+          {
+            "module": "nvidia_drm",
+            "refcount": 0
+          },
+          {
+            "module": "nvidia_uvm",
+            "refcount": 0
+          }
+        ],
+        "loaded_subset": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "struct_ops": {
+          "links": [],
+          "maps": []
+        }
+      },
+      "name": "remove_old_started",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": false,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "started",
+      "timestamp_ns": 1788488062586092590
+    },
+    {
+      "modules": [
+        {
+          "module": "nvidia_uvm",
+          "refcount_before": 0
+        },
+        {
+          "module": "nvidia_drm",
+          "refcount_before": 0
+        },
+        {
+          "module": "nvidia_modeset",
+          "refcount_before": 0
+        },
+        {
+          "module": "nvidia",
+          "refcount_before": 0
+        }
+      ],
+      "name": "old_subset_removed",
+      "runtime_state": {
+        "candidate_insert_started": false,
+        "candidate_loaded": [],
+        "candidate_services_restored": false,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488063815379080
+    },
+    {
+      "name": "candidate_validated",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": false,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488068226307928
+    },
+    {
+      "name": "candidate_services_restored",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": false,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488070637322502
+    },
+    {
+      "name": "native_preflight",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488074908720130
+    },
+    {
+      "error": "GateError: BPF object inventory changed after cleanup",
+      "name": "campaign_body",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "failed",
+      "timestamp_ns": 1788488084237882227
+    },
+    {
+      "name": "recovery_started",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "started",
+      "timestamp_ns": 1788488084244971818
+    },
+    {
+      "name": "recovery_validate_restore_artifacts",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488084362041528
+    },
+    {
+      "name": "recovery_validate_candidate_artifacts",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488084491431725
+    },
+    {
+      "name": "recovery_validate_staged_artifacts",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488084621623727
+    },
+    {
+      "name": "recovery_stop_services",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488085515953669
+    },
+    {
+      "name": "recovery_remove_live_subset",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488086658129347
+    },
+    {
+      "name": "recovery_insert_old_subset",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": false,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488088584919953
+    },
+    {
+      "name": "recovery_validate_before_services",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": true,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488091155061521
+    },
+    {
+      "name": "recovery_restore_services",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": true,
+        "services_restored": false,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488091446017858
+    },
+    {
+      "name": "recovery_final_validation",
+      "runtime_state": {
+        "candidate_insert_started": true,
+        "candidate_loaded": [
+          "nvidia",
+          "nvidia_modeset",
+          "nvidia_drm",
+          "nvidia_uvm"
+        ],
+        "candidate_services_restored": true,
+        "destructive_started": true,
+        "matrix_complete": false,
+        "native_preflight_complete": true,
+        "old_removal_complete": true,
+        "old_restored": true,
+        "services_restored": true,
+        "services_stopped": [
+          "gdm.service",
+          "nvidia-persistenced.service"
+        ]
+      },
+      "status": "passed",
+      "timestamp_ns": 1788488094025559023
+    }
+  ]
+}

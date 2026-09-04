@@ -274,6 +274,18 @@ class ProcessAndInputTests(unittest.TestCase):
         with self.assertRaisesRegex(InterruptedError, "signal 15"):
             runner.raise_if_interrupted()
 
+    def test_bpf_inventory_excludes_query_local_objects_only(self):
+        values = []
+        for stable, transient in ((11, 101), (11, 102), (11, 103),
+                                  (22, 201), (22, 202), (22, 203),
+                                  (33, 301), (33, 302), (33, 303)):
+            values.append(json.dumps([{"id": stable}, {"id": transient}]))
+        with patch.object(runner.safety, "run_checked", side_effect=values) as query:
+            self.assertEqual(runner.bpf_inventory(), {
+                "prog": [11], "map": [22], "link": [33],
+            })
+        self.assertEqual(query.call_count, 9)
+
     def test_json_reader_rejects_partial_json(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "events"

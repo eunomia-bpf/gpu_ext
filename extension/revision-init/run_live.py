@@ -33,6 +33,7 @@ LOADER = EXTENSION / "revision_init_loader"
 OBJECT_DIR = EXTENSION / ".output"
 COMPUTE_MONITOR = EXTENSION / "revision-prefetch/monitor_compute_apps.py"
 COMPUTE_MAX_GAP_NS = 1_000_000_000
+BPF_INVENTORY_STABILITY_SAMPLES = 3
 EXPECTED_KERNEL = "6.15.11-061511-generic"
 EXPECTED_DRIVER = "575.57.08"
 EXPECTED_CORRECTNESS = {
@@ -763,8 +764,16 @@ def struct_ops_ids() -> tuple[set[int], set[int]]:
 def bpf_inventory() -> dict[str, list[int]]:
     inventory = {}
     for kind in ("prog", "map", "link"):
-        output = safety.run_checked(["bpftool", kind, "show", "-j"])
-        inventory[kind] = sorted(int(item["id"]) for item in json.loads(output or "[]"))
+        samples = []
+        for _ in range(BPF_INVENTORY_STABILITY_SAMPLES):
+            output = safety.run_checked(["bpftool", kind, "show", "-j"])
+            samples.append({int(item["id"])
+                            for item in json.loads(output or "[]")})
+        # bpftool's iterator-based introspection can expose objects created by
+        # the querying bpftool process itself. Those IDs differ on every call;
+        # objects that survive all three snapshots are the ambient inventory
+        # whose identity must remain unchanged across a cell.
+        inventory[kind] = sorted(set.intersection(*samples))
     return inventory
 
 

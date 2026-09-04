@@ -1,0 +1,588 @@
+{
+  "schema": "device-verifier-a1-v1",
+  "status": "invalid_a0",
+  "created": "20260904_060502",
+  "plan": {
+    "schema": "device-verifier-a1-v1",
+    "hypothesis": "Strict SIMT verification admits each real Table 1 device object with a finite one-time verifier-call latency; randomized NO_VERIFY arms confirm the matched runtime/object path skips the verifier.",
+    "metric": "target-log verification_elapsed_ns on STRICT only",
+    "forbidden_metric": "whole-application elapsed time or throughput",
+    "tools": [
+      "kernelretsnoop",
+      "threadhist"
+    ],
+    "modes": [
+      "STRICT",
+      "NO_VERIFY"
+    ],
+    "pairs_per_tool": 10,
+    "schedule_seed": 1797,
+    "analysis_seed": 9173,
+    "bootstrap_samples": 10000,
+    "pair_definition": "For one tool and pair index, exactly one fresh STRICT process and one fresh NO_VERIFY process using the same built object, verifier-enabled runtime, llama-cli command, correctness oracle, and safety gates.",
+    "a0_definition": "one separate fresh STRICT admission/correctness cell per tool",
+    "schedule": [
+      {
+        "sequence": 1,
+        "pair": 1,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 2,
+        "pair": 1,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 3,
+        "pair": 1,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 4,
+        "pair": 1,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 5,
+        "pair": 2,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 6,
+        "pair": 2,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 7,
+        "pair": 2,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 8,
+        "pair": 2,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 9,
+        "pair": 3,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 10,
+        "pair": 3,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 11,
+        "pair": 3,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 12,
+        "pair": 3,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 13,
+        "pair": 4,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 14,
+        "pair": 4,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 15,
+        "pair": 4,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 16,
+        "pair": 4,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 17,
+        "pair": 5,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 18,
+        "pair": 5,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 19,
+        "pair": 5,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 20,
+        "pair": 5,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 21,
+        "pair": 6,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 22,
+        "pair": 6,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 23,
+        "pair": 6,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 24,
+        "pair": 6,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 25,
+        "pair": 7,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 26,
+        "pair": 7,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 27,
+        "pair": 7,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 28,
+        "pair": 7,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 29,
+        "pair": 8,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 30,
+        "pair": 8,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 31,
+        "pair": 8,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 32,
+        "pair": 8,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 33,
+        "pair": 9,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 34,
+        "pair": 9,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 35,
+        "pair": 9,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 36,
+        "pair": 9,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 37,
+        "pair": 10,
+        "tool": "kernelretsnoop",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 38,
+        "pair": 10,
+        "tool": "threadhist",
+        "mode": "NO_VERIFY"
+      },
+      {
+        "sequence": 39,
+        "pair": 10,
+        "tool": "threadhist",
+        "mode": "STRICT"
+      },
+      {
+        "sequence": 40,
+        "pair": 10,
+        "tool": "kernelretsnoop",
+        "mode": "NO_VERIFY"
+      }
+    ]
+  },
+  "defining_inputs": {
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_cli": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "bpftime_build_dir": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "pairs": 10,
+    "n_gpu_layers": 99,
+    "timeout_s": 300,
+    "probe_startup_s": 3.0,
+    "gpu_thread_count": 22528,
+    "threadhist_gpu_thread_count": 1048576,
+    "uvm": false
+  },
+  "runtime": {
+    "build_configuration": {
+      "ENABLE_EBPF_VERIFIER": "ON",
+      "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+      "BPFTIME_LLVM_JIT": "ON"
+    },
+    "source_contract": {
+      "source": "/home/yunwei37/workspace/gpu/bpftime-table1-575/attach/nv_attach_impl/nv_attach_impl.cpp",
+      "required": {
+        "timing_marker": "GPU eBPF verification timing: program={} verification_elapsed_ns={}",
+        "strict_accept": "GPU eBPF verification accepted: mode=STRICT",
+        "skip_marker": "Skipping GPU eBPF verification for {}",
+        "map_marker": "GPU eBPF verified map: program={}",
+        "unavailable_guard": "verifier unavailable"
+      },
+      "present": {
+        "timing_marker": true,
+        "strict_accept": true,
+        "skip_marker": true,
+        "map_marker": true,
+        "unavailable_guard": true
+      },
+      "passed": true
+    },
+    "git_commit": "8eb27cfd303fa709dd8603e734e33e701c9705fe",
+    "agent": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/runtime/agent/libbpftime-agent.so",
+      "exists": true,
+      "bytes": 277257888,
+      "device": 66305,
+      "inode": 92308329,
+      "mtime_ns": 1788523601909360190
+    },
+    "syscall_server": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/runtime/syscall-server/libbpftime-syscall-server.so",
+      "exists": true,
+      "bytes": 272364968,
+      "device": 66305,
+      "inode": 92308262,
+      "mtime_ns": 1788523593878619590
+    }
+  },
+  "host": {
+    "driver": "575.57.08",
+    "expected_driver": "575.57.08",
+    "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 15, 0, 13.57",
+      "compute_apps": ""
+    }
+  },
+  "objects": {
+    "kernelretsnoop": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/device-verifier-a1/raw/a1-575-01/gpubpf_tool_build/kernelretsnoop/.output/kernelretsnoop.bpf.o",
+      "exists": true,
+      "bytes": 3840,
+      "device": 66305,
+      "inode": 94395277,
+      "mtime_ns": 1788527113917064658
+    },
+    "threadhist": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/device-verifier-a1/raw/a1-575-01/gpubpf_tool_build/threadhist/.output/threadhist.bpf.o",
+      "exists": true,
+      "bytes": 2384,
+      "device": 66305,
+      "inode": 94395390,
+      "mtime_ns": 1788527125049980089
+    }
+  },
+  "baseline": {
+    "valid": true,
+    "returncode": 0,
+    "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+    "stdout_bytes": 47,
+    "safety": {
+      "passed": true,
+      "worker_cpus": "8-15",
+      "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+      "before": {
+        "timestamp_ns": 1788527127713425315,
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "gpu": {
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 5090",
+          "driver": "575.57.08",
+          "memory_used_mib": 15,
+          "memory_total_mib": 32607,
+          "temperature_c": 51,
+          "sm_clock_mhz": 22,
+          "memory_clock_mhz": 405,
+          "power_w": 15.57,
+          "utilization_gpu_percent": 0,
+          "compute_apps": []
+        },
+        "uvm_refcount": 0,
+        "struct_ops": {
+          "maps": [],
+          "links": []
+        },
+        "dmesg_abnormal": [],
+        "journal_abnormal": [],
+        "xids": []
+      },
+      "after": {
+        "timestamp_ns": 1788527131578512543,
+        "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "gpu": {
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 5090",
+          "driver": "575.57.08",
+          "memory_used_mib": 15,
+          "memory_total_mib": 32607,
+          "temperature_c": 51,
+          "sm_clock_mhz": 1762,
+          "memory_clock_mhz": 7001,
+          "power_w": 52.77,
+          "utilization_gpu_percent": 0,
+          "compute_apps": []
+        },
+        "uvm_refcount": 0,
+        "struct_ops": {
+          "maps": [],
+          "links": []
+        },
+        "dmesg_abnormal": [],
+        "journal_abnormal": [],
+        "xids": []
+      },
+      "telemetry": {
+        "samples": 5,
+        "peak_memory_mib": 575.0,
+        "peak_temperature_c": 51.0,
+        "mean_power_w": 14.842000000000002,
+        "min_sm_clock_mhz": 22.0,
+        "max_sm_clock_mhz": 22.0,
+        "throttled": false,
+        "fixed_power_cap_samples": 0
+      }
+    },
+    "directory": "correctness-baseline"
+  },
+  "a0": [
+    {
+      "stage": "a0",
+      "pair": null,
+      "sequence": 1,
+      "tool": "kernelretsnoop",
+      "mode": "STRICT",
+      "directory": "a0/001-kernelretsnoop-strict",
+      "returncode": 0,
+      "normalized_stdout": "Deterministic tests are essential\n> EOF by user",
+      "stdout_bytes": 47,
+      "output_valid": true,
+      "matches_baseline": true,
+      "probe": {
+        "sample_count": 720896,
+        "nonzero_timestamps": 720896,
+        "requested_thread_slots": 22528,
+        "allocated_thread_slots": 22528,
+        "entries_per_thread": 256,
+        "requested_entries_per_thread": 256,
+        "record_bytes": 32,
+        "committed_events": 720896,
+        "runtime_collected_events": 720896,
+        "oob_drops": 0,
+        "full_drops": 0,
+        "bad_size_drops": 0,
+        "other_drops": 0,
+        "dirty_slots": 0,
+        "pending_events": 0,
+        "final_drain_events": 0,
+        "second_drain_events": 0,
+        "cartesian_launches": 220,
+        "cartesian_coordinates": 22528,
+        "cartesian_complete": 1,
+        "extent_x": 88,
+        "extent_y": 256,
+        "extent_z": 1,
+        "multiplicity_220": 1024,
+        "multiplicity_44": 1024,
+        "multiplicity_22": 20480,
+        "other_multiplicity": 0,
+        "segment_mismatches": 0,
+        "invalid_launch_coordinates": 0,
+        "unique_coordinates": 22528,
+        "oracle_enabled": 1,
+        "oracle_total_events": 720896,
+        "oracle_passed": 1,
+        "collector_gate_passed": 1
+      },
+      "probe_valid": true,
+      "admission": {
+        "passed": false,
+        "mode": "STRICT",
+        "program": "cuda__retprobe",
+        "attach": "kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+        "target_pid": 2333710,
+        "execution_record": "llama_cli.execution.json",
+        "execution_error": null,
+        "log": "llama_cli.log",
+        "accepted_records": 1,
+        "accepted": [
+          {
+            "mode": "STRICT",
+            "attach": "kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+            "instructions": 60
+          }
+        ],
+        "timing_records": 0,
+        "verification_elapsed_ns": null,
+        "map_records": 1,
+        "maps": [
+          {
+            "fd": 16,
+            "type": 1527,
+            "key_size": 4,
+            "value_size": 32,
+            "max_entries": 256
+          }
+        ],
+        "expected_map": {
+          "type": 1527,
+          "key_size": 4,
+          "value_size": 32,
+          "max_entries": 256
+        },
+        "skipped_records": 0,
+        "rejected_records": 0,
+        "unavailable_records": 0,
+        "foreign_pid_records": 0,
+        "unparsed_records": 0,
+        "latency_source": "target_llama_cli_log_runtime_marker"
+      },
+      "safety": {
+        "passed": true,
+        "worker_cpus": "8-15",
+        "boot_id": "0179bbfe-371e-4be4-bcac-082e21c1fe76",
+        "before": {
+          "timestamp_ns": 1788527134435846418,
+          "power_limit_service": "active",
+          "power_limit_w": 400.0,
+          "gpu": {
+            "index": 0,
+            "name": "NVIDIA GeForce RTX 5090",
+            "driver": "575.57.08",
+            "memory_used_mib": 15,
+            "memory_total_mib": 32607,
+            "temperature_c": 51,
+            "sm_clock_mhz": 22,
+            "memory_clock_mhz": 405,
+            "power_w": 15.72,
+            "utilization_gpu_percent": 0,
+            "compute_apps": []
+          },
+          "uvm_refcount": 0,
+          "struct_ops": {
+            "maps": [],
+            "links": []
+          },
+          "dmesg_abnormal": [],
+          "journal_abnormal": [],
+          "xids": []
+        },
+        "after": {
+          "timestamp_ns": 1788527218648107650,
+          "power_limit_service": "active",
+          "power_limit_w": 400.0,
+          "gpu": {
+            "index": 0,
+            "name": "NVIDIA GeForce RTX 5090",
+            "driver": "575.57.08",
+            "memory_used_mib": 15,
+            "memory_total_mib": 32607,
+            "temperature_c": 52,
+            "sm_clock_mhz": 84,
+            "memory_clock_mhz": 7001,
+            "power_w": 43.46,
+            "utilization_gpu_percent": 0,
+            "compute_apps": []
+          },
+          "uvm_refcount": 0,
+          "struct_ops": {
+            "maps": [],
+            "links": []
+          },
+          "dmesg_abnormal": [],
+          "journal_abnormal": [],
+          "xids": []
+        },
+        "telemetry": {
+          "samples": 406,
+          "peak_memory_mib": 5675.0,
+          "peak_temperature_c": 53.0,
+          "mean_power_w": 25.326970443349754,
+          "min_sm_clock_mhz": 21.0,
+          "max_sm_clock_mhz": 2895.0,
+          "throttled": false,
+          "fixed_power_cap_samples": 0
+        }
+      },
+      "valid": false
+    }
+  ],
+  "cells": []
+}

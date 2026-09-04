@@ -72,6 +72,145 @@ RELATIVE_RUNTIME_INCLUDE = "../../../runtime/include"
 RELATIVE_RUNTIME_INCLUDE_PATTERN = re.compile(r"(?:\.\./)+runtime/include")
 
 
+def selected_tools(args: argparse.Namespace) -> tuple[str, ...]:
+    """Return a unique, canonical, predeclared tool selection."""
+    requested = tuple(getattr(args, "tools", TASKS))
+    unknown = [tool for tool in requested if tool not in TASKS]
+    duplicates = [tool for tool in TASKS if requested.count(tool) > 1]
+    if not requested:
+        raise ValueError("--tools requires at least one tool")
+    if unknown:
+        raise ValueError("unknown tool(s): " + ", ".join(unknown))
+    if duplicates:
+        raise ValueError("duplicate tool(s): " + ", ".join(duplicates))
+    return tuple(tool for tool in TASKS if tool in requested)
+
+
+def selected_configs(args: argparse.Namespace) -> tuple[str, ...]:
+    tools = selected_tools(args)
+    return tuple(
+        config
+        for config in CONFIGS
+        if config == "baseline" or config.split("_", 1)[1] in tools
+    )
+
+
+def fixed_schedule(args: argparse.Namespace) -> dict[str, list[str]]:
+    configs = selected_configs(args)
+    schedules = {}
+    for block in range(1, args.runs + 1):
+        order = list(configs)
+        random.Random(SCHEDULE_SEED + block).shuffle(order)
+        schedules[str(block)] = order
+    return schedules
+
+
+def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
+    """Machine-readable declaration of unchanged, exact per-tool gates."""
+    gates: dict[str, Any] = {
+        "all_correctness_cells": {
+            "returncode": 0,
+            "normalized_stdout": EXPECTED_NORMALIZED_STDOUT,
+            "stdout_bytes": EXPECTED_NORMALIZED_STDOUT_BYTES,
+            "must_match_baseline": True,
+        },
+        "all_timing_cells": {
+            "returncode": 0,
+            "pp_tokens": args.pp,
+            "pp_tok_s": "finite and > 0",
+        },
+    }
+    if "kernelretsnoop" in selected_tools(args):
+        gates["kernelretsnoop_correctness"] = {
+            "gpubpf": {
+                "events": CORRECTNESS_EXIT_EVENTS,
+                "nonzero_timestamps": CORRECTNESS_EXIT_EVENTS,
+                "selected_launches": CORRECTNESS_EXIT_LAUNCHES,
+                "unique_coordinates": CORRECTNESS_EXIT_COORDINATES,
+                "requested_and_allocated_thread_slots": EXPECTED_GPU_THREAD_SLOTS,
+                "minimum_ring_entries_per_thread": MIN_RING_ENTRIES_PER_THREAD,
+                "record_bytes": EXIT_RECORD_BYTES,
+                "zero_drop_dirty_pending_second_drain_and_invalid_coordinate_counters": True,
+                "cartesian_complete": True,
+                "exact_multiplicity": {
+                    "220": CORRECTNESS_MULTIPLICITY_220,
+                    "44": CORRECTNESS_MULTIPLICITY_44,
+                    "22": CORRECTNESS_MULTIPLICITY_22,
+                    "other": 0,
+                    "segment_mismatches": 0,
+                },
+            },
+            "nvbit": {
+                "events": CORRECTNESS_EXIT_EVENTS,
+                "nonzero_timestamps": CORRECTNESS_EXIT_EVENTS,
+                "selected_launches": CORRECTNESS_EXIT_LAUNCHES,
+            },
+        }
+        gates["kernelretsnoop_timing"] = {
+            "gpubpf_internal_lossless_and_cartesian_complete": True,
+            "gpubpf_exact_correctness_multiplicity_oracle": False,
+            "pair_events_equal": True,
+            "pair_selected_launches_equal": True,
+        }
+    if "threadhist" in selected_tools(args):
+        gates["threadhist_all_cells"] = {
+            "gpubpf_configured_entries": args.threadhist_gpu_thread_count,
+            "gpubpf_readback_entries": args.threadhist_gpu_thread_count,
+            "gpubpf_readback_bytes": args.threadhist_gpu_thread_count * 8,
+            "gpubpf_readback_complete": 1,
+            "gpubpf_nonzero_threads": "> 0",
+            "gpubpf_total_exit_probes": "> 0",
+            "nvbit_selected_launches": "> 0",
+            "nvbit_nonzero_threads": "> 0",
+            "nvbit_total_exit_probes": "> 0",
+        }
+    if "launchlate" in selected_tools(args):
+        gates["launchlate_all_cells"] = {
+            "existing_affine_clock_and_accounting_gate": "unchanged; fail closed",
+            "zero_clock_queue_capture_overflow_errors": True,
+            "bounded_clock_drift_and_uncertainty": True,
+            "complete_host_device_pairing": True,
+        }
+    return gates
+
+
+def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
+    configs = selected_configs(args)
+    subset_full = args.phase == "full" and selected_tools(args) != TASKS
+    return {
+        "dry_run": True,
+        "phase": args.phase,
+        "tools": list(selected_tools(args)),
+        "configs": list(configs),
+        "runs": args.runs,
+        "pp": args.pp,
+        "correctness_cells": list(configs),
+        "timing_schedule": fixed_schedule(args),
+        "timing_cell_count": len(configs) * args.runs,
+        "completion_rule": {
+            "required_valid_correctness_cells": len(configs),
+            "required_valid_timing_cells": len(configs) * args.runs,
+            "all_selected_configs_required_in_every_block": True,
+        },
+        "preflight_gate": {
+            "required": subset_full,
+            "campaign": (
+                str(args.preflight_dir.resolve())
+                if getattr(args, "preflight_dir", None) else None
+            ),
+            "condition": (
+                "independent analyzer reports complete=true for the same exact tool selection"
+                if subset_full else "unchanged default phase admission"
+            ),
+        },
+        "engagement_gates": engagement_gate_manifest(args),
+        "scope_policy": (
+            "Only the predeclared selected tools are planned. Existing results for "
+            "unselected tools are not relabeled, repaired, or counted."
+        ),
+    }
+
+
 class OwnedCleanupError(RuntimeError):
     """Unsafe to continue the campaign; an owned resource may still be live."""
 
@@ -677,7 +816,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         args.bpftime_root / "runtime/syscall-server/syscall_server_main.cpp",
         args.bpftime_root / "attach/nv_attach_impl/trampoline/default_trampoline.cu",
     ]
-    for tool in TASKS:
+    for tool in selected_tools(args):
         spec = core.TOOLS[tool]
         paths.extend(
             [
@@ -692,6 +831,11 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
 def defining_params(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "phase": args.phase,
+        "tools": list(selected_tools(args)),
+        "preflight_campaign": (
+            str(args.preflight_dir.resolve())
+            if getattr(args, "preflight_dir", None) else None
+        ),
         "model": str(args.model),
         "llama_bench": str(args.llama_bench),
         "llama_cli": str(args.llama_cli),
@@ -1347,8 +1491,13 @@ def pp_throughput(run: dict[str, Any]) -> float:
 
 
 def summarize(state: dict[str, Any]) -> dict[str, Any]:
+    selection = argparse.Namespace(tools=state["params"].get("tools", TASKS))
+    tools = selected_tools(selection)
+    configs = selected_configs(selection)
+    if set(state["configs"]) != set(configs):
+        raise ValueError("timing state differs from the selected-tool matrix")
     config_rows: list[dict[str, Any]] = []
-    for config in CONFIGS:
+    for config in configs:
         valid = [run for run in state["configs"][config]["runs"] if run.get("valid")]
         by_block = {int(run["block"]): run for run in valid}
         values = [pp_throughput(by_block[block]) for block in sorted(by_block)]
@@ -1362,7 +1511,7 @@ def summarize(state: dict[str, Any]) -> dict[str, Any]:
         )
 
     comparisons = []
-    for task in TASKS:
+    for task in tools:
         effects = []
         paired_rows = []
         for block in range(1, int(state["params"]["runs"]) + 1):
@@ -1446,11 +1595,7 @@ def write_state(output_dir: Path, state: dict[str, Any]) -> None:
 
 
 def new_state(args: argparse.Namespace, timestamp: str, snapshot: dict[str, Any]) -> dict[str, Any]:
-    schedules = {}
-    for block in range(1, args.runs + 1):
-        order = list(CONFIGS)
-        random.Random(SCHEDULE_SEED + block).shuffle(order)
-        schedules[str(block)] = order
+    configs = selected_configs(args)
     artifact = HERE / "deps/nvbit-Linux-x86_64-1.8.tar.bz2"
     return {
         "timestamp": timestamp,
@@ -1478,10 +1623,10 @@ def new_state(args: argparse.Namespace, timestamp: str, snapshot: dict[str, Any]
             "nvbit_artifact_file": file_metadata(artifact),
             "source_manifest": source_manifest(args),
         },
-        "schedule": schedules,
-        "correctness": {config: {"attempts": []} for config in CONFIGS},
+        "schedule": fixed_schedule(args),
+        "correctness": {config: {"attempts": []} for config in configs},
         "artifacts": {},
-        "configs": {config: {"runs": []} for config in CONFIGS},
+        "configs": {config: {"runs": []} for config in configs},
     }
 
 
@@ -1500,8 +1645,20 @@ def record_artifacts(
 def verify_resume(
     state: dict[str, Any], args: argparse.Namespace, snapshot: dict[str, Any]
 ) -> dict[str, Path]:
-    if state.get("params") != defining_params(args):
+    recorded_params = dict(state.get("params", {}))
+    # Historical full-width campaigns predate the explicit selector. They are
+    # equivalent only to the unchanged default three-tool selection.
+    recorded_params.setdefault("tools", list(TASKS))
+    recorded_params.setdefault("preflight_campaign", None)
+    if recorded_params != defining_params(args):
         raise RuntimeError("resume parameters differ from the recorded experiment")
+    expected_configs = set(selected_configs(args))
+    if set(state.get("correctness", {})) != expected_configs:
+        raise RuntimeError("resume correctness matrix differs from the selected tools")
+    if set(state.get("configs", {})) != expected_configs:
+        raise RuntimeError("resume timing matrix differs from the selected tools")
+    if state.get("schedule") != fixed_schedule(args):
+        raise RuntimeError("resume schedule differs from the fixed selected-tool matrix")
     if state.get("provenance", {}).get("driver") != parse_driver(snapshot):
         raise RuntimeError("resume driver differs from the recorded experiment")
     checks = {
@@ -1534,7 +1691,7 @@ def verify_resume(
             args.nvbit_tool = path
         elif name.startswith("gpubpf_"):
             tool_dirs[name.removeprefix("gpubpf_")] = path.parent
-    if set(tool_dirs) != set(TASKS) or not hasattr(args, "nvbit_tool"):
+    if set(tool_dirs) != set(selected_tools(args)) or not hasattr(args, "nvbit_tool"):
         raise RuntimeError("resume artifact manifest is incomplete")
     return tool_dirs
 
@@ -1606,13 +1763,9 @@ def reconcile_kernelret_block(state: dict[str, Any], block: int) -> None:
             run["pairing_error"] = "gpubpf/NVBit exit events or selected launches differ"
 
 
-def validate(args: argparse.Namespace) -> None:
-    core.validate(args)
-    if not args.llama_cli.exists():
-        raise FileNotFoundError(args.llama_cli)
-    if not NVBIT_ROOT.exists():
-        raise FileNotFoundError(NVBIT_ROOT)
-    if ("kernelretsnoop" in args.tools
+def validate_plan(args: argparse.Namespace) -> None:
+    tools = selected_tools(args)
+    if ("kernelretsnoop" in tools
             and args.gpu_thread_count != EXPECTED_GPU_THREAD_SLOTS):
         raise ValueError(
             f"kernelretsnoop is fixed to {EXPECTED_GPU_THREAD_SLOTS} GPU thread slots"
@@ -1623,13 +1776,63 @@ def validate(args: argparse.Namespace) -> None:
         raise ValueError("preflight is fixed to --runs 1 --pp 32")
     if args.phase == "full" and (args.runs != 10 or args.pp != 512):
         raise ValueError("paper-facing full run is fixed to --runs 10 --pp 512")
+    preflight_dir = getattr(args, "preflight_dir", None)
+    if args.phase == "preflight" and preflight_dir is not None:
+        raise ValueError("--preflight-dir is only valid for a subset full run")
+    if args.phase == "full" and tools == TASKS and preflight_dir is not None:
+        raise ValueError("--preflight-dir is only valid for a subset full run")
+    if args.phase == "full" and tools != TASKS:
+        if preflight_dir is None:
+            raise ValueError("subset full requires --preflight-dir from the same selected tools")
+        if args.output_dir is None:
+            raise ValueError("subset full requires an explicit --output-dir")
+        require_disjoint_campaign_paths(preflight_dir, args.output_dir)
 
 
-def main() -> int:
+def require_disjoint_campaign_paths(first: Path, second: Path) -> None:
+    first = first.resolve()
+    second = second.resolve()
+    if first == second or first in second.parents or second in first.parents:
+        raise ValueError("preflight and full campaign paths must be distinct and mutually non-nested")
+
+
+def validate_subset_preflight(args: argparse.Namespace) -> None:
+    tools = selected_tools(args)
+    if args.phase != "full" or tools == TASKS:
+        return
+    preflight_dir = args.preflight_dir.resolve()
+    require_disjoint_campaign_paths(preflight_dir, args.output_dir)
+    import analyze_revision_rq4 as independent
+    result = independent.analyze(preflight_dir)
+    if (result.get("phase") != "preflight"
+            or tuple(result.get("tools", ())) != tools
+            or result.get("configs") != list(selected_configs(args))
+            or result.get("complete") is not True):
+        raise RuntimeError(
+            "subset full requires an independently complete preflight with the same tools"
+        )
+
+
+def validate(args: argparse.Namespace) -> None:
+    validate_plan(args)
+    validate_subset_preflight(args)
+    core.validate(args)
+    if not args.llama_cli.exists():
+        raise FileNotFoundError(args.llama_cli)
+    if not NVBIT_ROOT.exists():
+        raise FileNotFoundError(NVBIT_ROOT)
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase", choices=("preflight", "full"), default="preflight")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--preflight-dir",
+        type=Path,
+        help="required independently passing campaign for a subset full run",
+    )
     parser.add_argument("--model", type=Path, default=core.DEFAULT_MODEL)
     parser.add_argument("--llama-bench", type=Path, default=core.DEFAULT_LLAMA_BENCH)
     parser.add_argument("--llama-cli", type=Path)
@@ -1652,14 +1855,38 @@ def main() -> int:
     parser.add_argument("--uprobe-symbol-hint", default=core.DEFAULT_TARGET_SYMBOL)
     parser.add_argument("--uvm", action="store_true")
     parser.add_argument("--no-warmup", action="store_true")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--tools",
+        nargs="+",
+        choices=TASKS,
+        default=list(TASKS),
+        metavar="TOOL",
+        help="predeclare one or more tools; default: all three",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print the fixed cell matrix and exact gates without touching GPU state",
+    )
+    args = parser.parse_args(argv)
 
     args.runs = args.runs if args.runs is not None else (1 if args.phase == "preflight" else 10)
     args.pp = args.pp if args.pp is not None else (32 if args.phase == "preflight" else 512)
     args.llama_cli = args.llama_cli or (args.llama_bench.parent / "llama-cli")
     for field in ("model", "llama_bench", "llama_cli", "bpftime_root", "bpftime_build_dir", "uprobe_binary"):
         setattr(args, field, getattr(args, field).resolve())
-    args.tools = list(TASKS)
+    if args.preflight_dir is not None:
+        args.preflight_dir = args.preflight_dir.resolve()
+    args.tools = list(selected_tools(args))
+    return args
+
+
+def main() -> int:
+    args = parse_args()
+    if args.dry_run:
+        validate_plan(args)
+        print(json.dumps(dry_run_plan(args), indent=2), flush=True)
+        return 0
     reject_ambient_injection()
     validate(args)
 
@@ -1680,6 +1907,8 @@ def main() -> int:
 
 
 def run_campaign(args: argparse.Namespace) -> int:
+    tools = selected_tools(args)
+    configs = selected_configs(args)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = (args.output_dir or HERE / "raw" / f"{args.phase}-{timestamp}").resolve()
     if args.resume:
@@ -1721,13 +1950,14 @@ def run_campaign(args: argparse.Namespace) -> int:
             nvbit_build_dir,
             ignore=shutil.ignore_patterns("*.o", "*.so", "*.fatbin", "flush_channel.c"),
         )
-        validate_nvbit_launchlate_source_schema(nvbit_build_dir)
+        if "launchlate" in tools:
+            validate_nvbit_launchlate_source_schema(nvbit_build_dir)
         args.nvbit_tool = build_nvbit(nvbit_build_dir, output_dir)
 
         build_root = output_dir / "gpubpf_tool_build"
         build_root.mkdir(exist_ok=True)
         tool_dirs = {}
-        for tool in TASKS:
+        for tool in tools:
             directory = prepare_tool_source(
                 core.TOOLS[tool],
                 bpftime_root=args.bpftime_root,
@@ -1776,7 +2006,7 @@ def run_campaign(args: argparse.Namespace) -> int:
         if config == "baseline" and valid_correctness(state, "baseline") is None:
             break
 
-    if any(valid_correctness(state, config) is None for config in CONFIGS):
+    if any(valid_correctness(state, config) is None for config in configs):
         print("Correctness gate incomplete; performance cells were not started.", flush=True)
         return 2
 
@@ -1814,7 +2044,7 @@ def run_campaign(args: argparse.Namespace) -> int:
     if any(
         valid_run_for_block(state, config, block) is None
         for block in range(1, args.runs + 1)
-        for config in CONFIGS
+        for config in configs
     ):
         return 2
     return 0

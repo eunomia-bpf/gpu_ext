@@ -1,5 +1,12 @@
 # Experiment Plan: RQ4 RTX 5090 Observability Overhead
 
+**Predeclared non-cross-clock subset, 2026-09-03:** The executable
+[`table1-noncross-clock-plan.md`](table1-noncross-clock-plan.md) selects only
+`kernelretsnoop` and `threadhist` with `--tools kernelretsnoop threadhist`.
+This is a narrower five-configuration Table 1 campaign, not a reclassification
+of the retained `launchlate` failures and not completion of the original
+seven-arm plan. Omitting `--tools` continues to select all three tools.
+
 **Execution update, 2026-09-03:** The user has requested completion of all
 remaining revision commitments. The earlier closed review in `plan-review.md`
 is retained as history, not a new approval loop. The host now runs Linux

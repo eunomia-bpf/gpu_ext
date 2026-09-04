@@ -1392,6 +1392,183 @@ class OfflineTests(unittest.TestCase):
             "line one\nline two",
         )
 
+    def test_tool_selection_is_predeclared_canonical_and_defaults_to_all_three(self):
+        required = ["--bpftime-root", "/source", "--bpftime-build-dir", "/build",
+                    "--gpu-thread-count", "22528", "--dry-run"]
+        default = runner.parse_args(required)
+        self.assertEqual(tuple(default.tools), runner.TASKS)
+        self.assertEqual(runner.selected_configs(default), tuple(runner.CONFIGS))
+
+        subset = runner.parse_args(required + ["--tools", "threadhist", "kernelretsnoop"])
+        self.assertEqual(tuple(subset.tools), ("kernelretsnoop", "threadhist"))
+        self.assertEqual(runner.selected_configs(subset), (
+            "baseline", "gpubpf_kernelretsnoop", "nvbit_kernelretsnoop",
+            "gpubpf_threadhist", "nvbit_threadhist",
+        ))
+        with self.assertRaisesRegex(ValueError, "duplicate tool"):
+            runner.parse_args(required + ["--tools", "threadhist", "threadhist"])
+
+    def test_two_tool_dry_run_has_fixed_preflight_and_full_matrices_and_exact_gates(self):
+        base = ["--bpftime-root", "/does-not-need-to-exist",
+                "--bpftime-build-dir", "/also-missing", "--gpu-thread-count", "22528",
+                "--dry-run", "--tools", "kernelretsnoop", "threadhist"]
+        for phase, runs, pp in (("preflight", 1, 32), ("full", 10, 512)):
+            with self.subTest(phase=phase):
+                phase_args = base + ["--phase", phase]
+                if phase == "full":
+                    phase_args += ["--preflight-dir", "/campaigns/passed-preflight",
+                                   "--output-dir", "/campaigns/full"]
+                args = runner.parse_args(phase_args)
+                runner.validate_plan(args)
+                plan = runner.dry_run_plan(args)
+                self.assertEqual(plan["tools"], ["kernelretsnoop", "threadhist"])
+                self.assertEqual(len(plan["configs"]), 5)
+                self.assertEqual((plan["runs"], plan["pp"]), (runs, pp))
+                self.assertEqual(plan["timing_cell_count"], 5 * runs)
+                self.assertEqual(plan["timing_schedule"], runner.fixed_schedule(args))
+                for order in plan["timing_schedule"].values():
+                    self.assertEqual(len(order), 5)
+                    self.assertEqual(set(order), set(plan["configs"]))
+                gates = plan["engagement_gates"]
+                self.assertNotIn("launchlate_all_cells", gates)
+                self.assertEqual(
+                    gates["kernelretsnoop_correctness"]["gpubpf"]["events"],
+                    runner.CORRECTNESS_EXIT_EVENTS,
+                )
+                self.assertEqual(
+                    gates["threadhist_all_cells"]["gpubpf_readback_bytes"],
+                    args.threadhist_gpu_thread_count * 8,
+                )
+                self.assertIn("not relabeled", plan["scope_policy"])
+                self.assertEqual(plan["preflight_gate"]["required"], phase == "full")
+
+    def test_subset_full_requires_independently_complete_matching_preflight(self):
+        required = ["--phase", "full", "--bpftime-root", "/source",
+                    "--bpftime-build-dir", "/build", "--gpu-thread-count", "22528",
+                    "--tools", "kernelretsnoop", "threadhist", "--output-dir", "/full"]
+        missing = runner.parse_args(required)
+        with self.assertRaisesRegex(ValueError, "subset full requires --preflight-dir"):
+            runner.validate_plan(missing)
+
+        args = runner.parse_args(required + ["--preflight-dir", "/preflight"])
+        passed = {
+            "phase": "preflight",
+            "tools": ["kernelretsnoop", "threadhist"],
+            "configs": list(runner.selected_configs(args)),
+            "complete": True,
+        }
+        with patch("analyze_revision_rq4.analyze", return_value=passed) as analyze:
+            runner.validate_subset_preflight(args)
+        analyze.assert_called_once_with(Path("/preflight"))
+        for defect in ("incomplete", "wrong tools", "wrong phase"):
+            with self.subTest(defect=defect):
+                result = dict(passed)
+                if defect == "incomplete":
+                    result["complete"] = False
+                elif defect == "wrong tools":
+                    result["tools"] = ["threadhist"]
+                else:
+                    result["phase"] = "full"
+                with (patch("analyze_revision_rq4.analyze", return_value=result),
+                      self.assertRaisesRegex(RuntimeError, "independently complete preflight")):
+                    runner.validate_subset_preflight(args)
+
+        default = runner.parse_args([
+            "--phase", "full", "--bpftime-root", "/source",
+            "--bpftime-build-dir", "/build", "--gpu-thread-count", "22528",
+        ])
+        runner.validate_plan(default)
+        with patch("analyze_revision_rq4.analyze") as analyze:
+            runner.validate_subset_preflight(default)
+        analyze.assert_not_called()
+
+        for preflight, full in (("/campaign", "/campaign/full"),
+                                ("/campaign/preflight", "/campaign"),
+                                ("/campaign", "/campaign")):
+            with self.subTest(preflight=preflight, full=full):
+                nested = runner.parse_args([
+                    "--phase", "full", "--bpftime-root", "/source",
+                    "--bpftime-build-dir", "/build", "--gpu-thread-count", "22528",
+                    "--tools", "kernelretsnoop", "threadhist",
+                    "--preflight-dir", preflight, "--output-dir", full,
+                ])
+                with self.assertRaisesRegex(ValueError, "mutually non-nested"):
+                    runner.validate_plan(nested)
+
+    def test_summary_contains_only_predeclared_tools_and_configs(self):
+        tools = ["kernelretsnoop", "threadhist"]
+        configs = [config for config in runner.CONFIGS
+                   if config == "baseline" or config.split("_", 1)[1] in tools]
+        state = {
+            "params": {"tools": tools, "runs": 1},
+            "configs": {config: {"runs": []} for config in configs},
+        }
+        summary = runner.summarize(state)
+        self.assertEqual([row["config"] for row in summary["configs"]], configs)
+        self.assertEqual([row["task"] for row in summary["comparisons"]], tools)
+        self.assertNotIn("launchlate", json.dumps(summary))
+
+    def test_two_tool_campaign_builds_and_runs_only_selected_matrix(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "campaign"
+            output.mkdir()
+            args = SimpleNamespace(
+                output_dir=output, resume=False, phase="preflight", runs=1, pp=32,
+                tools=["kernelretsnoop", "threadhist"], target_symbol="target",
+                bpftime_root=Path("/source"),
+            )
+            configs = runner.selected_configs(args)
+            state = {
+                "phase": "preflight",
+                "params": {"tools": list(args.tools), "runs": 1, "target_symbol": "target"},
+                "provenance": {"driver": runner.EXPECTED_DRIVER},
+                "schedule": runner.fixed_schedule(args),
+                "correctness": {config: {"attempts": []} for config in configs},
+                "configs": {config: {"runs": []} for config in configs},
+                "artifacts": {},
+            }
+            snapshot = {
+                "gpu": f"RTX 5090, {runner.EXPECTED_DRIVER}, 32607, 0, 0, 0",
+                "compute_apps": "",
+            }
+
+            def correctness(config, attempt, *unused):
+                result = {
+                    "valid": True, "returncode": 0,
+                    "normalized_stdout": runner.EXPECTED_NORMALIZED_STDOUT,
+                }
+                return result
+
+            def timing(config, run_id, *unused):
+                result = {"valid": True, "returncode": 0,
+                          "metrics": {"pp_tokens": 32, "pp_tok_s": 100.0}}
+                if config == "gpubpf_kernelretsnoop":
+                    result["probe"] = {"sample_count": 40, "cartesian_launches": 5}
+                elif config == "nvbit_kernelretsnoop":
+                    result["probe"] = {"sample_count": 40, "selected_launches": 5}
+                return result
+
+            with (patch.object(runner.core, "nvidia_smi_snapshot", return_value=snapshot),
+                  patch.object(runner.shutil, "copytree"),
+                  patch.object(runner, "validate_nvbit_launchlate_source_schema") as launch_schema,
+                  patch.object(runner, "validate_kernelretsnoop_source_schema"),
+                  patch.object(runner, "build_nvbit", return_value=output / "nvbit.so"),
+                  patch.object(runner, "prepare_tool_source",
+                               side_effect=lambda spec, **kwargs: output / spec.name) as prepare,
+                  patch.object(runner.core, "build_tool"),
+                  patch.object(runner, "new_state", return_value=state),
+                  patch.object(runner, "run_correctness_cell", side_effect=correctness) as correct,
+                  patch.object(runner, "run_cell", side_effect=timing) as timed):
+                self.assertEqual(runner.run_campaign(args), 0)
+            launch_schema.assert_not_called()
+            self.assertEqual([call.args[0].name for call in prepare.call_args_list],
+                             ["kernelretsnoop", "threadhist"])
+            correctness_order = [call.args[0] for call in correct.call_args_list]
+            self.assertEqual(correctness_order[0], "baseline")
+            self.assertEqual(set(correctness_order), set(configs))
+            self.assertEqual({call.args[0] for call in timed.call_args_list}, set(configs))
+            self.assertNotIn("launchlate", json.dumps(state))
+
     def test_active_runner_has_no_content_fingerprint_logic(self):
         source = Path(runner.__file__).read_text().lower()
         for forbidden in ("hashlib", "sha256", "checksum", "digest"):

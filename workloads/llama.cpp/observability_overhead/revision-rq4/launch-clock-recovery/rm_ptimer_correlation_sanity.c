@@ -237,6 +237,7 @@ static int rm_open_timer(int fd, struct rm_handles *handles,
 	if (err)
 		return err;
 
+	device_params.hClientShare = handles->root;
 	*failed_class = NV01_DEVICE_0;
 	err = rm_alloc(fd, handles->root, handles->root, NV01_DEVICE_0,
 		       &device_params, sizeof(device_params), &handles->device,
@@ -405,7 +406,7 @@ int main(int argc, char **argv)
 	uint32_t failed_class = 0, rm_status = 0, free_status = 0;
 	const char *setup_stage = "host_allocation";
 	int have_previous = 0, gate_pass = 0;
-	int fd = -1, err = 0, setup_error = 0, cleanup_error = 0;
+	int fd = -1, gpu_fd = -1, err = 0, setup_error = 0, cleanup_error = 0;
 	int output_error = 0, exit_code = 1;
 
 	if (argc == 2 && strcmp(argv[1], "--self-test") == 0)
@@ -432,6 +433,13 @@ int main(int argc, char **argv)
 	if (fd < 0) {
 		fprintf(stderr, "open /dev/nvidiactl failed: %s\n", strerror(errno));
 		setup_stage = "open_nvidiactl";
+		setup_error = -errno;
+		goto finalize;
+	}
+	gpu_fd = open("/dev/nvidia0", O_RDWR | O_CLOEXEC);
+	if (gpu_fd < 0) {
+		fprintf(stderr, "open /dev/nvidia0 failed: %s\n", strerror(errno));
+		setup_stage = "open_nvidia0";
 		setup_error = -errno;
 		goto finalize;
 	}
@@ -564,6 +572,8 @@ finalize:
 	}
 	if (fd >= 0)
 		close(fd);
+	if (gpu_fd >= 0)
+		close(gpu_fd);
 
 	if (accepted == 0) {
 		min_width = 0;

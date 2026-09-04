@@ -5,7 +5,10 @@
 `rm_ptimer_correlation_sanity.c` is the first executable admission gate for
 the source-backed RM design in `../launchlate-rm-correlation-design.md`.  It
 uses the exact public 575 userspace layouts to allocate a private RM root,
-device 0, and subdevice 0, then repeats control `0x20800406` with the
+device 0, and subdevice 0 while holding `/dev/nvidia0` open for the driver's
+GPU-accessibility check. The device allocation uses the new private root as
+its client-share handle, following the driver's own RM utility path. It then
+repeats control `0x20800406` with the
 `PLATFORM_API|CPU` clock source.  Each call is bracketed by
 `CLOCK_MONOTONIC_RAW` and emitted as one JSON line.  The summary passes only
 when every requested call is structurally valid and the median conservative

@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
 import protocol
+import run_raw_map as runner
 
 
 def target_events(arm: protocol.Arm) -> list[dict]:
@@ -60,6 +63,23 @@ def write_events(path: Path, events: list[dict]) -> None:
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_machine_stdout_is_separate_from_diagnostic_stderr(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            processes, streams = [], []
+            process = runner.run_process(
+                root / "machine.log",
+                [sys.executable, "-c",
+                 "import sys; print('machine'); print('diagnostic', file=sys.stderr)"],
+                dict(os.environ), processes, streams,
+                stderr_log=root / "diagnostic.log",
+            )
+            self.assertEqual(process.wait(timeout=5), 0)
+            for stream in streams:
+                stream.close()
+            self.assertEqual((root / "machine.log").read_text(), "machine\n")
+            self.assertEqual((root / "diagnostic.log").read_text(), "diagnostic\n")
+
     def test_matrix_is_complete_and_seeded(self):
         self.assertEqual(protocol.campaign_order("preflight"),
                          protocol.campaign_order("preflight"))

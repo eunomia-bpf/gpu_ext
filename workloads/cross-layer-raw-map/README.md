@@ -15,6 +15,10 @@ every retained BPF tuple, every aggregate shard, and the ring-buffer accounting.
 Thus the positive cells test non-composable raw readback rather than inferring
 it from a counter.
 
+Machine-readable target/probe stdout and runtime diagnostics are retained in
+separate `*.log` and `*.stderr.log` files. This prevents asynchronous agent
+shutdown messages from corrupting a JSON record while preserving both streams.
+
 ## Frozen protocol
 
 Each randomized block contains three fresh-process cells:
@@ -75,4 +79,3 @@ aggregate control alone.  It does not measure latency or bandwidth, exercise
 an on-chip/shared-memory shard, prove transparent automatic map placement, or
 show that arbitrary unbounded data structures fit the ABI.  Ring capacity is
 finite; its explicit failure mode is detected loss, not lossless streaming.
-

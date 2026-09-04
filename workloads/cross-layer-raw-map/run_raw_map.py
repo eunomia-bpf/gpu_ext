@@ -163,7 +163,8 @@ def unlink_owned_segment(path: Path, identity: tuple[int, int, int] | None) -> N
     path.unlink()
 
 
-def wait_ready(process: subprocess.Popen[Any], log: Path, timeout: float = 20) -> dict[str, Any]:
+def wait_ready(process: subprocess.Popen[Any], log: Path, stderr_log: Path | None = None,
+               timeout: float = 20) -> dict[str, Any]:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         events = protocol.json_events(log) if log.exists() else []
@@ -174,7 +175,11 @@ def wait_ready(process: subprocess.Popen[Any], log: Path, timeout: float = 20) -
             return ready[0]
         if process.poll() is not None:
             tail = log.read_text(errors="replace")[-4000:] if log.exists() else ""
-            raise RuntimeError(f"probe exited before ready: {tail}")
+            diagnostic = (stderr_log.read_text(errors="replace")[-4000:]
+                          if stderr_log is not None and stderr_log.exists() else "")
+            raise RuntimeError(
+                f"probe exited before ready; stdout tail: {tail}; stderr tail: {diagnostic}"
+            )
         time.sleep(0.05)
     raise RuntimeError("probe readiness timed out")
 
@@ -190,11 +195,15 @@ def controlled_environment() -> dict[str, str]:
 
 
 def run_process(log: Path, argv: list[str], env: dict[str, str],
-                processes: list[subprocess.Popen[Any]], streams: list[Any]) -> subprocess.Popen[Any]:
+                processes: list[subprocess.Popen[Any]], streams: list[Any],
+                stderr_log: Path | None = None) -> subprocess.Popen[Any]:
     stream = log.open("x")
     streams.append(stream)
+    error_stream = stderr_log.open("x") if stderr_log is not None else stream
+    if error_stream is not stream:
+        streams.append(error_stream)
     process = subprocess.Popen(
-        argv, cwd=log.parent, env=env, stdout=stream, stderr=subprocess.STDOUT,
+        argv, cwd=log.parent, env=env, stdout=stream, stderr=error_stream,
         start_new_session=True,
     )
     processes.append(process)
@@ -240,7 +249,10 @@ def run_cell(directory: Path, arm: protocol.Arm, runtime_build: Path,
         "BPFTIME_CUDA_ROOT": "/usr/local/cuda-12.9",
     }
     try:
-        native = run_process(directory / "native.log", target_args, env, processes, streams)
+        native = run_process(
+            directory / "native.log", target_args, env, processes, streams,
+            stderr_log=directory / "native.stderr.log",
+        )
         if native.wait(timeout=30) != 0:
             raise RuntimeError("native CUDA truth process failed")
 
@@ -251,11 +263,12 @@ def run_cell(directory: Path, arm: protocol.Arm, runtime_build: Path,
             str(protocol.BLOCK_DIM),
             str(arm.launches),
         ]
+        probe_stderr = directory / "probe.stderr.log"
         probe = run_process(
             directory / "probe.log", probe_args, {**common, "LD_PRELOAD": server_so},
-            processes, streams,
+            processes, streams, stderr_log=probe_stderr,
         )
-        ready = wait_ready(probe, directory / "probe.log")
+        ready = wait_ready(probe, directory / "probe.log", probe_stderr)
         protocol.require_fields(ready, {
             "thread_slots": arm.threads,
             "threads_per_block": protocol.BLOCK_DIM,
@@ -267,6 +280,7 @@ def run_cell(directory: Path, arm: protocol.Arm, runtime_build: Path,
         instrumented = run_process(
             directory / "instrumented.log", target_args,
             {**common, "LD_PRELOAD": agent_so}, processes, streams,
+            stderr_log=directory / "instrumented.stderr.log",
         )
         if instrumented.wait(timeout=60) != 0:
             raise RuntimeError("instrumented CUDA truth process failed")

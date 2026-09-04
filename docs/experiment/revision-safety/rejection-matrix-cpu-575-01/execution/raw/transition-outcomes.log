@@ -1,0 +1,6 @@
+PASS layer=transition case=scheduler-range unsafe=rejected-preserved-native control=accepted-applied-minimum
+PASS layer=transition case=scheduler-snapshot unsafe=stale-noop-preserved-native control=current-applied
+PASS layer=transition case=scheduler-conflict unsafe=conflict-noop-preserved-native control=idempotent-repeat-applied-once
+PASS layer=transition case=prefetch-action unsafe=invalid99-rejected-native-route control=bypass-accepted-bypass-route
+PASS layer=transition case=pmm-identity unsafe=wrong-owner-rejected-preserved control=matching-owner-committed
+PASS all: 5 transition pairs, 26 assertions

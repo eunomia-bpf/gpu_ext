@@ -65,6 +65,8 @@ LEASE_PATHS = (
     Path("/tmp/gpubpf-revision-gpu0.lock"),
     Path("/tmp/gpubpf-revision-struct-ops.lock"),
 )
+RELATIVE_RUNTIME_INCLUDE = "../../../runtime/include"
+RELATIVE_RUNTIME_INCLUDE_PATTERN = re.compile(r"(?:\.\./)+runtime/include")
 
 
 class OwnedCleanupError(RuntimeError):
@@ -387,6 +389,40 @@ def validate_launchlate_source_schema(directory: Path) -> None:
                 f"launchlate source lacks native accounting/calibration fields in {name}: "
                 + ", ".join(missing)
             )
+
+
+def prepare_tool_source(
+    spec: core.ToolSpec,
+    *,
+    bpftime_root: Path,
+    build_root: Path,
+    target_symbol: str,
+) -> Path:
+    """Copy a tool while freezing runtime includes to its source tree."""
+    directory = core.prepare_tool_source(
+        spec,
+        bpftime_root=bpftime_root,
+        build_root=build_root,
+        target_symbol=target_symbol,
+    )
+    makefile = directory / "Makefile"
+    text = makefile.read_text()
+    relative_includes = set(RELATIVE_RUNTIME_INCLUDE_PATTERN.findall(text))
+    stale_includes = relative_includes - {RELATIVE_RUNTIME_INCLUDE}
+    if stale_includes:
+        raise RuntimeError(
+            f"{spec.name} Makefile has stale runtime include marker(s): "
+            + ", ".join(sorted(stale_includes))
+        )
+    rewritten = text.replace(
+        RELATIVE_RUNTIME_INCLUDE,
+        str((bpftime_root / "runtime/include").resolve()),
+    )
+    if RELATIVE_RUNTIME_INCLUDE_PATTERN.search(rewritten):
+        raise RuntimeError(f"{spec.name} Makefile retains a relative runtime include")
+    if rewritten != text:
+        makefile.write_text(rewritten)
+    return directory
 
 
 def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
@@ -1420,7 +1456,7 @@ def run_campaign(args: argparse.Namespace) -> int:
         build_root.mkdir(exist_ok=True)
         tool_dirs = {}
         for tool in TASKS:
-            directory = core.prepare_tool_source(
+            directory = prepare_tool_source(
                 core.TOOLS[tool],
                 bpftime_root=args.bpftime_root,
                 build_root=build_root,

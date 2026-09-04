@@ -639,6 +639,66 @@ class OfflineTests(unittest.TestCase):
         }
         self.assertIn("validate_launchlate_source_schema", calls)
 
+    def test_all_copied_tool_runtime_includes_are_absolute(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bpftime_root = root / "bpftime"
+            (bpftime_root / "runtime/include").mkdir(parents=True)
+            expected = str((bpftime_root / "runtime/include").resolve())
+            for tool in runner.TASKS:
+                with self.subTest(tool=tool):
+                    directory = root / tool
+                    directory.mkdir()
+                    makefile = directory / "Makefile"
+                    makefile.write_text(
+                        "INCLUDES := -I../../../runtime/include\n"
+                        "RUNTIME_HEADER := ../../../runtime/include/bpftime_gpu_ringbuf.h\n"
+                    )
+                    spec = runner.core.TOOLS[tool]
+                    with patch.object(
+                        runner.core, "prepare_tool_source", return_value=directory
+                    ) as copied:
+                        self.assertEqual(
+                            runner.prepare_tool_source(
+                                spec,
+                                bpftime_root=bpftime_root,
+                                build_root=root / "build",
+                                target_symbol="target",
+                            ),
+                            directory,
+                        )
+                    copied.assert_called_once_with(
+                        spec,
+                        bpftime_root=bpftime_root,
+                        build_root=root / "build",
+                        target_symbol="target",
+                    )
+                    text = makefile.read_text()
+                    self.assertNotIn(runner.RELATIVE_RUNTIME_INCLUDE, text)
+                    self.assertEqual(text.count(expected), 2)
+
+    def test_copied_tool_stale_runtime_include_marker_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            directory = root / "kernelretsnoop"
+            directory.mkdir()
+            makefile = directory / "Makefile"
+            original = "INCLUDES := -I../../runtime/include\n"
+            makefile.write_text(original)
+            with (
+                patch.object(
+                    runner.core, "prepare_tool_source", return_value=directory
+                ),
+                self.assertRaisesRegex(RuntimeError, "stale runtime include marker"),
+            ):
+                runner.prepare_tool_source(
+                    runner.core.TOOLS["kernelretsnoop"],
+                    bpftime_root=root / "bpftime",
+                    build_root=root / "build",
+                    target_symbol="target",
+                )
+            self.assertEqual(makefile.read_text(), original)
+
     def test_all_probe_paths_need_real_samples_and_complete_clock_counters(self):
         probe = dict(sample_count=2, nonzero_timestamps=2, selected_launches=2, nonzero_threads=1,
                      clock_errors=0, histogram_sum=2, queue_underflows=0, queue_overflows=0,

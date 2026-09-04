@@ -1,0 +1,35 @@
+[2026-09-03 20:54:23][info][1490276] Initialize syscall server
+[2026-09-03 20:54:23][info][1490276] Setting BPFTIME_SHM_MEMORY_MB to: 8
+[2026-09-03 20:54:23][info][1490276] Verifier mode: STRICT
+[2026-09-03 20:54:23][debug][1490276] start: bpftime_shm for create or open setup for memory size 8
+[2026-09-03 20:54:23][debug][1490276] mmap 0
+[2026-09-03 20:54:23][debug][1490276] Closing fd 3
+[2026-09-03 20:54:23][debug][1490276] done: bpftime_shm for server setup: manager
+[2026-09-03 20:54:23][debug][1490276] done: bpftime_shm for server setup: syscall_pid_set
+[2026-09-03 20:54:23][debug][1490276] done: bpftime_shm for open_or_create setup
+[2026-09-03 20:54:23][info][1490276] Global shm constructed. shm_open_type 3 for gpubpf_loader_safety_1490212_3_strict-invalid
+[2026-09-03 20:54:23][info][1490276] Global shm initialized
+[2026-09-03 20:54:23][info][1490276] Enabling 43 helpers
+[2026-09-03 20:54:23][debug][1490276] Set environment variable BPFTIME_USED
+[2026-09-03 20:54:23][info][1490276] bpftime-syscall-server started
+[2026-09-03 20:54:23][debug][1490276] Loading program `unsafe_stack` license `GPL` prog_type `1` attach_type 3258175120 map_type 1
+[2026-09-03 20:54:23][debug][1490276] Verifying program unsafe_stack
+[2026-09-03 20:54:23][error][1490276] Failed to verify program `unsafe_stack`: 
+exit: CRAB ERROR: z_number -8 does not fit into an unsigned 64-bit integer
+
+
+000: 7A 0A F8 FD 00 00 00 00 
+001: B7 00 00 00 00 00 00 00 
+002: 95 00 00 00 00 00 00 00 
+
+Hint: Set BPFTIME_VERIFIER_LEVEL=WARNING to treat verification failures as warnings, or BPFTIME_VERIFIER_LEVEL=NO_VERIFY to disable verification. Alternatively, set BPFTIME_RUN_WITH_KERNEL=1 to use the kernel verifier.
+[2026-09-03 20:54:23][debug][1490276] SYS_BPF 5 140723566661088 144 140723566661112 0 12884901889
+[2026-09-03 20:54:23][debug][1490276] Loading program `safe_stack` license `GPL` prog_type `1` attach_type 3258175152 map_type 1
+[2026-09-03 20:54:23][debug][1490276] Verifying program safe_stack
+[2026-09-03 20:54:23][debug][1490276] open /dev/null 0 3
+[2026-09-03 20:54:23][debug][1490276] Calling mocked open
+[2026-09-03 20:54:23][debug][1490276] Unmocked file path: /dev/null
+[2026-09-03 20:54:23][debug][1490276] Set handler fd 3 to bpf_prog_handler, name safe_stack, prog_type 1, insn_cnt 3
+[2026-09-03 20:54:23][debug][1490276] Handler at fd 3 set to type 3
+[2026-09-03 20:54:23][debug][1490276] Loaded program `safe_stack` id=3
+[2026-09-03 20:54:23][debug][1490276] munmap 7c2de3000000 8388608

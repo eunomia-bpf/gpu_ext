@@ -1,0 +1,30 @@
+[2026-09-03 20:54:23][info][1490271] Initialize syscall server
+[2026-09-03 20:54:23][info][1490271] Setting BPFTIME_SHM_MEMORY_MB to: 8
+[2026-09-03 20:54:23][info][1490271] Verifier mode: NO_VERIFY
+[2026-09-03 20:54:23][debug][1490271] start: bpftime_shm for create or open setup for memory size 8
+[2026-09-03 20:54:23][debug][1490271] mmap 0
+[2026-09-03 20:54:23][debug][1490271] Closing fd 3
+[2026-09-03 20:54:23][debug][1490271] done: bpftime_shm for server setup: manager
+[2026-09-03 20:54:23][debug][1490271] done: bpftime_shm for server setup: syscall_pid_set
+[2026-09-03 20:54:23][debug][1490271] done: bpftime_shm for open_or_create setup
+[2026-09-03 20:54:23][info][1490271] Global shm constructed. shm_open_type 3 for gpubpf_loader_safety_1490212_2_no-verify
+[2026-09-03 20:54:23][info][1490271] Global shm initialized
+[2026-09-03 20:54:23][info][1490271] Enabling 43 helpers
+[2026-09-03 20:54:23][debug][1490271] Set environment variable BPFTIME_USED
+[2026-09-03 20:54:23][info][1490271] bpftime-syscall-server started
+[2026-09-03 20:54:23][debug][1490271] Loading program `unsafe_stack` license `GPL` prog_type `1` attach_type 168670208 map_type 1
+[2026-09-03 20:54:23][debug][1490271] open /dev/null 0 3
+[2026-09-03 20:54:23][debug][1490271] Calling mocked open
+[2026-09-03 20:54:23][debug][1490271] Unmocked file path: /dev/null
+[2026-09-03 20:54:23][debug][1490271] Set handler fd 3 to bpf_prog_handler, name unsafe_stack, prog_type 1, insn_cnt 3
+[2026-09-03 20:54:23][debug][1490271] Handler at fd 3 set to type 3
+[2026-09-03 20:54:23][debug][1490271] Loaded program `unsafe_stack` id=3
+[2026-09-03 20:54:23][debug][1490271] SYS_BPF 5 140724772123472 144 140724772123496 0 12884901889
+[2026-09-03 20:54:23][debug][1490271] Loading program `safe_stack` license `GPL` prog_type `1` attach_type 168670240 map_type 1
+[2026-09-03 20:54:23][debug][1490271] open /dev/null 0 3
+[2026-09-03 20:54:23][debug][1490271] Calling mocked open
+[2026-09-03 20:54:23][debug][1490271] Unmocked file path: /dev/null
+[2026-09-03 20:54:23][debug][1490271] Set handler fd 4 to bpf_prog_handler, name safe_stack, prog_type 1, insn_cnt 3
+[2026-09-03 20:54:23][debug][1490271] Handler at fd 4 set to type 3
+[2026-09-03 20:54:23][debug][1490271] Loaded program `safe_stack` id=4
+[2026-09-03 20:54:23][debug][1490271] munmap 769657a00000 8388608

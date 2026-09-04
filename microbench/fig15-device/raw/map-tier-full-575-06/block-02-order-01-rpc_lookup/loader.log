@@ -1,0 +1,143 @@
+[2026-09-04 10:24:07][info][2779865] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 10:24:07][info][2779865] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 10:24:07][warning][2779865] BPFTIME_VERIFIER_LEVEL=WARNING was requested, but this bpftime build was compiled with ENABLE_EBPF_VERIFIER=OFF; continuing without userspace verification.
+[2026-09-04 10:24:07][info][2779865] Verifier mode: WARNING
+[2026-09-04 10:24:07][info][2779865] Init bpftime syscall mocking..
+[2026-09-04 10:24:07][info][2779865] The log will be written to: console
+[2026-09-04 10:24:07][info][2779865] Starting syscall server..
+[2026-09-04 10:24:07][info][2779865] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 10:24:07][info][2779865] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 10:24:07][warning][2779865] BPFTIME_VERIFIER_LEVEL=WARNING was requested, but this bpftime build was compiled with ENABLE_EBPF_VERIFIER=OFF; continuing without userspace verification.
+[2026-09-04 10:24:07][info][2779865] Verifier mode: WARNING
+[2026-09-04 10:24:07][info][2779865] Initialize syscall server
+[2026-09-04 10:24:07][info][2779865] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-04 10:24:07][info][2779865] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 10:24:07][warning][2779865] BPFTIME_VERIFIER_LEVEL=WARNING was requested, but this bpftime build was compiled with ENABLE_EBPF_VERIFIER=OFF; continuing without userspace verification.
+[2026-09-04 10:24:07][info][2779865] Verifier mode: WARNING
+[2026-09-04 10:24:07][info][2779865] Global shm constructed. shm_open_type 3 for fig15_map_2778957_116393186490695
+[2026-09-04 10:24:07][info][2779865] Global shm initialized
+[2026-09-04 10:24:07][info][2779865] Initializing CUDA at syscall-server side
+[2026-09-04 10:24:07][info][2779865] CUDA initialized at syscall server side
+[2026-09-04 10:24:07][info][2779865] bpftime-syscall-server started
+FIG15_SERVER_PRIMED	1
+libbpf: loading object from /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/.output/map-probe.bpf.o
+libbpf: elf: section(3) kprobe/fig15_map_kernel, size 1120, link 0, flags 6, type=1
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__noop' at insn offset 0 (0 bytes), code size 2 insns (16 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__device_update' at insn offset 2 (16 bytes), code size 20 insns (160 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__host_update' at insn offset 22 (176 bytes), code size 20 insns (160 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__rpc_update' at insn offset 42 (336 bytes), code size 20 insns (160 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__device_lookup' at insn offset 62 (496 bytes), code size 26 insns (208 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__host_lookup' at insn offset 88 (704 bytes), code size 26 insns (208 bytes)
+libbpf: sec 'kprobe/fig15_map_kernel': found program 'cuda__rpc_lookup' at insn offset 114 (912 bytes), code size 26 insns (208 bytes)
+libbpf: elf: section(4) .relkprobe/fig15_map_kernel, size 144, link 27, flags 40, type=9
+libbpf: elf: section(5) .maps, size 128, link 0, flags 3, type=1
+libbpf: elf: section(6) license, size 4, link 0, flags 3, type=1
+libbpf: license of /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/.output/map-probe.bpf.o is GPL
+libbpf: elf: section(17) .BTF, size 1963, link 0, flags 0, type=1
+libbpf: elf: section(19) .BTF.ext, size 992, link 0, flags 0, type=1
+libbpf: elf: section(27) .symtab, size 720, link 1, flags 0, type=2
+libbpf: looking for externs among 30 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'device_values': at sec_idx 5, offset 0.
+libbpf: map 'device_values': found type = 1503.
+libbpf: map 'device_values': found key [8], sz = 4.
+libbpf: map 'device_values': found value [12], sz = 8.
+libbpf: map 'device_values': found max_entries = 32.
+libbpf: map 'host_values': at sec_idx 5, offset 32.
+libbpf: map 'host_values': found type = 1513.
+libbpf: map 'host_values': found key [8], sz = 4.
+libbpf: map 'host_values': found value [12], sz = 8.
+libbpf: map 'host_values': found max_entries = 32.
+libbpf: map 'rpc_values': at sec_idx 5, offset 64.
+libbpf: map 'rpc_values': found type = 2.
+libbpf: map 'rpc_values': found key [8], sz = 4.
+libbpf: map 'rpc_values': found value [12], sz = 8.
+libbpf: map 'rpc_values': found max_entries = 32.
+libbpf: map 'observed_values': at sec_idx 5, offset 96.
+libbpf: map 'observed_values': found type = 1503.
+libbpf: map 'observed_values': found key [8], sz = 4.
+libbpf: map 'observed_values': found value [12], sz = 8.
+libbpf: map 'observed_values': found max_entries = 32.
+libbpf: sec '.relkprobe/fig15_map_kernel': collecting relocation for section(3) 'kprobe/fig15_map_kernel'
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #0: insn #15 against 'device_values'
+libbpf: prog 'cuda__device_update': found map 0 (device_values, sec 5, off 0) for insn #13
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #1: insn #35 against 'host_values'
+libbpf: prog 'cuda__host_update': found map 1 (host_values, sec 5, off 32) for insn #13
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #2: insn #55 against 'rpc_values'
+libbpf: prog 'cuda__rpc_update': found map 2 (rpc_values, sec 5, off 64) for insn #13
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #3: insn #70 against 'device_values'
+libbpf: prog 'cuda__device_lookup': found map 0 (device_values, sec 5, off 0) for insn #8
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #4: insn #83 against 'observed_values'
+libbpf: prog 'cuda__device_lookup': found map 3 (observed_values, sec 5, off 96) for insn #21
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #5: insn #96 against 'host_values'
+libbpf: prog 'cuda__host_lookup': found map 1 (host_values, sec 5, off 32) for insn #8
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #6: insn #109 against 'observed_values'
+libbpf: prog 'cuda__host_lookup': found map 3 (observed_values, sec 5, off 96) for insn #21
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #7: insn #122 against 'rpc_values'
+libbpf: prog 'cuda__rpc_lookup': found map 2 (rpc_values, sec 5, off 64) for insn #8
+libbpf: sec '.relkprobe/fig15_map_kernel': relo #8: insn #135 against 'observed_values'
+libbpf: prog 'cuda__rpc_lookup': found map 3 (observed_values, sec 5, off 96) for insn #21
+libbpf: object 'map-probe': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+[2026-09-04 10:24:07][info][2779865] syscall server: Set enable_mock_after_initialized to false
+[2026-09-04 10:24:07][info][2779865] CUDA context for thread 2779865 has been set to 5e58b689f840
+[2026-09-04 10:24:07][info][2779865] Map device_values (nv_gpu_shared_array_map_impl) shared array
+[2026-09-04 10:24:07][info][2779865] Initializing map type of BPF_MAP_TYPE_GPU_ARRAY_MAP (device), total_buffer_size=256
+[2026-09-04 10:24:07][info][2779865] syscall server: Set enable_mock_after_initialized to true
+libbpf: map 'device_values': created successfully, fd=17
+[2026-09-04 10:24:07][info][2779865] Map host_values (nv_gpu_shared_array_host_map_impl) shared array
+[2026-09-04 10:24:07][info][2779865] Initializing map type of BPF_MAP_TYPE_GPU_ARRAY_HOST_MAP (shared mem), value_size=8, max_entries=32, total_buffer_size=256
+[2026-09-04 10:24:07][info][2779865] Allocated shared memory buffer at 7602c7e2aa60
+libbpf: map 'host_values': created successfully, fd=18
+libbpf: map 'rpc_values': created successfully, fd=19
+[2026-09-04 10:24:07][info][2779865] syscall server: Set enable_mock_after_initialized to false
+[2026-09-04 10:24:07][info][2779865] CUDA context for thread 2779865 has been set to 5e58b77ae990
+[2026-09-04 10:24:07][info][2779865] Map observed_values (nv_gpu_shared_array_map_impl) shared array
+[2026-09-04 10:24:07][info][2779865] Initializing map type of BPF_MAP_TYPE_GPU_ARRAY_MAP (device), total_buffer_size=256
+[2026-09-04 10:24:07][info][2779865] syscall server: Set enable_mock_after_initialized to true
+libbpf: map 'observed_values': created successfully, fd=20
+libbpf: prog 'cuda__noop': skipped loading
+libbpf: prog 'cuda__device_update': skipped loading
+libbpf: prog 'cuda__host_update': skipped loading
+libbpf: prog 'cuda__rpc_update': skipped loading
+libbpf: prog 'cuda__device_lookup': skipped loading
+libbpf: prog 'cuda__host_lookup': skipped loading
+[2026-09-04 10:24:07][info][2779865] Created kprobe/kretprobe perf event handler, func_name fig15_map_kernel, addr 0
+FIG15_READY	rpc_lookup	1
+FIG15_MAP	observed_values	0	1208090600042135552
+FIG15_MAP	observed_values	1	1208090600042135553
+FIG15_MAP	observed_values	2	1208090600042135554
+FIG15_MAP	observed_values	3	1208090600042135555
+FIG15_MAP	observed_values	4	1208090600042135556
+FIG15_MAP	observed_values	5	1208090600042135557
+FIG15_MAP	observed_values	6	1208090600042135558
+FIG15_MAP	observed_values	7	1208090600042135559
+FIG15_MAP	observed_values	8	1208090600042135560
+FIG15_MAP	observed_values	9	1208090600042135561
+FIG15_MAP	observed_values	10	1208090600042135562
+FIG15_MAP	observed_values	11	1208090600042135563
+FIG15_MAP	observed_values	12	1208090600042135564
+FIG15_MAP	observed_values	13	1208090600042135565
+FIG15_MAP	observed_values	14	1208090600042135566
+FIG15_MAP	observed_values	15	1208090600042135567
+FIG15_MAP	observed_values	16	1208090600042135568
+FIG15_MAP	observed_values	17	1208090600042135569
+FIG15_MAP	observed_values	18	1208090600042135570
+FIG15_MAP	observed_values	19	1208090600042135571
+FIG15_MAP	observed_values	20	1208090600042135572
+FIG15_MAP	observed_values	21	1208090600042135573
+FIG15_MAP	observed_values	22	1208090600042135574
+FIG15_MAP	observed_values	23	1208090600042135575
+FIG15_MAP	observed_values	24	1208090600042135576
+FIG15_MAP	observed_values	25	1208090600042135577
+FIG15_MAP	observed_values	26	1208090600042135578
+FIG15_MAP	observed_values	27	1208090600042135579
+FIG15_MAP	observed_values	28	1208090600042135580
+FIG15_MAP	observed_values	29	1208090600042135581
+FIG15_MAP	observed_values	30	1208090600042135582
+FIG15_MAP	observed_values	31	1208090600042135583
+FIG15_DETACHED	1
+[2026-09-04 10:24:11][warning][2779865] Calling original ioctl: 9 34 140736854701520
+[2026-09-04 10:24:11][warning][2779865] Calling original ioctl: 8 3222292009 140736854701680
+[2026-09-04 10:24:11][warning][2779865] Calling original ioctl: 9 34 140736854701520
+[2026-09-04 10:24:11][warning][2779865] Calling original ioctl: 8 3222292009 140736854701680

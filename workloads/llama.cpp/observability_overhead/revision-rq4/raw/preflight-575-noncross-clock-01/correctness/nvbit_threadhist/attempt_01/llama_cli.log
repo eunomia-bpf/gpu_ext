@@ -1,0 +1,186 @@
+$ taskset -c 8-15 /usr/bin/env LD_PRELOAD=/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-01/nvbit_tool_build/observability.so /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli -m /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf -p Write one sentence explaining why deterministic tests matter. -n 8 -c 512 -ngl 99 --seed 1797 --temp 0 --no-display-prompt --simple-io
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp
+
+## stdout
+
+Deterministic tests are essential
+> EOF by user
+
+
+
+## stderr
+NVBIT_OBS mode=2 target=_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli thread_count=1048576
+ggml_cuda_init: GGML_CUDA_FORCE_MMQ:    no
+ggml_cuda_init: GGML_CUDA_FORCE_CUBLAS: no
+ggml_cuda_init: found 1 CUDA devices:
+  Device 0: NVIDIA GeForce RTX 5090, compute capability 12.0, VMM: no
+build: 7102 (26836b27) with gcc-12 (Ubuntu 12.4.0-2ubuntu1~24.04.1) 12.4.0 for x86_64-linux-gnu
+main: llama backend init
+main: load the model and apply lora adapter, if any
+WARNING: Do not call CUDA memory allocation in nvbit_at_ctx_init(). It will cause deadlocks. Do them in nvbit_tool_init(). If you encounter deadlocks, remove CUDA API calls to debug.
+llama_model_load_from_file_impl: using device CUDA0 (NVIDIA GeForce RTX 5090) (0000:02:00.0) - 31536 MiB free
+llama_model_loader: loaded meta data with 23 key-value pairs and 201 tensors from /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = llama
+llama_model_loader: - kv   1:                               general.name str              = tinyllama_tinyllama-1.1b-chat-v1.0
+llama_model_loader: - kv   2:                       llama.context_length u32              = 2048
+llama_model_loader: - kv   3:                     llama.embedding_length u32              = 2048
+llama_model_loader: - kv   4:                          llama.block_count u32              = 22
+llama_model_loader: - kv   5:                  llama.feed_forward_length u32              = 5632
+llama_model_loader: - kv   6:                 llama.rope.dimension_count u32              = 64
+llama_model_loader: - kv   7:                 llama.attention.head_count u32              = 32
+llama_model_loader: - kv   8:              llama.attention.head_count_kv u32              = 4
+llama_model_loader: - kv   9:     llama.attention.layer_norm_rms_epsilon f32              = 0.000010
+llama_model_loader: - kv  10:                       llama.rope.freq_base f32              = 10000.000000
+llama_model_loader: - kv  11:                          general.file_type u32              = 15
+llama_model_loader: - kv  12:                       tokenizer.ggml.model str              = llama
+llama_model_loader: - kv  13:                      tokenizer.ggml.tokens arr[str,32000]   = ["<unk>", "<s>", "</s>", "<0x00>", "<...
+llama_model_loader: - kv  14:                      tokenizer.ggml.scores arr[f32,32000]   = [0.000000, 0.000000, 0.000000, 0.0000...
+llama_model_loader: - kv  15:                  tokenizer.ggml.token_type arr[i32,32000]   = [2, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6, 6, ...
+llama_model_loader: - kv  16:                      tokenizer.ggml.merges arr[str,61249]   = ["▁ t", "e r", "i n", "▁ a", "e n...
+llama_model_loader: - kv  17:                tokenizer.ggml.bos_token_id u32              = 1
+llama_model_loader: - kv  18:                tokenizer.ggml.eos_token_id u32              = 2
+llama_model_loader: - kv  19:            tokenizer.ggml.unknown_token_id u32              = 0
+llama_model_loader: - kv  20:            tokenizer.ggml.padding_token_id u32              = 2
+llama_model_loader: - kv  21:                    tokenizer.chat_template str              = {% for message in messages %}\n{% if m...
+llama_model_loader: - kv  22:               general.quantization_version u32              = 2
+llama_model_loader: - type  f32:   45 tensors
+llama_model_loader: - type q4_K:  135 tensors
+llama_model_loader: - type q6_K:   21 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q4_K - Medium
+print_info: file size   = 636.18 MiB (4.85 BPW) 
+load: special_eos_id is not in special_eog_ids - the tokenizer config may be incorrect
+load: printing all EOG tokens:
+load:   - 2 ('</s>')
+load: special tokens cache size = 3
+load: token to piece cache size = 0.1684 MB
+print_info: arch             = llama
+print_info: vocab_only       = 0
+print_info: n_ctx_train      = 2048
+print_info: n_embd           = 2048
+print_info: n_embd_inp       = 2048
+print_info: n_layer          = 22
+print_info: n_head           = 32
+print_info: n_head_kv        = 4
+print_info: n_rot            = 64
+print_info: n_swa            = 0
+print_info: is_swa_any       = 0
+print_info: n_embd_head_k    = 64
+print_info: n_embd_head_v    = 64
+print_info: n_gqa            = 8
+print_info: n_embd_k_gqa     = 256
+print_info: n_embd_v_gqa     = 256
+print_info: f_norm_eps       = 0.0e+00
+print_info: f_norm_rms_eps   = 1.0e-05
+print_info: f_clamp_kqv      = 0.0e+00
+print_info: f_max_alibi_bias = 0.0e+00
+print_info: f_logit_scale    = 0.0e+00
+print_info: f_attn_scale     = 0.0e+00
+print_info: n_ff             = 5632
+print_info: n_expert         = 0
+print_info: n_expert_used    = 0
+print_info: n_expert_groups  = 0
+print_info: n_group_used     = 0
+print_info: causal attn      = 1
+print_info: pooling type     = 0
+print_info: rope type        = 0
+print_info: rope scaling     = linear
+print_info: freq_base_train  = 10000.0
+print_info: freq_scale_train = 1
+print_info: n_ctx_orig_yarn  = 2048
+print_info: rope_finetuned   = unknown
+print_info: model type       = 1B
+print_info: model params     = 1.10 B
+print_info: general.name     = tinyllama_tinyllama-1.1b-chat-v1.0
+print_info: vocab type       = SPM
+print_info: n_vocab          = 32000
+print_info: n_merges         = 0
+print_info: BOS token        = 1 '<s>'
+print_info: EOS token        = 2 '</s>'
+print_info: UNK token        = 0 '<unk>'
+print_info: PAD token        = 2 '</s>'
+print_info: LF token         = 13 '<0x0A>'
+print_info: EOG token        = 2 '</s>'
+print_info: max token length = 48
+load_tensors: loading model tensors, this can take a while... (mmap = true)
+[REGULAR] Unified Memory DISABLED, using cudaMalloc
+load_tensors: offloading 22 repeating layers to GPU
+load_tensors: offloading output layer to GPU
+load_tensors: offloaded 23/23 layers to GPU
+load_tensors:   CPU_Mapped model buffer size =    35.16 MiB
+load_tensors:        CUDA0 model buffer size =   601.02 MiB
+....................................................................................
+llama_context: constructing llama_context
+llama_context: n_seq_max     = 1
+llama_context: n_ctx         = 512
+llama_context: n_ctx_seq     = 512
+llama_context: n_batch       = 512
+llama_context: n_ubatch      = 512
+llama_context: causal_attn   = 1
+llama_context: flash_attn    = auto
+llama_context: kv_unified    = false
+llama_context: freq_base     = 10000.0
+llama_context: freq_scale    = 1
+llama_context: n_ctx_seq (512) < n_ctx_train (2048) -- the full capacity of the model will not be utilized
+llama_context:  CUDA_Host  output buffer size =     0.12 MiB
+llama_kv_cache:      CUDA0 KV buffer size =    11.00 MiB
+llama_kv_cache: size =   11.00 MiB (   512 cells,  22 layers,  1/1 seqs), K (f16):    5.50 MiB, V (f16):    5.50 MiB
+llama_context: Flash Attention was auto, set to enabled
+llama_context:      CUDA0 compute buffer size =    66.50 MiB
+llama_context:  CUDA_Host compute buffer size =     5.01 MiB
+llama_context: graph nodes  = 689
+llama_context: graph splits = 2
+common_init_from_params: added </s> logit bias = -inf
+common_init_from_params: setting dry_penalty_last_n to ctx_size = 512
+common_init_from_params: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+[POOL] Creating pool for device 0
+[POOL] new_pool_for_device called for device 0
+[POOL] GGML_CUDA_ENABLE_UNIFIED_MEMORY = NULL
+[LEGACY] Using legacy pool for device 0
+[POOL] Pool created for device 0
+NVBIT_OBS instrumented_exits=3 symbol=_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli
+main: llama threadpool init, n_threads = 4
+main: chat template is available, enabling conversation mode (disable it with -no-cnv)
+*** User-specified prompt will pre-start conversation, did you mean to set --system-prompt (-sys) instead?
+main: chat template example:
+<|system|>
+You are a helpful assistant<|user|>
+Hello<|assistant|>
+Hi there<|user|>
+How are you?<|assistant|>
+
+system_info: n_threads = 4 (n_threads_batch = 4) / 24 | CUDA : ARCHS = 1200 | NO_VMM = 1 | USE_GRAPHS = 1 | PEER_MAX_BATCH_SIZE = 128 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+
+main: interactive mode on.
+sampler seed: 1797
+sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 512
+	top_k = 40, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.000
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000
+sampler chain: logits -> logit-bias -> penalties -> dry -> top-n-sigma -> top-k -> typical -> top-p -> min-p -> xtc -> temp-ext -> dist 
+generate: n_ctx = 512, n_batch = 2048, n_predict = 8, n_keep = 1
+
+== Running in interactive mode. ==
+ - Press Ctrl+C to interject at any time.
+ - Press Return to return control to the AI.
+ - To return control without starting a new line, end your input with '/'.
+ - If you want to submit another line, end your input with '\'.
+ - Not using system message. To change it, set a different value via -sys PROMPT
+
+llama_perf_sampler_print:    sampling time =       0.17 ms /    30 runs   (    0.01 ms per token, 176470.59 tokens per second)
+llama_perf_context_print:        load time =     360.05 ms
+llama_perf_context_print: prompt eval time =      22.44 ms /    22 tokens (    1.02 ms per token,   980.22 tokens per second)
+llama_perf_context_print:        eval time =      16.34 ms /     7 runs   (    2.33 ms per token,   428.50 tokens per second)
+llama_perf_context_print:       total time =      41.84 ms /    29 tokens
+llama_perf_context_print:    graphs reused =          7
+llama_memory_breakdown_print: | memory breakdown [MiB] | total    free    self   model   context   compute    unaccounted |
+llama_memory_breakdown_print: |   - CUDA0 (RTX 5090)   | 32109 = 30634 + ( 678 =   601 +      11 +      66) +         796 |
+llama_memory_breakdown_print: |   - Host               |                    40 =    35 +       0 +       5                |
+NVBIT threadhist nonzero_threads=22528 total_exit_probes=720896
+NVBIT selected_launches=220
+NVBIT kernelretsnoop events=0 nonzero_timestamps=0
+NVBIT_OBS process_selected_launches=220
+
+# exit: 0

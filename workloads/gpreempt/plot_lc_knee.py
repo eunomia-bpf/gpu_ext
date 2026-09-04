@@ -242,16 +242,20 @@ def render(audit: dict, prefix: Path) -> list[Path]:
                     panel.scatter(x_value, cell[metric], marker=marker, s=20,
                                   facecolors="none" if conditional else color,
                                   edgecolors=color, linewidths=0.8, alpha=0.75, zorder=3)
-                    if conditional:
-                        panel.annotate(f'{cell["completion_coverage"]:.0%}',
-                                       (x_value, cell[metric]), xytext=(0, 5),
-                                       textcoords="offset points", ha="center",
-                                       va="bottom", fontsize=7, color=color)
                 group = next(group for group in data["groups"]
                              if group["rate_rps"] == rate and group["arm"] == arm)
+                conditional_group = panel_index == 0 and group["any_conditional_p99"]
                 panel.scatter(center, group[median_metric], marker=marker, s=50,
-                              facecolors=color, edgecolors="white", linewidths=0.7,
+                              facecolors="none" if conditional_group else color,
+                              edgecolors=color if conditional_group else "white", linewidths=0.9,
                               zorder=5)
+                if conditional_group:
+                    offset = -8 if arm_index == 2 else 6
+                    panel.annotate(f'{group["median_completion_coverage"]:.1%}',
+                                   (center, group[median_metric]), xytext=(0, offset),
+                                   textcoords="offset points", ha="center",
+                                   va="top" if offset < 0 else "bottom",
+                                   fontsize=7, color=color)
 
         # Colored lines join each policy's three-block median across offered rates.
         for arm_index, (arm, color) in enumerate(zip(ARMS, COLORS)):
@@ -274,19 +278,12 @@ def render(audit: dict, prefix: Path) -> list[Path]:
     arm_handles = [Line2D([0], [0], color=color, marker=marker, markersize=5,
                           linewidth=1.5, label=label)
                    for color, marker, label in zip(COLORS, MARKERS, LABELS)]
-    coverage_handles = [
-        Line2D([0], [0], color="#333333", marker="o", markerfacecolor="#333333",
-               markersize=4, linewidth=0, label="LC p99: 100% complete"),
-        Line2D([0], [0], color="#333333", marker="o", markerfacecolor="none",
-               markersize=4, linewidth=0, label="LC p99: conditional (coverage labelled)"),
-    ]
-    figure.legend(handles=arm_handles + coverage_handles, loc="upper center", ncol=5,
+    figure.legend(handles=arm_handles, loc="upper center", ncol=3,
                   frameon=False, bbox_to_anchor=(0.5, 1.015), columnspacing=1.0,
                   handlelength=1.5)
-    note = ("Small points connected in gray: paired 60 s cells; large markers/colored lines: "
-            "three-block medians. LC p99 uses all started+verified requests, including after-window completions.\n"
-            "Open LC points are conditional and labelled with completion coverage; "
-            "filled LC points have 100% coverage.")
+    note = ("Small points connected in gray: paired 60 s cells; large markers/colored lines: three-block medians.\n"
+            "LC p99 uses all started+verified requests, including after-window completions.\n"
+            "Open LC points/medians are conditional; labels give median completion coverage; filled points are 100%.")
     figure.text(0.5, 0.012, note, ha="center", va="bottom", fontsize=7)
     figure.tight_layout(rect=(0, 0.17, 1, 0.88))
     prefix.parent.mkdir(parents=True, exist_ok=True)

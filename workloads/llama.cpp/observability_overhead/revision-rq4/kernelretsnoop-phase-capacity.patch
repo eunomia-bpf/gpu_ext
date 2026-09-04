@@ -1,7 +1,211 @@
-diff --git a/kernelretsnoop.c b/kernelretsnoop.c
+--- a/kernelretsnoop.bpf.c
++++ b/kernelretsnoop.bpf.c
+@@ -7,9 +7,7 @@
+ #define BPF_MAP_TYPE_GPU_RINGBUF_MAP 1527
+ 
+ struct data {
+-	u64 block_x, block_y, block_z;
+-	u64 thread_x, thread_y, thread_z;
+-	u64 block_dim_x, block_dim_y, block_dim_z;
++	u64 coordinate_x, coordinate_y, coordinate_z;
+ 	u64 timestamp;
+ };
+ 
+@@ -30,11 +28,16 @@
+ int cuda__retprobe()
+ {
+ 	struct data data = {};
++	u64 block_x = 0, block_y = 0, block_z = 0;
++	u64 thread_x = 0, thread_y = 0, thread_z = 0;
++	u64 block_dim_x = 0, block_dim_y = 0, block_dim_z = 0;
+ 
+-	bpf_get_block_idx(&data.block_x, &data.block_y, &data.block_z);
+-	bpf_get_thread_idx(&data.thread_x, &data.thread_y, &data.thread_z);
+-	bpf_get_block_dim(&data.block_dim_x, &data.block_dim_y,
+-			  &data.block_dim_z);
++	bpf_get_block_idx(&block_x, &block_y, &block_z);
++	bpf_get_thread_idx(&thread_x, &thread_y, &thread_z);
++	bpf_get_block_dim(&block_dim_x, &block_dim_y, &block_dim_z);
++	data.coordinate_x = block_x * block_dim_x + thread_x;
++	data.coordinate_y = block_y * block_dim_y + thread_y;
++	data.coordinate_z = block_z * block_dim_z + thread_z;
+ 	data.timestamp = bpf_get_globaltimer();
+ 	return bpf_perf_event_output(NULL, &rb, 0, &data,
+ 				     sizeof(struct data));
 --- a/kernelretsnoop.c
 +++ b/kernelretsnoop.c
-@@ -399,17 +399,37 @@ static uint64_t requested_thread_slots(void)
+@@ -32,9 +32,7 @@
+ 	exiting = true;
+ }
+ struct data {
+-	uint64_t block_x, block_y, block_z;
+-	uint64_t thread_x, thread_y, thread_z;
+-	uint64_t block_dim_x, block_dim_y, block_dim_z;
++	uint64_t coordinate_x, coordinate_y, coordinate_z;
+ 	uint64_t timestamp;
+ };
+ 
+@@ -86,26 +84,13 @@
+ static bool event_coordinate(const struct data *event,
+ 			     struct coordinate *coordinate)
+ {
+-	const uint64_t blocks[] = {
+-		event->block_x, event->block_y, event->block_z,
+-	};
+-	const uint64_t threads[] = {
+-		event->thread_x, event->thread_y, event->thread_z,
+-	};
+-	const uint64_t dimensions[] = {
+-		event->block_dim_x, event->block_dim_y, event->block_dim_z,
+-	};
+-	uint64_t *values[] = {
+-		&coordinate->x, &coordinate->y, &coordinate->z,
+-	};
+-
+-	for (size_t axis = 0; axis < 3; axis++) {
+-		if (dimensions[axis] == 0 || threads[axis] >= dimensions[axis] ||
+-		    blocks[axis] >
+-			(UINT64_MAX - threads[axis]) / dimensions[axis])
+-			return false;
+-		*values[axis] = blocks[axis] * dimensions[axis] + threads[axis];
+-	}
++	if (event->coordinate_x == UINT64_MAX ||
++	    event->coordinate_y == UINT64_MAX ||
++	    event->coordinate_z == UINT64_MAX)
++		return false;
++	coordinate->x = event->coordinate_x;
++	coordinate->y = event->coordinate_y;
++	coordinate->z = event->coordinate_z;
+ 	return true;
+ }
+ 
+@@ -139,6 +124,9 @@
+ struct cartesian_result {
+ 	uint64_t unique_coordinates;
+ 	uint64_t max_multiplicity;
++	uint64_t extent_x;
++	uint64_t extent_y;
++	uint64_t extent_z;
+ 	uint64_t multiplicity_220;
+ 	uint64_t multiplicity_44;
+ 	uint64_t multiplicity_22;
+@@ -174,8 +162,10 @@
+ 	       "kernelretsnoop multiplicity oracle total is inconsistent");
+ 
+ static uint64_t oracle_expected_multiplicity(
+-	const struct coordinate *coordinate)
++	const struct coordinate *coordinate, bool exact_oracle)
+ {
++	if (!exact_oracle)
++		return 44;
+ 	const uint64_t middle_end =
+ 		ORACLE_HIGH_BLOCKS_X + ORACLE_MIDDLE_BLOCKS_X;
+ 	const uint64_t low_end = middle_end + ORACLE_LOW_BLOCKS_X;
+@@ -192,7 +182,8 @@
+ 	return 0;
+ }
+ 
+-static struct cartesian_result validate_cartesian(struct state *state)
++static struct cartesian_result validate_cartesian(struct state *state,
++						    bool exact_oracle)
+ {
+ 	struct cartesian_result result = {};
+ 	if (state->events_count == 0 || state->collector_errors != 0)
+@@ -225,6 +216,9 @@
+ 		dimensions[axis] = maxima[axis] + 1;
+ 		expected_coordinates *= dimensions[axis];
+ 	}
++	result.extent_x = dimensions[0];
++	result.extent_y = dimensions[1];
++	result.extent_z = dimensions[2];
+ 
+ 	qsort(state->events, state->events_count, sizeof(*state->events),
+ 	      compare_coordinates);
+@@ -249,7 +243,8 @@
+ 		struct coordinate coordinate;
+ 		event_coordinate(&state->events[i], &coordinate);
+ 		const uint64_t expected_multiplicity =
+-			oracle_expected_multiplicity(&coordinate);
++			oracle_expected_multiplicity(&coordinate,
++						 exact_oracle);
+ 		if (multiplicity != expected_multiplicity)
+ 			result.segment_mismatches++;
+ 		result.unique_coordinates++;
+@@ -264,6 +259,9 @@
+ 					 uint64_t total_events)
+ {
+ 	return result->complete && result->max_multiplicity == ORACLE_LAUNCHES &&
++	       result->extent_x == ORACLE_HIGH_BLOCKS_X + ORACLE_MIDDLE_BLOCKS_X +
++				   ORACLE_LOW_BLOCKS_X &&
++	       result->extent_y == ORACLE_BLOCK_DIM_Y && result->extent_z == 1 &&
+ 	       result->multiplicity_220 == ORACLE_HIGH_COORDINATES &&
+ 	       result->multiplicity_44 == ORACLE_MIDDLE_COORDINATES &&
+ 	       result->multiplicity_22 == ORACLE_LOW_COORDINATES &&
+@@ -283,6 +281,9 @@
+ 	printf("Cartesian coordinates: %" PRIu64 "\n",
+ 	       result->unique_coordinates);
+ 	printf("Cartesian complete: %d\n", result->complete ? 1 : 0);
++	printf("Coordinate extent x: %" PRIu64 "\n", result->extent_x);
++	printf("Coordinate extent y: %" PRIu64 "\n", result->extent_y);
++	printf("Coordinate extent z: %" PRIu64 "\n", result->extent_z);
+ 	printf("Coordinate multiplicity 220: %" PRIu64 "\n",
+ 	       result->multiplicity_220);
+ 	printf("Coordinate multiplicity 44: %" PRIu64 "\n",
+@@ -335,42 +336,40 @@
+ 				struct data *event =
+ 					&state.events[state.events_count];
+ 
+-				event->block_x = x;
+-				event->thread_y = y;
+-				event->block_dim_x = 1;
+-				event->block_dim_y = ORACLE_BLOCK_DIM_Y;
+-				event->block_dim_z = 1;
++				event->coordinate_x = x;
++				event->coordinate_y = y;
++				event->coordinate_z = 0;
+ 				event->timestamp = 1;
+ 				state.events_count++;
+ 			}
+ 		}
+ 	}
+-	const struct cartesian_result exact = validate_cartesian(&state);
++	const struct cartesian_result exact = validate_cartesian(&state, true);
+ 	const bool exact_passed = multiplicity_oracle_matches(
+ 		&exact, state.events_count);
+ 	state.events_count--;
+-	const struct cartesian_result missing = validate_cartesian(&state);
++	const struct cartesian_result missing = validate_cartesian(&state, true);
+ 	const bool missing_rejected = missing.complete &&
+ 		!multiplicity_oracle_matches(&missing, state.events_count);
+ 	state.events_count++;
+ 	const size_t low_segment_offset =
+ 		ORACLE_HIGH_COORDINATES * 220 + ORACLE_MIDDLE_COORDINATES * 44;
+ 	for (size_t i = 0; i < 220; i++)
+-		state.events[i].block_x =
++		state.events[i].coordinate_x =
+ 			ORACLE_HIGH_BLOCKS_X + ORACLE_MIDDLE_BLOCKS_X;
+ 	for (size_t i = 0; i < 22; i++) {
+ 		struct data *event = &state.events[low_segment_offset + i];
+-		event->block_x = 0;
+-		event->thread_x = 0;
++		event->coordinate_x = 0;
++		event->coordinate_y = 0;
+ 	}
+-	const struct cartesian_result swapped = validate_cartesian(&state);
++	const struct cartesian_result swapped = validate_cartesian(&state, true);
+ 	const bool swapped_rejected = swapped.complete &&
+ 		swapped.multiplicity_220 == exact.multiplicity_220 &&
+ 		swapped.multiplicity_44 == exact.multiplicity_44 &&
+ 		swapped.multiplicity_22 == exact.multiplicity_22 &&
+ 		!multiplicity_oracle_matches(&swapped, state.events_count);
+-	state.events[0].block_dim_x = 0;
+-	const struct cartesian_result invalid = validate_cartesian(&state);
++	state.events[0].coordinate_x = UINT64_MAX;
++	const struct cartesian_result invalid = validate_cartesian(&state, true);
+ 	const bool invalid_rejected = invalid.invalid_launch_coordinates == 1 &&
+ 		!multiplicity_oracle_matches(&invalid, state.events_count);
+ 	print_coordinate_validation(&exact, ORACLE_TOTAL_EVENTS, 1,
+@@ -399,6 +398,20 @@
  	return parsed;
  }
  
@@ -22,11 +226,7 @@ diff --git a/kernelretsnoop.c b/kernelretsnoop.c
  int main(int argc, char **argv)
  {
  	if (argc == 2 &&
- 	    strcmp(argv[1], "--self-test-multiplicity-oracle") == 0)
- 		return run_multiplicity_oracle_selftest();
- 	const int oracle_mode = multiplicity_oracle_mode();
- 	if (oracle_mode < 0) {
- 		fprintf(stderr,
+@@ -410,6 +423,12 @@
  			"BPFTIME_KERNELRETSNOOP_EXACT_ORACLE must be 0 or 1\n");
  		return 2;
  	}
@@ -39,7 +239,7 @@ diff --git a/kernelretsnoop.c b/kernelretsnoop.c
  	struct kernelretsnoop_bpf *skel = NULL;
  	struct state state = {};
  	int err = 0;
-@@ -429,6 +449,13 @@ int main(int argc, char **argv)
+@@ -429,6 +448,13 @@
  		return 1;
  	}
  
@@ -53,7 +253,16 @@ diff --git a/kernelretsnoop.c b/kernelretsnoop.c
  	/* Load & verify BPF programs */
  	err = kernelretsnoop_bpf__load(skel);
  	if (err) {
-@@ -519,5 +546,7 @@ int main(int argc, char **argv)
+@@ -512,12 +538,15 @@
+ 		goto cleanup;
+ 	}
+ 	const uint64_t requested = requested_thread_slots();
+-	const struct cartesian_result cartesian = validate_cartesian(&state);
++	const struct cartesian_result cartesian =
++		validate_cartesian(&state, oracle_mode == 1);
+ 	const bool oracle_passed = oracle_mode == 1 &&
+ 		multiplicity_oracle_matches(&cartesian, state.count);
+ 	const bool oracle_gate_passed = oracle_mode == 0 || oracle_passed;
  
  	printf("Requested thread slots: %" PRIu64 "\n", requested);
 +	printf("Requested ring entries per thread: %" PRIu64 "\n",
@@ -61,7 +270,7 @@ diff --git a/kernelretsnoop.c b/kernelretsnoop.c
  	printf("Allocated thread slots: %" PRIu64 "\n",
  	       stats.allocated_thread_slots);
  	printf("Ring entries per thread: %" PRIu64 "\n",
-@@ -544,7 +573,7 @@ int main(int argc, char **argv)
+@@ -544,7 +573,7 @@
  
  	const bool passed =
  		requested != 0 && requested == stats.allocated_thread_slots &&
@@ -70,3 +279,14 @@ diff --git a/kernelretsnoop.c b/kernelretsnoop.c
  		stats.value_size == sizeof(struct data) &&
  		stats.committed_records == state.count &&
  		stats.collected_records == state.count &&
+@@ -553,7 +582,8 @@
+ 		stats.bad_size_drops == 0 && state.bad_size_records == 0 &&
+ 		stats.other_drops == 0 && state.collector_errors == 0 &&
+ 		stats.dirty_slots == 0 && stats.pending_records == 0 &&
+-		second_drain == 0 && cartesian.complete && oracle_gate_passed;
++		second_drain == 0 && cartesian.complete &&
++		cartesian.segment_mismatches == 0 && oracle_gate_passed;
+ 	printf("Collector gate passed: %d\n", passed ? 1 : 0);
+ 	fflush(stdout);
+ 	if (!passed)
+

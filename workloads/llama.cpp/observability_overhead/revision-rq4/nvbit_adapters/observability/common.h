@@ -9,14 +9,14 @@ enum observability_mode_t : uint32_t {
 };
 
 struct exit_record_t {
-    uint64_t block_x;
-    uint64_t block_y;
-    uint64_t block_z;
-    uint64_t thread_x;
-    uint64_t thread_y;
-    uint64_t thread_z;
+    uint64_t coordinate_x;
+    uint64_t coordinate_y;
+    uint64_t coordinate_z;
     uint64_t timestamp;
 };
+
+static_assert(sizeof(exit_record_t) == 4 * sizeof(uint64_t),
+              "exit_record_t ABI must remain four packed 64-bit fields");
 
 static constexpr uint32_t HIST_BINS = 10;
 static constexpr uint64_t LAUNCH_PAIR_CAPACITY = 65536ULL;

@@ -5,9 +5,12 @@ NVBit 1.8 core. They deliberately instrument only the exact mangled kernel in
 `OBS_TARGET_SYMBOL` and do not enable related functions.
 
 - `kernelretsnoop`: inject before every `EXIT`, check its execution predicate,
-  emit one record per actually exiting logical
-  thread through NVBit's device-to-host channel, and count records with nonzero
-  `%globaltimer` timestamps on the host.
+  emit one 32-byte `(global_x, global_y, global_z, timestamp)` record per
+  actually exiting logical thread through NVBit's device-to-host channel, and
+  validate nonzero `%globaltimer` timestamps, exact coordinate extent and
+  multiplicities, selected launches, and complete channel framing on the host.
+  These global coordinates deliberately match the compact gpubpf observable;
+  they do not preserve the original CUDA block/thread decomposition.
 - `threadhist`: inject before every `EXIT`, check its execution predicate, increment the full
   configured logical-thread array, and report its nonzero entries and total at
   context termination. Per-thread increments match gpubpf's non-atomic semantics.

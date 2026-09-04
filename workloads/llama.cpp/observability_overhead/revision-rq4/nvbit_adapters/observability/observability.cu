@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "clock_domain.h"
 #include "common.h"
@@ -40,6 +41,8 @@ struct context_state_t {
     uint64_t stored_launch_pairs = 0;
     uint64_t launch_pair_overflows = 0;
     bool selected_launch_counter_overflow = false;
+    std::vector<exit_record_t> exit_events;
+    uint64_t exit_bad_size_bytes = 0;
     volatile recv_state_t recv_state = recv_state_t::INIT;
     bool saw_selected_launch = false;
 };
@@ -63,6 +66,115 @@ static uint32_t thread_count = 1048576;
 static uint64_t* thread_counters = nullptr;
 static bool trace_target_family = false;
 static bool trace_launches = false;
+
+struct exit_validation_t {
+    uint64_t extent_x = 0;
+    uint64_t extent_y = 0;
+    uint64_t extent_z = 0;
+    uint64_t unique_coordinates = 0;
+    uint64_t max_multiplicity = 0;
+    uint64_t multiplicity_220 = 0;
+    uint64_t multiplicity_44 = 0;
+    uint64_t multiplicity_22 = 0;
+    uint64_t other_multiplicity = 0;
+    uint64_t segment_mismatches = 0;
+    uint64_t invalid_coordinates = 0;
+    bool complete = false;
+};
+
+static uint64_t expected_exit_multiplicity(uint64_t coordinate_x,
+                                           uint64_t launches) {
+    if (launches == 220) {
+        if (coordinate_x < 4) return 220;
+        if (coordinate_x < 8) return 44;
+        return 22;
+    }
+    return launches;
+}
+
+static exit_validation_t validate_exit_events(const context_state_t* state,
+                                              uint64_t launches) {
+    exit_validation_t result;
+    constexpr uint64_t extent_y = 256;
+    if (state == nullptr || thread_count == 0 ||
+        thread_count % extent_y != 0) {
+        return result;
+    }
+    const uint64_t extent_x = thread_count / extent_y;
+    std::vector<uint64_t> counts(thread_count, 0);
+    for (const auto& event : state->exit_events) {
+        if (event.coordinate_x >= extent_x ||
+            event.coordinate_y >= extent_y || event.coordinate_z != 0) {
+            result.invalid_coordinates++;
+            continue;
+        }
+        const uint64_t index = event.coordinate_x * extent_y +
+                               event.coordinate_y;
+        counts[index]++;
+        if (event.coordinate_x + 1 > result.extent_x)
+            result.extent_x = event.coordinate_x + 1;
+        if (event.coordinate_y + 1 > result.extent_y)
+            result.extent_y = event.coordinate_y + 1;
+        if (event.coordinate_z + 1 > result.extent_z)
+            result.extent_z = event.coordinate_z + 1;
+    }
+    for (uint64_t index = 0; index < thread_count; index++) {
+        const uint64_t multiplicity = counts[index];
+        if (multiplicity == 0) continue;
+        result.unique_coordinates++;
+        if (multiplicity > result.max_multiplicity)
+            result.max_multiplicity = multiplicity;
+        if (multiplicity == 220)
+            result.multiplicity_220++;
+        else if (multiplicity == 44)
+            result.multiplicity_44++;
+        else if (multiplicity == 22)
+            result.multiplicity_22++;
+        else
+            result.other_multiplicity++;
+        const uint64_t coordinate_x = index / extent_y;
+        if (multiplicity != expected_exit_multiplicity(coordinate_x, launches))
+            result.segment_mismatches++;
+    }
+    result.complete = result.invalid_coordinates == 0 &&
+                      result.unique_coordinates == thread_count &&
+                      result.extent_x == extent_x &&
+                      result.extent_y == extent_y && result.extent_z == 1;
+    return result;
+}
+
+static void print_exit_validation(const context_state_t* state,
+                                  uint64_t launches) {
+    const exit_validation_t result = validate_exit_events(state, launches);
+    const bool passed = state != nullptr && state->exit_bad_size_bytes == 0 &&
+        result.complete && result.max_multiplicity == launches &&
+        result.segment_mismatches == 0;
+    fprintf(stderr, "NVBIT kernelretsnoop record_bytes=%zu\n",
+            sizeof(exit_record_t));
+    fprintf(stderr, "NVBIT kernelretsnoop bad_size_bytes=%llu\n",
+            static_cast<unsigned long long>(state->exit_bad_size_bytes));
+    fprintf(stderr, "NVBIT kernelretsnoop cartesian_launches=%llu\n",
+            static_cast<unsigned long long>(result.max_multiplicity));
+    fprintf(stderr, "NVBIT kernelretsnoop cartesian_coordinates=%llu\n",
+            static_cast<unsigned long long>(result.unique_coordinates));
+    fprintf(stderr, "NVBIT kernelretsnoop cartesian_complete=%u\n",
+            result.complete ? 1U : 0U);
+    fprintf(stderr, "NVBIT kernelretsnoop extent_x=%llu extent_y=%llu extent_z=%llu\n",
+            static_cast<unsigned long long>(result.extent_x),
+            static_cast<unsigned long long>(result.extent_y),
+            static_cast<unsigned long long>(result.extent_z));
+    fprintf(stderr, "NVBIT kernelretsnoop multiplicity_220=%llu multiplicity_44=%llu multiplicity_22=%llu multiplicity_other=%llu\n",
+            static_cast<unsigned long long>(result.multiplicity_220),
+            static_cast<unsigned long long>(result.multiplicity_44),
+            static_cast<unsigned long long>(result.multiplicity_22),
+            static_cast<unsigned long long>(result.other_multiplicity));
+    fprintf(stderr, "NVBIT kernelretsnoop segment_mismatches=%llu invalid_coordinates=%llu unique_coordinates=%llu\n",
+            static_cast<unsigned long long>(result.segment_mismatches),
+            static_cast<unsigned long long>(result.invalid_coordinates),
+            static_cast<unsigned long long>(result.unique_coordinates));
+    fprintf(stderr, "NVBIT kernelretsnoop collector_gate_passed=%u\n",
+            passed ? 1U : 0U);
+}
 
 static bool monotonic_ns(uint64_t* value) {
     struct timespec ts;
@@ -325,6 +437,7 @@ static void* receive_records(void* arg) {
     char* buffer = reinterpret_cast<char*>(malloc(CHANNEL_SIZE));
     while (state->recv_state == recv_state_t::WORKING) {
         const uint32_t bytes = state->channel_host.recv(buffer, CHANNEL_SIZE);
+        state->exit_bad_size_bytes += bytes % sizeof(exit_record_t);
         for (uint32_t offset = 0;
              offset + sizeof(exit_record_t) <= bytes;
              offset += sizeof(exit_record_t)) {
@@ -334,6 +447,7 @@ static void* receive_records(void* arg) {
             if (record->timestamp != 0) {
                 nonzero_timestamps.fetch_add(1, std::memory_order_relaxed);
             }
+            state->exit_events.push_back(*record);
         }
     }
     free(buffer);
@@ -522,6 +636,7 @@ void nvbit_at_ctx_term(CUcontext ctx) {
         }
         state->channel_host.destroy(false);
         CUDA_SAFECALL(cudaFree(state->channel_dev));
+        print_exit_validation(state, selected_launches.load());
     }
 
     if (mode == OBS_THREADHIST && thread_counters != nullptr) {

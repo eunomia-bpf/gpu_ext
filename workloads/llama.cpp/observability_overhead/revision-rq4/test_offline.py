@@ -21,7 +21,7 @@ def lossless_exit_log(**overrides):
         "allocated": 22528,
         "requested_entries": 256,
         "entries": 256,
-        "record_bytes": 80,
+        "record_bytes": 32,
         "committed": 720896,
         "collected": 720896,
         "runtime_collected": 720896,
@@ -37,6 +37,9 @@ def lossless_exit_log(**overrides):
         "launches": 220,
         "coordinates": 22528,
         "cartesian_complete": 1,
+        "extent_x": 88,
+        "extent_y": 256,
+        "extent_z": 1,
         "multiplicity_220": 1024,
         "multiplicity_44": 1024,
         "multiplicity_22": 20480,
@@ -71,6 +74,9 @@ def lossless_exit_log(**overrides):
         f"Cartesian launches: {values['launches']}",
         f"Cartesian coordinates: {values['coordinates']}",
         f"Cartesian complete: {values['cartesian_complete']}",
+        f"Coordinate extent x: {values['extent_x']}",
+        f"Coordinate extent y: {values['extent_y']}",
+        f"Coordinate extent z: {values['extent_z']}",
         f"Coordinate multiplicity 220: {values['multiplicity_220']}",
         f"Coordinate multiplicity 44: {values['multiplicity_44']}",
         f"Coordinate multiplicity 22: {values['multiplicity_22']}",
@@ -82,6 +88,45 @@ def lossless_exit_log(**overrides):
         f"Multiplicity oracle total events: {values['oracle_total_events']}",
         f"Multiplicity oracle passed: {values['oracle_passed']}",
         f"Collector gate passed: {values['collector_gate']}",
+    ))
+
+
+def lossless_nvbit_exit_log(**overrides):
+    values = {
+        "selected": 220,
+        "events": 720896,
+        "nonzero": 720896,
+        "record_bytes": 32,
+        "bad_size_bytes": 0,
+        "launches": 220,
+        "coordinates": 22528,
+        "complete": 1,
+        "extent_x": 88,
+        "extent_y": 256,
+        "extent_z": 1,
+        "multiplicity_220": 1024,
+        "multiplicity_44": 1024,
+        "multiplicity_22": 20480,
+        "multiplicity_other": 0,
+        "segment_mismatches": 0,
+        "invalid_coordinates": 0,
+        "unique_coordinates": 22528,
+        "collector_gate": 1,
+    }
+    values.update(overrides)
+    return "\n".join((
+        f"NVBIT kernelretsnoop record_bytes={values['record_bytes']}",
+        f"NVBIT kernelretsnoop bad_size_bytes={values['bad_size_bytes']}",
+        f"NVBIT kernelretsnoop cartesian_launches={values['launches']}",
+        f"NVBIT kernelretsnoop cartesian_coordinates={values['coordinates']}",
+        f"NVBIT kernelretsnoop cartesian_complete={values['complete']}",
+        f"NVBIT kernelretsnoop extent_x={values['extent_x']} extent_y={values['extent_y']} extent_z={values['extent_z']}",
+        f"NVBIT kernelretsnoop multiplicity_220={values['multiplicity_220']} multiplicity_44={values['multiplicity_44']} multiplicity_22={values['multiplicity_22']} multiplicity_other={values['multiplicity_other']}",
+        f"NVBIT kernelretsnoop segment_mismatches={values['segment_mismatches']} invalid_coordinates={values['invalid_coordinates']} unique_coordinates={values['unique_coordinates']}",
+        f"NVBIT kernelretsnoop collector_gate_passed={values['collector_gate']}",
+        f"NVBIT selected_launches={values['selected']}",
+        f"NVBIT kernelretsnoop events={values['events']} nonzero_timestamps={values['nonzero']}",
+        f"NVBIT_OBS process_selected_launches={values['selected']}",
     ))
 
 
@@ -359,6 +404,7 @@ class OfflineTests(unittest.TestCase):
                 snapshot = {"gpu": f"RTX 5090, {driver}, 32607, 0, 0, 0", "compute_apps": ""}
                 with (patch.object(runner.core, "nvidia_smi_snapshot", return_value=snapshot),
                       patch.object(runner.shutil, "copytree"),
+                      patch.object(runner, "validate_nvbit_kernelretsnoop_source_schema"),
                       patch.object(runner, "validate_nvbit_launchlate_source_schema"),
                       patch.object(runner, "build_nvbit", side_effect=RuntimeError("build boundary")) as build):
                     message = "build boundary" if driver == "575.57.08" else "requires driver"
@@ -692,7 +738,7 @@ class OfflineTests(unittest.TestCase):
                         )
                 loader_env = popen.call_args.kwargs["env"]
                 expected_slots = "22528" if exact else "32768"
-                expected_entries = "256" if exact else "16"
+                expected_entries = "256" if exact else "44"
                 self.assertEqual(loader_env["BPFTIME_MAP_GPU_THREAD_COUNT"], expected_slots)
                 self.assertEqual(loader_env["BPFTIME_KERNELRETSNOOP_RING_ENTRIES"], expected_entries)
                 self.assertEqual(loader_env["BPFTIME_SHM_MEMORY_MB"], "1000")
@@ -755,15 +801,17 @@ class OfflineTests(unittest.TestCase):
         }
         self.assertIn("validate_launchlate_source_schema", calls)
 
-    def test_native_kernelretsnoop_schema_requires_block_dimension_abi(self):
+    def test_native_kernelretsnoop_schema_requires_compact_coordinate_abi(self):
         sources = {
             "kernelretsnoop.bpf.c": "\n".join((
-                "u64 block_dim_x, block_dim_y, block_dim_z;",
-                "bpf_get_block_dim(&data.block_dim_x",
+                "u64 coordinate_x, coordinate_y, coordinate_z;",
+                "data.coordinate_x = block_x * block_dim_x + thread_x;",
+                "data.coordinate_y = block_y * block_dim_y + thread_y;",
+                "data.coordinate_z = block_z * block_dim_z + thread_z;",
                 "sizeof(struct data)",
             )),
             "kernelretsnoop.c": "\n".join((
-                "uint64_t block_dim_x, block_dim_y, block_dim_z;",
+                "uint64_t coordinate_x, coordinate_y, coordinate_z;",
                 "event_coordinate(&state->events[i]",
                 "Invalid launch coordinates:",
                 "sizeof(struct data)",
@@ -782,10 +830,10 @@ class OfflineTests(unittest.TestCase):
             )
             (target / "kernelretsnoop.bpf.c").write_text(
                 sources["kernelretsnoop.bpf.c"].replace(
-                    "bpf_get_block_dim(&data.block_dim_x", ""
+                    "data.coordinate_x = block_x * block_dim_x + thread_x;", ""
                 )
             )
-            with self.assertRaisesRegex(RuntimeError, "bpf_get_block_dim"):
+            with self.assertRaisesRegex(RuntimeError, "data.coordinate_x"):
                 runner.validate_kernelretsnoop_source_schema(target)
 
         tree = ast.parse(Path(runner.__file__).read_text())
@@ -798,6 +846,23 @@ class OfflineTests(unittest.TestCase):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
         }
         self.assertIn("validate_kernelretsnoop_source_schema", calls)
+
+    def test_nvbit_kernelretsnoop_schema_requires_same_compact_abi(self):
+        names = ("common.h", "inject_funcs.cu", "observability.cu")
+        sources = {
+            name: (runner.NVBIT_SOURCE_DIR / name).read_text()
+            for name in names
+        }
+        runner.validate_nvbit_kernelretsnoop_source_schema(runner.NVBIT_SOURCE_DIR)
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            for name, text in sources.items():
+                (target / name).write_text(text)
+            (target / "common.h").write_text(
+                sources["common.h"].replace("uint64_t coordinate_x;", "")
+            )
+            with self.assertRaisesRegex(RuntimeError, "coordinate_x"):
+                runner.validate_nvbit_kernelretsnoop_source_schema(target)
 
     def test_nvbit_launchlate_schema_requires_bounded_clock_accounting(self):
         names = (
@@ -926,22 +991,33 @@ class OfflineTests(unittest.TestCase):
         for tool, tool_probe in gpubpf_probes.items():
             expected_threads = (runner.EXPECTED_GPU_THREAD_SLOTS
                                 if tool == "kernelretsnoop" else 4)
+            exit_kwargs = dict(
+                expected_exit_events=(runner.CORRECTNESS_EXIT_EVENTS
+                                      if tool == "kernelretsnoop" else None),
+                expected_exit_launches=(runner.CORRECTNESS_EXIT_LAUNCHES
+                                        if tool == "kernelretsnoop" else None),
+                expected_exit_coordinates=(runner.CORRECTNESS_EXIT_COORDINATES
+                                           if tool == "kernelretsnoop" else None),
+                exact_exit_oracle=tool == "kernelretsnoop",
+            )
             self.assertTrue(runner.gpubpf_probe_valid(
                 tool, tool_probe, expected_thread_count=expected_threads,
                 expected_ring_entries=(256 if tool == "kernelretsnoop" else None),
-                exact_exit_oracle=tool == "kernelretsnoop"))
+                **exit_kwargs))
             self.assertFalse(runner.gpubpf_probe_valid(
                 tool, {**tool_probe, "sample_count": 0},
                 expected_thread_count=expected_threads,
                 expected_ring_entries=(256 if tool == "kernelretsnoop" else None),
-                exact_exit_oracle=tool == "kernelretsnoop"))
+                **exit_kwargs))
             nvbit_probe = (
                 runner.parse_nvbit("launchlate", lossless_nvbit_launchlate_log())
-                if tool == "launchlate" else probe
+                if tool == "launchlate" else
+                runner.parse_nvbit("kernelretsnoop", lossless_nvbit_exit_log())
+                if tool == "kernelretsnoop" else probe
             )
-            self.assertTrue(runner.nvbit_probe_valid(tool, nvbit_probe))
+            self.assertTrue(runner.nvbit_probe_valid(tool, nvbit_probe, **exit_kwargs))
             self.assertFalse(runner.nvbit_probe_valid(
-                tool, {**nvbit_probe, "sample_count": 0}))
+                tool, {**nvbit_probe, "sample_count": 0}, **exit_kwargs))
         for check in (
             lambda data: runner.gpubpf_probe_valid(
                 "launchlate", data, expected_thread_count=4),
@@ -1215,6 +1291,7 @@ class OfflineTests(unittest.TestCase):
             "full_drops", "bad_size_drops", "other_drops", "dirty_slots",
             "pending_events", "final_drain_events", "second_drain_events",
             "cartesian_launches", "cartesian_coordinates", "cartesian_complete",
+            "extent_x", "extent_y", "extent_z",
             "multiplicity_220", "multiplicity_44", "multiplicity_22",
             "other_multiplicity", "segment_mismatches",
             "invalid_launch_coordinates", "unique_coordinates",
@@ -1222,13 +1299,11 @@ class OfflineTests(unittest.TestCase):
             "collector_gate_passed",
         ):
             with self.subTest(key=key):
-                if key == "final_drain_events":
-                    bad_value = -1
-                elif key in ("cartesian_complete", "oracle_enabled", "oracle_passed",
+                if key in ("cartesian_complete", "oracle_enabled", "oracle_passed",
                              "collector_gate_passed"):
                     bad_value = 0
                 else:
-                    bad_value = 1
+                    bad_value = probe[key] + 1
                 broken = {**probe, key: bad_value}
                 self.assertFalse(runner.gpubpf_probe_valid(
                     "kernelretsnoop", broken,
@@ -1253,20 +1328,20 @@ class OfflineTests(unittest.TestCase):
             exact_exit_oracle=True,
         ))
 
-        nvbit = runner.parse_nvbit(
-            "kernelretsnoop",
-            "NVBIT selected_launches=220\n"
-            "NVBIT kernelretsnoop events=720896 nonzero_timestamps=720896\n",
-        )
+        nvbit = runner.parse_nvbit("kernelretsnoop", lossless_nvbit_exit_log())
         self.assertTrue(runner.nvbit_probe_valid(
             "kernelretsnoop", nvbit,
             expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
             expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+            expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
+            exact_exit_oracle=True,
         ))
         self.assertFalse(runner.nvbit_probe_valid(
             "kernelretsnoop", {**nvbit, "selected_launches": 175},
             expected_exit_events=runner.CORRECTNESS_EXIT_EVENTS,
             expected_exit_launches=runner.CORRECTNESS_EXIT_LAUNCHES,
+            expected_exit_coordinates=runner.CORRECTNESS_EXIT_COORDINATES,
+            exact_exit_oracle=True,
         ))
 
     def test_kernelretsnoop_invalid_launch_coordinates_fail_closed(self):
@@ -1282,6 +1357,31 @@ class OfflineTests(unittest.TestCase):
             exact_exit_oracle=True,
         ))
 
+    def test_nvbit_kernelretsnoop_compact_coordinate_gate_is_fail_closed(self):
+        probe = runner.parse_nvbit("kernelretsnoop", lossless_nvbit_exit_log())
+        kwargs = {
+            "expected_exit_events": runner.CORRECTNESS_EXIT_EVENTS,
+            "expected_exit_launches": runner.CORRECTNESS_EXIT_LAUNCHES,
+            "expected_exit_coordinates": runner.CORRECTNESS_EXIT_COORDINATES,
+            "exact_exit_oracle": True,
+        }
+        self.assertTrue(runner.nvbit_probe_valid("kernelretsnoop", probe, **kwargs))
+        for field in (
+            "sample_count", "nonzero_timestamps", "selected_launches",
+            "record_bytes", "bad_size_bytes", "cartesian_launches",
+            "cartesian_coordinates", "cartesian_complete", "extent_x",
+            "extent_y", "extent_z", "multiplicity_220", "multiplicity_44",
+            "multiplicity_22", "other_multiplicity", "segment_mismatches",
+            "invalid_launch_coordinates", "unique_coordinates",
+            "collector_gate_passed", "validation_blocks",
+            "process_selected_launches",
+        ):
+            with self.subTest(field=field):
+                broken = {**probe, field: probe[field] + 1}
+                self.assertFalse(runner.nvbit_probe_valid(
+                    "kernelretsnoop", broken, **kwargs
+                ))
+
     def test_timed_exit_gate_requires_frozen_pp32_geometry(self):
         layout = runner.kernelretsnoop_layout(32, correctness=False)
         text = lossless_exit_log(
@@ -1290,8 +1390,10 @@ class OfflineTests(unittest.TestCase):
             committed=layout["events"], collected=layout["events"],
             runtime_collected=layout["events"], nonzero=layout["events"],
             final_drain=8, launches=layout["launches"], coordinates=layout["coordinates"],
+            extent_x=layout["extent_x"], extent_y=layout["extent_y"],
+            extent_z=layout["extent_z"],
             multiplicity_220=0, multiplicity_44=layout["coordinates"], multiplicity_22=0,
-            other_multiplicity=0, segment_mismatches=layout["coordinates"],
+            other_multiplicity=0, segment_mismatches=0,
             unique_coordinates=layout["coordinates"], oracle_enabled=0,
             oracle_total_events=layout["events"], oracle_passed=0,
         )
@@ -1307,7 +1409,7 @@ class OfflineTests(unittest.TestCase):
         ))
         for field in ("requested_thread_slots", "requested_entries_per_thread",
                       "entries_per_thread", "sample_count", "cartesian_launches",
-                      "cartesian_coordinates"):
+                      "cartesian_coordinates", "extent_x", "extent_y", "extent_z"):
             self.assertFalse(runner.gpubpf_probe_valid(
                 "kernelretsnoop", {**probe, field: probe[field] - 1},
                 expected_thread_count=layout["thread_slots"],
@@ -1328,16 +1430,34 @@ class OfflineTests(unittest.TestCase):
                          (32768, 1441792))
         self.assertEqual((full["thread_slots"], full["events"]),
                          (524288, 23068672))
-        self.assertEqual(full["shared_bytes"], 750780448)
+        self.assertEqual(full["entries_per_thread"], 44)
+        self.assertEqual(full["shared_bytes"], 935329824)
         self.assertLess(full["shared_bytes"], 1000 * 1024 * 1024)
 
     def test_timed_exit_pairs_require_equal_events_and_launches(self):
         for field in (None, "events", "launches"):
             with self.subTest(field=field):
-                gpubpf = {"block": 1, "valid": True,
-                           "probe": {"sample_count": 40, "cartesian_launches": 5}}
-                nvbit = {"block": 1, "valid": True,
-                         "probe": {"sample_count": 40, "selected_launches": 5}}
+                layout = runner.kernelretsnoop_layout(32, correctness=False)
+                gp_probe = runner.parse_gpubpf("kernelretsnoop", lossless_exit_log(
+                    requested=layout["thread_slots"], allocated=layout["thread_slots"],
+                    requested_entries=layout["entries_per_thread"],
+                    entries=layout["entries_per_thread"], committed=layout["events"],
+                    collected=layout["events"], runtime_collected=layout["events"],
+                    nonzero=layout["events"], launches=layout["launches"],
+                    coordinates=layout["coordinates"], extent_x=layout["extent_x"],
+                    extent_y=layout["extent_y"], extent_z=layout["extent_z"],
+                    multiplicity_220=0, multiplicity_44=layout["coordinates"],
+                    multiplicity_22=0, segment_mismatches=0,
+                    unique_coordinates=layout["coordinates"], oracle_enabled=0,
+                    oracle_total_events=layout["events"], oracle_passed=0))
+                nv_probe = runner.parse_nvbit("kernelretsnoop", lossless_nvbit_exit_log(
+                    selected=layout["launches"], events=layout["events"],
+                    nonzero=layout["events"], launches=layout["launches"],
+                    coordinates=layout["coordinates"], extent_x=layout["extent_x"],
+                    multiplicity_220=0, multiplicity_44=layout["coordinates"],
+                    multiplicity_22=0, unique_coordinates=layout["coordinates"]))
+                gpubpf = {"block": 1, "valid": True, "probe": gp_probe}
+                nvbit = {"block": 1, "valid": True, "probe": nv_probe}
                 if field == "events":
                     nvbit["probe"]["sample_count"] = 39
                 if field == "launches":
@@ -1479,7 +1599,7 @@ class OfflineTests(unittest.TestCase):
                 timing_gate = gates["kernelretsnoop_timing"]
                 self.assertEqual(timing_gate["gpubpf_requested_and_allocated_thread_slots"],
                                  layout["thread_slots"])
-                self.assertEqual(timing_gate["gpubpf_exact_ring_entries_per_thread"], 16)
+                self.assertEqual(timing_gate["gpubpf_exact_ring_entries_per_thread"], 44)
                 self.assertEqual(timing_gate["gpubpf_exact_events"], layout["events"])
                 self.assertEqual(timing_gate["nvbit_exact_events"], layout["events"])
                 self.assertEqual(timing_gate["gpubpf_exact_selected_launches"], 44)
@@ -1593,11 +1713,14 @@ class OfflineTests(unittest.TestCase):
                 if config == "gpubpf_kernelretsnoop":
                     result["probe"] = {"sample_count": 40, "cartesian_launches": 5}
                 elif config == "nvbit_kernelretsnoop":
-                    result["probe"] = {"sample_count": 40, "selected_launches": 5}
+                    result["probe"] = {"sample_count": 40,
+                                       "cartesian_launches": 5,
+                                       "selected_launches": 5}
                 return result
 
             with (patch.object(runner.core, "nvidia_smi_snapshot", return_value=snapshot),
                   patch.object(runner.shutil, "copytree"),
+                  patch.object(runner, "validate_nvbit_kernelretsnoop_source_schema") as exit_schema,
                   patch.object(runner, "validate_nvbit_launchlate_source_schema") as launch_schema,
                   patch.object(runner, "validate_kernelretsnoop_source_schema"),
                   patch.object(runner, "build_nvbit", return_value=output / "nvbit.so"),
@@ -1609,6 +1732,7 @@ class OfflineTests(unittest.TestCase):
                   patch.object(runner, "run_cell", side_effect=timing) as timed):
                 self.assertEqual(runner.run_campaign(args), 0)
             launch_schema.assert_not_called()
+            exit_schema.assert_called_once()
             self.assertEqual([call.args[0].name for call in prepare.call_args_list],
                              ["kernelretsnoop", "threadhist"])
             correctness_order = [call.args[0] for call in correct.call_args_list]

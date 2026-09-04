@@ -51,13 +51,13 @@ SHM_ROOT = Path("/dev/shm")
 CLIENT_CPUS = "8-15"
 EXPECTED_GPU_THREAD_SLOTS = 22528
 CORRECTNESS_RING_ENTRIES_PER_THREAD = 256
-TIMING_RING_ENTRIES_PER_THREAD = 16
+TIMING_RING_ENTRIES_PER_THREAD = 44
 TIMING_THREADS_PER_PROMPT_TOKEN = 1024
 TIMING_EXIT_LAUNCHES = 44
 RING_SLOT_HEADER_BYTES = 24
-RING_ALIGNED_RECORD_BYTES = 88
+RING_ALIGNED_RECORD_BYTES = 40
 RING_ERROR_COUNTER_BYTES = 32
-EXIT_RECORD_BYTES = 80
+EXIT_RECORD_BYTES = 32
 CORRECTNESS_EXIT_EVENTS = 720896
 CORRECTNESS_EXIT_LAUNCHES = 220
 CORRECTNESS_EXIT_COORDINATES = 22528
@@ -96,8 +96,11 @@ def kernelretsnoop_layout(pp: int, *, correctness: bool) -> dict[str, int]:
     shared_bytes = RING_ERROR_COUNTER_BYTES + slots * (
         RING_SLOT_HEADER_BYTES + entries * RING_ALIGNED_RECORD_BYTES
     )
+    if slots % 256 != 0:
+        raise ValueError("kernelretsnoop coordinates must form x-by-256-by-1 rope geometry")
     return {"thread_slots": slots, "entries_per_thread": entries,
             "launches": launches, "coordinates": slots, "events": events,
+            "extent_x": slots // 256, "extent_y": 256, "extent_z": 1,
             "shared_bytes": shared_bytes}
 
 
@@ -158,6 +161,9 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 "nonzero_timestamps": CORRECTNESS_EXIT_EVENTS,
                 "selected_launches": CORRECTNESS_EXIT_LAUNCHES,
                 "unique_coordinates": CORRECTNESS_EXIT_COORDINATES,
+                "exact_extents_xyz": [correctness_layout["extent_x"],
+                                       correctness_layout["extent_y"],
+                                       correctness_layout["extent_z"]],
                 "requested_and_allocated_thread_slots": EXPECTED_GPU_THREAD_SLOTS,
                 "exact_ring_entries_per_thread": correctness_layout["entries_per_thread"],
                 "record_bytes": EXIT_RECORD_BYTES,
@@ -175,6 +181,11 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
                 "events": CORRECTNESS_EXIT_EVENTS,
                 "nonzero_timestamps": CORRECTNESS_EXIT_EVENTS,
                 "selected_launches": CORRECTNESS_EXIT_LAUNCHES,
+                "record_bytes": EXIT_RECORD_BYTES,
+                "exact_extents_xyz": [correctness_layout["extent_x"],
+                                       correctness_layout["extent_y"],
+                                       correctness_layout["extent_z"]],
+                "same_coordinate_multiplicity_and_collector_gate": True,
             },
         }
         gates["kernelretsnoop_timing"] = {
@@ -183,6 +194,9 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
             "gpubpf_exact_coordinates": timing_layout["coordinates"],
             "gpubpf_exact_events": timing_layout["events"],
             "gpubpf_exact_selected_launches": timing_layout["launches"],
+            "both_exact_extents_xyz": [timing_layout["extent_x"],
+                                       timing_layout["extent_y"],
+                                       timing_layout["extent_z"]],
             "gpubpf_exact_coordinate_multiplicity": {"44": timing_layout["coordinates"],
                                                        "220": 0, "22": 0, "other": 0},
             "nvbit_exact_events": timing_layout["events"],
@@ -579,6 +593,40 @@ def validate_launchlate_source_schema(directory: Path) -> None:
             )
 
 
+def validate_nvbit_kernelretsnoop_source_schema(directory: Path) -> None:
+    """Require the compact global-coordinate ABI used by both tool arms."""
+    required = {
+        "common.h": (
+            "uint64_t coordinate_x;",
+            "uint64_t coordinate_y;",
+            "uint64_t coordinate_z;",
+            "static_assert(sizeof(exit_record_t) == 4 * sizeof(uint64_t)",
+        ),
+        "inject_funcs.cu": (
+            "static_cast<uint64_t>(blockIdx.x) * blockDim.x + threadIdx.x",
+            "static_cast<uint64_t>(blockIdx.y) * blockDim.y + threadIdx.y",
+            "static_cast<uint64_t>(blockIdx.z) * blockDim.z + threadIdx.z",
+            "sizeof(exit_record_t)",
+        ),
+        "observability.cu": (
+            "state->exit_bad_size_bytes += bytes % sizeof(exit_record_t);",
+            "state->exit_events.push_back(*record);",
+            "validate_exit_events(state, launches)",
+            "NVBIT kernelretsnoop record_bytes=%zu",
+            "NVBIT kernelretsnoop cartesian_complete=%u",
+            "NVBIT kernelretsnoop collector_gate_passed=%u",
+        ),
+    }
+    for name, markers in required.items():
+        text = (directory / name).read_text()
+        missing = [marker for marker in markers if marker not in text]
+        if missing:
+            raise RuntimeError(
+                f"NVBit kernelretsnoop source lacks the compact coordinate ABI in {name}: "
+                + ", ".join(missing)
+            )
+
+
 def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
     """Require the fail-closed raw-pair affine ABI in the copied NVBit tool."""
     required = {
@@ -666,15 +714,17 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
 
 
 def validate_kernelretsnoop_source_schema(directory: Path) -> None:
-    """Require the per-launch block-dimension record ABI used by the oracle."""
+    """Require the compact global-coordinate record ABI used by the oracle."""
     required = {
         "kernelretsnoop.bpf.c": (
-            "u64 block_dim_x, block_dim_y, block_dim_z;",
-            "bpf_get_block_dim(&data.block_dim_x",
+            "u64 coordinate_x, coordinate_y, coordinate_z;",
+            "data.coordinate_x = block_x * block_dim_x + thread_x;",
+            "data.coordinate_y = block_y * block_dim_y + thread_y;",
+            "data.coordinate_z = block_z * block_dim_z + thread_z;",
             "sizeof(struct data)",
         ),
         "kernelretsnoop.c": (
-            "uint64_t block_dim_x, block_dim_y, block_dim_z;",
+            "uint64_t coordinate_x, coordinate_y, coordinate_z;",
             "event_coordinate(&state->events[i]",
             "Invalid launch coordinates:",
             "sizeof(struct data)",
@@ -688,7 +738,7 @@ def validate_kernelretsnoop_source_schema(directory: Path) -> None:
         missing = [marker for marker in markers if marker not in text]
         if missing:
             raise RuntimeError(
-                f"kernelretsnoop source lacks the block-dimension record ABI in {name}: "
+                f"kernelretsnoop source lacks the compact coordinate record ABI in {name}: "
                 + ", ".join(missing)
             )
 
@@ -762,6 +812,9 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             "cartesian_launches": "Cartesian launches",
             "cartesian_coordinates": "Cartesian coordinates",
             "cartesian_complete": "Cartesian complete",
+            "extent_x": "Coordinate extent x",
+            "extent_y": "Coordinate extent y",
+            "extent_z": "Coordinate extent z",
             "multiplicity_220": "Coordinate multiplicity 220",
             "multiplicity_44": "Coordinate multiplicity 44",
             "multiplicity_22": "Coordinate multiplicity 22",
@@ -987,10 +1040,42 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
     if tool == "kernelretsnoop":
         events = last(r"NVBIT kernelretsnoop events=(\d+)")
         nonzero = last(r"NVBIT kernelretsnoop events=\d+ nonzero_timestamps=(\d+)")
+        def field(name: str, default: int = -1) -> int:
+            return last(rf"^NVBIT kernelretsnoop {name}=(\d+)(?:\s|$)",
+                        default, re.MULTILINE)
         return {
             "sample_count": events,
             "nonzero_timestamps": nonzero,
             "selected_launches": selected,
+            "record_bytes": field("record_bytes"),
+            "bad_size_bytes": field("bad_size_bytes"),
+            "cartesian_launches": field("cartesian_launches"),
+            "cartesian_coordinates": field("cartesian_coordinates"),
+            "cartesian_complete": field("cartesian_complete"),
+            "extent_x": field("extent_x"),
+            "extent_y": last(r"^NVBIT kernelretsnoop extent_x=\d+ extent_y=(\d+)",
+                             -1, re.MULTILINE),
+            "extent_z": last(r"^NVBIT kernelretsnoop extent_x=\d+ extent_y=\d+ extent_z=(\d+)$",
+                             -1, re.MULTILINE),
+            "multiplicity_220": field("multiplicity_220"),
+            "multiplicity_44": last(r"^NVBIT kernelretsnoop multiplicity_220=\d+ multiplicity_44=(\d+)",
+                                    -1, re.MULTILINE),
+            "multiplicity_22": last(r"^NVBIT kernelretsnoop multiplicity_220=\d+ multiplicity_44=\d+ multiplicity_22=(\d+)",
+                                    -1, re.MULTILINE),
+            "other_multiplicity": last(r"^NVBIT kernelretsnoop multiplicity_220=\d+ multiplicity_44=\d+ multiplicity_22=\d+ multiplicity_other=(\d+)$",
+                                       -1, re.MULTILINE),
+            "segment_mismatches": field("segment_mismatches"),
+            "invalid_launch_coordinates": last(
+                r"^NVBIT kernelretsnoop segment_mismatches=\d+ invalid_coordinates=(\d+)",
+                -1, re.MULTILINE),
+            "unique_coordinates": last(
+                r"^NVBIT kernelretsnoop segment_mismatches=\d+ invalid_coordinates=\d+ unique_coordinates=(\d+)$",
+                -1, re.MULTILINE),
+            "collector_gate_passed": field("collector_gate_passed"),
+            "validation_blocks": len(re.findall(
+                r"^NVBIT kernelretsnoop record_bytes=\d+$", text, re.MULTILINE)),
+            "process_selected_launches": last(
+                r"^NVBIT_OBS process_selected_launches=(\d+)$", -1, re.MULTILINE),
         }
     if tool == "threadhist":
         nonzero = last(r"NVBIT threadhist nonzero_threads=(\d+)")
@@ -1134,14 +1219,40 @@ def launch_uncertainty_valid(classified: int, uncertain: int, total: int) -> boo
 
 def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
                       expected_exit_events: int | None = None,
-                      expected_exit_launches: int | None = None) -> bool:
+                      expected_exit_launches: int | None = None,
+                      expected_exit_coordinates: int | None = None,
+                      exact_exit_oracle: bool = False) -> bool:
     samples = int(probe.get("sample_count", 0))
     selected = int(probe.get("selected_launches", 0))
     if samples <= 0 or selected <= 0:
         return False
     if tool == "kernelretsnoop":
+        if expected_exit_coordinates is None or expected_exit_coordinates % 256:
+            return False
+        expected_multiplicities = (
+            (CORRECTNESS_MULTIPLICITY_220, CORRECTNESS_MULTIPLICITY_44,
+             CORRECTNESS_MULTIPLICITY_22, 0)
+            if exact_exit_oracle else (0, expected_exit_coordinates, 0, 0)
+        )
         return (
             int(probe.get("nonzero_timestamps", 0)) == samples
+            and int(probe.get("record_bytes", -1)) == EXIT_RECORD_BYTES
+            and int(probe.get("bad_size_bytes", -1)) == 0
+            and int(probe.get("cartesian_launches", -1)) == selected
+            and int(probe.get("cartesian_coordinates", -1)) == expected_exit_coordinates
+            and int(probe.get("cartesian_complete", -1)) == 1
+            and int(probe.get("extent_x", -1)) == expected_exit_coordinates // 256
+            and int(probe.get("extent_y", -1)) == 256
+            and int(probe.get("extent_z", -1)) == 1
+            and tuple(int(probe.get(key, -1)) for key in (
+                "multiplicity_220", "multiplicity_44", "multiplicity_22",
+                "other_multiplicity")) == expected_multiplicities
+            and int(probe.get("segment_mismatches", -1)) == 0
+            and int(probe.get("invalid_launch_coordinates", -1)) == 0
+            and int(probe.get("unique_coordinates", -1)) == expected_exit_coordinates
+            and int(probe.get("collector_gate_passed", -1)) == 1
+            and int(probe.get("validation_blocks", -1)) == 1
+            and int(probe.get("process_selected_launches", -1)) == selected
             and (expected_exit_events is None or samples == expected_exit_events)
             and (expected_exit_launches is None or selected == expected_exit_launches)
         )
@@ -1218,6 +1329,10 @@ def run_nvbit_once(
         tool, result["probe"],
         expected_exit_events=(exit_layout["events"] if tool == "kernelretsnoop" else None),
         expected_exit_launches=(exit_layout["launches"] if tool == "kernelretsnoop" else None),
+        expected_exit_coordinates=(
+            exit_layout["coordinates"] if tool == "kernelretsnoop" else None
+        ),
+        exact_exit_oracle=False,
     )
     return result
 
@@ -1264,7 +1379,13 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
             and int(probe.get("collector_gate_passed", -1)) == 1
             and launches > 0
             and coordinates > 0
+            and expected_exit_coordinates is not None
+            and expected_exit_coordinates % 256 == 0
+            and int(probe.get("extent_x", -1)) == expected_exit_coordinates // 256
+            and int(probe.get("extent_y", -1)) == 256
+            and int(probe.get("extent_z", -1)) == 1
             and coordinates == unique_coordinates == multiplicity_coordinates
+            and int(probe.get("segment_mismatches", -1)) == 0
             and int(probe.get("oracle_enabled", -1)) == int(exact_exit_oracle)
             and int(probe.get("oracle_total_events", -1)) == samples
             and int(probe.get("oracle_passed", -1)) == int(exact_exit_oracle)
@@ -1517,6 +1638,10 @@ def run_correctness_cell(
                 expected_exit_launches=(
                     CORRECTNESS_EXIT_LAUNCHES if tool == "kernelretsnoop" else None
                 ),
+                expected_exit_coordinates=(
+                    CORRECTNESS_EXIT_COORDINATES if tool == "kernelretsnoop" else None
+                ),
+                exact_exit_oracle=tool == "kernelretsnoop",
             )
     return result
 
@@ -1834,13 +1959,23 @@ def reconcile_kernelret_block(state: dict[str, Any], block: int) -> None:
         return
     gpubpf_probe = gpubpf.get("probe", {})
     nvbit_probe = nvbit.get("probe", {})
-    matched = (
-        gpubpf_probe.get("sample_count") == nvbit_probe.get("sample_count")
-        and gpubpf_probe.get("cartesian_launches")
+    matched_fields = (
+        "sample_count", "nonzero_timestamps", "record_bytes",
+        "cartesian_launches", "cartesian_coordinates", "cartesian_complete",
+        "extent_x", "extent_y", "extent_z", "multiplicity_220",
+        "multiplicity_44", "multiplicity_22", "other_multiplicity",
+        "segment_mismatches", "invalid_launch_coordinates",
+        "unique_coordinates", "collector_gate_passed",
+    )
+    matched = all(gpubpf_probe.get(key) == nvbit_probe.get(key)
+                  for key in matched_fields)
+    matched = matched and (
+        gpubpf_probe.get("cartesian_launches")
         == nvbit_probe.get("selected_launches")
     )
     comparison = {
         "matched": matched,
+        "matched_fields": list(matched_fields),
         "gpubpf_events": gpubpf_probe.get("sample_count"),
         "nvbit_events": nvbit_probe.get("sample_count"),
         "gpubpf_launches": gpubpf_probe.get("cartesian_launches"),
@@ -2044,6 +2179,8 @@ def run_campaign(args: argparse.Namespace) -> int:
             nvbit_build_dir,
             ignore=shutil.ignore_patterns("*.o", "*.so", "*.fatbin", "flush_channel.c"),
         )
+        if "kernelretsnoop" in tools:
+            validate_nvbit_kernelretsnoop_source_schema(nvbit_build_dir)
         if "launchlate" in tools:
             validate_nvbit_launchlate_source_schema(nvbit_build_dir)
         args.nvbit_tool = build_nvbit(nvbit_build_dir, output_dir)

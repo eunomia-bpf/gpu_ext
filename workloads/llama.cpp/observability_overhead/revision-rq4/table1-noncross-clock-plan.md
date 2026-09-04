@@ -59,19 +59,23 @@ zero and report the fixed prompt count plus finite positive throughput.
 
 For `kernelretsnoop` correctness, gpubpf must report exactly 720,896 committed,
 runtime-collected, host-collected, and nonzero-timestamp events; 220 launches;
-22,528 unique Cartesian coordinates; 22,528 requested and allocated slots;
-exactly 256 entries per slot; an 80-byte record; exact coordinate multiplicities
+22,528 unique Cartesian coordinates with extent 88×256×1; 22,528 requested and
+allocated slots; exactly 256 entries per slot; a 32-byte
+`(global_x, global_y, global_z, timestamp)` record; exact coordinate multiplicities
 1,024 at 220, 1,024 at 44, 20,480 at 22, and zero other; zero segment mismatch;
 and enabled/passed exact oracle fields. All drop, dirty, pending, second-drain,
 and invalid-coordinate counters must be zero, and Cartesian/collector gates
-must pass. NVBit must report exactly the same 720,896 nonzero-timestamp events
-and 220 selected launches. Timed cells keep the same generic lossless and
-Cartesian-complete gpubpf gate with the exact correctness oracle explicitly
-disabled; every block additionally requires exact gpubpf/NVBit equality for
-event and selected-launch counts. For timing, the frozen rope geometry is
+must pass. NVBit must report exactly the same 720,896 nonzero-timestamp events,
+220 selected launches, 32-byte record, extent, coordinate multiplicities, and
+collector gate. Timed cells keep the same generic lossless and Cartesian-complete
+gate in both systems with the exact correctness oracle explicitly disabled;
+every block additionally requires exact gpubpf/NVBit equality for record size,
+timestamps, extents, coordinate multiplicities, collector status, event count,
+and selected-launch count. For timing, the frozen rope geometry is
 `4 KV heads × pp tokens × 256 threads`: pp32 therefore requires exactly 32,768
-coordinates, 44 launches, and 1,441,792 events, while pp512 requires exactly
-524,288 coordinates, 44 launches, and 23,068,672 events. Every timing
+coordinates with extent 128×256×1, 44 launches, and 1,441,792 events, while
+pp512 requires exactly 524,288 coordinates with extent 2,048×256×1, 44 launches,
+and 23,068,672 events. Every timing
 coordinate must have multiplicity 44, with all other multiplicity bins zero.
 Both gpubpf and NVBit
 must independently report those exact event/launch totals before their pair is
@@ -81,14 +85,18 @@ The failed campaign `raw/preflight-575-noncross-clock-01` remains failed and is
 never resumed or reclassified: its pp32 gpubpf timing cell allocated 22,528
 slots but observed 32,768 coordinates on each of 44 launches, producing 450,560
 OOB drops. The replacement uses a declared source patch to set the ring map
-capacity before load. Correctness remains the original 22,528×256 exact-oracle
-layout. Timing uses `pp×1,024` slots and exactly 16 entries per slot. At pp512,
-the runtime's 24-byte slot header plus `16×88` aligned record bytes consumes
-750,780,448 bytes including error counters (about 716 MiB), below the frozen
-1,000 MiB segment budget. Dense 256-entry timing would exceed 10 GiB; even a
-dense 44-record payload alone would exceed 1.7 GiB. The 16-entry setting does
-not relax losslessness: any full/OOB/drop/pending/dirty/error counter or missed
-event still rejects the cell.
+capacity before load and compact both tool arms to the same observable.
+Correctness remains the 22,528×256 exact-oracle layout. Timing uses
+`pp×1,024` slots and exactly 44 entries per slot, one per selected launch. A
+32-byte value has a 40-byte aligned ring record. At pp512, the runtime's
+24-byte slot header plus `44×40` record bytes consumes 935,329,824 bytes
+including error counters (892.000031 MiB), below the frozen 1,000 MiB segment
+budget. Thus all 44 records fit even if no concurrent drain completes; the 45th
+write would be the first that could see a full slot. Concurrent collection
+remains inside the measured run, but correctness no longer depends on its
+speed. Any full/OOB/drop/pending/dirty/error counter, malformed NVBit channel
+payload, or missed event rejects the cell. Global coordinates intentionally do
+not preserve the original block/thread decomposition.
 
 For `threadhist`, gpubpf must report a positive total and nonzero-thread count,
 exactly 1,048,576 configured and read-back entries, exactly 8,388,608 read-back

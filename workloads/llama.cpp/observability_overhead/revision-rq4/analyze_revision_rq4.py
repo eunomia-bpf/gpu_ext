@@ -25,13 +25,13 @@ EXPECTED_OUTPUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_OUTPUT_BYTES = 47
 EXPECTED_GPU_THREAD_SLOTS = 22528
 CORRECTNESS_RING_ENTRIES_PER_THREAD = 256
-TIMING_RING_ENTRIES_PER_THREAD = 16
+TIMING_RING_ENTRIES_PER_THREAD = 44
 TIMING_THREADS_PER_PROMPT_TOKEN = 1024
 TIMING_EXIT_LAUNCHES = 44
 RING_SLOT_HEADER_BYTES = 24
-RING_ALIGNED_RECORD_BYTES = 88
+RING_ALIGNED_RECORD_BYTES = 40
 RING_ERROR_COUNTER_BYTES = 32
-EXIT_RECORD_BYTES = 80
+EXIT_RECORD_BYTES = 32
 CORRECTNESS_EXIT_EVENTS = 720896
 CORRECTNESS_EXIT_LAUNCHES = 220
 CORRECTNESS_EXIT_COORDINATES = 22528
@@ -57,9 +57,12 @@ def kernelretsnoop_layout(pp: int, *, correctness: bool) -> dict[str, int]:
             raise ValueError("kernelretsnoop timing layout is defined only for pp32/pp512")
         slots, entries = pp * TIMING_THREADS_PER_PROMPT_TOKEN, TIMING_RING_ENTRIES_PER_THREAD
         launches, events = TIMING_EXIT_LAUNCHES, slots * TIMING_EXIT_LAUNCHES
+    if slots % 256 != 0:
+        raise ValueError("kernelretsnoop coordinates must form x-by-256-by-1 rope geometry")
     return {
         "thread_slots": slots, "entries_per_thread": entries,
         "launches": launches, "coordinates": slots, "events": events,
+        "extent_x": slots // 256, "extent_y": 256, "extent_z": 1,
         "shared_bytes": RING_ERROR_COUNTER_BYTES + slots * (
             RING_SLOT_HEADER_BYTES + entries * RING_ALIGNED_RECORD_BYTES),
     }
@@ -267,7 +270,11 @@ def gpubpf_valid(tool: str, probe: dict[str, Any], params: dict[str, Any],
                 and integer(probe, "cartesian_complete") == 1
                 and integer(probe, "collector_gate_passed") == 1
                 and launches > 0 and coordinates > 0
+                and integer(probe, "extent_x") == layout["extent_x"]
+                and integer(probe, "extent_y") == layout["extent_y"]
+                and integer(probe, "extent_z") == layout["extent_z"]
                 and coordinates == integer(probe, "unique_coordinates") == sum(multiplicities)
+                and integer(probe, "segment_mismatches") == 0
                 and integer(probe, "oracle_enabled") == exact
                 and integer(probe, "oracle_total_events") == samples
                 and integer(probe, "oracle_passed") == exact
@@ -327,8 +334,33 @@ def nvbit_valid(tool: str, probe: dict[str, Any], params: dict[str, Any],
             return False
         if tool == "kernelretsnoop":
             layout = kernelretsnoop_layout(params["pp"], correctness=correctness)
-            valid = integer(probe, "nonzero_timestamps") == samples
-            return valid and samples == layout["events"] and selected == layout["launches"]
+            multiplicities = tuple(integer(probe, key) for key in (
+                "multiplicity_220", "multiplicity_44", "multiplicity_22",
+                "other_multiplicity"))
+            expected_multiplicities = (
+                CORRECTNESS_MULTIPLICITIES if correctness
+                else (0, layout["coordinates"], 0, 0)
+            )
+            return (
+                integer(probe, "nonzero_timestamps") == samples
+                and integer(probe, "record_bytes") == EXIT_RECORD_BYTES
+                and integer(probe, "bad_size_bytes") == 0
+                and integer(probe, "cartesian_launches") == selected
+                and integer(probe, "cartesian_coordinates") == layout["coordinates"]
+                and integer(probe, "cartesian_complete") == 1
+                and integer(probe, "extent_x") == layout["extent_x"]
+                and integer(probe, "extent_y") == layout["extent_y"]
+                and integer(probe, "extent_z") == layout["extent_z"]
+                and multiplicities == expected_multiplicities
+                and integer(probe, "segment_mismatches") == 0
+                and integer(probe, "invalid_launch_coordinates") == 0
+                and integer(probe, "unique_coordinates") == layout["coordinates"]
+                and integer(probe, "collector_gate_passed") == 1
+                and integer(probe, "validation_blocks") == 1
+                and integer(probe, "process_selected_launches") == selected
+                and samples == layout["events"]
+                and selected == layout["launches"]
+            )
         if tool == "threadhist":
             return integer(probe, "nonzero_threads") > 0
         histogram = probe.get("histogram")
@@ -480,8 +512,16 @@ def analyze(campaign: Path) -> dict[str, Any]:
                 config in cells for config in ("gpubpf_kernelretsnoop", "nvbit_kernelretsnoop")):
             gp = cells["gpubpf_kernelretsnoop"]["probe"]
             nv = cells["nvbit_kernelretsnoop"]["probe"]
-            if (gp["sample_count"] != nv["sample_count"]
-                    or gp["cartesian_launches"] != nv["selected_launches"]):
+            matched_fields = (
+                "sample_count", "nonzero_timestamps", "record_bytes",
+                "cartesian_launches", "cartesian_coordinates", "cartesian_complete",
+                "extent_x", "extent_y", "extent_z", "multiplicity_220",
+                "multiplicity_44", "multiplicity_22", "other_multiplicity",
+                "segment_mismatches", "invalid_launch_coordinates",
+                "unique_coordinates", "collector_gate_passed",
+            )
+            if (any(gp.get(key) != nv.get(key) for key in matched_fields)
+                    or gp.get("cartesian_launches") != nv.get("selected_launches")):
                 rejected_cells.extend([
                     {"block": block, "config": "gpubpf_kernelretsnoop", "reason": "pair mismatch"},
                     {"block": block, "config": "nvbit_kernelretsnoop", "reason": "pair mismatch"},

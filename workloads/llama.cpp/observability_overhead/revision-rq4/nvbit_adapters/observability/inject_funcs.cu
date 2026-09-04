@@ -16,12 +16,9 @@ extern "C" __device__ __noinline__ void observe_exit(
     if (!predicate) return;
     if (mode == OBS_KERNELRETSNOOP) {
         exit_record_t record = {
-            static_cast<uint64_t>(blockIdx.x),
-            static_cast<uint64_t>(blockIdx.y),
-            static_cast<uint64_t>(blockIdx.z),
-            static_cast<uint64_t>(threadIdx.x),
-            static_cast<uint64_t>(threadIdx.y),
-            static_cast<uint64_t>(threadIdx.z),
+            static_cast<uint64_t>(blockIdx.x) * blockDim.x + threadIdx.x,
+            static_cast<uint64_t>(blockIdx.y) * blockDim.y + threadIdx.y,
+            static_cast<uint64_t>(blockIdx.z) * blockDim.z + threadIdx.z,
             read_globaltimer_ns(),
         };
         reinterpret_cast<ChannelDev*>(channel_ptr)->push(

@@ -12,6 +12,7 @@ import run_revision_rq4 as runner
 from test_offline import (
     lossless_exit_log,
     lossless_launchlate_log,
+    lossless_nvbit_exit_log,
     lossless_nvbit_launchlate_log,
 )
 
@@ -75,10 +76,29 @@ def timing_exit_probe(pp):
         committed=layout["events"], collected=layout["events"],
         runtime_collected=layout["events"], nonzero=layout["events"],
         launches=layout["launches"], coordinates=layout["coordinates"],
+        extent_x=layout["extent_x"], extent_y=layout["extent_y"],
+        extent_z=layout["extent_z"],
         multiplicity_220=0, multiplicity_44=layout["coordinates"], multiplicity_22=0,
-        other_multiplicity=0, segment_mismatches=layout["coordinates"],
+        other_multiplicity=0, segment_mismatches=0,
         unique_coordinates=layout["coordinates"], oracle_enabled=0,
         oracle_total_events=layout["events"], oracle_passed=0,
+    ))
+
+
+def nvbit_exit_probe(pp, correctness=False):
+    layout = runner.kernelretsnoop_layout(pp, correctness=correctness)
+    if correctness:
+        multiplicities = (1024, 1024, 20480, 0)
+    else:
+        multiplicities = (0, layout["coordinates"], 0, 0)
+    return runner.parse_nvbit("kernelretsnoop", lossless_nvbit_exit_log(
+        selected=layout["launches"], events=layout["events"],
+        nonzero=layout["events"], launches=layout["launches"],
+        coordinates=layout["coordinates"], extent_x=layout["extent_x"],
+        extent_y=layout["extent_y"], extent_z=layout["extent_z"],
+        multiplicity_220=multiplicities[0], multiplicity_44=multiplicities[1],
+        multiplicity_22=multiplicities[2], multiplicity_other=multiplicities[3],
+        unique_coordinates=layout["coordinates"],
     ))
 
 
@@ -109,11 +129,11 @@ def two_tool_state():
         "kernelretsnoop_correctness_thread_slots": 22528,
         "kernelretsnoop_correctness_ring_entries_per_thread": 256,
         "kernelretsnoop_timing_thread_slots": 32768,
-        "kernelretsnoop_timing_ring_entries_per_thread": 16,
+        "kernelretsnoop_timing_ring_entries_per_thread": 44,
         "kernelretsnoop_timing_expected_launches": 44,
         "kernelretsnoop_timing_expected_coordinates": 32768,
         "kernelretsnoop_timing_expected_events": 1441792,
-        "kernelretsnoop_timing_shared_bytes": 46923808,
+        "kernelretsnoop_timing_shared_bytes": 58458144,
         "uprobe_binary": "/bin/libggml-cuda.so",
         "uprobe_symbol_hint": "selected_kernel",
         "uvm": False,
@@ -129,11 +149,7 @@ def two_tool_state():
     }
     exact_exit = runner.parse_gpubpf("kernelretsnoop", lossless_exit_log())
     timed_exit = timing_exit_probe(32)
-    nvbit_exit = {
-        "sample_count": audit.CORRECTNESS_EXIT_EVENTS,
-        "nonzero_timestamps": audit.CORRECTNESS_EXIT_EVENTS,
-        "selected_launches": audit.CORRECTNESS_EXIT_LAUNCHES,
-    }
+    nvbit_exit = nvbit_exit_probe(32, correctness=True)
     gpubpf_hist = {
         "sample_count": 8192,
         "nonzero_threads": 1024,
@@ -146,10 +162,7 @@ def two_tool_state():
                   "selected_launches": audit.CORRECTNESS_EXIT_LAUNCHES}
     probes = {
         "gpubpf_kernelretsnoop": (exact_exit, timed_exit),
-        "nvbit_kernelretsnoop": (nvbit_exit, {
-            "sample_count": 1441792, "nonzero_timestamps": 1441792,
-            "selected_launches": 44,
-        }),
+        "nvbit_kernelretsnoop": (nvbit_exit, nvbit_exit_probe(32)),
         "gpubpf_threadhist": (gpubpf_hist, gpubpf_hist),
         "nvbit_threadhist": (nvbit_hist, nvbit_hist),
     }
@@ -205,10 +218,8 @@ def full_two_tool_state(preflight_path):
         kernelretsnoop_timing_shared_bytes=layout["shared_bytes"],
     )
     state["configs"]["gpubpf_kernelretsnoop"]["runs"][0]["probe"] = timing_exit_probe(512)
-    state["configs"]["nvbit_kernelretsnoop"]["runs"][0]["probe"] = {
-        "sample_count": layout["events"], "nonzero_timestamps": layout["events"],
-        "selected_launches": layout["launches"],
-    }
+    state["configs"]["nvbit_kernelretsnoop"]["runs"][0]["probe"] = \
+        nvbit_exit_probe(512)
     configs = audit.selected_configs(tuple(state["params"]["tools"]))
     state["schedule"] = audit.fixed_schedule(configs, 10)
     for config in configs:
@@ -235,10 +246,8 @@ def full_three_tool_state():
         kernelretsnoop_timing_shared_bytes=layout["shared_bytes"],
     )
     state["configs"]["gpubpf_kernelretsnoop"]["runs"][0]["probe"] = timing_exit_probe(512)
-    state["configs"]["nvbit_kernelretsnoop"]["runs"][0]["probe"] = {
-        "sample_count": layout["events"], "nonzero_timestamps": layout["events"],
-        "selected_launches": layout["launches"],
-    }
+    state["configs"]["nvbit_kernelretsnoop"]["runs"][0]["probe"] = \
+        nvbit_exit_probe(512)
     configs = audit.selected_configs(audit.TASKS)
     state["schedule"] = audit.fixed_schedule(configs, 10)
     for config in configs:
@@ -310,7 +319,7 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
             "kernelretsnoop_timing_expected_launches": 43,
             "kernelretsnoop_timing_expected_coordinates": 32767,
             "kernelretsnoop_timing_expected_events": 1441791,
-            "kernelretsnoop_timing_shared_bytes": 46923807,
+            "kernelretsnoop_timing_shared_bytes": 58458143,
             "schedule_seed": 1798,
             "bootstrap_samples": 9999,
             "expected_driver": "610.43.02",

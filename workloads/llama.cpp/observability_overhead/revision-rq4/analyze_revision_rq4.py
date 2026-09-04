@@ -149,7 +149,30 @@ def validate_frozen_params(params: dict[str, Any]) -> None:
             raise ValueError("explicit verifier treatment lacks an enabled runtime record")
 
 
-def verifier_valid(cell: dict[str, Any], params: dict[str, Any]) -> bool:
+def verifier_map_expectation(tool: str, *, correctness: bool) -> dict[str, int]:
+    if tool == "kernelretsnoop":
+        return {
+            "type": 1527,
+            "key_size": 4,
+            "value_size": 32,
+            "max_entries": (
+                CORRECTNESS_RING_ENTRIES_PER_THREAD
+                if correctness else TIMING_RING_ENTRIES_PER_THREAD
+            ),
+        }
+    if tool == "threadhist":
+        return {
+            "type": 1502,
+            "key_size": 4,
+            "value_size": 8,
+            "max_entries": 1,
+        }
+    raise ValueError(f"explicit verifier evidence is unsupported for {tool}")
+
+
+def verifier_valid(
+    cell: dict[str, Any], params: dict[str, Any], tool: str, *, correctness: bool
+) -> bool:
     level = params.get("verifier_level", "DEFAULT")
     if level == "DEFAULT":
         return True
@@ -158,35 +181,57 @@ def verifier_valid(cell: dict[str, Any], params: dict[str, Any]) -> bool:
         return False
     if evidence.get("required") is not True or evidence.get("passed") is not True:
         return False
-    logs = evidence.get("logs_scanned")
-    matched = evidence.get("matched_log_sources")
+    executable = "llama_cli" if correctness else "llama_bench"
+    expected_log = f"{executable}.log"
+    target = params.get("target_symbol")
+    try:
+        expected_map = verifier_map_expectation(tool, correctness=correctness)
+    except ValueError:
+        return False
     if (
-        not isinstance(logs, list)
-        or not logs
-        or not all(isinstance(name, str) and name for name in logs)
-        or not isinstance(matched, list)
-        or not matched
-        or not all(isinstance(name, str) and name in logs for name in matched)
+        not isinstance(target, str)
+        or not target
+        or evidence.get("program") != "cuda__retprobe"
+        or evidence.get("attach") != f"kretprobe/{target}"
+        or type(evidence.get("target_pid")) is not int
+        or evidence["target_pid"] <= 0
+        or evidence.get("execution_record") != f"{executable}.execution.json"
+        or evidence.get("execution_error") is not None
+        or evidence.get("expected_map") != expected_map
+        or evidence.get("logs_scanned") != [expected_log]
+        or evidence.get("logs_missing") != []
+        or evidence.get("matched_log_sources") != [expected_log]
+        or evidence.get("foreign_pid_records") != 0
+        or evidence.get("unexpected_target_records") != 0
+        or evidence.get("unparsed_records") != 0
     ):
         return False
     if level == "STRICT":
         counts = evidence.get("instruction_counts")
+        maps = evidence.get("verified_maps")
         return (
-            type(evidence.get("accepted_records")) is int
-            and evidence["accepted_records"] >= 1
+            evidence.get("accepted_records") == 1
             and isinstance(counts, list)
-            and bool(counts)
-            and all(type(count) is int and count > 0 for count in counts)
-            and type(evidence.get("verified_map_records")) is int
-            and evidence["verified_map_records"] >= 1
+            and len(counts) == 1
+            and type(counts[0]) is int
+            and counts[0] > 0
+            and evidence.get("verified_map_records") == 1
+            and isinstance(maps, list)
+            and len(maps) == 1
+            and isinstance(maps[0], dict)
+            and set(maps[0]) == {"fd", *expected_map}
+            and type(maps[0].get("fd")) is int
+            and maps[0]["fd"] >= 0
+            and all(maps[0].get(field) == value for field, value in expected_map.items())
             and evidence.get("skipped_records") == 0
             and evidence.get("rejected") is False
         )
     return (
-        type(evidence.get("skipped_records")) is int
-        and evidence["skipped_records"] >= 1
+        evidence.get("skipped_records") == 1
         and evidence.get("accepted_records") == 0
+        and evidence.get("instruction_counts") == []
         and evidence.get("verified_map_records") == 0
+        and evidence.get("verified_maps") == []
         and evidence.get("rejected") is False
     )
 
@@ -471,7 +516,8 @@ def cell_valid(cell: dict[str, Any], config: str, params: dict[str, Any],
     if not isinstance(probe, dict):
         return False
     return (
-        gpubpf_valid(tool, probe, params, correctness) and verifier_valid(cell, params)
+        gpubpf_valid(tool, probe, params, correctness)
+        and verifier_valid(cell, params, tool, correctness=correctness)
         if system == "gpubpf" else nvbit_valid(tool, probe, params, correctness)
     )
 

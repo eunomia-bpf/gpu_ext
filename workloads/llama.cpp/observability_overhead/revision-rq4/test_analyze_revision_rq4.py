@@ -193,21 +193,39 @@ def with_explicit_verifier(state, level):
         "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
         "BPFTIME_LLVM_JIT": "ON",
     }
-    evidence = {
-        "level": level,
-        "required": True,
-        "passed": True,
-        "accepted_records": 1 if level == "STRICT" else 0,
-        "instruction_counts": [13] if level == "STRICT" else [],
-        "verified_map_records": 1 if level == "STRICT" else 0,
-        "skipped_records": 1 if level == "NO_VERIFY" else 0,
-        "rejected": False,
-        "logs_scanned": ["agent.log", "llama_bench.log"],
-        "matched_log_sources": ["llama_bench.log"],
-    }
     for matrix_name, entries_name in (("correctness", "attempts"), ("configs", "runs")):
+        correctness = matrix_name == "correctness"
+        executable = "llama_cli" if correctness else "llama_bench"
         for config, records in state[matrix_name].items():
             if config.startswith("gpubpf_"):
+                tool = config.removeprefix("gpubpf_")
+                expected_map = audit.verifier_map_expectation(
+                    tool, correctness=correctness
+                )
+                maps = ([{"fd": 16, **expected_map}] if level == "STRICT" else [])
+                evidence = {
+                    "level": level,
+                    "required": True,
+                    "passed": True,
+                    "program": "cuda__retprobe",
+                    "attach": "kretprobe/selected_kernel",
+                    "target_pid": 4321,
+                    "execution_record": f"{executable}.execution.json",
+                    "execution_error": None,
+                    "expected_map": expected_map,
+                    "accepted_records": 1 if level == "STRICT" else 0,
+                    "instruction_counts": [13] if level == "STRICT" else [],
+                    "verified_map_records": len(maps),
+                    "verified_maps": maps,
+                    "skipped_records": 1 if level == "NO_VERIFY" else 0,
+                    "rejected": False,
+                    "foreign_pid_records": 0,
+                    "unexpected_target_records": 0,
+                    "unparsed_records": 0,
+                    "logs_scanned": [f"{executable}.log"],
+                    "logs_missing": [],
+                    "matched_log_sources": [f"{executable}.log"],
+                }
                 for cell in records[entries_name]:
                     cell["verifier"] = copy.deepcopy(evidence)
     return state

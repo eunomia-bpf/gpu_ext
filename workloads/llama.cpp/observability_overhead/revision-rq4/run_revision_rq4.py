@@ -171,67 +171,187 @@ def require_explicit_verifier_build(args: argparse.Namespace) -> dict[str, str]:
     return config
 
 
-def verifier_evidence(args: argparse.Namespace, run_dir: Path) -> dict[str, Any]:
-    """Require the selected Table 1 object to be admitted or explicitly bypassed."""
+def verifier_map_expectation(
+    args: argparse.Namespace, tool: str, *, correctness: bool
+) -> dict[str, int]:
+    """Return the one GPU map expected for each supported Table 1 policy."""
+    if tool == "kernelretsnoop":
+        return {
+            "type": 1527,
+            "key_size": 4,
+            "value_size": 32,
+            "max_entries": kernelretsnoop_layout(
+                args.pp, correctness=correctness
+            )["entries_per_thread"],
+        }
+    if tool == "threadhist":
+        return {
+            "type": 1502,
+            "key_size": 4,
+            "value_size": 8,
+            "max_entries": 1,
+        }
+    raise ValueError(f"explicit verifier evidence is unsupported for {tool}")
+
+
+def verifier_evidence(
+    args: argparse.Namespace, run_dir: Path, tool: str, *, correctness: bool
+) -> dict[str, Any]:
+    """Bind one policy admission and its map to the recorded target process."""
     level = selected_verifier_level(args)
     if level == "DEFAULT":
         return {"level": level, "required": False, "passed": True}
-    candidates = tuple(run_dir / name for name in (
-        "agent.log", "llama_cli.log", "llama_bench.log",
-    ))
-    logs = {
-        path.name: path.read_text(errors="replace")
-        for path in candidates if path.is_file()
-    }
+    executable = "llama_cli" if correctness else "llama_bench"
+    execution_path = run_dir / f"{executable}.execution.json"
+    evidence_path = run_dir / f"{executable}.log"
+    execution_error: str | None = None
+    target_pid: int | None = None
+    try:
+        execution = json.loads(execution_path.read_text())
+        recorded_pid = execution["identity"]["pid"]
+        if type(recorded_pid) is not int or recorded_pid <= 0:
+            raise ValueError("target pid is not a positive integer")
+        target_pid = recorded_pid
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+        execution_error = f"{type(error).__name__}: {error}"
+    log_text = evidence_path.read_text(errors="replace") if evidence_path.is_file() else ""
+    expected_map = verifier_map_expectation(args, tool, correctness=correctness)
+    program = "cuda__retprobe"
     expected_attach = f"kretprobe/{args.target_symbol}"
     accepted_pattern = re.compile(
-        rf"GPU eBPF verification accepted: mode=STRICT program=cuda__retprobe "
-        rf"attach={re.escape(expected_attach)} instructions=([1-9][0-9]*)"
+        rf"^\[[^\]\r\n]+\]\[[^\]\r\n]+\]\[(?P<pid>[1-9][0-9]*)\] "
+        rf"GPU eBPF verification accepted: mode=(?P<mode>[^ \r\n]+) "
+        rf"program={program} attach=(?P<attach>[^ \r\n]+) "
+        rf"instructions=(?P<instructions>[0-9]+)\r?$"
     )
     map_pattern = re.compile(
-        r"GPU eBPF verified map: program=cuda__retprobe fd=([0-9]+) "
-        r"type=([0-9]+) key_size=([0-9]+) value_size=([0-9]+) "
-        r"max_entries=([1-9][0-9]*)"
+        rf"^\[[^\]\r\n]+\]\[[^\]\r\n]+\]\[(?P<pid>[1-9][0-9]*)\] "
+        rf"GPU eBPF verified map: program={program} fd=(?P<fd>[0-9]+) "
+        r"type=(?P<type>[0-9]+) key_size=(?P<key_size>[0-9]+) "
+        r"value_size=(?P<value_size>[0-9]+) "
+        r"max_entries=(?P<max_entries>[0-9]+)\r?$"
     )
-    skip_pattern = re.compile(r"Skipping GPU eBPF verification for cuda__retprobe")
-    reject_pattern = re.compile(r"GPU eBPF verification failed for cuda__retprobe:")
-    accepted: set[int] = set()
-    verified_maps: set[tuple[int, int, int, int, int]] = set()
-    skipped: set[str] = set()
-    rejected: set[str] = set()
-    matched_sources: set[str] = set()
-    for source, text in logs.items():
-        source_matched = False
-        for match in accepted_pattern.finditer(text):
-            accepted.add(int(match.group(1)))
-            source_matched = True
-        for match in map_pattern.finditer(text):
-            verified_maps.add(tuple(int(value) for value in match.groups()))
-            source_matched = True
-        if skip_pattern.search(text):
-            skipped.add("cuda__retprobe")
-            source_matched = True
-        if reject_pattern.search(text):
-            rejected.add("cuda__retprobe")
-            source_matched = True
-        if source_matched:
-            matched_sources.add(source)
+    skip_pattern = re.compile(
+        rf"^\[[^\]\r\n]+\]\[[^\]\r\n]+\]\[(?P<pid>[1-9][0-9]*)\] "
+        rf"Skipping GPU eBPF verification for {program}\r?$"
+    )
+    reject_pattern = re.compile(
+        rf"^\[[^\]\r\n]+\]\[[^\]\r\n]+\]\[(?P<pid>[1-9][0-9]*)\] "
+        rf"GPU eBPF verification failed for {program}:.*$"
+    )
+    accepted: list[dict[str, Any]] = []
+    verified_maps: list[dict[str, int]] = []
+    skipped = 0
+    rejected = 0
+    foreign_pid_records = 0
+    unexpected_target_records = 0
+    unparsed_records = 0
+    marker_fragments = (
+        f"GPU eBPF verification accepted:",
+        f"GPU eBPF verified map: program={program}",
+        f"Skipping GPU eBPF verification for {program}",
+        f"GPU eBPF verification failed for {program}:",
+    )
+    for line in log_text.splitlines():
+        if not any(fragment in line for fragment in marker_fragments):
+            continue
+        match = accepted_pattern.fullmatch(line)
+        kind = "accepted"
+        if match is None:
+            match = map_pattern.fullmatch(line)
+            kind = "map"
+        if match is None:
+            match = skip_pattern.fullmatch(line)
+            kind = "skipped"
+        if match is None:
+            match = reject_pattern.fullmatch(line)
+            kind = "rejected"
+        if match is None:
+            unparsed_records += 1
+            continue
+        pid = int(match.group("pid"))
+        if target_pid is None or pid != target_pid:
+            foreign_pid_records += 1
+            continue
+        if kind == "accepted":
+            record = {
+                "mode": match.group("mode"),
+                "attach": match.group("attach"),
+                "instructions": int(match.group("instructions")),
+            }
+            accepted.append(record)
+            if (
+                record["mode"] != "STRICT"
+                or record["attach"] != expected_attach
+                or record["instructions"] <= 0
+            ):
+                unexpected_target_records += 1
+        elif kind == "map":
+            record = {
+                field: int(match.group(field))
+                for field in (
+                    "fd", "type", "key_size", "value_size", "max_entries"
+                )
+            }
+            verified_maps.append(record)
+            if any(record[field] != value for field, value in expected_map.items()):
+                unexpected_target_records += 1
+        elif kind == "skipped":
+            skipped += 1
+        else:
+            rejected += 1
+    exact_accepted = (
+        len(accepted) == 1
+        and accepted[0]["mode"] == "STRICT"
+        and accepted[0]["attach"] == expected_attach
+        and accepted[0]["instructions"] > 0
+    )
+    exact_map = (
+        len(verified_maps) == 1
+        and all(
+            verified_maps[0][field] == value
+            for field, value in expected_map.items()
+        )
+    )
+    common = (
+        execution_error is None
+        and evidence_path.is_file()
+        and foreign_pid_records == 0
+        and unexpected_target_records == 0
+        and unparsed_records == 0
+    )
     if level == "STRICT":
-        passed = bool(accepted) and bool(verified_maps) and not skipped and not rejected
+        passed = common and exact_accepted and exact_map and skipped == 0 and rejected == 0
     else:
-        passed = bool(skipped) and not accepted and not verified_maps and not rejected
+        passed = (
+            common and skipped == 1 and not accepted and not verified_maps
+            and rejected == 0
+        )
+    matched_sources = [evidence_path.name] if any(
+        (accepted, verified_maps, skipped, rejected)
+    ) else []
     return {
         "level": level,
         "required": True,
         "passed": passed,
+        "program": program,
+        "attach": expected_attach,
+        "target_pid": target_pid,
+        "execution_record": execution_path.name,
+        "execution_error": execution_error,
+        "expected_map": expected_map,
         "accepted_records": len(accepted),
-        "instruction_counts": sorted(accepted),
+        "instruction_counts": [record["instructions"] for record in accepted],
         "verified_map_records": len(verified_maps),
-        "skipped_records": len(skipped),
-        "rejected": bool(rejected),
-        "logs_scanned": sorted(logs),
-        "logs_missing": sorted(path.name for path in candidates if not path.is_file()),
-        "matched_log_sources": sorted(matched_sources),
+        "verified_maps": verified_maps,
+        "skipped_records": skipped,
+        "rejected": rejected > 0,
+        "foreign_pid_records": foreign_pid_records,
+        "unexpected_target_records": unexpected_target_records,
+        "unparsed_records": unparsed_records,
+        "logs_scanned": [evidence_path.name] if evidence_path.is_file() else [],
+        "logs_missing": [] if evidence_path.is_file() else [evidence_path.name],
+        "matched_log_sources": matched_sources,
     }
 
 
@@ -1725,7 +1845,9 @@ def run_correctness_cell(
             probe_log = run_dir / "probe.log"
             probe_text = probe_log.read_text(errors="replace") if probe_log.exists() else ""
             result["probe"] = parse_gpubpf(tool, probe_text)
-            result["verifier"] = verifier_evidence(args, run_dir)
+            result["verifier"] = verifier_evidence(
+                args, run_dir, tool, correctness=True
+            )
             result["valid"] = bool(result["valid"]) and result["verifier"]["passed"]
             result["valid"] = bool(result["valid"]) and gpubpf_probe_valid(
                 tool,
@@ -2058,7 +2180,9 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
             result = run_bench(tool, run_id, args, output_dir, env_extra=env)
         result["probe"] = parse_gpubpf(tool, (run_dir / "probe.log").read_text(errors="replace"))
         result["probe_log"] = str((run_dir / "probe.log").relative_to(output_dir))
-        result["verifier"] = verifier_evidence(args, run_dir)
+        result["verifier"] = verifier_evidence(
+            args, run_dir, tool, correctness=False
+        )
         result["valid"] = bool(result.get("valid")) and gpubpf_probe_valid(
             tool,
             result["probe"],

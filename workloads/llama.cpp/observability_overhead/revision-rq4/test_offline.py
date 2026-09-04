@@ -537,6 +537,18 @@ class OfflineTests(unittest.TestCase):
         self.assertIs(runner.core.run_cmd, original)
         lease.close.assert_called_once()
 
+    def test_main_uses_validated_inherited_leases_without_reacquiring(self):
+        argv = ["runner", "--bpftime-root", "/source", "--bpftime-build-dir", "/build",
+                "--gpu-thread-count", "22528", "--inherited-lease-fds", "71", "72"]
+        with (patch.dict(os.environ, {}, clear=True), patch.object(runner.sys, "argv", argv),
+              patch.object(runner, "validate"),
+              patch.object(runner, "validate_inherited_lease_fds") as inherited,
+              patch.object(runner, "ReadOnlyLeases") as local,
+              patch.object(runner, "run_campaign", return_value=0)):
+            self.assertEqual(runner.main(), 0)
+        inherited.assert_called_once_with((71, 72))
+        local.assert_not_called()
+
     def test_read_only_leases_lock_precreated_nonwritable_inodes(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths = tuple(Path(tmp) / name for name in ("gpu0.lock", "struct-ops.lock"))
@@ -601,6 +613,31 @@ class OfflineTests(unittest.TestCase):
             link.symlink_to(target)
             with self.assertRaisesRegex(RuntimeError, "not a regular file"):
                 runner.ReadOnlyLeases((link,))
+
+    def test_inherited_leases_require_exact_read_only_inodes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            paths = tuple(Path(temp) / name for name in ("gpu.lock", "struct.lock"))
+            for path in paths:
+                path.touch(mode=0o644)
+            descriptors = tuple(os.open(path, os.O_RDONLY) for path in paths)
+            try:
+                with patch.object(runner, "LEASE_PATHS", paths):
+                    inventory = runner.validate_inherited_lease_fds(descriptors)
+                    self.assertEqual([item["path"] for item in inventory],
+                                     [str(path) for path in paths])
+                    with self.assertRaises(RuntimeError):
+                        runner.validate_inherited_lease_fds((descriptors[0],))
+                writable = os.open(paths[1], os.O_RDWR)
+                try:
+                    with patch.object(runner, "LEASE_PATHS", paths), \
+                         self.assertRaises(RuntimeError):
+                        runner.validate_inherited_lease_fds(
+                            (descriptors[0], writable))
+                finally:
+                    os.close(writable)
+            finally:
+                for descriptor in descriptors:
+                    os.close(descriptor)
 
     def test_ambient_injection_is_rejected_before_launch(self):
         with patch.dict(os.environ, {}, clear=True):

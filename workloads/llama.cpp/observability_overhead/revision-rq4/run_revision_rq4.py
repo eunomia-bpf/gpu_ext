@@ -561,6 +561,32 @@ class ReadOnlyLeases:
         self.files.clear()
 
 
+def validate_inherited_lease_fds(descriptors: tuple[int, ...]) -> list[dict[str, Any]]:
+    """Validate the exact read-only lease descriptors handed off by a parent."""
+    if len(descriptors) != len(LEASE_PATHS) or len(set(descriptors)) != len(descriptors):
+        raise RuntimeError("exactly two distinct inherited lease descriptors are required")
+    inventory = []
+    for path, descriptor in zip(LEASE_PATHS, descriptors, strict=True):
+        if descriptor < 0:
+            raise RuntimeError(f"invalid inherited lease descriptor: {descriptor}")
+        before = path.lstat()
+        opened = os.fstat(descriptor)
+        current = path.lstat()
+        expected = (before.st_dev, before.st_ino)
+        if (not stat.S_ISREG(before.st_mode)
+                or not stat.S_ISREG(opened.st_mode)
+                or not stat.S_ISREG(current.st_mode)
+                or (opened.st_dev, opened.st_ino) != expected
+                or (current.st_dev, current.st_ino) != expected):
+            raise RuntimeError(f"inherited lease identity differs: {path}")
+        if (fcntl.fcntl(descriptor, fcntl.F_GETFL) & os.O_ACCMODE) != os.O_RDONLY:
+            raise RuntimeError(f"inherited lease is not read-only: {path}")
+        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        inventory.append({"path": str(path), "fd": descriptor,
+                          "device": opened.st_dev, "inode": opened.st_ino})
+    return inventory
+
+
 def process_identity(process) -> dict[str, Any]:
     identity = {"pid": process.pid}
     try:
@@ -2811,6 +2837,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="print the fixed cell matrix and exact gates without touching GPU state",
     )
+    parser.add_argument(
+        "--inherited-lease-fds", nargs=2, type=int,
+        help=argparse.SUPPRESS,
+    )
     args = parser.parse_args(argv)
 
     args.runs = args.runs if args.runs is not None else (1 if args.phase == "preflight" else 10)
@@ -2833,7 +2863,11 @@ def main() -> int:
     reject_ambient_injection()
     validate(args)
 
-    lease = ReadOnlyLeases()
+    inherited = (tuple(args.inherited_lease_fds)
+                 if args.inherited_lease_fds is not None else None)
+    lease = None if inherited is not None else ReadOnlyLeases()
+    if inherited is not None:
+        validate_inherited_lease_fds(inherited)
     def interrupted(signum, frame):
         raise KeyboardInterrupt(f"signal {signum}")
     previous_handler = signal.signal(signal.SIGTERM, interrupted)
@@ -2846,7 +2880,8 @@ def main() -> int:
     finally:
         core.run_cmd = previous_run_cmd
         signal.signal(signal.SIGTERM, previous_handler)
-        lease.close()
+        if lease is not None:
+            lease.close()
 
 
 def run_campaign(args: argparse.Namespace) -> int:

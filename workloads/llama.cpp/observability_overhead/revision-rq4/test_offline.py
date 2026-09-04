@@ -808,9 +808,11 @@ class OfflineTests(unittest.TestCase):
         corruptions = (
             ("Makefile", "observability.o: observability.cu common.h clock_domain.h"),
             ("clock_domain.h", "int64_t offset_low_ns;"),
+            ("clock_domain.h", "CLOCK_MIN_CALIBRATION_SPAN_NS"),
             ("common.h", "struct launch_pair_t"),
             ("inject_funcs.cu", "pair->gpu_entry_ns = gpu_ns"),
             ("observability.cu", "clock_drift_bounded="),
+            ("observability.cu", "wait_for_minimum_clock_span("),
             ("tool_func/flush_channel.cu", "%globaltimer"),
         )
         for broken_name, marker in corruptions:
@@ -1079,6 +1081,19 @@ class OfflineTests(unittest.TestCase):
         )
         self.assertFalse(runner.nvbit_probe_valid(
             "launchlate", excessive_drift
+        ))
+
+        short_but_low_drift = runner.parse_nvbit(
+            "launchlate",
+            lossless_nvbit_launchlate_log(
+                end_anchor=1_500_000_000,
+                elapsed=500_000_000,
+                drift_rate=100,
+            ),
+        )
+        self.assertEqual(short_but_low_drift["clock_drift_bounded"], 1)
+        self.assertFalse(runner.nvbit_probe_valid(
+            "launchlate", short_but_low_drift
         ))
 
         for index in range(10):

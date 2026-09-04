@@ -14,6 +14,17 @@ int main() {
     assert(calibration.host_anchor_ns == 1050);
     assert(clock_calibration_valid(calibration));
 
+    uint64_t deadline_ns = 0;
+    assert(minimum_end_calibration_deadline(calibration, &deadline_ns));
+    assert(deadline_ns == calibration.host_anchor_ns +
+                              CLOCK_MIN_CALIBRATION_SPAN_NS);
+    assert(!minimum_end_calibration_deadline(calibration, nullptr));
+    clock_calibration_t overflow_deadline = calibration;
+    overflow_deadline.host_anchor_ns =
+        UINT64_MAX - CLOCK_MIN_CALIBRATION_SPAN_NS + 1;
+    assert(!minimum_end_calibration_deadline(overflow_deadline,
+                                             &deadline_ns));
+
     assert(consider_clock_calibration_sample(&calibration, 2210, 2000, 2040));
     assert(calibration.offset_low_ns == 170);
     assert(calibration.offset_high_ns == 210);

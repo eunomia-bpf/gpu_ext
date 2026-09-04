@@ -20,6 +20,10 @@ struct clock_drift_t {
 };
 
 static constexpr uint64_t CLOCK_DRIFT_LIMIT_PPB = 10000ULL;
+// With microsecond-scale endpoint brackets, a sub-second trace can make the
+// frozen 10,000 ppb drift limit unresolvable from measurement uncertainty.
+// This minimum is a measurement-resolution requirement, not a relaxed limit.
+static constexpr uint64_t CLOCK_MIN_CALIBRATION_SPAN_NS = 1000000000ULL;
 
 enum launch_sample_status_t : uint32_t {
     LAUNCH_SAMPLE_CLASSIFIED = 0,
@@ -106,6 +110,17 @@ static inline bool consider_clock_calibration_sample(
 static inline uint64_t abs_i64(int64_t value) {
     return value < 0 ? static_cast<uint64_t>(-(value + 1)) + 1
                      : static_cast<uint64_t>(value);
+}
+
+static inline bool minimum_end_calibration_deadline(
+    const clock_calibration_t& start, uint64_t* deadline_ns) {
+    if (deadline_ns == nullptr || !clock_calibration_valid(start) ||
+        start.host_anchor_ns >
+            UINT64_MAX - CLOCK_MIN_CALIBRATION_SPAN_NS) {
+        return false;
+    }
+    *deadline_ns = start.host_anchor_ns + CLOCK_MIN_CALIBRATION_SPAN_NS;
+    return true;
 }
 
 static inline bool clock_calibration_drift(

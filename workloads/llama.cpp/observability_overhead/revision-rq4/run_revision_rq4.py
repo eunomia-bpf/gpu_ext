@@ -60,6 +60,7 @@ CORRECTNESS_MULTIPLICITY_44 = 1024
 CORRECTNESS_MULTIPLICITY_22 = 20480
 KERNELRETSNOOP_SHM_MEMORY_MB = 1000
 LAUNCH_CLOCK_DRIFT_LIMIT_PPB = 10000
+LAUNCH_MIN_CALIBRATION_SPAN_NS = 1_000_000_000
 LAUNCH_UNCERTAIN_PERCENT_LIMIT = 10
 EXPECTED_NORMALIZED_STDOUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_NORMALIZED_STDOUT_BYTES = 47
@@ -413,6 +414,8 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "LAUNCH_SAMPLE_UNCERTAIN",
             "clock_calibration_valid",
             "clock_calibration_drift",
+            "CLOCK_MIN_CALIBRATION_SPAN_NS",
+            "minimum_end_calibration_deadline",
             "affine_clock_offset_interval",
             "classify_affine_launch_latency",
             "if (latency_high_ns < 0)",
@@ -443,6 +446,7 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "calibrate_gpu_clock(ctx, state, state->start_calibration)",
             "calibrate_gpu_clock(ctx, state, &end_calibration)",
             "clock_calibration_drift(",
+            "wait_for_minimum_clock_span(",
             'print_clock_calibration("start"',
             'print_clock_calibration("end"',
             "%s_clock_offset_lower_ns=",
@@ -898,6 +902,7 @@ def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
         and probe["clock_offset_change_lower_ns"] == change_low
         and probe["clock_offset_change_upper_ns"] == change_high
         and probe["clock_calibration_elapsed_ns"] == elapsed
+        and elapsed >= LAUNCH_MIN_CALIBRATION_SPAN_NS
         and probe["clock_drift_rate_bound_ppb"] == expected_rate
         and probe["clock_drift_limit_ppb"] == LAUNCH_CLOCK_DRIFT_LIMIT_PPB
         and expected_rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB

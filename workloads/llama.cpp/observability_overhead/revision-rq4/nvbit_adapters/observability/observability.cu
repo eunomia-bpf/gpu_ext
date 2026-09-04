@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <errno.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -124,6 +125,25 @@ static bool calibrate_gpu_clock(CUcontext ctx, context_state_t* state,
         }
     }
     return clock_calibration_valid(*calibration);
+}
+
+static bool wait_for_minimum_clock_span(
+    const clock_calibration_t& start_calibration) {
+    uint64_t deadline_ns;
+    if (!minimum_end_calibration_deadline(start_calibration, &deadline_ns)) {
+        return false;
+    }
+    struct timespec deadline = {};
+    deadline.tv_sec =
+        static_cast<time_t>(deadline_ns / 1000000000ULL);
+    deadline.tv_nsec =
+        static_cast<long>(deadline_ns % 1000000000ULL);
+    int error;
+    do {
+        error = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline,
+                                nullptr);
+    } while (error == EINTR);
+    return error == 0;
 }
 
 static void print_clock_calibration(
@@ -520,12 +540,19 @@ void nvbit_at_ctx_term(CUcontext ctx) {
     } else if (mode == OBS_LAUNCHLATE && state->launch_pairs != nullptr) {
         clock_calibration_t end_calibration = {};
         clock_drift_t drift = {};
-        const bool end_calibrated =
+        const bool minimum_span_ready =
+            state->start_calibration != nullptr &&
+            wait_for_minimum_clock_span(*state->start_calibration);
+        const bool end_calibrated = minimum_span_ready &&
             calibrate_gpu_clock(ctx, state, &end_calibration);
         const bool drift_measured =
             end_calibrated && state->start_calibration != nullptr &&
             clock_calibration_drift(*state->start_calibration,
                                     end_calibration, &drift);
+        const bool clock_model_bounded =
+            drift_measured &&
+            drift.elapsed_ns >= CLOCK_MIN_CALIBRATION_SPAN_NS &&
+            drift.bounded;
         print_clock_calibration("end", end_calibration);
         fprintf(stderr,
                 "NVBIT launchlate clock_offset_change_lower_ns=%lld\n",
@@ -540,8 +567,13 @@ void nvbit_at_ctx_term(CUcontext ctx) {
         fprintf(stderr, "NVBIT launchlate clock_drift_limit_ppb=%llu\n",
                 static_cast<unsigned long long>(CLOCK_DRIFT_LIMIT_PPB));
         fprintf(stderr, "NVBIT launchlate clock_drift_bounded=%u\n",
-                drift_measured && drift.bounded ? 1U : 0U);
-        if (!drift_measured || !drift.bounded) {
+                clock_model_bounded ? 1U : 0U);
+        if (!minimum_span_ready) {
+            fprintf(stderr,
+                    "NVBIT_OBS error: launchlate minimum clock calibration "
+                    "span wait failed\n");
+        }
+        if (!clock_model_bounded) {
             fprintf(stderr,
                     "NVBIT_OBS error: launchlate clock drift exceeds bound\n");
         }

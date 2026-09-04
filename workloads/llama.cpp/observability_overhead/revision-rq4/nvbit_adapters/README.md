@@ -22,7 +22,12 @@ NVBit 1.8 core. They deliberately instrument only the exact mangled kernel in
   overlaps zero or a bin boundary is uncertain. The validity gate requires
   exact selected/classified/uncertain/error accounting, no clock errors, at
   most 10% uncertainty, and endpoint drift no greater than 10,000 ppb. This is
-  the closest native NVBit counterpart to gpubpf's exact host-stub uprobe plus
+  measured across an unconditional minimum one-second anchor span so that a
+  sub-second workload does not turn the microsecond-scale endpoint bracket
+  width into an unresolvable drift-rate bound. The longer span does not change
+  the 10,000 ppb limit, histogram bins, or 10% uncertainty gate, and it does not
+  guarantee that a genuinely drifting clock will pass. This is the closest
+  native NVBit counterpart to gpubpf's exact host-stub uprobe plus
   device-entry probe; the different host hook locations remain explicit in the
   experiment plan.
 

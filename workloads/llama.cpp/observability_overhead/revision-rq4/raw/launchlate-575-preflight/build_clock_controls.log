@@ -1,0 +1,11 @@
+$ make -j4
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/launchlate-575-preflight/clock_control_build/launch-clock-recovery
+# started: 2026-09-04T09:07:48
+
+## output
+cc  -O2 -g -std=gnu11 -Wall -Wextra -Werror rm_ptimer_correlation_sanity.c -o rm_ptimer_correlation_sanity
+cc  -O2 -g -std=gnu11 -Wall -Wextra -Werror -fPIC -c ../nvbit_adapters/observability/rm_ptimer_575.c -o rm_ptimer_575.o
+nvcc -std=c++14 -arch=sm_120 -Xcompiler=-Wall,-Wextra \
+	rm_globaltimer_identity.cu rm_ptimer_575.o -o rm_globaltimer_identity
+
+# exit: 0

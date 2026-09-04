@@ -1,0 +1,24 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/launchlate-575-preflight/clock_control_build/launch-clock-recovery/rm_ptimer_correlation_sanity",
+    "--samples",
+    "200",
+    "--control-transport",
+    "direct",
+    "--correlation-command",
+    "endpoints-v1"
+  ],
+  "identity": {
+    "pid": 2630874,
+    "pgid": 2630874,
+    "sid": 2630874,
+    "start_ticks": 11181802
+  },
+  "cleanup_passed": true,
+  "returncode": 2,
+  "timed_out": false
+}

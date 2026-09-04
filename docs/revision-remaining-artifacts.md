@@ -164,7 +164,12 @@ histogram. The two corrected rows are integrated into the 16-page paper build.
 
 This does not complete the original three-tool/seven-arm campaign. The
 host/device cross-clock `launchlate` comparison remains invalid and is omitted
-from the paper. The performance runtime had GPU verification disabled; NVBit
+from the paper. The [RM/PTIMER recovery canaries](../workloads/llama.cpp/observability_overhead/revision-rq4/launch-clock-recovery/rm-correlation-results.md)
+reached the public 575 timer control through xfer and direct paths with 8/8
+valid samples each, but their 4.759/4.730 us median conservative brackets both
+failed the predeclared <1.5 us precision gate. The next admissible route is a
+separately versioned control returning the driver's selected CPU endpoints.
+The performance runtime had GPU verification disabled; NVBit
 uses custom matched adapters while both systems retain native transports. The
 histogram arms close aggregate counts, but only gpubpf retained the complete
 vector. The frozen plan named llama.cpp build 7101; every accepted preflight
@@ -178,7 +183,8 @@ Remaining work is limited to these explicit boundaries:
 2. Treat a future same-clock or principled RM-correlation `launchlate` repair as
    a separate experiment; until then the row remains absent, not zero-overhead.
 3. Keep strict device-verifier enforcement separate from this verifier-off
-   performance study.
+   performance study. The [strict/off plan](../workloads/llama.cpp/observability_overhead/revision-rq4/verifier-on-device-plan.md)
+   has been independently reviewed but has no result yet.
 4. Repeat the whole-paper build/placement review after any later source edits.
 
 ## 3. Agent prompts, original logs and harness release

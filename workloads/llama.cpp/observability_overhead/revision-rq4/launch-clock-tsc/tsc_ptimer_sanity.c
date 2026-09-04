@@ -258,20 +258,40 @@ static int derive_interior(const rm_time_pair *previous,
 			   const rm_time_pair *next, uint64_t hz,
 			   struct accepted_sample *out)
 {
-	uint64_t cycles, ns;
+	uint64_t neighbor_span, max_selected_gap, half_low, half_high;
+	uint64_t lower, upper, cycles, ns;
 
 	if (!previous || !current || !next || !out || !previous->cpuTime ||
 	    !current->cpuTime || !next->cpuTime || !current->gpuTime ||
 	    previous->cpuTime >= current->cpuTime ||
 	    current->cpuTime >= next->cpuTime)
 		return -ERANGE;
-	cycles = next->cpuTime - previous->cpuTime;
+	/*
+	 * Each call executes c-G-c-G-c-G-c and returns the midpoint of its
+	 * shortest CPU pair.  The complete current zipper lies between the
+	 * preceding and following returned midpoints, so its shortest one of
+	 * three CPU gaps is at most one third of that enclosing span.
+	 */
+	neighbor_span = next->cpuTime - previous->cpuTime;
+	max_selected_gap = neighbor_span / 3 + (neighbor_span % 3 != 0);
+	half_low = max_selected_gap / 2;
+	half_high = max_selected_gap / 2 + max_selected_gap % 2;
+	lower = current->cpuTime >= half_low ? current->cpuTime - half_low : 0;
+	upper = current->cpuTime <= UINT64_MAX - half_high ?
+		current->cpuTime + half_high : UINT64_MAX;
+	if (lower < previous->cpuTime)
+		lower = previous->cpuTime;
+	if (upper > next->cpuTime)
+		upper = next->cpuTime;
+	if (upper < lower)
+		return -ERANGE;
+	cycles = upper - lower;
 	if (cycles_to_ns_ceil(cycles, hz, &ns) ||
 	    ns > UINT64_MAX - 2 * PTIMER_ALLOWANCE_NS)
 		return -ERANGE;
 	out->tsc_mid = current->cpuTime;
-	out->tsc_low = previous->cpuTime;
-	out->tsc_high = next->cpuTime;
+	out->tsc_low = lower;
+	out->tsc_high = upper;
 	out->ptimer_ns = current->gpuTime;
 	out->width_ns = ns + 2 * PTIMER_ALLOWANCE_NS;
 	return 0;
@@ -339,8 +359,8 @@ static int self_test(void)
 
 	if (cycles_to_ns_ceil(300, 1000000000ULL, &ns) || ns != 300 ||
 	    derive_interior(&pairs[0], &pairs[1], &pairs[2], 1000000000ULL,
-			    &sample) || sample.width_ns != 364 ||
-	    sample.tsc_low != 1000 || sample.tsc_high != 1300 ||
+			    &sample) || sample.width_ns != 164 ||
+	    sample.tsc_low != 1050 || sample.tsc_high != 1150 ||
 	    rate_error_ppb(&first, &last, 1000000000ULL, &error) || error != 0)
 		return 1;
 	pairs[2].cpuTime = 1099;

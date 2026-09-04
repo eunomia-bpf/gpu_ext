@@ -38,9 +38,10 @@ raw data.
 4. Reject missing samples, zeros, TSC/PTIMER regressions, CPU migration,
    malformed ordering, RM errors, or incomplete cleanup.
 5. Use only source-justified conservative intervals.  For an interior sample,
-   the selected RM zipper lies after the prior returned midpoint and before the
-   following midpoint; those neighbors bound the unknown selected TSC
-   endpoints.  Edge samples are not precision evidence.  Add one 32 ns PTIMER
+   the complete RM zipper lies after the prior returned midpoint and before the
+   following midpoint, and its selected shortest one of three CPU gaps is at
+   most one third of that enclosing span.  Center this bound on the returned
+   midpoint.  Edge samples are not precision evidence.  Add one 32 ns PTIMER
    allowance on both ends.
 6. Require 200 accepted interior samples, zero rejected samples/regressions,
    median interval width at most 1,500 ns, and an affine endpoint rate whose
@@ -73,4 +74,3 @@ Real controls run only while holding `/tmp/gpubpf-revision-gpu0.lock` and
 metadata, the analysis, and the result review go under `raw/` and this
 directory.  No driver unload, module replacement, reboot, or service restart is
 permitted.
-

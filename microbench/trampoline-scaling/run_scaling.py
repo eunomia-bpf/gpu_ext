@@ -74,6 +74,9 @@ FULL_LAUNCHES = 8
 PREFLIGHT_HOOK_REPEATS = 1
 FULL_HOOK_REPEATS = 2
 RANDOMIZE_CELL_ORDER = False
+BALANCE_ARM_ORDER = False
+WRITE_INDEPENDENT_RAW_EVIDENCE = False
+RAW_EVIDENCE_SCHEMA = 1
 EXTRA_SOURCE_PATHS: tuple[Path, ...] = ()
 MATRIX_HEADER = HERE / "matrix.h"
 APPLICATION_BINARY = HERE / ".output/scaling"
@@ -482,6 +485,24 @@ def validate_agent_log(text: str) -> dict[str, Any]:
     return counts
 
 
+def validate_agent_bootstrap_log(text: str, segment: str) -> dict[str, int]:
+    patterns = {
+        "verifier_warning": r"Verifier mode: WARNING",
+        "cuda_registration": r"Registered shared memory with CUDA:",
+        "shared_memory_constructed": (
+            r"Global shm constructed\. shm_open_type 1 for " + re.escape(segment)
+            + r"(?:\s|$)"
+        ),
+        "shared_memory_initialized": r"Global shm initialized",
+    }
+    counts = {name: len(re.findall(pattern, text)) for name, pattern in patterns.items()}
+    if any(value != 1 for value in counts.values()):
+        raise RuntimeError(f"agent bootstrap evidence gate failed: {counts}")
+    if re.search(r"\[(?:error|critical)\]", text, re.IGNORECASE):
+        raise RuntimeError("agent bootstrap log contains an error or critical record")
+    return counts
+
+
 def group_members(pgid: int) -> list[int]:
     members: list[int] = []
     for path in Path("/proc").glob("[0-9]*/stat"):
@@ -693,9 +714,13 @@ def run_attached(
             json_events(loader_log), mode, cell_ids, warmup, launches, hook_repeats,
         )
         agent_gate = validate_agent_log(application_log.read_text(errors="replace"))
+        agent_bootstrap_gate = validate_agent_bootstrap_log(
+            agent_log.read_text(errors="replace"), segment,
+        )
         record.update(
             valid=True, measurements=measurements, engagement=engagement,
             agent_gate=agent_gate, agent_evidence_log=str(application_log),
+            agent_bootstrap_gate=agent_bootstrap_gate,
             application_returncode=target_returncode,
             loader_returncode=loader_returncode,
         )
@@ -742,10 +767,30 @@ def phase_parameters(phase: str) -> dict[str, Any]:
 
 def frozen_schedule(phase: str) -> list[dict[str, Any]]:
     params = phase_parameters(phase)
+    balanced_orders = None
+    if BALANCE_ARM_ORDER and phase == "full":
+        if params["blocks"] != 10 or len(ARMS) != 3:
+            raise RuntimeError("balanced arm order is frozen for ten blocks and three arms")
+        rng = random.Random(SEED + 20_000)
+        labels = list(ARMS)
+        rng.shuffle(labels)
+        forward = [tuple(labels[index:] + labels[:index]) for index in range(3)]
+        reverse_labels = [labels[0], labels[2], labels[1]]
+        reverse = [
+            tuple(reverse_labels[index:] + reverse_labels[:index])
+            for index in range(3)
+        ]
+        final_order = list(labels)
+        rng.shuffle(final_order)
+        balanced_orders = [*forward, *reverse, *forward, tuple(final_order)]
+        rng.shuffle(balanced_orders)
     schedule = []
     for block in range(params["blocks"]):
-        arms = list(ARMS)
-        random.Random(SEED + block).shuffle(arms)
+        if balanced_orders is None:
+            arms = list(ARMS)
+            random.Random(SEED + block).shuffle(arms)
+        else:
+            arms = list(balanced_orders[block])
         cell_ids = list(params["cell_ids"])
         if RANDOMIZE_CELL_ORDER:
             random.Random(SEED + 10_000 + block).shuffle(cell_ids)
@@ -786,6 +831,8 @@ def defining_parameters(args: argparse.Namespace) -> dict[str, Any]:
         "expected_gpu": EXPECTED_GPU,
         "matrix": [dict(cell) for cell in CELLS],
         "randomize_cell_order": RANDOMIZE_CELL_ORDER,
+        "balance_arm_order": BALANCE_ARM_ORDER,
+        "independent_raw_evidence": WRITE_INDEPENDENT_RAW_EVIDENCE,
     }
 
 
@@ -895,6 +942,53 @@ def build_harness(args: argparse.Namespace, output: Path) -> Path:
     return log_path
 
 
+def write_raw_arm_evidence(
+    output: Path, run_dir: Path, item: dict[str, Any], cell_ids: tuple[int, ...],
+    record: dict[str, Any], telemetry_path: Path,
+    safety_before: dict[str, Any], safety_after: dict[str, Any],
+) -> None:
+    """Persist independently re-openable raw lifecycle and safety evidence."""
+    if record.get("application_returncode") != 0:
+        raise RuntimeError("refusing to admit nonzero application return code")
+    attached = item["arm"] != "baseline"
+    if attached and (
+        record.get("loader_returncode") != 0
+        or record.get("private_segment_removed") is not True
+        or record.get("owned_group_survivors") != {}
+    ):
+        raise RuntimeError("refusing to admit incomplete attached-arm cleanup")
+    try:
+        telemetry_path.resolve().relative_to(output.resolve())
+    except ValueError as error:
+        raise RuntimeError("telemetry evidence escaped the campaign directory") from error
+    relative_telemetry = os.path.relpath(telemetry_path, start=run_dir)
+    atomic_write_json(run_dir / "safety-before.json", safety_before)
+    atomic_write_json(run_dir / "safety-after.json", safety_after)
+    lifecycle = {
+        "schema": RAW_EVIDENCE_SCHEMA,
+        "experiment_kind": EXPERIMENT_KIND,
+        "block": item["block"],
+        "order": item["order"],
+        "arm": item["arm"],
+        "run_id": item["run_id"],
+        "cell_ids": list(cell_ids),
+        "application_command": record["command"],
+        "application_returncode": record["application_returncode"],
+        "application_log": "application.log",
+        "loader_command": record.get("loader_command"),
+        "loader_returncode": record.get("loader_returncode"),
+        "loader_log": "loader.log" if attached else None,
+        "agent_log": "agent.log" if attached else None,
+        "private_segment": record.get("private_segment"),
+        "private_segment_removed": record.get("private_segment_removed") if attached else None,
+        "owned_group_survivors": record.get("owned_group_survivors", {}),
+        "telemetry_log": relative_telemetry,
+        "safety_before": "safety-before.json",
+        "safety_after": "safety-after.json",
+    }
+    atomic_write_json(run_dir / "lifecycle.json", lifecycle)
+
+
 def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
     reject_ambient_injection()
     args.output = args.output.resolve()
@@ -948,6 +1042,8 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
             if before["gpu"]["driver"] != EXPECTED_DRIVER or before["gpu"]["name"] != EXPECTED_GPU:
                 raise RuntimeError(f"frozen GPU/driver mismatch: {before['gpu']}")
             result.update(status="running", safety_before=before)
+            if WRITE_INDEPENDENT_RAW_EVIDENCE:
+                atomic_write_json(args.output / "safety-before.json", before)
             atomic_write_json(state_path, result)
             deadline = time.monotonic() + 3600
             for item in result["schedule"]:
@@ -962,6 +1058,19 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                 telemetry_dir.mkdir()
                 telemetry = telemetry_stream = telemetry_path = None
                 try:
+                    arm_before = before
+                    if WRITE_INDEPENDENT_RAW_EVIDENCE:
+                        arm_before = safety.safety_snapshot()
+                        safety.validate_pre_server_safety(arm_before)
+                        if (
+                            arm_before["gpu"]["driver"] != EXPECTED_DRIVER
+                            or arm_before["gpu"]["name"] != EXPECTED_GPU
+                        ):
+                            raise RuntimeError(
+                                f"frozen GPU/driver mismatch before arm: {arm_before['gpu']}"
+                            )
+                    if arm_before is None:
+                        raise RuntimeError("missing pre-arm safety snapshot")
                     record = telemetry_summary = primary_error = None
                     telemetry_errors = []
                     try:
@@ -1020,8 +1129,13 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                         "path": str(telemetry_path), "summary": telemetry_summary,
                     }
                     record["safety_after"] = safety.wait_for_post_server_safety(
-                        before, timeout=POST_RUN_SETTLE_TIMEOUT_SECONDS,
+                        arm_before, timeout=POST_RUN_SETTLE_TIMEOUT_SECONDS,
                     )
+                    if WRITE_INDEPENDENT_RAW_EVIDENCE:
+                        write_raw_arm_evidence(
+                            args.output, run_dir, item, cell_ids, record,
+                            telemetry_path, arm_before, record["safety_after"],
+                        )
                     result["records"].append(record)
                     completed.add(key)
                     result["last_safety"] = record["safety_after"]
@@ -1050,6 +1164,10 @@ def run_campaign(args: argparse.Namespace) -> dict[str, Any]:
                     result["safety_after"] = safety.wait_for_post_server_safety(
                         before, timeout=POST_RUN_SETTLE_TIMEOUT_SECONDS,
                     )
+                    if WRITE_INDEPENDENT_RAW_EVIDENCE:
+                        atomic_write_json(
+                            args.output / "safety-final.json", result["safety_after"],
+                        )
             except BaseException as error:
                 cleanup_errors.append(f"final safety: {type(error).__name__}: {error}")
             if cleanup_errors:

@@ -35,12 +35,22 @@ python3 analyze_fixed_work.py \
   --result raw/fixed-work-full-575-01/result.json
 ```
 
-The full run has ten paired blocks, three randomized arms, five cells per arm,
-and 150 timed measurements. Cell order is randomized once per block and shared
-by all arms. The primary metric is the paired endpoint
+The full run has ten paired blocks, three seed-randomized and position-balanced
+arms, five cells per arm, and 150 timed measurements. Cell order is randomized
+once per block and shared by all arms. The primary metric is the paired endpoint
 difference-in-differences between 128x1,024 and 4,096x32, normalized by mean
-endpoint native time. Only a complete 95% interval inside the predeclared
-+/-1% range supports the bounded no-material-organization-penalty statement.
+endpoint native time. A predeclared all-five guard also compares each of the
+other four organizations with 128x1,024 using Bonferroni-adjusted 98.75%
+paired-bootstrap intervals. The bounded statement is supported only when the
+endpoint 95% interval and all four guard intervals lie inside +/-1%.
+
+The analyzer treats `result.json` only as the frozen schedule and a set of raw
+directory locators. It independently reopens each arm's application,
+loader/map, agent-bootstrap, telemetry, paired-safety, and lifecycle evidence;
+derived validity or summary dictionaries in `result.json` are not gates. Each
+arm and telemetry source must be distinct. Consequently, earlier campaigns
+that do not contain these raw safety/lifecycle files are intentionally rejected
+by this analyzer rather than upgraded into publication evidence.
 
 See [fixed-work-plan.md](fixed-work-plan.md) and
 [fixed-work-plan-review.md](fixed-work-plan-review.md).

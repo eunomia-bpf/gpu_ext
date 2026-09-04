@@ -18,7 +18,7 @@
 ## Expected And Alternative Outcomes
 - Current expected answer: The minimal return-only handler's attached-minus-native time will remain within the predeclared materiality bound across the fixed-work organizations.
 - Strongest competing explanation: Instrumentation changes occupancy or scheduling-wave behavior, producing an organization-dependent increment despite identical dynamic work.
-- Result that would contradict the expectation: The endpoint contrast between 128 blocks x 1,024 threads and 4,096 blocks x 32 threads has a 95% interval wholly outside the materiality bound, or correctness/engagement fails at an endpoint.
+- Result that would contradict the expectation: The endpoint contrast between 128 blocks x 1,024 threads and 4,096 blocks x 32 threads has a 95% interval wholly outside the materiality bound; any of the four all-five guard intervals is wholly outside the same bound; or any raw correctness, engagement, lifecycle, telemetry, or safety gate fails.
 
 ## Published Precedent And Real Assets
 - Closest published protocol: CUDA event elapsed time provides device-timeline batch latency; dynamic instrumentation work conventionally reports matched kernel slowdown or latency increment.
@@ -32,14 +32,15 @@
 - Why each main baseline needs a matched run instead of citation alone: The question is an RTX 5090 interaction between this runtime and block organization; published or prior unmatched timings cannot isolate it.
 - Controls or ablations, labeled separately: A counter-handler arm validates exact target callback coverage and exposes state-update sensitivity, but is secondary rather than a competing baseline. A separate 32-thread marker validates fallback attachment.
 - Conclusion if each main baseline matches or wins: A native win quantifies instrumentation cost. Statistical similarity supports only a bounded no-material-penalty statement, never a mechanism speedup.
-- Information, tuning, and compute fairness: Every cell launches 131,072 active threads (4,096 warps), performs the same arithmetic and 16 explicit hook repetitions per thread, uses the same launches and output oracle, and differs only in reciprocal block/thread dimensions. Arms are randomized within each paired block; one cell order is randomized per block and shared by all three arms.
+- Information, tuning, and compute fairness: Every cell launches 131,072 active threads (4,096 warps), performs the same arithmetic and 16 explicit hook repetitions per thread, uses the same launches and output oracle, and differs only in reciprocal block/thread dimensions. Arms use a seed-1797 randomized balanced schedule: the first nine assignments give every arm each position three times, and the tenth makes the unavoidable imbalance at most one. One cell order is randomized per block and shared by all three arms.
 - Split or leakage rule when relevant: Validity is determined exclusively by frozen correctness, engagement, cleanup, and safety gates. Performance never selects retries or exclusions.
 
 ## Workloads And Metrics
 - Real workloads or tasks: One deterministic CUDA kernel at five organizations: 128x1,024, 256x512, 1,024x128, 2,048x64, and 4,096x32. Each launches exactly 131,072 threads and 4,096 whole warps; every thread reaches the same hook site.
-- Primary metrics: Within each randomized block, compute `(noop - native)` at both endpoints and their difference-in-differences. Normalize the endpoint contrast by the mean endpoint-native batch time. The primary uncertainty is a seed-1797 paired-bootstrap 95% interval over ten blocks. A result is materially equivalent only if that entire interval lies inside +/-1%; otherwise it is contradictory when wholly outside and inconclusive when it crosses a boundary.
+- Primary metrics: Within each randomized block, compute `(noop - native)` at both endpoints and their difference-in-differences. Normalize the endpoint contrast by the mean endpoint-native batch time. The primary uncertainty is a seed-1797 paired-bootstrap 95% interval over ten blocks.
+- Predeclared all-five organization guard: For each of cells 1--4, compute the paired difference between that cell's `(noop - native)` and cell 0's `(noop - native)`, normalized by the mean native time of the two organizations. Bootstrap each ten-block median independently with a fixed distinct seed. Four two-sided 98.75% percentile intervals apply a Bonferroni correction, giving at least 95% family-wise coverage. The guard passes only if every interval lies within +/-1%. Any interval wholly outside is contradictory; a boundary-crossing interval is inconclusive. The tested hypothesis is supported only when both the endpoint primary and the all-five guard pass.
 - Correctness check or ground truth: All output slots match the independent integer oracle; all cell geometry and fixed-work fields match the frozen matrix; the counter map exactly reports every warmup and timed callback for every logical thread; marker, PTX transformation, module, attach, detach, private-segment, telemetry, UVM, Xid, and survivor gates pass.
-- Repetitions, seeds, and uncertainty: One real three-arm preflight at the middle organization, then ten randomized paired blocks. Arm and cell-order randomization plus bootstrap use distinct deterministic streams derived from seed 1797.
+- Repetitions, seeds, and uncertainty: One real three-arm preflight at the middle organization, then ten randomized paired blocks. Balanced arm assignment, cell-order randomization, and all bootstrap intervals use distinct deterministic streams derived from seed 1797.
 - Cost estimate when material: Thirty full-run processes containing 150 timed cells, expected to finish within 30 minutes and bounded by the existing one-hour runner deadline.
 
 ## Planned Runs
@@ -53,17 +54,17 @@
 ## Execution
 - Authoritative command or workflow: Build with the existing `Makefile`, then run `python3 run_fixed_work.py --phase preflight --output raw/fixed-work-preflight-<id>` followed by `python3 run_fixed_work.py --phase full --output raw/fixed-work-full-<id>`. Analyze only a complete full result with `python3 analyze_fixed_work.py --result raw/fixed-work-full-<id>/result.json`.
 - Real preflight case: All three arms at 1,024 blocks x 128 threads, one warmup, two timed launches, and two hook repetitions.
-- Full completion rule: All 30 arm processes and 150 cell measurements pass; all fixed-work invariants, exact output/counter evidence, target/marker engagement, lifecycle, telemetry, and final safety gates pass.
-- Raw-result path: The selected new `raw/fixed-work-*` directory contains the ordinary runner result, logs, telemetry, summary, and independent analysis outputs.
+- Full completion rule: All 30 arm processes and 150 cell measurements pass; all fixed-work invariants, exact output/counter evidence, target/marker engagement, lifecycle, telemetry, and final safety gates pass. The offline analyzer must independently reopen and validate every admitted arm's raw application log, loader/map log, agent-bootstrap log, telemetry CSV, paired safety snapshots, and lifecycle record. `result.json` supplies only the frozen schedule and raw-directory locators; its derived `valid`, measurement, engagement, telemetry-summary, and safety dictionaries are not analysis evidence.
+- Raw-result path: The selected new `raw/fixed-work-*` directory contains the ordinary runner result; a distinct directory per arm with `application.log`, `lifecycle.json`, and paired safety snapshots; attached-arm `loader.log` and `agent.log`; a distinct telemetry CSV per arm; summary files; and independent analysis outputs.
 - Checkpoint or recovery approach: The existing fail-closed per-arm checkpoint/resume path is reused. Resume accepts only the frozen profile, schedule, per-block cell order, source metadata, and already-valid arms.
 
 ## Interpretation
-- Positive result: The complete 95% interval is within +/-1%; report no material endpoint organization effect in this bounded kernel/GPU range.
-- Negative or contradictory result: The interval is wholly outside +/-1%; report the measured direction and remove block-independence wording.
-- Mixed or inconclusive result: The interval overlaps either equivalence boundary; report the estimate and interval without an independence claim.
+- Positive result: The endpoint 95% interval and all four Bonferroni-adjusted 98.75% intervals lie within +/-1%; report no material organization effect across all five tested organizations in this bounded kernel/GPU range.
+- Negative or contradictory result: The endpoint interval or any all-five interval is wholly outside +/-1%; report the affected organization and measured direction and remove block-independence wording.
+- Mixed or inconclusive result: No interval is wholly outside but at least one overlaps an equivalence boundary; report all estimates and intervals without an independence claim.
 - Target paper figure or table: A compact supporting panel showing paired no-op increment across block organizations, annotated with the endpoint contrast and interval.
 
 ## Reproducibility Notes
 - Software and data versions: Record ordinary Git revisions, runtime configuration, GPU/driver/CUDA properties, commands, seeds, and file inventory/metadata; never use content digests.
-- Config and seed notes: Full runs use ten blocks, seed 1797, two warmups, eight timed launches, and 16 hook repetitions. Every dimension is a whole-warp multiple.
+- Config and seed notes: Full runs use ten blocks, seed 1797, a balanced three-arm order, two warmups, eight timed launches, and 16 hook repetitions. Every dimension is a whole-warp multiple. The endpoint interval is 95%; the four all-five intervals are 98.75% each under the predeclared Bonferroni family-wise guard.
 - Known deviations: Block count and threads per block must vary reciprocally to hold total work and warps fixed, so the independent variable is block organization, not block count in isolation. The current runtime uses an ordinary PTX `call`/`call.uni`; this experiment neither assumes nor proves scalar warp-leader execution. It is a synthetic verifier-off mechanism result and excludes attach/JIT time.

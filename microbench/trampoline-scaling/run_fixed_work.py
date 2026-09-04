@@ -35,13 +35,19 @@ def configure() -> None:
     runner.PREFLIGHT_HOOK_REPEATS = 2
     runner.FULL_HOOK_REPEATS = 16
     runner.RANDOMIZE_CELL_ORDER = True
+    runner.BALANCE_ARM_ORDER = True
+    runner.WRITE_INDEPENDENT_RAW_EVIDENCE = True
     runner.MAX_THREADS_PER_BLOCK = 1024
     runner.MATRIX_HEADER = runner.HERE / "fixed_work_matrix.h"
     runner.APPLICATION_BINARY = runner.HERE / ".output/fixed-work-scaling"
     runner.COMPILED_PTX = runner.HERE / ".output/fixed-work-scaling.ptx"
     runner.LOADER_BINARY = runner.HERE / ".output/fixed-work-probe"
     runner.BPF_OBJECT_PREFIX = "fixed-work-probe"
-    runner.EXTRA_SOURCE_PATHS = (Path(__file__).resolve(),)
+    runner.EXTRA_SOURCE_PATHS = (
+        Path(__file__).resolve(),
+        Path(__file__).resolve().with_name("analyze_fixed_work.py"),
+        Path(__file__).resolve().with_name("fixed-work-plan.md"),
+    )
 
 
 configure()

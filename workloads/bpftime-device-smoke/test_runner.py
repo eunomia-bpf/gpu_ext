@@ -19,7 +19,7 @@ POSITIVE = (
 )
 NEGATIVE = (
     "GPU eBPF verification failed for cuda__count_ret: "
-    "branch predicate is lane-varying (mode=STRICT, hook_created=0)\n"
+    "branch predicate is lane-varying (mode=STRICT, policy_entry_created=0)\n"
     "GPU verifier rejected handler 18\n"
     "Failed to initialize attach context, exiting..\n"
 )

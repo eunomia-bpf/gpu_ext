@@ -69,9 +69,11 @@ directory passed **12 tests**. Independent read-only assertions also matched
 all four raw verdict/numeric/readback/cleanup records and retained 01 as failed.
 
 Evidence detail: the negative `result.json` verifier summary omits the separate
-continuation line containing `(mode=STRICT, hook_created=0)`. That line is
-present at line 126 of both full `instrumented.log` files, which the runner
-validates. Cite those full logs for the explicit before-policy-hook rejection.
+continuation line containing `(mode=STRICT, hook_created=0)`. That historical
+field means no policy entry was allocated; generic Frida/CUDA interception was
+already installed. The ported runtime uses the less ambiguous
+`policy_entry_created=0`. The old line is present at line 126 of both full
+`instrumented.log` files, which the historical runner validates.
 
 Claim boundary remains unchanged: these are two successful strict counter
 positive/negative pairs, not general SIMT soundness, POD pointer/ticket ABI

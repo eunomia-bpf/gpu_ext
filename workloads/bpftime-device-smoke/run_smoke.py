@@ -59,7 +59,8 @@ def require_strict_verdict(log: str, negative: bool) -> None:
     if "Skipping GPU eBPF verification" in log or "; continuing" in log:
         raise RuntimeError("verification bypass is not strict evidence")
     if negative:
-        required = (rejected, "branch predicate is lane-varying", "(mode=STRICT, hook_created=0)",
+        required = (rejected, "branch predicate is lane-varying",
+                    "(mode=STRICT, policy_entry_created=0)",
                     "GPU verifier rejected handler ", "Failed to initialize attach context, exiting..")
         if any(marker not in log for marker in required):
             raise RuntimeError("missing explicit SIMT rejection or fail-closed propagation")
@@ -224,7 +225,9 @@ def run(output: Path, build: Path, *, strict: bool = False, negative: bool = Fal
                     raise RuntimeError("no fresh counter observation after explicit strict rejection")
                 time.sleep(0.1)
             result.update(status="passed", rejection={"diagnostic": "branch predicate is lane-varying",
-                          "hook_created": False, "post_rejection_snapshots": snapshots[snapshot_count:]})
+                          "policy_entry_created": False,
+                          "generic_interception_preexists": True,
+                          "post_rejection_snapshots": snapshots[snapshot_count:]})
             return result
         if probe.wait(timeout=10) != 0:
             raise RuntimeError("device-return counter did not reach the exact expected count")

@@ -27,7 +27,9 @@ target-only late replacement, lossless teardown, and newer map-size handling.
 Before timing, require all scoped verifier and attach tests plus the existing
 two real strict positive/negative device pairs. The positive must admit and
 execute 32,768 callbacks; the lane-varying negative must be rejected before
-hook creation and retain zero callbacks.
+policy-entry insertion and bootstrap and retain zero callbacks. Generic
+Frida/CUDA interception already exists before this admission point and is not
+described as verifier-gated.
 
 ## Experimental cells
 

@@ -6,15 +6,17 @@ not general verifier soundness, the POD pointer/ticket ABI, or performance.
 
 | Retained run | Positive | Negative | Cleanup |
 | --- | --- | --- | --- |
-| `raw/575-r5-strict-02` | Actual strict admission of 13 instructions; 4,096 threads each execute eight callbacks, total 32,768 | Lane-varying branch rejected at instruction 1, before creating its policy hook; fresh readback of all counters remains zero | Both private segments removed, no owned process survivors, clean pre/post GPU and kernel checks |
+| `raw/575-r5-strict-02` | Actual strict admission of 13 instructions; 4,096 threads each execute eight callbacks, total 32,768 | Lane-varying branch rejected at instruction 1, before policy-entry insertion and bootstrap; fresh readback of all counters remains zero | Both private segments removed, no owned process survivors, clean pre/post GPU and kernel checks |
 | `raw/575-r5-strict-03` | Same complete positive result | Same complete rejection and zero-counter result | Same complete cleanup and safety result |
 
 Every native and instrumented target checks all 32,768 vector outputs exactly.
 The negative target may execute its original CUDA kernel after policy rejection;
 application correctness alone is not the rejection oracle. Full logs retain
 `mode=STRICT, hook_created=0`, propagated initialization failure and the later
-zero-counter observation. The rejected program was never executed in warning
-or disabled mode.
+zero-counter observation. That historical field means no policy entry was
+allocated; generic Frida/CUDA interception was already installed. The ported
+runtime renames it `policy_entry_created=0`. The rejected program was never
+executed in warning or disabled mode.
 
 ## Build and repairs
 
@@ -55,7 +57,8 @@ listings are in `docs/experiment/revision-safety/strict-build-575-01/`.
 ## Claim boundary
 
 An admitted per-thread map callback executes correctly on a real return event;
-the tested lane-varying callback is rejected before its policy hook is created,
+the tested lane-varying callback is rejected before its policy entry is
+inserted or bootstrapped,
 without preventing the original application from producing correct output.
 This is not a claim that all CUDA interception is absent on rejection, that
 arbitrary callbacks are safe, or that the verification-disabled POD and

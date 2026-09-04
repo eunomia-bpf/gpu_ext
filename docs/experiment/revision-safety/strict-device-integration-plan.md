@@ -34,7 +34,8 @@ and frozen POD/HB sources were not changed by this task.
 ## 1. Claim to establish and current boundary
 
 Establish one narrow end-to-end claim: a verifier-enabled runtime in strict
-mode rejects an unsupported device callback before creating its hook, while
+mode rejects an unsupported device callback before inserting or bootstrapping
+its policy entry, while
 the **same admitted callback instruction stream** actually executes on a
 real device event and preserves the workload's full numerical output.
 This is dependency validation for Q2, not a scheduling result, a performance
@@ -53,7 +54,7 @@ in this table describe the pre-edit source at `36610ee`:
 | Existing component | Relevant source and implication |
 | --- | --- |
 | Public GPU verification | `bpftime-verifier/src/gpu/gpu_verifier.cpp:267`: PREVAIL, uniformity analysis, SIMT checks; `:309`: public `verify_gpu_program` entry |
-| Strict rejection before hook creation | `attach/nv_attach_impl/nv_attach_impl.cpp:228`: verify `data.instructions` using real map descriptors; `:245`: return `GPU_VERIFIER_REJECTED`; only then `:256` enables attachment and `:259` copies those instructions into the hook |
+| Strict rejection before policy-entry insertion | `attach/nv_attach_impl/nv_attach_impl.cpp:228`: verify `data.instructions` using real map descriptors; `:245`: return `GPU_VERIFIER_REJECTED`; only then does the policy-entry path continue. Generic Frida/CUDA interception already exists. |
 | Verifier linkage | `attach/nv_attach_impl/CMakeLists.txt:58`: `ENABLE_EBPF_VERIFIER` links `bpftime-verifier` and defines `ENABLE_BPFTIME_VERIFIER` |
 | Mode selection and propagation | `runtime/src/bpftime_config.cpp:133`: `BPFTIME_VERIFIER_LEVEL=STRICT`; `runtime/src/attach/bpf_attach_ctx.cpp:360`: passes mode to CUDA attachment |
 | Fail-closed link initialization | `runtime/src/attach/bpf_attach_ctx.cpp:130`: this rejection class destroys created links and returns the error; `runtime/agent/agent.cpp:931` checks initialization result |
@@ -115,8 +116,11 @@ The source changes are limited to:
    verification record immediately after the checked call, including strict
    mode, program/attach-point name, instruction count, and map types/sizes.
    The existing copy into the hook uses that same checked vector. Rejection
-   and return behavior are unchanged; failed strict verification records
-   `hook_created=0`. Warning-bypass and disabled modes emit no success record.
+   and return behavior are unchanged; the historical failed-verification record
+   says `hook_created=0`, meaning no policy entry was allocated. Generic
+   interception already exists; the ported runtime uses
+   `policy_entry_created=0`. Warning-bypass and disabled modes emit no success
+   record.
 2. A new `GPU strict counter admission and rejection` test uses map type
    1502, key size 4, value size 8, and one entry. It checks positive admission
    through the public verifier and passes only the lane-branch negative to
@@ -214,7 +218,7 @@ root-owned; do not change their permissions or acquire a second outer lease.
 | Cell | Required evidence |
 | --- | --- |
 | Strict positive | Explicit successful strict admission; native and instrumented 32768/32768 numerical checks; 4096 counters each eight, total 32768; clean owned teardown and post-run safety |
-| Strict negative | Intended lane-varying-branch diagnostic; propagated `GPU_VERIFIER_REJECTED` before hook creation; no positive admission/attachment for that object; 32768/32768 numerical checks; all 4096 counters remain zero after rejection; clean owned teardown and post-run safety |
+| Strict negative | Intended lane-varying-branch diagnostic; propagated `GPU_VERIFIER_REJECTED` before policy-entry insertion/bootstrap; no positive admission for that object; 32768/32768 numerical checks; all 4096 counters remain zero after rejection; clean owned teardown and post-run safety |
 
 A valid strict positive must pass first. Otherwise all-zero negative counters
 could simply reproduce the old instrumentation failure. One complete pair is

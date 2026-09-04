@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Frozen FIFO/continuous GPreempt study; never builds or changes the driver."""
+"""Frozen GPreempt load profiles; never builds or changes the driver."""
 from __future__ import annotations
 
 import argparse
@@ -21,28 +21,41 @@ HERE = Path(__file__).resolve().parent
 BUILD = HERE / "build/load-study"
 ARMS, TASKS = original.ARMS, original.TASKS
 SCENARIOS = ("be100", "be200", "be_continuous")
+LC_KNEE_SCENARIOS = ("lc500", "lc625", "lc800")
+STUDIES = ("load", "lc-knee")
 SEED = 20260903
 safety = original.safety
 stop_owned = original.stop_owned
 
 
-def make_config(scenario: str, seconds: int) -> dict:
-    if scenario not in SCENARIOS or type(seconds) is not int or seconds not in (10, 60):
+def scenario_loads(study: str, scenario: str) -> tuple[dict, dict]:
+    if study == "load" and scenario in SCENARIOS:
+        foreground = {"type": "periodic_fifo", "frequency": 100, "priority": 0}
+        if scenario == "be_continuous":
+            background = {"type": "continuous"}
+        else:
+            background = {"type": "periodic_fifo",
+                          "frequency": 200 if scenario == "be200" else 100, "priority": 0}
+        return foreground, background
+    if study == "lc-knee" and scenario in LC_KNEE_SCENARIOS:
+        return ({"type": "periodic_fifo", "frequency": int(scenario[2:]), "priority": 0},
+                {"type": "continuous"})
+    raise ValueError("unknown frozen study/scenario")
+
+
+def make_config(scenario: str, seconds: int, study: str = "load") -> dict:
+    if type(seconds) is not int or seconds not in (10, 60):
         raise ValueError("only the frozen 10-second preflight or 60-second study is supported")
+    loads = scenario_loads(study, scenario)
     tasks = []
     for role, name, model in zip((0, 1), TASKS, ("vgg", "resnet152")):
-        load = {"type": "periodic_fifo", "frequency": 100, "priority": 0}
-        if role and scenario == "be200":
-            load["frequency"] = 200
-        elif role and scenario == "be_continuous":
-            load = {"type": "continuous"}
-        tasks.append({"id": name, "load": load, "client": {
+        tasks.append({"id": name, "load": loads[role], "client": {
             "name": name, "model_name": model, "priority": role,
             "batch_size": 1, "use_cuda_graph": True, "preprocess_time": 200}})
     return {"time": seconds, "tasks": tasks}
 
 
-def validate_config(config: dict, scenario: str | None = None) -> str:
+def validate_config(config: dict, scenario: str | None = None, study: str = "load") -> str:
     def same(left, right):
         if type(left) is not type(right):
             return False
@@ -51,8 +64,9 @@ def validate_config(config: dict, scenario: str | None = None) -> str:
         if isinstance(left, list):
             return len(left) == len(right) and all(same(a, b) for a, b in zip(left, right))
         return left == right
-    for candidate in SCENARIOS if scenario is None else (scenario,):
-        if same(config, make_config(candidate, config.get("time"))):
+    candidates = SCENARIOS if study == "load" else LC_KNEE_SCENARIOS
+    for candidate in candidates if scenario is None else (scenario,):
+        if same(config, make_config(candidate, config.get("time"), study)):
             return candidate
     raise ValueError("configuration differs from frozen models, roles, rates, graph or preprocessing")
 
@@ -64,26 +78,47 @@ def balanced_orders(items, count: int, seed: int) -> list[list[str]]:
     return [list(item) for item in permutations[:count]]
 
 
+def latin_orders(items, count: int, seed: int) -> list[list[str]]:
+    """Seeded rotations give exact position balance for the three-block knee sweep."""
+    if count != len(items):
+        raise ValueError("Latin ordering requires one block per item")
+    row = list(items)
+    random.Random(seed).shuffle(row)
+    return [row[index:] + row[:index] for index in range(count)]
+
+
 def make_plan(mode: str, timeout: int = 240, cooldown: int = 10,
-              gdrcopy: Path = original.DEFAULT_GDRCOPY) -> dict:
-    if mode not in ("full", "preflight") or not 90 <= timeout <= 3500 or not 0 <= cooldown <= 60:
+              gdrcopy: Path = original.DEFAULT_GDRCOPY, study: str = "load",
+              preflight: Path | None = None) -> dict:
+    if (study not in STUDIES or mode not in ("full", "preflight")
+            or not 90 <= timeout <= 3500 or not 0 <= cooldown <= 60):
         raise ValueError("invalid mode, timeout or cooldown")
     full = mode == "full"
-    blocks, seconds = (5, 60) if full else (1, 10)
-    scenarios = list(SCENARIOS) if full else ["be_continuous"]
-    scenario_orders = balanced_orders(scenarios, blocks, SEED) if full else [scenarios]
-    arm_orders = {scenario: balanced_orders(ARMS, blocks, SEED + index + 1)
-                  for index, scenario in enumerate(SCENARIOS)}
+    knee = study == "lc-knee"
+    if preflight is not None and not (knee and full):
+        raise ValueError("preflight evidence is only valid for an LC-knee full plan")
+    blocks, seconds = ((3 if knee else 5), 60) if full else (1, 10)
+    all_scenarios = LC_KNEE_SCENARIOS if knee else SCENARIOS
+    scenarios = list(all_scenarios) if full else ["lc800" if knee else "be_continuous"]
+    if full:
+        scenario_orders = (latin_orders(scenarios, blocks, SEED)
+                           if knee else balanced_orders(scenarios, blocks, SEED))
+    else:
+        scenario_orders = [scenarios]
+    arm_orders = {scenario: (latin_orders(ARMS, blocks, SEED + index + 1)
+                             if knee and full else balanced_orders(ARMS, blocks, SEED + index + 1))
+                  for index, scenario in enumerate(all_scenarios)}
     orders = []
     for block, scenario_order in enumerate(scenario_orders):
         for scenario in scenario_order:
             for arm in arm_orders[scenario][block]:
                 orders.append({"cell": len(orders), "block": block, "scenario": scenario, "arm": arm})
-    return {"schema": "gpreempt_load_study_v1", "mode": mode, "seed": SEED,
+    plan = {"schema": "gpreempt_lc_knee_v1" if knee else "gpreempt_load_study_v1",
+            "mode": mode, "seed": SEED,
             "blocks": blocks, "scenarios": scenarios, "scenario_orders": scenario_orders,
-            "orders": orders, "configs": {s: make_config(s, seconds) for s in scenarios},
+            "orders": orders, "configs": {s: make_config(s, seconds, study) for s in scenarios},
             "timed_seconds_per_cell": seconds, "required_cells": len(orders),
-            "formal_required_blocks": 5, "cell_timeout_seconds": timeout,
+            "formal_required_blocks": 3 if knee else 5, "cell_timeout_seconds": timeout,
             "cooldown_seconds": cooldown, "gdrcopy_directory": str(gdrcopy.resolve()),
             "flag_transport": "host_mapped", "comparison_variant": "host_mapped_compatibility",
             "clock": "steady_clock", "arrival_phase_ns": 0,
@@ -97,6 +132,30 @@ def make_plan(mode: str, timeout: int = 240, cooldown: int = 10,
                            "interval": "percentile paired-block bootstrap", "draws": 10000,
                            "seed": SEED, "confidence": 0.95, "equivalence_claimed": False},
             "privilege": "all clients and loader run as root without permission changes"}
+    if knee:
+        plan.update(study=study, evidence_role="supporting",
+                    prespecified_lc_rates_rps=[500, 625, 800],
+                    background_load="continuous_closed_loop",
+                    post_hoc_rate_additions_allowed=False,
+                    scope_note="supporting knee evidence only; no rates may be appended after execution",
+                    preflight_required=True,
+                    preflight_campaign=(str(preflight.resolve()) if preflight is not None else None))
+    return plan
+
+
+def independent_campaign_paths(preflight: Path, full_output: Path) -> bool:
+    preflight, full_output = preflight.resolve(), full_output.resolve()
+    return (preflight != full_output and preflight not in full_output.parents
+            and full_output not in preflight.parents)
+
+
+def validate_completed_preflight(preflight: Path, full_output: Path | None = None) -> dict:
+    """Fail closed unless an independent raw audit accepts the frozen real preflight."""
+    preflight = preflight.resolve()
+    if full_output is not None and not independent_campaign_paths(preflight, full_output):
+        raise ValueError("LC-knee preflight and full output must be independent campaign directories")
+    import analyze_load_study as independent
+    return independent.validate_completed_preflight(preflight)
 
 
 def integer(value, label: str, minimum: int = 0) -> int:
@@ -138,8 +197,8 @@ def native_priorities(log: str, arm: str) -> dict:
     return result
 
 
-def parse_report(log: str, config: dict, arm: str) -> dict:
-    validate_config(config)
+def parse_report(log: str, config: dict, arm: str, study: str = "load") -> dict:
+    validate_config(config, study=study)
     if arm not in ARMS:
         raise ValueError("unknown arm")
     seconds = config["time"]
@@ -286,9 +345,10 @@ def build_inventory() -> dict:
 
 
 def run_cell(directory: Path, specification: dict, config_path: Path, timeout: int,
-             gdrcopy: Path = original.DEFAULT_GDRCOPY, expected_inventory: dict | None = None) -> dict:
+             gdrcopy: Path = original.DEFAULT_GDRCOPY, expected_inventory: dict | None = None,
+             study: str = "load") -> dict:
     config = json.loads(config_path.read_text())
-    validate_config(config, specification["scenario"])
+    validate_config(config, specification["scenario"], study)
     arm = specification["arm"]
     if arm not in ARMS:
         raise ValueError("unknown arm")
@@ -344,7 +404,7 @@ def run_cell(directory: Path, specification: dict, config_path: Path, timeout: i
         if client.returncode != 0 or (loader is not None and loader.returncode != 0):
             raise RuntimeError("client or attached policy exited unsuccessfully")
         log = (directory / "client.log").read_text(errors="replace")
-        parsed = parse_report(log, config, arm)
+        parsed = parse_report(log, config, arm, study)
         safety.atomic_write_json(directory / "request-report.json", parsed.pop("report"))
         safety.atomic_write_json(directory / "load-study-report.json", parsed.pop("load_reports"))
         result.update(parsed)
@@ -400,7 +460,9 @@ def summarize(results: list[dict], plan: dict) -> dict:
     return {"completed_cells": len(passed), "required_cells": len(expected),
             "valid_paired_groups": len(groups), "paired_groups": groups,
             "complete": set(passed) == expected,
-            "formal_complete": plan["mode"] == "full" and len(expected) == 45 and set(passed) == expected,
+            "formal_complete": (plan["mode"] == "full"
+                                and len(expected) == (27 if plan.get("study", "load") == "lc-knee" else 45)
+                                and set(passed) == expected),
             "mode": plan["mode"], "independently_audited": False,
             "note": "progress only; final paired intervals require independent raw audit"}
 
@@ -412,10 +474,16 @@ def main() -> None:
     parser.add_argument("--cell-timeout", type=int, default=240)
     parser.add_argument("--cooldown-seconds", type=int, default=10)
     parser.add_argument("--gdrcopy-dir", type=Path, default=original.DEFAULT_GDRCOPY)
+    parser.add_argument("--study", choices=STUDIES, default="load")
+    parser.add_argument("--preflight", type=Path,
+                        help="completed independent lc-knee preflight required by an actual lc-knee full run")
     parser.add_argument("--plan", action="store_true", help="print frozen plan without GPU access or writes")
     args = parser.parse_args()
     try:
-        plan = make_plan(args.mode, args.cell_timeout, args.cooldown_seconds, args.gdrcopy_dir)
+        if args.preflight is not None and (args.study != "lc-knee" or args.mode != "full"):
+            raise ValueError("--preflight is only valid for an lc-knee full run")
+        plan = make_plan(args.mode, args.cell_timeout, args.cooldown_seconds,
+                         args.gdrcopy_dir, args.study, args.preflight)
     except ValueError as error:
         parser.error(str(error))
     if args.plan:
@@ -424,6 +492,14 @@ def main() -> None:
     if args.output is None or os.geteuid() != 0:
         parser.error("actual runs need --output and the same root privilege for all arms")
     output = args.output.resolve()
+    if args.study == "lc-knee" and args.mode == "full":
+        if args.preflight is None:
+            parser.error("an actual lc-knee full run requires --preflight COMPLETED_CAMPAIGN")
+        try:
+            validate_completed_preflight(args.preflight, output)
+        except (OSError, ValueError, KeyError, TypeError, OverflowError,
+                original.safety.GateError) as error:
+            parser.error(f"LC-knee preflight gate failed: {error}")
     output.mkdir(parents=True, exist_ok=False)
     safety.atomic_write_json(output / "plan.json", plan)
     (output / "configs").mkdir()
@@ -443,7 +519,7 @@ def main() -> None:
             print(f"START cell={specification['cell']} block={block} scenario={scenario} arm={arm}", flush=True)
             directory = output / f"block-{block:02d}" / scenario / arm
             result = run_cell(directory, specification, output / "configs" / f"{scenario}.json",
-                              args.cell_timeout, args.gdrcopy_dir.resolve(), inventory["files"])
+                              args.cell_timeout, args.gdrcopy_dir.resolve(), inventory["files"], args.study)
             results.append(result)
             safety.atomic_write_json(output / "progress.json", {"completed_cells": len(results), "last": specification})
             safety.atomic_write_json(output / "summary.json", summarize(results, plan))

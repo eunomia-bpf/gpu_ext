@@ -1,5 +1,7 @@
 """CPU-only parser/plan/lifecycle checks. No CUDA, device or real child execution."""
 import copy
+import contextlib
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -75,6 +77,72 @@ class LoadStudyTests(unittest.TestCase):
         self.assertTrue(run.summarize(rows, plan)["complete"])
         self.assertFalse(run.summarize(rows, plan)["formal_complete"])
 
+    def test_lc_knee_plan_is_prespecified_supporting_evidence(self):
+        plan = run.make_plan("full", study="lc-knee")
+        self.assertEqual(plan["required_cells"], 27)
+        self.assertEqual(plan["blocks"], 3)
+        self.assertEqual(plan["scenarios"], ["lc500", "lc625", "lc800"])
+        self.assertEqual(plan["prespecified_lc_rates_rps"], [500, 625, 800])
+        self.assertEqual(plan["evidence_role"], "supporting")
+        self.assertFalse(plan["post_hoc_rate_additions_allowed"])
+        keys = [(row["block"], row["scenario"], row["arm"]) for row in plan["orders"]]
+        self.assertEqual(len(keys), len(set(keys)))
+        for scenario in run.LC_KNEE_SCENARIOS:
+            config = plan["configs"][scenario]
+            self.assertEqual(config["tasks"][0]["load"]["frequency"], int(scenario[2:]))
+            self.assertEqual(config["tasks"][1]["load"], {"type": "continuous"})
+            for arm in run.ARMS:
+                positions = [[row["arm"] for row in plan["orders"]
+                              if row["block"] == block and row["scenario"] == scenario].index(arm)
+                             for block in range(3)]
+                self.assertEqual(sorted(positions), [0, 1, 2])
+        for scenario in run.LC_KNEE_SCENARIOS:
+            positions = [order.index(scenario) for order in plan["scenario_orders"]]
+            self.assertEqual(sorted(positions), [0, 1, 2])
+        rows = [{**spec, "status": "passed", "metrics": {}} for spec in plan["orders"]]
+        self.assertTrue(run.summarize(rows, plan)["formal_complete"])
+
+    def test_lc_knee_preflight_is_one_lc800_three_arm_block(self):
+        plan = run.make_plan("preflight", study="lc-knee")
+        self.assertEqual(plan["required_cells"], 3)
+        self.assertEqual(plan["blocks"], 1)
+        self.assertEqual(plan["scenarios"], ["lc800"])
+        self.assertEqual(plan["timed_seconds_per_cell"], 10)
+        self.assertEqual({row["arm"] for row in plan["orders"]}, set(run.ARMS))
+        rows = [{**spec, "status": "passed", "metrics": {}} for spec in plan["orders"]]
+        self.assertTrue(run.summarize(rows, plan)["complete"])
+        self.assertFalse(run.summarize(rows, plan)["formal_complete"])
+
+    def test_lc_knee_full_requires_explicit_preflight_but_plan_only_does_not_read_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = root / "full"
+            with patch("sys.argv", ["run_load_study.py", "full", "--study", "lc-knee",
+                                    "--output", str(output)]), \
+                 patch.object(run.os, "geteuid", return_value=0), \
+                 contextlib.redirect_stderr(io.StringIO()), \
+                 self.assertRaises(SystemExit):
+                run.main()
+            self.assertFalse(output.exists())
+            missing = root / "not-present"
+            with patch("sys.argv", ["run_load_study.py", "full", "--study", "lc-knee",
+                                    "--preflight", str(missing), "--plan"]), \
+                 patch.object(run, "validate_completed_preflight",
+                              side_effect=AssertionError("plan-only read preflight")) as gate, \
+                 contextlib.redirect_stdout(io.StringIO()):
+                run.main()
+            gate.assert_not_called()
+
+    def test_completed_preflight_gate_delegates_to_independent_analyzer(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            expected = {"campaign": str((root / "preflight").resolve()), "complete": True}
+            with patch("analyze_load_study.validate_completed_preflight", return_value=expected) as audit:
+                self.assertEqual(run.validate_completed_preflight(root / "preflight", root / "full"), expected)
+            audit.assert_called_once_with((root / "preflight").resolve())
+            with self.assertRaises(ValueError):
+                run.validate_completed_preflight(root / "preflight", root / "preflight/child")
+
     def test_configs_reject_policy_model_repeat_type_or_rate_drift(self):
         for scenario in run.SCENARIOS:
             config = run.make_config(scenario, 60)
@@ -86,6 +154,13 @@ class LoadStudyTests(unittest.TestCase):
                     run.validate_config(changed)
         with self.assertRaises(ValueError):
             run.make_config("be100", True)
+        for scenario in run.LC_KNEE_SCENARIOS:
+            config = run.make_config(scenario, 60, "lc-knee")
+            self.assertEqual(run.validate_config(config, study="lc-knee"), scenario)
+            changed = copy.deepcopy(config)
+            changed["tasks"][1]["load"] = {"type": "periodic_fifo", "frequency": 200, "priority": 0}
+            with self.assertRaises(ValueError):
+                run.validate_config(changed, scenario, "lc-knee")
 
     def test_fifo_response_includes_wait_and_backlog_without_discarding(self):
         values = fixture()

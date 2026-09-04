@@ -19,6 +19,7 @@ from analyze_three_way import estimate_ratios
 import run_three_way as base
 
 SCENARIOS = ("be100", "be200", "be_continuous")
+LC_KNEE_SCENARIOS = ("lc500", "lc625", "lc800")
 NS = 1_000_000_000
 
 
@@ -37,10 +38,24 @@ def json_records(log, prefix):
             if line.startswith(prefix)]
 
 
-def parse_client(log, scenario, seconds, arm):
+def expected_loads(study, scenario):
+    if study == "load" and scenario in SCENARIOS:
+        foreground = {"type": "periodic_fifo", "frequency": 100, "priority": 0}
+        background = ({"type": "continuous"} if scenario == "be_continuous" else
+                      {"type": "periodic_fifo", "frequency": 200 if scenario == "be200" else 100,
+                       "priority": 0})
+        return foreground, background
+    if study == "lc-knee" and scenario in LC_KNEE_SCENARIOS:
+        return ({"type": "periodic_fifo", "frequency": int(scenario[2:]), "priority": 0},
+                {"type": "continuous"})
+    raise ValueError("unknown study/scenario")
+
+
+def parse_client(log, scenario, seconds, arm, study="load"):
     """Independently validate one process's raw reports and return derived metrics."""
-    if scenario not in SCENARIOS or arm not in base.ARMS:
+    if arm not in base.ARMS:
         raise ValueError("unknown scenario or arm")
+    loads = expected_loads(study, scenario)
     integer(seconds, "duration", 1)
     decoder = json.JSONDecoder()
     reports = []
@@ -77,8 +92,9 @@ def parse_client(log, scenario, seconds, arm):
     metrics = {}
     for role, task in enumerate(base.TASKS):
         row, analyzer, check = rows[task], analyzers[task], checks[task]
-        continuous = role == 1 and scenario == "be_continuous"
-        interval = 0 if continuous else NS // (200 if role == 1 and scenario == "be200" else 100)
+        expected_load = loads[role]
+        continuous = expected_load["type"] == "continuous"
+        interval = 0 if continuous else NS // expected_load["frequency"]
         mode = "continuous_closed_loop" if continuous else "periodic_fifo"
         if (row.get("clock") != "steady_clock" or row.get("mode") != mode
                 or row.get("begin_ns") != begin or row.get("end_ns") != end
@@ -235,14 +251,11 @@ def summarize_scenario(blocks, points, required=5):
     return result
 
 
-def expected_config(scenario, seconds):
+def expected_config(scenario, seconds, study="load"):
+    loads = expected_loads(study, scenario)
     tasks = []
     for role, task, model in zip((0, 1), base.TASKS, ("vgg", "resnet152")):
-        load = {"type": "periodic_fifo", "frequency": 200 if role and scenario == "be200" else 100,
-                "priority": 0}
-        if role and scenario == "be_continuous":
-            load = {"type": "continuous"}
-        tasks.append({"id": task, "load": load, "client": {"name": task, "model_name": model,
+        tasks.append({"id": task, "load": loads[role], "client": {"name": task, "model_name": model,
                       "priority": role, "batch_size": 1, "use_cuda_graph": True, "preprocess_time": 200}})
     return {"time": seconds, "tasks": tasks}
 
@@ -252,17 +265,31 @@ def validate_plan(plan, campaign):
     if mode not in ("full", "preflight"):
         raise ValueError("unknown campaign mode")
     full = mode == "full"
-    blocks, seconds = (5, 60) if full else (1, 10)
-    scenarios = list(SCENARIOS) if full else ["be_continuous"]
-    checks = {"schema": "gpreempt_load_study_v1", "seed": 20260903, "blocks": blocks,
+    study = plan.get("study", "load")
+    if study not in ("load", "lc-knee"):
+        raise ValueError("unknown frozen study")
+    knee = study == "lc-knee"
+    all_scenarios = LC_KNEE_SCENARIOS if knee else SCENARIOS
+    blocks, seconds = ((3 if knee else 5), 60) if full else (1, 10)
+    scenarios = list(all_scenarios) if full else ["lc800" if knee else "be_continuous"]
+    checks = {"schema": "gpreempt_lc_knee_v1" if knee else "gpreempt_load_study_v1",
+              "seed": 20260903, "blocks": blocks,
               "scenarios": scenarios, "timed_seconds_per_cell": seconds,
-              "required_cells": 45 if full else 3, "formal_required_blocks": 5,
+              "required_cells": (27 if knee else 45) if full else 3,
+              "formal_required_blocks": 3 if knee else 5,
               "flag_transport": "host_mapped", "comparison_variant": "host_mapped_compatibility",
               "clock": "steady_clock", "arrival_phase_ns": 0,
               "policy_changes": False, "kernel_repetition": 1,
               "statistics": {"estimator": "paired geometric-mean ratios",
                              "interval": "percentile paired-block bootstrap", "draws": 10000,
                              "seed": 20260903, "confidence": .95, "equivalence_claimed": False}}
+    if knee:
+        checks.update(study="lc-knee", evidence_role="supporting",
+                      prespecified_lc_rates_rps=[500, 625, 800],
+                      background_load="continuous_closed_loop",
+                      post_hoc_rate_additions_allowed=False,
+                      scope_note="supporting knee evidence only; no rates may be appended after execution",
+                      preflight_required=True)
     for key, value in checks.items():
         require_equal(plan.get(key), value, f"plan.{key}")
     if (not 90 <= integer(plan.get("cell_timeout_seconds"), "cell timeout") <= 3500
@@ -270,22 +297,39 @@ def validate_plan(plan, campaign):
         raise ValueError("timeout or cooldown lies outside the frozen bounds")
     if not Path(plan.get("gdrcopy_directory", "")).is_absolute():
         raise ValueError("missing explicit GDRCopy library directory")
-    if full:
+    if knee:
+        preflight = plan.get("preflight_campaign")
+        if full:
+            if not isinstance(preflight, str) or not Path(preflight).is_absolute():
+                raise ValueError("full LC-knee plan lacks an absolute completed preflight campaign")
+        elif preflight is not None:
+            raise ValueError("LC-knee preflight cannot depend on another preflight")
+    if full and not knee:
         permutations = list(itertools.permutations(SCENARIOS))
         random.Random(20260903).shuffle(permutations)
         scenario_orders = [list(row) for row in permutations[:5]]
+    elif full:
+        row = list(scenarios)
+        random.Random(20260903).shuffle(row)
+        scenario_orders = [row[index:] + row[:index] for index in range(blocks)]
     else:
         scenario_orders = [scenarios]
     require_equal(plan.get("scenario_orders"), scenario_orders, "scenario order")
     orders = []
-    arm_orders = {scenario: base.orders(blocks, 20260903 + index + 1)
-                  for index, scenario in enumerate(SCENARIOS)}
+    arm_orders = {}
+    for index, scenario in enumerate(all_scenarios):
+        if knee and full:
+            row = list(base.ARMS)
+            random.Random(20260903 + index + 1).shuffle(row)
+            arm_orders[scenario] = [row[offset:] + row[:offset] for offset in range(blocks)]
+        else:
+            arm_orders[scenario] = base.orders(blocks, 20260903 + index + 1)
     for block, scenario_order in enumerate(scenario_orders):
         for scenario in scenario_order:
             for arm in arm_orders[scenario][block]:
                 orders.append({"cell": len(orders), "block": block, "scenario": scenario, "arm": arm})
     require_equal(plan.get("orders"), orders, "full seeded execution order")
-    configs = {scenario: expected_config(scenario, seconds) for scenario in scenarios}
+    configs = {scenario: expected_config(scenario, seconds, study) for scenario in scenarios}
     require_equal(plan.get("configs"), configs, "frozen workloads")
     for scenario, config in configs.items():
         require_equal(read_json(campaign / "configs" / f"{scenario}.json"), config, "saved scenario config")
@@ -314,6 +358,44 @@ def require_equal(actual, expected, label):
 
 def read_json(path):
     return json.loads(path.read_text())
+
+
+def validate_completed_preflight(campaign, full_campaign=None):
+    """Independently audit a completed LC-knee preflight without copying its cells."""
+    campaign = Path(campaign).resolve()
+    if full_campaign is not None:
+        full_campaign = Path(full_campaign).resolve()
+        if (campaign == full_campaign or campaign in full_campaign.parents
+                or full_campaign in campaign.parents):
+            raise ValueError("preflight and full run must use independent campaign directories")
+    plan = read_json(campaign / "plan.json")
+    require_equal(plan.get("schema"), "gpreempt_lc_knee_v1", "preflight schema")
+    require_equal(plan.get("study"), "lc-knee", "preflight study")
+    require_equal(plan.get("mode"), "preflight", "preflight mode")
+    require_equal(plan.get("scenarios"), ["lc800"], "preflight scenario")
+    require_equal(plan.get("blocks"), 1, "preflight blocks")
+    require_equal(plan.get("required_cells"), 3, "preflight cell count")
+    orders = plan.get("orders")
+    if (not isinstance(orders, list) or len(orders) != 3
+            or {row.get("arm") for row in orders if isinstance(row, dict)} != set(base.ARMS)):
+        raise ValueError("preflight must contain exactly the three policy arms")
+    summary = read_json(campaign / "summary.json")
+    expected_summary = {"status": "completed", "error": None, "mode": "preflight",
+                        "completed_cells": 3, "required_cells": 3,
+                        "valid_paired_groups": 1, "complete": True, "formal_complete": False}
+    for key, value in expected_summary.items():
+        require_equal(summary.get(key), value, f"preflight summary.{key}")
+    audit = analyze(campaign)
+    expected_audit = {"schema": "gpreempt_lc_knee_audit_v1", "study": "lc-knee",
+                      "evidence_role": "supporting", "mode": "preflight", "complete": True,
+                      "formal_eligible": False, "formal_complete": False, "valid_cells": 3,
+                      "required_cells": 3, "rejected_cells": [], "incomplete_cells": [],
+                      "unexpected_cells": []}
+    for key, value in expected_audit.items():
+        require_equal(audit.get(key), value, f"preflight audit.{key}")
+    return {"campaign": str(campaign), "schema": audit["schema"], "study": "lc-knee",
+            "mode": "preflight", "scenario": "lc800", "valid_cells": 3,
+            "complete": True, "formal_complete": False}
 
 
 def validate_models(assets):
@@ -421,7 +503,8 @@ def audit_cell(directory, specification, plan, campaign, inventory):
     require_equal(result.get("runtime_before"), inventory, "runtime before")
     require_equal(result.get("runtime_after"), inventory, "runtime after")
     client = (directory / "client.log").read_text()
-    parsed = parse_client(client, scenario, plan["timed_seconds_per_cell"], arm)
+    parsed = parse_client(client, scenario, plan["timed_seconds_per_cell"], arm,
+                          plan.get("study", "load"))
     require_equal(read_json(directory / "request-report.json"), parsed["report"], "saved DISB raw report")
     require_equal(read_json(directory / "load-study-report.json"), parsed["load_reports"], "saved request timestamp report")
     require_equal(result.get("metrics"), parsed["metrics"], "producer metrics vs raw audit")
@@ -451,6 +534,9 @@ def analyze(campaign):
     campaign = Path(campaign).resolve()
     plan = read_json(campaign / "plan.json")
     formal = validate_plan(plan, campaign)
+    preflight_gate = None
+    if plan.get("study") == "lc-knee" and plan.get("mode") == "full":
+        preflight_gate = validate_completed_preflight(plan["preflight_campaign"], campaign)
     inventory = read_json(campaign / "build-inventory.json")
     files = validate_inventory(inventory)
     validate_models(read_json(campaign / "model-assets.json"))
@@ -486,17 +572,27 @@ def analyze(campaign):
                 blocks.append({"block": block, "cells": cells})
         scenarios[scenario] = summarize_scenario(blocks, points, required=plan["blocks"])
     complete = (len(accepted) == plan["required_cells"] and not rejected and not incomplete and not unexpected)
-    return {"schema": "gpreempt_load_study_audit_v1", "campaign": str(campaign), "mode": plan["mode"],
-            "complete": complete, "formal_eligible": formal, "formal_complete": complete and formal,
-            "valid_cells": len(accepted), "required_cells": plan["required_cells"],
-            "rejected_cells": rejected, "incomplete_cells": incomplete, "unexpected_cells": sorted(unexpected),
-            "scenarios": scenarios, "flag_transport": "host_mapped", "original_gdr_transport": False,
-            "statistics": plan["statistics"], "equivalence_claimed": False,
-            "latency_definition": "nearest-rank scheduled-arrival to synchronized/numerically-verified output ready",
-            "goodput_definition": "verified completions strictly before common cutoff divided by configured seconds",
-            "continuous_offered_or_miss_rate_defined": False,
-            "source_revisions": inventory["source_revisions"],
-            "driver_revision_evidence": "declared expected source revision, not inferred from runtime counters"}
+    result = {"schema": ("gpreempt_lc_knee_audit_v1" if plan.get("study") == "lc-knee"
+                         else "gpreempt_load_study_audit_v1"),
+              "campaign": str(campaign), "mode": plan["mode"],
+              "complete": complete, "formal_eligible": formal, "formal_complete": complete and formal,
+              "valid_cells": len(accepted), "required_cells": plan["required_cells"],
+              "rejected_cells": rejected, "incomplete_cells": incomplete,
+              "unexpected_cells": sorted(unexpected), "scenarios": scenarios,
+              "flag_transport": "host_mapped", "original_gdr_transport": False,
+              "statistics": plan["statistics"], "equivalence_claimed": False,
+              "latency_definition": "nearest-rank scheduled-arrival to synchronized/numerically-verified output ready",
+              "goodput_definition": "verified completions strictly before common cutoff divided by configured seconds",
+              "continuous_offered_or_miss_rate_defined": False,
+              "source_revisions": inventory["source_revisions"],
+              "driver_revision_evidence": "declared expected source revision, not inferred from runtime counters"}
+    if plan.get("study") == "lc-knee":
+        result.update(study="lc-knee", evidence_role="supporting",
+                      prespecified_lc_rates_rps=[500, 625, 800],
+                      post_hoc_rate_additions_allowed=False)
+        if preflight_gate is not None:
+            result["preflight_gate"] = preflight_gate
+    return result
 
 
 def main():

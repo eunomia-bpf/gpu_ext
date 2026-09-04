@@ -10,12 +10,14 @@ import analyze_load_study as audit
 import run_load_study as runner
 
 
-def fixture(scenario="be100", count=3, seconds=60, arm="native"):
+def fixture(scenario="be100", count=3, seconds=60, arm="native", study="load"):
     begin, end = 1_000_000_000, (seconds + 1) * 1_000_000_000
     rows, checks, results = [], [], []
+    expected_loads = audit.expected_loads(study, scenario)
     for role, task in enumerate(audit.base.TASKS):
-        continuous = role == 1 and scenario == "be_continuous"
-        interval = 0 if continuous else audit.NS // (200 if role == 1 and scenario == "be200" else 100)
+        expected_load = expected_loads[role]
+        continuous = expected_load["type"] == "continuous"
+        interval = 0 if continuous else audit.NS // expected_load["frequency"]
         requests = []
         for identifier in range(count):
             scheduled = begin + identifier * (interval or 1_000_000)
@@ -47,8 +49,8 @@ def log(data):
 
 
 class RawAuditTests(unittest.TestCase):
-    def parse(self, data, scenario="be100", seconds=60, arm="native"):
-        return audit.parse_client(log(data), scenario, seconds, arm)
+    def parse(self, data, scenario="be100", seconds=60, arm="native", study="load"):
+        return audit.parse_client(log(data), scenario, seconds, arm, study)
 
     def test_fifo_backlog_is_not_a_dropped_or_hidden_request(self):
         parsed = self.parse(fixture())
@@ -72,6 +74,17 @@ class RawAuditTests(unittest.TestCase):
         for field in ("offered_requests", "never_started_backlog", "unfinished_offered_at_deadline", "window_completion_fraction"):
             self.assertIsNone(be[field])
         self.assertFalse(be["response_p99_conditional"])
+
+    def test_lc_knee_uses_requested_foreground_rate_and_continuous_background(self):
+        for scenario, rate in zip(audit.LC_KNEE_SCENARIOS, (500, 625, 800)):
+            data = fixture(scenario, seconds=60, study="lc-knee")
+            parsed = self.parse(data, scenario, study="lc-knee")["metrics"]
+            with self.subTest(scenario=scenario):
+                self.assertEqual(parsed["vgg_rt"]["offered_requests"], rate * 60)
+                self.assertIsNone(parsed["resnet152_be"]["offered_requests"])
+                producer = runner.parse_report(log(data), runner.make_config(scenario, 60, "lc-knee"),
+                                               "native", "lc-knee")
+                audit.require_equal(producer["metrics"], parsed, "knee producer/independent metrics")
 
     def test_completion_at_cutoff_is_not_window_goodput(self):
         data = fixture()
@@ -213,8 +226,9 @@ def write_json(path, value):
     path.write_text(json.dumps(value))
 
 
-def campaign_fixture(path, mode="preflight"):
-    plan = runner.make_plan(mode)
+def campaign_fixture(path, mode="preflight", study="load"):
+    preflight = path / "separate-preflight" if mode == "full" and study == "lc-knee" else None
+    plan = runner.make_plan(mode, study=study, preflight=preflight)
     write_json(path / "plan.json", plan)
     for scenario, config in plan["configs"].items():
         write_json(path / "configs" / f"{scenario}.json", config)
@@ -248,8 +262,9 @@ def native_cell_fixture(campaign, plan, inventory):
     config = campaign / "configs" / f"{scenario}.json"
     directory = campaign / "block-00" / scenario / "native"
     directory.mkdir(parents=True)
-    client_log = log(fixture(scenario, seconds=plan["timed_seconds_per_cell"]))
-    parsed = audit.parse_client(client_log, scenario, plan["timed_seconds_per_cell"], "native")
+    study = plan.get("study", "load")
+    client_log = log(fixture(scenario, seconds=plan["timed_seconds_per_cell"], study=study))
+    parsed = audit.parse_client(client_log, scenario, plan["timed_seconds_per_cell"], "native", study)
     (directory / "client.log").write_text(client_log)
     write_json(directory / "request-report.json", parsed["report"])
     write_json(directory / "load-study-report.json", parsed["load_reports"])
@@ -311,6 +326,63 @@ class CampaignAuditTests(unittest.TestCase):
                 mutate(altered)
                 with self.assertRaises(ValueError):
                     audit.validate_plan(altered, path)
+
+    def test_lc_knee_manifest_rejects_rate_scope_or_evidence_role_drift(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            plan, _ = campaign_fixture(path, "full", "lc-knee")
+            self.assertTrue(audit.validate_plan(plan, path))
+            self.assertEqual(plan["required_cells"], 27)
+            mutations = [lambda p: p["prespecified_lc_rates_rps"].append(900),
+                         lambda p: p.update(evidence_role="decisive"),
+                         lambda p: p.update(post_hoc_rate_additions_allowed=True),
+                         lambda p: p["configs"]["lc625"]["tasks"][0]["load"].update(frequency=626),
+                         lambda p: p["configs"]["lc625"]["tasks"][1].update(
+                             load={"type": "periodic_fifo", "frequency": 200, "priority": 0}),
+                         lambda p: p.update(preflight_campaign=None),
+                         lambda p: p["orders"].pop()]
+            for mutate in mutations:
+                altered = copy.deepcopy(plan)
+                mutate(altered)
+                with self.subTest(mutate=mutate), self.assertRaises(ValueError):
+                    audit.validate_plan(altered, path)
+
+    def test_lc_knee_preflight_is_auditable_but_never_formal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            plan, _ = campaign_fixture(path, "preflight", "lc-knee")
+            self.assertFalse(audit.validate_plan(plan, path))
+            result = audit.analyze(path)
+            self.assertEqual(result["study"], "lc-knee")
+            self.assertEqual(result["evidence_role"], "supporting")
+            self.assertFalse(result["formal_eligible"])
+            self.assertEqual(len(result["incomplete_cells"]), 3)
+
+    def test_completed_preflight_gate_checks_summary_and_independent_audit(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            campaign_fixture(path, "preflight", "lc-knee")
+            summary = {"status": "completed", "error": None, "mode": "preflight",
+                       "completed_cells": 3, "required_cells": 3, "valid_paired_groups": 1,
+                       "complete": True, "formal_complete": False}
+            write_json(path / "summary.json", summary)
+            accepted = {"schema": "gpreempt_lc_knee_audit_v1", "study": "lc-knee",
+                        "evidence_role": "supporting", "mode": "preflight", "complete": True,
+                        "formal_eligible": False, "formal_complete": False, "valid_cells": 3,
+                        "required_cells": 3, "rejected_cells": [], "incomplete_cells": [],
+                        "unexpected_cells": []}
+            with patch.object(audit, "analyze", return_value=accepted) as independent:
+                gate = audit.validate_completed_preflight(path)
+            independent.assert_called_once_with(path.resolve())
+            self.assertEqual(gate["scenario"], "lc800")
+            self.assertFalse(gate["formal_complete"])
+            for key, value in (("status", "failed"), ("completed_cells", 2),
+                               ("complete", False), ("formal_complete", True)):
+                altered = {**summary, key: value}
+                write_json(path / "summary.json", altered)
+                with self.subTest(key=key), patch.object(audit, "analyze", return_value=accepted), \
+                     self.assertRaises(ValueError):
+                    audit.validate_completed_preflight(path)
 
     def test_raw_native_cell_metadata_is_checked_and_missing_arms_stay_incomplete(self):
         with tempfile.TemporaryDirectory() as temporary:

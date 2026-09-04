@@ -56,6 +56,34 @@ The standalone audit and plotting tools consume raw reports. The completed
 campaign is `raw/load-study-full-575-20260903`, with its final independent audit;
 the separate three-cell preflight is not pooled into the performance estimates.
 
+## Prespecified LC knee follow-on
+
+The [LC knee plan](lc-knee-plan.md) reuses the same hardened runner and raw
+auditor with continuous BE supply and exactly 500/625/800 requests/s LC load.
+It is explicitly supporting evidence and cannot be widened after results are
+seen. Its real preflight is one three-arm, 10-second block at LC 800; its full
+matrix is three blocks × three rates × three arms × 60 seconds (27 cells):
+
+```bash
+make test-load-study CPUSET=8-15
+python3 -B run_load_study.py preflight --study lc-knee --plan
+python3 -B run_load_study.py full --study lc-knee --plan
+# GPU commands require separate coordination and are not CPU validation:
+sudo -n python3 -B run_load_study.py preflight --study lc-knee \
+  --output raw/lc-knee-preflight-01
+sudo -n python3 -B run_load_study.py full --study lc-knee \
+  --preflight raw/lc-knee-preflight-01 \
+  --output raw/lc-knee-full-01
+python3 -B analyze_load_study.py raw/lc-knee-full-01
+```
+
+The full command fails before creating its output directory unless the separate
+preflight has a completed summary and passes the independent raw analyzer for
+all three arms, including cleanup and engagement. `--plan` only prints this
+requirement and never reads the supplied preflight path. The existing `load`
+profile remains the default, so completed load-study
+campaigns and their audit path retain their original schema and frozen matrix.
+
 ## Source and preparation history
 
 Upstream: <https://github.com/thustorage/GPreempt>, pinned to `249ee3e`.

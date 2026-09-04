@@ -47,6 +47,23 @@ Both transports are named in every sample and in the final summary. The
 direct path does not weaken the `W/3`, PTIMER allowance, monotonicity, cleanup,
 or precision gates.
 
+The diagnostic also has an opt-in path for the versioned 575 driver extension
+`0x20800408`, which returns the zipper's selected CPU timestamps rather than
+only their midpoint:
+
+```bash
+./launch-clock-recovery/rm_ptimer_correlation_sanity --samples 200 \
+  --control-transport direct --correlation-command endpoints-v1
+```
+
+This option requires a module built with the matching extension; the default
+remains the stock public `0x20800406` command. For `endpoints-v1`, the offset
+interval uses the returned `[cpuBeforeNs, cpuAfterNs]` pair directly and adds
+one 32 ns PTIMER allowance at each end. The userspace outer timestamps remain
+an independent containment and syscall-duration check. Every record names the
+selected command, and public-command records leave the exact-endpoint fields
+at zero rather than presenting inferred bounds as driver-returned values.
+
 A pass proves only that the public RM control works and supplies materially
 narrower conservative offset brackets on this exact stack.  It does not yet
 prove that RM PTIMER and device `%globaltimer` track identically, repair the
@@ -159,9 +176,11 @@ narrow, the production repair can add a distinct bpftime host helper for
 `CLOCK_MONOTONIC_RAW` and keep launch timestamps and RM anchors in that domain
 end to end. The standard `bpf_ktime_get_ns` helper must remain unchanged.
 
-Only if the public-data bracket stays too wide should a versioned driver
-control expose the selected CPU endpoints. That fallback would require a new
-module build and reload; it is not a prerequisite for this diagnostic.
+The public-data bracket stayed too wide in both retained transports, so the
+separate versioned driver control now exposes the selected CPU endpoints while
+leaving the stock command unchanged. Its source build and CPU-only probe tests
+must pass before a module reload; a real endpoint canary must then pass the
+unchanged precision and cleanup gates before any launchlate run.
 
 Finally, the current two-anchor interpolation assumes the relative host/device
 clock offset evolves affinely between anchors. The endpoint drift check bounds

@@ -33,6 +33,8 @@
 #define NV01_DEVICE_0 0x00000080U
 #define NV20_SUBDEVICE_0 0x00002080U
 #define NV2080_CTRL_CMD_TIMER_GET_GPU_CPU_TIME_CORRELATION_INFO 0x20800406U
+#define NV2080_CTRL_CMD_TIMER_GET_GPU_CPU_TIME_CORRELATION_ENDPOINTS_V1 \
+	0x20800408U
 #define NV2080_TIMER_GPU_CPU_TIME_CPU_CLK_ID_PLATFORM_API 0x03U
 #define NV2080_CTRL_TIMER_GPU_CPU_TIME_MAX_SAMPLES 16U
 
@@ -106,6 +108,12 @@ typedef struct {
 			__attribute__((aligned(8)));
 } nv2080_timer_correlation_parameters;
 
+typedef struct {
+	uint64_t cpuBeforeNs __attribute__((aligned(8)));
+	uint64_t gpuTimeNs __attribute__((aligned(8)));
+	uint64_t cpuAfterNs __attribute__((aligned(8)));
+} nv2080_timer_correlation_endpoints_v1_parameters;
+
 _Static_assert(sizeof(nv_ioctl_xfer_t) == 16, "575 xfer ABI size");
 _Static_assert(offsetof(nv_ioctl_xfer_t, ptr) == 8, "575 xfer pointer offset");
 _Static_assert(sizeof(nvos64_parameters) == 48, "575 NVOS64 ABI size");
@@ -127,6 +135,19 @@ _Static_assert(offsetof(nv2080_timer_correlation_parameters, samples) == 8,
 	       "575 timer sample-array offset");
 _Static_assert(sizeof(nv2080_timer_correlation_parameters) == 264,
 	       "575 timer correlation ABI size");
+_Static_assert(sizeof(nv2080_timer_correlation_endpoints_v1_parameters) == 24,
+	       "575 endpoint-v1 ABI size");
+_Static_assert(_Alignof(nv2080_timer_correlation_endpoints_v1_parameters) == 8,
+	       "575 endpoint-v1 ABI alignment");
+_Static_assert(offsetof(nv2080_timer_correlation_endpoints_v1_parameters,
+			cpuBeforeNs) == 0,
+	       "575 endpoint-v1 before offset");
+_Static_assert(offsetof(nv2080_timer_correlation_endpoints_v1_parameters,
+			gpuTimeNs) == 8,
+	       "575 endpoint-v1 GPU offset");
+_Static_assert(offsetof(nv2080_timer_correlation_endpoints_v1_parameters,
+			cpuAfterNs) == 16,
+	       "575 endpoint-v1 after offset");
 
 struct rm_handles {
 	uint32_t root;
@@ -151,6 +172,11 @@ struct observation {
 enum control_transport {
 	CONTROL_TRANSPORT_XFER = 0,
 	CONTROL_TRANSPORT_DIRECT = 1,
+};
+
+enum correlation_command {
+	CORRELATION_COMMAND_PUBLIC = 0,
+	CORRELATION_COMMAND_ENDPOINTS_V1 = 1,
 };
 
 static int monotonic_raw_ns(uint64_t *value)
@@ -268,17 +294,18 @@ static int rm_open_timer(int fd, struct rm_handles *handles,
 }
 
 static int rm_timer_control(int fd, const struct rm_handles *handles,
-			    nv2080_timer_correlation_parameters *params,
+			    uint32_t command, void *params,
+			    uint32_t params_size,
 			    enum control_transport transport,
 			    uint32_t *rm_status)
 {
 	nvos54_parameters control = {
 		.hClient = handles->root,
 		.hObject = handles->subdevice,
-		.cmd = NV2080_CTRL_CMD_TIMER_GET_GPU_CPU_TIME_CORRELATION_INFO,
+		.cmd = command,
 		.flags = 0,
 		.params = params,
-		.paramsSize = sizeof(*params),
+		.paramsSize = params_size,
 		.status = 0,
 	};
 	int err = transport == CONTROL_TRANSPORT_DIRECT ?
@@ -344,6 +371,40 @@ static int derive_observation(uint64_t before, uint64_t after,
 	return 0;
 }
 
+static int derive_endpoint_observation(uint64_t before, uint64_t after,
+				       uint64_t cpu_before,
+				       uint64_t cpu_after, uint64_t gpu,
+				       struct observation *out)
+{
+	uint64_t selected_gap;
+
+	if (!out || after < before || cpu_before < before || cpu_after < cpu_before ||
+	    cpu_after > after || cpu_before == 0 || gpu == 0)
+		return -ERANGE;
+	if (after - before >= MAX_OUTER_DURATION_NS)
+		return -ETIMEDOUT;
+	selected_gap = cpu_after - cpu_before;
+	out->before = before;
+	out->after = after;
+	out->midpoint = cpu_before + selected_gap / 2;
+	out->gpu = gpu;
+	out->outer_width = after - before;
+	out->max_selected_gap = selected_gap;
+	out->lower_cpu = cpu_before;
+	out->upper_cpu = cpu_after;
+	if (checked_offset(gpu, cpu_after,
+			   -(int64_t)PTIMER_QUANTIZATION_NS,
+			   &out->offset_low) ||
+	    checked_offset(gpu, cpu_before,
+			   (int64_t)PTIMER_QUANTIZATION_NS,
+			   &out->offset_high) ||
+	    out->offset_high < out->offset_low)
+		return -ERANGE;
+	out->bracket_width = (uint64_t)out->offset_high -
+			     (uint64_t)out->offset_low;
+	return 0;
+}
+
 static int compare_u64(const void *left, const void *right)
 {
 	uint64_t a = *(const uint64_t *)left;
@@ -377,7 +438,8 @@ static int parse_samples(const char *text, unsigned int *samples)
 static void usage(const char *program)
 {
 	fprintf(stderr,
-		"Usage: %s [--samples N] [--control-transport xfer|direct] | "
+		"Usage: %s [--samples N] [--control-transport xfer|direct] "
+		"[--correlation-command public|endpoints-v1] | "
 		"--self-test\n",
 		program);
 }
@@ -409,6 +471,35 @@ static int self_test(void)
 			       2000, &observation) != -ETIMEDOUT ||
 	    checked_offset(UINT64_MAX, 0, 0, &signed_value) != -ERANGE)
 		return 1;
+	if (derive_endpoint_observation(900, 1300, 1000, 1100, 2000,
+					&observation) ||
+	    observation.outer_width != 400 ||
+	    observation.max_selected_gap != 100 ||
+	    observation.midpoint != 1050 || observation.lower_cpu != 1000 ||
+	    observation.upper_cpu != 1100 || observation.offset_low != 868 ||
+	    observation.offset_high != 1032 || observation.bracket_width != 164)
+		return 1;
+	if (derive_endpoint_observation(900, 1300, 1000, 1101, 500,
+					&observation) ||
+	    observation.max_selected_gap != 101 ||
+	    observation.midpoint != 1050 || observation.offset_low != -633 ||
+	    observation.offset_high != -468 || observation.bracket_width != 165)
+		return 1;
+	if (derive_endpoint_observation(1001, 1300, 1000, 1100, 2000,
+					&observation) != -ERANGE ||
+	    derive_endpoint_observation(900, 1099, 1000, 1100, 2000,
+					&observation) != -ERANGE ||
+	    derive_endpoint_observation(1300, 900, 1000, 1100, 2000,
+					&observation) != -ERANGE ||
+	    derive_endpoint_observation(900, 1300, 1100, 1000, 2000,
+					&observation) != -ERANGE ||
+	    derive_endpoint_observation(0, 1300, 0, 1000, 2000,
+					&observation) != -ERANGE ||
+	    derive_endpoint_observation(1000,
+					1000 + MAX_OUTER_DURATION_NS,
+					1100, 1200, 2000,
+					&observation) != -ETIMEDOUT)
+		return 1;
 	printf("rm_ptimer_correlation_sanity self-test: PASS\n");
 	return 0;
 }
@@ -418,7 +509,9 @@ int main(int argc, char **argv)
 	struct rm_handles handles = { 0 };
 	unsigned int requested = DEFAULT_SAMPLES;
 	enum control_transport transport = CONTROL_TRANSPORT_XFER;
+	enum correlation_command correlation_command = CORRELATION_COMMAND_PUBLIC;
 	const char *transport_name = "xfer";
+	const char *correlation_command_name = "public";
 	unsigned int attempted = 0, accepted = 0, rejected = 0;
 	unsigned int cpu_midpoint_regressions = 0, ptimer_regressions = 0;
 	uint64_t *widths = NULL, *outer_widths = NULL;
@@ -449,6 +542,19 @@ int main(int argc, char **argv)
 			} else if (strcmp(value, "direct") == 0) {
 				transport = CONTROL_TRANSPORT_DIRECT;
 				transport_name = "direct";
+			} else {
+				usage(argv[0]);
+				return 1;
+			}
+		} else if (strcmp(argv[i], "--correlation-command") == 0 &&
+			   i + 1 < argc) {
+			const char *value = argv[++i];
+			if (strcmp(value, "public") == 0) {
+				correlation_command = CORRELATION_COMMAND_PUBLIC;
+				correlation_command_name = "public";
+			} else if (strcmp(value, "endpoints-v1") == 0) {
+				correlation_command = CORRELATION_COMMAND_ENDPOINTS_V1;
+				correlation_command_name = "endpoints-v1";
 			} else {
 				usage(argv[0]);
 				return 1;
@@ -500,44 +606,76 @@ int main(int argc, char **argv)
 		handles.root, handles.device, handles.subdevice);
 
 	for (unsigned int i = 0; i < requested; ++i) {
-		nv2080_timer_correlation_parameters params = {
+		nv2080_timer_correlation_parameters public_params = {
 			.cpuClkId =
 				NV2080_TIMER_GPU_CPU_TIME_CPU_CLK_ID_PLATFORM_API,
 			.sampleCount = 1,
 		};
+		nv2080_timer_correlation_endpoints_v1_parameters endpoint_params = { 0 };
 		struct observation observation = { 0 };
+		uint32_t control_command =
+			NV2080_CTRL_CMD_TIMER_GET_GPU_CPU_TIME_CORRELATION_INFO;
+		void *control_params = &public_params;
+		uint32_t control_params_size = sizeof(public_params);
+		uint64_t rm_cpu_before = 0, rm_cpu_after = 0;
+		uint64_t rm_cpu_midpoint = 0, rm_gpu = 0;
 		uint64_t before = 0, after = 0;
 		int before_err, control_err, after_err, derive_err = 0;
 		int cpu_regression = 0, gpu_regression = 0;
 		int written;
 
+		if (correlation_command == CORRELATION_COMMAND_ENDPOINTS_V1) {
+			control_command =
+				NV2080_CTRL_CMD_TIMER_GET_GPU_CPU_TIME_CORRELATION_ENDPOINTS_V1;
+			control_params = &endpoint_params;
+			control_params_size = sizeof(endpoint_params);
+		}
 		++attempted;
 		rm_status = 0;
 		before_err = monotonic_raw_ns(&before);
 		control_err = before_err ? -ECANCELED :
-			rm_timer_control(fd, &handles, &params, transport,
-					 &rm_status);
+			rm_timer_control(fd, &handles, control_command, control_params,
+					 control_params_size, transport, &rm_status);
 		after_err = monotonic_raw_ns(&after);
-		if (!before_err && !control_err && !after_err)
-			derive_err = derive_observation(
-				before, after, params.samples[0].cpuTime,
-				params.samples[0].gpuTime, &observation);
+		if (correlation_command == CORRELATION_COMMAND_ENDPOINTS_V1) {
+			rm_cpu_before = endpoint_params.cpuBeforeNs;
+			rm_cpu_after = endpoint_params.cpuAfterNs;
+			rm_gpu = endpoint_params.gpuTimeNs;
+			if (rm_cpu_after >= rm_cpu_before)
+				rm_cpu_midpoint = rm_cpu_before +
+					(rm_cpu_after - rm_cpu_before) / 2;
+			if (!before_err && !control_err && !after_err)
+				derive_err = derive_endpoint_observation(
+					before, after, rm_cpu_before, rm_cpu_after,
+					rm_gpu, &observation);
+		} else {
+			rm_cpu_midpoint = public_params.samples[0].cpuTime;
+			rm_gpu = public_params.samples[0].gpuTime;
+			if (!before_err && !control_err && !after_err)
+				derive_err = derive_observation(
+					before, after, rm_cpu_midpoint, rm_gpu,
+					&observation);
+		}
 
 		if (before_err || control_err || after_err || derive_err) {
 			++rejected;
 			written = printf("{\"record\":\"sample\",\"index\":%u,"
 			       "\"control_transport\":\"%s\","
+			       "\"correlation_command\":\"%s\","
 			       "\"valid\":false,\"before_error\":%d,"
 			       "\"control_error\":%d,\"after_error\":%d,"
 			       "\"derive_error\":%d,\"rm_status\":%" PRIu32
 			       ",\"host_before_ns\":%" PRIu64
 			       ",\"host_after_ns\":%" PRIu64
+			       ",\"rm_cpu_before_ns\":%" PRIu64
 			       ",\"rm_cpu_midpoint_ns\":%" PRIu64
+			       ",\"rm_cpu_after_ns\":%" PRIu64
 			       ",\"rm_gpu_ptimer_ns\":%" PRIu64 "}\n",
-			       i, transport_name, before_err, control_err, after_err,
+			       i, transport_name, correlation_command_name,
+			       before_err, control_err, after_err,
 			       derive_err,
-			       rm_status, before, after, params.samples[0].cpuTime,
-			       params.samples[0].gpuTime);
+			       rm_status, before, after, rm_cpu_before,
+			       rm_cpu_midpoint, rm_cpu_after, rm_gpu);
 			if (written < 0) {
 				output_error = -EIO;
 				break;
@@ -545,14 +683,12 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		cpu_regression = have_previous &&
-				 params.samples[0].cpuTime < previous_cpu;
-		gpu_regression = have_previous &&
-				 params.samples[0].gpuTime < previous_gpu;
+		cpu_regression = have_previous && observation.midpoint < previous_cpu;
+		gpu_regression = have_previous && observation.gpu < previous_gpu;
 		cpu_midpoint_regressions += cpu_regression;
 		ptimer_regressions += gpu_regression;
-		previous_cpu = params.samples[0].cpuTime;
-		previous_gpu = params.samples[0].gpuTime;
+		previous_cpu = observation.midpoint;
+		previous_gpu = observation.gpu;
 		have_previous = 1;
 		widths[accepted] = observation.bracket_width;
 		outer_widths[accepted] = observation.outer_width;
@@ -567,11 +703,14 @@ int main(int argc, char **argv)
 			max_outer = observation.outer_width;
 		written = printf("{\"record\":\"sample\",\"index\":%u,"
 		       "\"control_transport\":\"%s\","
+		       "\"correlation_command\":\"%s\","
 		       "\"valid\":true,\"cpu_midpoint_regression\":%s,"
 		       "\"ptimer_regression\":%s,"
 		       "\"rm_status\":0,\"host_before_ns\":%" PRIu64
 		       ",\"host_after_ns\":%" PRIu64
+		       ",\"rm_cpu_before_ns\":%" PRIu64
 		       ",\"rm_cpu_midpoint_ns\":%" PRIu64
+		       ",\"rm_cpu_after_ns\":%" PRIu64
 		       ",\"rm_gpu_ptimer_ns\":%" PRIu64
 		       ",\"outer_width_ns\":%" PRIu64
 		       ",\"max_selected_gap_ns\":%" PRIu64
@@ -580,10 +719,12 @@ int main(int argc, char **argv)
 		       ",\"offset_low_ns\":%" PRId64
 		       ",\"offset_high_ns\":%" PRId64
 		       ",\"bracket_width_ns\":%" PRIu64 "}\n",
-		       i, transport_name, cpu_regression ? "true" : "false",
+		       i, transport_name, correlation_command_name,
+		       cpu_regression ? "true" : "false",
 		       gpu_regression ? "true" : "false", observation.before,
-		       observation.after,
-		       observation.midpoint, observation.gpu,
+		       observation.after, rm_cpu_before,
+		       observation.midpoint, rm_cpu_after,
+		       observation.gpu,
 		       observation.outer_width, observation.max_selected_gap,
 		       observation.lower_cpu, observation.upper_cpu,
 		       observation.offset_low, observation.offset_high,
@@ -630,6 +771,7 @@ finalize:
 		    gate_pass ? 0 : 2;
 	if (printf("{\"record\":\"summary\",\"setup_stage\":\"%s\","
 		   "\"control_transport\":\"%s\","
+		   "\"correlation_command\":\"%s\","
 		   "\"setup_error\":%d,\"cleanup_error\":%d,"
 		   "\"cleanup_rm_status\":%" PRIu32
 		   ",\"output_error\":%d,\"requested\":%u,"
@@ -644,7 +786,8 @@ finalize:
 		   ",\"max_bracket_width_ns\":%" PRIu64
 		   ",\"target_median_bracket_ns\":%" PRIu64
 		   ",\"gate_pass\":%s}\n",
-		   setup_stage, transport_name, setup_error, cleanup_error,
+		   setup_stage, transport_name, correlation_command_name,
+		   setup_error, cleanup_error,
 		   free_status,
 		   output_error, requested, attempted, accepted, rejected,
 		   cpu_midpoint_regressions, ptimer_regressions, min_outer,

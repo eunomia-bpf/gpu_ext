@@ -1,5 +1,11 @@
 # Launch-clock preflight-575-07 recovery audit
 
+The executable follow-up is frozen in
+[`launchlate-frozen-plan.md`](launchlate-frozen-plan.md).  It keeps calibration
+controls separate from the paired 10-block performance result and requires a
+same-stack PTIMER/`%globaltimer` identity canary before the 220-launch
+correctness rerun.
+
 ## Public RM/PTIMER correlation diagnostic
 
 `rm_ptimer_correlation_sanity.c` is the first executable admission gate for

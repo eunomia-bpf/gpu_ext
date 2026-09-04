@@ -6,6 +6,19 @@ controls separate from the paired 10-block performance result and requires a
 same-stack PTIMER/`%globaltimer` identity canary before the 220-launch
 correctness rerun.
 
+`rm_globaltimer_identity.cu` implements that second control.  Each trial
+orders an endpoint-v1 RM/PTIMER sample, one device `%globaltimer` read, and a
+second RM/PTIMER sample, then requires both host and device ordering plus
+containment.  Its JSONL is calibration evidence only.  Build and exercise the
+CPU-only arithmetic paths with `make test`; a real control run requires the
+shared GPU lease and is:
+
+```bash
+./rm_globaltimer_identity --samples 200 \
+  > /new/raw/directory/rm-globaltimer-identity.jsonl \
+  2> /new/raw/directory/rm-globaltimer-identity.stderr
+```
+
 ## Public RM/PTIMER correlation diagnostic
 
 `rm_ptimer_correlation_sanity.c` is the first executable admission gate for

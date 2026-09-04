@@ -1,0 +1,343 @@
+{
+  "arm": "bpf_gpreempt",
+  "block": 0,
+  "cell": 4,
+  "command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/gpreemptclient",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/lc-knee-full-575-01/configs/lc800.json",
+    "--flag-transport",
+    "host_mapped"
+  ],
+  "comparison_variant": "host_mapped_compatibility",
+  "config": {
+    "tasks": [
+      {
+        "client": {
+          "batch_size": 1,
+          "model_name": "vgg",
+          "name": "vgg_rt",
+          "preprocess_time": 200,
+          "priority": 0,
+          "use_cuda_graph": true
+        },
+        "id": "vgg_rt",
+        "load": {
+          "frequency": 800,
+          "priority": 0,
+          "type": "periodic_fifo"
+        }
+      },
+      {
+        "client": {
+          "batch_size": 1,
+          "model_name": "resnet152",
+          "name": "resnet152_be",
+          "preprocess_time": 200,
+          "priority": 1,
+          "use_cuda_graph": true
+        },
+        "id": "resnet152_be",
+        "load": {
+          "type": "continuous"
+        }
+      }
+    ],
+    "time": 60
+  },
+  "config_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/lc-knee-full-575-01/configs/lc800.json",
+  "engagement": {
+    "backend": "ubpf-jit",
+    "bridge": {
+      "backend": "ubpf-jit",
+      "block": "43092",
+      "due": "173211298",
+      "ended": "2",
+      "errors": "0",
+      "hint": "43092",
+      "infer": "43606",
+      "preprocess": "43606",
+      "registered": "2",
+      "release": "43092",
+      "reset": "43092",
+      "scopes": "2"
+    },
+    "flag_cleanup": {
+      "slots": "1",
+      "status": "passed",
+      "transport": "host_mapped"
+    },
+    "flag_transport": {
+      "original_gdr": "0",
+      "portable": "1",
+      "transport": "host_mapped"
+    },
+    "hardware_timeslice_proven_by_shadow_counters": false,
+    "kernel": {
+      "alloc_captured": "2",
+      "alloc_error": "0",
+      "bind_shadow_match": "2",
+      "bind_shadow_mismatch": "0",
+      "control_be": "1",
+      "control_lc": "1",
+      "control_override": "2",
+      "destroy": "2",
+      "gr_init": "2",
+      "map_error": "0",
+      "other_engine": "4",
+      "register_error": "0",
+      "registered": "2",
+      "scope_enter": "2",
+      "scope_error": "0",
+      "scope_leave": "2",
+      "setter_error": "0",
+      "timeslice_ok": "2",
+      "unknown_engine": "0"
+    },
+    "registrations": [
+      {
+        "cuda_context": "127647300455552",
+        "engine": "1",
+        "hclient": "3251635973",
+        "htsg": "1543504397",
+        "role": "0",
+        "runlist": "0",
+        "timeslice_us": "1000000",
+        "tsg_id": "4"
+      },
+      {
+        "cuda_context": "127647434673280",
+        "engine": "1",
+        "hclient": "3251635973",
+        "htsg": "1543504585",
+        "role": "1",
+        "runlist": "0",
+        "timeslice_us": "1",
+        "tsg_id": "5"
+      }
+    ],
+    "runtime_control_request_engagement": {
+      "be": 1,
+      "lc": 1
+    }
+  },
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "GPREEMPT_BPF_MAPS": "/sys/fs/bpf/gpreempt-load-1625093-72391261163972",
+    "GPREEMPT_HINT_CODE": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_hint.bin",
+    "GPREEMPT_POLICY": "bpf",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output:/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study:/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/gdrcopy-2.5.2/src:/usr/local/cuda-12.9/lib64:/usr/local/lib",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin"
+  },
+  "flag_transport": "host_mapped",
+  "loader_command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_policy",
+    "--library",
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/libgpreempt_bridge.so",
+    "--pin-dir",
+    "/sys/fs/bpf/gpreempt-load-1625093-72391261163972",
+    "--duration",
+    "270"
+  ],
+  "metrics": {
+    "resnet152_be": {
+      "completed_after_window": 1,
+      "completed_in_window": 293,
+      "completion_coverage": null,
+      "goodput_rps": 4.883333333333334,
+      "in_window_response_p99_us": 211986.865,
+      "mean_response_us": 204086.16312925168,
+      "never_started_backlog": null,
+      "numerics": {
+        "atol": 1e-06,
+        "checked": 404,
+        "max_absolute_error": 0,
+        "rtol": 0.0001,
+        "task": "resnet152_be",
+        "timed_checked": 294
+      },
+      "offered_requests": null,
+      "p99_less_than_100_samples": false,
+      "p99_sample_count": 294,
+      "response_p99_conditional": false,
+      "response_p99_population": "all_started_and_verified_including_after_window",
+      "response_p99_us": 211986.865,
+      "service_p99_us": 211986.498,
+      "started_requests": 294,
+      "started_unfinished": 0,
+      "unfinished_offered_at_deadline": null,
+      "window_completion_fraction": null
+    },
+    "vgg_rt": {
+      "completed_after_window": 1,
+      "completed_in_window": 43091,
+      "completion_coverage": 0.89775,
+      "goodput_rps": 718.1833333333333,
+      "in_window_response_p99_us": 6076208.954,
+      "mean_response_us": 3072424.341458693,
+      "never_started_backlog": 4908,
+      "numerics": {
+        "atol": 1e-06,
+        "checked": 43202,
+        "max_absolute_error": 0,
+        "rtol": 0.0001,
+        "task": "vgg_rt",
+        "timed_checked": 43092
+      },
+      "offered_requests": 48000,
+      "p99_less_than_100_samples": false,
+      "p99_sample_count": 43092,
+      "response_p99_conditional": true,
+      "response_p99_population": "all_started_and_verified_including_after_window",
+      "response_p99_us": 6076350.335,
+      "service_p99_us": 1538.755,
+      "started_requests": 43092,
+      "started_unfinished": 0,
+      "unfinished_offered_at_deadline": 4909,
+      "window_completion_fraction": 0.8977291666666667
+    }
+  },
+  "native_priorities": {},
+  "process_wall_seconds": 67.64799132299959,
+  "returncode": 0,
+  "runtime_after": {
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_hint.bin": {
+      "bytes": 216,
+      "mtime_ns": 1788398157331928780,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_hint.bin"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_policy": {
+      "bytes": 1589472,
+      "mtime_ns": 1788398157448254116,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_policy"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/libgpreempt_bridge.so": {
+      "bytes": 7664648,
+      "mtime_ns": 1788398157401305554,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/libgpreempt_bridge.so"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/baseclient": {
+      "bytes": 1209792,
+      "mtime_ns": 1788410750145185939,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/baseclient"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/block.cubin": {
+      "bytes": 7384,
+      "mtime_ns": 1788410750365907476,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/block.cubin"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/gpreemptclient": {
+      "bytes": 1234352,
+      "mtime_ns": 1788410750039355908,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/gpreemptclient"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/libgpreempt.so": {
+      "bytes": 16496,
+      "mtime_ns": 1788410740780391385,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/libgpreempt.so"
+    }
+  },
+  "runtime_before": {
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_hint.bin": {
+      "bytes": 216,
+      "mtime_ns": 1788398157331928780,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_hint.bin"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_policy": {
+      "bytes": 1589472,
+      "mtime_ns": 1788398157448254116,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/gpreempt_policy"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/libgpreempt_bridge.so": {
+      "bytes": 7664648,
+      "mtime_ns": 1788398157401305554,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/extension/.output/libgpreempt_bridge.so"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/baseclient": {
+      "bytes": 1209792,
+      "mtime_ns": 1788410750145185939,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/baseclient"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/block.cubin": {
+      "bytes": 7384,
+      "mtime_ns": 1788410750365907476,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/block.cubin"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/gpreemptclient": {
+      "bytes": 1234352,
+      "mtime_ns": 1788410750039355908,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/gpreemptclient"
+    },
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/libgpreempt.so": {
+      "bytes": 16496,
+      "mtime_ns": 1788410740780391385,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/build/load-study/libgpreempt.so"
+    }
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 7001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 55.37,
+      "sm_clock_mhz": 457,
+      "temperature_c": 52,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788498718742378377,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 15.02,
+      "sm_clock_mhz": 22,
+      "temperature_c": 48,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788498647552305684,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "scenario": "lc800",
+  "status": "passed",
+  "telemetry": {
+    "fixed_power_cap_samples": 300,
+    "max_sm_clock_mhz": 2910.0,
+    "mean_power_w": 334.076511627907,
+    "min_sm_clock_mhz": 22.0,
+    "peak_memory_mib": 2768.0,
+    "peak_temperature_c": 62.0,
+    "samples": 344,
+    "throttled": false
+  },
+  "timed_seconds": 60,
+  "timeout_seconds": 240
+}

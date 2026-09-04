@@ -1,0 +1,337 @@
+{
+  "arrival_phase_ns": 0,
+  "background_load": "continuous_closed_loop",
+  "blocks": 3,
+  "cell_timeout_seconds": 240,
+  "clock": "steady_clock",
+  "comparison_variant": "host_mapped_compatibility",
+  "configs": {
+    "lc500": {
+      "tasks": [
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "vgg",
+            "name": "vgg_rt",
+            "preprocess_time": 200,
+            "priority": 0,
+            "use_cuda_graph": true
+          },
+          "id": "vgg_rt",
+          "load": {
+            "frequency": 500,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        },
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "resnet152",
+            "name": "resnet152_be",
+            "preprocess_time": 200,
+            "priority": 1,
+            "use_cuda_graph": true
+          },
+          "id": "resnet152_be",
+          "load": {
+            "type": "continuous"
+          }
+        }
+      ],
+      "time": 60
+    },
+    "lc625": {
+      "tasks": [
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "vgg",
+            "name": "vgg_rt",
+            "preprocess_time": 200,
+            "priority": 0,
+            "use_cuda_graph": true
+          },
+          "id": "vgg_rt",
+          "load": {
+            "frequency": 625,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        },
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "resnet152",
+            "name": "resnet152_be",
+            "preprocess_time": 200,
+            "priority": 1,
+            "use_cuda_graph": true
+          },
+          "id": "resnet152_be",
+          "load": {
+            "type": "continuous"
+          }
+        }
+      ],
+      "time": 60
+    },
+    "lc800": {
+      "tasks": [
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "vgg",
+            "name": "vgg_rt",
+            "preprocess_time": 200,
+            "priority": 0,
+            "use_cuda_graph": true
+          },
+          "id": "vgg_rt",
+          "load": {
+            "frequency": 800,
+            "priority": 0,
+            "type": "periodic_fifo"
+          }
+        },
+        {
+          "client": {
+            "batch_size": 1,
+            "model_name": "resnet152",
+            "name": "resnet152_be",
+            "preprocess_time": 200,
+            "priority": 1,
+            "use_cuda_graph": true
+          },
+          "id": "resnet152_be",
+          "load": {
+            "type": "continuous"
+          }
+        }
+      ],
+      "time": 60
+    }
+  },
+  "cooldown_seconds": 10,
+  "evidence_role": "supporting",
+  "flag_transport": "host_mapped",
+  "formal_required_blocks": 3,
+  "gdrcopy_directory": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/deps/gdrcopy-2.5.2",
+  "goodput_definition": "verified_ready_ns < end_ns, divided by configured seconds",
+  "incomplete_rule": "report backlog/coverage and conditional completed-request p99; never discard overload",
+  "kernel_repetition": 1,
+  "mode": "full",
+  "orders": [
+    {
+      "arm": "original_gpreempt",
+      "block": 0,
+      "cell": 0,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 0,
+      "cell": 1,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "native",
+      "block": 0,
+      "cell": 2,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "native",
+      "block": 0,
+      "cell": 3,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 0,
+      "cell": 4,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 0,
+      "cell": 5,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "native",
+      "block": 0,
+      "cell": 6,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 0,
+      "cell": 7,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 0,
+      "cell": 8,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 1,
+      "cell": 9,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 1,
+      "cell": 10,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "cell": 11,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 1,
+      "cell": 12,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 1,
+      "cell": 13,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "cell": 14,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 1,
+      "cell": 15,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "cell": 16,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 1,
+      "cell": 17,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 2,
+      "cell": 18,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "cell": 19,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 2,
+      "cell": 20,
+      "scenario": "lc625"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "cell": 21,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 2,
+      "cell": 22,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 2,
+      "cell": 23,
+      "scenario": "lc500"
+    },
+    {
+      "arm": "original_gpreempt",
+      "block": 2,
+      "cell": 24,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "cell": 25,
+      "scenario": "lc800"
+    },
+    {
+      "arm": "bpf_gpreempt",
+      "block": 2,
+      "cell": 26,
+      "scenario": "lc800"
+    }
+  ],
+  "p99_definition": "nearest rank, scheduled arrival to synchronized and numerically verified output",
+  "p99_population": "all_started_and_verified_including_after_window",
+  "policy_changes": false,
+  "post_hoc_rate_additions_allowed": false,
+  "preflight_campaign": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/raw/lc-knee-preflight-575-01",
+  "preflight_required": true,
+  "prespecified_lc_rates_rps": [
+    500,
+    625,
+    800
+  ],
+  "privilege": "all clients and loader run as root without permission changes",
+  "required_cells": 27,
+  "scenario_orders": [
+    [
+      "lc500",
+      "lc800",
+      "lc625"
+    ],
+    [
+      "lc800",
+      "lc625",
+      "lc500"
+    ],
+    [
+      "lc625",
+      "lc500",
+      "lc800"
+    ]
+  ],
+  "scenarios": [
+    "lc500",
+    "lc625",
+    "lc800"
+  ],
+  "schema": "gpreempt_lc_knee_v1",
+  "scope_note": "supporting knee evidence only; no rates may be appended after execution",
+  "seed": 20260903,
+  "statistics": {
+    "confidence": 0.95,
+    "draws": 10000,
+    "equivalence_claimed": false,
+    "estimator": "paired geometric-mean ratios",
+    "interval": "percentile paired-block bootstrap",
+    "seed": 20260903
+  },
+  "study": "lc-knee",
+  "timed_seconds_per_cell": 60,
+  "window": "[begin_ns,end_ns); no new start at or after end"
+}

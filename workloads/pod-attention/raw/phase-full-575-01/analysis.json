@@ -1016,6 +1016,173 @@
       }
     }
   },
+  "operator_latency": {
+    "cell_estimator": "arithmetic mean of all 100 unfiltered synchronized samples",
+    "block_means_ms": {
+      "cuda_ms": {
+        "pod_inline": [
+          3.4494320011138915,
+          3.4430662488937376,
+          3.4430230355262754,
+          3.4395411252975463,
+          3.4376512026786803
+        ],
+        "pod_cuda": [
+          3.456691198348999,
+          3.4633491158485414,
+          3.459119989871979,
+          3.4494252800941467,
+          3.451800961494446
+        ],
+        "pod_bpf": [
+          3.52631840467453,
+          3.5255756783485412,
+          3.5120387125015258,
+          3.5117820739746093,
+          3.511789770126343
+        ]
+      },
+      "host_wall_ms": {
+        "pod_inline": [
+          3.45649632,
+          3.45034795,
+          3.45014913,
+          3.4466481800000004,
+          3.44473581
+        ],
+        "pod_cuda": [
+          3.46376435,
+          3.47093064,
+          3.46668686,
+          3.45641043,
+          3.4587817100000002
+        ],
+        "pod_bpf": [
+          3.53491932,
+          3.5345031799999997,
+          3.52030311,
+          3.5201155999999996,
+          3.5200708200000004
+        ]
+      }
+    },
+    "median_of_five_cell_means_ms": {
+      "cuda_ms": {
+        "pod_inline": 3.4430230355262754,
+        "pod_cuda": 3.456691198348999,
+        "pod_bpf": 3.5120387125015258
+      },
+      "host_wall_ms": {
+        "pod_inline": 3.45014913,
+        "pod_cuda": 3.46376435,
+        "pod_bpf": 3.52030311
+      }
+    },
+    "paired_ratios": {
+      "device_bpf_vs_cuda_adapter": {
+        "cuda_ms": {
+          "geometric_mean_ratio": 1.0177717481572053,
+          "block_ratios": [
+            1.0201427325526755,
+            1.0179671642732309,
+            1.0152983194524876,
+            1.0180774444485896,
+            1.0173789883313333
+          ],
+          "confidence_interval_95": [
+            1.0163870370774957,
+            1.0191762154460906
+          ],
+          "blocks": 5,
+          "lower_is_better": true
+        },
+        "host_wall_ms": {
+          "geometric_mean_ratio": 1.0180937799875418,
+          "block_ratios": [
+            1.02054267057746,
+            1.0183157045166422,
+            1.015466135871297,
+            1.0184310200684124,
+            1.0177198548907558
+          ],
+          "confidence_interval_95": [
+            1.0166280285217857,
+            1.019555035774072
+          ],
+          "blocks": 5,
+          "lower_is_better": true
+        }
+      },
+      "device_bpf_vs_original_inline": {
+        "cuda_ms": {
+          "geometric_mean_ratio": 1.0217728132618995,
+          "block_ratios": [
+            1.0222895837737374,
+            1.0239639389690263,
+            1.0200450813901398,
+            1.0210030774587158,
+            1.0215666346224692
+          ],
+          "confidence_interval_95": [
+            1.020685198773876,
+            1.0230043428798876
+          ],
+          "blocks": 5,
+          "lower_is_better": true
+        },
+        "host_wall_ms": {
+          "geometric_mean_ratio": 1.0221186364383683,
+          "block_ratios": [
+            1.022688581945315,
+            1.0243903603982896,
+            1.0203336080142136,
+            1.0213156133620807,
+            1.021869604566279
+          ],
+          "confidence_interval_95": [
+            1.021000584616972,
+            1.0233813127368143
+          ],
+          "blocks": 5,
+          "lower_is_better": true
+        }
+      },
+      "cuda_adapter_vs_original_inline": {
+        "cuda_ms": {
+          "geometric_mean_ratio": 1.003931200794224,
+          "block_ratios": [
+            1.0021044616136117,
+            1.0058909313642515,
+            1.0046752386433695,
+            1.0028736841446388,
+            1.004116112421394
+          ],
+          "confidence_interval_95": [
+            1.0027719663488504,
+            1.0050494350582697
+          ],
+          "blocks": 5,
+          "lower_is_better": true
+        },
+        "host_wall_ms": {
+          "geometric_mean_ratio": 1.0039533258428077,
+          "block_ratios": [
+            1.0021027159664386,
+            1.005965395461058,
+            1.0047933377303027,
+            1.0028323894665685,
+            1.004077497020011
+          ],
+          "confidence_interval_95": [
+            1.0027862337816273,
+            1.0051187211104782
+          ],
+          "blocks": 5,
+          "lower_is_better": true
+        }
+      }
+    }
+  },
   "bpf_loader_ready_ms": {
     "blocks": [
       201.294135,
@@ -1043,5 +1210,5 @@
     ]
   },
   "source_preflight": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/phase-preflight-575-02",
-  "claim_boundary": "Fresh-process phases for one frozen POD adapter, operator shape, runtime, and RTX 5090. pre_python_main includes all work before Python main on this injection path; it is not a generic attach-latency estimate. steady_samples covers 100 synchronized operator samples, not an end-to-end serving workload."
+  "claim_boundary": "Fresh-process phases for one frozen POD adapter, operator shape, runtime, and RTX 5090. pre_python_main includes all work before Python main on this injection path; it is not a generic attach-latency estimate. steady_samples covers the complete 100-sample measurement loop, including correctness and decision audits outside each timed operator; it is not operator latency or an end-to-end serving workload."
 }

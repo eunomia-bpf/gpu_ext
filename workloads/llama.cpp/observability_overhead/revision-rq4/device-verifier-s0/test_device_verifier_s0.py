@@ -49,7 +49,8 @@ def admission(tool: str, treatment: str, pid: int) -> str:
 
 
 def bench_json(pp: int, model: Path, throughput: float) -> str:
-    row = [{"model_filename": str(model), "n_gpu_layers": 99, "n_prompt": pp,
+    row = [{"build_commit": "fixture-build", "build_number": 7102,
+            "model_filename": str(model), "n_gpu_layers": 99, "n_prompt": pp,
             "n_gen": 0, "avg_ns": int(pp / throughput * 1e9), "avg_ts": throughput,
             "samples_ns": [int(pp / throughput * 1e9)], "samples_ts": [throughput]}]
     return json.dumps(row, indent=2)
@@ -59,6 +60,44 @@ def target_log(pp: int, model: Path, throughput: float, records: str) -> str:
     return ("$ llama-bench\n# cwd: fixture\n\n## stdout\n"
             + bench_json(pp, model, throughput) + "\n\n## stderr\n"
             + records + "\n# exit: 0\n")
+
+
+def safety_snapshot(timestamp_ns: int) -> dict:
+    return {
+        "timestamp_ns": timestamp_ns, "power_limit_service": "active",
+        "power_limit_w": 400.0,
+        "gpu": {"driver": analyzer.EXPECTED_DRIVER, "memory_used_mib": 15,
+                "utilization_gpu_percent": 0, "compute_apps": []},
+        "uvm_refcount": 0, "struct_ops": {"maps": [], "links": []},
+        "dmesg_abnormal": [], "journal_abnormal": [], "xids": [],
+    }
+
+
+def telemetry_text() -> str:
+    inactive = ["Not Active"] * 5
+    rows = [
+        ["2026/09/04 00:00:00.000", "10 MiB", "40", "20 W", "100 MHz", "5000 MHz",
+         *inactive],
+        ["2026/09/04 00:00:00.200", "20 MiB", "41", "30 W", "200 MHz", "5000 MHz",
+         "Active", *inactive[1:]],
+    ]
+    return ", ".join(analyzer.TELEMETRY_HEADERS) + "\n" + "".join(
+        ", ".join(row) + "\n" for row in rows
+    )
+
+
+def safety_record() -> dict:
+    return {
+        "passed": True, "worker_cpus": analyzer.EXPECTED_WORKER_CPUS,
+        "boot_id": "fixture-boot", "before": safety_snapshot(100),
+        "after": safety_snapshot(200),
+        "telemetry": {
+            "samples": 2, "peak_memory_mib": 20.0, "peak_temperature_c": 41.0,
+            "mean_power_w": 25.0, "min_sm_clock_mhz": 100.0,
+            "max_sm_clock_mhz": 200.0, "throttled": False,
+            "fixed_power_cap_samples": 1,
+        },
+    }
 
 
 def kernel_probe(pp: int) -> str:
@@ -173,7 +212,8 @@ class ParserTests(unittest.TestCase):
     def test_bench_gate_cross_checks_average_sample_and_elapsed_formula(self):
         args = runner.parse_args([])
         args.pp = 512
-        row = {"model_filename": str(args.model), "n_gpu_layers": 99,
+        row = {"build_commit": "fixture-build", "build_number": 7102,
+               "model_filename": str(args.model), "n_gpu_layers": 99,
                "n_prompt": 512, "n_gen": 0, "avg_ns": 5_120_000_000,
                "avg_ts": 100.0, "samples_ns": [5_120_000_000],
                "samples_ts": [100.0]}
@@ -188,7 +228,8 @@ class ParserTests(unittest.TestCase):
     def test_bench_gate_accepts_only_six_significant_digit_sample_rounding(self):
         args = runner.parse_args([])
         args.pp = 512
-        row = {"model_filename": str(args.model), "n_gpu_layers": 99,
+        row = {"build_commit": "fixture-build", "build_number": 7102,
+               "model_filename": str(args.model), "n_gpu_layers": 99,
                "n_prompt": 512, "n_gen": 0, "avg_ns": 13_425_897,
                "avg_ts": 38_135.254576, "samples_ns": [13_425_897],
                "samples_ts": [38_135.3]}
@@ -201,6 +242,84 @@ class ParserTests(unittest.TestCase):
         self.assertFalse(runner.validate_bench_output(parsed, args))
         self.assertFalse(analyzer.bench_gate(
             json.dumps([row]), 512, args.model, 99)["valid"])
+
+    def test_log_footer_is_one_final_signed_integer(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "target.log"
+            path.write_text("$ cmd\n\n## stdout\n[]\n## stderr\nmessage\n# exit: +0\n")
+            self.assertEqual(analyzer.log_sections(path), ("[]", "message", 0))
+            for bad in (
+                "$ cmd\n\n## stdout\n[]\n## stderr\nmessage\n# exit: nope\n",
+                "$ cmd\n\n## stdout\n[]\n## stderr\nmessage\n# exit: 0\ntrailing\n",
+                "$ cmd\n\n## stdout\n[]\n## stderr\n# exit: 0\n# exit: 0\n",
+            ):
+                with self.subTest(log=bad):
+                    path.write_text(bad)
+                    with self.assertRaises(ValueError):
+                        analyzer.log_sections(path)
+
+    def test_safety_snapshot_rederives_every_fixed_gate(self):
+        mutations = (
+            (("timestamp_ns",), 0), (("power_limit_service",), "inactive"),
+            (("power_limit_w",), 399.0), (("uvm_refcount",), 1),
+            (("dmesg_abnormal",), ["fault"]), (("journal_abnormal",), ["fault"]),
+            (("xids",), ["NVRM: Xid"]), (("struct_ops", "maps"), ["map"]),
+            (("struct_ops", "links"), ["link"]), (("gpu", "driver"), "wrong"),
+            (("gpu", "compute_apps"), ["pid"]), (("gpu", "memory_used_mib"), 257),
+            (("gpu", "utilization_gpu_percent"), 1),
+        )
+        self.assertTrue(analyzer.safety_snapshot_valid(safety_snapshot(100)))
+        for path, value in mutations:
+            with self.subTest(path=path):
+                snapshot = safety_snapshot(100)
+                target = snapshot
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = value
+                self.assertFalse(analyzer.safety_snapshot_valid(snapshot))
+
+    def test_telemetry_replay_is_strict_and_allows_only_fixed_power_cap(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "gpu-telemetry.csv"
+            path.write_text(telemetry_text())
+            self.assertEqual(analyzer.replay_gpu_telemetry(path), safety_record()["telemetry"])
+            mutations = {
+                "non_power_throttle": telemetry_text().replace(
+                    ", Not Active, Not Active, Not Active, Not Active, Not Active\n",
+                    ", Not Active, Active, Not Active, Not Active, Not Active\n", 1),
+                "extra_field": telemetry_text().replace("10 MiB", "10 MiB, extra", 1),
+                "missing_sample": ", ".join(analyzer.TELEMETRY_HEADERS) + "\n",
+                "nonfinite": telemetry_text().replace("20 W", "nan W", 1),
+            }
+            for name, text in mutations.items():
+                with self.subTest(name=name):
+                    path.write_text(text)
+                    with self.assertRaises(ValueError):
+                        analyzer.replay_gpu_telemetry(path)
+
+    def test_safety_record_rejects_attested_errors_identity_and_summary_drift(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "gpu-telemetry.csv").write_text(telemetry_text())
+            self.assertTrue(analyzer.safety_gate(
+                directory, safety_record(), boot_id="fixture-boot")["valid"])
+            mutations = ("error", "cleanup_errors", "fatal_cleanup", "boot_id",
+                         "worker_cpus", "timestamp_order", "summary")
+            for mutation in mutations:
+                with self.subTest(mutation=mutation):
+                    record = safety_record()
+                    if mutation in {"error", "cleanup_errors", "fatal_cleanup"}:
+                        record[mutation] = "injected"
+                    elif mutation == "boot_id":
+                        record["boot_id"] = "other-boot"
+                    elif mutation == "worker_cpus":
+                        record["worker_cpus"] = "0"
+                    elif mutation == "timestamp_order":
+                        record["after"]["timestamp_ns"] = 99
+                    else:
+                        record["telemetry"]["samples"] = 3
+                    self.assertFalse(analyzer.safety_gate(
+                        directory, record, boot_id="fixture-boot")["valid"])
 
 
 class Fixture:
@@ -216,7 +335,9 @@ class Fixture:
             "defining_inputs": {"model": str(self.model), "llama_bench": str(self.bench),
                                 "bpftime_build_dir": str(self.build), "target_symbol": TARGET,
                                 "n_gpu_layers": 99, "warmup": True},
-            "host": {"driver": analyzer.EXPECTED_DRIVER, "expected_driver": analyzer.EXPECTED_DRIVER},
+            "host": {"driver": analyzer.EXPECTED_DRIVER,
+                     "expected_driver": analyzer.EXPECTED_DRIVER,
+                     "boot_id": "fixture-boot"},
             "runtime": {"build_configuration": {key: "ON" for key in analyzer.BUILD_KEYS},
                         "source_contract": {"passed": True}, "binary_contract": {"passed": True},
                         "agent": {"exists": True, "bytes": 10},
@@ -250,7 +371,8 @@ class Fixture:
             "identity": identity, "cleanup_passed": True, "timed_out": False,
             "returncode": 0,
             "command": analyzer.expected_command(defining, treatment, specification["pp"])}))
-        (directory / "gpu-safety.json").write_text(json.dumps({"passed": True}))
+        (directory / "gpu-safety.json").write_text(json.dumps(safety_record()))
+        (directory / "gpu-telemetry.csv").write_text(telemetry_text())
         target_environment = {}
         if treatment != "control":
             segment = f"rq4_s0_fixture_{self.pid}"
@@ -288,6 +410,10 @@ class AnalyzerTests(unittest.TestCase):
             result = analyzer.analyze(fixture.root)
             self.assertTrue(result["complete"], result["errors"])
             self.assertFalse(result["admission_timing_used_in_throughput"])
+            self.assertEqual(result["llama_bench_build"], {
+                "consistent": True, "cells": 66,
+                "build_commit": "fixture-build", "build_number": 7102,
+            })
             for tool in runner.TOOLS:
                 summary = result["summary"][tool]
                 self.assertEqual(summary["complete_blocks"], 10)
@@ -407,6 +533,54 @@ class AnalyzerTests(unittest.TestCase):
                 execution_path.write_text(json.dumps(execution))
                 environment_path.write_text(json.dumps(environment))
                 self.assertFalse(analyzer.analyze(fixture.root)["complete"])
+
+    def test_exit_safety_telemetry_and_build_failures_are_replayed_from_raw(self):
+        mutations = ("footer_nonzero", "footer_execution_mismatch", "footer_tail",
+                     "execution_error", "safety_error", "safety_snapshot",
+                     "telemetry_throttle", "telemetry_summary", "build_commit",
+                     "build_number")
+        for mutation in mutations:
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
+                fixture = Fixture(Path(temporary))
+                cell = fixture.state["timing_cells"][0]
+                directory = fixture.root / cell["directory"]
+                log_path = directory / "llama_bench.log"
+                execution_path = directory / "llama_bench.execution.json"
+                safety_path = directory / "gpu-safety.json"
+                telemetry_path = directory / "gpu-telemetry.csv"
+                if mutation == "footer_nonzero":
+                    log_path.write_text(log_path.read_text().replace("# exit: 0\n", "# exit: -9\n"))
+                elif mutation == "footer_execution_mismatch":
+                    execution = json.loads(execution_path.read_text())
+                    execution["returncode"] = -9
+                    execution_path.write_text(json.dumps(execution))
+                elif mutation == "footer_tail":
+                    log_path.write_text(log_path.read_text() + "trailing\n")
+                elif mutation == "execution_error":
+                    execution = json.loads(execution_path.read_text())
+                    execution["error"] = "injected"
+                    execution_path.write_text(json.dumps(execution))
+                elif mutation in {"safety_error", "safety_snapshot", "telemetry_summary"}:
+                    safety = json.loads(safety_path.read_text())
+                    if mutation == "safety_error":
+                        safety["cleanup_errors"] = []
+                    elif mutation == "safety_snapshot":
+                        safety["after"]["uvm_refcount"] = 1
+                    else:
+                        safety["telemetry"]["mean_power_w"] = 24.0
+                    safety_path.write_text(json.dumps(safety))
+                elif mutation == "telemetry_throttle":
+                    telemetry_path.write_text(telemetry_path.read_text().replace(
+                        ", Not Active, Not Active, Not Active, Not Active, Not Active\n",
+                        ", Not Active, Active, Not Active, Not Active, Not Active\n", 1))
+                else:
+                    old = "fixture-build" if mutation == "build_commit" else '"build_number": 7102'
+                    new = "other-build" if mutation == "build_commit" else '"build_number": 7103'
+                    log_path.write_text(log_path.read_text().replace(old, new, 1))
+                result = analyzer.analyze(fixture.root)
+                self.assertFalse(result["complete"], result)
+                if mutation.startswith("build_"):
+                    self.assertFalse(result["llama_bench_build"]["consistent"])
 
 
 if __name__ == "__main__":

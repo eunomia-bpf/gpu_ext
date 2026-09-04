@@ -55,9 +55,15 @@ Before any GPU access, the runner requires:
 
 Every cell reuses the revision-rq4 owned process and GPU safety machinery. The
 independent analyzer does not import the runner. It reopens each target log,
-`execution.json`, safety record, probe log, and private-SHM cleanup record. It
-requires:
+`execution.json`, safety record, telemetry CSV, probe log, and private-SHM
+cleanup record. It requires:
 
+- one final signed-integer target-log exit footer with no trailing content,
+  equal to the independently recorded successful return code;
+- independently rederived before/after 575-driver, 400 W, idle-GPU,
+  kernel-log, UVM, `struct_ops`, boot-ID, worker-CPU, and cleanup gates;
+  telemetry headers, every row, throttle reasons, sample count, peaks, mean
+  power, and clock range are reparsed and must reproduce the recorded summary;
 - exact target-PID STRICT admission/timing/map or NO_VERIFY skip records, and
   no admission records in control;
 - exactly one valid pp32 or pp512 `llama-bench` JSON row with the fixed model,
@@ -73,7 +79,9 @@ requires:
 - exactly 6 correctness and 60 timing cells, with no missing, extra, or
   duplicate sequence and ten complete blocks per tool. Directories must use
   canonical `<stage>/<three-digit-sequence>-<tool>-<treatment>` names, and all
-  66 `(pid,start_ticks)` target identities and raw directories must be unique.
+  66 `(pid,start_ticks)` target identities and raw directories must be unique;
+- one nonempty, identical `llama-bench` `build_commit` and positive
+  `build_number` across all 66 raw benchmark rows.
 
 The exact target command is also reconstructed: CPU binding followed by the
 fixed `-r 1 -o json -p <pp> -n 0 -ngl 99` workload. Control forbids
@@ -122,5 +130,6 @@ python3 -m unittest -v test_device_verifier_s0.py
 
 The fixtures cover schedule reconstruction, disjoint admission contracts,
 target-PID binding, duplicate/forbidden timing, raw throughput recomputation,
-private-SHM reuse, and missing/extra/duplicate cells. They do not access a GPU
-or acquire experiment locks.
+private-SHM reuse, missing/extra/duplicate cells, exact exit-footers, every
+fixed safety gate, strict telemetry replay, and cross-cell build identity.
+They do not access a GPU or acquire experiment locks.

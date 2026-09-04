@@ -3,7 +3,8 @@
 Date: 2026-09-04  
 Model: `spark-gateway/qwen3.8-27b-nvfp4-200k`  
 Configuration: snapshots and sharing disabled; every OpenCode tool denied  
-Sessions: `ses_f9321f641ffecN3VxztYfXohE3`, `ses_f93154cf0ffeiPvVGvZGyUTiT5`
+Sessions: `ses_f9321f641ffecN3VxztYfXohE3`, `ses_f93154cf0ffeiPvVGvZGyUTiT5`,
+`ses_f9307369cffeCHFlYwoXAqyWqe`
 
 The reviews were CPU-only and read-only. They did not execute a GPU workload or
 modify the repository.
@@ -36,10 +37,10 @@ review inspected the underlying sources and corrected both conclusions:
 
 Therefore none of these observations requires attempt 02 to stop or rerun.
 
-## Required final replay hardening
+## Completed final replay hardening
 
-Before an attempt-02 number is used in the paper, the independent analyzer
-must be strengthened without changing the raw data or statistical plan:
+The independent analyzer was strengthened without changing the raw data,
+throughput metric, or statistical plan. It now:
 
 1. parse the final numeric `# exit:` footer and require it, the execution
    record, and the expected return code all to be zero;
@@ -50,7 +51,11 @@ must be strengthened without changing the raw data or statistical plan:
    power, clock range, and throttle decision; and
 4. report one consistent `llama-bench` build identity across all cells.
 
-These are fail-closed offline checks and do not require another GPU execution.
+The final deny-all Qwen review returned `PASS` with no blocker. All 18 CPU-only
+test methods passed, including 37 new negative mutation subcases. The hardened
+analyzer also accepted every completed attempt-02 cell available during the
+review while correctly retaining the incomplete campaign status. These are
+fail-closed offline checks and do not require another GPU execution.
 The final claim remains limited to the ten-block paired pp512 throughput
 effects for `kernelretsnoop` and `threadhist` on this RTX 5090/driver/workload
 configuration. It is not an equivalence result, device-versus-host cost

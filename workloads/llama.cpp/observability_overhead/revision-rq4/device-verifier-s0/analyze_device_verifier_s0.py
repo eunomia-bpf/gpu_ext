@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import itertools
 import json
 import math
@@ -24,9 +25,20 @@ BLOCKS = 10
 CORRECTNESS_PP = 32
 TIMING_PP = 512
 EXPECTED_DRIVER = "575.57.08"
+EXPECTED_WORKER_CPUS = "8-15"
+EXPECTED_POWER_LIMIT_W = 400.0
+MAX_IDLE_MEMORY_MIB = 256
 PROGRAM = "cuda__retprobe"
 SAMPLE_TS_SIGNIFICANT_DIGITS = 6
 BUILD_KEYS = ("ENABLE_EBPF_VERIFIER", "BPFTIME_ENABLE_CUDA_ATTACH", "BPFTIME_LLVM_JIT")
+TELEMETRY_HEADERS = (
+    "timestamp", "memory.used [MiB]", "temperature.gpu", "power.draw [W]",
+    "clocks.current.sm [MHz]", "clocks.current.memory [MHz]",
+    "clocks_event_reasons.sw_power_cap", "clocks_event_reasons.hw_slowdown",
+    "clocks_event_reasons.hw_thermal_slowdown",
+    "clocks_event_reasons.hw_power_brake_slowdown",
+    "clocks_event_reasons.sw_thermal_slowdown",
+)
 
 
 def randomized_orders(count: int, rng: random.Random) -> list[list[str]]:
@@ -82,16 +94,113 @@ def read_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def log_sections(path: Path) -> tuple[str, str]:
+def log_sections(path: Path) -> tuple[str, str, int]:
     text = path.read_text(errors="replace")
     if text.count("\n## stdout\n") != 1 or text.count("\n## stderr\n") != 1:
         raise ValueError("target log lacks unique stdout/stderr sections")
     after = text.split("\n## stdout\n", 1)[1]
     stdout, stderr_tail = after.split("\n## stderr\n", 1)
-    if stderr_tail.count("\n# exit: ") != 1:
+    if len(re.findall(r"(?m)^# exit: ", stderr_tail)) != 1:
         raise ValueError("target log lacks one exit footer")
-    stderr = stderr_tail.rsplit("\n# exit: ", 1)[0]
-    return stdout, stderr
+    match = re.fullmatch(r"(?s)(.*)\n# exit: ([+-]?[0-9]+)\n", stderr_tail)
+    if match is None:
+        raise ValueError("target log exit footer is not one final signed integer")
+    return stdout, match.group(1), int(match.group(2))
+
+
+def finite_number(value: Any) -> bool:
+    return type(value) in (int, float) and math.isfinite(value)
+
+
+def safety_snapshot_valid(snapshot: Any) -> bool:
+    if not isinstance(snapshot, dict):
+        return False
+    gpu = snapshot.get("gpu")
+    struct_ops = snapshot.get("struct_ops")
+    return (
+        type(snapshot.get("timestamp_ns")) is int and snapshot["timestamp_ns"] > 0
+        and snapshot.get("power_limit_service") == "active"
+        and finite_number(snapshot.get("power_limit_w"))
+        and abs(float(snapshot["power_limit_w"]) - EXPECTED_POWER_LIMIT_W) <= 0.01
+        and type(snapshot.get("uvm_refcount")) is int and snapshot["uvm_refcount"] == 0
+        and snapshot.get("dmesg_abnormal") == []
+        and snapshot.get("journal_abnormal") == []
+        and snapshot.get("xids") == []
+        and isinstance(struct_ops, dict)
+        and struct_ops.get("maps") == [] and struct_ops.get("links") == []
+        and isinstance(gpu, dict)
+        and gpu.get("driver") == EXPECTED_DRIVER
+        and gpu.get("compute_apps") == []
+        and finite_number(gpu.get("memory_used_mib"))
+        and 0 <= float(gpu["memory_used_mib"]) <= MAX_IDLE_MEMORY_MIB
+        and type(gpu.get("utilization_gpu_percent")) is int
+        and gpu["utilization_gpu_percent"] == 0
+    )
+
+
+def telemetry_number(row: dict[str, str], header: str) -> float:
+    value = float(row[header].split()[0])
+    if not math.isfinite(value):
+        raise ValueError(f"non-finite telemetry value for {header}")
+    return value
+
+
+def replay_gpu_telemetry(path: Path) -> dict[str, Any]:
+    with path.open(newline="", encoding="utf-8", errors="replace") as stream:
+        reader = csv.DictReader(stream, skipinitialspace=True)
+        if tuple(reader.fieldnames or ()) != TELEMETRY_HEADERS:
+            raise ValueError("GPU telemetry headers differ from the fixed query")
+        rows = list(reader)
+    if not rows:
+        raise ValueError("GPU telemetry has no samples")
+    reason_headers = TELEMETRY_HEADERS[6:]
+    fixed_power_cap_samples = 0
+    for row in rows:
+        if (None in row or set(row) != set(TELEMETRY_HEADERS)
+                or any(value is None for value in row.values())):
+            raise ValueError("GPU telemetry row has the wrong number of fields")
+        if not row["timestamp"].strip():
+            raise ValueError("GPU telemetry timestamp is empty")
+        for header in reason_headers:
+            reason = row[header].strip().lower()
+            allowed = {"not active", "n/a"}
+            if header == "clocks_event_reasons.sw_power_cap":
+                allowed.add("active")
+                fixed_power_cap_samples += reason == "active"
+            if reason not in allowed:
+                raise ValueError(f"GPU throttling observed in {header}: {row[header]}")
+    memory = [telemetry_number(row, TELEMETRY_HEADERS[1]) for row in rows]
+    temperature = [telemetry_number(row, TELEMETRY_HEADERS[2]) for row in rows]
+    power = [telemetry_number(row, TELEMETRY_HEADERS[3]) for row in rows]
+    sm_clock = [telemetry_number(row, TELEMETRY_HEADERS[4]) for row in rows]
+    if (any(value < 0 for value in memory + power + sm_clock)
+            or any(telemetry_number(row, TELEMETRY_HEADERS[5]) < 0 for row in rows)):
+        raise ValueError("GPU telemetry contains a negative physical value")
+    return {
+        "samples": len(rows), "peak_memory_mib": max(memory),
+        "peak_temperature_c": max(temperature),
+        "mean_power_w": sum(power) / len(rows),
+        "min_sm_clock_mhz": min(sm_clock), "max_sm_clock_mhz": max(sm_clock),
+        "throttled": False, "fixed_power_cap_samples": fixed_power_cap_samples,
+    }
+
+
+def safety_gate(directory: Path, safety: dict[str, Any], *, boot_id: str) -> dict[str, Any]:
+    forbidden = ("error", "cleanup_errors", "fatal_cleanup")
+    before = safety.get("before")
+    after = safety.get("after")
+    replayed_telemetry = replay_gpu_telemetry(directory / "gpu-telemetry.csv")
+    valid = (
+        safety.get("passed") is True
+        and not any(key in safety for key in forbidden)
+        and isinstance(boot_id, str) and bool(boot_id)
+        and safety.get("boot_id") == boot_id
+        and safety.get("worker_cpus") == EXPECTED_WORKER_CPUS
+        and safety_snapshot_valid(before) and safety_snapshot_valid(after)
+        and after["timestamp_ns"] >= before["timestamp_ns"]
+        and safety.get("telemetry") == replayed_telemetry
+    )
+    return {"valid": bool(valid), "replayed_telemetry": replayed_telemetry}
 
 
 def parse_one_bench_array(stdout: str) -> list[dict[str, Any]]:
@@ -127,12 +236,16 @@ def bench_gate(stdout: str, pp: int, model: Path, n_gpu_layers: int) -> dict[str
     samples_ns = row.get("samples_ns")
     samples_ts = row.get("samples_ts")
     throughput = row.get("avg_ts")
+    build_commit = row.get("build_commit")
+    build_number = row.get("build_number")
     derived = (pp * 1e9 / row["avg_ns"]
                if type(row.get("avg_ns")) is int and row["avg_ns"] > 0 else math.nan)
     valid = (
         row.get("n_prompt") == pp and row.get("n_gen") == 0
         and row.get("n_gpu_layers") == n_gpu_layers
         and Path(str(row.get("model_filename", ""))).resolve() == model.resolve()
+        and isinstance(build_commit, str) and bool(build_commit)
+        and type(build_number) is int and build_number > 0
         and type(row.get("avg_ns")) is int and row["avg_ns"] > 0
         and isinstance(throughput, (int, float)) and math.isfinite(throughput)
         and throughput > 0
@@ -146,7 +259,8 @@ def bench_gate(stdout: str, pp: int, model: Path, n_gpu_layers: int) -> dict[str
         and math.isclose(float(throughput), derived, rel_tol=1e-6, abs_tol=1e-3)
     )
     return {"valid": bool(valid), "pp_tok_s": float(throughput) if valid else None,
-            "avg_ns": row.get("avg_ns"), "raw": raw}
+            "avg_ns": row.get("avg_ns"), "build_commit": build_commit,
+            "build_number": build_number, "raw": raw}
 
 
 def injection_environment(environment: dict[str, Any]) -> dict[str, Any]:
@@ -155,7 +269,7 @@ def injection_environment(environment: dict[str, Any]) -> dict[str, Any]:
 
 
 def expected_command(defining: dict[str, Any], treatment: str, pp: int) -> list[str]:
-    command = ["taskset", "-c", "8-15", "/usr/bin/env"]
+    command = ["taskset", "-c", EXPECTED_WORKER_CPUS, "/usr/bin/env"]
     if treatment != "control":
         build = Path(defining["bpftime_build_dir"])
         command.append(f"LD_PRELOAD={build / 'runtime/agent/libbpftime-agent.so'}")
@@ -310,7 +424,7 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
     try:
         directory = safe_directory(root, cell.get("directory"))
         execution = read_json(directory / "llama_bench.execution.json")
-        stdout, stderr = log_sections(directory / "llama_bench.log")
+        stdout, stderr, log_exit = log_sections(directory / "llama_bench.log")
         pid = execution.get("identity", {}).get("pid")
         start_ticks = execution.get("identity", {}).get("start_ticks")
         execution_identity = (pid, start_ticks)
@@ -318,12 +432,15 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
                         and type(start_ticks) is int and start_ticks > 0
                         and execution.get("cleanup_passed") is True
                         and execution.get("timed_out") is False
-                        and execution.get("returncode") == 0)
+                        and execution.get("returncode") == log_exit == 0
+                        and "error" not in execution
+                        and "cleanup_failure" not in execution)
         command = execution.get("command", [])
         command_ok = command == expected_command(defining, expected["treatment"], expected["pp"])
         target_environment = read_json(directory / "target-environment.json")
         safety = read_json(directory / "gpu-safety.json")
-        safety_ok = safety.get("passed") is True
+        safety = safety_gate(directory, safety, boot_id=defining.get("host_boot_id"))
+        safety_ok = safety["valid"]
         bench = bench_gate(stdout, expected["pp"], Path(defining["model"]),
                            int(defining["n_gpu_layers"]))
         admission = admission_gate(stdout + "\n" + stderr, pid, expected["tool"],
@@ -374,8 +491,9 @@ def audit_cell(root: Path, cell: dict[str, Any], expected: dict[str, Any],
                 "execution_identity": execution_identity,
                 "recorded_execution_identity_valid": recorded_identity_ok,
                 "recorded_valid": cell.get("valid") is True,
-                "execution_valid": execution_ok, "command_valid": command_ok,
-                "safety_valid": safety_ok, "bench": bench, "admission": admission,
+                "execution_valid": execution_ok, "log_exit": log_exit,
+                "command_valid": command_ok, "safety_valid": safety_ok,
+                "safety": safety, "bench": bench, "admission": admission,
                 "private_shm_valid": private_ok, "environment_valid": environment_ok,
                 "artifact_inventory_valid": artifacts_ok,
                 "private_segment": segment, "probe": probe}
@@ -420,8 +538,13 @@ def analyze(root: Path) -> dict[str, Any]:
         errors.append("fixed analysis protocol mismatch")
     if plan.get("admission_timing_use") != "gate_only_never_a_throughput_input":
         errors.append("admission timing role mismatch")
-    if state.get("host", {}).get("driver") != EXPECTED_DRIVER:
+    host = state.get("host", {})
+    if (not isinstance(host, dict) or host.get("driver") != EXPECTED_DRIVER
+            or host.get("expected_driver") != EXPECTED_DRIVER):
         errors.append("driver gate mismatch")
+    host_boot_id = host.get("boot_id") if isinstance(host, dict) else None
+    if not isinstance(host_boot_id, str) or not host_boot_id:
+        errors.append("missing run boot identity")
     runtime = state.get("runtime", {})
     build = runtime.get("build_configuration", {})
     if any(str(build.get(key, "")).upper() not in {"ON", "YES", "TRUE", "1"} for key in BUILD_KEYS):
@@ -443,6 +566,7 @@ def analyze(root: Path) -> dict[str, Any]:
     defining["runtime_agent_metadata"] = runtime.get("agent")
     defining["runtime_syscall_server_metadata"] = runtime.get("syscall_server")
     defining["object_metadata"] = state.get("objects", {})
+    defining["host_boot_id"] = host_boot_id
     if defining.get("warmup") is not True:
         errors.append("warmup was not fixed on")
     audited: dict[str, list[dict[str, Any]]] = {"correctness": [], "timing": []}
@@ -482,6 +606,20 @@ def analyze(root: Path) -> dict[str, Any]:
         errors.append("the 66 cells do not have unique canonical raw directories")
     if len(execution_identities) != 66 or len(set(execution_identities)) != 66:
         errors.append("the 66 target (pid,start_ticks) identities are missing or reused")
+    build_records = [
+        (cell.get("bench", {}).get("build_commit"),
+         cell.get("bench", {}).get("build_number"))
+        for cells in audited.values() for cell in cells
+    ]
+    build_consistent = len(build_records) == 66 and len(set(build_records)) == 1
+    if not build_consistent:
+        errors.append("the 66 cells do not report one consistent llama-bench build")
+    build_identity = {
+        "consistent": build_consistent,
+        "cells": len(build_records),
+        "build_commit": build_records[0][0] if build_consistent else None,
+        "build_number": build_records[0][1] if build_consistent else None,
+    }
     for stage, blocks in (("correctness", (0,)), ("timing", range(1, BLOCKS + 1))):
         for block in blocks:
             cells = [cell for cell in audited[stage]
@@ -530,6 +668,7 @@ def analyze(root: Path) -> dict[str, Any]:
     return {"schema": SCHEMA, "complete": complete, "run_status": run_status,
             "application_throughput_source": "target llama-bench JSON avg_ts only",
             "admission_timing_used_in_throughput": False,
+            "llama_bench_build": build_identity,
             "errors": errors, "summary": summaries, "audited": audited}
 
 

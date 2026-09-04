@@ -59,6 +59,8 @@ CORRECTNESS_MULTIPLICITY_220 = 1024
 CORRECTNESS_MULTIPLICITY_44 = 1024
 CORRECTNESS_MULTIPLICITY_22 = 20480
 KERNELRETSNOOP_SHM_MEMORY_MB = 1000
+LAUNCH_CLOCK_DRIFT_LIMIT_PPB = 10000
+LAUNCH_UNCERTAIN_PERCENT_LIMIT = 10
 EXPECTED_NORMALIZED_STDOUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_NORMALIZED_STDOUT_BYTES = 47
 LEASE_PATHS = (
@@ -368,17 +370,21 @@ def validate_launchlate_source_schema(directory: Path) -> None:
             "LAUNCHLATE_TARGET_SYMBOL",
             "MATCHED_SAMPLES",
             "UNCERTAIN_SAMPLES",
+            "gpu_entry_ns",
         ),
         "launchlate.c": (
-            "bracketed %%globaltimer kernel against CLOCK_MONOTONIC",
+            "affine CLOCK_MONOTONIC interpolation",
             "Host enqueued:",
             "Matched samples:",
             "Queue update errors:",
             "Uncertain samples:",
             "Accounting complete:",
+            "Online accounting complete:",
             "Pairing complete:",
             "Probes detached before final readback:",
-            "Clock calibration endpoint overlap:",
+            "Clock drift rate bound:",
+            "Clock drift bounded:",
+            "classify_affine_sample(",
         ),
     }
     for name, markers in required.items():
@@ -392,7 +398,7 @@ def validate_launchlate_source_schema(directory: Path) -> None:
 
 
 def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
-    """Require the fail-closed bounded-clock ABI in the copied NVBit tool."""
+    """Require the fail-closed raw-pair affine ABI in the copied NVBit tool."""
     required = {
         "Makefile": (
             "observability.o: observability.cu common.h clock_domain.h",
@@ -402,37 +408,60 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "int64_t offset_low_ns;",
             "int64_t offset_high_ns;",
             "uint64_t uncertainty_ns;",
+            "uint64_t host_anchor_ns;",
             "uint64_t valid;",
             "LAUNCH_SAMPLE_UNCERTAIN",
             "clock_calibration_valid",
-            "clock_calibration_intersection",
+            "clock_calibration_drift",
+            "affine_clock_offset_interval",
+            "classify_affine_launch_latency",
+            "if (latency_high_ns < 0)",
+        ),
+        "common.h": (
+            "LAUNCH_PAIR_CAPACITY",
+            "struct launch_pair_t",
+            "uint64_t host_mono_ns;",
+            "uint64_t gpu_entry_ns;",
+            "uint64_t sequence;",
         ),
         "inject_funcs.cu": (
-            "uncertain_count_ptr",
-            "LAUNCH_SAMPLE_UNCERTAIN",
-            "clock_error_ptr",
-            "classify_launch_latency(",
-            "reinterpret_cast<unsigned long long*>(uncertain_count_ptr)",
-            "reinterpret_cast<unsigned long long*>(sample_count_ptr), 1ULL",
+            "pair_ptr",
+            "device_entry_count_ptr",
+            "capture_error_count_ptr",
+            "pair->gpu_entry_ns = gpu_ns",
+            "__threadfence_system()",
         ),
         "observability.cu": (
-            "bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC",
-            "cudaMallocManaged(&launch_uncertain_samples",
-            "cudaMemset(launch_uncertain_samples",
-            "reinterpret_cast<uint64_t>(launch_uncertain_samples)",
-            "*launch_uncertain_samples",
+            "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_",
+            "with_affine_interpolation_and_drift_bound",
+            "cudaMallocManaged(\n            &state->launch_pairs",
+            "nvbit_set_at_launch(ctx, func, pair_ptr)",
+            "state->launch_pair_overflows++",
+            "print_launchlate_results(state, end_calibration)",
+            "classify_affine_launch_latency(",
+            "accounting_complete=",
             "calibrate_gpu_clock(ctx, state, state->start_calibration)",
             "calibrate_gpu_clock(ctx, state, &end_calibration)",
-            "clock_calibration_intersection(",
+            "clock_calibration_drift(",
             'print_clock_calibration("start"',
             'print_clock_calibration("end"',
             "%s_clock_offset_lower_ns=",
             "%s_clock_offset_upper_ns=",
             "%s_clock_uncertainty_ns=",
+            "%s_clock_host_anchor_ns=",
             "%s_clock_calibration_valid=",
-            "clock_endpoint_overlap=",
-            "clock_intersection_lower_ns=",
-            "clock_intersection_upper_ns=",
+            "clock_offset_change_lower_ns=",
+            "clock_offset_change_upper_ns=",
+            "clock_calibration_elapsed_ns=",
+            "clock_drift_rate_bound_ppb=",
+            "clock_drift_limit_ppb=",
+            "clock_drift_bounded=",
+            "pair_capacity=",
+            "stored_pairs=",
+            "device_entries=",
+            "pair_overflows=",
+            "capture_errors=",
+            "selected_counter_overflow=",
             "uncertain_samples=",
             "samples=%llu clock_errors=%llu",
         ),
@@ -569,26 +598,33 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             "classified_samples": "Classified samples",
             "uncertain_samples": "Uncertain samples",
             "clock_errors": "Clock errors",
+            "online_accounting_complete": "Online accounting complete",
             "accounting_complete": "Accounting complete",
             "pairing_complete": "Pairing complete",
             "probes_detached_before_readback": "Probes detached before final readback",
-            "clock_endpoint_overlap": "Clock calibration endpoint overlap",
             "start_clock_offset_lower_ns": "Start clock offset lower",
             "start_clock_offset_upper_ns": "Start clock offset upper",
             "start_clock_uncertainty_ns": "Start clock uncertainty",
+            "start_clock_host_anchor_ns": "Start clock host anchor",
             "end_clock_offset_lower_ns": "End clock offset lower",
             "end_clock_offset_upper_ns": "End clock offset upper",
             "end_clock_uncertainty_ns": "End clock uncertainty",
-            "clock_intersection_lower_ns": "Clock offset intersection lower",
-            "clock_intersection_upper_ns": "Clock offset intersection upper",
+            "end_clock_host_anchor_ns": "End clock host anchor",
+            "clock_offset_change_lower_ns": "Clock offset change lower",
+            "clock_offset_change_upper_ns": "Clock offset change upper",
+            "clock_calibration_elapsed_ns": "Clock calibration elapsed",
+            "clock_drift_rate_bound_ppb": "Clock drift rate bound",
+            "clock_drift_limit_ppb": "Clock drift limit",
+            "clock_drift_bounded": "Clock drift bounded",
         }
         signed = {
             "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
             "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
-            "clock_intersection_lower_ns", "clock_intersection_upper_ns",
+            "clock_offset_change_lower_ns", "clock_offset_change_upper_ns",
         }
         for key, label in labels.items():
-            unit = r"\s+ns" if key.endswith("_ns") else ""
+            unit = (r"\s+ppb" if key.endswith("_ppb") else
+                    r"\s+ns" if key.endswith("_ns") else "")
             number = r"(-?\d+)" if key in signed else r"(\d+)"
             values = re.findall(
                 rf"^{re.escape(label)}:\s*{number}{unit}$", text, re.MULTILINE
@@ -772,20 +808,42 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
         "histogram": bins,
         "histogram_sum": sum(bins),
         "selected_launches": selected,
+        "process_selected_launches": last(
+            r"^NVBIT_OBS process_selected_launches=(\d+)$",
+            -1,
+            re.MULTILINE,
+        ),
+        "result_blocks": len(re.findall(
+            r"^NVBIT launchlate samples=\d+ clock_errors=\d+$",
+            text,
+            re.MULTILINE,
+        )),
     }
     integer_fields = {
         "uncertain_samples": r"\d+",
+        "pair_capacity": r"\d+",
+        "stored_pairs": r"\d+",
+        "device_entries": r"\d+",
+        "pair_overflows": r"\d+",
+        "capture_errors": r"\d+",
+        "selected_counter_overflow": r"\d+",
+        "accounting_complete": r"\d+",
         "start_clock_offset_lower_ns": r"-?\d+",
         "start_clock_offset_upper_ns": r"-?\d+",
         "start_clock_uncertainty_ns": r"\d+",
+        "start_clock_host_anchor_ns": r"\d+",
         "start_clock_calibration_valid": r"\d+",
         "end_clock_offset_lower_ns": r"-?\d+",
         "end_clock_offset_upper_ns": r"-?\d+",
         "end_clock_uncertainty_ns": r"\d+",
+        "end_clock_host_anchor_ns": r"\d+",
         "end_clock_calibration_valid": r"\d+",
-        "clock_endpoint_overlap": r"\d+",
-        "clock_intersection_lower_ns": r"-?\d+",
-        "clock_intersection_upper_ns": r"-?\d+",
+        "clock_offset_change_lower_ns": r"-?\d+",
+        "clock_offset_change_upper_ns": r"-?\d+",
+        "clock_calibration_elapsed_ns": r"\d+",
+        "clock_drift_rate_bound_ppb": r"\d+",
+        "clock_drift_limit_ppb": r"\d+",
+        "clock_drift_bounded": r"\d+",
     }
     for key, number in integer_fields.items():
         values = re.findall(
@@ -800,7 +858,61 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
         re.MULTILINE,
     )
     result["clock_calibration_method"] = methods[-1] if methods else ""
+    result["calibration_blocks"] = len(methods)
     return result
+
+
+def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
+    fields = (
+        "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
+        "start_clock_uncertainty_ns", "start_clock_host_anchor_ns",
+        "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
+        "end_clock_uncertainty_ns", "end_clock_host_anchor_ns",
+        "clock_offset_change_lower_ns", "clock_offset_change_upper_ns",
+        "clock_calibration_elapsed_ns", "clock_drift_rate_bound_ppb",
+        "clock_drift_limit_ppb", "clock_drift_bounded",
+    )
+    if any(type(probe.get(key)) is not int for key in fields):
+        return False
+    start_low = probe["start_clock_offset_lower_ns"]
+    start_high = probe["start_clock_offset_upper_ns"]
+    end_low = probe["end_clock_offset_lower_ns"]
+    end_high = probe["end_clock_offset_upper_ns"]
+    start_anchor = probe["start_clock_host_anchor_ns"]
+    end_anchor = probe["end_clock_host_anchor_ns"]
+    elapsed = end_anchor - start_anchor
+    change_low = end_low - start_high
+    change_high = end_high - start_low
+    if elapsed <= 0:
+        return False
+    expected_rate = (
+        max(abs(change_low), abs(change_high)) * 1_000_000_000 + elapsed - 1
+    ) // elapsed
+    return (
+        start_low <= start_high
+        and end_low <= end_high
+        and probe["start_clock_uncertainty_ns"]
+        == (start_high - start_low + 1) // 2
+        and probe["end_clock_uncertainty_ns"]
+        == (end_high - end_low + 1) // 2
+        and probe["clock_offset_change_lower_ns"] == change_low
+        and probe["clock_offset_change_upper_ns"] == change_high
+        and probe["clock_calibration_elapsed_ns"] == elapsed
+        and probe["clock_drift_rate_bound_ppb"] == expected_rate
+        and probe["clock_drift_limit_ppb"] == LAUNCH_CLOCK_DRIFT_LIMIT_PPB
+        and expected_rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB
+        and probe["clock_drift_bounded"] == 1
+    )
+
+
+def launch_uncertainty_valid(classified: int, uncertain: int, total: int) -> bool:
+    return (
+        classified >= 0
+        and uncertain >= 0
+        and total > 0
+        and classified + uncertain == total
+        and uncertain * 100 <= total * LAUNCH_UNCERTAIN_PERCENT_LIMIT
+    )
 
 
 def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
@@ -820,51 +932,40 @@ def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
         return int(probe.get("nonzero_threads", 0)) > 0
 
     calibration_fields = (
-        "uncertain_samples",
-        "start_clock_offset_lower_ns",
-        "start_clock_offset_upper_ns",
-        "start_clock_uncertainty_ns",
-        "start_clock_calibration_valid",
-        "end_clock_offset_lower_ns",
-        "end_clock_offset_upper_ns",
-        "end_clock_uncertainty_ns",
-        "end_clock_calibration_valid",
-        "clock_endpoint_overlap",
-        "clock_intersection_lower_ns",
-        "clock_intersection_upper_ns",
+        "uncertain_samples", "start_clock_calibration_valid",
+        "end_clock_calibration_valid", "pair_capacity", "stored_pairs",
+        "device_entries", "pair_overflows", "capture_errors",
+        "selected_counter_overflow", "accounting_complete",
+        "process_selected_launches", "result_blocks", "calibration_blocks",
     )
     if any(type(probe.get(key)) is not int for key in calibration_fields):
         return False
-    start_low = int(probe.get("start_clock_offset_lower_ns", 1))
-    start_high = int(probe.get("start_clock_offset_upper_ns", -1))
-    start_uncertainty = int(probe.get("start_clock_uncertainty_ns", -1))
-    end_low = int(probe.get("end_clock_offset_lower_ns", 1))
-    end_high = int(probe.get("end_clock_offset_upper_ns", -1))
-    end_uncertainty = int(probe.get("end_clock_uncertainty_ns", -1))
-    intersection_low = int(probe.get("clock_intersection_lower_ns", 1))
-    intersection_high = int(probe.get("clock_intersection_upper_ns", -1))
     histogram = probe.get("histogram", ())
+    uncertain = int(probe.get("uncertain_samples", -1))
     return (
         probe.get("clock_calibration_method")
-        == "bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC"
+        == "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_with_affine_interpolation_and_drift_bound"
         and int(probe.get("start_clock_calibration_valid", -1)) == 1
         and int(probe.get("end_clock_calibration_valid", -1)) == 1
-        and start_low <= start_high
-        and end_low <= end_high
-        and start_uncertainty == (start_high - start_low + 1) // 2
-        and end_uncertainty == (end_high - end_low + 1) // 2
-        and int(probe.get("clock_endpoint_overlap", -1)) == 1
-        and intersection_low == max(start_low, end_low)
-        and intersection_high == min(start_high, end_high)
-        and intersection_low <= intersection_high
+        and launch_clock_model_valid(probe)
         and int(probe.get("clock_errors", -1)) == 0
-        and int(probe.get("uncertain_samples", -1)) == 0
         and isinstance(histogram, list)
         and len(histogram) == 10
         and all(isinstance(count, int) and count >= 0 for count in histogram)
         and sum(histogram) == samples
         and int(probe.get("histogram_sum", -1)) == samples
-        and selected == samples
+        and int(probe.get("pair_capacity", -1)) >= selected
+        and int(probe.get("stored_pairs", -1)) == selected
+        and int(probe.get("device_entries", -1)) == selected
+        and int(probe.get("pair_overflows", -1)) == 0
+        and int(probe.get("capture_errors", -1)) == 0
+        and int(probe.get("selected_counter_overflow", -1)) == 0
+        and int(probe.get("accounting_complete", -1)) == 1
+        and int(probe.get("process_selected_launches", -1)) == selected
+        and int(probe.get("result_blocks", -1)) == 1
+        and int(probe.get("calibration_blocks", -1)) == 1
+        and selected == samples + uncertain + int(probe.get("clock_errors", -1))
+        and launch_uncertainty_valid(samples, uncertain, selected)
     )
 
 
@@ -965,26 +1066,14 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
                 and probe.get("readback_bytes") == expected_thread_count * 8
                 and probe.get("readback_complete") == 1)
 
-    start_low = int(probe.get("start_clock_offset_lower_ns", 1))
-    start_high = int(probe.get("start_clock_offset_upper_ns", -1))
-    start_uncertainty = int(probe.get("start_clock_uncertainty_ns", -1))
-    end_low = int(probe.get("end_clock_offset_lower_ns", 1))
-    end_high = int(probe.get("end_clock_offset_upper_ns", -1))
-    end_uncertainty = int(probe.get("end_clock_uncertainty_ns", -1))
-    intersection_low = int(probe.get("clock_intersection_lower_ns", 1))
-    intersection_high = int(probe.get("clock_intersection_upper_ns", -1))
     calibration_valid = (
         probe.get("clock_calibration_method")
-        == "bracketed %globaltimer kernel against CLOCK_MONOTONIC"
-        and start_low <= start_high
-        and end_low <= end_high
-        and start_uncertainty == (start_high - start_low + 1) // 2
-        and end_uncertainty == (end_high - end_low + 1) // 2
-        and intersection_low == max(start_low, end_low)
-        and intersection_high == min(start_high, end_high)
-        and intersection_low <= intersection_high
-        and int(probe.get("clock_endpoint_overlap", -1)) == 1
+        == "bracketed %globaltimer endpoint intervals with affine CLOCK_MONOTONIC interpolation"
+        and launch_clock_model_valid(probe)
     )
+    matched = int(probe.get("matched_samples", -1))
+    classified = int(probe.get("classified_samples", -1))
+    uncertain = int(probe.get("uncertain_samples", -1))
     return (
         calibration_valid
         and int(probe.get("probes_detached_before_readback", -1)) == 1
@@ -992,16 +1081,16 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
         and int(probe.get("queue_underflows", -1)) == 0
         and int(probe.get("queue_overflows", -1)) == 0
         and int(probe.get("queue_update_errors", -1)) == 0
-        and int(probe.get("uncertain_samples", -1)) == 0
+        and int(probe.get("online_accounting_complete", -1)) == 1
         and int(probe.get("accounting_complete", -1)) == 1
         and int(probe.get("pairing_complete", -1)) == 1
+        and launch_uncertainty_valid(classified, uncertain, matched)
         and int(probe.get("host_launches", -1))
         == int(probe.get("host_enqueued", -2))
         == int(probe.get("device_entries", -2))
-        == int(probe.get("matched_samples", -3))
-        == int(probe.get("classified_samples", -4))
-        == int(probe.get("histogram_samples", -5))
+        == matched
         == samples
+        and int(probe.get("histogram_samples", -5)) == classified
     )
 
 

@@ -97,32 +97,43 @@ def lossless_launchlate_log(**overrides):
         "classified": 2,
         "uncertain": 0,
         "clock_errors": 0,
+        "online_accounting": 1,
         "accounting": 1,
         "pairing": 1,
         "detached": 1,
         "start_low": -120,
         "start_high": -80,
         "start_uncertainty": 20,
+        "start_anchor": 1000000000,
         "end_low": -100,
         "end_high": -70,
         "end_uncertainty": 15,
-        "endpoint_overlap": 1,
-        "intersection_low": -100,
-        "intersection_high": -80,
+        "end_anchor": 2000000000,
+        "change_low": -20,
+        "change_high": 50,
+        "elapsed": 1000000000,
+        "drift_rate": 50,
+        "drift_limit": 10000,
+        "drift_bounded": 1,
     }
     values.update(overrides)
     return "\n".join((
-        "Clock calibration method: bracketed %globaltimer kernel against CLOCK_MONOTONIC",
+        "Clock calibration method: bracketed %globaltimer endpoint intervals with affine CLOCK_MONOTONIC interpolation",
         f"Start clock offset lower: {values['start_low']} ns",
         f"Start clock offset upper: {values['start_high']} ns",
         f"Start clock uncertainty: {values['start_uncertainty']} ns",
+        f"Start clock host anchor: {values['start_anchor']} ns",
         f"Probes detached before final readback: {values['detached']}",
         f"End clock offset lower: {values['end_low']} ns",
         f"End clock offset upper: {values['end_high']} ns",
         f"End clock uncertainty: {values['end_uncertainty']} ns",
-        f"Clock calibration endpoint overlap: {values['endpoint_overlap']}",
-        f"Clock offset intersection lower: {values['intersection_low']} ns",
-        f"Clock offset intersection upper: {values['intersection_high']} ns",
+        f"End clock host anchor: {values['end_anchor']} ns",
+        f"Clock offset change lower: {values['change_low']} ns",
+        f"Clock offset change upper: {values['change_high']} ns",
+        f"Clock calibration elapsed: {values['elapsed']} ns",
+        f"Clock drift rate bound: {values['drift_rate']} ppb",
+        f"Clock drift limit: {values['drift_limit']} ppb",
+        f"Clock drift bounded: {values['drift_bounded']}",
         f"Histogram samples: {values['histogram']}",
         f"Total samples: {values['samples']}",
         f"Host launches: {values['host_launches']}",
@@ -135,6 +146,7 @@ def lossless_launchlate_log(**overrides):
         f"Classified samples: {values['classified']}",
         f"Uncertain samples: {values['uncertain']}",
         f"Clock errors: {values['clock_errors']}",
+        f"Online accounting complete: {values['online_accounting']}",
         f"Accounting complete: {values['accounting']}",
         f"Pairing complete: {values['pairing']}",
     ))
@@ -143,43 +155,77 @@ def lossless_launchlate_log(**overrides):
 def lossless_nvbit_launchlate_log(**overrides):
     values = {
         "selected": 2,
+        "process_selected": 2,
         "samples": 2,
         "uncertain": 0,
         "clock_errors": 0,
+        "pair_capacity": 65536,
+        "stored_pairs": 2,
+        "device_entries": 2,
+        "pair_overflows": 0,
+        "capture_errors": 0,
+        "selected_counter_overflow": 0,
+        "accounting": 1,
         "start_low": -120,
         "start_high": -80,
         "start_uncertainty": 20,
+        "start_anchor": 1000000000,
         "start_valid": 1,
         "end_low": -100,
         "end_high": -70,
         "end_uncertainty": 15,
+        "end_anchor": 2000000000,
         "end_valid": 1,
-        "endpoint_overlap": 1,
-        "intersection_low": -100,
-        "intersection_high": -80,
+        "change_low": -20,
+        "change_high": 50,
+        "elapsed": 1000000000,
+        "drift_rate": 50,
+        "drift_limit": 10000,
+        "drift_bounded": 1,
     }
     values.update(overrides)
+    if "stored_pairs" not in overrides:
+        values["stored_pairs"] = values["selected"]
+    if "device_entries" not in overrides:
+        values["device_entries"] = values["selected"]
+    if "process_selected" not in overrides:
+        values["process_selected"] = values["selected"]
     bins = [0, values["samples"], 0, 0, 0, 0, 0, 0, 0, 0]
     return "\n".join((
         "NVBIT launchlate clock_calibration_method="
-        "bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC",
+        "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_"
+        "with_affine_interpolation_and_drift_bound",
         f"NVBIT launchlate start_clock_offset_lower_ns={values['start_low']}",
         f"NVBIT launchlate start_clock_offset_upper_ns={values['start_high']}",
         f"NVBIT launchlate start_clock_uncertainty_ns={values['start_uncertainty']}",
+        f"NVBIT launchlate start_clock_host_anchor_ns={values['start_anchor']}",
         f"NVBIT launchlate start_clock_calibration_valid={values['start_valid']}",
         f"NVBIT launchlate end_clock_offset_lower_ns={values['end_low']}",
         f"NVBIT launchlate end_clock_offset_upper_ns={values['end_high']}",
         f"NVBIT launchlate end_clock_uncertainty_ns={values['end_uncertainty']}",
+        f"NVBIT launchlate end_clock_host_anchor_ns={values['end_anchor']}",
         f"NVBIT launchlate end_clock_calibration_valid={values['end_valid']}",
-        f"NVBIT launchlate clock_endpoint_overlap={values['endpoint_overlap']}",
-        f"NVBIT launchlate clock_intersection_lower_ns={values['intersection_low']}",
-        f"NVBIT launchlate clock_intersection_upper_ns={values['intersection_high']}",
+        f"NVBIT launchlate clock_offset_change_lower_ns={values['change_low']}",
+        f"NVBIT launchlate clock_offset_change_upper_ns={values['change_high']}",
+        f"NVBIT launchlate clock_calibration_elapsed_ns={values['elapsed']}",
+        f"NVBIT launchlate clock_drift_rate_bound_ppb={values['drift_rate']}",
+        f"NVBIT launchlate clock_drift_limit_ppb={values['drift_limit']}",
+        f"NVBIT launchlate clock_drift_bounded={values['drift_bounded']}",
         *(f"NVBIT launchlate bin_{index}={count}"
           for index, count in enumerate(bins)),
+        f"NVBIT launchlate pair_capacity={values['pair_capacity']}",
+        f"NVBIT launchlate stored_pairs={values['stored_pairs']}",
+        f"NVBIT launchlate device_entries={values['device_entries']}",
+        f"NVBIT launchlate pair_overflows={values['pair_overflows']}",
+        f"NVBIT launchlate capture_errors={values['capture_errors']}",
+        "NVBIT launchlate selected_counter_overflow="
+        f"{values['selected_counter_overflow']}",
         f"NVBIT launchlate uncertain_samples={values['uncertain']}",
         f"NVBIT launchlate samples={values['samples']} "
         f"clock_errors={values['clock_errors']}",
+        f"NVBIT launchlate accounting_complete={values['accounting']}",
         f"NVBIT selected_launches={values['selected']}",
+        f"NVBIT_OBS process_selected_launches={values['process_selected']}",
     ))
 
 
@@ -657,17 +703,21 @@ class OfflineTests(unittest.TestCase):
                 "LAUNCHLATE_TARGET_SYMBOL",
                 "MATCHED_SAMPLES",
                 "UNCERTAIN_SAMPLES",
+                "gpu_entry_ns",
             )),
             "launchlate.c": "\n".join((
-                "bracketed %%globaltimer kernel against CLOCK_MONOTONIC",
+                "affine CLOCK_MONOTONIC interpolation",
                 "Host enqueued:",
                 "Matched samples:",
                 "Queue update errors:",
                 "Uncertain samples:",
                 "Accounting complete:",
+                "Online accounting complete:",
                 "Pairing complete:",
                 "Probes detached before final readback:",
-                "Clock calibration endpoint overlap:",
+                "Clock drift rate bound:",
+                "Clock drift bounded:",
+                "classify_affine_sample(",
             )),
         }
         with tempfile.TemporaryDirectory() as tmp:
@@ -743,7 +793,7 @@ class OfflineTests(unittest.TestCase):
 
     def test_nvbit_launchlate_schema_requires_bounded_clock_accounting(self):
         names = (
-            "Makefile", "clock_domain.h", "inject_funcs.cu",
+            "Makefile", "clock_domain.h", "common.h", "inject_funcs.cu",
             "observability.cu", "tool_func/flush_channel.cu",
         )
         sources = {
@@ -758,11 +808,9 @@ class OfflineTests(unittest.TestCase):
         corruptions = (
             ("Makefile", "observability.o: observability.cu common.h clock_domain.h"),
             ("clock_domain.h", "int64_t offset_low_ns;"),
-            (
-                "inject_funcs.cu",
-                "reinterpret_cast<unsigned long long*>(uncertain_count_ptr)",
-            ),
-            ("observability.cu", "clock_endpoint_overlap="),
+            ("common.h", "struct launch_pair_t"),
+            ("inject_funcs.cu", "pair->gpu_entry_ns = gpu_ns"),
+            ("observability.cu", "clock_drift_bounded="),
             ("tool_func/flush_channel.cu", "%globaltimer"),
         )
         for broken_name, marker in corruptions:
@@ -895,7 +943,8 @@ class OfflineTests(unittest.TestCase):
             "Clock errors: 0", "Queue underflows: 0", "Queue overflows: 0",
             "Host enqueued: 2", "Matched samples: 2", "Queue update errors: 0",
             "Uncertain samples: 0", "Accounting complete: 1",
-            "Pairing complete: 1", "Clock calibration endpoint overlap: 1",
+            "Online accounting complete: 1", "Pairing complete: 1",
+            "Clock drift bounded: 1",
             "Probes detached before final readback: 1",
         ):
             self.assertFalse(runner.gpubpf_probe_valid("launchlate", runner.parse_gpubpf("launchlate", text.replace(label, ""))))
@@ -907,7 +956,8 @@ class OfflineTests(unittest.TestCase):
         self.assertEqual(probe["uncertain_samples"], 0)
         self.assertEqual(probe["start_clock_offset_lower_ns"], -120)
         self.assertEqual(probe["end_clock_offset_upper_ns"], -70)
-        self.assertEqual(probe["clock_intersection_lower_ns"], -100)
+        self.assertEqual(probe["clock_offset_change_lower_ns"], -20)
+        self.assertEqual(probe["clock_drift_rate_bound_ppb"], 50)
         corruptions = {
             "sample_count": 1,
             "selected_launches": 1,
@@ -915,15 +965,30 @@ class OfflineTests(unittest.TestCase):
             "histogram": [-1, 3, 0, 0, 0, 0, 0, 0, 0, 0],
             "uncertain_samples": 1,
             "clock_errors": 1,
+            "pair_capacity": 1,
+            "stored_pairs": 1,
+            "device_entries": 1,
+            "pair_overflows": 1,
+            "capture_errors": 1,
+            "selected_counter_overflow": 1,
+            "accounting_complete": 0,
+            "process_selected_launches": 1,
+            "result_blocks": 2,
+            "calibration_blocks": 2,
             "start_clock_calibration_valid": 2,
             "end_clock_calibration_valid": 2,
             "start_clock_offset_lower_ns": -79,
             "end_clock_offset_lower_ns": -69,
             "start_clock_uncertainty_ns": 19,
             "end_clock_uncertainty_ns": 14,
-            "clock_endpoint_overlap": 0,
-            "clock_intersection_lower_ns": -99,
-            "clock_intersection_upper_ns": -81,
+            "start_clock_host_anchor_ns": 0,
+            "end_clock_host_anchor_ns": 999999999,
+            "clock_offset_change_lower_ns": -19,
+            "clock_offset_change_upper_ns": 49,
+            "clock_calibration_elapsed_ns": 999999999,
+            "clock_drift_rate_bound_ppb": 49,
+            "clock_drift_limit_ppb": 9999,
+            "clock_drift_bounded": 0,
             "clock_calibration_method": "CLOCK_REALTIME_approximation",
         }
         for key, value in corruptions.items():
@@ -934,19 +999,32 @@ class OfflineTests(unittest.TestCase):
 
         text = lossless_nvbit_launchlate_log()
         for label in (
-            "clock_calibration_method=bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC",
+            "clock_calibration_method=bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_with_affine_interpolation_and_drift_bound",
             "uncertain_samples=0",
+            "pair_capacity=65536",
+            "stored_pairs=2",
+            "device_entries=2",
+            "pair_overflows=0",
+            "capture_errors=0",
+            "selected_counter_overflow=0",
+            "accounting_complete=1",
+            "process_selected_launches=2",
             "start_clock_offset_lower_ns=-120",
             "start_clock_offset_upper_ns=-80",
             "start_clock_uncertainty_ns=20",
+            "start_clock_host_anchor_ns=1000000000",
             "start_clock_calibration_valid=1",
             "end_clock_offset_lower_ns=-100",
             "end_clock_offset_upper_ns=-70",
             "end_clock_uncertainty_ns=15",
+            "end_clock_host_anchor_ns=2000000000",
             "end_clock_calibration_valid=1",
-            "clock_endpoint_overlap=1",
-            "clock_intersection_lower_ns=-100",
-            "clock_intersection_upper_ns=-80",
+            "clock_offset_change_lower_ns=-20",
+            "clock_offset_change_upper_ns=50",
+            "clock_calibration_elapsed_ns=1000000000",
+            "clock_drift_rate_bound_ppb=50",
+            "clock_drift_limit_ppb=10000",
+            "clock_drift_bounded=1",
             "samples=2 clock_errors=0",
         ):
             with self.subTest(missing=label):
@@ -960,21 +1038,48 @@ class OfflineTests(unittest.TestCase):
             end_low=-1,
             end_high=29,
             end_uncertainty=15,
-            intersection_low=-1,
-            intersection_high=29,
+            change_low=-40,
+            change_high=30,
+            drift_rate=40,
         )
         parsed = runner.parse_nvbit("launchlate", legal_negative_one)
         self.assertTrue(runner.nvbit_probe_valid("launchlate", parsed))
         for label in (
             "start_clock_offset_lower_ns=-1",
             "end_clock_offset_lower_ns=-1",
-            "clock_intersection_lower_ns=-1",
+            "clock_offset_change_lower_ns=-40",
         ):
             with self.subTest(missing_legal_negative_one=label):
                 parsed = runner.parse_nvbit(
                     "launchlate", legal_negative_one.replace(label, "")
                 )
                 self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
+
+        at_limit = runner.parse_nvbit(
+            "launchlate",
+            lossless_nvbit_launchlate_log(
+                selected=220, samples=198, uncertain=22
+            ),
+        )
+        above_limit = runner.parse_nvbit(
+            "launchlate",
+            lossless_nvbit_launchlate_log(
+                selected=220, samples=197, uncertain=23
+            ),
+        )
+        self.assertTrue(runner.nvbit_probe_valid("launchlate", at_limit))
+        self.assertFalse(runner.nvbit_probe_valid("launchlate", above_limit))
+        excessive_drift = runner.parse_nvbit(
+            "launchlate",
+            lossless_nvbit_launchlate_log(
+                end_low=20000, end_high=20030, end_uncertainty=15,
+                change_low=20080, change_high=20150, drift_rate=20150,
+                drift_bounded=0,
+            ),
+        )
+        self.assertFalse(runner.nvbit_probe_valid(
+            "launchlate", excessive_drift
+        ))
 
         for index in range(10):
             with self.subTest(missing_bin=index):
@@ -984,6 +1089,11 @@ class OfflineTests(unittest.TestCase):
                 )
                 parsed = runner.parse_nvbit("launchlate", text.replace(line, ""))
                 self.assertFalse(runner.nvbit_probe_valid("launchlate", parsed))
+
+        duplicated = runner.parse_nvbit("launchlate", text + "\n" + text)
+        self.assertEqual(duplicated["result_blocks"], 2)
+        self.assertEqual(duplicated["calibration_blocks"], 2)
+        self.assertFalse(runner.nvbit_probe_valid("launchlate", duplicated))
 
         compensated_missing_bin = text.replace(
             "NVBIT launchlate bin_0=0\n", ""
@@ -1006,7 +1116,7 @@ class OfflineTests(unittest.TestCase):
         self.assertTrue(runner.gpubpf_probe_valid("launchlate", probe))
         self.assertEqual(probe["host_enqueued"], 2)
         self.assertEqual(probe["matched_samples"], 2)
-        self.assertEqual(probe["clock_intersection_lower_ns"], -100)
+        self.assertEqual(probe["clock_offset_change_lower_ns"], -20)
         corruptions = {
             "sample_count": 1,
             "histogram_samples": 1,
@@ -1020,14 +1130,20 @@ class OfflineTests(unittest.TestCase):
             "queue_update_errors": 1,
             "uncertain_samples": 1,
             "clock_errors": 1,
+            "online_accounting_complete": 0,
             "accounting_complete": 0,
             "pairing_complete": 0,
             "probes_detached_before_readback": 0,
-            "clock_endpoint_overlap": 0,
             "start_clock_uncertainty_ns": 19,
             "end_clock_uncertainty_ns": 14,
-            "clock_intersection_lower_ns": -99,
-            "clock_intersection_upper_ns": -81,
+            "start_clock_host_anchor_ns": 0,
+            "end_clock_host_anchor_ns": 999999999,
+            "clock_offset_change_lower_ns": -19,
+            "clock_offset_change_upper_ns": 49,
+            "clock_calibration_elapsed_ns": 999999999,
+            "clock_drift_rate_bound_ppb": 49,
+            "clock_drift_limit_ppb": 9999,
+            "clock_drift_bounded": 0,
             "clock_calibration_method": "CLOCK_REALTIME approximation",
         }
         for key, value in corruptions.items():
@@ -1035,6 +1151,25 @@ class OfflineTests(unittest.TestCase):
                 self.assertFalse(runner.gpubpf_probe_valid(
                     "launchlate", {**probe, key: value}
                 ))
+
+        at_limit = runner.parse_gpubpf(
+            "launchlate",
+            lossless_launchlate_log(
+                samples=20, histogram=18, host_launches=20,
+                host_enqueued=20, device_entries=20, matched=20,
+                classified=18, uncertain=2,
+            ),
+        )
+        above_limit = runner.parse_gpubpf(
+            "launchlate",
+            lossless_launchlate_log(
+                samples=20, histogram=17, host_launches=20,
+                host_enqueued=20, device_entries=20, matched=20,
+                classified=17, uncertain=3,
+            ),
+        )
+        self.assertTrue(runner.gpubpf_probe_valid("launchlate", at_limit))
+        self.assertFalse(runner.gpubpf_probe_valid("launchlate", above_limit))
 
     def test_lossless_exit_parser_and_correctness_oracle_are_fail_closed(self):
         probe = runner.parse_gpubpf("kernelretsnoop", lossless_exit_log())

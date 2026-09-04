@@ -49,32 +49,26 @@ extern "C" __device__ __noinline__ void observe_exit(
 }
 
 extern "C" __device__ __noinline__ void observe_entry(
-    uint64_t host_mono_ns, uint64_t calibration_ptr, uint64_t histogram_ptr,
-    uint64_t sample_count_ptr, uint64_t uncertain_count_ptr,
-    uint64_t clock_error_ptr) {
+    uint64_t pair_ptr, uint64_t device_entry_count_ptr,
+    uint64_t capture_error_count_ptr) {
     if (blockIdx.x != 0 || blockIdx.y != 0 || blockIdx.z != 0 ||
         threadIdx.x != 0 || threadIdx.y != 0 || threadIdx.z != 0) {
         return;
     }
 
     const uint64_t gpu_ns = read_globaltimer_ns();
-    if (calibration_ptr == 0) {
-        atomicAdd(reinterpret_cast<unsigned long long*>(clock_error_ptr), 1ULL);
-        return;
-    }
-    uint32_t bin = 0;
-    const launch_sample_status_t status = classify_launch_latency(
-        host_mono_ns, gpu_ns,
-        *reinterpret_cast<const clock_calibration_t*>(calibration_ptr), &bin);
-    if (status == LAUNCH_SAMPLE_CLOCK_ERROR) {
-        atomicAdd(reinterpret_cast<unsigned long long*>(clock_error_ptr), 1ULL);
-        return;
-    }
-    if (status == LAUNCH_SAMPLE_UNCERTAIN) {
-        atomicAdd(reinterpret_cast<unsigned long long*>(uncertain_count_ptr),
+    atomicAdd(reinterpret_cast<unsigned long long*>(device_entry_count_ptr),
+              1ULL);
+    if (pair_ptr == 0) {
+        atomicAdd(reinterpret_cast<unsigned long long*>(capture_error_count_ptr),
                   1ULL);
         return;
     }
-    atomicAdd(reinterpret_cast<unsigned long long*>(histogram_ptr) + bin, 1ULL);
-    atomicAdd(reinterpret_cast<unsigned long long*>(sample_count_ptr), 1ULL);
+    auto* pair = reinterpret_cast<launch_pair_t*>(pair_ptr);
+    pair->gpu_entry_ns = gpu_ns;
+    __threadfence_system();
+    if (gpu_ns == 0) {
+        atomicAdd(reinterpret_cast<unsigned long long*>(capture_error_count_ptr),
+                  1ULL);
+    }
 }

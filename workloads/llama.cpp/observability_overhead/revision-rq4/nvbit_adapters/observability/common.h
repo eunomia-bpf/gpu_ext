@@ -19,3 +19,13 @@ struct exit_record_t {
 };
 
 static constexpr uint32_t HIST_BINS = 10;
+static constexpr uint64_t LAUNCH_PAIR_CAPACITY = 65536ULL;
+
+struct launch_pair_t {
+    uint64_t host_mono_ns;
+    uint64_t gpu_entry_ns;
+    uint64_t sequence;
+};
+
+static_assert(sizeof(launch_pair_t) == 3 * sizeof(uint64_t),
+              "launch_pair_t ABI must remain three packed 64-bit fields");

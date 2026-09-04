@@ -32,6 +32,13 @@ struct context_state_t {
     CUfunction clock_sample_func = nullptr;
     uint64_t* clock_sample = nullptr;
     clock_calibration_t* start_calibration = nullptr;
+    launch_pair_t* launch_pairs = nullptr;
+    uint64_t* device_launch_entries = nullptr;
+    uint64_t* launch_capture_errors = nullptr;
+    uint64_t selected_launches = 0;
+    uint64_t stored_launch_pairs = 0;
+    uint64_t launch_pair_overflows = 0;
+    bool selected_launch_counter_overflow = false;
     volatile recv_state_t recv_state = recv_state_t::INIT;
     bool saw_selected_launch = false;
 };
@@ -53,10 +60,6 @@ static observability_mode_t mode = OBS_KERNELRETSNOOP;
 static std::string target_symbol;
 static uint32_t thread_count = 1048576;
 static uint64_t* thread_counters = nullptr;
-static uint64_t* launch_histogram = nullptr;
-static uint64_t* launch_samples = nullptr;
-static uint64_t* launch_uncertain_samples = nullptr;
-static uint64_t* launch_clock_errors = nullptr;
 static bool trace_target_family = false;
 static bool trace_launches = false;
 
@@ -131,8 +134,91 @@ static void print_clock_calibration(
             static_cast<long long>(calibration.offset_high_ns));
     fprintf(stderr, "NVBIT launchlate %s_clock_uncertainty_ns=%llu\n", phase,
             static_cast<unsigned long long>(calibration.uncertainty_ns));
+    fprintf(stderr, "NVBIT launchlate %s_clock_host_anchor_ns=%llu\n", phase,
+            static_cast<unsigned long long>(calibration.host_anchor_ns));
     fprintf(stderr, "NVBIT launchlate %s_clock_calibration_valid=%llu\n", phase,
             static_cast<unsigned long long>(calibration.valid));
+}
+
+static bool exact_sample_accounting(uint64_t selected, uint64_t classified,
+                                    uint64_t uncertain,
+                                    uint64_t clock_errors) {
+    return classified <= selected && uncertain <= selected - classified &&
+           clock_errors == selected - classified - uncertain;
+}
+
+static void print_launchlate_results(
+    const context_state_t* state, const clock_calibration_t& end_calibration) {
+    uint64_t histogram[HIST_BINS] = {};
+    uint64_t classified = 0;
+    uint64_t uncertain = 0;
+    uint64_t clock_errors = state->launch_pair_overflows;
+    const uint64_t stored = state->stored_launch_pairs;
+    const uint64_t readable =
+        stored <= LAUNCH_PAIR_CAPACITY ? stored : LAUNCH_PAIR_CAPACITY;
+
+    for (uint64_t index = 0; index < readable; index++) {
+        const launch_pair_t& pair = state->launch_pairs[index];
+        uint32_t bin = 0;
+        if (pair.sequence != index + 1) {
+            clock_errors++;
+            continue;
+        }
+        const launch_sample_status_t status = classify_affine_launch_latency(
+            pair.host_mono_ns, pair.gpu_entry_ns, *state->start_calibration,
+            end_calibration, &bin);
+        if (status == LAUNCH_SAMPLE_CLASSIFIED) {
+            histogram[bin]++;
+            classified++;
+        } else if (status == LAUNCH_SAMPLE_UNCERTAIN) {
+            uncertain++;
+        } else {
+            clock_errors++;
+        }
+    }
+    if (stored > readable) {
+        clock_errors += stored - readable;
+    }
+
+    uint64_t histogram_total = 0;
+    for (uint32_t index = 0; index < HIST_BINS; index++) {
+        histogram_total += histogram[index];
+        fprintf(stderr, "NVBIT launchlate bin_%u=%llu\n", index,
+                static_cast<unsigned long long>(histogram[index]));
+    }
+
+    const uint64_t selected = state->selected_launches;
+    const uint64_t device_entries = *state->device_launch_entries;
+    const uint64_t capture_errors = *state->launch_capture_errors;
+    const bool storage_complete =
+        stored <= LAUNCH_PAIR_CAPACITY && stored <= selected &&
+        state->launch_pair_overflows == selected - stored;
+    const bool accounting_complete =
+        !state->selected_launch_counter_overflow && storage_complete &&
+        device_entries == selected &&
+        histogram_total == classified &&
+        exact_sample_accounting(selected, classified, uncertain, clock_errors);
+
+    fprintf(stderr, "NVBIT launchlate pair_capacity=%llu\n",
+            static_cast<unsigned long long>(LAUNCH_PAIR_CAPACITY));
+    fprintf(stderr, "NVBIT launchlate stored_pairs=%llu\n",
+            static_cast<unsigned long long>(stored));
+    fprintf(stderr, "NVBIT launchlate device_entries=%llu\n",
+            static_cast<unsigned long long>(device_entries));
+    fprintf(stderr, "NVBIT launchlate pair_overflows=%llu\n",
+            static_cast<unsigned long long>(state->launch_pair_overflows));
+    fprintf(stderr, "NVBIT launchlate capture_errors=%llu\n",
+            static_cast<unsigned long long>(capture_errors));
+    fprintf(stderr, "NVBIT launchlate selected_counter_overflow=%u\n",
+            state->selected_launch_counter_overflow ? 1U : 0U);
+    fprintf(stderr, "NVBIT launchlate uncertain_samples=%llu\n",
+            static_cast<unsigned long long>(uncertain));
+    fprintf(stderr,
+            "NVBIT launchlate samples=%llu clock_errors=%llu\n",
+            static_cast<unsigned long long>(classified),
+            static_cast<unsigned long long>(clock_errors));
+    fprintf(stderr, "NVBIT launchlate accounting_complete=%u\n",
+            accounting_complete ? 1U : 0U);
 }
 
 static bool is_launch(nvbit_api_cuda_t cbid) {
@@ -183,15 +269,9 @@ static void instrument_selected(CUcontext ctx, CUfunction func,
         nvbit_insert_call(first, "observe_entry", IPOINT_BEFORE);
         nvbit_add_call_arg_launch_val64(first, 0);
         nvbit_add_call_arg_const_val64(
-            first, reinterpret_cast<uint64_t>(state->start_calibration));
+            first, reinterpret_cast<uint64_t>(state->device_launch_entries));
         nvbit_add_call_arg_const_val64(
-            first, reinterpret_cast<uint64_t>(launch_histogram));
-        nvbit_add_call_arg_const_val64(
-            first, reinterpret_cast<uint64_t>(launch_samples));
-        nvbit_add_call_arg_const_val64(
-            first, reinterpret_cast<uint64_t>(launch_uncertain_samples));
-        nvbit_add_call_arg_const_val64(
-            first, reinterpret_cast<uint64_t>(launch_clock_errors));
+            first, reinterpret_cast<uint64_t>(state->launch_capture_errors));
         return;
     }
 
@@ -315,22 +395,20 @@ void nvbit_tool_init(CUcontext ctx) {
         CUDA_SAFECALL(cudaMemset(thread_counters, 0,
                                 thread_count * sizeof(uint64_t)));
     } else if (mode == OBS_LAUNCHLATE) {
-        if (launch_histogram == nullptr) {
-            CUDA_SAFECALL(cudaMallocManaged(&launch_histogram,
-                                           HIST_BINS * sizeof(uint64_t)));
-            CUDA_SAFECALL(cudaMallocManaged(&launch_samples, sizeof(uint64_t)));
-            CUDA_SAFECALL(cudaMallocManaged(&launch_uncertain_samples,
-                                            sizeof(uint64_t)));
-            CUDA_SAFECALL(cudaMallocManaged(&launch_clock_errors,
-                                            sizeof(uint64_t)));
-            CUDA_SAFECALL(cudaMemset(launch_histogram, 0,
-                                    HIST_BINS * sizeof(uint64_t)));
-            CUDA_SAFECALL(cudaMemset(launch_samples, 0, sizeof(uint64_t)));
-            CUDA_SAFECALL(cudaMemset(launch_uncertain_samples, 0,
-                                    sizeof(uint64_t)));
-            CUDA_SAFECALL(cudaMemset(launch_clock_errors, 0,
-                                    sizeof(uint64_t)));
-        }
+        CUDA_SAFECALL(cudaMallocManaged(
+            &state->launch_pairs,
+            LAUNCH_PAIR_CAPACITY * sizeof(launch_pair_t)));
+        CUDA_SAFECALL(cudaMallocManaged(&state->device_launch_entries,
+                                       sizeof(uint64_t)));
+        CUDA_SAFECALL(cudaMallocManaged(&state->launch_capture_errors,
+                                       sizeof(uint64_t)));
+        CUDA_SAFECALL(cudaMemset(
+            state->launch_pairs, 0,
+            LAUNCH_PAIR_CAPACITY * sizeof(launch_pair_t)));
+        CUDA_SAFECALL(cudaMemset(state->device_launch_entries, 0,
+                                sizeof(uint64_t)));
+        CUDA_SAFECALL(cudaMemset(state->launch_capture_errors, 0,
+                                sizeof(uint64_t)));
         CUDA_SAFECALL(cudaMallocManaged(&state->clock_sample,
                                        sizeof(uint64_t)));
         CUDA_SAFECALL(cudaMallocManaged(&state->start_calibration,
@@ -339,7 +417,8 @@ void nvbit_tool_init(CUcontext ctx) {
             calibrate_gpu_clock(ctx, state, state->start_calibration);
         fprintf(stderr,
                 "NVBIT launchlate clock_calibration_method="
-                "bracketed_globaltimer_kernel_against_CLOCK_MONOTONIC\n");
+                "bracketed_globaltimer_endpoints_against_CLOCK_MONOTONIC_"
+                "with_affine_interpolation_and_drift_bound\n");
         print_clock_calibration("start", *state->start_calibration);
         if (!calibrated) {
             fprintf(stderr,
@@ -368,11 +447,32 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
             instrument_selected(ctx, func, state);
             if (mode == OBS_LAUNCHLATE) {
                 uint64_t launch_mono_ns = 0;
+                uint64_t pair_ptr = 0;
                 if (!monotonic_ns(&launch_mono_ns)) {
                     fprintf(stderr,
                             "NVBIT_OBS error: CLOCK_MONOTONIC read failed\n");
                 }
-                nvbit_set_at_launch(ctx, func, launch_mono_ns);
+                if (state->selected_launches == UINT64_MAX) {
+                    state->selected_launch_counter_overflow = true;
+                } else {
+                    const uint64_t index = state->selected_launches++;
+                    if (index < LAUNCH_PAIR_CAPACITY) {
+                        launch_pair_t* pair = &state->launch_pairs[index];
+                        pair->host_mono_ns = launch_mono_ns;
+                        pair->gpu_entry_ns = 0;
+                        pair->sequence = index + 1;
+                        state->stored_launch_pairs++;
+                        pair_ptr = reinterpret_cast<uint64_t>(pair);
+                    } else {
+                        state->launch_pair_overflows++;
+                        if (index == LAUNCH_PAIR_CAPACITY) {
+                            fprintf(stderr,
+                                    "NVBIT_OBS error: launchlate raw-pair "
+                                    "capacity exceeded\n");
+                        }
+                    }
+                }
+                nvbit_set_at_launch(ctx, func, pair_ptr);
             }
             nvbit_enable_instrumented(ctx, func, true, false);
             state->saw_selected_launch = true;
@@ -417,47 +517,40 @@ void nvbit_at_ctx_term(CUcontext ctx) {
                 "NVBIT threadhist nonzero_threads=%llu total_exit_probes=%llu\n",
                 static_cast<unsigned long long>(nonzero),
                 static_cast<unsigned long long>(total));
-    } else if (mode == OBS_LAUNCHLATE && launch_histogram != nullptr) {
+    } else if (mode == OBS_LAUNCHLATE && state->launch_pairs != nullptr) {
         clock_calibration_t end_calibration = {};
-        int64_t intersection_low_ns = 0;
-        int64_t intersection_high_ns = 0;
+        clock_drift_t drift = {};
         const bool end_calibrated =
             calibrate_gpu_clock(ctx, state, &end_calibration);
-        const bool endpoint_overlap =
+        const bool drift_measured =
             end_calibrated && state->start_calibration != nullptr &&
-            clock_calibration_intersection(
-                *state->start_calibration, end_calibration,
-                &intersection_low_ns, &intersection_high_ns);
+            clock_calibration_drift(*state->start_calibration,
+                                    end_calibration, &drift);
         print_clock_calibration("end", end_calibration);
-        fprintf(stderr, "NVBIT launchlate clock_endpoint_overlap=%u\n",
-                endpoint_overlap ? 1U : 0U);
-        if (endpoint_overlap) {
+        fprintf(stderr,
+                "NVBIT launchlate clock_offset_change_lower_ns=%lld\n",
+                static_cast<long long>(drift.offset_change_low_ns));
+        fprintf(stderr,
+                "NVBIT launchlate clock_offset_change_upper_ns=%lld\n",
+                static_cast<long long>(drift.offset_change_high_ns));
+        fprintf(stderr, "NVBIT launchlate clock_calibration_elapsed_ns=%llu\n",
+                static_cast<unsigned long long>(drift.elapsed_ns));
+        fprintf(stderr, "NVBIT launchlate clock_drift_rate_bound_ppb=%llu\n",
+                static_cast<unsigned long long>(drift.rate_bound_ppb));
+        fprintf(stderr, "NVBIT launchlate clock_drift_limit_ppb=%llu\n",
+                static_cast<unsigned long long>(CLOCK_DRIFT_LIMIT_PPB));
+        fprintf(stderr, "NVBIT launchlate clock_drift_bounded=%u\n",
+                drift_measured && drift.bounded ? 1U : 0U);
+        if (!drift_measured || !drift.bounded) {
             fprintf(stderr,
-                    "NVBIT launchlate clock_intersection_lower_ns=%lld\n",
-                    static_cast<long long>(intersection_low_ns));
-            fprintf(stderr,
-                    "NVBIT launchlate clock_intersection_upper_ns=%lld\n",
-                    static_cast<long long>(intersection_high_ns));
-        } else {
-            // Fail the existing zero-clock-error validity gate when the
-            // calibration cannot be verified across the observation window.
-            (*launch_clock_errors)++;
-            fprintf(stderr,
-                    "NVBIT_OBS error: launchlate clock calibration endpoints "
-                    "do not overlap\n");
+                    "NVBIT_OBS error: launchlate clock drift exceeds bound\n");
         }
-        for (uint32_t i = 0; i < HIST_BINS; i++) {
-            fprintf(stderr, "NVBIT launchlate bin_%u=%llu\n", i,
-                    static_cast<unsigned long long>(launch_histogram[i]));
-        }
-        fprintf(stderr, "NVBIT launchlate uncertain_samples=%llu\n",
-                static_cast<unsigned long long>(*launch_uncertain_samples));
-        fprintf(stderr, "NVBIT launchlate samples=%llu clock_errors=%llu\n",
-                static_cast<unsigned long long>(*launch_samples),
-                static_cast<unsigned long long>(*launch_clock_errors));
+        print_launchlate_results(state, end_calibration);
     }
     fprintf(stderr, "NVBIT selected_launches=%llu\n",
-            static_cast<unsigned long long>(selected_launches.load()));
+            static_cast<unsigned long long>(
+                mode == OBS_LAUNCHLATE ? state->selected_launches
+                                       : selected_launches.load()));
     fprintf(stderr,
             "NVBIT kernelretsnoop events=%llu nonzero_timestamps=%llu\n",
             static_cast<unsigned long long>(exit_records.load()),
@@ -468,6 +561,15 @@ void nvbit_at_ctx_term(CUcontext ctx) {
     }
     if (state->start_calibration != nullptr) {
         CUDA_SAFECALL(cudaFree(state->start_calibration));
+    }
+    if (state->launch_pairs != nullptr) {
+        CUDA_SAFECALL(cudaFree(state->launch_pairs));
+    }
+    if (state->device_launch_entries != nullptr) {
+        CUDA_SAFECALL(cudaFree(state->device_launch_entries));
+    }
+    if (state->launch_capture_errors != nullptr) {
+        CUDA_SAFECALL(cudaFree(state->launch_capture_errors));
     }
     delete state;
     contexts.erase(ctx);

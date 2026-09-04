@@ -11,15 +11,20 @@ NVBit 1.8 core. They deliberately instrument only the exact mangled kernel in
 - `threadhist`: inject before every `EXIT`, check its execution predicate, increment the full
   configured logical-thread array, and report its nonzero entries and total at
   context termination. Per-thread increments match gpubpf's non-atomic semantics.
-- `launchlate`: bracket a real `%globaltimer` read with `CLOCK_MONOTONIC` at
-  startup, pass the host CUDA launch-callback timestamp through NVBit's
-  per-launch argument, and inject one device-entry sample for block/thread
-  zero. A sample enters the histogram only when its entire calibrated latency
-  interval is nonnegative and belongs to one bin. Ambiguous samples and a
-  non-overlapping end calibration are reported and fail the existing validity
-  gate; they are never clamped. This is the closest native NVBit counterpart
-  to gpubpf's exact host-stub uprobe plus device-entry probe; the different host
-  hook locations are kept explicit in the experiment plan.
+- `launchlate`: bracket real `%globaltimer` reads with `CLOCK_MONOTONIC` before
+  and after observation. Each selected host callback reserves one bounded
+  managed record and passes its pointer through NVBit's per-launch argument;
+  block/thread zero writes the matching GPU-entry timestamp. After device
+  synchronization, the host interpolates the conservative offset interval
+  between both calibration anchors and builds the authoritative histogram from
+  those retained raw pairs. Capacity exhaustion, a missing device entry, or a
+  wholly negative latency interval is a clock error; only an interval that
+  overlaps zero or a bin boundary is uncertain. The validity gate requires
+  exact selected/classified/uncertain/error accounting, no clock errors, at
+  most 10% uncertainty, and endpoint drift no greater than 10,000 ppb. This is
+  the closest native NVBit counterpart to gpubpf's exact host-stub uprobe plus
+  device-entry probe; the different host hook locations remain explicit in the
+  experiment plan.
 
 Build against the pinned release extracted under `revision-rq4/deps`:
 

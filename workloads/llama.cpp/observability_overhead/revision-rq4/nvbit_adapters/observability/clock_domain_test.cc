@@ -11,6 +11,7 @@ int main() {
     assert(calibration.offset_low_ns == 150);
     assert(calibration.offset_high_ns == 250);
     assert(calibration.uncertainty_ns == 50);
+    assert(calibration.host_anchor_ns == 1050);
     assert(clock_calibration_valid(calibration));
 
     assert(consider_clock_calibration_sample(&calibration, 2210, 2000, 2040));
@@ -28,13 +29,40 @@ int main() {
 
     clock_calibration_t later = {};
     assert(consider_clock_calibration_sample(&later, 3200, 3000, 3040));
-    int64_t intersection_low;
-    int64_t intersection_high;
-    assert(clock_calibration_intersection(calibration, later,
-                                          &intersection_low,
-                                          &intersection_high));
-    assert(intersection_low == 170);
-    assert(intersection_high == 200);
+    assert(later.host_anchor_ns == 3020);
+
+    clock_calibration_t drift_start = {100, 120, 10, 1000000000ULL, 1};
+    clock_calibration_t drift_end = {300, 340, 20, 1100000000ULL, 1};
+    clock_drift_t drift = {};
+    assert(clock_calibration_drift(drift_start, drift_end, &drift));
+    assert(drift.offset_change_low_ns == 180);
+    assert(drift.offset_change_high_ns == 240);
+    assert(drift.elapsed_ns == 100000000ULL);
+    assert(drift.rate_bound_ppb == 2400);
+    assert(drift.bounded == 1);
+
+    int64_t affine_low = 0;
+    int64_t affine_high = 0;
+    assert(affine_clock_offset_interval(1050000000ULL, drift_start, drift_end,
+                                        &affine_low, &affine_high));
+    assert(affine_low == 200);
+    assert(affine_high == 230);
+    assert(classify_affine_launch_latency(1050000000ULL, 1050000720ULL,
+                                          drift_start, drift_end, &bin) ==
+           LAUNCH_SAMPLE_CLASSIFIED);
+    assert(bin == 1);
+    // The interpolated interval crosses 1 us and must remain uncertain.
+    assert(classify_affine_launch_latency(1050000000ULL, 1050001210ULL,
+                                          drift_start, drift_end, &bin) ==
+           LAUNCH_SAMPLE_UNCERTAIN);
+    // A complete negative interval is causally impossible.
+    assert(classify_affine_launch_latency(1050000000ULL, 1050000100ULL,
+                                          drift_start, drift_end, &bin) ==
+           LAUNCH_SAMPLE_CLOCK_ERROR);
+    // Samples outside the two calibration anchors fail closed.
+    assert(classify_affine_launch_latency(999999999ULL, 1000000719ULL,
+                                          drift_start, drift_end, &bin) ==
+           LAUNCH_SAMPLE_CLOCK_ERROR);
 
     clock_calibration_t negative_offset = {};
     assert(consider_clock_calibration_sample(&negative_offset, 900, 1000,
@@ -43,7 +71,7 @@ int main() {
            LAUNCH_SAMPLE_CLASSIFIED);
     assert(bin == 1);
 
-    // Entirely negative intervals are clock errors, never zero-latency samples.
+    // A complete negative interval is causally impossible, not uncertainty.
     assert(classify_launch_latency(2000, 1800, negative_offset, &bin) ==
            LAUNCH_SAMPLE_CLOCK_ERROR);
     // Intervals that merely might be negative are rejected as uncertain.
@@ -60,11 +88,16 @@ int main() {
     assert(classify_launch_latency(UINT64_MAX, 5400, calibration, &bin) ==
            LAUNCH_SAMPLE_CLOCK_ERROR);
 
-    clock_calibration_t disjoint = {};
-    assert(consider_clock_calibration_sample(&disjoint, 4100, 4000, 4040));
-    assert(!clock_calibration_intersection(calibration, disjoint,
-                                           &intersection_low,
-                                           &intersection_high));
+    // A large endpoint change is measured but fails the predeclared rate cap.
+    drift_end.offset_low_ns = 2000100;
+    drift_end.offset_high_ns = 2000140;
+    assert(clock_calibration_drift(drift_start, drift_end, &drift));
+    assert(drift.bounded == 0);
+    assert(drift.rate_bound_ppb > CLOCK_DRIFT_LIMIT_PPB);
+
+    // Invalid raw inputs remain true clock errors.
+    assert(classify_launch_latency(0, 5400, calibration, &bin) ==
+           LAUNCH_SAMPLE_CLOCK_ERROR);
 
     puts("NVBit launchlate clock-domain CPU test: PASS");
     return 0;

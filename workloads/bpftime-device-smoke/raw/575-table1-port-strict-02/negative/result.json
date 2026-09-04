@@ -1,0 +1,121 @@
+{
+  "bpf_object": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/bpftime-device-smoke/.output/probe-negative.bpf.o",
+  "case": "negative_lane_branch",
+  "counter_snapshots": [
+    {
+      "device_thread_returns": 0,
+      "event": "counter_snapshot",
+      "maximum_returns": 0,
+      "nonzero_threads": 0,
+      "threads_with_eight_returns": 0
+    },
+    {
+      "device_thread_returns": 0,
+      "event": "counter_snapshot",
+      "maximum_returns": 0,
+      "nonzero_threads": 0,
+      "threads_with_eight_returns": 0
+    }
+  ],
+  "instrumented_correctness": {
+    "checked_values": 32768,
+    "event": "correctness",
+    "launches": 8,
+    "mismatches": 0
+  },
+  "kind": "bpftime device-return engagement only",
+  "native_correctness": {
+    "checked_values": 32768,
+    "event": "correctness",
+    "launches": 8,
+    "mismatches": 0
+  },
+  "owned_group_survivors": {},
+  "private_shared_memory": "bpftime_device_smoke_2245544_1788523743531085392",
+  "private_shared_memory_removed": true,
+  "rejection": {
+    "diagnostic": "branch predicate is lane-varying",
+    "generic_interception_preexists": true,
+    "policy_entry_created": false,
+    "post_rejection_snapshots": [
+      {
+        "device_thread_returns": 0,
+        "event": "counter_snapshot",
+        "maximum_returns": 0,
+        "nonzero_threads": 0,
+        "threads_with_eight_returns": 0
+      }
+    ]
+  },
+  "runtime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict",
+  "runtime_configuration": {
+    "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+    "BPFTIME_LLVM_JIT": "ON",
+    "CMAKE_HOME_DIRECTORY": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "ENABLE_EBPF_VERIFIER": "ON"
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 810,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 15.47,
+      "sm_clock_mhz": 45,
+      "temperature_c": 50,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788523757393239396,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 12.29,
+      "sm_clock_mhz": 22,
+      "temperature_c": 49,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788523747100245445,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "shared_memory_identity": [
+    28,
+    415,
+    0
+  ],
+  "status": "passed",
+  "verifier_mode": "STRICT",
+  "verifier_records": [
+    "[2026-09-04 05:09:12][error][2246110] GPU eBPF verification failed for cuda__count_ret: Warp-Uniform Branch Conditions at instruction 1: branch predicate is lane-varying",
+    "[2026-09-04 05:09:12][error][2246110] GPU verifier rejected handler 44",
+    "[2026-09-04 05:09:12][info][2246110] Failed to initialize attach context, exiting.."
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "bpf_object": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/bpftime-device-smoke/.output/probe.bpf.o",
+  "case": "positive_counter",
+  "counter_snapshots": [
+    {
+      "device_thread_returns": 0,
+      "event": "counter_snapshot",
+      "maximum_returns": 0,
+      "nonzero_threads": 0,
+      "threads_with_eight_returns": 0
+    },
+    {
+      "device_thread_returns": 0,
+      "event": "counter_snapshot",
+      "maximum_returns": 0,
+      "nonzero_threads": 0,
+      "threads_with_eight_returns": 0
+    }
+  ],
+  "engagement": {
+    "device_thread_returns": 32768,
+    "event": "engagement",
+    "threads_with_eight_returns": 4096
+  },
+  "instrumented_correctness": {
+    "checked_values": 32768,
+    "event": "correctness",
+    "launches": 8,
+    "mismatches": 0
+  },
+  "kind": "bpftime device-return engagement only",
+  "native_correctness": {
+    "checked_values": 32768,
+    "event": "correctness",
+    "launches": 8,
+    "mismatches": 0
+  },
+  "owned_group_survivors": {},
+  "private_shared_memory": "bpftime_device_smoke_2245544_1788523728783134389",
+  "private_shared_memory_removed": true,
+  "runtime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict",
+  "runtime_configuration": {
+    "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+    "BPFTIME_LLVM_JIT": "ON",
+    "CMAKE_HOME_DIRECTORY": "/home/yunwei37/workspace/gpu/bpftime-table1-575",
+    "ENABLE_EBPF_VERIFIER": "ON"
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 810,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 18.48,
+      "sm_clock_mhz": 60,
+      "temperature_c": 49,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788523743012727618,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 405,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 12.57,
+      "sm_clock_mhz": 22,
+      "temperature_c": 49,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788523732393615943,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "shared_memory_identity": [
+    28,
+    414,
+    0
+  ],
+  "status": "passed",
+  "verifier_mode": "STRICT",
+  "verifier_records": [
+    "[2026-09-04 05:08:58][info][2245762] GPU eBPF verification accepted: mode=STRICT program=cuda__count_ret attach=kretprobe/_Z9vectorAddPKfS0_Pfi instructions=13",
+    "[2026-09-04 05:08:58][info][2245762] GPU eBPF verified map: program=cuda__count_ret fd=17 type=1502 key_size=4 value_size=8 max_entries=1"
+  ]
+}

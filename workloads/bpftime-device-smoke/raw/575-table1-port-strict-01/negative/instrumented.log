@@ -1,0 +1,142 @@
+[2026-09-04 05:08:32][warning][2245191] VM factory for name: llvm already registered, overwriting
+[2026-09-04 05:08:32][debug][2245191] Registered VM factory for name: llvm
+[2026-09-04 05:08:32][debug][2245191] llvm register vm factory
+
+[2026-09-04 05:08:32][debug][2245191] Entered bpftime_agent_main
+[2026-09-04 05:08:32][debug][2245191] Registering signal handler
+[2026-09-04 05:08:32][info][2245191] Setting BPFTIME_SHM_MEMORY_MB to: 64
+[2026-09-04 05:08:32][info][2245191] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-04 05:08:32][info][2245191] Verifier mode: STRICT
+[2026-09-04 05:08:32][debug][2245191] start: bpftime_shm for client setup
+[2026-09-04 05:08:32][debug][2245191] done: bpftime_shm for client setup
+[2026-09-04 05:08:32][info][2245191] Registered shared memory with CUDA: addr=0x7bac2b1ff000 size=67108864
+[2026-09-04 05:08:32][info][2245191] Global shm constructed. shm_open_type 1 for bpftime_device_smoke_2244679_1788523703345300791
+[2026-09-04 05:08:32][info][2245191] Global shm initialized
+[2026-09-04 05:08:32][info][2245191] bpf_attach_ctx constructed
+[2026-09-04 05:08:32][info][2245191] Initializing CUDA shared memory
+[2026-09-04 05:08:32][info][2245191] CommSharedMem host 0x7bac2b2297d8 mapped to device 0x7bac2b2297d8
+[2026-09-04 05:08:32][info][2245191] CUDA context created
+[2026-09-04 05:08:32][debug][2245191] Register attach type 2 with attach impl PN7bpftime6attach16base_attach_implE
+[2026-09-04 05:08:32][debug][2245191] Initializing frida attach manager
+[2026-09-04 05:08:32][info][2245191] Register attach-impl defined helper bpf_get_func_arg, index 183
+[2026-09-04 05:08:32][info][2245191] Register attach-impl defined helper bpf_get_func_ret_id, index 184
+[2026-09-04 05:08:32][info][2245191] Register attach-impl defined helper bpf_get_retval, index 186
+[2026-09-04 05:08:32][debug][2245191] Register attach type 6 with attach impl PN7bpftime6attach16base_attach_implE
+[2026-09-04 05:08:32][debug][2245191] Register attach type 7 with attach impl PN7bpftime6attach16base_attach_implE
+[2026-09-04 05:08:32][debug][2245191] Register attach type 1008 with attach impl PN7bpftime6attach16base_attach_implE
+[2026-09-04 05:08:32][debug][2245191] Register attach type 1009 with attach impl PN7bpftime6attach16base_attach_implE
+[2026-09-04 05:08:32][info][2245191] Starting nv_attach_impl
+[2026-09-04 05:08:32][info][2245191] Parsing bundled libraries: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so:/home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-04 05:08:32][info][2245191] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so, executing..
+[2026-09-04 05:08:32][info][2245191] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[2026-09-04 05:08:32][debug][2245191] Config {
+    "attach_points": {
+        "excludes": [
+            "^kprobe/__memcapture$"
+        ],
+        "includes": [
+            "^kprobe/.*$"
+        ]
+    },
+    "attach_type": 8,
+    "description": "Instrument PTX at kprobe entry points, excluding __memcapture",
+    "name": "kprobe_entry",
+    "parameters": {
+        "emit_nops_for_alignment": false,
+        "pad_nops": 0,
+        "save_strategy": "minimal",
+        "stub_name": "__bpftime_cuda__kernel_trace"
+    },
+    "validation": null
+}
+[2026-09-04 05:08:32][info][2245191] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so, executing..
+[2026-09-04 05:08:32][info][2245191] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[2026-09-04 05:08:32][debug][2245191] Config {
+    "attach_points": {
+        "excludes": [],
+        "includes": [
+            "^kretprobe/.*$"
+        ]
+    },
+    "attach_type": 9,
+    "description": "Inject call before ret/exit for kretprobe/*",
+    "name": "kretprobe",
+    "parameters": {},
+    "validation": {}
+}
+[2026-09-04 05:08:32][info][2245191] Found path: /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so, executing..
+[2026-09-04 05:08:32][info][2245191] Retrived config of /home/yunwei37/workspace/gpu/bpftime-table1-575/build-table1-575-strict/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-04 05:08:32][debug][2245191] Config {
+    "attach_points": {
+        "excludes": [],
+        "includes": [
+            "^kprobe/__memcapture$"
+        ]
+    },
+    "attach_type": 8,
+    "description": "Emit a probe per ld/st and push source line text to eBPF stack",
+    "name": "kprobe_memcapture",
+    "parameters": {},
+    "validation": {}
+}
+[2026-09-04 05:08:32][debug][2245191] Register attach type 8 with attach impl PN7bpftime6attach16base_attach_implE
+[2026-09-04 05:08:32][debug][2245191] Register attach type 9 with attach impl PN7bpftime6attach16base_attach_implE
+[2026-09-04 05:08:32][info][2245191] Initializing agent..
+[2026-09-04 05:08:32][debug][2245191] Set environment variable BPFTIME_USED
+[2026-09-04 05:08:32][info][2245191] bpftime: shm epoch_seq = 2
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 17
+[2026-09-04 05:08:32][debug][2245191] Instantiating type 1
+[2026-09-04 05:08:32][debug][2245191] Instantiating done: 17
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 18
+[2026-09-04 05:08:32][debug][2245191] Creating bpftime_prog with name cuda__count_ret
+[2026-09-04 05:08:32][debug][2245191] Creating vm with name llvm
+[2026-09-04 05:08:32][debug][2245191] create llvm vm instance
+[2026-09-04 05:08:32][debug][2245191] Initializing llvm
+[2026-09-04 05:08:32][debug][2245191] Load insn cnt 15
+[2026-09-04 05:08:32][debug][2245191] Instantiating done: 18
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 43
+[2026-09-04 05:08:32][debug][2245191] Instantiating perf event handler at 43, type 9
+[2026-09-04 05:08:32][debug][2245191] Created kprobe/kretprobe private data at id 43, string value nv_attach_private_data: func_name=_Z9vectorAddPKfS0_Pfi func_names=_Z9vectorAddPKfS0_Pfi comm_shared_mem=0 
+[2026-09-04 05:08:32][debug][2245191] Instantiated perf event handler 43
+[2026-09-04 05:08:32][debug][2245191] Instantiating done: 43
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 44
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 18
+[2026-09-04 05:08:32][debug][2245191] Handler 18 already instantiated
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 43
+[2026-09-04 05:08:32][debug][2245191] Handler 43 already instantiated
+[2026-09-04 05:08:32][debug][2245191] Instantiating link handler: prog 18 -> perf event 43, cookie 0
+[2026-09-04 05:08:32][debug][2245191] Instantiating bpf link 44, bpftime_prog->prog_name() = cuda__count_ret
+[2026-09-04 05:08:32][info][2245191] Instantiating bpf link 44 and the corresponding program cuda__count_ret is cuda program
+[2026-09-04 05:08:32][info][2245191] Skipping nv attach handler 44 since we are not handling nv handles
+[2026-09-04 05:08:32][debug][2245191] Instantiating done: 44
+[2026-09-04 05:08:32][debug][2245191] Main initializing for handlers done; initializing CUDA link handles
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 17
+[2026-09-04 05:08:32][debug][2245191] Instantiating type 1
+[2026-09-04 05:08:32][debug][2245191] Instantiating done: 17
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 18
+[2026-09-04 05:08:32][debug][2245191] Handler 18 already instantiated
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 43
+[2026-09-04 05:08:32][debug][2245191] Handler 43 already instantiated
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 44
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 18
+[2026-09-04 05:08:32][debug][2245191] Handler 18 already instantiated
+[2026-09-04 05:08:32][debug][2245191] Instantiating handler at 43
+[2026-09-04 05:08:32][debug][2245191] Handler 43 already instantiated
+[2026-09-04 05:08:32][debug][2245191] Instantiating link handler: prog 18 -> perf event 43, cookie 0
+[2026-09-04 05:08:32][debug][2245191] Instantiating bpf link 44, bpftime_prog->prog_name() = cuda__count_ret
+[2026-09-04 05:08:32][info][2245191] Instantiating bpf link 44 and the corresponding program cuda__count_ret is cuda program
+[2026-09-04 05:08:32][info][2245191] Handling link to CUDA program: 44, recording it..
+[2026-09-04 05:08:32][info][2245191] Loaded 15 instructions (original) for cuda ebpf program
+[2026-09-04 05:08:32][info][2245191] Initializing nv_gpu_array_map_impl at pid 2245191
+[2026-09-04 05:08:32][info][2245191] Mapped GPU memory for gpu array map: 135970292760576
+[2026-09-04 05:08:32][info][2245191] Copying map fd 17 to device, key size=4, value size=8, max ent=1, map_type = 1502, gpu_buffer = 7baa0d000000
+[2026-09-04 05:08:32][error][2245191] GPU eBPF verification failed for cuda__count_ret: Warp-Uniform Branch Conditions at instruction 1: branch predicate is lane-varying
+ (mode=STRICT, policy_entry_created=0)
+[2026-09-04 05:08:32][debug][2245191] Unable to instantiate bpf link handler 44: -4096
+[2026-09-04 05:08:32][debug][2245191] Unable to instantiate bpf link handler 44: -4096
+[2026-09-04 05:08:32][error][2245191] GPU verifier rejected handler 44
+[2026-09-04 05:08:32][info][2245191] Failed to initialize attach context, exiting..
+[2026-09-04 05:08:32][info][2245191] Destructor: bpf_attach_ctx
+[2026-09-04 05:08:32][info][2245206] Exiting CUDA watcher thread
+[2026-09-04 05:08:32][info][2245191] Destructing CUDAContext
+{"event":"correctness","launches":8,"checked_values":32768,"mismatches":0}

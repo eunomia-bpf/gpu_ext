@@ -1,5 +1,16 @@
 # Verifier-on device experiment plan
 
+## Execution update — 2026-09-04
+
+The semantic port is committed as bpftime `b266cf2`, and its separate
+`build-table1-575-strict` completed all 459 build steps. Two fresh real-device
+strict counter pairs pass on the ported runtime; see the
+[result report](../../../bpftime-device-smoke/results-table1-port-strict-575-20260904.md).
+This closes the build/G1 gate only. A0 for the actual `kernelretsnoop` and
+`threadhist` objects, A1 admission timing, and S0 paired steady-state timing
+remain open. The runner now records and independently audits explicit STRICT
+or NO_VERIFY treatment without relabelling the accepted verifier-OFF result.
+
 ## Question and current boundary
 
 Measure two different costs without conflating them:

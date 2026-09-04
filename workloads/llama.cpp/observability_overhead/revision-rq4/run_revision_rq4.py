@@ -44,6 +44,7 @@ CONFIGS = [
     "nvbit_launchlate",
 ]
 TASKS = ("kernelretsnoop", "threadhist", "launchlate")
+VERIFIER_LEVELS = ("DEFAULT", "STRICT", "NO_VERIFY")
 SCHEDULE_SEED = 1797
 BOOTSTRAP_SAMPLES = 10000
 EXPECTED_DRIVER = "575.57.08"
@@ -128,6 +129,82 @@ def selected_configs(args: argparse.Namespace) -> tuple[str, ...]:
         for config in CONFIGS
         if config == "baseline" or config.split("_", 1)[1] in tools
     )
+
+
+def selected_verifier_level(args: argparse.Namespace) -> str:
+    """Return the explicit verifier treatment without changing legacy runs."""
+    level = str(getattr(args, "verifier_level", "DEFAULT")).upper()
+    if level not in VERIFIER_LEVELS:
+        raise ValueError(f"unsupported verifier level: {level}")
+    return level
+
+
+def verifier_environment(args: argparse.Namespace) -> dict[str, str]:
+    """Environment required to make verifier treatment observable and auditable."""
+    level = selected_verifier_level(args)
+    if level == "DEFAULT":
+        return {}
+    return {"BPFTIME_VERIFIER_LEVEL": level, "SPDLOG_LEVEL": "info"}
+
+
+def verifier_runtime_configuration(build: Path) -> dict[str, str]:
+    cache = build / "CMakeCache.txt"
+    config: dict[str, str] = {}
+    if cache.is_file():
+        for line in cache.read_text().splitlines():
+            key, separator, value = line.partition("=")
+            if separator and ":" in key:
+                config[key.partition(":")[0]] = value
+    keys = ("ENABLE_EBPF_VERIFIER", "BPFTIME_ENABLE_CUDA_ATTACH", "BPFTIME_LLVM_JIT")
+    return {key: config.get(key, "unknown") for key in keys}
+
+
+def require_explicit_verifier_build(args: argparse.Namespace) -> dict[str, str]:
+    """Fail closed unless STRICT/NO_VERIFY use the same verifier-capable runtime."""
+    config = verifier_runtime_configuration(args.bpftime_build_dir)
+    if selected_verifier_level(args) != "DEFAULT" and any(
+        config[key].upper() not in {"ON", "YES", "TRUE", "1"} for key in config
+    ):
+        raise RuntimeError(
+            "explicit verifier treatment requires one verifier-enabled CUDA/LLVM runtime build"
+        )
+    return config
+
+
+def verifier_evidence(args: argparse.Namespace, run_dir: Path) -> dict[str, Any]:
+    """Require the selected Table 1 object to be admitted or explicitly bypassed."""
+    level = selected_verifier_level(args)
+    if level == "DEFAULT":
+        return {"level": level, "required": False, "passed": True}
+    path = run_dir / "agent.log"
+    text = path.read_text(errors="replace") if path.is_file() else ""
+    accepted = re.findall(
+        rf"GPU eBPF verification accepted: mode=STRICT program=cuda__retprobe "
+        rf"attach={re.escape(args.target_symbol)} instructions=([1-9][0-9]*)",
+        text,
+    )
+    skipped = re.findall(r"Skipping GPU eBPF verification for cuda__retprobe", text)
+    rejected = "GPU eBPF verification failed for cuda__retprobe:" in text
+    verified_maps = len(re.findall(
+        r"GPU eBPF verified map: program=cuda__retprobe fd=[0-9]+ type=[0-9]+ "
+        r"key_size=[0-9]+ value_size=[0-9]+ max_entries=[1-9][0-9]*",
+        text,
+    ))
+    if level == "STRICT":
+        passed = len(accepted) >= 1 and verified_maps >= 1 and not skipped and not rejected
+    else:
+        passed = len(skipped) >= 1 and not accepted and not rejected
+    return {
+        "level": level,
+        "required": True,
+        "passed": passed,
+        "accepted_records": len(accepted),
+        "instruction_counts": [int(value) for value in accepted],
+        "verified_map_records": verified_maps,
+        "skipped_records": len(skipped),
+        "rejected": rejected,
+        "log": str(path),
+    }
 
 
 def fixed_schedule(args: argparse.Namespace) -> dict[str, list[str]]:
@@ -241,6 +318,7 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
         "configs": list(configs),
         "runs": args.runs,
         "pp": args.pp,
+        "verifier_level": selected_verifier_level(args),
         "correctness_cells": list(configs),
         "timing_schedule": fixed_schedule(args),
         "timing_cell_count": len(configs) * args.runs,
@@ -498,6 +576,10 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
     env["BPFTIME_GLOBAL_SHM_NAME"] = name
     command, loader_env = target_launch(command, env)
     target_env = {**core.agent_env(args, run_dir, tool), "BPFTIME_GLOBAL_SHM_NAME": name}
+    explicit_verifier_env = verifier_environment(args)
+    env.update(explicit_verifier_env)
+    loader_env.update(explicit_verifier_env)
+    target_env.update(explicit_verifier_env)
     if tool == "kernelretsnoop":
         layout = kernelretsnoop_layout(args.pp, correctness=exact_exit_oracle)
         exit_environment = {
@@ -961,6 +1043,8 @@ def defining_params(args: argparse.Namespace) -> dict[str, Any]:
         "llama_cli": str(args.llama_cli),
         "bpftime_root": str(args.bpftime_root),
         "bpftime_build_dir": str(args.bpftime_build_dir),
+        "verifier_level": selected_verifier_level(args),
+        "verifier_runtime_configuration": require_explicit_verifier_build(args),
         "nvbit_root": str(NVBIT_ROOT),
         "target_symbol": args.target_symbol,
         "runs": args.runs,
@@ -1613,6 +1697,8 @@ def run_correctness_cell(
             probe_log = run_dir / "probe.log"
             probe_text = probe_log.read_text(errors="replace") if probe_log.exists() else ""
             result["probe"] = parse_gpubpf(tool, probe_text)
+            result["verifier"] = verifier_evidence(args, run_dir)
+            result["valid"] = bool(result["valid"]) and result["verifier"]["passed"]
             result["valid"] = bool(result["valid"]) and gpubpf_probe_valid(
                 tool,
                 result["probe"],
@@ -1865,6 +1951,11 @@ def verify_resume(
     # equivalent only to the unchanged default three-tool selection.
     recorded_params.setdefault("tools", list(TASKS))
     recorded_params.setdefault("preflight_campaign", None)
+    recorded_params.setdefault("verifier_level", "DEFAULT")
+    recorded_params.setdefault(
+        "verifier_runtime_configuration",
+        verifier_runtime_configuration(args.bpftime_build_dir),
+    )
     if recorded_params != defining_params(args):
         raise RuntimeError("resume parameters differ from the recorded experiment")
     expected_configs = set(selected_configs(args))
@@ -1939,6 +2030,7 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
             result = run_bench(tool, run_id, args, output_dir, env_extra=env)
         result["probe"] = parse_gpubpf(tool, (run_dir / "probe.log").read_text(errors="replace"))
         result["probe_log"] = str((run_dir / "probe.log").relative_to(output_dir))
+        result["verifier"] = verifier_evidence(args, run_dir)
         result["valid"] = bool(result.get("valid")) and gpubpf_probe_valid(
             tool,
             result["probe"],
@@ -1953,7 +2045,7 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
             expected_exit_launches=(exit_layout["launches"] if tool == "kernelretsnoop" else None),
             expected_exit_coordinates=(exit_layout["coordinates"] if tool == "kernelretsnoop" else None),
             exact_exit_oracle=False,
-        )
+        ) and result["verifier"]["passed"]
         return result
     return run_nvbit_once(tool, run_id, args, output_dir)
 
@@ -2053,6 +2145,7 @@ def validate(args: argparse.Namespace) -> None:
     validate_plan(args)
     validate_subset_preflight(args)
     core.validate(args)
+    require_explicit_verifier_build(args)
     if not args.llama_cli.exists():
         raise FileNotFoundError(args.llama_cli)
     if not NVBIT_ROOT.exists():
@@ -2077,6 +2170,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--bpftime-build-dir",
         type=Path,
         required=True,
+    )
+    parser.add_argument(
+        "--verifier-level",
+        choices=VERIFIER_LEVELS,
+        default="DEFAULT",
+        help=(
+            "device-policy admission treatment; STRICT and NO_VERIFY require the same "
+            "verifier-enabled runtime, while DEFAULT preserves historical behavior"
+        ),
     )
     parser.add_argument("--target-symbol", default=core.DEFAULT_TARGET_SYMBOL)
     parser.add_argument("--runs", type=int)

@@ -46,6 +46,7 @@ EXPECTED_N_GPU_LAYERS = 99
 EXPECTED_TG = 0
 EXPECTED_WORKER_CPUS = "8-15"
 EXPECTED_TELEMETRY_CPU = 16
+VERIFIER_LEVELS = {"DEFAULT", "STRICT", "NO_VERIFY"}
 
 
 def kernelretsnoop_layout(pp: int, *, correctness: bool) -> dict[str, int]:
@@ -135,6 +136,47 @@ def validate_frozen_params(params: dict[str, Any]) -> None:
         raise ValueError("recorded timeout_s must be a positive integer")
     if type(startup) not in (int, float) or not math.isfinite(startup) or startup < 0:
         raise ValueError("recorded probe_startup_s must be finite and nonnegative")
+    verifier_level = params.get("verifier_level", "DEFAULT")
+    if verifier_level not in VERIFIER_LEVELS:
+        raise ValueError("recorded verifier_level is invalid")
+    runtime = params.get("verifier_runtime_configuration")
+    if verifier_level != "DEFAULT":
+        required = ("ENABLE_EBPF_VERIFIER", "BPFTIME_ENABLE_CUDA_ATTACH", "BPFTIME_LLVM_JIT")
+        if not isinstance(runtime, dict) or any(
+            runtime.get(key, "").upper() not in {"ON", "YES", "TRUE", "1"}
+            for key in required
+        ):
+            raise ValueError("explicit verifier treatment lacks an enabled runtime record")
+
+
+def verifier_valid(cell: dict[str, Any], params: dict[str, Any]) -> bool:
+    level = params.get("verifier_level", "DEFAULT")
+    if level == "DEFAULT":
+        return True
+    evidence = cell.get("verifier")
+    if not isinstance(evidence, dict) or evidence.get("level") != level:
+        return False
+    if evidence.get("required") is not True or evidence.get("passed") is not True:
+        return False
+    if level == "STRICT":
+        counts = evidence.get("instruction_counts")
+        return (
+            type(evidence.get("accepted_records")) is int
+            and evidence["accepted_records"] >= 1
+            and isinstance(counts, list)
+            and bool(counts)
+            and all(type(count) is int and count > 0 for count in counts)
+            and type(evidence.get("verified_map_records")) is int
+            and evidence["verified_map_records"] >= 1
+            and evidence.get("skipped_records") == 0
+            and evidence.get("rejected") is False
+        )
+    return (
+        type(evidence.get("skipped_records")) is int
+        and evidence["skipped_records"] >= 1
+        and evidence.get("accepted_records") == 0
+        and evidence.get("rejected") is False
+    )
 
 
 def selected_configs(tools: tuple[str, ...]) -> tuple[str, ...]:
@@ -416,8 +458,10 @@ def cell_valid(cell: dict[str, Any], config: str, params: dict[str, Any],
     probe = cell.get("probe")
     if not isinstance(probe, dict):
         return False
-    return (gpubpf_valid(tool, probe, params, correctness)
-            if system == "gpubpf" else nvbit_valid(tool, probe, params, correctness))
+    return (
+        gpubpf_valid(tool, probe, params, correctness) and verifier_valid(cell, params)
+        if system == "gpubpf" else nvbit_valid(tool, probe, params, correctness)
+    )
 
 
 def one_valid(entries: list[dict[str, Any]], config: str, params: dict[str, Any],
@@ -455,6 +499,7 @@ def analyze(campaign: Path) -> dict[str, Any]:
         raise ValueError("missing recorded parameters")
     tools = selected_tools(params)
     validate_frozen_params(params)
+    verifier_level = params.get("verifier_level", "DEFAULT")
     configs = selected_configs(tools)
     phase = params.get("phase")
     expected_runs, expected_pp = {"preflight": (1, 32), "full": (10, 512)}.get(
@@ -478,6 +523,7 @@ def analyze(campaign: Path) -> dict[str, Any]:
         if (preflight.get("phase") != "preflight"
                 or tuple(preflight.get("tools", ())) != tools
                 or preflight.get("configs") != list(configs)
+                or preflight.get("verifier_level") != verifier_level
                 or preflight.get("complete") is not True):
             raise ValueError("referenced subset preflight is not independently complete")
         preflight_gate = {"required": True, "campaign": str(preflight_path.resolve()),
@@ -564,6 +610,7 @@ def analyze(campaign: Path) -> dict[str, Any]:
         "phase": phase,
         "tools": list(tools),
         "configs": list(configs),
+        "verifier_level": verifier_level,
         "correctness": correctness,
         "valid_complete_blocks": len(complete_blocks),
         "required_blocks": expected_runs,

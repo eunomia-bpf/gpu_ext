@@ -1568,6 +1568,61 @@ class OfflineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate tool"):
             runner.parse_args(required + ["--tools", "threadhist", "threadhist"])
 
+    def test_verifier_treatment_is_explicit_auditable_and_defaults_to_legacy(self):
+        required = ["--bpftime-root", "/source", "--bpftime-build-dir", "/build",
+                    "--gpu-thread-count", "22528", "--dry-run"]
+        default = runner.parse_args(required)
+        self.assertEqual(default.verifier_level, "DEFAULT")
+        self.assertEqual(runner.verifier_environment(default), {})
+        strict = runner.parse_args(required + ["--verifier-level", "STRICT"])
+        self.assertEqual(
+            runner.verifier_environment(strict),
+            {"BPFTIME_VERIFIER_LEVEL": "STRICT", "SPDLOG_LEVEL": "info"},
+        )
+        no_verify = runner.parse_args(required + ["--verifier-level", "NO_VERIFY"])
+        self.assertEqual(runner.dry_run_plan(no_verify)["verifier_level"], "NO_VERIFY")
+
+    def test_explicit_verifier_treatment_requires_one_enabled_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            build = Path(tmp)
+            args = SimpleNamespace(bpftime_build_dir=build, verifier_level="STRICT")
+            build.joinpath("CMakeCache.txt").write_text("\n".join((
+                "ENABLE_EBPF_VERIFIER:BOOL=ON",
+                "BPFTIME_ENABLE_CUDA_ATTACH:BOOL=ON",
+                "BPFTIME_LLVM_JIT:BOOL=ON",
+            )))
+            config = runner.require_explicit_verifier_build(args)
+            self.assertEqual(set(config.values()), {"ON"})
+            build.joinpath("CMakeCache.txt").write_text(
+                "ENABLE_EBPF_VERIFIER:BOOL=OFF\n"
+                "BPFTIME_ENABLE_CUDA_ATTACH:BOOL=ON\n"
+                "BPFTIME_LLVM_JIT:BOOL=ON\n"
+            )
+            with self.assertRaisesRegex(RuntimeError, "verifier-enabled"):
+                runner.require_explicit_verifier_build(args)
+
+    def test_actual_table1_verifier_records_are_required_for_explicit_modes(self):
+        args = SimpleNamespace(verifier_level="STRICT", target_symbol="_Z6targetv")
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            accepted = (
+                "GPU eBPF verification accepted: mode=STRICT program=cuda__retprobe "
+                "attach=_Z6targetv instructions=13\n"
+                "GPU eBPF verified map: program=cuda__retprobe fd=0 type=1502 "
+                "key_size=4 value_size=8 max_entries=1048576\n"
+            )
+            run_dir.joinpath("agent.log").write_text(accepted)
+            evidence = runner.verifier_evidence(args, run_dir)
+            self.assertTrue(evidence["passed"])
+            self.assertEqual(evidence["instruction_counts"], [13])
+            args.verifier_level = "NO_VERIFY"
+            run_dir.joinpath("agent.log").write_text(
+                "Skipping GPU eBPF verification for cuda__retprobe\n"
+            )
+            self.assertTrue(runner.verifier_evidence(args, run_dir)["passed"])
+            run_dir.joinpath("agent.log").write_text(accepted)
+            self.assertFalse(runner.verifier_evidence(args, run_dir)["passed"])
+
     def test_two_tool_dry_run_has_fixed_preflight_and_full_matrices_and_exact_gates(self):
         base = ["--bpftime-root", "/does-not-need-to-exist",
                 "--bpftime-build-dir", "/also-missing", "--gpu-thread-count", "22528",

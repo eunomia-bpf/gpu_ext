@@ -186,6 +186,31 @@ def two_tool_state():
     return state
 
 
+def with_explicit_verifier(state, level):
+    state["params"]["verifier_level"] = level
+    state["params"]["verifier_runtime_configuration"] = {
+        "ENABLE_EBPF_VERIFIER": "ON",
+        "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+        "BPFTIME_LLVM_JIT": "ON",
+    }
+    evidence = {
+        "level": level,
+        "required": True,
+        "passed": True,
+        "accepted_records": 1 if level == "STRICT" else 0,
+        "instruction_counts": [13] if level == "STRICT" else [],
+        "verified_map_records": 1 if level == "STRICT" else 0,
+        "skipped_records": 1 if level == "NO_VERIFY" else 0,
+        "rejected": False,
+    }
+    for matrix_name, entries_name in (("correctness", "attempts"), ("configs", "runs")):
+        for config, records in state[matrix_name].items():
+            if config.startswith("gpubpf_"):
+                for cell in records[entries_name]:
+                    cell["verifier"] = copy.deepcopy(evidence)
+    return state
+
+
 def three_tool_state():
     state = two_tool_state()
     state["params"]["tools"] = list(audit.TASKS)
@@ -275,6 +300,26 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
         self.assertEqual(result["tools"], ["kernelretsnoop", "threadhist"])
         self.assertEqual(result["valid_complete_blocks"], 1)
         self.assertEqual([row["task"] for row in result["comparisons"]], result["tools"])
+
+    def test_explicit_verifier_cells_fail_closed_in_independent_analysis(self):
+        for level in ("STRICT", "NO_VERIFY"):
+            with self.subTest(level=level):
+                state = with_explicit_verifier(two_tool_state(), level)
+                result = analyze_state(state)
+                self.assertTrue(result["complete"])
+                self.assertEqual(result["verifier_level"], level)
+                cell = state["correctness"]["gpubpf_threadhist"]["attempts"][0]
+                cell["verifier"][
+                    "verified_map_records" if level == "STRICT" else "skipped_records"
+                ] = 0
+                broken = analyze_state(state)
+                self.assertFalse(broken["complete"])
+                self.assertFalse(broken["correctness"]["gpubpf_threadhist"])
+
+        state = with_explicit_verifier(two_tool_state(), "STRICT")
+        state["params"]["verifier_runtime_configuration"]["ENABLE_EBPF_VERIFIER"] = "OFF"
+        with self.assertRaisesRegex(ValueError, "enabled runtime"):
+            analyze_state(state)
 
     def test_default_three_tool_analysis_still_requires_and_accepts_all_seven_arms(self):
         result = analyze_state(three_tool_state())

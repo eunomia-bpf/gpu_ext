@@ -202,6 +202,8 @@ def with_explicit_verifier(state, level):
         "verified_map_records": 1 if level == "STRICT" else 0,
         "skipped_records": 1 if level == "NO_VERIFY" else 0,
         "rejected": False,
+        "logs_scanned": ["agent.log", "llama_bench.log"],
+        "matched_log_sources": ["llama_bench.log"],
     }
     for matrix_name, entries_name in (("correctness", "attempts"), ("configs", "runs")):
         for config, records in state[matrix_name].items():

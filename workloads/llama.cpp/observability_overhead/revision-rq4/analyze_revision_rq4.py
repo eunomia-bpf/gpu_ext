@@ -158,6 +158,17 @@ def verifier_valid(cell: dict[str, Any], params: dict[str, Any]) -> bool:
         return False
     if evidence.get("required") is not True or evidence.get("passed") is not True:
         return False
+    logs = evidence.get("logs_scanned")
+    matched = evidence.get("matched_log_sources")
+    if (
+        not isinstance(logs, list)
+        or not logs
+        or not all(isinstance(name, str) and name for name in logs)
+        or not isinstance(matched, list)
+        or not matched
+        or not all(isinstance(name, str) and name in logs for name in matched)
+    ):
+        return False
     if level == "STRICT":
         counts = evidence.get("instruction_counts")
         return (
@@ -175,6 +186,7 @@ def verifier_valid(cell: dict[str, Any], params: dict[str, Any]) -> bool:
         type(evidence.get("skipped_records")) is int
         and evidence["skipped_records"] >= 1
         and evidence.get("accepted_records") == 0
+        and evidence.get("verified_map_records") == 0
         and evidence.get("rejected") is False
     )
 

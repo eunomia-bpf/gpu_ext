@@ -176,34 +176,62 @@ def verifier_evidence(args: argparse.Namespace, run_dir: Path) -> dict[str, Any]
     level = selected_verifier_level(args)
     if level == "DEFAULT":
         return {"level": level, "required": False, "passed": True}
-    path = run_dir / "agent.log"
-    text = path.read_text(errors="replace") if path.is_file() else ""
-    accepted = re.findall(
-        rf"GPU eBPF verification accepted: mode=STRICT program=cuda__retprobe "
-        rf"attach={re.escape(args.target_symbol)} instructions=([1-9][0-9]*)",
-        text,
-    )
-    skipped = re.findall(r"Skipping GPU eBPF verification for cuda__retprobe", text)
-    rejected = "GPU eBPF verification failed for cuda__retprobe:" in text
-    verified_maps = len(re.findall(
-        r"GPU eBPF verified map: program=cuda__retprobe fd=[0-9]+ type=[0-9]+ "
-        r"key_size=[0-9]+ value_size=[0-9]+ max_entries=[1-9][0-9]*",
-        text,
+    candidates = tuple(run_dir / name for name in (
+        "agent.log", "llama_cli.log", "llama_bench.log",
     ))
+    logs = {
+        path.name: path.read_text(errors="replace")
+        for path in candidates if path.is_file()
+    }
+    expected_attach = f"kretprobe/{args.target_symbol}"
+    accepted_pattern = re.compile(
+        rf"GPU eBPF verification accepted: mode=STRICT program=cuda__retprobe "
+        rf"attach={re.escape(expected_attach)} instructions=([1-9][0-9]*)"
+    )
+    map_pattern = re.compile(
+        r"GPU eBPF verified map: program=cuda__retprobe fd=([0-9]+) "
+        r"type=([0-9]+) key_size=([0-9]+) value_size=([0-9]+) "
+        r"max_entries=([1-9][0-9]*)"
+    )
+    skip_pattern = re.compile(r"Skipping GPU eBPF verification for cuda__retprobe")
+    reject_pattern = re.compile(r"GPU eBPF verification failed for cuda__retprobe:")
+    accepted: set[int] = set()
+    verified_maps: set[tuple[int, int, int, int, int]] = set()
+    skipped: set[str] = set()
+    rejected: set[str] = set()
+    matched_sources: set[str] = set()
+    for source, text in logs.items():
+        source_matched = False
+        for match in accepted_pattern.finditer(text):
+            accepted.add(int(match.group(1)))
+            source_matched = True
+        for match in map_pattern.finditer(text):
+            verified_maps.add(tuple(int(value) for value in match.groups()))
+            source_matched = True
+        if skip_pattern.search(text):
+            skipped.add("cuda__retprobe")
+            source_matched = True
+        if reject_pattern.search(text):
+            rejected.add("cuda__retprobe")
+            source_matched = True
+        if source_matched:
+            matched_sources.add(source)
     if level == "STRICT":
-        passed = len(accepted) >= 1 and verified_maps >= 1 and not skipped and not rejected
+        passed = bool(accepted) and bool(verified_maps) and not skipped and not rejected
     else:
-        passed = len(skipped) >= 1 and not accepted and not rejected
+        passed = bool(skipped) and not accepted and not verified_maps and not rejected
     return {
         "level": level,
         "required": True,
         "passed": passed,
         "accepted_records": len(accepted),
-        "instruction_counts": [int(value) for value in accepted],
-        "verified_map_records": verified_maps,
+        "instruction_counts": sorted(accepted),
+        "verified_map_records": len(verified_maps),
         "skipped_records": len(skipped),
-        "rejected": rejected,
-        "log": str(path),
+        "rejected": bool(rejected),
+        "logs_scanned": sorted(logs),
+        "logs_missing": sorted(path.name for path in candidates if not path.is_file()),
+        "matched_log_sources": sorted(matched_sources),
     }
 
 

@@ -1607,20 +1607,90 @@ class OfflineTests(unittest.TestCase):
             run_dir = Path(tmp)
             accepted = (
                 "GPU eBPF verification accepted: mode=STRICT program=cuda__retprobe "
-                "attach=_Z6targetv instructions=13\n"
+                "attach=kretprobe/_Z6targetv instructions=13\n"
                 "GPU eBPF verified map: program=cuda__retprobe fd=0 type=1502 "
                 "key_size=4 value_size=8 max_entries=1048576\n"
             )
-            run_dir.joinpath("agent.log").write_text(accepted)
+            run_dir.joinpath("agent.log").write_text("Verifier mode: STRICT\n")
+            run_dir.joinpath("llama_cli.log").write_text(accepted)
             evidence = runner.verifier_evidence(args, run_dir)
             self.assertTrue(evidence["passed"])
             self.assertEqual(evidence["instruction_counts"], [13])
+            self.assertEqual(evidence["accepted_records"], 1)
+            self.assertEqual(evidence["verified_map_records"], 1)
+            self.assertEqual(
+                evidence["logs_scanned"], ["agent.log", "llama_cli.log"]
+            )
+            self.assertEqual(evidence["matched_log_sources"], ["llama_cli.log"])
+
+            # Mirrored logger records are one logical admission, not two.
+            run_dir.joinpath("agent.log").write_text(accepted)
+            evidence = runner.verifier_evidence(args, run_dir)
+            self.assertTrue(evidence["passed"])
+            self.assertEqual(evidence["accepted_records"], 1)
+            self.assertEqual(evidence["verified_map_records"], 1)
+            self.assertEqual(
+                evidence["matched_log_sources"], ["agent.log", "llama_cli.log"]
+            )
+
             args.verifier_level = "NO_VERIFY"
-            run_dir.joinpath("agent.log").write_text(
+            run_dir.joinpath("agent.log").write_text("")
+            run_dir.joinpath("llama_cli.log").unlink()
+            run_dir.joinpath("llama_bench.log").write_text(
                 "Skipping GPU eBPF verification for cuda__retprobe\n"
             )
-            self.assertTrue(runner.verifier_evidence(args, run_dir)["passed"])
-            run_dir.joinpath("agent.log").write_text(accepted)
+            evidence = runner.verifier_evidence(args, run_dir)
+            self.assertTrue(evidence["passed"])
+            self.assertEqual(evidence["matched_log_sources"], ["llama_bench.log"])
+
+    def test_verifier_evidence_fails_closed_on_missing_wrong_or_mixed_records(self):
+        args = SimpleNamespace(verifier_level="STRICT", target_symbol="_Z6targetv")
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            missing = runner.verifier_evidence(args, run_dir)
+            self.assertFalse(missing["passed"])
+            self.assertEqual(missing["logs_scanned"], [])
+            self.assertEqual(
+                missing["logs_missing"],
+                ["agent.log", "llama_bench.log", "llama_cli.log"],
+            )
+            wrong_attach = (
+                "GPU eBPF verification accepted: mode=STRICT program=cuda__retprobe "
+                "attach=kretprobe/_Z11not_targetv instructions=13\n"
+                "GPU eBPF verified map: program=cuda__retprobe fd=0 type=1502 "
+                "key_size=4 value_size=8 max_entries=1\n"
+            )
+            run_dir.joinpath("llama_cli.log").write_text(wrong_attach)
+            self.assertFalse(runner.verifier_evidence(args, run_dir)["passed"])
+            bare_attach = wrong_attach.replace(
+                "kretprobe/_Z11not_targetv", "_Z6targetv"
+            )
+            run_dir.joinpath("llama_cli.log").write_text(bare_attach)
+            self.assertFalse(runner.verifier_evidence(args, run_dir)["passed"])
+            wrong_mode = bare_attach.replace(
+                "mode=STRICT", "mode=WARNING"
+            ).replace("attach=_Z6targetv", "attach=kretprobe/_Z6targetv")
+            run_dir.joinpath("llama_cli.log").write_text(wrong_mode)
+            self.assertFalse(runner.verifier_evidence(args, run_dir)["passed"])
+            accepted = bare_attach.replace(
+                "attach=_Z6targetv", "attach=kretprobe/_Z6targetv"
+            )
+            run_dir.joinpath("llama_cli.log").write_text(
+                accepted
+                + accepted.replace("instructions=13", "instructions=60")
+            )
+            distinct = runner.verifier_evidence(args, run_dir)
+            self.assertTrue(distinct["passed"])
+            self.assertEqual(distinct["accepted_records"], 2)
+            self.assertEqual(distinct["instruction_counts"], [13, 60])
+            run_dir.joinpath("llama_cli.log").write_text(
+                accepted + "Skipping GPU eBPF verification for cuda__retprobe\n"
+            )
+            self.assertFalse(runner.verifier_evidence(args, run_dir)["passed"])
+            run_dir.joinpath("llama_cli.log").write_text(
+                accepted
+                + "GPU eBPF verification failed for cuda__retprobe: rejected\n"
+            )
             self.assertFalse(runner.verifier_evidence(args, run_dir)["passed"])
 
     def test_two_tool_dry_run_has_fixed_preflight_and_full_matrices_and_exact_gates(self):

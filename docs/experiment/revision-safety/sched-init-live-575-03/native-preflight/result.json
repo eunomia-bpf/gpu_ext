@@ -1,0 +1,67 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/bpftime-device-smoke/.output/vector"
+  ],
+  "complete": true,
+  "correctness": {
+    "checked_values": 32768,
+    "event": "correctness",
+    "launches": 8,
+    "mismatches": 0
+  },
+  "safety_after": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 55.98,
+      "sm_clock_mhz": 2400,
+      "temperature_c": 49,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788488401904376507,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "safety_before": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 15,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 56.08,
+      "sm_clock_mhz": 2400,
+      "temperature_c": 48,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788488399619592079,
+    "uvm_refcount": 0,
+    "xids": []
+  }
+}

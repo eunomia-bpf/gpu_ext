@@ -1389,6 +1389,66 @@ class ObserverProtocolTests(unittest.TestCase):
                             records, expected_pid=TARGET_PID, implementation="bpf"
                         )
 
+    def test_iter_jsonl_streams_valid_records_in_order(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "observer.jsonl"
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in self.records()),
+                encoding="utf-8",
+            )
+            rows = list(observer_protocol.iter_jsonl(path))
+            self.assertEqual(
+                [row["event"] for row in rows],
+                ["ready", "policy_decision", "policy_decision", "observer_final"],
+            )
+            observed = observer_protocol.validate_records(
+                rows, expected_pid=TARGET_PID, implementation="bpf"
+            )
+            self.assertEqual((observed["dense"], observed["discard"]), (1, 1))
+
+    def test_iter_jsonl_defers_line_errors_until_the_record_is_needed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "observer.jsonl"
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in self.records()[:2])
+                + '{"event":',
+                encoding="utf-8",
+            )
+            stream = observer_protocol.iter_jsonl(path)
+            self.assertEqual(next(stream)["event"], "ready")
+            with self.assertRaisesRegex(
+                protocol.ValidationError, "invalid observer JSONL line 3"
+            ):
+                next(stream)
+
+    def test_iter_jsonl_rejects_malformed_or_misordered_streams(self) -> None:
+        cases = {
+            "empty": "",
+            "blank": '{"event":"ready"}\n\n',
+            "invalid": '{"event":\n',
+            "non_object": '[1, 2]\n',
+            "duplicate_key": '{"event":"ready","event":"ready"}\n',
+            "first_not_ready": (
+                '{"event":"policy_decision"}\n{"event":"observer_final"}\n'
+            ),
+            "middle_not_decision": (
+                '{"event":"ready"}\n{"event":"observer_final"}\n'
+                '{"event":"policy_decision"}\n'
+            ),
+            "missing_final": '{"event":"ready"}\n{"event":"policy_decision"}\n',
+            "trailing": (
+                '{"event":"ready"}\n{"event":"policy_decision"}\n'
+                '{"event":"observer_final"}\n{"event":"observer_final"}\n'
+            ),
+        }
+        for mutation, text in cases.items():
+            with self.subTest(mutation=mutation):
+                with tempfile.TemporaryDirectory() as temporary:
+                    path = Path(temporary) / "observer.jsonl"
+                    path.write_text(text, encoding="utf-8")
+                    with self.assertRaises(protocol.ValidationError):
+                        list(observer_protocol.iter_jsonl(path))
+
 
 class BoundaryTests(unittest.TestCase):
     def test_compute_monitor_only_suppresses_the_matching_shutdown_signal(self) -> None:

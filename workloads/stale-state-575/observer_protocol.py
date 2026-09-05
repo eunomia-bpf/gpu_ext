@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Iterable
+import os
+from typing import Any, Iterable, Iterator
 
 import coordinator
 import protocol
@@ -65,25 +66,69 @@ def _strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return value
 
 
+def _load_object(line: str, line_number: int) -> dict[str, Any]:
+    try:
+        value = json.loads(line, object_pairs_hook=_strict_object)
+    except (json.JSONDecodeError, protocol.ValidationError) as exc:
+        raise protocol.ValidationError(
+            f"invalid observer JSONL line {line_number}: {exc}"
+        ) from exc
+    if not isinstance(value, dict):
+        raise protocol.ValidationError(
+            f"observer JSONL line {line_number} is not an object"
+        )
+    return value
+
+
 def parse_jsonl(text: str) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for line_number, line in enumerate(text.splitlines(), 1):
         if not line.strip():
             continue
-        try:
-            value = json.loads(line, object_pairs_hook=_strict_object)
-        except (json.JSONDecodeError, protocol.ValidationError) as exc:
-            raise protocol.ValidationError(
-                f"invalid observer JSONL line {line_number}: {exc}"
-            ) from exc
-        if not isinstance(value, dict):
-            raise protocol.ValidationError(
-                f"observer JSONL line {line_number} is not an object"
-            )
-        records.append(value)
+        records.append(_load_object(line, line_number))
     if not records:
         raise protocol.ValidationError("observer produced no records")
     return records
+
+
+def _position_event(record: dict[str, Any], index: int, *, last: bool) -> None:
+    event = record.get("event")
+    if index == 0 and event != "ready":
+        raise protocol.ValidationError(
+            "observer stream must begin with the ready record"
+        )
+    if last:
+        if event != "observer_final":
+            raise protocol.ValidationError(
+                "observer stream must end with the final record"
+            )
+    elif index > 0 and event != "policy_decision":
+        raise protocol.ValidationError(
+            "observer decision records must occupy only the middle"
+        )
+
+
+def iter_jsonl(path: str | os.PathLike[str]) -> Iterator[dict[str, Any]]:
+    """Stream observer JSONL one record at a time with one-record lookahead."""
+    pending: dict[str, Any] | None = None
+    index = 0
+    with open(path, "r", encoding="utf-8") as stream:
+        for line_number, line in enumerate(stream, 1):
+            if not line.strip():
+                raise protocol.ValidationError(
+                    f"observer JSONL line {line_number} is blank"
+                )
+            record = _load_object(line, line_number)
+            if pending is not None:
+                _position_event(pending, index, last=False)
+                yield pending
+                index += 1
+            pending = record
+        if pending is not None:
+            _position_event(pending, index, last=True)
+            yield pending
+        if index == 0:
+            raise protocol.ValidationError("observer produced no records")
 
 
 def _exact(record: dict[str, Any], fields: set[str], label: str) -> None:

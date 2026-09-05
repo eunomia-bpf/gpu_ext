@@ -1302,6 +1302,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         CLOCK_CONTROL_SOURCE_DIR / "launchlate-frozen-plan.md",
         CLOCK_CONTROL_SOURCE_DIR / "launchlate-frozen-plan-v2.md",
         CLOCK_CONTROL_SOURCE_DIR / "launchlate-attempt09-frozen-path.md",
+        CLOCK_CONTROL_SOURCE_DIR / "launchlate-attempt09-pre-live-amendment.md",
         args.bpftime_root / "runtime/include/bpf_attach_ctx.hpp",
         args.bpftime_root / "runtime/include/bpftime_helper_group.hpp",
         args.bpftime_root / "runtime/include/bpftime_gpu_ringbuf.h",

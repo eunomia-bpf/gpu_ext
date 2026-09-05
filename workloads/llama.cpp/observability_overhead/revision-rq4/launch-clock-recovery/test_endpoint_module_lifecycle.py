@@ -148,15 +148,24 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
             lifecycle.validate_probe_output("\n".join(records[:-1]))
 
     def test_cpu_only_real_artifact_preflight(self) -> None:
+        stage = Path(
+            "/opt/gpubpf/modules/575.57.08/launchlate-endpoint-stage-575-09"
+        )
+        output = HERE.parent / "raw/rm-correlation-575-09-endpoint-lifecycle"
+        self.assertFalse(stage.exists())
+        self.assertFalse(output.exists())
         result = lifecycle.dry_run(
             lifecycle.PREBUILT_CANDIDATE_DIR,
-            Path("/opt/gpubpf/modules/575.57.08/"
-                 "launchlate-endpoint-stage-offline-test"),
-            HERE.parent / "raw/rm-correlation-575-offline-dry-run",
+            stage,
+            output,
             child_mode="none",
         )
         self.assertTrue(result["complete"])
         self.assertEqual(result["mode"], "cpu-only-dry-run")
+        self.assertEqual(result["stage"], str(stage))
+        self.assertEqual(result["output"], str(output))
+        self.assertFalse(stage.exists())
+        self.assertFalse(output.exists())
         self.assertEqual(result["candidate_origin"]["path"],
                          str(lifecycle.PREBUILT_CANDIDATE_DIR))
         self.assertEqual(result["child_mode"], "none")

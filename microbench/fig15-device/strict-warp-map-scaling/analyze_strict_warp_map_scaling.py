@@ -24,6 +24,18 @@ PROGRAMS = {
     "warp_update": "cuda__warp",
 }
 WARP_MAGIC = 0x57504d4150000000
+COMPARISONS = (
+    ("shared_update", "noop", "shared_vs_noop"),
+    ("warp_update", "noop", "warp_vs_noop"),
+    ("warp_update", "shared_update", "warp_vs_shared"),
+)
+CROSS_SCALE_LABELS = {
+    "shared_scaling_1_to_32": "shared_update/noop",
+    "warp_scaling_1_to_32": "warp_update/noop",
+    "warp_vs_shared_scaling_1_to_32": "warp_update/shared_update",
+}
+CROSS_SCALE_NAMES = tuple(CROSS_SCALE_LABELS)
+PREFLIGHT_STATUS = "valid_preflight"
 
 
 class AnalysisError(RuntimeError):
@@ -96,7 +108,8 @@ def validate_environment(path: Path) -> None:
     required = (
         f"gpu\t{GPU_NAME}\n", f"driver\t{DRIVER}\n",
         "BPFTIME_ENABLE_CUDA_ATTACH\tON\n", "BPFTIME_LLVM_JIT\tON\n",
-        "ENABLE_EBPF_VERIFIER\tON\n", "strict_binary_markers\tpresent\n",
+        "ENABLE_EBPF_VERIFIER\tON\n", "strict_agent_markers\tpresent\n",
+        "syscall_server_binary\tpresent\n",
         "bpftime_revision\t", "agent_bytes\t", "server_bytes\t",
         "nvcc_begin\n", "nvcc_end\n",
     )
@@ -309,6 +322,33 @@ def cross_scale_effect(records: dict[tuple[int, int, str], float], metric_left: 
     }
 
 
+def paired_effect_key(shape: int, name: str) -> str:
+    return f"shape-{shape}-{name}"
+
+
+def paired_effect_seed(shape: int, comparison_index: int) -> int:
+    """Stable bootstrap seed from the frozen SEED and fixed shape/comparison indices."""
+    shape_index = SHAPES.index(shape)
+    if comparison_index < 0 or comparison_index >= len(COMPARISONS):
+        raise AnalysisError(f"unknown comparison index: {comparison_index}")
+    return (SEED * 1_000_003 + (shape_index + 1) * 1_009 + comparison_index + 1) & 0xFFFFFFFF
+
+
+def expected_paired_effect_keys() -> tuple[str, ...]:
+    return tuple(
+        paired_effect_key(shape, name)
+        for shape in SHAPES
+        for _left, _right, name in COMPARISONS
+    )
+
+
+def cell_directory(item: dict[str, int | str]) -> str:
+    return (
+        f"shape-{int(item['shape'])}-block-{int(item['block']):02d}"
+        f"-order-{int(item['order']):02d}-{item['arm']}"
+    )
+
+
 def analyze_campaign(campaign: Path) -> dict[str, Any]:
     schedule = read_schedule(campaign / "schedule.tsv")
     phase = infer_phase(schedule)
@@ -319,14 +359,17 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
 
     _blocks, warmup, launches = phase_parameters(phase)
     records: dict[tuple[int, int, str], float] = {}
+    expected_cells = {cell_directory(item) for item in schedule}
+    observed_cells = {path.name for path in campaign.iterdir() if path.is_dir()}
+    if observed_cells != expected_cells:
+        unexpected = sorted(observed_cells ^ expected_cells)
+        raise AnalysisError(f"cell directories differ from schedule: {unexpected}")
     strict_cells = 0
     for item in schedule:
         shape = int(item["shape"])
         block = int(item["block"])
         arm = str(item["arm"])
-        directory = campaign / (
-            f"shape-{shape}-block-{block:02d}-order-{int(item['order']):02d}-{arm}"
-        )
+        directory = campaign / cell_directory(item)
         key = (shape, block, arm)
         if not directory.is_dir() or key in records:
             raise AnalysisError(f"missing or duplicate arm directory: {directory}")
@@ -348,7 +391,7 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
 
     if phase == "preflight":
         return {
-            "run_status": "valid_preflight",
+            "run_status": PREFLIGHT_STATUS,
             "tested_hypothesis": "not_tested",
             "phase": phase,
             "raw_arm_processes": len(records),
@@ -359,14 +402,11 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
 
     shape_effects: dict[str, dict[str, Any]] = {}
     for shape in SHAPES:
-        for left, right, name in (
-            ("shared_update", "noop", "shared_vs_noop"),
-            ("warp_update", "noop", "warp_vs_noop"),
-            ("warp_update", "shared_update", "warp_vs_shared"),
-        ):
-            key = f"shape-{shape}-{name}"
+        for comparison_index, (left, right, name) in enumerate(COMPARISONS):
+            key = paired_effect_key(shape, name)
             shape_effects[key] = paired_effect(
-                records, shape, left, right, 0.95, hash((shape, left, right)) & 0xFFFFFFFF
+                records, shape, left, right, 0.95,
+                paired_effect_seed(shape, comparison_index),
             )
 
     secondary = {
@@ -384,7 +424,7 @@ def analyze_campaign(campaign: Path) -> dict[str, Any]:
     # Inverted-direction count for warp-vs-shared per-shape
     sign_summary: dict[str, int] = {}
     for shape in SHAPES:
-        key = f"shape-{shape}-warp_vs_shared"
+        key = paired_effect_key(shape, "warp_vs_shared")
         sign_summary[key] = int(shape_effects[key]["sign_count"])
 
     primary = tuple(shape_effects.values())
@@ -434,10 +474,13 @@ def render_markdown(analysis: dict[str, Any]) -> str:
             f"{arm_values['shared_update']:.6f} | {arm_values['warp_update']:.6f} |"
         )
 
-    if not analysis["effects"]:
+    if analysis["run_status"] == PREFLIGHT_STATUS:
         lines.extend([
             "",
             "Preflight establishes only execution; it is not a paper result.",
+            "No paired or cross-shape effects are computed from a preflight run.",
+            "",
+            f"Scope: {analysis['scope']}",
         ])
         return "\n".join(lines) + "\n"
 
@@ -449,9 +492,8 @@ def render_markdown(analysis: dict[str, Any]) -> str:
         "|---|---|---:|---:|---:|",
     ])
     for shape in SHAPES:
-        for label in ("shared_vs_noop", "warp_vs_noop", "warp_vs_shared"):
-            key = f"shape-{shape}-{label}"
-            item = analysis["effects"][key]
+        for _left, _right, label in COMPARISONS:
+            item = analysis["effects"][paired_effect_key(shape, label)]
             name = label.replace("_", " / ")
             lines.append(
                 f"| {shape} | {name} | {item['pairs']} | "
@@ -468,11 +510,10 @@ def render_markdown(analysis: dict[str, Any]) -> str:
         "|---|---:|---:|",
     ])
     for key, item in analysis["secondary"].items():
-        pretty = key.replace("shared_scaling_1_to_32", "shared_update/noop")
-        pretty = pretty.replace("warp_scaling_1_to_32", "warp_update/noop")
-        pretty = pretty.replace("warp_vs_shared_scaling_1_to_32", "warp_update/shared_update")
+        if key not in CROSS_SCALE_LABELS:
+            raise AnalysisError(f"unexpected cross-shape comparison: {key}")
         lines.append(
-            f"| {pretty} | {item['pairs']} | "
+            f"| {CROSS_SCALE_LABELS[key]} | {item['pairs']} | "
             f"{item['factor']:.4f} [{item['factor_low']:.4f}, {item['factor_high']:.4f}] |"
         )
 
@@ -483,7 +524,23 @@ def render_markdown(analysis: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def check_effect_contract(analysis: dict[str, Any]) -> None:
+    """Reject a full-phase analysis with missing effects and a preflight with invented ones."""
+    effects = analysis["effects"]
+    preflight = analysis["run_status"] == PREFLIGHT_STATUS
+    if preflight:
+        if effects or analysis["secondary"]:
+            raise AnalysisError("preflight must not report paired or cross-shape effects")
+        return
+    if set(effects) != set(expected_paired_effect_keys()):
+        raise AnalysisError("paired effects differ from the frozen comparison design")
+    if set(analysis["secondary"]) != set(CROSS_SCALE_NAMES):
+        raise AnalysisError("cross-shape effects differ from the frozen comparison design")
+
+
 def write_tsv(path: Path, analysis: dict[str, Any]) -> None:
+    """Write one row per computed effect; preflight has none and gets a header only."""
+    check_effect_contract(analysis)
     with path.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.writer(stream, delimiter="\t", lineterminator="\n")
         writer.writerow((
@@ -492,12 +549,10 @@ def write_tsv(path: Path, analysis: dict[str, Any]) -> None:
             "delta_high_us", "sign_count", "confidence",
         ))
         for shape in SHAPES:
-            for left, right, name in (
-                ("shared_update", "noop", "shared_vs_noop"),
-                ("warp_update", "noop", "warp_vs_noop"),
-                ("warp_update", "shared_update", "warp_vs_shared"),
-            ):
-                item = analysis["effects"][f"shape-{shape}-{name}"]
+            for left, right, name in COMPARISONS:
+                item = analysis["effects"].get(paired_effect_key(shape, name))
+                if item is None:
+                    continue
                 writer.writerow((
                     "paired_shape", shape, f"{left}/{right}",
                     item["pairs"], item["ratio"], item["ratio_low"], item["ratio_high"],
@@ -506,7 +561,7 @@ def write_tsv(path: Path, analysis: dict[str, Any]) -> None:
                 ))
         for name, item in analysis["secondary"].items():
             writer.writerow((
-                "cross_shape", "32->1024", name,
+                "cross_shape", f"{item['low_shape']}->{item['high_shape']}", name,
                 item["pairs"], item["factor"], item["factor_low"], item["factor_high"],
                 "", "", "", "", item["confidence"],
             ))
@@ -517,9 +572,11 @@ def main() -> int:
     parser.add_argument("campaign", type=Path)
     args = parser.parse_args()
     analysis = analyze_campaign(args.campaign)
-    (args.campaign / "analysis.md").write_text(render_markdown(analysis), encoding="utf-8")
+    check_effect_contract(analysis)
+    markdown = render_markdown(analysis)
+    (args.campaign / "analysis.md").write_text(markdown, encoding="utf-8")
     write_tsv(args.campaign / "analysis.tsv", analysis)
-    print(render_markdown(analysis), end="")
+    print(markdown, end="")
     return 0
 
 

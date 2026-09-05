@@ -195,8 +195,12 @@ def validate_environment(root: Path, build: Path) -> str:
     for binary in (agent, server):
         if not binary.is_file() or binary.stat().st_size <= 0:
             raise RuntimeError(f"missing strict runtime binary: {binary}")
-        if any(not binary_contains(binary, marker) for marker in markers):
-            raise RuntimeError(f"strict marker missing from runtime binary: {binary}")
+    # CUDA attachment and device-program verification happen in the target
+    # process through the agent DSO.  The syscall-server DSO creates the shared
+    # maps/program/link inventory, but it does not execute nv_attach_impl and a
+    # normal static link may therefore discard the verifier log strings.
+    if any(not binary_contains(agent, marker) for marker in markers):
+        raise RuntimeError(f"strict marker missing from CUDA agent binary: {agent}")
     revision = checked_output(["git", "rev-parse", "HEAD"], cwd=root).strip()
     status = checked_output(["git", "status", "--short"], cwd=root)
     nvcc = checked_output(["/usr/local/cuda-12.9/bin/nvcc", "--version"])
@@ -210,7 +214,8 @@ def validate_environment(root: Path, build: Path) -> str:
         f"ENABLE_EBPF_VERIFIER\t{settings['ENABLE_EBPF_VERIFIER']}\n"
         f"agent_bytes\t{agent.stat().st_size}\n"
         f"server_bytes\t{server.stat().st_size}\n"
-        "strict_binary_markers\tpresent\n"
+        "strict_agent_markers\tpresent\n"
+        "syscall_server_binary\tpresent\n"
         "bpftime_status_begin\n"
         f"{status}"
         "bpftime_status_end\n"
@@ -361,36 +366,6 @@ def validate_loader_log(path: Path, shape: int, arm: str) -> None:
         raise RuntimeError("warp-update map readback contains invalid key/value")
     if sum(value != 0 for _key, value in parsed) < active:
         raise RuntimeError("warp-update map readback does not show requested active keys")
-
-
-def wait_for_loader_readiness(path: Path, shape: int, arm: str,
-                             loader_process: subprocess.Popen[str] | None,
-                             timeout_seconds: float = 45.0) -> None:
-    deadline = time.monotonic() + timeout_seconds
-    last_error: RuntimeError | None = None
-    while time.monotonic() < deadline:
-        try:
-            validate_loader_log(path, shape, arm)
-            return
-        except RuntimeError as error:
-            message = str(error)
-            last_error = error
-            if "loader detach record is incomplete" in message:
-                if loader_process is not None and loader_process.poll() is not None:
-                    raise RuntimeError(
-                        f"loader exited before detach marker was observed: {path}"
-                    ) from error
-                time.sleep(0.1)
-                continue
-            raise
-        except FileNotFoundError as error:
-            if loader_process is not None and loader_process.poll() is not None:
-                raise RuntimeError(f"loader log missing before process exit: {path}") from error
-            time.sleep(0.1)
-            continue
-    if last_error is not None:
-        raise RuntimeError(f"loader readiness timed out: {last_error}") from last_error
-    raise RuntimeError(f"loader readiness timed out: {path}")
 
 
 def validate_strict_admission(application_path: Path, target_pid: int, arm: str) -> None:
@@ -563,17 +538,26 @@ def run_attached(arm: str, directory: Path, build: Path, shape: int,
         )
         if returncode != 0:
             raise RuntimeError("attached application returned nonzero")
-        wait_for_loader_readiness(loader_log, shape, arm, loader_process)
+        application_stream.close()
+        application_stream = None
+        # The loader emits map readback and DETACHED only during its SIGINT
+        # shutdown path.  Signal and join it before validating those records.
+        try:
+            os.killpg(loader_process.pid, signal.SIGINT)
+        except ProcessLookupError:
+            pass
+        if loader_process.wait(timeout=90) != 0:
+            raise RuntimeError("loader exited before completing its detach log")
+        loader_stream.close()
+        loader_stream = None
         validate_application_log(application_log, shape, warmup, launches)
+        validate_loader_log(loader_log, shape, arm)
         read_execution(execution)
         if not agent_log.is_file() or not agent_log.read_text(
             encoding="utf-8", errors="replace"
         ).strip():
             raise RuntimeError("agent bootstrap log is empty")
         validate_engagement(application_log, agent_log, arm, target_pid)
-        os.killpg(loader_process.pid, signal.SIGINT)
-        if loader_process.wait(timeout=90) != 0:
-            raise RuntimeError("loader returned nonzero")
     finally:
         stop_owned(application_process)
         stop_owned(loader_process)

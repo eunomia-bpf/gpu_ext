@@ -39,8 +39,8 @@ slowdown is retained as a valid negative result.
 
 ## Source/build boundary now closed
 
-Live execution is intentionally refused by `run_study.py live`. The current
-installed 575 module still has only the legacy
+Full live execution is intentionally refused by `run_study.py live`. The
+current installed 575 module still has only the legacy
 `gpu_mem_ops.gpu_page_prefetch` ABI. The source artifact
 [`driver-bridge-v1.patch`](driver-bridge-v1.patch) now adds the missing
 driver-owned snapshot, matched native consumer, append-only BPF callback and
@@ -64,10 +64,25 @@ host-truth timeline and count decision age and wrong-phase decisions without
 host-generated proxy counters. A private BPF map alone would not close this
 boundary.
 
+`coordinator.py::TruthFDCoordinator` now consumes the workload-owned truth
+pipe after the workload emits `workload_ready`. It configures the native or
+BPF driver mode before releasing the workload, publishes only exact
+`phase_start` timestamps after the frozen delay, validates the driver-captured
+publication timestamp and status-observation window, reconciles final common
+counters, and disables
+its owned generation on success or failure. The default-UVM path never
+configures, publishes, or disables policy state. Its return schema explicitly
+marks `truth_source=workload_phase_fd`, `synthetic_source=false`, and
+`experiment_evidence=false`: this closes a coordinator implementation gap but
+is not a complete cell.
+The exact CPU validation record is in
+[`truth-fd-coordinator-readiness.md`](truth-fd-coordinator-readiness.md).
+
 This is not yet a live result: the patch has not been installed, the new
 module has not been loaded, the BPF policy has not passed the live verifier or
-attached, and no GPU cell has run. Those operations require a controlled
-module-load window followed by an excluded seven-cell preflight.
+attached, the coordinator has not run against the real proc endpoint, and no
+GPU cell has run. Those operations require a controlled module-load window,
+diagnostic-observer integration, and then an excluded seven-cell preflight.
 
 ## Real records required from every future cell
 
@@ -125,14 +140,20 @@ Building the CUDA workload is separate:
 make build-sources
 ```
 
-The future live coordinator must reuse the existing read-only exclusive lease
-files `/tmp/gpubpf-revision-gpu0.lock` and
+The full live runner must wrap the truth-FD coordinator with the existing
+read-only exclusive lease files `/tmp/gpubpf-revision-gpu0.lock` and
 `/tmp/gpubpf-revision-struct-ops.lock`, the continuous compute/GPU/kernel
 monitors, and the pre/post safety checks. As in the existing lease/telemetry
-runner, that coordinator—not the monitor sibling—must duplicate the owned
+runner, that runner—not the monitor sibling—must duplicate the owned
 workload's UVM fd and pass it to `uvm_event_monitor` as an inherited fd. It must
 never run a formal campaign
 until the shared driver interface above exists and an excluded complete
 preflight passes. A formal `campaign.json` points to the absolute preflight
 root; analysis revalidates all seven preflight cells before accepting the 21
 formal cells.
+
+The offline suite replays the exact 15-record workload stream through real OS
+pipes for the default arm and all six native/BPF delay conditions. It rejects
+wrong identity, duplicate/extra/trailing records, late delivery, dirty
+counters, and incomplete cleanup. The bridge remains an in-memory test double
+in those tests; they do not claim that the proc endpoint ran.

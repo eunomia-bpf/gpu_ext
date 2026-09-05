@@ -1,7 +1,9 @@
 # Experiment plan: stale cross-layer state and UVM thrashing
 
-Status: **CPU/source preparation only; live execution blocked on the shared
-snapshot/native-consumer interface described in `README.md`.**
+Status: **CPU/source preparation only. The shared snapshot/native-consumer
+source and workload-truth-FD coordinator are implemented, but live execution
+is still blocked on module installation, attach/diagnostic integration, and a
+controlled seven-cell preflight described in `README.md`.**
 
 ## Question and hypothesis
 
@@ -54,8 +56,8 @@ Mechanism cost pairs native and BPF only at identical delay within a block.
 Information cost pairs 100 ms or 1 s against fresh only within the same
 implementation and block. No fresh-native versus stale-BPF contrast is
 reported. The shared producer must publish the same phase record format and
-fixed delay to either implementation; actual source, publication, acknowledgement,
-and decision timestamps are retained.
+fixed delay to either implementation; actual source, publication, status
+observation, and decision timestamps are retained.
 
 One excluded complete seven-cell preflight must precede the three formal
 blocks. Its purpose is only to establish the real path, both policy actions,

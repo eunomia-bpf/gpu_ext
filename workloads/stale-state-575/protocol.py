@@ -818,11 +818,14 @@ def _validate_policy(
         if publication.get("eligible_mono_ns") != eligible:
             raise ValidationError("snapshot eligibility does not equal source plus delay")
         published = _integer(publication.get("published_mono_ns"), "published_mono_ns", eligible)
-        acknowledged = _integer(
-            publication.get("consumer_ack_mono_ns"), "consumer_ack_mono_ns", published
+        status_observed = _integer(
+            publication.get("status_observed_mono_ns"),
+            "status_observed_mono_ns",
+            published,
         )
-        if acknowledged < published:
-            raise ValidationError("snapshot was acknowledged before publication")
+        latest = eligible + MAXIMUM_BOUNDARY_OVERRUN_NS
+        if published > latest or status_observed > latest:
+            raise ValidationError("snapshot publication/status observation was too late")
         by_sequence[sequence] = publication
     if set(by_sequence) != set(range(1, MEASURED_PHASES + 2)):
         raise ValidationError("snapshot sequence is incomplete")
@@ -857,8 +860,8 @@ def _validate_policy(
         publication = by_sequence.get(sequence)
         if publication is None:
             raise ValidationError("policy decision names an unpublished snapshot")
-        if decision_ns < publication["consumer_ack_mono_ns"]:
-            raise ValidationError("policy decision predates snapshot acknowledgement")
+        if decision_ns < publication["published_mono_ns"]:
+            raise ValidationError("policy decision predates snapshot publication")
         observed_phase = decision.get("snapshot_phase")
         if observed_phase != publication["phase"]:
             raise ValidationError("policy decision snapshot phase differs from publication")

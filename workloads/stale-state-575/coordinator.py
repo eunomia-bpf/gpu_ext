@@ -10,7 +10,9 @@ responsibility of the future live runner.
 from __future__ import annotations
 
 import errno
+import json
 import os
+import select
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -25,6 +27,9 @@ PHASE_IDS = {"dense": 1, "sparse": 2}
 MODES = {"off", "native", "bpf"}
 UINT64_MAX = (1 << 64) - 1
 INT32_MAX = (1 << 31) - 1
+TRUTH_RECORD_MAX_BYTES = 1024
+TRUTH_RECORD_TIMEOUT_SECONDS = 30.0
+LIVE_COORDINATOR_SCHEMA = "stale-state-live-truth-coordinator-v1"
 
 COUNTER_FIELDS = (
     "snapshot_updates",
@@ -484,6 +489,629 @@ class Coordinator:
             raise AssertionError("coordinator cleanup completed without status")
         result["disabled_status"] = disabled_status.as_record()
         return result
+
+
+class TruthFDCoordinator:
+    """Relay workload-authored phase truth to the versioned driver endpoint.
+
+    This component closes only the live truth-source/control-plane boundary.  A
+    returned record is not a complete experiment cell: policy diagnostics, UVM
+    events, safety monitors, leases, and workload correctness remain the live
+    runner's responsibility.
+    """
+
+    def __init__(
+        self,
+        bridge: Bridge,
+        *,
+        clock_ns: Callable[[], int] = time.monotonic_ns,
+        sleep: Callable[[float], None] = time.sleep,
+        truth_timeout_seconds: float = TRUTH_RECORD_TIMEOUT_SECONDS,
+    ):
+        if (
+            isinstance(truth_timeout_seconds, bool)
+            or not isinstance(truth_timeout_seconds, (int, float))
+            or truth_timeout_seconds <= 0
+        ):
+            raise protocol.ValidationError("truth record timeout must be positive")
+        self.bridge = bridge
+        self._clock_ns = clock_ns
+        self._sleep = sleep
+        self._truth_timeout_seconds = float(truth_timeout_seconds)
+
+    def _wait_until(self, target_ns: int) -> int:
+        now_ns = self._clock_ns()
+        while now_ns < target_ns:
+            self._sleep((target_ns - now_ns) / 1.0e9)
+            next_ns = self._clock_ns()
+            if next_ns <= now_ns:
+                raise protocol.ValidationError(
+                    "live truth coordinator monotonic clock did not advance"
+                )
+            now_ns = next_ns
+        return now_ns
+
+    def run(
+        self,
+        *,
+        truth_fd: int,
+        expected_pid: int,
+        release: Callable[[], None],
+        implementation: str | None,
+        generation: int | None,
+        delay_ms: int | None,
+    ) -> dict[str, Any]:
+        """Consume one workload truth pipe and always leave owned policy state off."""
+
+        if type(truth_fd) is not int or truth_fd < 0:
+            raise protocol.ValidationError("truth_fd must be a non-negative integer")
+        if type(expected_pid) is not int or expected_pid <= 0:
+            raise protocol.ValidationError("expected_pid must be a positive integer")
+        if not callable(release):
+            raise protocol.ValidationError("release must be callable")
+        baseline = implementation is None
+        if baseline:
+            if generation is not None or delay_ms is not None:
+                raise protocol.ValidationError(
+                    "baseline truth relay must not receive policy configuration"
+                )
+        else:
+            if implementation not in protocol.IMPLEMENTATIONS:
+                raise protocol.ValidationError(
+                    f"unsupported live implementation: {implementation!r}"
+                )
+            if not _valid_u64(generation):
+                raise protocol.ValidationError(
+                    f"invalid live generation: {generation!r}"
+                )
+            if type(delay_ms) is not int or delay_ms not in protocol.DELAYS_MS:
+                raise protocol.ValidationError(
+                    f"unsupported live delay: {delay_ms!r}"
+                )
+
+        duplicate = os.dup(truth_fd)
+        configured = False
+        successful_updates = 0
+        failure: Exception | None = None
+        disabled_status: BridgeStatus | None = None
+        final_enabled_status: BridgeStatus | None = None
+        configured_status: BridgeStatus | None = None
+        result: dict[str, Any] | None = None
+        publications: list[dict[str, Any]] = []
+
+        try:
+            initial_status = self.bridge.status()
+            _require_idle(initial_status)
+            reader = _TruthFDReader(duplicate, self._truth_timeout_seconds)
+            try:
+                ready = reader.read_required()
+                _require_workload_ready(ready, expected_pid)
+
+                if not baseline:
+                    assert implementation is not None
+                    assert generation is not None
+                    assert delay_ms is not None
+                    self.bridge.configure(implementation, generation)
+                    configured = True
+                    configured_status = self.bridge.status()
+                    _require_configured(
+                        configured_status, implementation, generation
+                    )
+                else:
+                    _require_idle(self.bridge.status())
+
+                release()
+                delay_ns = 0 if delay_ms is None else delay_ms * 1_000_000
+                epoch_ns: int | None = None
+                previous_end_ns = 0
+
+                for sequence in range(1, protocol.MEASURED_PHASES + 2):
+                    expected = protocol.expected_phase(sequence)
+                    start = reader.read_required()
+                    received_start_ns = self._clock_ns()
+                    _require_phase_record(start, "phase_start", expected)
+                    source_ns = start["mono_ns"]
+                    if epoch_ns is None:
+                        epoch_ns = source_ns
+                    scheduled_start_ns = epoch_ns + expected["scheduled_offset_ns"]
+                    if (
+                        source_ns < scheduled_start_ns
+                        or source_ns
+                        > scheduled_start_ns + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+                        or source_ns < previous_end_ns
+                    ):
+                        raise protocol.ValidationError(
+                            f"phase {sequence} start is outside the frozen live timeline"
+                        )
+                    _require_prompt_truth_delivery(source_ns, received_start_ns)
+
+                    if baseline:
+                        _require_idle(self.bridge.status())
+                    else:
+                        assert implementation is not None
+                        assert generation is not None
+                        eligible_ns = source_ns + delay_ns
+                        publish_ready_ns = self._wait_until(eligible_ns)
+                        if (
+                            publish_ready_ns
+                            > eligible_ns + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+                        ):
+                            raise protocol.ValidationError(
+                                "snapshot publication exceeded the frozen overrun limit"
+                            )
+                        write_started_ns = self._clock_ns()
+                        self.bridge.publish(
+                            generation,
+                            sequence,
+                            PHASE_IDS[expected["phase"]],
+                            source_ns,
+                        )
+                        successful_updates = sequence
+                        write_finished_ns = self._clock_ns()
+                        status = self.bridge.status()
+                        status_observed_ns = self._clock_ns()
+                        _require_live_publication(
+                            status,
+                            implementation=implementation,
+                            generation=generation,
+                            sequence=sequence,
+                            phase=PHASE_IDS[expected["phase"]],
+                            source_mono_ns=source_ns,
+                            eligible_mono_ns=eligible_ns,
+                            write_started_mono_ns=write_started_ns,
+                            write_finished_mono_ns=write_finished_ns,
+                            status_observed_mono_ns=status_observed_ns,
+                        )
+                        publications.append(
+                            {
+                                "event": "snapshot_published",
+                                "publisher": "shared_driver_snapshot",
+                                "consumer_implementation": implementation,
+                                "sequence": sequence,
+                                "phase": expected["phase"],
+                                "scheduled_offset_ns": expected[
+                                    "scheduled_offset_ns"
+                                ],
+                                "source_mono_ns": source_ns,
+                                "eligible_mono_ns": eligible_ns,
+                                "write_started_mono_ns": write_started_ns,
+                                "write_finished_mono_ns": write_finished_ns,
+                                "published_mono_ns": status.published_mono_ns,
+                                "status_observed_mono_ns": status_observed_ns,
+                                "delay_ns": delay_ns,
+                            }
+                        )
+
+                    end = reader.read_required()
+                    received_end_ns = self._clock_ns()
+                    _require_phase_record(end, "phase_end", expected)
+                    end_ns = end["mono_ns"]
+                    duration_ns = (
+                        protocol.BOOTSTRAP_NS
+                        if sequence == 1
+                        else protocol.PHASE_NS
+                    )
+                    scheduled_end_ns = scheduled_start_ns + duration_ns
+                    if (
+                        end_ns < scheduled_end_ns
+                        or end_ns
+                        > scheduled_end_ns + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+                        or end_ns <= source_ns
+                    ):
+                        raise protocol.ValidationError(
+                            f"phase {sequence} end is outside the frozen live timeline"
+                        )
+                    _require_prompt_truth_delivery(end_ns, received_end_ns)
+                    previous_end_ns = end_ns
+                    if baseline:
+                        _require_idle(self.bridge.status())
+
+                if reader.read_optional() is not None:
+                    raise protocol.ValidationError(
+                        "workload truth pipe contains trailing records"
+                    )
+
+                if baseline:
+                    _require_idle(self.bridge.status())
+                else:
+                    assert implementation is not None
+                    assert generation is not None
+                    final_enabled_status = self.bridge.status()
+                    _require_live_final(
+                        final_enabled_status,
+                        implementation=implementation,
+                        generation=generation,
+                        expected_updates=successful_updates,
+                    )
+
+                result = {
+                    "schema": LIVE_COORDINATOR_SCHEMA,
+                    "truth_source": "workload_phase_fd",
+                    "synthetic_source": False,
+                    "live_bridge": self.bridge.live,
+                    "experiment_evidence": False,
+                    "evidence_scope": "coordinator_only_not_complete_cell",
+                    "target_pid": expected_pid,
+                    "implementation": implementation,
+                    "generation": generation,
+                    "delay_ms": delay_ms,
+                    "policy_configured": not baseline,
+                    "baseline_policy_artifacts": False,
+                    "truth_record_count": 15,
+                    "publications": publications,
+                    "configured_status": (
+                        None
+                        if configured_status is None
+                        else configured_status.as_record()
+                    ),
+                    "final_enabled_status": (
+                        None
+                        if final_enabled_status is None
+                        else final_enabled_status.as_record()
+                    ),
+                }
+            finally:
+                reader.close()
+                duplicate = -1
+        except Exception as exc:
+            failure = exc
+        finally:
+            if duplicate >= 0:
+                os.close(duplicate)
+            cleanup_failure: Exception | None = None
+            if configured:
+                assert generation is not None
+                try:
+                    self.bridge.disable(generation)
+                except Exception as cleanup_exc:
+                    cleanup_failure = cleanup_exc
+                else:
+                    try:
+                        disabled_status = self.bridge.status()
+                        _require_live_disabled(
+                            disabled_status,
+                            generation=generation,
+                            expected_updates=successful_updates,
+                            final_enabled_status=final_enabled_status,
+                        )
+                    except Exception as cleanup_exc:
+                        cleanup_failure = cleanup_exc
+            if cleanup_failure is not None:
+                if failure is not None:
+                    raise ExceptionGroup(
+                        "live truth relay and cleanup validation both failed",
+                        [failure, cleanup_failure],
+                    )
+                raise cleanup_failure
+
+        if failure is not None:
+            raise failure
+        if result is None:
+            raise AssertionError("live truth relay completed without a result")
+        if configured:
+            if disabled_status is None:
+                raise AssertionError("live truth relay cleanup has no status")
+            result["disabled_status"] = disabled_status.as_record()
+        else:
+            result["disabled_status"] = None
+        return result
+
+
+def _decode_truth_record(payload: bytes) -> dict[str, Any]:
+    if not payload or payload == b"\n" or not payload.endswith(b"\n"):
+        raise protocol.ValidationError("workload truth record is empty or unterminated")
+    if len(payload) > TRUTH_RECORD_MAX_BYTES:
+        raise protocol.ValidationError("workload truth record exceeds the size limit")
+
+    def reject_duplicate_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in value:
+                raise protocol.ValidationError(
+                    f"duplicate workload truth field: {key}"
+                )
+            value[key] = item
+        return value
+
+    try:
+        text = payload.decode("utf-8", errors="strict")
+        value = json.loads(text, object_pairs_hook=reject_duplicate_fields)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise protocol.ValidationError(
+            f"malformed workload truth JSON: {exc}"
+        ) from exc
+    if not isinstance(value, dict):
+        raise protocol.ValidationError("workload truth record is not an object")
+    return value
+
+
+class _TruthFDReader:
+    """Deadline-aware newline reader over one duplicated workload pipe fd."""
+
+    def __init__(self, descriptor: int, timeout_seconds: float):
+        self._descriptor = descriptor
+        self._timeout_seconds = timeout_seconds
+        self._buffer = bytearray()
+        self._eof = False
+
+    def close(self) -> None:
+        if self._descriptor >= 0:
+            os.close(self._descriptor)
+            self._descriptor = -1
+
+    def _payload(self) -> bytes | None:
+        deadline = time.monotonic() + self._timeout_seconds
+        while True:
+            newline = self._buffer.find(b"\n")
+            if newline >= 0:
+                length = newline + 1
+                payload = bytes(self._buffer[:length])
+                del self._buffer[:length]
+                if length > TRUTH_RECORD_MAX_BYTES:
+                    raise protocol.ValidationError(
+                        "workload truth record exceeds the size limit"
+                    )
+                return payload
+            if len(self._buffer) >= TRUTH_RECORD_MAX_BYTES:
+                raise protocol.ValidationError(
+                    "workload truth record exceeds the size limit"
+                )
+            if self._eof:
+                if self._buffer:
+                    payload = bytes(self._buffer)
+                    self._buffer.clear()
+                    return payload
+                return None
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise protocol.ValidationError("workload truth pipe timed out")
+            try:
+                ready, _, _ = select.select(
+                    [self._descriptor], [], [], remaining
+                )
+            except (OSError, ValueError) as exc:
+                raise protocol.ValidationError(
+                    f"cannot wait for workload truth pipe: {exc}"
+                ) from exc
+            if not ready:
+                raise protocol.ValidationError("workload truth pipe timed out")
+            try:
+                chunk = os.read(self._descriptor, 4096)
+            except OSError as exc:
+                raise protocol.ValidationError(
+                    f"cannot read workload truth pipe: {exc}"
+                ) from exc
+            if chunk:
+                self._buffer.extend(chunk)
+            else:
+                self._eof = True
+
+    def read_required(self) -> dict[str, Any]:
+        payload = self._payload()
+        if payload is None:
+            raise protocol.ValidationError("workload truth pipe ended early")
+        return _decode_truth_record(payload)
+
+    def read_optional(self) -> dict[str, Any] | None:
+        payload = self._payload()
+        if payload is None:
+            return None
+        return _decode_truth_record(payload)
+
+
+def _require_exact_fields(record: dict[str, Any], expected: set[str], label: str) -> None:
+    actual = set(record)
+    if actual != expected:
+        raise protocol.ValidationError(
+            f"{label} schema mismatch: missing={sorted(expected - actual)}, "
+            f"extra={sorted(actual - expected)}"
+        )
+
+
+def _require_workload_ready(record: dict[str, Any], expected_pid: int) -> None:
+    _require_exact_fields(
+        record,
+        {"event", "pid", "protocol", "timeline", "allocation_bytes", "regions"},
+        "workload_ready",
+    )
+    expected = {
+        "event": "workload_ready",
+        "pid": expected_pid,
+        "protocol": protocol.PROTOCOL,
+        "timeline": protocol.TIMELINE,
+        "allocation_bytes": protocol.ALLOCATION_BYTES,
+        "regions": protocol.REGIONS,
+    }
+    if (
+        type(record.get("pid")) is not int
+        or type(record.get("allocation_bytes")) is not int
+        or type(record.get("regions")) is not int
+        or record != expected
+    ):
+        raise protocol.ValidationError("workload_ready identity differs")
+
+
+def _require_phase_record(
+    record: dict[str, Any], event: str, expected: dict[str, Any]
+) -> None:
+    _require_exact_fields(
+        record,
+        {"event", "sequence", "phase", "measured", "scheduled_offset_ns", "mono_ns"},
+        event,
+    )
+    if (
+        type(record.get("sequence")) is not int
+        or type(record.get("phase")) is not str
+        or type(record.get("measured")) is not bool
+        or type(record.get("scheduled_offset_ns")) is not int
+    ):
+        raise protocol.ValidationError(f"{event} field types are invalid")
+    for field, value in (
+        ("event", event),
+        ("sequence", expected["sequence"]),
+        ("phase", expected["phase"]),
+        ("measured", expected["measured"]),
+        ("scheduled_offset_ns", expected["scheduled_offset_ns"]),
+    ):
+        if record.get(field) != value:
+            raise protocol.ValidationError(
+                f"{event} {field} differs for sequence {expected['sequence']}"
+            )
+    if not _valid_u64(record.get("mono_ns")):
+        raise protocol.ValidationError(f"{event} monotonic timestamp is invalid")
+
+
+def _require_prompt_truth_delivery(event_ns: int, received_ns: int) -> None:
+    if (
+        received_ns < event_ns
+        or received_ns > event_ns + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+    ):
+        raise protocol.ValidationError(
+            "workload truth event was not delivered within the frozen overrun limit"
+        )
+
+
+def _require_no_live_errors(status: BridgeStatus) -> None:
+    errors = {
+        field: getattr(status, field)
+        for field in (
+            "snapshot_rejections",
+            "missing_snapshot_decisions",
+            "invalid_snapshot_decisions",
+            "request_errors",
+            "effect_errors",
+        )
+        if getattr(status, field) != 0
+    }
+    if errors:
+        raise protocol.ValidationError(
+            f"live bridge reported an invalid action: {errors}"
+        )
+
+
+def _require_live_publication(
+    status: BridgeStatus,
+    *,
+    implementation: str,
+    generation: int,
+    sequence: int,
+    phase: int,
+    source_mono_ns: int,
+    eligible_mono_ns: int,
+    write_started_mono_ns: int,
+    write_finished_mono_ns: int,
+    status_observed_mono_ns: int,
+) -> None:
+    if (
+        status.mode != implementation
+        or status.generation != generation
+        or status.snapshot_present != 1
+        or status.snapshot_sequence != sequence
+        or status.snapshot_phase != phase
+        or status.source_mono_ns != source_mono_ns
+        or status.snapshot_updates != sequence
+        or status.published_mono_ns < source_mono_ns
+        or status.published_mono_ns < eligible_mono_ns
+        or status.published_mono_ns
+        > eligible_mono_ns + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+        or write_started_mono_ns > write_finished_mono_ns
+        or status.published_mono_ns < write_started_mono_ns
+        or status.published_mono_ns > write_finished_mono_ns
+        or status_observed_mono_ns < write_finished_mono_ns
+        or status_observed_mono_ns
+        > eligible_mono_ns + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+    ):
+        raise protocol.ValidationError(
+            "live bridge publication acknowledgement is inconsistent"
+        )
+    _require_no_live_errors(status)
+    inactive_count = (
+        status.bpf_callback_invocations
+        if implementation == "native"
+        else status.native_callback_invocations
+    )
+    if inactive_count != 0:
+        raise protocol.ValidationError("inactive live policy consumer was invoked")
+
+
+def _require_live_final(
+    status: BridgeStatus,
+    *,
+    implementation: str,
+    generation: int,
+    expected_updates: int,
+) -> None:
+    if (
+        status.mode != implementation
+        or status.generation != generation
+        or status.snapshot_present != 1
+        or status.snapshot_sequence != expected_updates
+        or status.snapshot_updates != expected_updates
+        or status.active_callbacks != 0
+    ):
+        raise protocol.ValidationError("live bridge final identity is inconsistent")
+    _require_no_live_errors(status)
+    callbacks = status.callback_invocations
+    active_mode_callbacks = (
+        status.native_callback_invocations
+        if implementation == "native"
+        else status.bpf_callback_invocations
+    )
+    inactive_mode_callbacks = (
+        status.bpf_callback_invocations
+        if implementation == "native"
+        else status.native_callback_invocations
+    )
+    closure = (
+        status.snapshot_read_attempts,
+        status.snapshot_read_successes,
+        active_mode_callbacks,
+        status.decision_requests,
+        status.decisions,
+        status.decision_records,
+        status.effect_requests,
+        status.effect_records,
+        status.selected_diagnostics,
+        status.finished_diagnostics,
+        status.dense_prefetch_decisions + status.discarded_prefetch_decisions,
+    )
+    if (
+        callbacks == 0
+        or inactive_mode_callbacks != 0
+        or any(value != callbacks for value in closure)
+        or status.dense_prefetch_decisions == 0
+        or status.discarded_prefetch_decisions == 0
+    ):
+        raise protocol.ValidationError("live bridge callback counters do not close")
+
+
+def _require_live_disabled(
+    status: BridgeStatus,
+    *,
+    generation: int,
+    expected_updates: int,
+    final_enabled_status: BridgeStatus | None,
+) -> None:
+    if (
+        status.mode != "off"
+        or status.generation != generation
+        or status.snapshot_present != 0
+        or status.snapshot_sequence != 0
+        or status.snapshot_phase != 0
+        or status.source_mono_ns != 0
+        or status.published_mono_ns != 0
+        or status.snapshot_updates != expected_updates
+        or status.active_callbacks != 0
+    ):
+        raise protocol.ValidationError("live bridge did not reach clean disabled state")
+    _require_no_live_errors(status)
+    if final_enabled_status is not None:
+        for field in COUNTER_FIELDS:
+            if getattr(status, field) != getattr(final_enabled_status, field):
+                raise protocol.ValidationError(
+                    f"live bridge cleanup changed counter {field}"
+                )
 
 
 def _valid_u64(value: object) -> bool:

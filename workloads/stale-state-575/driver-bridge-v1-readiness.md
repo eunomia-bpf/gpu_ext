@@ -100,7 +100,8 @@ window must still:
 1. apply/build/install and load the module, with pre/post kernel-safety checks;
 2. load the BPF object and retain the real verifier log;
 3. prove an old six-member policy still loads with a null versioned callback;
-4. attach the diagnostic observer and coordinator, and reconcile every common
+4. attach the diagnostic observer and exercise the implemented workload-truth
+   FD coordinator against the real proc endpoint, reconciling every common
    counter with retained publication/decision/effect records; and
 5. pass one excluded seven-cell preflight before enabling the 21-cell formal
    matrix.

@@ -66,6 +66,87 @@ def truth_intervals() -> list[dict]:
     return result
 
 
+def truth_fd_payload(*, pid: int = TARGET_PID) -> bytes:
+    records = [
+        {
+            "event": "workload_ready",
+            "pid": pid,
+            "protocol": protocol.PROTOCOL,
+            "timeline": protocol.TIMELINE,
+            "allocation_bytes": protocol.ALLOCATION_BYTES,
+            "regions": protocol.REGIONS,
+        }
+    ]
+    for interval in truth_intervals():
+        common = {
+            "sequence": interval["sequence"],
+            "phase": interval["phase"],
+            "measured": interval["measured"],
+            "scheduled_offset_ns": interval["scheduled_offset_ns"],
+        }
+        records.append(
+            {"event": "phase_start", **common, "mono_ns": interval["start_mono_ns"]}
+        )
+        records.append(
+            {"event": "phase_end", **common, "mono_ns": interval["end_mono_ns"]}
+        )
+    return b"".join(
+        json.dumps(record, separators=(",", ":")).encode("utf-8") + b"\n"
+        for record in records
+    )
+
+
+def pipe_with_payload(payload: bytes) -> int:
+    read_fd, write_fd = os.pipe()
+    try:
+        view = memoryview(payload)
+        while view:
+            written = os.write(write_fd, view)
+            view = view[written:]
+    finally:
+        os.close(write_fd)
+    return read_fd
+
+
+class ScriptedClock:
+    def __init__(self, values: list[int]):
+        self.values = iter(values)
+
+    def clock_ns(self) -> int:
+        try:
+            return next(self.values)
+        except StopIteration as exc:
+            raise AssertionError("scripted clock was exhausted") from exc
+
+    def sleep(self, seconds: float) -> None:
+        if seconds <= 0:
+            raise AssertionError("scripted clock received a non-positive sleep")
+
+
+def policy_clock_values(delay_ms: int) -> list[int]:
+    delay_ns = delay_ms * 1_000_000
+    values = []
+    for interval in truth_intervals():
+        source = interval["start_mono_ns"]
+        eligible = source + delay_ns
+        values.extend((source + 1_000, source + 2_000))
+        if delay_ns:
+            values.append(eligible)
+            write_base = eligible
+        else:
+            write_base = source + 2_000
+        values.extend(
+            (
+                write_base + 1_000,
+                write_base + 2_000,
+                write_base + 3_000,
+                write_base + 4_000,
+                interval["end_mono_ns"] + 1_000,
+            )
+        )
+    return values
+
+
 def safety_snapshot() -> dict:
     return {
         "power_limit_service": "active",
@@ -101,7 +182,7 @@ def policy_records(cell: protocol.MatrixCell, intervals: list[dict]) -> tuple[li
                 "scheduled_offset_ns": interval["scheduled_offset_ns"],
                 "eligible_mono_ns": eligible,
                 "published_mono_ns": eligible,
-                "consumer_ack_mono_ns": eligible,
+                "status_observed_mono_ns": eligible,
                 "delay_ns": delay_ns,
             }
         )
@@ -731,6 +812,335 @@ class BridgeContractTests(unittest.TestCase):
             )
 
 
+class LiveTruthFDCoordinatorTests(unittest.TestCase):
+    class EngagedBridge(coordinator.InMemoryContractBridge):
+        def publish(
+            self,
+            generation: int,
+            sequence: int,
+            phase: int,
+            source_mono_ns: int,
+        ) -> None:
+            super().publish(generation, sequence, phase, source_mono_ns)
+            if sequence == 1:
+                return
+            for field in (
+                "callback_invocations",
+                "snapshot_read_attempts",
+                "snapshot_read_successes",
+                "decision_requests",
+                "decisions",
+                "decision_records",
+                "effect_requests",
+                "effect_records",
+                "selected_diagnostics",
+                "finished_diagnostics",
+            ):
+                self._counters[field] += 1
+            self._counters[f"{self._mode}_callback_invocations"] += 1
+            action = (
+                "dense_prefetch_decisions"
+                if phase == coordinator.PHASE_IDS["dense"]
+                else "discarded_prefetch_decisions"
+            )
+            self._counters[action] += 1
+
+    def test_native_and_bpf_consume_real_fd_truth_and_close_live_contract(self) -> None:
+        for implementation in protocol.IMPLEMENTATIONS:
+            for delay_ms in protocol.DELAYS_MS:
+                with self.subTest(implementation=implementation, delay_ms=delay_ms):
+                    clock = ScriptedClock(policy_clock_values(delay_ms))
+                    bridge = self.EngagedBridge(clock_ns=clock.clock_ns)
+                    releases = []
+                    read_fd = pipe_with_payload(truth_fd_payload())
+                    try:
+                        result = coordinator.TruthFDCoordinator(
+                            bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+                        ).run(
+                            truth_fd=read_fd,
+                            expected_pid=TARGET_PID,
+                            release=lambda: releases.append("R"),
+                            implementation=implementation,
+                            generation=2026090401,
+                            delay_ms=delay_ms,
+                        )
+                    finally:
+                        os.close(read_fd)
+
+                    self.assertEqual(
+                        result["schema"], coordinator.LIVE_COORDINATOR_SCHEMA
+                    )
+                    self.assertEqual(result["truth_source"], "workload_phase_fd")
+                    self.assertFalse(result["synthetic_source"])
+                    self.assertFalse(result["experiment_evidence"])
+                    self.assertEqual(
+                        result["evidence_scope"],
+                        "coordinator_only_not_complete_cell",
+                    )
+                    self.assertEqual(result["truth_record_count"], 15)
+                    self.assertEqual(releases, ["R"])
+                    self.assertEqual(len(result["publications"]), 7)
+                    self.assertEqual(
+                        [row["source_mono_ns"] for row in result["publications"]],
+                        [row["start_mono_ns"] for row in truth_intervals()],
+                    )
+                    for row in result["publications"]:
+                        self.assertEqual(
+                            row["eligible_mono_ns"] - row["source_mono_ns"],
+                            delay_ms * 1_000_000,
+                        )
+                        self.assertLessEqual(
+                            row["write_started_mono_ns"],
+                            row["published_mono_ns"],
+                        )
+                        self.assertLessEqual(
+                            row["published_mono_ns"],
+                            row["write_finished_mono_ns"],
+                        )
+                        self.assertLessEqual(
+                            row["write_finished_mono_ns"],
+                            row["status_observed_mono_ns"],
+                        )
+                    self.assertEqual(
+                        result["final_enabled_status"]["decisions"], 6
+                    )
+                    self.assertEqual(result["disabled_status"]["mode"], "off")
+                    self.assertEqual(
+                        result["disabled_status"]["snapshot_updates"], 7
+                    )
+
+    def test_baseline_never_configures_or_publishes_policy_state(self) -> None:
+        class UntouchedBridge(coordinator.InMemoryContractBridge):
+            def configure(self, mode: str, generation: int) -> None:
+                raise AssertionError("baseline configured a policy")
+
+            def publish(
+                self,
+                generation: int,
+                sequence: int,
+                phase: int,
+                source_mono_ns: int,
+            ) -> None:
+                raise AssertionError("baseline published a snapshot")
+
+            def disable(self, generation: int) -> None:
+                raise AssertionError("baseline disabled policy state it did not own")
+
+        values = []
+        for interval in truth_intervals():
+            values.extend(
+                (interval["start_mono_ns"] + 1_000, interval["end_mono_ns"] + 1_000)
+            )
+        clock = ScriptedClock(values)
+        bridge = UntouchedBridge(clock_ns=clock.clock_ns)
+        read_fd = pipe_with_payload(truth_fd_payload())
+        try:
+            result = coordinator.TruthFDCoordinator(
+                bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+            ).run(
+                truth_fd=read_fd,
+                expected_pid=TARGET_PID,
+                release=lambda: None,
+                implementation=None,
+                generation=None,
+                delay_ms=None,
+            )
+        finally:
+            os.close(read_fd)
+        self.assertFalse(result["policy_configured"])
+        self.assertFalse(result["baseline_policy_artifacts"])
+        self.assertEqual(result["publications"], [])
+        self.assertIsNone(result["configured_status"])
+        self.assertIsNone(result["final_enabled_status"])
+        self.assertIsNone(result["disabled_status"])
+        self.assertEqual(bridge.status().mode, "off")
+
+    def test_malformed_phase_after_ready_fails_and_disables_owned_generation(self) -> None:
+        records = truth_fd_payload().splitlines(keepends=True)
+        malformed = json.loads(records[1])
+        malformed["unexpected"] = 1
+        records[1] = json.dumps(malformed).encode("utf-8") + b"\n"
+        clock = FastClock()
+        bridge = coordinator.InMemoryContractBridge(clock_ns=clock.clock_ns)
+        read_fd = pipe_with_payload(b"".join(records))
+        try:
+            with self.assertRaisesRegex(protocol.ValidationError, "schema mismatch"):
+                coordinator.TruthFDCoordinator(
+                    bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+                ).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=lambda: None,
+                    implementation="native",
+                    generation=99,
+                    delay_ms=0,
+                )
+        finally:
+            os.close(read_fd)
+        status = bridge.status()
+        self.assertEqual(status.mode, "off")
+        self.assertEqual(status.generation, 99)
+        self.assertEqual(status.snapshot_present, 0)
+
+    def test_partial_truth_record_times_out_without_touching_baseline_state(self) -> None:
+        read_fd, write_fd = os.pipe()
+        bridge = coordinator.InMemoryContractBridge()
+        try:
+            os.write(write_fd, b'{"event":')
+            with self.assertRaisesRegex(protocol.ValidationError, "timed out"):
+                coordinator.TruthFDCoordinator(
+                    bridge, truth_timeout_seconds=0.001
+                ).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=lambda: None,
+                    implementation=None,
+                    generation=None,
+                    delay_ms=None,
+                )
+        finally:
+            os.close(write_fd)
+            os.close(read_fd)
+        self.assertEqual(bridge.status().mode, "off")
+        self.assertEqual(bridge.status().snapshot_updates, 0)
+
+    def test_late_status_observation_fails_and_disables_generation(self) -> None:
+        values = policy_clock_values(100)
+        values[6] = (
+            EPOCH_NS
+            + 100_000_000
+            + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+            + 1
+        )
+        clock = ScriptedClock(values)
+        bridge = self.EngagedBridge(clock_ns=clock.clock_ns)
+        read_fd = pipe_with_payload(truth_fd_payload())
+        try:
+            with self.assertRaisesRegex(protocol.ValidationError, "acknowledgement"):
+                coordinator.TruthFDCoordinator(
+                    bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+                ).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=lambda: None,
+                    implementation="native",
+                    generation=102,
+                    delay_ms=100,
+                )
+        finally:
+            os.close(read_fd)
+        self.assertEqual(bridge.status().mode, "off")
+
+    def test_late_truth_event_and_dirty_live_counter_fail_and_clean_up(self) -> None:
+        late_values = [
+            EPOCH_NS + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS + 1
+        ]
+        read_fd = pipe_with_payload(truth_fd_payload())
+        bridge = coordinator.InMemoryContractBridge()
+        try:
+            with self.assertRaisesRegex(protocol.ValidationError, "delivered"):
+                coordinator.TruthFDCoordinator(
+                    bridge, clock_ns=ScriptedClock(late_values).clock_ns
+                ).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=lambda: None,
+                    implementation="bpf",
+                    generation=100,
+                    delay_ms=0,
+                )
+        finally:
+            os.close(read_fd)
+        self.assertEqual(bridge.status().mode, "off")
+
+        class DirtyBridge(self.EngagedBridge):
+            def publish(
+                self,
+                generation: int,
+                sequence: int,
+                phase: int,
+                source_mono_ns: int,
+            ) -> None:
+                super().publish(generation, sequence, phase, source_mono_ns)
+                if sequence == 3:
+                    self._counters["effect_errors"] += 1
+
+        clock = ScriptedClock(policy_clock_values(100))
+        bridge = DirtyBridge(clock_ns=clock.clock_ns)
+        read_fd = pipe_with_payload(truth_fd_payload())
+        try:
+            with self.assertRaises(ExceptionGroup) as caught:
+                coordinator.TruthFDCoordinator(
+                    bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+                ).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=lambda: None,
+                    implementation="native",
+                    generation=101,
+                    delay_ms=100,
+                )
+        finally:
+            os.close(read_fd)
+        self.assertIn("invalid action", str(caught.exception.exceptions[0]))
+        self.assertIn("invalid action", str(caught.exception.exceptions[1]))
+        self.assertEqual(bridge.status().mode, "off")
+
+    def test_ready_identity_duplicate_json_and_trailing_records_fail_closed(self) -> None:
+        duplicate = (
+            b'{"event":"workload_ready","event":"workload_ready","pid":4242,'
+            b'"protocol":"stale-cross-layer-575-v1",'
+            b'"timeline":"alternating-dense-sparse-40g-v1",'
+            b'"allocation_bytes":42949672960,"regions":655360}\n'
+        )
+        with self.assertRaisesRegex(protocol.ValidationError, "duplicate"):
+            coordinator._decode_truth_record(duplicate)
+
+        float_ready = json.loads(truth_fd_payload().splitlines()[0])
+        float_ready["pid"] = float(TARGET_PID)
+        with self.assertRaisesRegex(protocol.ValidationError, "identity"):
+            coordinator._require_workload_ready(float_ready, TARGET_PID)
+
+        wrong_ready = truth_fd_payload(pid=TARGET_PID + 1)
+        read_fd = pipe_with_payload(wrong_ready)
+        try:
+            with self.assertRaisesRegex(protocol.ValidationError, "identity"):
+                coordinator.TruthFDCoordinator(
+                    coordinator.InMemoryContractBridge()
+                ).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=lambda: None,
+                    implementation=None,
+                    generation=None,
+                    delay_ms=None,
+                )
+        finally:
+            os.close(read_fd)
+
+        values = []
+        for interval in truth_intervals():
+            values.extend(
+                (interval["start_mono_ns"] + 1_000, interval["end_mono_ns"] + 1_000)
+            )
+        read_fd = pipe_with_payload(truth_fd_payload() + b'{"event":"extra"}\n')
+        try:
+            with self.assertRaisesRegex(protocol.ValidationError, "trailing"):
+                coordinator.TruthFDCoordinator(
+                    coordinator.InMemoryContractBridge(),
+                    clock_ns=ScriptedClock(values).clock_ns,
+                ).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=lambda: None,
+                    implementation=None,
+                    generation=None,
+                    delay_ms=None,
+                )
+        finally:
+            os.close(read_fd)
+
+
 class BoundaryTests(unittest.TestCase):
     def test_dry_run_has_no_filesystem_or_process_side_effects(self) -> None:
         output = io.StringIO()
@@ -798,6 +1208,29 @@ class RawValidationTests(unittest.TestCase):
             self.assertEqual(result["uvm"]["eviction_events"], 2)
             self.assertGreater(result["workload"]["checked_values"], 0)
 
+    def test_decision_after_publication_before_status_observation_is_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cell = next(
+                value
+                for value in protocol.matrix("full")
+                if value.block == 1 and value.arm == "bpf_delay_100ms"
+            )
+            path = make_cell(root, cell)
+            publications = [
+                json.loads(line)
+                for line in (path / "snapshot-publications.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            for publication in publications:
+                publication["status_observed_mono_ns"] = (
+                    publication["published_mono_ns"] + 10_000_000
+                )
+            write_jsonl(path / "snapshot-publications.jsonl", publications)
+            result = protocol.validate_cell(path, cell)
+            self.assertTrue(result["valid"])
+
     def test_default_control_rejects_policy_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -843,7 +1276,7 @@ class RawValidationTests(unittest.TestCase):
                     protocol.validate_cell(path, cell)
 
     def test_validator_rejects_early_snapshot_and_unengaged_policy(self) -> None:
-        for mutation in ("early", "unengaged"):
+        for mutation in ("early", "late_status", "unengaged"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 cell = next(
@@ -855,7 +1288,15 @@ class RawValidationTests(unittest.TestCase):
                 if mutation == "early":
                     values = [json.loads(line) for line in (path / "snapshot-publications.jsonl").read_text().splitlines()]
                     values[0]["published_mono_ns"] -= 1
-                    values[0]["consumer_ack_mono_ns"] -= 1
+                    values[0]["status_observed_mono_ns"] -= 1
+                    write_jsonl(path / "snapshot-publications.jsonl", values)
+                elif mutation == "late_status":
+                    values = [json.loads(line) for line in (path / "snapshot-publications.jsonl").read_text().splitlines()]
+                    values[0]["status_observed_mono_ns"] = (
+                        values[0]["eligible_mono_ns"]
+                        + protocol.MAXIMUM_BOUNDARY_OVERRUN_NS
+                        + 1
+                    )
                     write_jsonl(path / "snapshot-publications.jsonl", values)
                 else:
                     decisions = [json.loads(line) for line in (path / "policy-decisions.jsonl").read_text().splitlines()]

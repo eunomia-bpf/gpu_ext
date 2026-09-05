@@ -43,6 +43,13 @@ ambient injection environment. Each child argv, return code, stdout, stderr,
 and independent analyzer result is retained in `lifecycle.json`; wrapper
 completion requires every requested child gate before rollback.
 
+Attempt 11 additionally admits only an exact 2392 MHz SM / 14001 MHz memory
+clock observation. Both values are enumerated together by the device's
+supported-clock query. The wrapper establishes that pair before the probe,
+checks it before and after each child, and rejects any different observation
+without tolerance. Clock resets are attempted in reverse order before module
+rollback on every exit path.
+
 The child does not inherit the invoking shell's executable search path. Its
 PATH is fixed to the CUDA 12.9, standard local, and system binary directories,
 and admission resolves `cuobjdump`, `nvcc`, `git`, `make`, `nvidia-smi`,
@@ -56,8 +63,8 @@ The only admitted live invocation for the next fresh attempt is:
 ```bash
 sudo -n python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/launch-clock-recovery/run_endpoint_module_lifecycle.py \
   --candidate-dir /opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-02 \
-  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-stage-575-08 \
-  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-08-endpoint-lifecycle \
+  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-stage-575-11 \
+  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-11-endpoint-lifecycle \
   --child-mode preflight-full \
   --execute
 ```

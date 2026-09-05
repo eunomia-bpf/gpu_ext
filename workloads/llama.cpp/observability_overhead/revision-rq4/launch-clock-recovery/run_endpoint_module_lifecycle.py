@@ -85,7 +85,7 @@ KUBECTL = (
     "/var/lib/rancher/k3s/agent/kubelet.kubeconfig",
 )
 NODE = "lab"
-FIXED_SM_CLOCK_MHZ = 2400
+FIXED_SM_CLOCK_MHZ = 2392
 FIXED_MEMORY_CLOCK_MHZ = 14001
 CLOCK_OBSERVATION_COMMAND = (
     "nvidia-smi", "--query-gpu=pstate,clocks.current.sm,clocks.current.memory,"
@@ -96,7 +96,7 @@ CLOCK_SUPPORT_COMMAND = (
     "--format=csv,noheader,nounits",
 )
 CLOCK_LOCK_COMMANDS = (
-    ("nvidia-smi", "-i", "0", "--lock-gpu-clocks=2400,2400"),
+    ("nvidia-smi", "-i", "0", "--lock-gpu-clocks=2392,2392"),
     ("nvidia-smi", "-i", "0", "--lock-memory-clocks=14001,14001"),
 )
 CLOCK_RESET_COMMANDS = (

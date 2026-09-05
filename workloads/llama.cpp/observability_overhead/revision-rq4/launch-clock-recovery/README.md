@@ -9,16 +9,21 @@ attempt 07 failed under its original 10,000 ppb rule. Calibration controls
 remain separate from the paired 10-block result, and the same-stack
 PTIMER/`%globaltimer` identity canary still precedes the 220-launch rerun.
 
-Attempts 08 and 09 remain retained failures. Attempt 09 passed its fresh
+Attempts 08 through 10 remain retained failures. Attempt 09 passed its fresh
 preflight but found two narrow RM endpoint regimes: a 781 ns median bracket
 after candidate activation and a 2,174 ns median bracket after the GPU returned
 to idle clocks. The exact evidence boundary is in
 [`results-launchlate-575-09-clock-state-failed-20260904.md`](results-launchlate-575-09-clock-state-failed-20260904.md).
-The independently reviewed attempt-10 retry in
-[`launchlate-attempt10-frozen-clock-state-plan.md`](launchlate-attempt10-frozen-clock-state-plan.md)
-locks the supported 2400 / 14001 MHz pair symmetrically across all three arms,
-retains fresh controls in both child campaigns, and resets both clocks before
-module rollback on every exit path. It does not relax the 1.5 us gate.
+Attempt 10 requested an exact 2400 / 14001 MHz lock, but the observation after
+its completed preflight was 2392 / 14001 MHz. The exact gate stopped before the
+full child; the conservative failure record is in
+[`results-launchlate-575-10-clock-lock-failed-20260904.md`](results-launchlate-575-10-clock-lock-failed-20260904.md).
+The attempt-11 retry in
+[`launchlate-attempt11-frozen-clock-state-plan.md`](launchlate-attempt11-frozen-clock-state-plan.md)
+instead requires the enumerated 2392 / 14001 MHz pair exactly across the probe
+and both child campaigns. It retains fresh controls in both children and resets
+both clocks before module rollback on every exit path. It does not relax the
+1.5 us gate.
 
 The runnable campaign is the launch-only three-arm matrix; it never mixes the
 old cross-clock records into a result. From the `revision-rq4` directory, first

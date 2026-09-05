@@ -62,10 +62,10 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
                  "launchlate-endpoint-86e7e0dd-575-02"),
         )
         self.assertEqual(len(lifecycle.ENDPOINT_SYMBOLS), 2)
-        self.assertEqual(lifecycle.FIXED_SM_CLOCK_MHZ, 2400)
+        self.assertEqual(lifecycle.FIXED_SM_CLOCK_MHZ, 2392)
         self.assertEqual(lifecycle.FIXED_MEMORY_CLOCK_MHZ, 14001)
         self.assertEqual(lifecycle.CLOCK_LOCK_COMMANDS, (
-            ("nvidia-smi", "-i", "0", "--lock-gpu-clocks=2400,2400"),
+            ("nvidia-smi", "-i", "0", "--lock-gpu-clocks=2392,2392"),
             ("nvidia-smi", "-i", "0",
              "--lock-memory-clocks=14001,14001"),
         ))
@@ -78,7 +78,7 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
         query_results = [
             "14001, 2400\n14001, 2392\n",
             "P8, 22, 405, Not Active\n",
-            "P0, 2400, 14001, Not Active\n",
+            "P0, 2392, 14001, Not Active\n",
         ]
         with (patch.object(lifecycle.base, "checked_stdout",
                            side_effect=query_results) as query,
@@ -96,9 +96,9 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
 
     def test_fixed_clock_lock_rejects_observation_mismatch(self) -> None:
         query_results = [
-            "14001, 2400\n",
+            "14001, 2400\n14001, 2392\n",
             "P8, 22, 405, Not Active\n",
-            "P8, 22, 405, Not Active\n",
+            "P0, 2400, 14001, Not Active\n",
         ]
         with (patch.object(lifecycle.base, "checked_stdout",
                            side_effect=query_results),
@@ -126,9 +126,9 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
 
     def test_fixed_clock_lock_rejects_nonzero_even_if_observation_matches(self) -> None:
         query_results = [
-            "14001, 2400\n",
+            "14001, 2392\n",
             "P8, 22, 405, Not Active\n",
-            "P0, 2400, 14001, Not Active\n",
+            "P0, 2392, 14001, Not Active\n",
         ]
 
         def run(argv):
@@ -186,7 +186,7 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
 
         def lock(active_state):
             active_state.clock_lock_started = True
-            return {"after": {"sm_clock_mhz": 2400}}
+            return {"after": {"sm_clock_mhz": 2392}}
 
         with (patch.object(lifecycle, "establish_fixed_clocks",
                            side_effect=lock),
@@ -219,7 +219,7 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
         recovery_errors = []
         def lock(active_state):
             active_state.clock_lock_started = True
-            return {"after": {"sm_clock_mhz": 2400}}
+            return {"after": {"sm_clock_mhz": 2392}}
         with (patch.object(lifecycle, "establish_fixed_clocks",
                            side_effect=lock),
               patch.object(lifecycle, "reset_fixed_clocks",
@@ -275,7 +275,7 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
 
         def lock(active_state):
             active_state.clock_lock_started = True
-            return {"after": {"sm_clock_mhz": 2400}}
+            return {"after": {"sm_clock_mhz": 2392}}
 
         with (patch.object(lifecycle, "establish_fixed_clocks",
                            side_effect=lock),
@@ -416,6 +416,8 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
         self.assertEqual(result["candidate_origin"]["path"],
                          str(lifecycle.PREBUILT_CANDIDATE_DIR))
         self.assertEqual(result["child_mode"], "none")
+        self.assertEqual(result["fixed_clocks"]["sm_clock_mhz"], 2392)
+        self.assertEqual(result["fixed_clocks"]["memory_clock_mhz"], 14001)
         self.assertEqual(result["fixed_clocks"]["lock_commands"],
                          [list(value) for value in lifecycle.CLOCK_LOCK_COMMANDS])
         self.assertEqual(result["fixed_clocks"]["reset_commands"],

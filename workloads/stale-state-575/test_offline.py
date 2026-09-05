@@ -16,8 +16,10 @@ from pathlib import Path
 from unittest import mock
 
 import coordinator
+import live_runner
 import observer_protocol
 import protocol
+import run_module_lifecycle
 import run_study
 
 
@@ -208,7 +210,8 @@ def policy_records(cell: protocol.MatrixCell, intervals: list[dict]) -> tuple[li
                 "legal_max_outer": 16,
                 "output_first": 0,
                 "output_outer": 16 if dense else 0,
-                "host_phase_fixture": interval["phase"],
+                "observer_mono_ns": timestamp_ns + 100,
+                "target_tgid": TARGET_PID,
             }
         )
 
@@ -296,7 +299,11 @@ def make_cell(root: Path, cell: protocol.MatrixCell) -> Path:
             "compute_apps": True,
             "kernel_log": True,
             "phase_truth": True,
-            "policy_diagnostics": True,
+            **(
+                {"policy_artifact_absence": True}
+                if cell.role == "context_control"
+                else {"policy_diagnostics": True}
+            ),
         },
         "cleanup": {
             "workload_reaped": True,
@@ -456,6 +463,45 @@ def make_cell(root: Path, cell: protocol.MatrixCell) -> Path:
         write_jsonl(path / "snapshot-publications.jsonl", publications)
         write_jsonl(path / "policy-decisions.jsonl", decisions)
         write_json(path / "policy-final.json", final)
+        struct_link = 302 if cell.implementation == "bpf" else 0
+        observer = [
+            {
+                "event": "ready",
+                "pid": TARGET_PID + 1,
+                "target_pid": TARGET_PID,
+                "implementation": cell.implementation,
+                "observer_link_id": 301,
+                "struct_link_id": struct_link,
+                "struct_map_id": 303 if cell.implementation == "bpf" else 0,
+            },
+            *decisions,
+            {
+                "event": "observer_final",
+                "implementation": cell.implementation,
+                "observer_link_id": 301,
+                "struct_link_id": struct_link,
+                "diagnostic_calls": 2 * len(decisions),
+                "selected_seen": len(decisions),
+                "finished_seen": len(decisions),
+                "records_emitted": len(decisions),
+                "foreign_tgid": 0,
+                "read_errors": 0,
+                "ringbuf_drops": 0,
+                "phase_errors": 0,
+                "valid": True,
+            },
+        ]
+        write_jsonl(path / "policy-observer.jsonl", observer)
+        (path / "policy-observer.stderr.log").write_text("", encoding="utf-8")
+        policy_transcript = (
+            "processed 20 insns\n" if cell.implementation == "bpf" else ""
+        )
+        (path / "verifier.log").write_text(
+            "load_error=0\nprogram_count=2\n\n"
+            "program=stale_state_v1_diagnostic_observer\nprocessed 12 insns\n\n"
+            f"program=stale_state_prefetch_v1\n{policy_transcript}",
+            encoding="utf-8",
+        )
     return path
 
 
@@ -910,6 +956,28 @@ class LiveTruthFDCoordinatorTests(unittest.TestCase):
                         result["disabled_status"]["snapshot_updates"], 7
                     )
 
+    def test_bootstrap_release_precedes_configuration_to_avoid_missing_snapshot(self) -> None:
+        clock = ScriptedClock(policy_clock_values(1000))
+        bridge = self.EngagedBridge(clock_ns=clock.clock_ns)
+        modes_at_release: list[str] = []
+        read_fd = pipe_with_payload(truth_fd_payload())
+        try:
+            result = coordinator.TruthFDCoordinator(
+                bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+            ).run(
+                truth_fd=read_fd,
+                expected_pid=TARGET_PID,
+                release=lambda: modes_at_release.append(bridge.status().mode),
+                implementation="bpf",
+                generation=2026090402,
+                delay_ms=1000,
+            )
+        finally:
+            os.close(read_fd)
+        self.assertEqual(modes_at_release, ["off"])
+        self.assertEqual(result["configured_status"]["snapshot_present"], 0)
+        self.assertEqual(result["publications"][0]["sequence"], 1)
+
     def test_baseline_never_configures_or_publishes_policy_state(self) -> None:
         class UntouchedBridge(coordinator.InMemoryContractBridge):
             def configure(self, mode: str, generation: int) -> None:
@@ -980,7 +1048,7 @@ class LiveTruthFDCoordinatorTests(unittest.TestCase):
             os.close(read_fd)
         status = bridge.status()
         self.assertEqual(status.mode, "off")
-        self.assertEqual(status.generation, 99)
+        self.assertEqual(status.generation, 0)
         self.assertEqual(status.snapshot_present, 0)
 
     def test_partial_truth_record_times_out_without_touching_baseline_state(self) -> None:
@@ -1004,6 +1072,39 @@ class LiveTruthFDCoordinatorTests(unittest.TestCase):
             os.close(read_fd)
         self.assertEqual(bridge.status().mode, "off")
         self.assertEqual(bridge.status().snapshot_updates, 0)
+
+    def test_before_release_hook_runs_after_ready_and_fails_before_policy_state(self) -> None:
+        bridge = coordinator.InMemoryContractBridge()
+        read_fd = pipe_with_payload(truth_fd_payload())
+        released = False
+        observed: list[dict] = []
+
+        def before_release(ready: dict) -> None:
+            observed.append(ready)
+            raise RuntimeError("observer attach failed")
+
+        def release() -> None:
+            nonlocal released
+            released = True
+
+        try:
+            with self.assertRaisesRegex(RuntimeError, "observer attach failed"):
+                coordinator.TruthFDCoordinator(bridge).run(
+                    truth_fd=read_fd,
+                    expected_pid=TARGET_PID,
+                    release=release,
+                    implementation="bpf",
+                    generation=103,
+                    delay_ms=0,
+                    before_release=before_release,
+                )
+        finally:
+            os.close(read_fd)
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0]["event"], "workload_ready")
+        self.assertFalse(released)
+        self.assertEqual(bridge.status().mode, "off")
+        self.assertEqual(bridge.status().generation, 0)
 
     def test_late_status_observation_fails_and_disables_generation(self) -> None:
         values = policy_clock_values(100)
@@ -1154,7 +1255,7 @@ class ObserverProtocolTests(unittest.TestCase):
                 "implementation": implementation,
                 "observer_link_id": 301,
                 "struct_link_id": struct_link,
-                "struct_map_id": 303,
+                "struct_map_id": 303 if implementation == "bpf" else 0,
             }
         ]
         for sequence, phase in ((1, "dense"), (2, "sparse")):
@@ -1273,6 +1374,64 @@ class ObserverProtocolTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_live_preflight_dry_run_is_side_effect_free_and_keeps_baseline_clean(self) -> None:
+        with (
+            mock.patch.object(Path, "exists", side_effect=AssertionError("exists")),
+            mock.patch.object(Path, "mkdir", side_effect=AssertionError("mkdir")),
+            mock.patch.object(subprocess, "run", side_effect=AssertionError("run")),
+            mock.patch.object(subprocess, "Popen", side_effect=AssertionError("Popen")),
+            mock.patch.object(os, "open", side_effect=AssertionError("open")),
+        ):
+            result = live_runner.dry_run(Path("relative/preflight"), (11, 12))
+        self.assertFalse(result["experiment_evidence"])
+        self.assertFalse(result["executes_gpu"])
+        self.assertFalse(result["loads_modules"])
+        self.assertFalse(result["baseline_policy_artifacts"])
+        self.assertEqual(len(result["order"]), 7)
+        self.assertIsNone(result["policy_loader"]["baseline"])
+        self.assertEqual(result["policy_loader"]["native"], "fentry observer only")
+
+    def test_module_lifecycle_interface_and_child_lease_contract(self) -> None:
+        members = (
+            "gpu_test_trigger", "gpu_page_prefetch", "gpu_page_prefetch_iter",
+            "gpu_block_activate", "gpu_block_access", "gpu_evict_prepare",
+            "gpu_stale_state_prefetch_v1",
+        )
+        raw = "STRUCT 'gpu_mem_ops' size=56 vlen=7\n" + "".join(
+            f"\t'{name}' type_id=1 bits_offset=0\n" for name in members
+        )
+        raw += (
+            "FUNC 'uvm_stale_state_v1_diagnostic' type_id=1 linkage=global\n"
+            "FUNC 'bpf_gpu_stale_state_v1_request' type_id=1 linkage=global\n"
+            "STRUCT 'uvm_stale_state_v1_input' size=88 vlen=1\n"
+            "STRUCT 'uvm_stale_state_v1_diagnostic' size=176 vlen=17\n"
+        )
+        diagnostic_members = (
+            "input", "callback_return", "decision_age_ns", "requested_first",
+            "requested_outer", "output_first", "output_outer", "diagnostic_phase",
+            "mode", "status", "action", "action_attempted", "action_conflict",
+            "action_request_calls", "region_result", "initial_effect", "owner_tgid",
+        )
+        raw += "".join(
+            f"\t'{name}' type_id=1 bits_offset=0\n"
+            for name in diagnostic_members
+        )
+        interface = run_module_lifecycle.exact_stale_interface(raw)
+        self.assertEqual(interface["gpu_mem_ops_members"], list(members))
+        self.assertEqual(interface["diagnostic_members"], list(diagnostic_members))
+        with self.assertRaises(run_module_lifecycle.LifecycleError):
+            run_module_lifecycle.exact_stale_interface(
+                raw.replace("gpu_stale_state_prefetch_v1", "wrong_callback")
+            )
+        with self.assertRaises(run_module_lifecycle.LifecycleError):
+            run_module_lifecycle.exact_stale_interface(
+                raw.replace("owner_tgid", "reserved")
+            )
+        command = run_module_lifecycle.child_command(Path("/tmp/output"), (31, 32))
+        self.assertEqual(command[-2:], ["31", "32"])
+        with self.assertRaises(run_module_lifecycle.LifecycleError):
+            run_module_lifecycle.child_command(Path("/tmp/output"), (31,))
+
     def test_dry_run_has_no_filesystem_or_process_side_effects(self) -> None:
         output = io.StringIO()
         errors = io.StringIO()
@@ -1363,17 +1522,55 @@ class RawValidationTests(unittest.TestCase):
             self.assertTrue(result["valid"])
 
     def test_default_control_rejects_policy_artifacts(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            cell = next(
-                value
-                for value in protocol.matrix("full")
-                if value.block == 1 and value.arm == "uvm_default"
-            )
-            path = make_cell(root, cell)
-            write_json(path / "policy-final.json", {"event": "unexpected"})
-            with self.assertRaises(protocol.ValidationError):
-                protocol.validate_cell(path, cell)
+        for artifact in protocol.POLICY_ARTIFACT_NAMES:
+            with self.subTest(artifact=artifact), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                cell = next(
+                    value
+                    for value in protocol.matrix("full")
+                    if value.block == 1 and value.arm == "uvm_default"
+                )
+                path = make_cell(root, cell)
+                (path / artifact).write_text("unexpected\n", encoding="utf-8")
+                with self.assertRaises(protocol.ValidationError):
+                    protocol.validate_cell(path, cell)
+
+    def test_policy_requires_raw_observer_and_verifier_evidence(self) -> None:
+        for mutation in (
+            "missing_observer", "duplicate_observer_key", "decision_mismatch",
+            "missing_verifier",
+        ):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                cell = next(
+                    value
+                    for value in protocol.matrix("full")
+                    if value.block == 1 and value.arm == "bpf_fresh"
+                )
+                path = make_cell(root, cell)
+                if mutation == "missing_observer":
+                    (path / "policy-observer.jsonl").unlink()
+                elif mutation == "duplicate_observer_key":
+                    observer_path = path / "policy-observer.jsonl"
+                    lines = observer_path.read_text(encoding="utf-8").splitlines()
+                    lines[0] = lines[0].replace(
+                        f'"target_pid":{TARGET_PID}',
+                        f'"target_pid":{TARGET_PID},"target_pid":{TARGET_PID}',
+                    )
+                    observer_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+                elif mutation == "decision_mismatch":
+                    decisions = [
+                        json.loads(line)
+                        for line in (path / "policy-decisions.jsonl")
+                        .read_text(encoding="utf-8")
+                        .splitlines()
+                    ]
+                    decisions[0]["output_outer"] -= 1
+                    write_jsonl(path / "policy-decisions.jsonl", decisions)
+                else:
+                    (path / "verifier.log").unlink()
+                with self.assertRaises(protocol.ValidationError):
+                    protocol.validate_cell(path, cell)
 
     def test_validator_rejects_numerical_error_event_loss_and_cleanup_failure(self) -> None:
         mutations = ("numerical", "event_loss", "cleanup", "effect_error")

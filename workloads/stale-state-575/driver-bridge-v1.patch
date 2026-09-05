@@ -136,18 +136,21 @@ index 55f7edf0..db63849c 100644
 +	int (*gpu_stale_state_prefetch_v1)(
 +		uvm_stale_state_v1_decision_ctx_t *decision_ctx);
  };
- 
+-
++
 +static_assert(offsetof(struct gpu_mem_ops, gpu_stale_state_prefetch_v1) ==
 +	      6 * sizeof(void *));
 +static_assert(sizeof(struct gpu_mem_ops) == 7 * sizeof(void *));
 +
- 
+-
++
  /* Define our custom struct_ops operations */
  /* Global instance that BPF programs will implement */
 @@ -115,6 +123,12 @@ static int gpu_mem_ops__gpu_evict_prepare(
  	return UVM_BPF_ACTION_DEFAULT;
  }
- 
+-
++
 +static int gpu_mem_ops__gpu_stale_state_prefetch_v1(
 +	uvm_stale_state_v1_decision_ctx_t *decision_ctx)
 +{
@@ -163,12 +166,14 @@ index 55f7edf0..db63849c 100644
  	.gpu_evict_prepare = gpu_mem_ops__gpu_evict_prepare,
 +	.gpu_stale_state_prefetch_v1 = gpu_mem_ops__gpu_stale_state_prefetch_v1,
  };
- 
+-
++
  /* Begin kfunc definitions */
 @@ -161,20 +176,43 @@ __bpf_kfunc int bpf_gpu_request_reorder(uvm_bpf_pmm_decision_ctx_t *decision_ctx
  					    position);
  }
- 
+-
++
 +/* Submit one action while keeping the versioned context driver-owned. */
 +__bpf_kfunc int bpf_gpu_stale_state_v1_request(
 +	uvm_stale_state_v1_decision_ctx_t *decision_ctx,
@@ -179,7 +184,8 @@ index 55f7edf0..db63849c 100644
 +
  /* End kfunc definitions */
  __bpf_kfunc_end_defs();
- 
+-
++
 -/* Define the BTF kfuncs ID set */
 -BTF_KFUNCS_START(uvm_bpf_kfunc_ids_set)
 +/*
@@ -194,7 +200,8 @@ index 55f7edf0..db63849c 100644
 -BTF_KFUNCS_END(uvm_bpf_kfunc_ids_set)
 +BTF_ID_FLAGS(func, bpf_gpu_stale_state_v1_request, KF_TRUSTED_ARGS)
 +BTF_KFUNCS_END(uvm_bpf_struct_ops_kfunc_ids_set)
- 
+-
++
 -/* Register the kfunc ID set */
 -static const struct btf_kfunc_id_set uvm_bpf_kfunc_set = {
 +BTF_KFUNCS_START(uvm_bpf_kprobe_kfunc_ids_set)
@@ -213,12 +220,14 @@ index 55f7edf0..db63849c 100644
 -	.set = &uvm_bpf_kfunc_ids_set,
 +	.set = &uvm_bpf_kprobe_kfunc_ids_set,
  };
- 
+-
++
  /* BTF and verifier callbacks */
 @@ -303,16 +341,29 @@ int uvm_bpf_struct_ops_init(void)
  {
  	int ret;
- 
+-
++
 +	/* Make all fallible proc setup complete before publishing struct_ops. */
 +	ret = uvm_stale_state_v1_init();
 +	if (ret)
@@ -240,7 +249,8 @@ index 55f7edf0..db63849c 100644
 +		goto error_proc;
  	}
  	pr_info("UVM: kfunc ID set registered successfully\n");
- 
+-
++
  	/* Also register for tracing programs (kprobe/uprobe) so they can call gpu kfuncs */
 -	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_KPROBE, &uvm_bpf_kfunc_set);
 +	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_KPROBE,
@@ -255,7 +265,8 @@ index 55f7edf0..db63849c 100644
 -		return ret;
 +		goto error_proc;
  	}
- 
+-
++
 -	/* Create proc file for triggering */
 -	trigger_file = proc_create("bpf_testmod_trigger", 0222, NULL, &trigger_proc_ops);
 -	if (!trigger_file)
@@ -271,7 +282,8 @@ index 55f7edf0..db63849c 100644
 +	uvm_stale_state_v1_exit();
 +	return ret;
  }
- 
+-
++
  void uvm_bpf_struct_ops_exit(void)
  {
 +	uvm_stale_state_v1_exit();
@@ -281,7 +293,8 @@ index 55f7edf0..db63849c 100644
 @@ -397,6 +451,20 @@ NvS64 uvm_bpf_call_gpu_page_prefetch_iter(
  	return (NvS64)ret;
  }
- 
+-
++
 +NvS64 uvm_bpf_call_gpu_stale_state_v1(
 +	uvm_stale_state_v1_decision_ctx_t *decision_ctx)
 +{
@@ -308,24 +321,66 @@ index 962de551..fe90087d 100644
  #include "uvm_pmm_gpu.h"
  #include "nv-gpu-transition-validator.h"
 +#include "uvm_stale_state_v1.h"
- 
+-
++
  typedef struct uvm_bpf_prefetch_decision
  {
 @@ -72,6 +73,9 @@ NvS64 uvm_bpf_call_gpu_page_prefetch_iter(
      unsigned int counter,
      nv_gpu_prefetch_decision_t *decision);
- 
+-
++
 +NvS64 uvm_bpf_call_gpu_stale_state_v1(
 +    uvm_stale_state_v1_decision_ctx_t *decision_ctx);
 +
  /* PMM eviction policy hook wrapper functions */
  void uvm_bpf_call_gpu_block_activate(
      uvm_pmm_gpu_t *pmm,
+diff --git a/kernel-open/nvidia-uvm/uvm_va_space.h b/kernel-open/nvidia-uvm/uvm_va_space.h
+--- a/kernel-open/nvidia-uvm/uvm_va_space.h
++++ b/kernel-open/nvidia-uvm/uvm_va_space.h
+@@ -371,6 +371,10 @@ struct uvm_va_space_struct
+     uvm_va_block_context_t *va_block_context;
+-
++
+     NvU64 initialization_flags;
++
++    // Stable creator identity for address-free diagnostic ownership. Unlike
++    // current, this remains the workload TGID on GPU fault worker paths.
++    NvU32 stale_state_owner_tgid;
+-
++
+     // The mm currently associated with this VA space, if any.
+     uvm_va_space_mm_t va_space_mm;
+diff --git a/kernel-open/nvidia-uvm/uvm_va_space.c b/kernel-open/nvidia-uvm/uvm_va_space.c
+--- a/kernel-open/nvidia-uvm/uvm_va_space.c
++++ b/kernel-open/nvidia-uvm/uvm_va_space.c
+@@ -286,6 +286,7 @@ NV_STATUS uvm_va_space_create(struct address_space *mapping, uvm_va_space_t **va
+     init_waitqueue_head(&va_space->gpu_va_space_deferred_free.wait_queue);
+-
++
+     va_space->mapping = mapping;
++    va_space->stale_state_owner_tgid = uvm_get_stale_process_id();
+     va_space->test.page_prefetch_enabled = true;
+-
++
+     init_tools_data(va_space);
 diff --git a/kernel-open/nvidia-uvm/uvm_perf_prefetch.c b/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
 index 4f5d136e..63ed2ec5 100644
 --- a/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
 +++ b/kernel-open/nvidia-uvm/uvm_perf_prefetch.c
-@@ -113,12 +113,23 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
+@@ -102,7 +102,8 @@ NvU16 uvm_perf_prefetch_bitmap_tree_iter_get_count(const uvm_perf_prefetch_bitm
+-
++
+ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index,
+                                                      uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
+-                                                     uvm_va_block_region_t max_prefetch_region)
++                                                     uvm_va_block_region_t max_prefetch_region,
++                                                     NvU32 owner_tgid)
+ {
+     NvU16 counter;
+     uvm_perf_prefetch_bitmap_tree_iter_t iter;
+@@ -113,12 +114,24 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
      enum nv_gpu_prefetch_initial_effect initial_effect;
      NvS64 raw_action;
      struct uvm_bpf_prefetch_diagnostic_ctx diagnostic = {0};
@@ -333,7 +388,8 @@ index 4f5d136e..63ed2ec5 100644
 +    struct uvm_stale_state_v1_diagnostic stale_diagnostic = {0};
 +    bool stale_state_active;
      const NvU64 type_outer = (NvU64)(uvm_page_index_t)~0U;
- 
+-
++
 -    raw_action = uvm_bpf_call_gpu_page_prefetch(page_index,
 -                                                bitmap_tree,
 -                                                &max_prefetch_region,
@@ -341,6 +397,7 @@ index 4f5d136e..63ed2ec5 100644
 +    stale_state_active =
 +        uvm_stale_state_v1_begin(page_index,
 +                                 &max_prefetch_region,
++                                 owner_tgid,
 +                                 &stale_decision_ctx,
 +                                 &stale_diagnostic,
 +                                 &raw_action,
@@ -353,7 +410,7 @@ index 4f5d136e..63ed2ec5 100644
      region_result = nv_gpu_transition_validate_region(&initial_decision,
                                                         max_prefetch_region.first,
                                                         max_prefetch_region.outer,
-@@ -127,6 +138,10 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
+@@ -127,6 +140,10 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
                                                         &validated_region);
      initial_effect = nv_gpu_transition_prefetch_initial_effect(raw_action,
                                                                 region_result);
@@ -361,24 +418,114 @@ index 4f5d136e..63ed2ec5 100644
 +        uvm_stale_state_v1_selected(&stale_diagnostic,
 +                                    region_result,
 +                                    initial_effect);
- 
+-
++
      diagnostic.raw_action = raw_action;
      diagnostic.requested_first = initial_decision.first;
-@@ -230,6 +245,8 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
+@@ -230,6 +247,8 @@ static uvm_va_block_region_t compute_prefetch_region(uvm_page_index_t page_index
      diagnostic.output_outer = prefetch_region.outer;
      diagnostic.phase = UVM_BPF_PREFETCH_DIAG_FINISHED;
      uvm_bpf_prefetch_diagnostic(&diagnostic);
 +    if (stale_state_active)
 +        uvm_stale_state_v1_finished(&stale_diagnostic, &prefetch_region);
- 
+-
++
      return prefetch_region;
+ }
+@@ -388,23 +407,27 @@
+-static void compute_prefetch_mask(uvm_va_block_region_t faulted_region,
+-                                  uvm_va_block_region_t max_prefetch_region,
+-                                  uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
+-                                  const uvm_page_mask_t *faulted_pages,
+-                                  uvm_page_mask_t *out_prefetch_mask)
+-{
+-    uvm_page_index_t page_index;
+-
+-    uvm_page_mask_zero(out_prefetch_mask);
+-
+-    // Update the tree using the faulted mask to compute the pages to prefetch.
+-    for_each_va_block_page_in_region_mask(page_index, faulted_pages, faulted_region) {
+-        uvm_va_block_region_t region = compute_prefetch_region(page_index, bitmap_tree, max_prefetch_region);
+-
+-        uvm_page_mask_region_fill(out_prefetch_mask, region);
+-
+-        // Early out if we have already prefetched until the end of the VA block
+-        if (region.outer == max_prefetch_region.outer)
+-            break;
+-    }
+-}
++static void compute_prefetch_mask(uvm_va_block_region_t faulted_region,
++                                  uvm_va_block_region_t max_prefetch_region,
++                                  uvm_perf_prefetch_bitmap_tree_t *bitmap_tree,
++                                  const uvm_page_mask_t *faulted_pages,
++                                  NvU32 owner_tgid,
++                                  uvm_page_mask_t *out_prefetch_mask)
++{
++    uvm_page_index_t page_index;
++
++    uvm_page_mask_zero(out_prefetch_mask);
++
++    // Update the tree using the faulted mask to compute the pages to prefetch.
++    for_each_va_block_page_in_region_mask(page_index, faulted_pages, faulted_region) {
++        uvm_va_block_region_t region = compute_prefetch_region(page_index,
++                                                               bitmap_tree,
++                                                               max_prefetch_region,
++                                                               owner_tgid);
++
++        uvm_page_mask_region_fill(out_prefetch_mask, region);
++
++        // Early out if we have already prefetched until the end of the VA block
++        if (region.outer == max_prefetch_region.outer)
++            break;
++    }
++}
+-
++
+ // Within a block we only allow prefetching to a single processor. Therefore,
+@@ -466,14 +493,15 @@
+-        // Do not compute prefetch regions with faults on pages that are thrashing
+-        if (thrashing_pages)
+-            uvm_page_mask_andnot(&va_block_context->scratch_page_mask, faulted_pages, thrashing_pages);
+-        else
+-            uvm_page_mask_copy(&va_block_context->scratch_page_mask, faulted_pages);
+-
+-        compute_prefetch_mask(faulted_region,
+-                              max_prefetch_region,
+-                              bitmap_tree,
+-                              &va_block_context->scratch_page_mask,
+-                              prefetch_pages);
+-    }
++        // Do not compute prefetch regions with faults on pages that are thrashing
++        if (thrashing_pages)
++            uvm_page_mask_andnot(&va_block_context->scratch_page_mask, faulted_pages, thrashing_pages);
++        else
++            uvm_page_mask_copy(&va_block_context->scratch_page_mask, faulted_pages);
++
++        compute_prefetch_mask(faulted_region,
++                              max_prefetch_region,
++                              bitmap_tree,
++                              &va_block_context->scratch_page_mask,
++                              uvm_va_block_get_va_space(va_block)->stale_state_owner_tgid,
++                              prefetch_pages);
++    }
+-
++
+     // Do not prefetch pages that are going to be migrated/populated due to a
+@@ -533,2 +557,7 @@ void uvm_perf_prefetch_compute_ats(uvm_va_space_t *va_space,
+-    compute_prefetch_mask(faulted_region, max_prefetch_region, bitmap_tree, faulted_pages, out_prefetch_mask);
++    compute_prefetch_mask(faulted_region,
++                          max_prefetch_region,
++                          bitmap_tree,
++                          faulted_pages,
++                          va_space->stale_state_owner_tgid,
++                          out_prefetch_mask);
  }
 diff --git a/kernel-open/nvidia-uvm/uvm_stale_state_v1.c b/kernel-open/nvidia-uvm/uvm_stale_state_v1.c
 new file mode 100644
 index 00000000..8e3a9790
 --- /dev/null
 +++ b/kernel-open/nvidia-uvm/uvm_stale_state_v1.c
-@@ -0,0 +1,624 @@
+@@ -0,0 +1,626 @@
 +/* SPDX-License-Identifier: MIT */
 +
 +#include <linux/atomic.h>
@@ -830,6 +977,7 @@ index 00000000..8e3a9790
 +
 +bool uvm_stale_state_v1_begin(uvm_page_index_t page_index,
 +                              const uvm_va_block_region_t *maximum,
++                              NvU32 owner_tgid,
 +                              uvm_stale_state_v1_decision_ctx_t *decision_ctx,
 +                              struct uvm_stale_state_v1_diagnostic *diagnostic,
 +                              NvS64 *raw_action,
@@ -857,6 +1005,7 @@ index 00000000..8e3a9790
 +    diagnostic->input.page_index = page_index;
 +    diagnostic->input.max_first = maximum->first;
 +    diagnostic->input.max_outer = maximum->outer;
++    diagnostic->owner_tgid = owner_tgid;
 +    atomic64_inc(&g_uvm_stale_state_v1_stats.callback_invocations);
 +    atomic64_inc(&g_uvm_stale_state_v1_stats.snapshot_read_attempts);
 +
@@ -1008,7 +1157,7 @@ new file mode 100644
 index 00000000..2a6ff61f
 --- /dev/null
 +++ b/kernel-open/nvidia-uvm/uvm_stale_state_v1.h
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,109 @@
 +/* SPDX-License-Identifier: MIT */
 +#ifndef _UVM_STALE_STATE_V1_H_
 +#define _UVM_STALE_STATE_V1_H_
@@ -1089,7 +1238,7 @@ index 00000000..2a6ff61f
 +    NvU32 action_request_calls;
 +    NvU32 region_result;
 +    NvU32 initial_effect;
-+    NvU32 reserved;
++    NvU32 owner_tgid;
 +};
 +
 +int uvm_stale_state_v1_init(void);
@@ -1098,6 +1247,7 @@ index 00000000..2a6ff61f
 +/* Returns false only when the versioned bridge is disabled. */
 +bool uvm_stale_state_v1_begin(uvm_page_index_t page_index,
 +                              const uvm_va_block_region_t *maximum,
++                              NvU32 owner_tgid,
 +                              uvm_stale_state_v1_decision_ctx_t *decision_ctx,
 +                              struct uvm_stale_state_v1_diagnostic *diagnostic,
 +                              NvS64 *raw_action,
@@ -1122,15 +1272,18 @@ index 4b0db81e..960ff7e1 100644
 --- a/kernel-open/tests/Makefile
 +++ b/kernel-open/tests/Makefile
 @@ -2,9 +2,12 @@
- 
+-
++
  all:
  	$(MAKE) -C transition-validator all
 +	$(MAKE) -C stale-state-v1 all
- 
+-
++
  test:
  	$(MAKE) -C transition-validator test
 +	$(MAKE) -C stale-state-v1 test
- 
+-
++
  clean:
  	$(MAKE) -C transition-validator clean
 +	$(MAKE) -C stale-state-v1 clean

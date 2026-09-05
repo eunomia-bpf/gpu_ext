@@ -65,11 +65,13 @@ host-generated proxy counters. A private BPF map alone would not close this
 boundary.
 
 `coordinator.py::TruthFDCoordinator` now consumes the workload-owned truth
-pipe after the workload emits `workload_ready`. It configures the native or
-BPF driver mode before releasing the workload, publishes only exact
-`phase_start` timestamps after the frozen delay, validates the driver-captured
-publication timestamp and status-observation window, reconciles final common
-counters, and disables
+pipe after the workload emits `workload_ready`. It releases the workload while
+the bridge remains off, then configures the selected consumer immediately
+before publishing the first truth-derived snapshot after the frozen delay.
+This preserves the 1.2-second bootstrap without counting its initial
+no-snapshot interval as a policy error. It publishes only exact `phase_start`
+timestamps, validates the driver-captured publication timestamp and
+status-observation window, reconciles final common counters, and disables
 its owned generation on success or failure. The default-UVM path never
 configures, publishes, or disables policy state. Its return schema explicitly
 marks `truth_source=workload_phase_fd`, `synthetic_source=false`, and
@@ -78,11 +80,25 @@ is not a complete cell.
 The exact CPU validation record is in
 [`truth-fd-coordinator-readiness.md`](truth-fd-coordinator-readiness.md).
 
-This is not yet a live result: the patch has not been installed, the new
-module has not been loaded, the BPF policy has not passed the live verifier or
-attached, the coordinator has not run against the real proc endpoint, and no
-GPU cell has run. Those operations require a controlled module-load window,
-diagnostic-observer integration, and then an excluded seven-cell preflight.
+The diagnostic observer and preflight orchestration source are now present.
+`driver-bridge-v1/live_loader` owns one fentry observer link; the native arm
+disables creation of the struct_ops program and map, while the BPF arm also
+owns exactly one struct_ops link. It retains a real verifier log, emits only
+completed driver diagnostics, and rejects owner, ABI, action/effect, ordering,
+or ring-buffer-loss errors. `observer_protocol.py` independently validates
+that stream and reconciles it against the driver's common counters. Ownership
+comes from the VA-space creator TGID carried by the driver diagnostic, not the
+possibly unrelated UVM worker in `current`. The raw-cell validator replays the
+observer and verifier evidence and requires exact raw/normalized decisions.
+`live_runner.py` supplies the seven-cell workload, truth-FD, UVM Tools,
+compute-client, GPU telemetry, kernel-monitor, safety, and cleanup lifecycle.
+`run_module_lifecycle.py` is the outer UVM-only stage/load/restore hook built
+on the previously exercised revision-prefetch lifecycle primitives.
+
+This remains implementation readiness, not a live result: no stale-state
+module has been loaded, no policy or observer has passed the live verifier or
+attached, and no GPU cell has run. The new lifecycle and runner passed
+independent source review; the controlled excluded preflight remains required.
 
 ## Real records required from every future cell
 
@@ -123,6 +139,9 @@ python3 -B run_study.py dry-run full \
   --output /absolute/future/raw/stale-state-575-full-01 \
   --preflight /absolute/future/raw/stale-state-575-preflight-01
 python3 -B run_study.py cpu-preflight
+python3 -B live_runner.py dry-run \
+  --output "$PWD/raw/stale-state-575-preflight-01" \
+  --inherited-lease-fds 11 12
 python3 -B run_study.py analyze \
   --input /absolute/future/raw/stale-state-575-full-01
 ```
@@ -140,13 +159,12 @@ Building the CUDA workload is separate:
 make build-sources
 ```
 
-The full live runner must wrap the truth-FD coordinator with the existing
-read-only exclusive lease files `/tmp/gpubpf-revision-gpu0.lock` and
-`/tmp/gpubpf-revision-struct-ops.lock`, the continuous compute/GPU/kernel
-monitors, and the pre/post safety checks. As in the existing lease/telemetry
-runner, that runner—not the monitor sibling—must duplicate the owned
-workload's UVM fd and pass it to `uvm_event_monitor` as an inherited fd. It must
-never run a formal campaign
+The implemented live runner accepts the two already locked read-only lease
+descriptors from the outer lifecycle. The runner—not a monitor sibling—uses
+`pidfd_getfd` to duplicate the owned workload's only UVM fd and passes it to
+`uvm_event_monitor` as an inherited fd. The baseline does not start the BPF
+loader and refuses all policy files; native starts only the observer; BPF
+starts the observer plus its owned struct_ops policy. It must never run a formal campaign
 until the shared driver interface above exists and an excluded complete
 preflight passes. A formal `campaign.json` points to the absolute preflight
 root; analysis revalidates all seven preflight cells before accepting the 21

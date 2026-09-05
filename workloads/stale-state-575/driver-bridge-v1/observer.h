@@ -33,7 +33,7 @@ struct uvm_stale_state_v1_diagnostic {
     unsigned int action_request_calls;
     unsigned int region_result;
     unsigned int initial_effect;
-    unsigned int reserved;
+    unsigned int owner_tgid;
 };
 
 struct stale_state_v1_observer_config {
@@ -62,6 +62,9 @@ _Static_assert(sizeof(struct uvm_stale_state_v1_diagnostic) == 176,
 _Static_assert(__builtin_offsetof(struct uvm_stale_state_v1_diagnostic,
                                   diagnostic_phase) == 136,
                "diagnostic phase offset");
+_Static_assert(__builtin_offsetof(struct uvm_stale_state_v1_diagnostic,
+                                  owner_tgid) == 172,
+               "diagnostic owner offset");
 _Static_assert(sizeof(struct stale_state_v1_observer_event) == 192,
                "observer event ABI size");
 

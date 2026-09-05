@@ -51,14 +51,15 @@ int BPF_PROG(stale_state_v1_diagnostic_observer,
         return 0;
     m->diagnostic_calls++;
     config = bpf_map_lookup_elem(&observer_config, &key);
-    if (!config || !config->target_tgid ||
-        (unsigned int)(pid_tgid >> 32) != config->target_tgid) {
-        m->foreign_tgid++;
+    if (!config || !config->target_tgid)
         return 0;
-    }
     if (bpf_probe_read_kernel(&diagnostic, sizeof(diagnostic),
                               driver_diagnostic)) {
         m->read_errors++;
+        return 0;
+    }
+    if (diagnostic.owner_tgid != config->target_tgid) {
+        m->foreign_tgid++;
         return 0;
     }
     if (diagnostic.diagnostic_phase == STALE_STATE_V1_DIAG_SELECTED) {

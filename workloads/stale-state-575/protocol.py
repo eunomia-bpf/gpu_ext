@@ -36,6 +36,14 @@ LEASE_PATHS = (
     "/tmp/gpubpf-revision-gpu0.lock",
     "/tmp/gpubpf-revision-struct-ops.lock",
 )
+POLICY_ARTIFACT_NAMES = (
+    "snapshot-publications.jsonl",
+    "policy-decisions.jsonl",
+    "policy-final.json",
+    "policy-observer.jsonl",
+    "policy-observer.stderr.log",
+    "verifier.log",
+)
 EXPECTED_GPU = "NVIDIA GeForce RTX 5090"
 EXPECTED_DRIVER = "575.57.08"
 LIVE_BLOCKER = (
@@ -779,18 +787,70 @@ def _validate_uvm(path: Path, elapsed_ms: float, target_pid: int) -> dict[str, A
 def _truth_at(intervals: list[dict[str, Any]], timestamp_ns: int) -> str:
     matches = [
         interval["phase"]
-        for interval in intervals[1:]
+        for interval in intervals
         if interval["start_mono_ns"] <= timestamp_ns < interval["end_mono_ns"]
     ]
     if len(matches) != 1:
-        raise ValidationError("policy decision does not join to one measured truth interval")
+        raise ValidationError("policy decision does not join to one host-truth interval")
     return matches[0]
 
 
+def _validate_verifier_log(path: Path, implementation: str) -> None:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise ValidationError(f"cannot read verifier log: {exc}") from exc
+    if lines[:2] != ["load_error=0", "program_count=2"]:
+        raise ValidationError("verifier log load result/program count is invalid")
+    headings = [index for index, line in enumerate(lines) if line.startswith("program=")]
+    expected_names = {
+        "stale_state_v1_diagnostic_observer",
+        "stale_state_prefetch_v1",
+    }
+    if len(headings) != 2 or {lines[index][len("program="):] for index in headings} != expected_names:
+        raise ValidationError("verifier log program inventory is invalid")
+    bodies: dict[str, list[str]] = {}
+    for position, start in enumerate(headings):
+        end = headings[position + 1] if position + 1 < len(headings) else len(lines)
+        bodies[lines[start][len("program="):]] = [
+            line for line in lines[start + 1:end] if line.strip()
+        ]
+    if not bodies["stale_state_v1_diagnostic_observer"]:
+        raise ValidationError("observer verifier transcript is empty")
+    policy_body = bodies["stale_state_prefetch_v1"]
+    if implementation == "bpf" and not policy_body:
+        raise ValidationError("BPF policy verifier transcript is empty")
+    if implementation == "native" and policy_body:
+        raise ValidationError("native arm unexpectedly loaded the BPF policy")
+
+
 def _validate_policy(
-    path: Path, cell: MatrixCell, intervals: list[dict[str, Any]]
+    path: Path, cell: MatrixCell, intervals: list[dict[str, Any]], target_pid: int
 ) -> dict[str, Any]:
     assert cell.implementation is not None and cell.delay_ms is not None
+    import observer_protocol
+
+    _validate_verifier_log(path / "verifier.log", cell.implementation)
+    try:
+        observer_stderr = (path / "policy-observer.stderr.log").read_text(
+            encoding="utf-8"
+        )
+    except (OSError, UnicodeError) as exc:
+        raise ValidationError(f"cannot read observer stderr: {exc}") from exc
+    if any(word in observer_stderr.lower() for word in ("fatal", "segmentation fault")):
+        raise ValidationError("observer stderr contains a fatal failure")
+    observer_path = path / "policy-observer.jsonl"
+    try:
+        raw_observer = observer_protocol.parse_jsonl(
+            observer_path.read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeError) as exc:
+        raise ValidationError(f"cannot read raw observer stream: {exc}") from exc
+    observed = observer_protocol.validate_records(
+        raw_observer,
+        expected_pid=target_pid,
+        implementation=cell.implementation,
+    )
     publications = _load_jsonl(path / "snapshot-publications.jsonl")
     if any(row.get("event") != "snapshot_published" for row in publications):
         raise ValidationError("snapshot publication stream has an unknown record")
@@ -835,6 +895,8 @@ def _validate_policy(
         raise ValidationError("policy decision stream has an unknown record")
     if not decisions:
         raise ValidationError("policy has no decision records")
+    if decisions != observed["decisions"]:
+        raise ValidationError("normalized decisions differ from the raw observer stream")
     dense_actions = 0
     discard_actions = 0
     wrong = 0
@@ -961,17 +1023,13 @@ def validate_cell(path: Path, cell: MatrixCell) -> dict[str, Any]:
     intervals = _validate_truth(path)
     workload = _validate_workload(path, intervals)
     uvm = _validate_uvm(path, workload["end_to_end_ms"], execution["target_pid"])
-    policy_paths = (
-        path / "snapshot-publications.jsonl",
-        path / "policy-decisions.jsonl",
-        path / "policy-final.json",
-    )
+    policy_paths = tuple(path / name for name in POLICY_ARTIFACT_NAMES)
     if cell.role == "context_control":
         if any(policy_path.exists() for policy_path in policy_paths):
             raise ValidationError("default-UVM control unexpectedly has policy records")
         policy = None
     else:
-        policy = _validate_policy(path, cell, intervals)
+        policy = _validate_policy(path, cell, intervals, execution["target_pid"])
     return {
         "valid": True,
         "block": cell.block,

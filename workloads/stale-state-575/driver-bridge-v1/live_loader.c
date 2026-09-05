@@ -104,7 +104,7 @@ static int decision_record(void *context, void *data, size_t size)
             d->mode == expected_mode &&
             d->status == STALE_STATE_V1_STATUS_EFFECT_APPLIED &&
             d->input.abi_version == STALE_STATE_DRIVER_V1_ABI_VERSION &&
-            d->input.reserved == 0 && d->reserved == 0 &&
+            d->input.reserved == 0 && d->owner_tgid != 0 &&
             d->input.snapshot.reserved == 0 &&
             d->input.snapshot.sequence > 0 && d->input.decision_sequence > 0 &&
             d->input.decision_mono_ns >= d->input.snapshot.published_mono_ns &&
@@ -145,7 +145,7 @@ static int decision_record(void *context, void *data, size_t size)
            d->decision_age_ns, action, effect, d->input.page_index,
            d->input.max_first, d->input.max_outer, d->output_first,
            d->output_outer, event->observed_mono_ns,
-           (unsigned int)(event->pid_tgid >> 32));
+           d->owner_tgid);
     return 0;
 }
 
@@ -234,6 +234,12 @@ int main(int argc, char **argv)
     skel = live_bpf__open();
     if (!skel)
         goto out;
+    if (expected_mode == STALE_STATE_V1_MODE_NATIVE) {
+        if (bpf_program__set_autoload(skel->progs.stale_state_prefetch_v1,
+                                      false) ||
+            bpf_map__set_autocreate(skel->maps.stale_state_v1_ops, false))
+            goto out;
+    }
     bpf_object__for_each_program(program, skel->obj) {
         if (program_count >= 2)
             goto out;

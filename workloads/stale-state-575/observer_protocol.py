@@ -131,11 +131,15 @@ def validate_records(
         raise protocol.ValidationError("observer ready target PID differs")
     observer_link = _integer(ready, "observer_link_id", 1)
     struct_link = _integer(ready, "struct_link_id")
-    _integer(ready, "struct_map_id", 1)
+    struct_map = _integer(ready, "struct_map_id")
     if (implementation == "native" and struct_link != 0) or (
         implementation == "bpf" and struct_link == 0
     ):
         raise protocol.ValidationError("observer struct_ops ownership differs")
+    if (implementation == "native" and struct_map != 0) or (
+        implementation == "bpf" and struct_map == 0
+    ):
+        raise protocol.ValidationError("observer struct_ops map ownership differs")
     if final.get("valid") is not True:
         raise protocol.ValidationError("observer final validity gate failed")
     if final.get("observer_link_id") != observer_link or final.get(

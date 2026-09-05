@@ -12,7 +12,7 @@ copy of that source builds a complete `nvidia-uvm.ko` for
 `6.15.11-061511-generic`. The installed module and sibling source were not
 modified.
 
-The patch changes ten driver files:
+The patch changes twelve driver files:
 
 - adds `nv-gpu-stale-state-v1.h`, `uvm_stale_state_v1.c`, and
   `uvm_stale_state_v1.h`;
@@ -20,6 +20,8 @@ The patch changes ten driver files:
   setter in `uvm_bpf_struct_ops.c`/`.h`;
 - routes the versioned mode through the existing validated prefetch effect
   point in `uvm_perf_prefetch.c`;
+- records the VA-space creator TGID in `uvm_va_space.c`/`.h` and carries that
+  stable owner through diagnostics even when faults run in worker context;
 - adds the new source to Kbuild; and
 - adds a 30-assertion CPU test under `kernel-open/tests/stale-state-v1`.
 
@@ -56,7 +58,7 @@ empty region through the existing transition validator.
 
 Both paths increment common snapshot-read, decision-request, decision-record,
 effect-request, effect-record, and selected/finished diagnostic counters.
-The address-free diagnostic contains snapshot identity/age, fault and bounds,
+The address-free diagnostic contains stable VA-space owner, snapshot identity/age, fault and bounds,
 requested/output regions, action, validation result, final effect, mode, and
 status. Separate native/BPF invocation counters establish which consumer ran.
 
@@ -65,14 +67,15 @@ status. Separate native/BPF invocation counters establish which consumer ran.
 - `git apply --check` accepts `driver-bridge-v1.patch` against the untouched
   sibling source.
 - Driver pure-model/order test: 30 assertions passed.
-- Full NVIDIA module build: success with GCC 14; `nvidia-uvm.ko` is
-  62,342,720 bytes and has the expected 6.15.11 vermagic. The build emitted
+- Full NVIDIA module rebuild after adding stable owner attribution: success
+  with GCC 14; `nvidia-uvm.ko` is 62,344,640 bytes and has the expected
+  6.15.11 vermagic. The build emitted
   only the source tree's existing module-description and compiler-package
   revision warnings.
 - Built module BTF: `gpu_mem_ops` is 56 bytes with seven members; the new
   callback is the appended member at bit offset 384. The read-only input is
-  88 bytes, decision context 104 bytes, diagnostic 176 bytes, and the trusted
-  setter is present.
+  88 bytes, decision context 104 bytes, diagnostic 176 bytes with final
+  `owner_tgid`, and the trusted setter is present.
 - Workload BPF object: clang-18 build succeeds; it contains the uniquely named
   callback section and 56-byte struct_ops map. Disassembly contains only stack
   stores plus the read helper and trusted setter call, with no store through

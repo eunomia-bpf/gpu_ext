@@ -540,6 +540,7 @@ class TruthFDCoordinator:
         implementation: str | None,
         generation: int | None,
         delay_ms: int | None,
+        before_release: Callable[[dict[str, Any]], None] | None = None,
     ) -> dict[str, Any]:
         """Consume one workload truth pipe and always leave owned policy state off."""
 
@@ -549,6 +550,8 @@ class TruthFDCoordinator:
             raise protocol.ValidationError("expected_pid must be a positive integer")
         if not callable(release):
             raise protocol.ValidationError("release must be callable")
+        if before_release is not None and not callable(before_release):
+            raise protocol.ValidationError("before_release must be callable or None")
         baseline = implementation is None
         if baseline:
             if generation is not None or delay_ms is not None:
@@ -587,17 +590,10 @@ class TruthFDCoordinator:
                 ready = reader.read_required()
                 _require_workload_ready(ready, expected_pid)
 
-                if not baseline:
-                    assert implementation is not None
-                    assert generation is not None
-                    assert delay_ms is not None
-                    self.bridge.configure(implementation, generation)
-                    configured = True
-                    configured_status = self.bridge.status()
-                    _require_configured(
-                        configured_status, implementation, generation
-                    )
-                else:
+                if before_release is not None:
+                    before_release(dict(ready))
+
+                if baseline:
                     _require_idle(self.bridge.status())
 
                 release()
@@ -638,6 +634,18 @@ class TruthFDCoordinator:
                         ):
                             raise protocol.ValidationError(
                                 "snapshot publication exceeded the frozen overrun limit"
+                            )
+                        # Keep the bridge off during the bootstrap's initial
+                        # no-snapshot window. This avoids relabeling expected
+                        # default behavior as a missing-snapshot policy error.
+                        # The first truth-derived snapshot is still delayed by
+                        # the same frozen amount as every later publication.
+                        if not configured:
+                            self.bridge.configure(implementation, generation)
+                            configured = True
+                            configured_status = self.bridge.status()
+                            _require_configured(
+                                configured_status, implementation, generation
                             )
                         write_started_ns = self._clock_ns()
                         self.bridge.publish(

@@ -26,7 +26,8 @@ full campaign:
 cmake -S /home/yunwei37/workspace/gpu/bpftime-table1-575 \
   -B /home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575 \
   -DCMAKE_BUILD_TYPE=Debug -DENABLE_EBPF_VERIFIER=ON \
-  -DBPFTIME_ENABLE_CUDA_ATTACH=ON -DBPFTIME_LLVM_JIT=ON
+  -DBPFTIME_ENABLE_CUDA_ATTACH=ON -DBPFTIME_LLVM_JIT=ON \
+  -DBPFTIME_CUDA_ROOT=/usr/local/cuda-12.9
 cmake --build /home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575 -j8
 
 python3 -B run_revision_rq4.py --phase preflight --tools launchlate \
@@ -55,8 +56,13 @@ engagement, and throughput evidence; a stored `valid` flag alone cannot pass.
 ## CPU-only readiness check (2026-09-04)
 
 The final runtime directory `build-launchlate-575` was freshly configured from
-bpftime revision `133b48e` with the eBPF verifier, CUDA attachment, and LLVM JIT
-enabled, then both the agent and syscall-server targets built successfully.
+bpftime revision `a86d789` with the eBPF verifier, CUDA attachment, LLVM JIT,
+and `BPFTIME_CUDA_ROOT=/usr/local/cuda-12.9` enabled. The two targets required
+by this experiment, `bpftime-agent` and `bpftime-syscall-server`, built
+successfully. A separate all-target `cmake --build ... -j8` currently stops in
+vendored Catch2 because that dependency is missing `<cstdint>` and a resulting
+object file; this unrelated all-target failure is not a failure of either
+required runtime target.
 The private RAW-clock helper passed the runtime `Test helpers` case (five
 assertions), and the launchlate loader CPU self-test passed.  The gpubpf loader,
 the NVBit adapter for `sm_120`, its clock-domain test, and both clock-control

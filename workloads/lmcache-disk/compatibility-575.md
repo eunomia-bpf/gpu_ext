@@ -104,6 +104,25 @@ prefixes: it is not a correctness comparison against the untraced
 neither is claimed here. The failed preflight-04 directory will not be
 reused.
 
+## Correctness-01 shutdown-gate failure
+
+The disk arm under `raw/storage-575-v3-correctness-01/lmcache_disk` completed
+all 16 HTTP requests. Its eight warm requests each reported exactly 1536
+LMCache-hit and 1536 retrieved tokens. After the runner sent SIGINT and vLLM
+logged `[shutdown] MPClient: complete`, the AsyncLLM output handler emitted its
+shutdown-race traceback ending in `EngineDeadError`; FastAPI then completed
+application shutdown. The generic `Traceback` fatal scan rejected the cell
+before `result.json` was written. This directory is preserved as a
+shutdown-gate failure and will not be reused or retroactively promoted. The
+three-arm correctness comparison is incomplete, and this attempt supplies no
+correctness or performance claim.
+
+The validator now excludes only that exact vLLM 0.27.1 traceback signature
+when it is uniquely enclosed by the observed SIGINT, MPClient, API-server, and
+FastAPI shutdown boundaries. It still scans the original surrounding and
+traceback text for CUDA, O_DIRECT, fallback, allocation, and eviction failures;
+all near-miss or additional tracebacks remain fatal.
+
 ## Installed toolchain: read-only source and metadata evidence
 
 All paths below are relative to

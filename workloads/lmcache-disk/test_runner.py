@@ -21,6 +21,31 @@ SPEC.loader.exec_module(runner)
 PLACEMENT = dict(boot_id="11111111-2222-3333-4444-555555555555", worker_cpu_affinity=list(range(8, 16)), telemetry_cpu=16)
 
 
+def shutdown_race_log():
+    prefix = "(APIServer pid=123) ERROR 09-05 05:48:38 [async_llm.py:724] "
+    return "\n".join(
+        [
+            "(EngineCore pid=456) INFO [shutdown] EngineCore: trigger received signal=SIGINT",
+            "(APIServer pid=123) INFO [shutdown] API server: shutdown triggered",
+            "(APIServer pid=123) INFO [shutdown] MPClient: complete",
+            prefix + "AsyncLLM output_handler failed.",
+            prefix + "Traceback (most recent call last):",
+            prefix + '  File "/venv/vllm/v1/engine/async_llm.py", line 680, in output_handler',
+            prefix + "    outputs = await engine_core.get_output_async()",
+            prefix + "              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+            prefix + '  File "/venv/vllm/v1/engine/core_client.py", line 1101, in get_output_async',
+            prefix + "    raise self._format_exception(outputs) from None",
+            prefix + "vllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause.",
+            "(APIServer pid=123) INFO [shutdown] API server: engine client stopped",
+            "(APIServer pid=123) INFO [shutdown] API server: signalling HTTP server shutdown",
+            "(APIServer pid=123) INFO [shutdown] API server: shutting down FastAPI HTTP server",
+            "(APIServer pid=123) INFO:     Shutting down",
+            "(APIServer pid=123) INFO:     Waiting for application shutdown.",
+            "(APIServer pid=123) INFO:     Application shutdown complete.",
+        ]
+    )
+
+
 class HarnessTests(unittest.TestCase):
     def test_driver_selection_is_exact_and_explicit(self):
         runner.legacy.validate_driver("610.43.02")
@@ -410,6 +435,71 @@ class HarnessTests(unittest.TestCase):
         fatal_missing = "Required model File not found"
         self.assertTrue(any(runner.legacy.re.search(pattern, fatal_missing, runner.legacy.re.I)
                             for pattern in runner.legacy.FATAL_LOG_PATTERNS))
+
+    def test_exact_shutdown_race_is_ignored_and_downstream_gates_still_run(self):
+        log = shutdown_race_log()
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(runner.GateError, "V3 connector engagement"):
+                runner.validate_log("lmcache_cpu", log, [], Path(tmp))
+            log = "\n".join(
+                [
+                    "Creating LMCacheEngine with config: {'use_gpu_connector_v3': True}",
+                    "init kv cache pointers success in VLLMPagedMemGPUConnectorV3",
+                    "LMCache initialized with version 0.5.4, vllm version 0.27.1,",
+                    log,
+                ]
+            )
+            observations = [
+                {
+                    "expected_hit_tokens": 1536,
+                    "cold": {
+                        "engine_request_id": "cmpl-lmc-p0-cold",
+                        "usage": {"prompt_tokens": 1549},
+                    },
+                    "warm": {
+                        "engine_request_id": "cmpl-lmc-p0-warm",
+                        "usage": {"prompt_tokens": 1549},
+                    },
+                }
+            ]
+            with self.assertRaisesRegex(runner.GateError, "cold hit gate"):
+                runner.validate_log("lmcache_cpu", log, observations, Path(tmp))
+            value = runner.validate_log("lmcache_cpu", log, [], Path(tmp))
+        self.assertEqual(value["request_evidence"], {})
+
+    def test_shutdown_race_near_misses_remain_fatal(self):
+        exact = shutdown_race_log()
+        defects = (
+            exact.replace("signal=SIGINT", "signal=SIGTERM"),
+            exact.replace("Application shutdown complete.", "Application shutdown pending."),
+            exact.replace("EngineDeadError: EngineCore", "EngineDeadError: Other"),
+            exact + "\n" + exact,
+            exact + "\nTraceback (most recent call last):",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            for log in defects:
+                with self.subTest(log=log[-80:]), self.assertRaisesRegex(
+                    runner.GateError, "fatal/fallback"
+                ):
+                    runner.validate_log("recompute", log, [], Path(tmp))
+
+    def test_shutdown_race_does_not_hide_other_fatal_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for evidence in (
+                "CUDA error during teardown",
+                "Cannot use O_DIRECT for cache file",
+                "falling back to buffered I/O",
+                "one eviction occurred",
+            ):
+                with self.subTest(evidence=evidence), self.assertRaisesRegex(
+                    runner.GateError, "fatal/fallback"
+                ):
+                    runner.validate_log(
+                        "recompute",
+                        shutdown_race_log() + "\n" + evidence,
+                        [],
+                        Path(tmp),
+                    )
 
     def test_schedule_semantics_are_exact(self):
         schedule = json.loads(runner.SCHEDULE.read_text())

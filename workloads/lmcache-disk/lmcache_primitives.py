@@ -800,7 +800,8 @@ def validate_odirect(trace_dir: Path, cache_dir: Path,
 
 
 def validate_log(config: str, log: str, observations: list[dict[str, Any]], cache_dir: Path) -> dict[str, Any]:
-    fatal = [pattern for pattern in FATAL_LOG_PATTERNS if re.search(pattern, log, re.I)]
+    fatal_log = _log_for_fatal_scan(log)
+    fatal = [pattern for pattern in FATAL_LOG_PATTERNS if re.search(pattern, fatal_log, re.I)]
     if fatal:
         raise GateError(f"fatal/fallback evidence in server log: {fatal}")
     prefix_rate = [float(x) for x in re.findall(r"Prefix cache hit rate:\s*([0-9.]+)%", log)]
@@ -866,6 +867,74 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
         "native_prefix_rates": prefix_rate,
         "gpu_connector_v3": None if config == "recompute" else v3_evidence,
     }
+
+
+def _log_for_fatal_scan(log: str) -> str:
+    """Hide only vLLM's exact, bounded shutdown-race traceback marker."""
+    lines = log.splitlines()
+    marker = "[async_llm.py:724] "
+    expected_payloads = (
+        r"AsyncLLM output_handler failed\.",
+        r"Traceback \(most recent call last\):",
+        r'  File ".*/vllm/v1/engine/async_llm\.py", line 680, in output_handler',
+        r"    outputs = await engine_core\.get_output_async\(\)",
+        r"\s+\^+",
+        r'  File ".*/vllm/v1/engine/core_client\.py", line 1101, in get_output_async',
+        r"    raise self\._format_exception\(outputs\) from None",
+        (
+            r"vllm\.v1\.engine\.exceptions\.EngineDeadError: EngineCore "
+            r"encountered an issue\. See stack trace \(above\) for the root cause\."
+        ),
+    )
+    candidates = []
+    for start in range(len(lines) - len(expected_payloads) + 1):
+        payloads = []
+        for line in lines[start : start + len(expected_payloads)]:
+            _, separator, payload = line.partition(marker)
+            if not separator:
+                break
+            payloads.append(payload)
+        if len(payloads) == len(expected_payloads) and all(
+            re.fullmatch(pattern, payload)
+            for pattern, payload in zip(expected_payloads, payloads, strict=True)
+        ):
+            candidates.append(start)
+    if len(candidates) != 1:
+        return log
+
+    start = candidates[0]
+    end = start + len(expected_payloads)
+    before = lines[:start]
+    required_before = (
+        "[shutdown] EngineCore: trigger received signal=SIGINT",
+        "[shutdown] API server: shutdown triggered",
+    )
+    required_after = (
+        "[shutdown] API server: engine client stopped",
+        "[shutdown] API server: signalling HTTP server shutdown",
+        "[shutdown] API server: shutting down FastAPI HTTP server",
+        "INFO:     Shutting down",
+        "INFO:     Waiting for application shutdown.",
+        "INFO:     Application shutdown complete.",
+    )
+    bounded = (
+        start > 0
+        and lines[start - 1].endswith("[shutdown] MPClient: complete")
+        and all(sum(line.endswith(suffix) for line in before) == 1
+                for suffix in required_before)
+        and len(lines) >= end + len(required_after)
+        and all(lines[end + offset].endswith(suffix)
+                for offset, suffix in enumerate(required_after))
+    )
+    if not bounded:
+        return log
+
+    lines[start + 1] = lines[start + 1].replace(
+        "Traceback (most recent call last):",
+        "Expected shutdown stack (most recent call last):",
+        1,
+    )
+    return "\n".join(lines)
 
 
 def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,

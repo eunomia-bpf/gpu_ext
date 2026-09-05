@@ -87,6 +87,7 @@ KUBECTL = (
 NODE = "lab"
 FIXED_SM_CLOCK_MHZ = 2392
 FIXED_MEMORY_CLOCK_MHZ = 14001
+ENUMERATED_SM_CLOCK_BINS_MHZ = frozenset((2392, 2400))
 CLOCK_OBSERVATION_COMMAND = (
     "nvidia-smi", "--query-gpu=pstate,clocks.current.sm,clocks.current.memory,"
     "clocks_event_reasons.gpu_idle", "--format=csv,noheader,nounits",
@@ -148,10 +149,12 @@ def clock_observation() -> dict[str, Any]:
 
 def require_fixed_clock_observation() -> dict[str, Any]:
     observed = clock_observation()
-    demand(observed["sm_clock_mhz"] == FIXED_SM_CLOCK_MHZ and
+    demand(observed["pstate"] == "P0" and
+           observed["sm_clock_mhz"] in ENUMERATED_SM_CLOCK_BINS_MHZ and
            observed["memory_clock_mhz"] == FIXED_MEMORY_CLOCK_MHZ,
-           "fixed GPU clocks are not observed: "
-           f"{observed['sm_clock_mhz']} / {observed['memory_clock_mhz']} MHz")
+           "enumerated-bin GPU clock state is not observed: "
+           f"{observed['pstate']}, {observed['sm_clock_mhz']} / "
+           f"{observed['memory_clock_mhz']} MHz")
     return observed
 
 
@@ -166,8 +169,9 @@ def establish_fixed_clocks(state: State) -> dict[str, Any]:
             supported.append((int(fields[0]), int(fields[1])))
         except ValueError:
             continue
-    demand((FIXED_MEMORY_CLOCK_MHZ, FIXED_SM_CLOCK_MHZ) in supported,
-           "fixed memory/SM clock pair is not supported")
+    demand(all((FIXED_MEMORY_CLOCK_MHZ, value) in supported
+               for value in ENUMERATED_SM_CLOCK_BINS_MHZ),
+           "enumerated memory/SM clock bins are not supported")
     before = clock_observation()
     commands = []
     state.clock_lock_started = True
@@ -181,6 +185,11 @@ def establish_fixed_clocks(state: State) -> dict[str, Any]:
     after = require_fixed_clock_observation()
     return {"target": {"sm_clock_mhz": FIXED_SM_CLOCK_MHZ,
                        "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ},
+            "admitted_state": {
+                "pstate": "P0",
+                "sm_clock_bins_mhz": sorted(ENUMERATED_SM_CLOCK_BINS_MHZ),
+                "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ,
+            },
             "supported_pair": True, "before": before, "commands": commands,
             "after": after}
 
@@ -523,6 +532,9 @@ def dry_run(candidate_dir: Path, stage: Path, output: Path,
             "fixed_clocks": {
                 "sm_clock_mhz": FIXED_SM_CLOCK_MHZ,
                 "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ,
+                "admitted_pstate": "P0",
+                "admitted_sm_clock_bins_mhz": sorted(
+                    ENUMERATED_SM_CLOCK_BINS_MHZ),
                 "support_query": list(CLOCK_SUPPORT_COMMAND),
                 "observation_query": list(CLOCK_OBSERVATION_COMMAND),
                 "lock_commands": [list(value) for value in CLOCK_LOCK_COMMANDS],

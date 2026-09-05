@@ -83,6 +83,27 @@ does not establish either an allocation failure or adequate headroom at every
 instant. `--enforce-eager` disables torch compilation/CUDA graphs, not the
 separately selected Triton MoE kernels.
 
+## V3 preflight-04 and preflight-05
+
+The fourth V3 attempt, `raw/storage-575-v3-preflight-04/disk`, stopped in
+artifact admission because the dependency source tree was dirty. The server
+and the GPU workload were never started; the preserved record contains only
+`execution.json`, telemetry, and an empty kernel log. This admission-only
+failure is preserved, must not be overwritten or reused, and provides no V3
+correctness, storage-engagement, or performance evidence.
+
+The fifth attempt, `raw/storage-575-v3-preflight-05/disk`, completed the
+traced preflight, and `validate-cell --require-trace` exits 0. All eight cold
+and all eight warm requests returned HTTP 200; each warm request reports
+exactly 1536 LMCache-hit and 1536 retrieved tokens. The cache footprint is
+48 files totaling 1,207,959,552 bytes, and the warm aggregate for this cell
+is 8 requests, 128 output tokens, 4.308207764 seconds, and
+29.710730543 output token/s. This is one traced preflight cell on eight
+prefixes: it is not a correctness comparison against the untraced
+`recompute`/`lmcache_cpu` arms and not a performance reproduction, and
+neither is claimed here. The failed preflight-04 directory will not be
+reused.
+
 ## Installed toolchain: read-only source and metadata evidence
 
 All paths below are relative to

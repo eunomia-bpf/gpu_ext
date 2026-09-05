@@ -575,6 +575,7 @@ def _validate_continuous_records(path: Path, target_pid: int) -> None:
         raise ValidationError("compute-app monitor has fewer than three samples")
     observed_target = False
     previous_start = 0
+    shutdown_interrupted_indices = []
     for index, row in enumerate(compute):
         start = _integer(row.get("query_started_mono_ns"), "query_started_mono_ns", 1)
         finish = _integer(row.get("query_finished_mono_ns"), "query_finished_mono_ns", start)
@@ -583,11 +584,23 @@ def _validate_continuous_records(path: Path, target_pid: int) -> None:
         previous_start = start
         if row.get("error") is not None:
             raise ValidationError("compute-app monitor recorded an error")
+        shutdown_interrupted = row.get("shutdown_interrupted")
+        shutdown_signal = row.get("shutdown_signal")
+        if type(shutdown_interrupted) is not bool:
+            raise ValidationError("compute-app shutdown marker is invalid")
+        if shutdown_interrupted:
+            if shutdown_signal not in (2, 15):
+                raise ValidationError("compute-app shutdown signal is invalid")
+            shutdown_interrupted_indices.append(index)
+        elif shutdown_signal is not None:
+            raise ValidationError("compute-app shutdown signal lacks an interruption")
         pids = row.get("pids")
         if not isinstance(pids, list) or any(type(pid) is not int for pid in pids):
             raise ValidationError("compute-app PID list is invalid")
         if any(pid != target_pid for pid in pids):
             raise ValidationError("compute-app monitor observed a foreign PID")
+        if shutdown_interrupted and pids:
+            raise ValidationError("interrupted shutdown query reported compute PIDs")
         observed_target = observed_target or pids == [target_pid]
         if finish < start:
             raise ValidationError("compute-app query finished before it started")
@@ -595,6 +608,8 @@ def _validate_continuous_records(path: Path, target_pid: int) -> None:
             raise ValidationError("compute-app coverage is not empty at both boundaries")
     if not observed_target:
         raise ValidationError("compute-app monitor never observed the workload PID")
+    if shutdown_interrupted_indices not in ([], [len(compute) - 2]):
+        raise ValidationError("compute-app shutdown interruption is not penultimate")
     if not (path / "kernel-monitor.log").is_file():
         raise ValidationError("kernel-monitor.log is missing")
 

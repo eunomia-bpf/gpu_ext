@@ -8,6 +8,7 @@ import errno
 import io
 import json
 import os
+import signal
 import subprocess
 import tempfile
 import unittest
@@ -16,6 +17,7 @@ from pathlib import Path
 from unittest import mock
 
 import coordinator
+import compute_monitor
 import live_runner
 import observer_protocol
 import protocol
@@ -450,18 +452,24 @@ def make_cell(root: Path, cell: protocol.MatrixCell) -> Path:
                 "query_finished_mono_ns": EPOCH_NS - 2,
                 "pids": [],
                 "error": None,
+                "shutdown_interrupted": False,
+                "shutdown_signal": None,
             },
             {
                 "query_started_mono_ns": EPOCH_NS + 1,
                 "query_finished_mono_ns": EPOCH_NS + 2,
                 "pids": [TARGET_PID],
                 "error": None,
+                "shutdown_interrupted": False,
+                "shutdown_signal": None,
             },
             {
                 "query_started_mono_ns": intervals[-1]["end_mono_ns"] + 1,
                 "query_finished_mono_ns": intervals[-1]["end_mono_ns"] + 2,
                 "pids": [],
                 "error": None,
+                "shutdown_interrupted": False,
+                "shutdown_signal": None,
             },
         ],
     )
@@ -1383,6 +1391,72 @@ class ObserverProtocolTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_compute_monitor_only_suppresses_the_matching_shutdown_signal(self) -> None:
+        def invoke(returncode: int, *, stopped_by: int | None) -> dict[str, object]:
+            compute_monitor.stopping = False
+            compute_monitor.stopping_signal = None
+            if stopped_by is not None:
+                compute_monitor.stop(stopped_by, None)
+            completed = subprocess.CompletedProcess(
+                args=["nvidia-smi"], returncode=returncode,
+                stdout="", stderr="query failed",
+            )
+            with mock.patch.object(
+                compute_monitor.subprocess, "run", return_value=completed
+            ):
+                return compute_monitor.sample()
+
+        try:
+            interrupted = invoke(-signal.SIGINT, stopped_by=signal.SIGINT)
+            self.assertIsNone(interrupted["error"])
+            self.assertIs(interrupted["shutdown_interrupted"], True)
+            self.assertEqual(interrupted["shutdown_signal"], signal.SIGINT)
+            for returncode, stopped_by in (
+                (-signal.SIGINT, None),
+                (-signal.SIGTERM, signal.SIGINT),
+                (1, signal.SIGINT),
+            ):
+                with self.subTest(returncode=returncode, stopped_by=stopped_by):
+                    row = invoke(returncode, stopped_by=stopped_by)
+                    self.assertIsNotNone(row["error"])
+                    self.assertIs(row["shutdown_interrupted"], False)
+                    self.assertIsNone(row["shutdown_signal"])
+        finally:
+            compute_monitor.stopping = False
+            compute_monitor.stopping_signal = None
+
+    def test_compute_shutdown_marker_must_precede_the_final_empty_sample(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cell = next(
+                value
+                for value in protocol.matrix("full")
+                if value.block == 1 and value.arm == "bpf_fresh"
+            )
+            path = make_cell(root, cell)
+            compute_path = path / "compute-apps.jsonl"
+            rows = [json.loads(line) for line in compute_path.read_text().splitlines()]
+            final_start = rows[-1]["query_started_mono_ns"]
+            interrupted = {
+                "query_started_mono_ns": final_start - 2,
+                "query_finished_mono_ns": final_start - 1,
+                "pids": [],
+                "error": None,
+                "shutdown_interrupted": True,
+                "shutdown_signal": signal.SIGINT,
+            }
+            rows.insert(-1, interrupted)
+            write_jsonl(compute_path, rows)
+            protocol.validate_cell(path, cell)
+
+            rows.remove(interrupted)
+            interrupted["query_started_mono_ns"] = EPOCH_NS - 1
+            interrupted["query_finished_mono_ns"] = EPOCH_NS
+            rows.insert(1, interrupted)
+            write_jsonl(compute_path, rows)
+            with self.assertRaisesRegex(protocol.ValidationError, "penultimate"):
+                protocol.validate_cell(path, cell)
+
     def test_uvm_queue_can_buffer_the_complete_owner06_event_volume(self) -> None:
         retained = 607_035 + 946_061
         dropped = 229_387 + 343_462

@@ -11,12 +11,15 @@ import time
 
 
 stopping = False
+stopping_signal: int | None = None
 
 
 def stop(signo: int, frame: object) -> None:
-    del signo, frame
-    global stopping
+    del frame
+    global stopping, stopping_signal
     stopping = True
+    if stopping_signal is None:
+        stopping_signal = signo
 
 
 def sample() -> dict[str, object]:
@@ -35,9 +38,12 @@ def sample() -> dict[str, object]:
     finished = time.monotonic_ns()
     pids: list[int] = []
     error: str | None = None
-    if completed.returncode:
+    shutdown_interrupted = (
+        stopping_signal is not None and completed.returncode == -stopping_signal
+    )
+    if completed.returncode and not shutdown_interrupted:
         error = f"nvidia-smi exited {completed.returncode}: {completed.stderr.strip()}"
-    else:
+    elif not completed.returncode:
         for line in completed.stdout.splitlines():
             value = line.strip()
             if not value or value == "No running processes found":
@@ -51,6 +57,8 @@ def sample() -> dict[str, object]:
         "query_finished_mono_ns": finished,
         "pids": sorted(set(pids)),
         "error": error,
+        "shutdown_interrupted": shutdown_interrupted,
+        "shutdown_signal": stopping_signal if shutdown_interrupted else None,
     }
 
 
@@ -64,6 +72,8 @@ def main() -> int:
     signal.signal(signal.SIGTERM, stop)
     while not stopping:
         print(json.dumps(sample(), separators=(",", ":")), flush=True)
+        if stopping:
+            break
         time.sleep(args.interval_ms / 1000.0)
     print(json.dumps(sample(), separators=(",", ":")), flush=True)
     return 0

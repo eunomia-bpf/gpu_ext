@@ -62,7 +62,7 @@ The excluded seven-cell path is now represented end to end in source:
   policy struct_ops section, generated skeleton, and `-Werror` userspace
   loader build pass. The result serializer's host regression preserves a
   non-round nanosecond-derived millisecond duration across JSON output.
-- Python suite: 51 tests pass, including real-pipe truth replay, observer
+- Python suite: 53 tests pass, including real-pipe truth replay, observer
   native/BPF ownership, duplicate JSON, event-loss, counter-drift,
   raw/normalized mismatch, missing verifier evidence, baseline artifact
   rejection, before-release failure, and delayed-bootstrap configuration
@@ -132,6 +132,21 @@ observed-plus-dropped owner-06 events even if the consumer makes no concurrent
 progress. Candidate classification retains a separate two-entry probe queue,
 so it does not repeatedly pin the large buffer. The workload, event types,
 and zero-drop gate are unchanged. Attempt 06 contributes no admitted cell.
+
+Attempt `owner-07` admitted the first five preflight cells and ran the sixth,
+policy-free UVM default workload to clean execution before validation stopped
+the campaign. During controlled monitor shutdown, the compute monitor and its
+in-flight `nvidia-smi` query received the same process-group signal. The query
+returned
+-2 between two successful empty-PID samples, and the unqualified runtime-error
+field invalidated the otherwise complete cell. The monitor now remembers the
+first termination signal and marks a query as shutdown-interrupted only when
+its negative return code exactly matches that signal. Normal runtime failures,
+positive failures, and a different negative signal remain errors. The protocol
+permits at most one such empty-PID marker in the penultimate position and still
+requires the final successful empty-PID sample. Recovery was clean with no
+Xid. Attempt 07 contributes no admitted preflight because the seventh cell did
+not run.
 
 ## Remaining gate
 

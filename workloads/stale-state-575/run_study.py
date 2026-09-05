@@ -9,9 +9,95 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
+import coordinator
 import protocol
+
+
+BRIDGE_PREFLIGHT_SCHEMA = "stale-state-bridge-preflight-v1"
+
+
+class _FastAdvancingClock:
+    """Deterministic monotonic clock for a zero-wall-time contract preflight."""
+
+    def __init__(self, start_ns: int = 10_000_000_000):
+        self.now_ns = start_ns
+
+    def clock_ns(self) -> int:
+        self.now_ns += 1_000
+        return self.now_ns
+
+    def sleep(self, seconds: float) -> None:
+        self.now_ns += max(1, int(seconds * 1.0e9))
+
+
+def run_bridge_preflight(
+    *,
+    implementation: str | None = None,
+    delay_ms: int | None = None,
+    clock_factory: Callable[[], _FastAdvancingClock] = _FastAdvancingClock,
+    bridge_factory: Callable[
+        [Callable[[], int]], coordinator.Bridge
+    ] = lambda clock_ns: coordinator.InMemoryContractBridge(clock_ns=clock_ns),
+) -> dict[str, Any]:
+    """Exercise the bridge ABI model without claiming live experiment evidence."""
+
+    if (implementation is None) != (delay_ms is None):
+        raise protocol.ValidationError(
+            "bridge-preflight implementation and delay must be selected together"
+        )
+    if implementation is None:
+        conditions = [
+            (mode, delay)
+            for mode in protocol.IMPLEMENTATIONS
+            for delay in protocol.DELAYS_MS
+        ]
+    else:
+        if implementation not in protocol.IMPLEMENTATIONS:
+            raise protocol.ValidationError(
+                f"unsupported bridge-preflight implementation: {implementation!r}"
+            )
+        if type(delay_ms) is not int or delay_ms not in protocol.DELAYS_MS:
+            raise protocol.ValidationError(
+                f"unsupported bridge-preflight delay: {delay_ms!r}"
+            )
+        conditions = [(implementation, delay_ms)]
+
+    rows = []
+    for ordinal, (mode, delay) in enumerate(conditions, 1):
+        clock = clock_factory()
+        bridge = bridge_factory(clock.clock_ns)
+        if bridge.live or bridge.experiment_evidence:
+            raise protocol.ValidationError(
+                "bridge-preflight accepts only a non-live, non-evidence backend"
+            )
+        replay = coordinator.Coordinator(
+            bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+        ).replay(
+            implementation=mode,
+            generation=202609040000 + ordinal,
+            delay_ms=delay,
+        )
+        if (
+            replay.get("live_bridge") is not False
+            or replay.get("experiment_evidence") is not False
+            or replay.get("synthetic_source") is not True
+        ):
+            raise protocol.ValidationError(
+                "bridge-preflight replay changed its non-live synthetic evidence boundary"
+            )
+        rows.append(replay)
+
+    return {
+        "schema": BRIDGE_PREFLIGHT_SCHEMA,
+        "cpu_only": True,
+        "live_bridge": any(row["live_bridge"] for row in rows),
+        "experiment_evidence": any(row["experiment_evidence"] for row in rows),
+        "synthetic_source": all(row["synthetic_source"] for row in rows),
+        "condition_count": len(rows),
+        "conditions": rows,
+    }
 
 
 def _emit(value: dict[str, Any], stream: Any | None = None) -> None:
@@ -71,6 +157,14 @@ def build_parser() -> argparse.ArgumentParser:
     cpu.add_argument("--output", type=Path)
     cpu.add_argument("--samples-per-delay", type=int, default=3)
 
+    bridge = commands.add_parser(
+        "bridge-preflight",
+        help="exercise the non-live in-memory driver bridge contract",
+    )
+    bridge.add_argument("--output", type=Path)
+    bridge.add_argument("--implementation", choices=protocol.IMPLEMENTATIONS)
+    bridge.add_argument("--delay-ms", type=int, choices=protocol.DELAYS_MS)
+
     analyze = commands.add_parser(
         "analyze", help="fail-closed validation and paired analysis of raw records"
     )
@@ -112,6 +206,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "cpu-preflight":
             result = protocol.run_cpu_delay_preflight(
                 samples_per_delay=args.samples_per_delay
+            )
+            if args.output is not None:
+                _write_new_json(args.output, result)
+            _emit(result)
+            return 0
+        if args.command == "bridge-preflight":
+            result = run_bridge_preflight(
+                implementation=args.implementation, delay_ms=args.delay_ms
             )
             if args.output is not None:
                 _write_new_json(args.output, result)

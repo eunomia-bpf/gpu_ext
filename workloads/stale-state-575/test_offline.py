@@ -4,22 +4,45 @@
 from __future__ import annotations
 
 import contextlib
+import errno
 import io
 import json
 import os
 import subprocess
 import tempfile
 import unittest
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from unittest import mock
 
+import coordinator
 import protocol
 import run_study
 
 
 EPOCH_NS = 10_000_000_000
 TARGET_PID = 4242
+
+
+class FastClock:
+    def __init__(self, start_ns: int = EPOCH_NS):
+        self.now_ns = start_ns
+
+    def clock_ns(self) -> int:
+        self.now_ns += 1_000
+        return self.now_ns
+
+    def sleep(self, seconds: float) -> None:
+        self.now_ns += max(1, int(seconds * 1.0e9))
+
+
+def status_text(**changes: int | str) -> str:
+    values: dict[str, int | str] = {
+        field: 0 for field in coordinator.STATUS_FIELDS
+    }
+    values.update(abi_version=1, mode="off")
+    values.update(changes)
+    return " ".join(f"{field}={values[field]}" for field in coordinator.STATUS_FIELDS)
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -414,6 +437,298 @@ class DelayRelayTests(unittest.TestCase):
         self.assertTrue(result["cpu_only"])
         self.assertFalse(result["experiment_evidence"])
         self.assertEqual(len(result["rows"]), 6)
+
+
+class BridgeStatusParserTests(unittest.TestCase):
+    def test_exact_29_field_status_parses(self) -> None:
+        text = status_text()
+        self.assertEqual(len(text.split()), 29)
+        parsed = coordinator.parse_status(text)
+        self.assertEqual(parsed.abi_version, 1)
+        self.assertEqual(parsed.mode, "off")
+
+    def test_status_schema_rejects_malformed_missing_extra_and_duplicate(self) -> None:
+        valid = status_text()
+        cases = (
+            valid + " malformed",
+            " ".join(valid.split()[1:]),
+            valid + " extra=0",
+            valid + " mode=off",
+        )
+        for value in cases:
+            with self.subTest(value=value), self.assertRaises(protocol.ValidationError):
+                coordinator.parse_status(value)
+
+    def test_status_rejects_non_integer_negative_and_overflow(self) -> None:
+        cases = (
+            status_text(snapshot_updates="not-a-number"),
+            status_text(snapshot_updates=-1),
+            status_text(snapshot_updates=coordinator.UINT64_MAX + 1),
+            status_text(active_callbacks=coordinator.INT32_MAX + 1),
+        )
+        for value in cases:
+            with self.subTest(value=value), self.assertRaises(protocol.ValidationError):
+                coordinator.parse_status(value)
+
+    def test_status_rejects_incoherent_snapshot(self) -> None:
+        cases = (
+            status_text(snapshot_present=2),
+            status_text(snapshot_present=0, snapshot_sequence=1),
+            status_text(
+                snapshot_present=1,
+                snapshot_sequence=1,
+                snapshot_phase=1,
+                source_mono_ns=100,
+                published_mono_ns=99,
+            ),
+        )
+        for value in cases:
+            with self.subTest(value=value), self.assertRaises(protocol.ValidationError):
+                coordinator.parse_status(value)
+
+
+class BridgeContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.clock = FastClock()
+        self.bridge = coordinator.InMemoryContractBridge(clock_ns=self.clock.clock_ns)
+
+    def test_contract_errno_classes(self) -> None:
+        invalid_calls = (
+            (errno.EINVAL, lambda: self.bridge.configure("invalid", 1)),
+            (errno.ESTALE, lambda: self.bridge.publish(1, 1, 1, 1)),
+        )
+        for expected_errno, operation in invalid_calls:
+            with self.subTest(expected_errno=expected_errno), self.assertRaises(OSError) as caught:
+                operation()
+            self.assertEqual(caught.exception.errno, expected_errno)
+
+        self.bridge.configure("native", 7)
+        for expected_errno, operation in (
+            (errno.EINVAL, lambda: self.bridge.publish(7, 0, 1, 1)),
+            (errno.EINVAL, lambda: self.bridge.publish(7, 1, True, 1)),
+            (errno.EINVAL, lambda: self.bridge.publish(7, 1, 3, 1)),
+            (errno.ESTALE, lambda: self.bridge.publish(8, 1, 1, 1)),
+            (errno.ERANGE, lambda: self.bridge.publish(7, 2, 1, 1)),
+            (
+                errno.ERANGE,
+                lambda: self.bridge.publish(
+                    7, 1, 1, self.clock.now_ns + 1_000_000_000
+                ),
+            ),
+        ):
+            with self.subTest(expected_errno=expected_errno), self.assertRaises(OSError) as caught:
+                operation()
+            self.assertEqual(caught.exception.errno, expected_errno)
+        with self.assertRaises(OSError) as caught:
+            self.bridge.disable(8)
+        self.assertEqual(caught.exception.errno, errno.ESTALE)
+
+    def test_all_six_conditions_close_sequence_ack_counters_and_cleanup(self) -> None:
+        result = run_study.run_bridge_preflight(clock_factory=FastClock)
+        self.assertEqual(result["schema"], run_study.BRIDGE_PREFLIGHT_SCHEMA)
+        self.assertFalse(result["live_bridge"])
+        self.assertFalse(result["experiment_evidence"])
+        self.assertTrue(result["synthetic_source"])
+        self.assertEqual(result["condition_count"], 6)
+        self.assertEqual(
+            {(row["implementation"], row["delay_ms"]) for row in result["conditions"]},
+            {(mode, delay) for mode in protocol.IMPLEMENTATIONS for delay in protocol.DELAYS_MS},
+        )
+        for row in result["conditions"]:
+            self.assertFalse(row["live_bridge"])
+            self.assertFalse(row["experiment_evidence"])
+            self.assertTrue(row["synthetic_source"])
+            self.assertEqual(len(row["publications"]), 7)
+            for sequence, publication in enumerate(row["publications"], 1):
+                expected = protocol.expected_phase(sequence)
+                self.assertEqual(publication["sequence"], sequence)
+                self.assertEqual(publication["phase"], expected["phase"])
+                self.assertEqual(
+                    publication["eligible_mono_ns"]
+                    - publication["source_mono_ns"],
+                    row["delay_ms"] * 1_000_000,
+                )
+                self.assertLessEqual(
+                    publication["write_started_mono_ns"],
+                    publication["published_mono_ns"],
+                )
+                self.assertLessEqual(
+                    publication["published_mono_ns"],
+                    publication["write_finished_mono_ns"],
+                )
+            self.assertEqual(row["final_enabled_status"]["snapshot_updates"], 7)
+            self.assertEqual(row["final_enabled_status"]["snapshot_rejections"], 0)
+            self.assertEqual(row["disabled_status"]["mode"], "off")
+            self.assertEqual(row["disabled_status"]["snapshot_present"], 0)
+            self.assertEqual(row["disabled_status"]["snapshot_updates"], 7)
+
+    def test_selects_one_condition(self) -> None:
+        result = run_study.run_bridge_preflight(
+            implementation="bpf", delay_ms=100, clock_factory=FastClock
+        )
+        self.assertEqual(result["condition_count"], 1)
+        self.assertEqual(result["conditions"][0]["implementation"], "bpf")
+        self.assertEqual(result["conditions"][0]["delay_ms"], 100)
+        with self.assertRaises(protocol.ValidationError):
+            run_study.run_bridge_preflight(implementation="native")
+
+    def test_busy_endpoint_is_rejected_without_overwriting_it(self) -> None:
+        self.bridge.configure("native", 55)
+        runner = coordinator.Coordinator(
+            self.bridge, clock_ns=self.clock.clock_ns, sleep=self.clock.sleep
+        )
+        with self.assertRaisesRegex(protocol.ValidationError, "not idle"):
+            runner.replay(implementation="bpf", generation=56, delay_ms=0)
+        self.assertEqual(self.bridge.status().mode, "native")
+        self.assertEqual(self.bridge.status().generation, 55)
+
+    def test_counter_contamination_fails_closed_and_cleans_up(self) -> None:
+        class ContaminatedBridge(coordinator.InMemoryContractBridge):
+            def configure(self, mode: str, generation: int) -> None:
+                super().configure(mode, generation)
+                self._counters["callback_invocations"] = 1
+
+        bridge = ContaminatedBridge(clock_ns=self.clock.clock_ns)
+        runner = coordinator.Coordinator(
+            bridge, clock_ns=self.clock.clock_ns, sleep=self.clock.sleep
+        )
+        with self.assertRaises(ExceptionGroup) as caught:
+            runner.replay(implementation="native", generation=1, delay_ms=0)
+        self.assertIn("callback or decision", str(caught.exception.exceptions[0]))
+        self.assertEqual(bridge.status().mode, "off")
+
+    def test_publication_outside_write_ack_window_fails_closed(self) -> None:
+        class OutsideAckBridge(coordinator.InMemoryContractBridge):
+            def publish(self, generation: int, sequence: int, phase: int, source_mono_ns: int) -> None:
+                super().publish(generation, sequence, phase, source_mono_ns)
+                current_sequence, current_phase, current_source, published = self._snapshot
+                self._snapshot = (
+                    current_sequence,
+                    current_phase,
+                    current_source,
+                    published + 1_000_000_000,
+                )
+
+        bridge = OutsideAckBridge(clock_ns=self.clock.clock_ns)
+        runner = coordinator.Coordinator(
+            bridge, clock_ns=self.clock.clock_ns, sleep=self.clock.sleep
+        )
+        with self.assertRaisesRegex(protocol.ValidationError, "acknowledgement"):
+            runner.replay(implementation="native", generation=1, delay_ms=0)
+        self.assertEqual(bridge.status().mode, "off")
+
+    def test_late_boundary_fails_closed(self) -> None:
+        class LateClock(FastClock):
+            def clock_ns(self) -> int:
+                self.now_ns += protocol.MAXIMUM_BOUNDARY_OVERRUN_NS + 1
+                return self.now_ns
+
+        clock = LateClock()
+        bridge = coordinator.InMemoryContractBridge(clock_ns=clock.clock_ns)
+        with self.assertRaisesRegex(protocol.ValidationError, "boundary"):
+            coordinator.Coordinator(
+                bridge, clock_ns=clock.clock_ns, sleep=clock.sleep
+            ).replay(implementation="native", generation=1, delay_ms=0)
+        self.assertEqual(bridge.status().mode, "off")
+
+    def test_generation_mismatch_fails_closed(self) -> None:
+        class WrongGenerationBridge(coordinator.InMemoryContractBridge):
+            def configure(self, mode: str, generation: int) -> None:
+                super().configure(mode, generation + 1)
+
+        bridge = WrongGenerationBridge(clock_ns=self.clock.clock_ns)
+        with self.assertRaises(ExceptionGroup) as caught:
+            coordinator.Coordinator(
+                bridge, clock_ns=self.clock.clock_ns, sleep=self.clock.sleep
+            ).replay(implementation="bpf", generation=7, delay_ms=0)
+        self.assertIn("configure acknowledgement", str(caught.exception.exceptions[0]))
+        self.assertEqual(caught.exception.exceptions[1].errno, errno.ESTALE)
+        self.assertEqual(bridge.status().mode, "bpf")
+        self.assertEqual(bridge.status().generation, 8)
+
+    def test_missing_proc_endpoint_fails_without_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "missing-proc-endpoint"
+            bridge = coordinator.ProcBridge(path)
+            with self.assertRaises(FileNotFoundError):
+                bridge.status()
+            self.assertFalse(path.exists())
+
+    def test_publish_failure_still_disables_bridge(self) -> None:
+        class PublishFailureBridge(coordinator.InMemoryContractBridge):
+            def publish(self, generation: int, sequence: int, phase: int, source_mono_ns: int) -> None:
+                if sequence == 3:
+                    raise OSError(errno.EIO, "injected publish failure")
+                super().publish(generation, sequence, phase, source_mono_ns)
+
+        bridge = PublishFailureBridge(clock_ns=self.clock.clock_ns)
+        with self.assertRaises(OSError) as caught:
+            coordinator.Coordinator(
+                bridge, clock_ns=self.clock.clock_ns, sleep=self.clock.sleep
+            ).replay(implementation="native", generation=3, delay_ms=0)
+        self.assertEqual(caught.exception.errno, errno.EIO)
+        self.assertEqual(bridge.status().mode, "off")
+        self.assertEqual(bridge.status().snapshot_present, 0)
+
+    def test_dirty_cleanup_is_rejected(self) -> None:
+        class DirtyDisableBridge(coordinator.InMemoryContractBridge):
+            def disable(self, generation: int) -> None:
+                if generation != self._generation:
+                    raise OSError(errno.ESTALE, "stale bridge generation")
+
+        bridge = DirtyDisableBridge(clock_ns=self.clock.clock_ns)
+        with self.assertRaisesRegex(protocol.ValidationError, "clean disabled state"):
+            coordinator.Coordinator(
+                bridge, clock_ns=self.clock.clock_ns, sleep=self.clock.sleep
+            ).replay(implementation="native", generation=4, delay_ms=0)
+        self.assertEqual(bridge.status().mode, "native")
+        self.assertEqual(bridge.status().snapshot_present, 1)
+
+    def test_primary_and_cleanup_failures_form_exception_group(self) -> None:
+        class DualFailureBridge(coordinator.InMemoryContractBridge):
+            def publish(self, generation: int, sequence: int, phase: int, source_mono_ns: int) -> None:
+                raise OSError(errno.EIO, "injected publish failure")
+
+            def disable(self, generation: int) -> None:
+                raise OSError(errno.EBUSY, "injected cleanup failure")
+
+        bridge = DualFailureBridge(clock_ns=self.clock.clock_ns)
+        with self.assertRaises(ExceptionGroup) as caught:
+            coordinator.Coordinator(
+                bridge, clock_ns=self.clock.clock_ns, sleep=self.clock.sleep
+            ).replay(implementation="bpf", generation=5, delay_ms=0)
+        self.assertEqual(len(caught.exception.exceptions), 2)
+        self.assertEqual(caught.exception.exceptions[0].errno, errno.EIO)
+        self.assertEqual(caught.exception.exceptions[1].errno, errno.EBUSY)
+
+    def test_cli_emits_separate_non_live_schema(self) -> None:
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = run_study.main(
+                ["bridge-preflight", "--implementation", "bpf", "--delay-ms", "1000"]
+            )
+        self.assertEqual(status, 0)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["schema"], run_study.BRIDGE_PREFLIGHT_SCHEMA)
+        self.assertEqual(result["condition_count"], 1)
+        self.assertFalse(result["live_bridge"])
+        self.assertFalse(result["experiment_evidence"])
+        self.assertTrue(result["synthetic_source"])
+
+    def test_bridge_preflight_rejects_backend_that_relabels_replay(self) -> None:
+        class RelabeledBridge(coordinator.InMemoryContractBridge):
+            def configure(self, mode: str, generation: int) -> None:
+                super().configure(mode, generation)
+                self.live = True
+                self.experiment_evidence = True
+
+        with self.assertRaisesRegex(protocol.ValidationError, "evidence boundary"):
+            run_study.run_bridge_preflight(
+                implementation="native",
+                delay_ms=0,
+                clock_factory=FastClock,
+                bridge_factory=lambda clock_ns: RelabeledBridge(clock_ns=clock_ns),
+            )
 
 
 class BoundaryTests(unittest.TestCase):

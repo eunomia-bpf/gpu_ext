@@ -605,13 +605,14 @@ def wait_gpu_idle(timeout: float = 120) -> None:
 def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dict[str, Any]:
     payload = json.dumps({"model": MODEL_ID, "prompt": token_ids, "max_tokens": OUTPUT_TOKENS,
                           "temperature": 0, "seed": 0, "ignore_eos": True, "stream": True,
-                          "logprobs": 1,
+                          "logprobs": 1, "return_token_ids": True,
                           "stream_options": {"include_usage": True}}).encode()
     req = urllib.request.Request(f"http://127.0.0.1:{port}/v1/completions", data=payload,
                                  headers={"Content-Type": "application/json", "X-Request-Id": request_id}, method="POST")
     start = time.perf_counter_ns()
     first = None
     text_parts: list[str] = []
+    generated_ids: list[int] = []
     engine_request_ids: set[str] = set()
     usage: dict[str, Any] = {}
     status = None
@@ -630,16 +631,20 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
                     usage = obj["usage"]
                 for choice in obj.get("choices", []):
                     piece = choice.get("text") or ""
+                    piece_ids = choice.get("token_ids") or []
                     generated_tokens = (choice.get("logprobs") or {}).get("tokens") or []
-                    if generated_tokens and first is None:
+                    if (generated_tokens or piece_ids) and first is None:
                         first = time.perf_counter_ns()
                     text_parts.append(piece)
+                    generated_ids.extend(int(value) for value in piece_ids)
     except urllib.error.HTTPError as exc:
         raise GateError(f"HTTP {exc.code}: {exc.read().decode(errors='replace')}") from exc
     end = time.perf_counter_ns()
     output = "".join(text_parts)
     if status != 200 or first is None or not output:
         raise GateError(f"invalid response: status={status}, first={first}, bytes={len(output)}")
+    if len(generated_ids) != OUTPUT_TOKENS:
+        raise GateError(f"expected {OUTPUT_TOKENS} streamed token IDs for {request_id}, got {len(generated_ids)}")
     if int(usage.get("completion_tokens", -1)) != OUTPUT_TOKENS:
         raise GateError(f"expected {OUTPUT_TOKENS} output tokens, got {usage}")
     if int(usage.get("prompt_tokens", -1)) != len(token_ids):
@@ -652,7 +657,7 @@ def streamed_completion(port: int, token_ids: list[int], request_id: str) -> dic
     return {"request_header": request_id, "engine_request_id": engine_request_id,
             "input_tokens": len(token_ids),
             "status": status, "ttft_ms": (first - start) / 1e6, "e2e_ms": (end - start) / 1e6,
-            "usage": usage, "text": output}
+            "usage": usage, "text": output, "generated_token_ids": generated_ids}
 
 
 def request_log_values(log: str, response_id: str) -> dict[str, Any]:

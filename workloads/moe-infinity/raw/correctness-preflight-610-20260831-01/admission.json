@@ -1,0 +1,89 @@
+{
+  "admitted": true,
+  "errors": [],
+  "gpu": {
+    "compute_apps": [],
+    "driver": "610.43.02",
+    "index": 0,
+    "memory_clock_mhz": 405,
+    "memory_total_mib": 32607,
+    "memory_used_mib": 15,
+    "name": "NVIDIA GeForce RTX 5090",
+    "power_w": 15.07,
+    "sm_clock_mhz": 180,
+    "temperature_c": 49
+  },
+  "llama_source": {
+    "commit": "26836b27ae1ec9d6e94c6b56306cca75c7e86814",
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/llama.cpp",
+    "status": []
+  },
+  "loaded_uvm_interface": {
+    "btf_path": "/sys/kernel/btf/nvidia_uvm",
+    "gpu_mem_ops_members": [
+      "gpu_test_trigger",
+      "gpu_page_prefetch",
+      "gpu_page_prefetch_iter",
+      "gpu_block_activate",
+      "gpu_block_access",
+      "gpu_evict_prepare"
+    ],
+    "required_kfuncs": [
+      "bpf_gpu_block_move_head",
+      "bpf_gpu_block_move_tail",
+      "bpf_gpu_set_prefetch_region"
+    ],
+    "version": "610.43.02"
+  },
+  "models": {
+    "gguf": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/hf-cache/hub/models--ggml-org--gpt-oss-120b-GGUF/blobs/582bd40f6886200101f4c4ed9f25f3fe80cc14c86e9e2b37746cd8904a0c622d",
+    "hf_snapshot": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/hf-cache/hub/models--openai--gpt-oss-120b/snapshots/b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+    "model_view": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/model-view/b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+    "view_members": [
+      "chat_template.jinja",
+      "config.json",
+      "generation_config.json",
+      "model-00000-of-00014.safetensors",
+      "model-00001-of-00014.safetensors",
+      "model-00002-of-00014.safetensors",
+      "model-00003-of-00014.safetensors",
+      "model-00004-of-00014.safetensors",
+      "model-00005-of-00014.safetensors",
+      "model-00006-of-00014.safetensors",
+      "model-00007-of-00014.safetensors",
+      "model-00008-of-00014.safetensors",
+      "model-00009-of-00014.safetensors",
+      "model-00010-of-00014.safetensors",
+      "model-00011-of-00014.safetensors",
+      "model-00012-of-00014.safetensors",
+      "model-00013-of-00014.safetensors",
+      "model-00014-of-00014.safetensors",
+      "model.safetensors.index.json",
+      "special_tokens_map.json",
+      "tokenizer.json",
+      "tokenizer_config.json"
+    ]
+  },
+  "moe_source": {
+    "commit": "b766f8f1f6379fac6cd23594713ba6f4c7650ad9",
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity",
+    "status": [
+      "M core/parallel/expert_dispatcher.cpp",
+      " M core/parallel/expert_dispatcher.h",
+      " M core/python/py_archer_prefetch.cpp",
+      "?? moe_infinity/entrypoints/openai/revision_server.py"
+    ]
+  },
+  "mount": {
+    "free_bytes": 565014024192,
+    "fstype": "ext4",
+    "source": "/dev/nvme0n1p1",
+    "target": "/home/yunwei37/workspace"
+  },
+  "small_artifacts": {},
+  "struct_ops": {
+    "links": [],
+    "maps": []
+  },
+  "timestamp_ns": 1788212014338193756
+}

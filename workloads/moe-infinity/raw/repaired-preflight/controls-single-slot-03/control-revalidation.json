@@ -1,0 +1,18 @@
+{
+  "complete_preflight": false,
+  "configuration_order": [
+    "llama_uvm",
+    "llama_ncmoe32"
+  ],
+  "correctness_rule": "exact text equality across two passes within each configuration; cross-configuration text is diagnostic because CPU-MoE and CUDA-UVM use different floating-point execution paths",
+  "cross_configuration_text_equal": false,
+  "protocol": "proposal-3-revision-7",
+  "safety_gates": {
+    "llama_ncmoe32": "passed",
+    "llama_uvm": "passed"
+  },
+  "source_result": "control-result.json",
+  "status": "passed",
+  "timing_authorized": false,
+  "within_configuration_exact_repeatability": true
+}

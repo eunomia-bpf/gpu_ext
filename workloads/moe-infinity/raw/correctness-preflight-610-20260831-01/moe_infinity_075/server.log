@@ -1,0 +1,134 @@
+INFO:     Started server process [209562]
+INFO:     Waiting for application startup.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[WARNING] FlashAttention is not available in the current environment. Using default attention.
+Creating model from scratch ...
+Loading checkpoint files:   0%|          | 0/15 [00:00<?, ?it/s]Loading checkpoint files:   7%|▋         | 1/15 [00:02<00:28,  2.03s/it]Loading checkpoint files:  13%|█▎        | 2/15 [00:04<00:29,  2.29s/it]Loading checkpoint files:  20%|██        | 3/15 [00:07<00:31,  2.60s/it]Loading checkpoint files:  27%|██▋       | 4/15 [00:11<00:31,  2.90s/it]Loading checkpoint files:  33%|███▎      | 5/15 [00:16<00:32,  3.24s/it]Loading checkpoint files:  40%|████      | 6/15 [00:22<00:33,  3.75s/it]Loading checkpoint files:  47%|████▋     | 7/15 [00:32<00:36,  4.61s/it]Loading checkpoint files:  53%|█████▎    | 8/15 [00:41<00:36,  5.20s/it]Loading checkpoint files:  60%|██████    | 9/15 [00:52<00:35,  5.85s/it]Loading checkpoint files:  67%|██████▋   | 10/15 [01:04<00:32,  6.42s/it]Loading checkpoint files:  73%|███████▎  | 11/15 [01:16<00:27,  6.96s/it]Loading checkpoint files:  80%|████████  | 12/15 [01:29<00:22,  7.43s/it]Loading checkpoint files:  87%|████████▋ | 13/15 [01:37<00:15,  7.51s/it]Loading checkpoint files:  93%|█████████▎| 14/15 [01:51<00:07,  7.96s/it]Loading checkpoint files: 100%|██████████| 15/15 [02:05<00:00,  8.35s/it]Loading checkpoint files: 100%|██████████| 15/15 [02:05<00:00,  8.35s/it]
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+GptOssConfig {
+  "architectures": [
+    "GptOssForCausalLM"
+  ],
+  "attention_bias": true,
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "bfloat16",
+  "eos_token_id": 200002,
+  "experts_per_token": 4,
+  "head_dim": 64,
+  "hidden_act": "silu",
+  "hidden_size": 2880,
+  "initial_context_length": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 2880,
+  "layer_types": [
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 131072,
+  "model_type": "gpt_oss",
+  "num_attention_heads": 64,
+  "num_experts_per_tok": 4,
+  "num_hidden_layers": 36,
+  "num_key_value_heads": 8,
+  "num_local_experts": 128,
+  "output_router_logits": false,
+  "pad_token_id": 199999,
+  "quantization_config": {
+    "modules_to_not_convert": [
+      "model.layers.*.self_attn",
+      "model.layers.*.mlp.router",
+      "model.embed_tokens",
+      "lm_head"
+    ],
+    "quant_method": "mxfp4"
+  },
+  "rms_norm_eps": 1e-05,
+  "rope_parameters": {
+    "beta_fast": 32.0,
+    "beta_slow": 1.0,
+    "factor": 32.0,
+    "original_max_position_embeddings": 4096,
+    "rope_theta": 150000,
+    "rope_type": "yarn",
+    "truncate": false
+  },
+  "router_aux_loss_coef": 0.9,
+  "sliding_window": 128,
+  "swiglu_limit": 7.0,
+  "tie_word_embeddings": false,
+  "transformers_version": "5.16.1",
+  "use_cache": true,
+  "vocab_size": 201088
+}
+
+TOPO: 75 stages, 36 sparse
+TOPO: set_topology done
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:48738 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48754 - "GET /v1/models HTTP/1.1" 200 OK
+[20260831 21:34:26.188443Z ][209562 ][INFO  ]Creating I/O thread pool with  6  threads - archer_prio_aio_handle.cpp:234
+[20260831 21:34:26.188455Z ][209562 ][INFO  ]Create ArcherAioThread for thread:  0 - archer_aio_thread.cpp:12
+[20260831 21:34:26.188456Z ][209562 ][INFO  ]Create ArcherAioThread for thread:  1 - archer_aio_thread.cpp:12
+[20260831 21:34:26.188456Z ][209562 ][INFO  ]Create ArcherAioThread for thread:  2 - archer_aio_thread.cpp:12
+[20260831 21:34:26.188456Z ][209562 ][INFO  ]Create ArcherAioThread for thread:  3 - archer_aio_thread.cpp:12
+[20260831 21:34:26.188457Z ][209562 ][INFO  ]Create ArcherAioThread for thread:  4 - archer_aio_thread.cpp:12
+[20260831 21:34:26.188457Z ][209562 ][INFO  ]Create ArcherAioThread for thread:  5 - archer_aio_thread.cpp:12
+[20260831 21:34:26.189039Z ][209562 ][INFO  ]Creating pinned memory pool:  24  chunks of  1024  KB - pinned_memory_pool.cpp:16
+[20260831 21:34:26.191762Z ][209562 ][INFO  ]Index file /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/correctness-preflight-610-20260831-01/moe_infinity_075/moe-offload/b5c939de8f754692c1647ca79fbf85e8c1e70f8a/archer_index  does not exist, creating - archer_tensor_handle.cpp:52
+[20260831 21:34:26.191764Z ][209562 ][INFO  ]Index file size  0 - archer_tensor_handle.cpp:54
+[20260831 21:34:26.192381Z ][209562 ][INFO  ]Device count  1 - archer_prefetch_handle.cpp:48
+[20260831 21:34:26.192383Z ][209562 ][INFO  ]Enabled peer access for all devices - archer_prefetch_handle.cpp:71
+[20260831 21:34:32.112333Z ][209562 ][INFO  ]Storage partition full, switching to file_id= 1 - archer_tensor_handle.cpp:86
+[20260831 21:34:41.642591Z ][209562 ][INFO  ]Storage partition full, switching to file_id= 2 - archer_tensor_handle.cpp:86
+[20260831 21:35:01.259932Z ][209562 ][INFO  ]Storage partition full, switching to file_id= 3 - archer_tensor_handle.cpp:86
+[20260831 21:35:28.093501Z ][209562 ][INFO  ]Storage partition full, switching to file_id= 4 - archer_tensor_handle.cpp:86
+[20260831 21:35:56.926678Z ][209562 ][INFO  ]Storage partition full, switching to file_id= 5 - archer_tensor_handle.cpp:86
+[20260831 21:36:28.542838Z ][209562 ][INFO  ]Storage partition full, switching to file_id= 6 - archer_tensor_handle.cpp:86
+[20260831 21:36:31.673528Z ][209562 ][INFO  ]Moving dense parameters to CPU - model_topology.cpp:633
+38 left37 left36 left35 left34 left33 left32 left31 left30 left29 left28 left27 left26 left25 left24 left23 left22 left21 left20 left19 left18 left17 left16 left15 left14 left13 left12 left11 left10 left9 left8 left7 left6 left5 left4 left3 left2 left1 left
+finished: 39/39
+[20260831 21:36:33.262756Z ][209562 ][INFO  ]Moving sparse parameters to CPU - model_topology.cpp:644
+[20260831 21:36:50.536687Z ][209562 ][INFO  ]Processing partition  0  ( 10236  MB,  4758  tensors) - model_topology.cpp:717
+[20260831 21:36:55.749862Z ][209562 ][INFO  ]Processing partition  1  ( 10235  MB,  4643  tensors) - model_topology.cpp:717
+[20260831 21:37:01.097585Z ][209562 ][INFO  ]Processing partition  2  ( 10234  MB,  4502  tensors) - model_topology.cpp:717
+[20260831 21:37:06.381553Z ][209562 ][INFO  ]Processing partition  3  ( 10233  MB,  4952  tensors) - model_topology.cpp:717
+[20260831 21:37:11.666100Z ][209562 ][INFO  ]Processing partition  4  ( 10215  MB,  4185  tensors) - model_topology.cpp:717
+[20260831 21:37:16.862886Z ][209562 ][INFO  ]Processing partition  5  ( 10235  MB,  4249  tensors) - model_topology.cpp:717
+[20260831 21:37:18.440607Z ][209562 ][INFO  ]Processing partition  6  ( 879  MB,  359  tensors) - model_topology.cpp:717
+[20260831 21:37:21.892208Z ][212185 ][FATAL ]batch_size should be (0, 256 ] , but got 353 - expert_module.cpp:196

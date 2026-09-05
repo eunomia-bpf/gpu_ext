@@ -1,0 +1,565 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Detaching after vfork from child process 64109]
+INFO:     Started server process [64011]
+INFO:     Waiting for application startup.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+[WARNING] FlashAttention is not available in the current environment. Using default attention.
+Loading model from offload_path ...
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+GptOssConfig {
+  "architectures": [
+    "GptOssForCausalLM"
+  ],
+  "attention_bias": true,
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "bfloat16",
+  "eos_token_id": 200002,
+  "experts_per_token": 4,
+  "head_dim": 64,
+  "hidden_act": "silu",
+  "hidden_size": 2880,
+  "initial_context_length": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 2880,
+  "layer_types": [
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention",
+    "sliding_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 131072,
+  "model_type": "gpt_oss",
+  "num_attention_heads": 64,
+  "num_experts_per_tok": 4,
+  "num_hidden_layers": 36,
+  "num_key_value_heads": 8,
+  "num_local_experts": 128,
+  "output_router_logits": false,
+  "pad_token_id": 199999,
+  "quantization_config": {
+    "modules_to_not_convert": [
+      "model.layers.*.self_attn",
+      "model.layers.*.mlp.router",
+      "model.embed_tokens",
+      "lm_head"
+    ],
+    "quant_method": "mxfp4"
+  },
+  "rms_norm_eps": 1e-05,
+  "rope_parameters": {
+    "beta_fast": 32.0,
+    "beta_slow": 1.0,
+    "factor": 32.0,
+    "original_max_position_embeddings": 4096,
+    "rope_theta": 150000,
+    "rope_type": "yarn",
+    "truncate": false
+  },
+  "router_aux_loss_coef": 0.9,
+  "sliding_window": 128,
+  "swiglu_limit": 7.0,
+  "tie_word_embeddings": false,
+  "transformers_version": "5.16.1",
+  "use_cache": true,
+  "vocab_size": 201088
+}
+
+TOPO: 75 stages, 36 sparse
+TOPO: set_topology done
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51570 - "GET /health HTTP/1.1" 200 OK
+[Detaching after vfork from child process 65312]
+[Detaching after vfork from child process 65313]
+[Detaching after vfork from child process 65335]
+[Detaching after vfork from child process 65336]
+
+Thread 1 "python" received signal SIGSEGV, Segmentation fault.
+0x00007fffbed4784e in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+
+Thread 42 (Thread 0x7ffc59ffb6c0 (LWP 65311) "python"):
+#0  0x00007ffff7cecbdf in __GI___clock_nanosleep (clock_id=1, flags=1, req=0x7ffc59ffac40, rem=0x0) at ../sysdeps/unix/sysv/linux/clock_nanosleep.c:78
+#1  0x000000000064de6a in ?? ()
+#2  0x00000000005d797d in _PyEval_EvalFrameDefault ()
+#3  0x000000000054cad2 in ?? ()
+#4  0x00000000006f89dc in ?? ()
+#5  0x00000000006b931c in ?? ()
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 41 (Thread 0x7ffc5a7fc6c0 (LWP 64163) "GPUExecFunc3"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-1, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-1, abstime=0x0, clockid=0, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x16111eb8, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x16111e68, cond=0x16111e90) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x16111e90, mutex=0x16111e68) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69cacf42 in std::condition_variable::wait<ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}>(std::unique_lock<std::mutex>&, ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}) (__p=..., __lock=..., this=0x16111e90) at /usr/include/c++/13/condition_variable:105
+#6  ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop (item=..., this=0x16111e10) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/utils/threadsafe_queue.h:33
+#7  ExpertDispatcher::GPUExecFunc (this=0x11b00760, gpu_id=<optimized out>, thread_idx=<optimized out>) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/parallel/expert_dispatcher.cpp:635
+#8  0x00007ffc69c7c34a in std::function<void ()>::operator()() const (this=0x1553cde0) at /usr/include/c++/13/bits/std_function.h:591
+#9  base::detail::ThreadData::runInThread (this=0x1553cde0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:73
+#10 base::detail::startThread (obj=0x1553cde0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:96
+#11 0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#12 0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 40 (Thread 0x7ffc5affd6c0 (LWP 64162) "GPUExecFunc2"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-1, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-1, abstime=0x0, clockid=0, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x16111eb8, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x16111e68, cond=0x16111e90) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x16111e90, mutex=0x16111e68) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69cacf42 in std::condition_variable::wait<ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}>(std::unique_lock<std::mutex>&, ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}) (__p=..., __lock=..., this=0x16111e90) at /usr/include/c++/13/condition_variable:105
+#6  ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop (item=..., this=0x16111e10) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/utils/threadsafe_queue.h:33
+#7  ExpertDispatcher::GPUExecFunc (this=0x11b00760, gpu_id=<optimized out>, thread_idx=<optimized out>) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/parallel/expert_dispatcher.cpp:635
+#8  0x00007ffc69c7c34a in std::function<void ()>::operator()() const (this=0x108cfaf0) at /usr/include/c++/13/bits/std_function.h:591
+#9  base::detail::ThreadData::runInThread (this=0x108cfaf0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:73
+#10 base::detail::startThread (obj=0x108cfaf0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:96
+#11 0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#12 0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 39 (Thread 0x7ffc5b7fe6c0 (LWP 64161) "GPUExecFunc1"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-1, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-1, abstime=0x0, clockid=0, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x16111eb8, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x16111e68, cond=0x16111e90) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x16111e90, mutex=0x16111e68) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69cacf42 in std::condition_variable::wait<ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}>(std::unique_lock<std::mutex>&, ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}) (__p=..., __lock=..., this=0x16111e90) at /usr/include/c++/13/condition_variable:105
+#6  ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop (item=..., this=0x16111e10) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/utils/threadsafe_queue.h:33
+#7  ExpertDispatcher::GPUExecFunc (this=0x11b00760, gpu_id=<optimized out>, thread_idx=<optimized out>) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/parallel/expert_dispatcher.cpp:635
+#8  0x00007ffc69c7c34a in std::function<void ()>::operator()() const (this=0x108aaff0) at /usr/include/c++/13/bits/std_function.h:591
+#9  base::detail::ThreadData::runInThread (this=0x108aaff0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:73
+#10 base::detail::startThread (obj=0x108aaff0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:96
+#11 0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#12 0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 38 (Thread 0x7ffc5bfff6c0 (LWP 64160) "GPUExecFunc0"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-1, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-1, abstime=0x0, clockid=0, expected=0, futex_word=0x16111eb8) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x16111eb8, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x16111e68, cond=0x16111e90) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x16111e90, mutex=0x16111e68) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69cacf42 in std::condition_variable::wait<ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}>(std::unique_lock<std::mutex>&, ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop(ExpertDispatcher::ExecArgs&)::{lambda()#1}) (__p=..., __lock=..., this=0x16111e90) at /usr/include/c++/13/condition_variable:105
+#6  ThreadSafeQueue<ExpertDispatcher::ExecArgs>::Pop (item=..., this=0x16111e10) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/utils/threadsafe_queue.h:33
+#7  ExpertDispatcher::GPUExecFunc (this=0x11b00760, gpu_id=<optimized out>, thread_idx=<optimized out>) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/parallel/expert_dispatcher.cpp:635
+#8  0x00007ffc69c7c34a in std::function<void ()>::operator()() const (this=0x14e49d20) at /usr/include/c++/13/bits/std_function.h:591
+#9  base::detail::ThreadData::runInThread (this=0x14e49d20) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:73
+#10 base::detail::startThread (obj=0x14e49d20) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:96
+#11 0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#12 0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 37 (Thread 0x7ffc60ff96c0 (LWP 64159) "GPUFetchFunc0"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=32767, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x1607a338) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=32767, abstime=0x0, clockid=0, expected=0, futex_word=0x1607a338) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x1607a338, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x1607a2e8, cond=0x1607a310) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x1607a310, mutex=0x1607a2e8) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69cade59 in std::condition_variable::wait<ThreadSafeQueue<ExpertDispatcher::CallArgs>::Pop(ExpertDispatcher::CallArgs&)::{lambda()#1}>(std::unique_lock<std::mutex>&, ThreadSafeQueue<ExpertDispatcher::CallArgs>::Pop(ExpertDispatcher::CallArgs&)::{lambda()#1}) (__p=..., __lock=..., this=0x1607a310) at /usr/include/c++/13/condition_variable:105
+#6  ThreadSafeQueue<ExpertDispatcher::CallArgs>::Pop (item=..., this=0x1607a290) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/utils/threadsafe_queue.h:33
+#7  ExpertDispatcher::GPUFetchFunc (this=0x11b00760, gpu_id=<optimized out>) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/parallel/expert_dispatcher.cpp:429
+#8  0x00007ffc69c7c34a in std::function<void ()>::operator()() const (this=0x15eb61a0) at /usr/include/c++/13/bits/std_function.h:591
+#9  base::detail::ThreadData::runInThread (this=0x15eb61a0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:73
+#10 base::detail::startThread (obj=0x15eb61a0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/base/thread.cc:96
+#11 0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#12 0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 36 (Thread 0x7ffc617fa6c0 (LWP 64158) "python"):
+#0  0x00007ffff7cecbdf in __GI___clock_nanosleep (clock_id=clock_id@entry=0, flags=flags@entry=0, req=0x7ffc617f8e30, rem=0x7ffc617f8e30) at ../sysdeps/unix/sysv/linux/clock_nanosleep.c:78
+#1  0x00007ffff7cf9b27 in __GI___nanosleep (req=<optimized out>, rem=<optimized out>) at ../sysdeps/unix/sysv/linux/nanosleep.c:25
+#2  0x00007ffc69ce8e44 in std::this_thread::sleep_for<long, std::ratio<1l, 1000000l> > (__rtime=...) at /usr/include/c++/13/bits/this_thread_sleep.h:80
+#3  ArcherTaskPool::GPUThreadFunc (this=<optimized out>, gpu_id=<optimized out>, thread_id=<optimized out>) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/prefetch/task_scheduler.cpp:484
+#4  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#5  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#6  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 35 (Thread 0x7ffc61ffb6c0 (LWP 64157) "python"):
+#0  0x00007ffff7cecbdf in __GI___clock_nanosleep (clock_id=clock_id@entry=0, flags=flags@entry=0, req=0x7ffc61ff9e30, rem=0x7ffc61ff9e30) at ../sysdeps/unix/sysv/linux/clock_nanosleep.c:78
+#1  0x00007ffff7cf9b27 in __GI___nanosleep (req=<optimized out>, rem=<optimized out>) at ../sysdeps/unix/sysv/linux/nanosleep.c:25
+#2  0x00007ffc69ce8e44 in std::this_thread::sleep_for<long, std::ratio<1l, 1000000l> > (__rtime=...) at /usr/include/c++/13/bits/this_thread_sleep.h:80
+#3  ArcherTaskPool::GPUThreadFunc (this=<optimized out>, gpu_id=<optimized out>, thread_id=<optimized out>) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/prefetch/task_scheduler.cpp:484
+#4  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#5  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#6  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 34 (Thread 0x7ffc627fc6c0 (LWP 64156) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x14f34ce4) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x14f34ce4) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x14f34ce4, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x14f34ce8, cond=0x14f34cb8) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x14f34cb8, mutex=0x14f34ce8) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69c57241 in std::condition_variable::wait<ArcherPrioAioContext::Schedule()::<lambda()> > (__p=..., __lock=..., this=0x14f34cb8) at /usr/include/c++/13/condition_variable:105
+#6  ArcherPrioAioContext::Schedule (this=this@entry=0x14f34bc0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_prio_aio_handle.cpp:249
+#7  0x00007ffc69c57948 in ArcherPrioAioHandle::Run (this=0x14f34b40) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_prio_aio_handle.cpp:50
+#8  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#9  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#10 0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 33 (Thread 0x7ffc62ffd6c0 (LWP 64155) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-943752247, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x14f86094) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-943752247, abstime=0x0, clockid=0, expected=0, futex_word=0x14f86094) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x14f86094, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x14f86040, cond=0x14f86068) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x14f86068, mutex=0x14f86040) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69c50590 in std::condition_variable::wait<ArcherAioThread::Run()::<lambda()> > (__p=..., __lock=..., this=0x14f86068) at /usr/include/c++/13/condition_variable:105
+#6  ArcherAioThread::Run (this=0x14f86010) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_aio_thread.cpp:57
+#7  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 32 (Thread 0x7ffc637fe6c0 (LWP 64154) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-943752247, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x154bc7a4) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-943752247, abstime=0x0, clockid=0, expected=0, futex_word=0x154bc7a4) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x154bc7a4, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x154bc750, cond=0x154bc778) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x154bc778, mutex=0x154bc750) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69c50590 in std::condition_variable::wait<ArcherAioThread::Run()::<lambda()> > (__p=..., __lock=..., this=0x154bc778) at /usr/include/c++/13/condition_variable:105
+#6  ArcherAioThread::Run (this=0x154bc720) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_aio_thread.cpp:57
+#7  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 31 (Thread 0x7ffc63fff6c0 (LWP 64153) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-943752247, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x154bc6d4) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-943752247, abstime=0x0, clockid=0, expected=0, futex_word=0x154bc6d4) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x154bc6d4, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x154bc680, cond=0x154bc6a8) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x154bc6a8, mutex=0x154bc680) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69c50590 in std::condition_variable::wait<ArcherAioThread::Run()::<lambda()> > (__p=..., __lock=..., this=0x154bc6a8) at /usr/include/c++/13/condition_variable:105
+#6  ArcherAioThread::Run (this=0x154bc650) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_aio_thread.cpp:57
+#7  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 30 (Thread 0x7ffc68bfd6c0 (LWP 64152) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-943752247, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x160cab24) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-943752247, abstime=0x0, clockid=0, expected=0, futex_word=0x160cab24) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x160cab24, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x160caad0, cond=0x160caaf8) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x160caaf8, mutex=0x160caad0) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69c50590 in std::condition_variable::wait<ArcherAioThread::Run()::<lambda()> > (__p=..., __lock=..., this=0x160caaf8) at /usr/include/c++/13/condition_variable:105
+#6  ArcherAioThread::Run (this=0x160caaa0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_aio_thread.cpp:57
+#7  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 29 (Thread 0x7ffc693fe6c0 (LWP 64151) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-943752247, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x160caa30) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-943752247, abstime=0x0, clockid=0, expected=0, futex_word=0x160caa30) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x160caa30, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x160ca9e0, cond=0x160caa08) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x160caa08, mutex=0x160ca9e0) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69c50590 in std::condition_variable::wait<ArcherAioThread::Run()::<lambda()> > (__p=..., __lock=..., this=0x160caa08) at /usr/include/c++/13/condition_variable:105
+#6  ArcherAioThread::Run (this=0x160ca9b0) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_aio_thread.cpp:57
+#7  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 28 (Thread 0x7ffc69bff6c0 (LWP 64150) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=-943752247, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x15905190) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=-943752247, abstime=0x0, clockid=0, expected=0, futex_word=0x15905190) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x15905190, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x15905140, cond=0x15905168) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x15905168, mutex=0x15905140) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffc69c50590 in std::condition_variable::wait<ArcherAioThread::Run()::<lambda()> > (__p=..., __lock=..., this=0x15905168) at /usr/include/c++/13/condition_variable:105
+#6  ArcherAioThread::Run (this=0x15905110) at /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/MoE-Infinity/core/aio/archer_aio_thread.cpp:57
+#7  0x00007fffb7af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 27 (Thread 0x7ffc7cbbb6c0 (LWP 64149) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=<optimized out>, cancel=true, abstime=0x7ffc7cbba8f0, op=137, expected=0, futex_word=0x7ffc64000ba0) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=<optimized out>, abstime=0x7ffc7cbba8f0, clockid=0, expected=0, futex_word=0x7ffc64000ba0) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffc64000ba0, expected=expected@entry=0, clockid=clockid@entry=1, abstime=abstime@entry=0x7ffc7cbba8f0, private=<optimized out>) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7ca42f0 in do_futex_wait (sem=sem@entry=0x7ffc64000ba0, clockid=clockid@entry=1, abstime=abstime@entry=0x7ffc7cbba8f0) at ./nptl/sem_waitcommon.c:111
+#4  0x00007ffff7ca439e in __new_sem_wait_slow64 (sem=0x7ffc64000ba0, clockid=1, abstime=0x7ffc7cbba8f0) at ./nptl/sem_waitcommon.c:183
+#5  0x0000000000610143 in PyThread_acquire_lock_timed ()
+#6  0x000000000064dcba in ?? ()
+#7  0x0000000000551348 in ?? ()
+#8  0x0000000000549935 in PyObject_Vectorcall ()
+#9  0x00000000005d6f09 in _PyEval_EvalFrameDefault ()
+#10 0x000000000054cad2 in ?? ()
+#11 0x00000000005db13e in _PyEval_EvalFrameDefault ()
+#12 0x000000000054cad2 in ?? ()
+#13 0x00000000006f89dc in ?? ()
+#14 0x00000000006b931c in ?? ()
+#15 0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#16 0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 26 (Thread 0x7ffc7e5dd6c0 (LWP 64148) "cuda-EvtHandlr"):
+#0  0x00007ffff7d1b5fd in __GI___poll (fds=0x7ffc78000c20, nfds=10, timeout=100) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffbed5f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#2  0x00007fffbee4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#3  0x00007fffbed4f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#4  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 25 (Thread 0x7ffc7edde6c0 (LWP 64147) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x7ffc7eddde40, op=393, expected=0, futex_word=0x1824cb78) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x7ffc7eddde40, clockid=0, expected=0, futex_word=0x1824cb78) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x1824cb78, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x7ffc7eddde40, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9bd6e in __pthread_cond_wait_common (abstime=0x7ffc7eddde40, clockid=0, mutex=0x1811b778, cond=0x1824cb50) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_timedwait64 (cond=0x1824cb50, mutex=0x1811b778, abstime=0x7ffc7eddde40) at ./nptl/pthread_cond_wait.c:652
+#5  0x00007fffbecbb35a in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#6  0x00007fffbed4f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#7  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#8  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 24 (Thread 0x7ffe88dff6c0 (LWP 64143) "cuda0000240000a"):
+#0  0x00007ffff7d1b5fd in __GI___poll (fds=0x10717a00, nfds=3, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffbed5f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#2  0x00007fffbee4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#3  0x00007fffbed4f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#4  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 23 (Thread 0x7ffe8c9f96c0 (LWP 64141) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffea23b0ae0 <thread_status+864>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffea23b0ae0 <thread_status+864>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffea23b0ae0 <thread_status+864>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffea23b0a90 <thread_status+784>, cond=0x7ffea23b0ab8 <thread_status+824>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffea23b0ab8 <thread_status+824>, mutex=0x7ffea23b0a90 <thread_status+784>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffea13e69df in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/scipy/linalg/../../scipy.libs/libscipy_openblas-5f890258.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 22 (Thread 0x7ffe8d1fa6c0 (LWP 64140) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffea23b0a60 <thread_status+736>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffea23b0a60 <thread_status+736>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffea23b0a60 <thread_status+736>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffea23b0a10 <thread_status+656>, cond=0x7ffea23b0a38 <thread_status+696>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffea23b0a38 <thread_status+696>, mutex=0x7ffea23b0a10 <thread_status+656>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffea13e69df in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/scipy/linalg/../../scipy.libs/libscipy_openblas-5f890258.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 21 (Thread 0x7ffe8d9fb6c0 (LWP 64139) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffea23b09e0 <thread_status+608>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffea23b09e0 <thread_status+608>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffea23b09e0 <thread_status+608>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffea23b0990 <thread_status+528>, cond=0x7ffea23b09b8 <thread_status+568>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffea23b09b8 <thread_status+568>, mutex=0x7ffea23b0990 <thread_status+528>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffea13e69df in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/scipy/linalg/../../scipy.libs/libscipy_openblas-5f890258.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 20 (Thread 0x7ffe8e1fc6c0 (LWP 64138) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffea23b0960 <thread_status+480>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffea23b0960 <thread_status+480>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffea23b0960 <thread_status+480>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffea23b0910 <thread_status+400>, cond=0x7ffea23b0938 <thread_status+440>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffea23b0938 <thread_status+440>, mutex=0x7ffea23b0910 <thread_status+400>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffea13e69df in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/scipy/linalg/../../scipy.libs/libscipy_openblas-5f890258.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 19 (Thread 0x7ffe8e9fd6c0 (LWP 64137) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffea23b08e0 <thread_status+352>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffea23b08e0 <thread_status+352>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffea23b08e0 <thread_status+352>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffea23b0890 <thread_status+272>, cond=0x7ffea23b08b8 <thread_status+312>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffea23b08b8 <thread_status+312>, mutex=0x7ffea23b0890 <thread_status+272>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffea13e69df in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/scipy/linalg/../../scipy.libs/libscipy_openblas-5f890258.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 18 (Thread 0x7ffe8f1fe6c0 (LWP 64136) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffea23b0860 <thread_status+224>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffea23b0860 <thread_status+224>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffea23b0860 <thread_status+224>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffea23b0810 <thread_status+144>, cond=0x7ffea23b0838 <thread_status+184>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffea23b0838 <thread_status+184>, mutex=0x7ffea23b0810 <thread_status+144>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffea13e69df in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/scipy/linalg/../../scipy.libs/libscipy_openblas-5f890258.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 17 (Thread 0x7ffe8f9ff6c0 (LWP 64135) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffea23b07e0 <thread_status+96>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffea23b07e0 <thread_status+96>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffea23b07e0 <thread_status+96>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffea23b0790 <thread_status+16>, cond=0x7ffea23b07b8 <thread_status+56>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffea23b07b8 <thread_status+56>, mutex=0x7ffea23b0790 <thread_status+16>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffea13e69df in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/scipy/linalg/../../scipy.libs/libscipy_openblas-5f890258.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 16 (Thread 0x7ffeb6f226c0 (LWP 64118) "python"):
+#0  0x00007ffff7cecbdf in __GI___clock_nanosleep (clock_id=1, flags=1, req=0x7ffeb6f21c40, rem=0x0) at ../sysdeps/unix/sysv/linux/clock_nanosleep.c:78
+#1  0x000000000064de6a in ?? ()
+#2  0x00000000005d797d in _PyEval_EvalFrameDefault ()
+#3  0x000000000054cad2 in ?? ()
+#4  0x00000000006f89dc in ?? ()
+#5  0x00000000006b931c in ?? ()
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 15 (Thread 0x7ffeb78236c0 (LWP 64117) "python"):
+#0  syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+#1  0x00007fff1ad5c417 in thread_main () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#2  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#3  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 14 (Thread 0x7ffeb80246c0 (LWP 64116) "python"):
+#0  syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+#1  0x00007fff1ad5c417 in thread_main () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#2  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#3  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 13 (Thread 0x7ffeb88256c0 (LWP 64115) "python"):
+#0  syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+#1  0x00007fff1ad5c417 in thread_main () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#2  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#3  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 12 (Thread 0x7ffeb90266c0 (LWP 64114) "python"):
+#0  syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+#1  0x00007fff1ad5c417 in thread_main () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#2  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#3  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 11 (Thread 0x7ffeb98276c0 (LWP 64113) "python"):
+#0  syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+#1  0x00007fff1ad5c417 in thread_main () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#2  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#3  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 10 (Thread 0x7ffeba0286c0 (LWP 64112) "python"):
+#0  syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+#1  0x00007fff1ad5c417 in thread_main () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#2  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#3  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 9 (Thread 0x7ffeba8296c0 (LWP 64111) "python"):
+#0  syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+#1  0x00007fff1ad5c417 in thread_main () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#2  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#3  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 8 (Thread 0x7ffebe9f96c0 (LWP 64075) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffed39f7360 <thread_status+864>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffed39f7360 <thread_status+864>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffed39f7360 <thread_status+864>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffed39f7310 <thread_status+784>, cond=0x7ffed39f7338 <thread_status+824>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffed39f7338 <thread_status+824>, mutex=0x7ffed39f7310 <thread_status+784>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffed2855e93 in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-61654e39.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 7 (Thread 0x7ffebf1fa6c0 (LWP 64074) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffed39f72e0 <thread_status+736>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffed39f72e0 <thread_status+736>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffed39f72e0 <thread_status+736>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffed39f7290 <thread_status+656>, cond=0x7ffed39f72b8 <thread_status+696>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffed39f72b8 <thread_status+696>, mutex=0x7ffed39f7290 <thread_status+656>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffed2855e93 in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-61654e39.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 6 (Thread 0x7ffebf9fb6c0 (LWP 64073) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffed39f7260 <thread_status+608>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffed39f7260 <thread_status+608>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffed39f7260 <thread_status+608>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffed39f7210 <thread_status+528>, cond=0x7ffed39f7238 <thread_status+568>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffed39f7238 <thread_status+568>, mutex=0x7ffed39f7210 <thread_status+528>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffed2855e93 in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-61654e39.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 5 (Thread 0x7ffec01fc6c0 (LWP 64072) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffed39f71e0 <thread_status+480>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffed39f71e0 <thread_status+480>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffed39f71e0 <thread_status+480>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffed39f7190 <thread_status+400>, cond=0x7ffed39f71b8 <thread_status+440>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffed39f71b8 <thread_status+440>, mutex=0x7ffed39f7190 <thread_status+400>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffed2855e93 in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-61654e39.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 4 (Thread 0x7ffec09fd6c0 (LWP 64071) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffed39f7160 <thread_status+352>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffed39f7160 <thread_status+352>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffed39f7160 <thread_status+352>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffed39f7110 <thread_status+272>, cond=0x7ffed39f7138 <thread_status+312>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffed39f7138 <thread_status+312>, mutex=0x7ffed39f7110 <thread_status+272>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffed2855e93 in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-61654e39.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 3 (Thread 0x7ffec11fe6c0 (LWP 64070) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffed39f70e0 <thread_status+224>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffed39f70e0 <thread_status+224>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffed39f70e0 <thread_status+224>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffed39f7090 <thread_status+144>, cond=0x7ffed39f70b8 <thread_status+184>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffed39f70b8 <thread_status+184>, mutex=0x7ffed39f7090 <thread_status+144>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffed2855e93 in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-61654e39.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 2 (Thread 0x7ffec19ff6c0 (LWP 64069) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x7ffed39f7060 <thread_status+96>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7ffed39f7060 <thread_status+96>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x7ffed39f7060 <thread_status+96>, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x7ffed39f7010 <thread_status+16>, cond=0x7ffed39f7038 <thread_status+56>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x7ffed39f7038 <thread_status+56>, mutex=0x7ffed39f7010 <thread_status+16>) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffed2855e93 in blas_thread_server () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-61654e39.so
+#6  0x00007ffff7c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 1 (Thread 0x7ffff7e67080 (LWP 64011) "python"):
+#0  0x00007fffbed4784e in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#1  0x00007fffbec3d6d2 in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#2  0x00007fffbed857fa in ?? () from /lib/x86_64-linux-gnu/libcuda.so.1
+#3  0x00007fffbed76da0 in cuModuleLoadData () from /lib/x86_64-linux-gnu/libcuda.so.1
+#4  0x00007ffea0ca23dc in loadBinary () from /home/yunwei37/.triton/cache/MIH4X24CEAJDWYGXCZ4EKW6DTWSUG2ZBSBPV7NGI62HAUKJ7F7BQ/cuda_utils.cpython-312-x86_64-linux-gnu.so
+#5  0x0000000000581c80 in ?? ()
+#6  0x0000000000548f35 in _PyObject_MakeTpCall ()
+#7  0x00000000005d6f09 in _PyEval_EvalFrameDefault ()
+#8  0x000000000054ca6d in ?? ()
+#9  0x00000000005db13e in _PyEval_EvalFrameDefault ()
+#10 0x000000000054cb34 in ?? ()
+#11 0x000000000054b155 in PyObject_Call ()
+#12 0x00000000005db13e in _PyEval_EvalFrameDefault ()
+#13 0x0000000000549935 in PyObject_Vectorcall ()
+#14 0x00007fff28469805 in pybind11::detail::unpacking_collector<(pybind11::return_value_policy)1>::call(_object*) const () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#15 0x00007fff288862f5 in pybind11::object pybind11::detail::object_api<pybind11::handle>::operator()<(pybind11::return_value_policy)1, pybind11::detail::args_proxy, pybind11::detail::kwargs_proxy>(pybind11::detail::args_proxy&&, pybind11::detail::kwargs_proxy&&) const () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#16 0x00007fff28c11061 in torch::impl::dispatch::PythonKernelHolder::operator()(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#17 0x00007fff1928c5ef in c10::Dispatcher::callBoxed(c10::OperatorHandle const&, std::vector<c10::IValue, std::allocator<c10::IValue> >*) const [clone .isra.0] () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so
+#18 0x00007fff28949da4 in torch::jit::invokeOperatorFromPython(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, pybind11::args const&, pybind11::kwargs const&, std::optional<c10::DispatchKey>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+#19 0x00007fff2894a3a0 in torch::jit::_get_operation_for_overload_or_packet(c10::ArrayRef<std::shared_ptr<torch::jit::Operator> >, c10::Symbol, pybind11::args const&, pybind11::kwargs const&, bool, std::optional<c10::DispatchKey>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/lib/python3.12/site-packages/torch/lib/libtorch_python.so
+A debugging session is active.
+
+	Inferior 1 [process 64011] will be killed.
+
+Quit anyway? (y or n) [answered Y; input not from terminal]

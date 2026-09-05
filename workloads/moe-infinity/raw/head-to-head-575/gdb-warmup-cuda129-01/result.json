@@ -1,0 +1,67 @@
+{
+  "diagnostic": "gdb-native-warmup",
+  "environment": {
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "HF_HOME": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/deps/hf-cache",
+    "HF_HUB_OFFLINE": "1",
+    "HOME": "/home/yunwei37",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "MKL_NUM_THREADS": "8",
+    "MOE_ENABLE_SM120": "1",
+    "MOE_ENABLE_SM90": "0",
+    "NUMEXPR_NUM_THREADS": "8",
+    "NVTX_DISABLE": "1",
+    "OMP_NUM_THREADS": "8",
+    "OPENBLAS_NUM_THREADS": "8",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "PYTHONNOUSERSITE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TRITON_CACHE_DIR": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/raw/head-to-head-575/gdb-warmup-cuda129-01/triton-cache",
+    "TRITON_PTXAS_BLACKWELL_PATH": "/usr/local/cuda-12.9/bin/ptxas",
+    "TRITON_PTXAS_PATH": "/usr/local/cuda-12.9/bin/ptxas",
+    "TZ": "UTC"
+  },
+  "post_safety": {
+    "dmesg_abnormal": [],
+    "gpu": {
+      "compute_apps": [],
+      "driver": "575.57.08",
+      "index": 0,
+      "memory_clock_mhz": 14001,
+      "memory_total_mib": 32607,
+      "memory_used_mib": 2,
+      "name": "NVIDIA GeForce RTX 5090",
+      "power_w": 58.73,
+      "sm_clock_mhz": 2400,
+      "temperature_c": 52,
+      "utilization_gpu_percent": 0
+    },
+    "journal_abnormal": [],
+    "power_limit_service": "active",
+    "power_limit_w": 400.0,
+    "struct_ops": {
+      "links": [],
+      "maps": []
+    },
+    "timestamp_ns": 1788390569290342511,
+    "uvm_refcount": 0,
+    "xids": []
+  },
+  "response": {
+    "e2e_ms": 6866.277944,
+    "end_ns": 2334185210423,
+    "finish_reason": "length",
+    "start_ns": 2327318932479,
+    "text": "\n\n-1. This is a new List of the `a) = 0. This is a new List of the `a^2. The `a^2. This is a new List of the `a^2. This is a new List of the `a^2. This is a new",
+    "usage": {
+      "completion_tokens": 64,
+      "prompt_tokens": 512,
+      "total_tokens": 576
+    }
+  },
+  "status": "completed",
+  "timing_sample": false
+}

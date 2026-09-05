@@ -112,7 +112,7 @@ int BPF_PROG(stale_state_prefetch_v1,
     return action;
 }
 
-SEC(".struct_ops")
+SEC(".struct_ops.link")
 struct gpu_mem_ops stale_state_v1_ops = {
     .gpu_stale_state_prefetch_v1 = (void *)stale_state_prefetch_v1,
 };

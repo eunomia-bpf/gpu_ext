@@ -1383,6 +1383,48 @@ class ObserverProtocolTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_struct_ops_ownership_preserves_separate_id_namespaces(self) -> None:
+        ready = {
+            "pid": 5000,
+            "struct_map_id": 16905,
+            "struct_link_id": 16905,
+        }
+        inventory = {
+            "maps": [{"id": 16905, "type": "struct_ops",
+                      "pids": [{"pid": 5000, "comm": "live_loader"}]}],
+            "links": [{"id": 16905, "type": "struct_ops", "map_id": 16905}],
+        }
+        self.assertEqual(
+            live_runner.validate_struct_ops_ownership(ready, inventory, "bpf"),
+            {"map_id": 16905, "link_id": 16905, "owner_pid": 5000},
+        )
+        for mutation in ("missing_link", "wrong_link_map", "wrong_owner"):
+            with self.subTest(mutation=mutation):
+                changed = json.loads(json.dumps(inventory))
+                if mutation == "missing_link":
+                    changed["links"] = []
+                elif mutation == "wrong_link_map":
+                    changed["links"][0]["map_id"] = 16906
+                else:
+                    changed["maps"][0]["pids"][0]["pid"] = 5001
+                with self.assertRaises(live_runner.LiveError):
+                    live_runner.validate_struct_ops_ownership(ready, changed, "bpf")
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)
+            execution = {"status": "running"}
+            missing_link = {"maps": inventory["maps"], "links": []}
+            with mock.patch.object(
+                live_runner, "struct_ops_inventory", return_value=missing_link
+            ), self.assertRaisesRegex(live_runner.LiveError, "link ownership"):
+                live_runner.preserve_and_validate_struct_ops(
+                    path, execution, ready, "bpf"
+                )
+            retained = json.loads((path / "execution.json").read_text())
+            self.assertEqual(
+                retained["struct_ops_at_ready"],
+                {"observer_ready": ready, "inventory": missing_link},
+            )
+
     def test_cuda_12_9_uvm_candidates_are_exact_and_ordered(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

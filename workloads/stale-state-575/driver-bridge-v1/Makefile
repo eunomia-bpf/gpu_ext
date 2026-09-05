@@ -39,6 +39,7 @@ test: all
 	/usr/bin/llvm-objdump-18 -h stale_state_v1.bpf.o | grep -q '[.]struct_ops'
 	/usr/bin/llvm-objdump-18 -h live.bpf.o | grep -q 'fentry/uvm_stale_state_v1_diagnostic'
 	/usr/bin/llvm-objdump-18 -h live.bpf.o | grep -q 'struct_ops/gpu_stale_state_prefetch_v1'
+	/usr/bin/llvm-objdump-18 -h live.bpf.o | grep -q '[.]struct_ops[.]link'
 
 clean:
 	rm -f abi_test stale_state_v1.bpf.o live.tmp.bpf.o live.bpf.o live.skel.h live_loader

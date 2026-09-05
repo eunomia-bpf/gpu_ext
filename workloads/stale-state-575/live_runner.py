@@ -165,6 +165,54 @@ def struct_ops_inventory() -> dict[str, list[dict[str, Any]]]:
     }
 
 
+def validate_struct_ops_ownership(
+    ready: dict[str, Any], inventory: dict[str, list[dict[str, Any]]],
+    implementation: str,
+) -> dict[str, Any]:
+    demand(implementation in protocol.IMPLEMENTATIONS,
+           "unknown struct_ops implementation")
+    demand(set(inventory) == {"maps", "links"},
+           "struct_ops inventory schema differs")
+    maps = inventory["maps"]
+    links = inventory["links"]
+    if implementation == "native":
+        demand(not maps and not links,
+               "native observer unexpectedly owns struct_ops state")
+        return {"map_id": 0, "link_id": 0, "owner_pid": ready["pid"]}
+
+    expected_map = ready["struct_map_id"]
+    expected_link = ready["struct_link_id"]
+    expected_pid = ready["pid"]
+    demand(len(maps) == 1 and maps[0].get("id") == expected_map,
+           "BPF struct_ops map ownership differs")
+    owners = {
+        owner.get("pid")
+        for owner in maps[0].get("pids", [])
+        if isinstance(owner, dict)
+    }
+    demand(owners == {expected_pid}, "BPF struct_ops map PID ownership differs")
+    demand(len(links) == 1 and links[0].get("id") == expected_link,
+           "BPF struct_ops link ownership differs")
+    demand(links[0].get("map_id") == expected_map,
+           "BPF struct_ops link targets a different map")
+    return {"map_id": expected_map, "link_id": expected_link,
+            "owner_pid": expected_pid}
+
+
+def preserve_and_validate_struct_ops(
+    cell_dir: Path, execution: dict[str, Any], ready: dict[str, Any],
+    implementation: str,
+) -> dict[str, Any]:
+    inventory = struct_ops_inventory()
+    evidence = {"observer_ready": ready, "inventory": inventory}
+    execution["struct_ops_at_ready"] = evidence
+    atomic_json(cell_dir / "execution.json", execution)
+    ownership = validate_struct_ops_ownership(ready, inventory, implementation)
+    evidence["ownership"] = ownership
+    atomic_json(cell_dir / "execution.json", execution)
+    return ownership
+
+
 def gpu_state() -> dict[str, Any]:
     rows = run_checked([
         "nvidia-smi",
@@ -461,15 +509,9 @@ def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
                 )
                 owned.append((observer, observer_output, observer_error))
                 ready = wait_event(observer, cell_dir / "policy-observer.jsonl", "ready")
-                inventory = struct_ops_inventory()
-                if cell.implementation == "native":
-                    demand(inventory == {"maps": [], "links": []},
-                           "native observer unexpectedly owns struct_ops state")
-                else:
-                    demand({row.get("id") for row in inventory["maps"]} ==
-                           {ready["struct_map_id"]}, "BPF struct_ops map ownership differs")
-                    demand({row.get("id") for row in inventory["links"]} ==
-                           {ready["struct_link_id"]}, "BPF struct_ops link ownership differs")
+                preserve_and_validate_struct_ops(
+                    cell_dir, execution, ready, cell.implementation
+                )
 
         def release() -> None:
             nonlocal release_write

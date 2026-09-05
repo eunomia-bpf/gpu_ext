@@ -61,7 +61,7 @@ The excluded seven-cell path is now represented end to end in source:
 - Workload bridge build/test: the 15-check ABI test, observer fentry section,
   policy struct_ops section, generated skeleton, and `-Werror` userspace
   loader build pass.
-- Python suite: 48 tests pass, including real-pipe truth replay, observer
+- Python suite: 49 tests pass, including real-pipe truth replay, observer
   native/BPF ownership, duplicate JSON, event-loss, counter-drift,
   raw/normalized mismatch, missing verifier evidence, baseline artifact
   rejection, before-release failure, and delayed-bootstrap configuration
@@ -75,7 +75,7 @@ event, numerical-correctness, or performance evidence.
 
 ## Retained live setup failures
 
-Two controlled attempts exercised recovery but produced no live cell result.
+Three controlled attempts exercised recovery but produced no live cell result.
 Attempt `owner-01` stopped before any cell because the workload executable was
 absent. Attempt `owner-02` reached block 01's release gate, where PID 3547886
 had two symlinks whose exact target was `/dev/nvidia-uvm`; the old runner
@@ -85,6 +85,21 @@ release pipe closed, so its numeric FD table is no longer observable and was
 not retained; no numeric FD roles are inferred post hoc. Both attempts restored
 the original UVM and services with no recovery error or Xid. They are setup
 evidence only, not experiment cells.
+
+Attempt `owner-03` confirmed the dual-FD classification: source FD 13 was the
+VA-space FD accepted by the event tracker, while source FD 14 was the MM
+lifetime FD rejected with status 22. Both BPF programs passed the verifier,
+and the loader reported observer link 4090 plus struct_ops map/link values
+16905/16905. The runner then failed closed before workload release because
+`bpftool link show` did not enumerate that reported struct_ops link. Source
+inspection established that the policy used legacy `.struct_ops`: libbpf
+returns the map FD as a pseudo-link in that mode, so querying it as link info
+repeats the map ID while no kernel BPF link exists. The policy now uses
+`.struct_ops.link`, and the runner preserves the complete map/link inventory
+before checking one owned map, its loader PID, one real link, and the link's
+map target. Equal numeric map and link IDs remain valid because their ID
+namespaces are independent. Recovery again restored the original UVM and
+services without an error or Xid. This remains setup evidence only.
 
 ## Remaining gate
 

@@ -16,6 +16,7 @@ from pathlib import Path
 from unittest import mock
 
 import coordinator
+import observer_protocol
 import protocol
 import run_study
 
@@ -1139,6 +1140,136 @@ class LiveTruthFDCoordinatorTests(unittest.TestCase):
                 )
         finally:
             os.close(read_fd)
+
+
+class ObserverProtocolTests(unittest.TestCase):
+    @staticmethod
+    def records(implementation: str = "bpf") -> list[dict]:
+        struct_link = 302 if implementation == "bpf" else 0
+        values = [
+            {
+                "event": "ready",
+                "pid": 5000,
+                "target_pid": TARGET_PID,
+                "implementation": implementation,
+                "observer_link_id": 301,
+                "struct_link_id": struct_link,
+                "struct_map_id": 303,
+            }
+        ]
+        for sequence, phase in ((1, "dense"), (2, "sparse")):
+            decision_ns = EPOCH_NS + sequence * 1000
+            values.append(
+                {
+                    "event": "policy_decision",
+                    "implementation": implementation,
+                    "decision_sequence": sequence,
+                    "snapshot_read_path": f"driver_{implementation}_read_only_context",
+                    "decision_mono_ns": decision_ns,
+                    "snapshot_sequence": sequence,
+                    "snapshot_phase": phase,
+                    "decision_age_ns": 1000,
+                    "action": "prefetch_max" if phase == "dense" else "discard_prefetch",
+                    "effect": "prefetch" if phase == "dense" else "discard",
+                    "effect_source": "driver_diagnostic",
+                    "fault_page_index": 7,
+                    "legal_max_first": 0,
+                    "legal_max_outer": 16,
+                    "output_first": 0,
+                    "output_outer": 16 if phase == "dense" else 0,
+                    "observer_mono_ns": decision_ns + 100,
+                    "target_tgid": TARGET_PID,
+                }
+            )
+        values.append(
+            {
+                "event": "observer_final",
+                "implementation": implementation,
+                "observer_link_id": 301,
+                "struct_link_id": struct_link,
+                "diagnostic_calls": 4,
+                "selected_seen": 2,
+                "finished_seen": 2,
+                "records_emitted": 2,
+                "foreign_tgid": 0,
+                "read_errors": 0,
+                "ringbuf_drops": 0,
+                "phase_errors": 0,
+                "valid": True,
+            }
+        )
+        return values
+
+    @staticmethod
+    def driver_status(implementation: str = "bpf") -> coordinator.BridgeStatus:
+        count = 2
+        return coordinator.parse_status(
+            status_text(
+                mode=implementation,
+                generation=99,
+                snapshot_updates=7,
+                callback_invocations=count,
+                snapshot_read_attempts=count,
+                snapshot_read_successes=count,
+                native_callback_invocations=count if implementation == "native" else 0,
+                bpf_callback_invocations=count if implementation == "bpf" else 0,
+                decision_requests=count,
+                decisions=count,
+                decision_records=count,
+                effect_requests=count,
+                effect_records=count,
+                dense_prefetch_decisions=1,
+                discarded_prefetch_decisions=1,
+                selected_diagnostics=count,
+                finished_diagnostics=count,
+            )
+        )
+
+    def test_complete_native_and_bpf_streams_reconcile_exactly(self) -> None:
+        for implementation in protocol.IMPLEMENTATIONS:
+            with self.subTest(implementation=implementation):
+                encoded = "".join(json.dumps(row) + "\n" for row in self.records(implementation))
+                parsed = observer_protocol.parse_jsonl(encoded)
+                observed = observer_protocol.validate_records(
+                    parsed, expected_pid=TARGET_PID, implementation=implementation
+                )
+                final = observer_protocol.reconcile_driver(
+                    observed,
+                    self.driver_status(implementation),
+                    implementation=implementation,
+                )
+                self.assertEqual(final["effect_records"], 2)
+                self.assertEqual(final["decision_record_drops"], 0)
+                self.assertEqual(final["effect_record_drops"], 0)
+
+    def test_duplicate_json_loss_wrong_owner_and_counter_drift_fail(self) -> None:
+        with self.assertRaisesRegex(protocol.ValidationError, "duplicate"):
+            observer_protocol.parse_jsonl('{"event":"ready","event":"ready"}\n')
+
+        for mutation in ("loss", "wrong_owner", "driver_drift"):
+            with self.subTest(mutation=mutation):
+                records = self.records()
+                status = self.driver_status()
+                if mutation == "loss":
+                    records[-1]["ringbuf_drops"] = 1
+                    records[-1]["valid"] = False
+                elif mutation == "wrong_owner":
+                    records[0]["struct_link_id"] = 0
+                else:
+                    status = replace(status, effect_records=1)
+                if mutation == "driver_drift":
+                    observed = observer_protocol.validate_records(
+                        records, expected_pid=TARGET_PID, implementation="bpf"
+                    )
+                    with self.assertRaisesRegex(protocol.ValidationError, "effect_records"):
+                        observer_protocol.reconcile_driver(
+                            observed, status, implementation="bpf"
+                        )
+                else:
+                    with self.assertRaises(protocol.ValidationError):
+                        observer_protocol.validate_records(
+                            records, expected_pid=TARGET_PID, implementation="bpf"
+                        )
 
 
 class BoundaryTests(unittest.TestCase):

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 /*
  * CPU-only validation for the WARC policy port. No GPU, no driver, no
- * correctness/engagement/verifier/precision/hash gates: the checks are
+ * correctness/engagement/verifier/precision gates: the checks are
  * decision determinism, native-vs-gpubpf-selector agreement (zero
  * mismatches on identical inputs), contract/fail-closed behavior, and
  * state invariants. Performance metrics (hit rates, transfer bytes,

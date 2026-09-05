@@ -16,6 +16,9 @@ OBJCOPY ?= /usr/bin/llvm-objcopy-18
 test_policy_model: test_policy_model.c stale_state_policy_model.h
 	$(CC) $(CFLAGS) -std=c11 test_policy_model.c -o $@
 
+test_json_precision: test_json_precision.cpp
+	$(CXX) -O2 -std=c++17 -Wall -Wextra -Werror -Wl,--build-id=none $< -o $@
+
 build:
 	mkdir -p $@
 
@@ -39,14 +42,15 @@ stale_state_workload: stale_state_workload.cu
 test-driver-bridge:
 	$(MAKE) -C driver-bridge-v1 test
 
-test-offline: test_policy_model uvm_event_monitor build/test_policy_jit test-driver-bridge
+test-offline: test_policy_model test_json_precision uvm_event_monitor build/test_policy_jit test-driver-bridge
 	./test_policy_model
+	./test_json_precision
 	./build/test_policy_jit ./build/stale_state_policy.bin
 	PYTHONDONTWRITEBYTECODE=1 python3 -B test_offline.py
 
 build-sources: stale_state_workload uvm_event_monitor test_policy_model
 
 clean:
-	rm -f stale_state_workload uvm_event_monitor test_policy_model
+	rm -f stale_state_workload uvm_event_monitor test_policy_model test_json_precision
 	rm -rf build
 	$(MAKE) -C driver-bridge-v1 clean

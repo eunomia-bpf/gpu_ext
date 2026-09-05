@@ -60,7 +60,8 @@ The excluded seven-cell path is now represented end to end in source:
   BTF has a 176-byte diagnostic whose final member is `owner_tgid`.
 - Workload bridge build/test: the 15-check ABI test, observer fentry section,
   policy struct_ops section, generated skeleton, and `-Werror` userspace
-  loader build pass.
+  loader build pass. The result serializer's host regression preserves a
+  non-round nanosecond-derived millisecond duration across JSON output.
 - Python suite: 49 tests pass, including real-pipe truth replay, observer
   native/BPF ownership, duplicate JSON, event-loss, counter-drift,
   raw/normalized mismatch, missing verifier evidence, baseline artifact
@@ -100,6 +101,15 @@ before checking one owned map, its loader PID, one real link, and the link's
 map target. Equal numeric map and link IDs remain valid because their ID
 namespaces are independent. Recovery again restored the original UVM and
 services without an error or Xid. This remains setup evidence only.
+
+Attempt `owner-04` completed one real 12.033-second, 40-GiB BPF workload with
+zero numerical mismatches, real UVM and policy records, a real struct_ops link,
+and clean detach/recovery. Admission still failed: the workload's default C++
+stream precision serialized a timestamp-derived `2030.867201` ms phase as
+`2030.87` ms, so the unchanged raw validator rejected the record. The workload
+now emits doubles with `max_digits10` round-trip precision, backed by a host
+regression for that non-round duration. Attempt 04 remains a validation failure
+and contributes no admitted experiment cell.
 
 ## Remaining gate
 

@@ -12,6 +12,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <limits>
 #include <signal.h>
 #include <string>
@@ -194,6 +195,7 @@ bool write_result(const std::filesystem::path &path, uint64_t epoch_ns,
     const double verified_words_per_second =
         static_cast<double>(total_checked) * 1000.0 / end_to_end_ms;
 
+    output << std::setprecision(std::numeric_limits<double>::max_digits10);
     output << "{\n"
            << "  \"protocol\": \"" << kProtocol << "\",\n"
            << "  \"timeline\": \"" << kTimeline << "\",\n"

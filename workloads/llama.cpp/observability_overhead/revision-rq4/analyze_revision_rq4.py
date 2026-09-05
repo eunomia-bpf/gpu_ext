@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import random
@@ -304,6 +305,54 @@ def safety_valid(safety: Any) -> bool:
             and type(telemetry.get("samples")) is int
             and telemetry["samples"] > 0
             and telemetry.get("throttled") is False)
+
+
+def raw_gpu_clock_state(path: Path) -> dict[str, Any]:
+    """Independently recover exact P-state and clock-pair evidence from CSV."""
+    with path.open(newline="", encoding="utf-8") as stream:
+        reader = csv.DictReader(stream, skipinitialspace=True)
+        headers = tuple(reader.fieldnames or ())
+        sm_header = next((key for key in headers if key.startswith("clocks.current.sm")), None)
+        memory_header = next(
+            (key for key in headers if key.startswith("clocks.current.memory")), None
+        )
+        if "pstate" not in headers or sm_header is None or memory_header is None:
+            raise ValueError("GPU telemetry lacks exact P-state/clock fields")
+        required_reasons = {
+            "clocks_event_reasons.sw_power_cap",
+            "clocks_event_reasons.hw_slowdown",
+            "clocks_event_reasons.hw_thermal_slowdown",
+            "clocks_event_reasons.hw_power_brake_slowdown",
+            "clocks_event_reasons.sw_thermal_slowdown",
+        }
+        if not required_reasons <= set(headers):
+            raise ValueError("GPU telemetry lacks throttle-reason fields")
+        reason_headers = [
+            key for key in headers
+            if key.startswith("clocks_event_reasons.") and "sw_power_cap" not in key
+        ]
+        rows = list(reader)
+    if not rows or any(None in row or set(row) != set(headers) for row in rows):
+        raise ValueError("GPU telemetry has no complete rows")
+    pairs = set()
+    pstates = set()
+    throttled = False
+    for row in rows:
+        pstates.add(row["pstate"].strip())
+        values = []
+        for header in (sm_header, memory_header):
+            value = float(row[header].strip().split()[0])
+            if not value.is_integer():
+                raise ValueError("GPU clock telemetry is not integral MHz")
+            values.append(int(value))
+        pairs.add(tuple(values))
+        throttled = throttled or any(
+            row[key].strip().lower() not in {"not active", "n/a"}
+            for key in reason_headers
+        )
+    return {"pstates": sorted(pstates),
+            "clock_pairs_mhz": [list(pair) for pair in sorted(pairs)],
+            "throttled": throttled}
 
 
 def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -957,6 +1006,31 @@ def one_valid(entries: list[dict[str, Any]], config: str, params: dict[str, Any]
     return candidates[0] if candidates else None
 
 
+def launchlate_clock_block_valid(
+        campaign: Path, cells: dict[str, dict[str, Any]],
+        supported_clock_pairs: set[tuple[int, int]]) -> bool:
+    names = ("baseline", "gpubpf_launchlate", "nvbit_launchlate")
+    if not all(name in cells for name in names) or not supported_clock_pairs:
+        return False
+    observed_sets = []
+    try:
+        for name in names:
+            cell = cells[name]
+            log_path = campaign_path(campaign, cell.get("log"))
+            raw = raw_gpu_clock_state(log_path.parent / "gpu-telemetry.csv")
+            stored = cell.get("safety", {}).get("telemetry", {})
+            pairs = {tuple(pair) for pair in raw["clock_pairs_mhz"]}
+            if (raw["pstates"] != ["P0"] or raw["throttled"] is not False
+                    or not pairs or not pairs <= supported_clock_pairs
+                    or stored.get("pstates") != raw["pstates"]
+                    or stored.get("clock_pairs_mhz") != raw["clock_pairs_mhz"]):
+                return False
+            observed_sets.append(pairs)
+    except (OSError, ValueError, TypeError, KeyError, UnicodeError):
+        return False
+    return len({frozenset(value) for value in observed_sets}) == 1
+
+
 def bootstrap_mean(values: list[float]) -> dict[str, Any] | None:
     if not values:
         return None
@@ -1224,6 +1298,16 @@ def analyze(campaign: Path) -> dict[str, Any]:
     require_raw = "launchlate" in tools
     if require_raw and not isinstance(state.get("provenance", {}).get("boot_id"), str):
         raise ValueError("launchlate campaign lacks a recorded boot identity")
+    inventory_raw = state.get("provenance", {}).get("supported_clock_pairs_mhz")
+    supported_clock_pairs = {
+        tuple(pair) for pair in inventory_raw
+        if isinstance(pair, list) and len(pair) == 2
+        and all(type(value) is int for value in pair)
+    } if isinstance(inventory_raw, list) else set()
+    if require_raw and (
+            not supported_clock_pairs
+            or len(supported_clock_pairs) != len(inventory_raw)):
+        raise ValueError("launchlate campaign lacks a valid pre-recorded clock inventory")
     clock_controls_passed = (
         launch_controls_valid(campaign, state) if require_raw else None
     )
@@ -1297,6 +1381,20 @@ def analyze(campaign: Path) -> dict[str, Any]:
                 ])
                 cells.pop("gpubpf_kernelretsnoop")
                 cells.pop("nvbit_kernelretsnoop")
+        if "launchlate" in tools and all(
+                config in cells for config in
+                ("baseline", "gpubpf_launchlate", "nvbit_launchlate")):
+            if not launchlate_clock_block_valid(
+                    campaign, cells, supported_clock_pairs):
+                rejected_cells.extend([
+                    {"block": block, "config": config,
+                     "reason": "launchlate clock-state fairness mismatch"}
+                    for config in
+                    ("baseline", "gpubpf_launchlate", "nvbit_launchlate")
+                ])
+                cells.pop("baseline")
+                cells.pop("gpubpf_launchlate")
+                cells.pop("nvbit_launchlate")
         if len(cells) == len(configs):
             complete_blocks.append({"block": block, "cells": cells})
         cells_by_block[block] = cells

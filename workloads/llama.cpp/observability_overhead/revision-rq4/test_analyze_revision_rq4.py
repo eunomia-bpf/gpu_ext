@@ -39,7 +39,10 @@ def safe_cell_record():
         "boot_id": "boot-A",
         "before": snapshot(),
         "after": snapshot(),
-        "telemetry": {"samples": 2, "throttled": False},
+        "telemetry": {
+            "samples": 2, "throttled": False, "pstates": ["P0"],
+            "clock_pairs_mhz": [[2385, 14001]],
+        },
     }
 
 
@@ -238,6 +241,7 @@ def three_tool_state():
     configs = audit.selected_configs(audit.TASKS)
     state["schedule"] = audit.fixed_schedule(configs, 1)
     state["provenance"]["boot_id"] = "boot-A"
+    state["provenance"]["supported_clock_pairs_mhz"] = [[2385, 14001]]
     probes = {
         "gpubpf_launchlate": runner.parse_gpubpf(
             "launchlate", lossless_launchlate_log()),
@@ -444,6 +448,19 @@ def write_process_evidence(directory, filename, stdout, stderr, safety):
     return log
 
 
+def write_clock_telemetry(directory, *, sm=2385, memory=14001, pstate="P0"):
+    (directory / "gpu-telemetry.csv").write_text(
+        "timestamp, memory.used [MiB], temperature.gpu, power.draw [W], "
+        "clocks.current.sm [MHz], clocks.current.memory [MHz], pstate, "
+        "clocks_event_reasons.sw_power_cap, clocks_event_reasons.hw_slowdown, "
+        "clocks_event_reasons.hw_thermal_slowdown, "
+        "clocks_event_reasons.hw_power_brake_slowdown, "
+        "clocks_event_reasons.sw_thermal_slowdown\n"
+        f"t0, 10 MiB, 40, 100 W, {sm} MHz, {memory} MHz, {pstate}, "
+        "Not Active, Not Active, Not Active, Not Active, Not Active\n"
+    )
+
+
 def materialize_launch_raw(campaign, state):
     state["provenance"]["boot_id"] = "boot-A"
     for config, group in state["correctness"].items():
@@ -482,6 +499,7 @@ def materialize_launch_raw(campaign, state):
             log = write_process_evidence(
                 directory, "llama_bench.log", json.dumps(raw), stderr, cell["safety"]
             )
+            write_clock_telemetry(directory)
             cell["log"] = str(log.relative_to(campaign))
             if config == "gpubpf_launchlate":
                 probe = directory / "probe.log"
@@ -653,6 +671,31 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
             (campaign / "result.json").write_text(json.dumps(state))
             result = audit.analyze(campaign)
             self.assertFalse(result["complete"])
+
+    def test_launch_clock_fairness_is_independently_replayed_from_csv(self):
+        replacements = (
+            ("P0", "P2"),
+            ("2385 MHz, 14001 MHz", "2392 MHz, 14001 MHz"),
+            ("2385 MHz, 14001 MHz", "2400 MHz, 14001 MHz"),
+            ("Not Active, Not Active", "Not Active, Active"),
+        )
+        for old, new in replacements:
+            with self.subTest(replacement=(old, new)), tempfile.TemporaryDirectory() as tmp:
+                campaign = Path(tmp)
+                state = launch_only_state()
+                materialize_launch_raw(campaign, state)
+                cell = state["configs"]["gpubpf_launchlate"]["runs"][0]
+                telemetry = (campaign / cell["log"]).parent / "gpu-telemetry.csv"
+                telemetry.write_text(telemetry.read_text().replace(old, new))
+                (campaign / "result.json").write_text(json.dumps(state))
+                result = audit.analyze(campaign)
+                self.assertFalse(result["complete"])
+                self.assertEqual(result["valid_complete_blocks"], 0)
+
+        state = launch_only_state()
+        state["provenance"].pop("supported_clock_pairs_mhz")
+        with self.assertRaisesRegex(ValueError, "clock inventory"):
+            analyze_state(state)
             self.assertIn({"block": 1, "config": "baseline"}, result["rejected_cells"])
 
     def test_exact_two_tool_preflight_is_complete(self):

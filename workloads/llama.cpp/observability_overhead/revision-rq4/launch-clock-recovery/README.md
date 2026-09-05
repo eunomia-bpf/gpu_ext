@@ -9,7 +9,7 @@ attempt 07 failed under its original 10,000 ppb rule. Calibration controls
 remain separate from the paired 10-block result, and the same-stack
 PTIMER/`%globaltimer` identity canary still precedes the 220-launch rerun.
 
-Attempts 08 through 11 remain retained failures. Attempt 09 passed its fresh
+Attempts 08 through 12 remain retained failures. Attempt 09 passed its fresh
 preflight but found two narrow RM endpoint regimes: a 781 ns median bracket
 after candidate activation and a 2,174 ns median bracket after the GPU returned
 to idle clocks. The exact evidence boundary is in
@@ -22,12 +22,16 @@ Attempt 11 requested 2392 / 14001 MHz, but its first post-lock observation was
 2400 / 14001 MHz, so the exact gate stopped before the probe or either child.
 The retained record is in
 [`results-launchlate-575-11-clock-bin-failed-20260904.md`](results-launchlate-575-11-clock-bin-failed-20260904.md).
-The attempt-12 retry in
-[`launchlate-attempt12-frozen-clock-state-plan.md`](launchlate-attempt12-frozen-clock-state-plan.md)
-keeps one fixed 2392 / 14001 MHz request but admits only P0 observations with
-memory exactly 14001 MHz and SM in the explicitly enumerated set
-`{2392, 2400}`. This is an enumerated-bin set, not a tolerance. Fresh controls,
-clock reset, and the unchanged 1.5 us gate remain mandatory.
+Attempt 12 passed its child preflight, but the outer post-child observation was
+P0 at 2385 / 14001 MHz, outside its frozen two-bin set, so no full child ran.
+The retained boundary is in
+[`results-launchlate-575-12-clock-boundary-failed-20260904.md`](results-launchlate-575-12-clock-boundary-failed-20260904.md).
+Attempt 13 in
+[`launchlate-attempt13-frozen-telemetry-fairness-plan.md`](launchlate-attempt13-frozen-telemetry-fairness-plan.md)
+keeps exact outer P0/14001 support-list admission and the unchanged 1.5 us
+gate. Performance fairness is proved inside each randomized block by exact,
+nonempty, supported clock-pair set equality across all three raw telemetry
+streams; it is not a tolerance.
 
 The runnable campaign is the launch-only three-arm matrix; it never mixes the
 old cross-clock records into a result. From the `revision-rq4` directory, first
@@ -71,7 +75,8 @@ The matrix is exactly baseline, gpubpf launchlate, and NVBit launchlate: one
 pp=32 preflight block and ten randomized pp=512 blocks. The runner performs
 both 200-sample clock controls before the 220-launch correctness cells. The
 analyzer reopens the raw control, process, cleanup, safety, correctness,
-engagement, and throughput evidence; a stored `valid` flag alone cannot pass.
+engagement, throughput, P-state, and exact clock-pair evidence; a stored
+`valid` flag or telemetry summary alone cannot pass.
 
 ## CPU-only readiness check (2026-09-04)
 

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import run_575_head_to_head as current
 import run_moe_head_to_head as base
@@ -153,6 +153,39 @@ class CurrentStackTests(unittest.TestCase):
             path.write_text(header + "t, 12, 80, 400, 2100, 1000, Active, Active\n")
             with self.assertRaises(base.GateError):
                 base.validate_gpu_telemetry(path, allow_fixed_power_cap=True)
+
+    def test_optional_pstate_telemetry_records_exact_clock_pairs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "telemetry.csv"
+            path.write_text(
+                "timestamp, memory, temp, power, clocks.current.sm [MHz], "
+                "clocks.current.memory [MHz], pstate, "
+                "clocks_event_reasons.hw_slowdown\n"
+                "t0, 12, 50, 300, 2385 MHz, 14001 MHz, P0, Not Active\n"
+                "t1, 12, 50, 300, 2392 MHz, 14001 MHz, P0, Not Active\n"
+            )
+            result = base.validate_gpu_telemetry(path)
+            self.assertEqual(result["pstates"], ["P0"])
+            self.assertEqual(result["clock_pairs_mhz"],
+                             [(2385, 14001), (2392, 14001)])
+
+    def test_optional_pstate_query_is_opt_in(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for enabled in (False, True):
+                with self.subTest(enabled=enabled):
+                    directory = Path(temporary) / str(enabled)
+                    directory.mkdir()
+                    process = Mock()
+                    process.poll.return_value = None
+                    with (patch.object(base.os, "sched_getaffinity", return_value={16}),
+                          patch.object(base.subprocess, "Popen", return_value=process) as popen,
+                          patch.object(base.time, "sleep")):
+                        _, stream, _ = base.start_gpu_telemetry(
+                            directory, include_pstate=enabled
+                        )
+                    stream.close()
+                    query = popen.call_args.args[0][4]
+                    self.assertEqual("pstate" in query, enabled)
 
     def test_shared_store_does_not_change_llama_command(self):
         for config in base.CONFIGS:

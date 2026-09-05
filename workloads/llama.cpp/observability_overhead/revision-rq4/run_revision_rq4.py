@@ -50,6 +50,10 @@ VERIFIER_LEVELS = ("DEFAULT", "STRICT", "NO_VERIFY")
 SCHEDULE_SEED = 1797
 BOOTSTRAP_SAMPLES = 10000
 EXPECTED_DRIVER = "575.57.08"
+SUPPORTED_CLOCK_COMMAND = (
+    "nvidia-smi", "--query-supported-clocks=memory,graphics",
+    "--format=csv,noheader,nounits",
+)
 SHM_ROOT = Path("/dev/shm")
 CLIENT_CPUS = "8-15"
 EXPECTED_GPU_THREAD_SLOTS = 22528
@@ -467,6 +471,13 @@ def engagement_gate_manifest(args: argparse.Namespace) -> dict[str, Any]:
             "bounded_clock_drift_and_uncertainty": True,
             "complete_host_device_pairing": True,
         }
+        gates["launchlate_timing_block_clock_fairness"] = {
+            "arms": ["baseline", "gpubpf_launchlate", "nvbit_launchlate"],
+            "all_samples_pstate": "P0",
+            "exact_observed_sm_memory_sets": "nonempty and identical",
+            "all_observed_pairs_in_prerecorded_supported_inventory": True,
+            "numeric_tolerance_or_frequency_normalization": False,
+        }
         gates["launchlate_correctness"] = {
             "gpubpf_exact_launches": CORRECTNESS_EXIT_LAUNCHES,
             "nvbit_exact_launches": CORRECTNESS_EXIT_LAUNCHES,
@@ -701,7 +712,9 @@ def cell_safety(directory: Path):
         shared.safety.validate_pre_server_safety(before)
         if before["gpu"]["driver"] != EXPECTED_DRIVER:
             raise RuntimeError("driver changed before cell")
-        process, stream, path = shared.safety.start_gpu_telemetry(directory)
+        process, stream, path = shared.safety.start_gpu_telemetry(
+            directory, include_pstate=True
+        )
         yield record
         if process.poll() is not None:
             raise RuntimeError("GPU telemetry stopped before cell completion")
@@ -1392,6 +1405,30 @@ def parse_driver(snapshot: dict[str, Any]) -> str:
     gpu = str(snapshot.get("gpu", ""))
     fields = [field.strip() for field in gpu.split(",")]
     return fields[1] if len(fields) > 1 else "unknown"
+
+
+def query_supported_clock_pairs() -> list[list[int]]:
+    completed = subprocess.run(
+        list(SUPPORTED_CLOCK_COMMAND), check=False, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"supported-clock query failed ({completed.returncode}): {completed.stderr.strip()}"
+        )
+    pairs = set()
+    for line in completed.stdout.splitlines():
+        fields = [value.strip() for value in line.split(",")]
+        if len(fields) != 2:
+            continue
+        try:
+            memory, sm = (int(value) for value in fields)
+        except ValueError:
+            continue
+        pairs.add((sm, memory))
+    if not pairs:
+        raise RuntimeError("supported-clock query returned no exact clock pairs")
+    return [list(pair) for pair in sorted(pairs)]
 
 
 def nvbit_driver_supported(driver: str) -> bool:
@@ -2849,7 +2886,8 @@ def write_state(output_dir: Path, state: dict[str, Any]) -> None:
     (output_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def new_state(args: argparse.Namespace, timestamp: str, snapshot: dict[str, Any]) -> dict[str, Any]:
+def new_state(args: argparse.Namespace, timestamp: str, snapshot: dict[str, Any],
+              supported_clock_pairs: list[list[int]] | None = None) -> dict[str, Any]:
     configs = selected_configs(args)
     artifact = HERE / "deps/nvbit-Linux-x86_64-1.8.tar.bz2"
     return {
@@ -2863,6 +2901,7 @@ def new_state(args: argparse.Namespace, timestamp: str, snapshot: dict[str, Any]
             "driver": parse_driver(snapshot),
             "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
             "nvbit_driver_supported": nvbit_driver_supported(parse_driver(snapshot)),
+            "supported_clock_pairs_mhz": supported_clock_pairs,
             "cuda_ptx": core.cuda_ptx_snapshot(args.llama_bench),
             "model_file": file_metadata(args.model),
             "llama_bench_file": file_metadata(args.llama_bench),
@@ -3046,6 +3085,63 @@ def reconcile_kernelret_block(state: dict[str, Any], block: int) -> None:
             run["pairing_error"] = "gpubpf/NVBit exit events or selected launches differ"
 
 
+def reconcile_launchlate_clock_block(state: dict[str, Any], block: int) -> None:
+    """Fail closed unless all three timing arms saw the same enumerated state set."""
+    names = ("baseline", "gpubpf_launchlate", "nvbit_launchlate")
+    runs = [valid_run_for_block(state, name, block) for name in names]
+    if not all(runs):
+        return
+    inventory_raw = state.get("provenance", {}).get("supported_clock_pairs_mhz")
+    inventory = {
+        tuple(pair) for pair in inventory_raw
+        if isinstance(pair, list) and len(pair) == 2
+        and all(type(value) is int for value in pair)
+    } if isinstance(inventory_raw, list) else set()
+    states: list[set[tuple[int, int]]] = []
+    arms: dict[str, Any] = {}
+    passed = bool(inventory)
+    for name, run in zip(names, runs):
+        safety = run.get("safety", {})
+        telemetry = safety.get("telemetry", {}) if isinstance(safety, dict) else {}
+        raw_pairs = telemetry.get("clock_pairs_mhz")
+        pairs = {
+            tuple(pair) for pair in raw_pairs
+            if isinstance(pair, (list, tuple)) and len(pair) == 2
+            and all(type(value) is int for value in pair)
+        } if isinstance(raw_pairs, list) else set()
+        snapshots_clear = all(
+            isinstance(safety.get(point), dict)
+            and safety[point].get("gpu", {}).get("compute_apps") == []
+            for point in ("before", "after")
+        )
+        arm_passed = (
+            safety.get("passed") is True
+            and telemetry.get("throttled") is False
+            and telemetry.get("pstates") == ["P0"]
+            and bool(pairs) and pairs <= inventory and snapshots_clear
+        )
+        passed = passed and arm_passed
+        states.append(pairs)
+        arms[name] = {
+            "pstates": telemetry.get("pstates"),
+            "clock_pairs_mhz": [list(pair) for pair in sorted(pairs)],
+            "passed": arm_passed,
+        }
+    matched = len({frozenset(value) for value in states}) == 1
+    passed = passed and matched
+    comparison = {
+        "passed": passed, "exact_sets_matched": matched,
+        "supported_inventory_nonempty": bool(inventory), "arms": arms,
+    }
+    for run in runs:
+        run["launchlate_clock_fairness"] = comparison
+        if not passed:
+            run["valid"] = False
+            run["clock_fairness_error"] = (
+                "launchlate timing arms did not share one nonempty exact P0 supported-clock set"
+            )
+
+
 def validate_plan(args: argparse.Namespace) -> None:
     tools = selected_tools(args)
     if ("kernelretsnoop" in tools
@@ -3224,6 +3320,7 @@ def run_campaign(args: argparse.Namespace) -> int:
         raise RuntimeError("refusing to reuse a nonempty output directory without --resume")
     output_dir.mkdir(parents=True, exist_ok=True)
     snapshot = core.nvidia_smi_snapshot()
+    supported_clock_pairs = None
 
     admission = {
         "timestamp": timestamp,
@@ -3234,6 +3331,7 @@ def run_campaign(args: argparse.Namespace) -> int:
         "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
         "cpu_affinity": sorted(os.sched_getaffinity(0)),
         "nvbit_driver_supported": nvbit_driver_supported(parse_driver(snapshot)),
+        "supported_clock_pairs_mhz": supported_clock_pairs,
     }
     (output_dir / f"admission-{timestamp}.json").write_text(
         json.dumps(admission, indent=2) + "\n", encoding="utf-8"
@@ -3248,12 +3346,22 @@ def run_campaign(args: argparse.Namespace) -> int:
     result_path = output_dir / "result.json"
     if args.resume:
         state = json.loads(result_path.read_text(encoding="utf-8"))
+        supported_clock_pairs = state.get("provenance", {}).get(
+            "supported_clock_pairs_mhz"
+        ) if "launchlate" in tools else None
         tool_dirs = verify_resume(state, args, snapshot)
     else:
+        supported_clock_pairs = (
+            query_supported_clock_pairs() if "launchlate" in tools else None
+        )
         # Freeze the parameters and randomized schedule before any calibration,
         # correctness, or performance execution starts.
-        state = new_state(args, timestamp, snapshot)
+        state = new_state(args, timestamp, snapshot, supported_clock_pairs)
         write_state(output_dir, state)
+    admission["supported_clock_pairs_mhz"] = supported_clock_pairs
+    (output_dir / f"admission-{timestamp}.json").write_text(
+        json.dumps(admission, indent=2) + "\n", encoding="utf-8"
+    )
 
     clock_controls = None
     if "launchlate" in tools:
@@ -3363,6 +3471,8 @@ def run_campaign(args: argparse.Namespace) -> int:
             state["configs"][config]["runs"].append(run)
             if config in ("gpubpf_kernelretsnoop", "nvbit_kernelretsnoop"):
                 reconcile_kernelret_block(state, block)
+            if "launchlate" in tools:
+                reconcile_launchlate_clock_block(state, block)
             write_state(output_dir, state)
 
     write_state(output_dir, state)

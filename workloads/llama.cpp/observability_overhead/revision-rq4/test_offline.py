@@ -629,6 +629,8 @@ class OfflineTests(unittest.TestCase):
                 args = SimpleNamespace(output_dir=Path(tmp), phase="preflight", resume=False)
                 snapshot = {"gpu": f"RTX 5090, {driver}, 32607, 0, 0, 0", "compute_apps": ""}
                 with (patch.object(runner.core, "nvidia_smi_snapshot", return_value=snapshot),
+                      patch.object(runner, "query_supported_clock_pairs",
+                                   return_value=[[2385, 14001]]),
                       patch.object(runner, "new_state", return_value={}),
                       patch.object(runner, "write_state"),
                       patch.object(runner, "run_launch_clock_controls", return_value=None),
@@ -2356,6 +2358,69 @@ class OfflineTests(unittest.TestCase):
             self.assertEqual(set(correctness_order), set(configs))
             self.assertEqual({call.args[0] for call in timed.call_args_list}, set(configs))
             self.assertNotIn("launchlate", json.dumps(state))
+
+    def test_launchlate_clock_fairness_requires_exact_supported_p0_sets(self):
+        names = ("baseline", "gpubpf_launchlate", "nvbit_launchlate")
+
+        def safety(pairs=((2385, 14001),), pstates=("P0",), *, throttled=False):
+            snapshot = {"gpu": {"compute_apps": []}}
+            return {
+                "passed": True, "before": snapshot, "after": snapshot,
+                "telemetry": {
+                    "samples": 2, "throttled": throttled,
+                    "pstates": list(pstates),
+                    "clock_pairs_mhz": [list(pair) for pair in pairs],
+                },
+            }
+
+        def state_with(safeties):
+            return {
+                "provenance": {
+                    "supported_clock_pairs_mhz": [[2385, 14001], [2392, 14001]],
+                },
+                "configs": {
+                    name: {"runs": [{"block": 1, "valid": True,
+                                     "safety": safeties[index]}]}
+                    for index, name in enumerate(names)
+                },
+            }
+
+        state = state_with([safety(), safety(), safety()])
+        runner.reconcile_launchlate_clock_block(state, 1)
+        self.assertTrue(all(
+            state["configs"][name]["runs"][0]["launchlate_clock_fairness"]["passed"]
+            for name in names
+        ))
+
+        defects = (
+            [safety(), safety(((2392, 14001),)), safety()],
+            [safety(), safety(pstates=("P2",)), safety()],
+            [safety(), safety(((2400, 14001),)), safety()],
+            [safety(), safety(throttled=True), safety()],
+        )
+        for safeties in defects:
+            with self.subTest(safeties=safeties):
+                state = state_with(safeties)
+                runner.reconcile_launchlate_clock_block(state, 1)
+                self.assertTrue(all(
+                    state["configs"][name]["runs"][0]["valid"] is False
+                    for name in names
+                ))
+
+    def test_supported_clock_inventory_records_exact_pairs(self):
+        completed = SimpleNamespace(
+            returncode=0, stdout="14001, 2392\n14001, 2385\n14001, 2392\n",
+            stderr="",
+        )
+        with patch.object(runner.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(runner.query_supported_clock_pairs(),
+                             [[2385, 14001], [2392, 14001]])
+        self.assertEqual(run.call_args.args[0], list(runner.SUPPORTED_CLOCK_COMMAND))
+
+        completed.stdout = "not a clock row\n"
+        with patch.object(runner.subprocess, "run", return_value=completed):
+            with self.assertRaisesRegex(RuntimeError, "no exact clock pairs"):
+                runner.query_supported_clock_pairs()
 
     def test_active_runner_has_no_content_fingerprint_logic(self):
         source = Path(runner.__file__).read_text().lower()

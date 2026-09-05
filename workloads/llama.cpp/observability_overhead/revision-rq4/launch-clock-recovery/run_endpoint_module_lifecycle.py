@@ -87,7 +87,6 @@ KUBECTL = (
 NODE = "lab"
 FIXED_SM_CLOCK_MHZ = 2392
 FIXED_MEMORY_CLOCK_MHZ = 14001
-ENUMERATED_SM_CLOCK_BINS_MHZ = frozenset((2392, 2400))
 CLOCK_OBSERVATION_COMMAND = (
     "nvidia-smi", "--query-gpu=pstate,clocks.current.sm,clocks.current.memory,"
     "clocks_event_reasons.gpu_idle", "--format=csv,noheader,nounits",
@@ -129,6 +128,7 @@ class State:
     restore_loaded: bool = False
     services_restored: bool = False
     labels_restored: bool = False
+    supported_clock_pairs: list[tuple[int, int]] = field(default_factory=list)
 
 
 def clock_observation() -> dict[str, Any]:
@@ -147,12 +147,15 @@ def clock_observation() -> dict[str, Any]:
             "memory_clock_mhz": memory_clock, "gpu_idle_reason": fields[3]}
 
 
-def require_fixed_clock_observation() -> dict[str, Any]:
+def require_fixed_clock_observation(
+        supported_clock_pairs: list[tuple[int, int]] | frozenset[tuple[int, int]]
+        ) -> dict[str, Any]:
     observed = clock_observation()
     demand(observed["pstate"] == "P0" and
-           observed["sm_clock_mhz"] in ENUMERATED_SM_CLOCK_BINS_MHZ and
-           observed["memory_clock_mhz"] == FIXED_MEMORY_CLOCK_MHZ,
-           "enumerated-bin GPU clock state is not observed: "
+           observed["memory_clock_mhz"] == FIXED_MEMORY_CLOCK_MHZ and
+           (observed["memory_clock_mhz"], observed["sm_clock_mhz"])
+           in set(supported_clock_pairs),
+           "supported-bin GPU clock state is not observed: "
            f"{observed['pstate']}, {observed['sm_clock_mhz']} / "
            f"{observed['memory_clock_mhz']} MHz")
     return observed
@@ -169,9 +172,10 @@ def establish_fixed_clocks(state: State) -> dict[str, Any]:
             supported.append((int(fields[0]), int(fields[1])))
         except ValueError:
             continue
-    demand(all((FIXED_MEMORY_CLOCK_MHZ, value) in supported
-               for value in ENUMERATED_SM_CLOCK_BINS_MHZ),
-           "enumerated memory/SM clock bins are not supported")
+    state.supported_clock_pairs = sorted(set(supported))
+    demand((FIXED_MEMORY_CLOCK_MHZ, FIXED_SM_CLOCK_MHZ)
+           in state.supported_clock_pairs,
+           "requested memory/SM clock pair is not supported")
     before = clock_observation()
     commands = []
     state.clock_lock_started = True
@@ -182,14 +186,17 @@ def establish_fixed_clocks(state: State) -> dict[str, Any]:
         demand(completed.returncode == 0,
                f"clock lock command failed with status "
                f"{completed.returncode}: {list(command)}")
-    after = require_fixed_clock_observation()
+    after = require_fixed_clock_observation(state.supported_clock_pairs)
     return {"target": {"sm_clock_mhz": FIXED_SM_CLOCK_MHZ,
                        "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ},
             "admitted_state": {
                 "pstate": "P0",
-                "sm_clock_bins_mhz": sorted(ENUMERATED_SM_CLOCK_BINS_MHZ),
                 "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ,
+                "sm_clock_must_be_listed_for_memory": True,
             },
+            "supported_clock_pairs": [
+                list(pair) for pair in state.supported_clock_pairs
+            ],
             "supported_pair": True, "before": before, "commands": commands,
             "after": after}
 
@@ -533,8 +540,9 @@ def dry_run(candidate_dir: Path, stage: Path, output: Path,
                 "sm_clock_mhz": FIXED_SM_CLOCK_MHZ,
                 "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ,
                 "admitted_pstate": "P0",
-                "admitted_sm_clock_bins_mhz": sorted(
-                    ENUMERATED_SM_CLOCK_BINS_MHZ),
+                "admitted_sm_clock_rule": (
+                    "exact observed memory/SM pair must be in the pre-lock support query"
+                ),
                 "support_query": list(CLOCK_SUPPORT_COMMAND),
                 "observation_query": list(CLOCK_OBSERVATION_COMMAND),
                 "lock_commands": [list(value) for value in CLOCK_LOCK_COMMANDS],
@@ -778,7 +786,8 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
 
         with fixed_clock_scope(state, recovery_errors, event):
             event("fixed_clocks_before_probe",
-                  observation=require_fixed_clock_observation())
+                  observation=require_fixed_clock_observation(
+                      state.supported_clock_pairs))
             probe_dir = output / "probe"
             probe_dir.mkdir()
             completed = base.run_command(
@@ -793,7 +802,8 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
             if child_mode != "none":
                 base.cells.raise_if_interrupted()
                 event("fixed_clocks_before_preflight",
-                      observation=require_fixed_clock_observation())
+                      observation=require_fixed_clock_observation(
+                          state.supported_clock_pairs))
                 lease_fds = tuple(leases.descriptors)
                 preflight_dir = output / "launchlate-preflight"
                 preflight_result = run_campaign_child(
@@ -803,7 +813,8 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
                       returncode=preflight_result["returncode"],
                       passed=preflight_result["passed"], output=str(preflight_dir))
                 event("fixed_clocks_after_preflight",
-                      observation=require_fixed_clock_observation())
+                      observation=require_fixed_clock_observation(
+                          state.supported_clock_pairs))
                 demand(preflight_result["passed"],
                        preflight_result.get("failure", "preflight child failed"))
                 base.cells.raise_if_interrupted()
@@ -812,7 +823,8 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
                       output=str(preflight_dir))
                 if child_mode == "preflight-full":
                     event("fixed_clocks_before_full",
-                          observation=require_fixed_clock_observation())
+                          observation=require_fixed_clock_observation(
+                              state.supported_clock_pairs))
                     full_dir = output / "launchlate-full"
                     full_result = run_campaign_child(
                         "full", full_dir, lease_fds, preflight=preflight_dir)
@@ -821,7 +833,8 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
                           returncode=full_result["returncode"],
                           passed=full_result["passed"], output=str(full_dir))
                     event("fixed_clocks_after_full",
-                          observation=require_fixed_clock_observation())
+                          observation=require_fixed_clock_observation(
+                              state.supported_clock_pairs))
                     demand(full_result["passed"],
                            full_result.get("failure", "full child failed"))
                     base.cells.raise_if_interrupted()

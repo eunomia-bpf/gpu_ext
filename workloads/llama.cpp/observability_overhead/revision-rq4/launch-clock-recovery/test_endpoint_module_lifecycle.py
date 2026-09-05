@@ -64,8 +64,6 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
         self.assertEqual(len(lifecycle.ENDPOINT_SYMBOLS), 2)
         self.assertEqual(lifecycle.FIXED_SM_CLOCK_MHZ, 2392)
         self.assertEqual(lifecycle.FIXED_MEMORY_CLOCK_MHZ, 14001)
-        self.assertEqual(lifecycle.ENUMERATED_SM_CLOCK_BINS_MHZ,
-                         frozenset((2392, 2400)))
         self.assertEqual(lifecycle.CLOCK_LOCK_COMMANDS, (
             ("nvidia-smi", "-i", "0", "--lock-gpu-clocks=2392,2392"),
             ("nvidia-smi", "-i", "0",
@@ -92,36 +90,38 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
         self.assertEqual(result["before"]["pstate"], "P8")
         self.assertEqual(result["after"]["pstate"], "P0")
         self.assertEqual(result["admitted_state"], {
-            "pstate": "P0", "sm_clock_bins_mhz": [2392, 2400],
-            "memory_clock_mhz": 14001,
+            "pstate": "P0", "memory_clock_mhz": 14001,
+            "sm_clock_must_be_listed_for_memory": True,
         })
+        self.assertEqual(result["supported_clock_pairs"],
+                         [[14001, 2392], [14001, 2400]])
         self.assertTrue(state.clock_lock_started)
         self.assertEqual(query.call_count, 3)
         self.assertEqual([item.args[0] for item in run.call_args_list],
                          [list(value) for value in lifecycle.CLOCK_LOCK_COMMANDS])
 
-    def test_fixed_clock_lock_rejects_unenumerated_observation(self) -> None:
+    def test_fixed_clock_lock_accepts_any_exact_supported_bin(self) -> None:
         query_results = [
-            "14001, 2400\n14001, 2392\n",
+            "14001, 2400\n14001, 2392\n14001, 2385\n",
             "P8, 22, 405, Not Active\n",
-            "P0, 2399, 14001, Not Active\n",
+            "P0, 2385, 14001, Not Active\n",
         ]
         with (patch.object(lifecycle.base, "checked_stdout",
                            side_effect=query_results),
               patch.object(lifecycle.base, "run_command",
                            side_effect=lambda argv: completed(argv))):
-            with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
-                                        "enumerated-bin GPU clock state"):
-                lifecycle.establish_fixed_clocks(lifecycle.State())
+            result = lifecycle.establish_fixed_clocks(lifecycle.State())
+        self.assertEqual(result["after"]["sm_clock_mhz"], 2385)
 
     def test_fixed_clock_gate_requires_p0_and_exact_memory(self) -> None:
-        for sm_clock in lifecycle.ENUMERATED_SM_CLOCK_BINS_MHZ:
+        supported = frozenset(((14001, 2392), (14001, 2385)))
+        for sm_clock in (2392, 2385):
             observed = {"pstate": "P0", "sm_clock_mhz": sm_clock,
                         "memory_clock_mhz": 14001}
             with patch.object(lifecycle, "clock_observation",
                               return_value=observed):
                 self.assertEqual(
-                    lifecycle.require_fixed_clock_observation(), observed)
+                    lifecycle.require_fixed_clock_observation(supported), observed)
         for observed in (
                 {"pstate": "P2", "sm_clock_mhz": 2392,
                  "memory_clock_mhz": 14001},
@@ -131,15 +131,22 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
                   patch.object(lifecycle, "clock_observation",
                                return_value=observed)):
                 with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
-                                            "enumerated-bin GPU clock state"):
-                    lifecycle.require_fixed_clock_observation()
+                                            "supported-bin GPU clock state"):
+                    lifecycle.require_fixed_clock_observation(supported)
 
-    def test_fixed_clock_lock_requires_both_bins_in_support_inventory(self) -> None:
+        with patch.object(lifecycle, "clock_observation", return_value={
+                "pstate": "P0", "sm_clock_mhz": 2400,
+                "memory_clock_mhz": 14001}):
+            with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
+                                        "supported-bin GPU clock state"):
+                lifecycle.require_fixed_clock_observation(supported)
+
+    def test_fixed_clock_lock_requires_requested_pair_in_support_inventory(self) -> None:
         with (patch.object(lifecycle.base, "checked_stdout",
-                           return_value="14001, 2392\n"),
+                           return_value="14001, 2385\n"),
               patch.object(lifecycle.base, "run_command") as run):
             with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
-                                        "enumerated memory/SM clock bins"):
+                                        "requested memory/SM clock pair"):
                 lifecycle.establish_fixed_clocks(lifecycle.State())
         run.assert_not_called()
 
@@ -454,8 +461,8 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
         self.assertEqual(result["fixed_clocks"]["sm_clock_mhz"], 2392)
         self.assertEqual(result["fixed_clocks"]["memory_clock_mhz"], 14001)
         self.assertEqual(result["fixed_clocks"]["admitted_pstate"], "P0")
-        self.assertEqual(
-            result["fixed_clocks"]["admitted_sm_clock_bins_mhz"], [2392, 2400])
+        self.assertIn("pre-lock support query",
+                      result["fixed_clocks"]["admitted_sm_clock_rule"])
         self.assertEqual(result["fixed_clocks"]["lock_commands"],
                          [list(value) for value in lifecycle.CLOCK_LOCK_COMMANDS])
         self.assertEqual(result["fixed_clocks"]["reset_commands"],

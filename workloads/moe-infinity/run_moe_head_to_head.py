@@ -1213,19 +1213,25 @@ def stop_exact_process(process: subprocess.Popen[Any], timeout: float = 20) -> N
                 raise GateError("owned process survived bounded cleanup") from exc
 
 
-def start_gpu_telemetry(run_dir: Path) -> tuple[subprocess.Popen[Any], Any, Path]:
+def start_gpu_telemetry(run_dir: Path, *, include_pstate: bool = False
+                        ) -> tuple[subprocess.Popen[Any], Any, Path]:
     if TELEMETRY_CPU not in os.sched_getaffinity(0):
         raise GateError(f"telemetry CPU {TELEMETRY_CPU} is not available")
     path = run_dir / "gpu-telemetry.csv"
     log = path.open("x", buffering=1)
-    query = ",".join((
+    fields = [
         "timestamp", "memory.used", "temperature.gpu", "power.draw",
         "clocks.current.sm", "clocks.current.memory",
+    ]
+    if include_pstate:
+        fields.append("pstate")
+    fields.extend((
         "clocks_event_reasons.sw_power_cap", "clocks_event_reasons.hw_slowdown",
         "clocks_event_reasons.hw_thermal_slowdown",
         "clocks_event_reasons.hw_power_brake_slowdown",
         "clocks_event_reasons.sw_thermal_slowdown",
     ))
+    query = ",".join(fields)
     process = subprocess.Popen(
         ["taskset", "-c", str(TELEMETRY_CPU), "nvidia-smi", f"--query-gpu={query}",
          "--format=csv", "--loop-ms=200"],
@@ -1244,14 +1250,16 @@ def validate_gpu_telemetry(path: Path, *, allow_fixed_power_cap: bool = False) -
         raise GateError(f"GPU telemetry has no samples: {path}")
     headers = [item.strip() for item in lines[0].split(",")]
     rows = []
+    malformed = False
     for line in lines[1:]:
         fields = [item.strip() for item in line.split(",")]
         if len(fields) != len(headers):
+            malformed = True
             continue
         rows.append(dict(zip(headers, fields)))
     if not rows:
         raise GateError("GPU telemetry has no parseable rows")
-    reason_headers = [key for key in headers[6:] if not (
+    reason_headers = [key for key in headers if key.startswith("clocks_event_reasons.") and not (
         allow_fixed_power_cap and "sw_power_cap" in key
     )]
     throttled = [
@@ -1262,7 +1270,7 @@ def validate_gpu_telemetry(path: Path, *, allow_fixed_power_cap: bool = False) -
         raise GateError(f"GPU throttling observed in measured interval: {throttled[:5]}")
     def numeric(header: str) -> list[float]:
         return [float(row[header].split()[0]) for row in rows]
-    return {
+    result = {
         "samples": len(rows), "peak_memory_mib": max(numeric(headers[1])),
         "peak_temperature_c": max(numeric(headers[2])),
         "mean_power_w": sum(numeric(headers[3])) / len(rows),
@@ -1273,6 +1281,21 @@ def validate_gpu_telemetry(path: Path, *, allow_fixed_power_cap: bool = False) -
             for row in rows
         ),
     }
+    pstate_header = next((key for key in headers if key == "pstate"), None)
+    if pstate_header is not None:
+        if malformed:
+            raise GateError("GPU telemetry contains malformed P-state rows")
+        def integer_clock(header: str, row: dict[str, str]) -> int:
+            value = float(row[header].split()[0])
+            if not value.is_integer():
+                raise GateError(f"GPU clock telemetry is not integral MHz: {row[header]}")
+            return int(value)
+        result["pstates"] = sorted({row[pstate_header] for row in rows})
+        result["clock_pairs_mhz"] = sorted({
+            (integer_clock(headers[4], row), integer_clock(headers[5], row))
+            for row in rows
+        })
+    return result
 
 
 def start_policy(run_dir: Path) -> tuple[subprocess.Popen[Any], Any, dict[str, Any]]:

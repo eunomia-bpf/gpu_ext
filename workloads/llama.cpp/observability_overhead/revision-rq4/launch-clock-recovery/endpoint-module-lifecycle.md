@@ -43,14 +43,15 @@ ambient injection environment. Each child argv, return code, stdout, stderr,
 and independent analyzer result is retained in `lifecycle.json`; wrapper
 completion requires every requested child gate before rollback.
 
-Attempt 12 requests one fixed pair, 2392 MHz SM / 14001 MHz memory, and admits
-only P0 observations whose memory clock is exactly 14001 MHz and whose SM clock
-is in the supported, explicitly enumerated set `{2392, 2400}`. Both pairs must
-appear in the device's supported-clock query. This is a finite enumerated-bin
-set, not a tolerance or range: every other SM value, memory value, or P-state is
-rejected. The wrapper checks this state before the probe and before and after
-each child. Clock resets are attempted in reverse order before module rollback
-on every exit path.
+Attempt 13 requests one fixed pair, 2392 MHz SM / 14001 MHz memory. Before
+applying either clock lock it records the complete supported memory/SM
+inventory. Outer active observations must be P0, have memory exactly 14001 MHz,
+and match an exact pair
+in that inventory. This is support-list membership, not a tolerance or range.
+The wrapper checks it before the probe and before and after each child. The
+child separately enforces exact within-block telemetry equality across all
+three timing arms. Clock resets are attempted in reverse order before module
+rollback on every exit path.
 
 The child does not inherit the invoking shell's executable search path. Its
 PATH is fixed to the CUDA 12.9, standard local, and system binary directories,
@@ -65,8 +66,8 @@ The only admitted live invocation for the next fresh attempt is:
 ```bash
 sudo -n python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/launch-clock-recovery/run_endpoint_module_lifecycle.py \
   --candidate-dir /opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-02 \
-  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-stage-575-12 \
-  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-12-endpoint-lifecycle \
+  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-stage-575-13 \
+  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-13-endpoint-lifecycle \
   --child-mode preflight-full \
   --execute
 ```

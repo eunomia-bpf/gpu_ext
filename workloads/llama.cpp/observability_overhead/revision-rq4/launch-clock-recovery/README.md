@@ -1,10 +1,13 @@
 # Launch-clock preflight-575-07 recovery audit
 
-The executable follow-up is frozen in
-[`launchlate-frozen-plan.md`](launchlate-frozen-plan.md).  It keeps calibration
-controls separate from the paired 10-block performance result and requires a
-same-stack PTIMER/`%globaltimer` identity canary before the 220-launch
-correctness rerun.
+The attempt-08 follow-up is frozen in
+[`launchlate-frozen-plan-v2.md`](launchlate-frozen-plan-v2.md). It retains the
+unchanged experiment requirements from
+[`launchlate-frozen-plan.md`](launchlate-frozen-plan.md), replaces only the
+two-anchor clock gate with a pre-execution three-anchor validation, and keeps
+attempt 07 failed under its original 10,000 ppb rule. Calibration controls
+remain separate from the paired 10-block result, and the same-stack
+PTIMER/`%globaltimer` identity canary still precedes the 220-launch rerun.
 
 The runnable campaign is the launch-only three-arm matrix; it never mixes the
 old cross-clock records into a result. From the `revision-rq4` directory, first
@@ -59,7 +62,8 @@ assertions), and the launchlate loader CPU self-test passed.  The gpubpf loader,
 the NVBit adapter for `sm_120`, its clock-domain test, and both clock-control
 self-tests also built and passed without executing a GPU campaign.
 
-The runner/analyzer suite passes 81 CPU-only tests.  The launch-only dry runs
+The runner/analyzer suite passes 76 CPU-only tests, and the endpoint lifecycle
+suite passes 10 more. The launch-only dry runs
 produce exactly three preflight timing cells and 30 full timing cells over
 `baseline`, `gpubpf_launchlate`, and `nvbit_launchlate`.  Independent OpenCode
 review session `ses_f92e26cfaffeu90Lyc00BpJNHV` returned PASS with no confirmed

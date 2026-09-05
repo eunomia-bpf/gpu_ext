@@ -19,11 +19,30 @@ struct clock_drift_t {
     uint64_t bounded;
 };
 
+// Retained for a comparable slope diagnostic; it is not an admission limit.
 static constexpr uint64_t CLOCK_DRIFT_LIMIT_PPB = 10000ULL;
-// With microsecond-scale endpoint brackets, a sub-second trace can make the
-// frozen 10,000 ppb drift limit unresolvable from measurement uncertainty.
-// This minimum is a measurement-resolution requirement, not a relaxed limit.
+static constexpr uint64_t CLOCK_CALIBRATION_TRIALS = 32ULL;
+static constexpr uint64_t CLOCK_MAX_ANCHOR_BRACKET_NS = 1500ULL;
+// Keep the held-out validation anchor distinct from measurement_end.  A full
+// second prevents the validation from being an effectively coincident repeat.
 static constexpr uint64_t CLOCK_MIN_CALIBRATION_SPAN_NS = 1000000000ULL;
+
+struct clock_anchor_quality_t {
+    uint64_t requested;
+    uint64_t accepted;
+    uint64_t rejected;
+    uint64_t bracket_width_ns;
+    uint64_t cleanup_complete;
+};
+
+struct held_out_clock_validation_t {
+    int64_t predicted_low_ns;
+    int64_t predicted_high_ns;
+    int64_t overlap_low_ns;
+    int64_t overlap_high_ns;
+    uint64_t validation_span_ns;
+    uint64_t passed;
+};
 
 enum launch_sample_status_t : uint32_t {
     LAUNCH_SAMPLE_CLASSIFIED = 0,
@@ -230,6 +249,62 @@ OBS_HOST static inline bool affine_clock_offset_interval(
     }
     *offset_low_ns = static_cast<int64_t>(low);
     *offset_high_ns = static_cast<int64_t>(high);
+    return true;
+}
+
+static inline bool clock_anchor_quality_valid(
+    const clock_calibration_t& calibration,
+    const clock_anchor_quality_t& quality) {
+    return clock_calibration_valid(calibration) &&
+           quality.requested == CLOCK_CALIBRATION_TRIALS &&
+           quality.accepted == quality.requested && quality.rejected == 0 &&
+           quality.cleanup_complete == 1 && quality.bracket_width_ns > 0 &&
+           quality.bracket_width_ns <= CLOCK_MAX_ANCHOR_BRACKET_NS &&
+           calibration_width(calibration) == quality.bracket_width_ns;
+}
+
+/*
+ * Validate the start-to-measurement affine model against a third, held-out
+ * anchor.  Only start and measurement_end may classify samples.  The later
+ * validation_end anchor is an admission check: the affine interval from
+ * start to validation_end must overlap the measured middle interval.
+ */
+static inline bool held_out_affine_clock_validation(
+    const clock_calibration_t& start,
+    const clock_calibration_t& measurement_end,
+    const clock_calibration_t& validation_end,
+    const clock_anchor_quality_t& start_quality,
+    const clock_anchor_quality_t& measurement_end_quality,
+    const clock_anchor_quality_t& validation_end_quality,
+    held_out_clock_validation_t* result) {
+    if (result == nullptr) return false;
+    *result = {};
+    if (!clock_anchor_quality_valid(start, start_quality) ||
+        !clock_anchor_quality_valid(measurement_end,
+                                    measurement_end_quality) ||
+        !clock_anchor_quality_valid(validation_end, validation_end_quality) ||
+        start.host_anchor_ns >= measurement_end.host_anchor_ns ||
+        measurement_end.host_anchor_ns >= validation_end.host_anchor_ns ||
+        validation_end.host_anchor_ns - measurement_end.host_anchor_ns <
+            CLOCK_MIN_CALIBRATION_SPAN_NS ||
+        !affine_clock_offset_interval(measurement_end.host_anchor_ns, start,
+                                      validation_end,
+                                      &result->predicted_low_ns,
+                                      &result->predicted_high_ns)) {
+        return false;
+    }
+    result->validation_span_ns = validation_end.host_anchor_ns -
+                                 measurement_end.host_anchor_ns;
+    result->overlap_low_ns =
+        result->predicted_low_ns > measurement_end.offset_low_ns
+            ? result->predicted_low_ns
+            : measurement_end.offset_low_ns;
+    result->overlap_high_ns =
+        result->predicted_high_ns < measurement_end.offset_high_ns
+            ? result->predicted_high_ns
+            : measurement_end.offset_high_ns;
+    if (result->overlap_low_ns > result->overlap_high_ns) return false;
+    result->passed = 1;
     return true;
 }
 

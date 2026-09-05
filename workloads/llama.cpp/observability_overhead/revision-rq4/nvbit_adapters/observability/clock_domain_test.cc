@@ -101,12 +101,100 @@ int main() {
     assert(classify_launch_latency(UINT64_MAX, 5400, calibration, &bin) ==
            LAUNCH_SAMPLE_CLOCK_ERROR);
 
-    // A large endpoint change is measured but fails the predeclared rate cap.
+    // A large endpoint change crosses the retained diagnostic threshold.
     drift_end.offset_low_ns = 2000100;
     drift_end.offset_high_ns = 2000140;
     assert(clock_calibration_drift(drift_start, drift_end, &drift));
     assert(drift.bounded == 0);
     assert(drift.rate_bound_ppb > CLOCK_DRIFT_LIMIT_PPB);
+
+    // A 22 ppm affine clock passes when the observed middle anchor overlaps
+    // the start-to-held-out-validation interpolation.  Slope is diagnostic.
+    const clock_calibration_t held_start = {
+        980, 1020, 20, 1000000000ULL, 1};
+    const clock_calibration_t held_measurement_end = {
+        9760, 9840, 40, 1400000000ULL, 1};
+    const clock_calibration_t held_validation_end = {
+        31780, 31820, 20, 2400000000ULL, 1};
+    const clock_anchor_quality_t narrow_quality = {
+        CLOCK_CALIBRATION_TRIALS, CLOCK_CALIBRATION_TRIALS, 0, 40, 1};
+    const clock_anchor_quality_t middle_quality = {
+        CLOCK_CALIBRATION_TRIALS, CLOCK_CALIBRATION_TRIALS, 0, 80, 1};
+    held_out_clock_validation_t held_validation = {};
+    assert(clock_calibration_drift(held_start, held_validation_end, &drift));
+    assert(drift.rate_bound_ppb == 22029);
+    assert(drift.bounded == 0);
+    assert(held_out_affine_clock_validation(
+        held_start, held_measurement_end, held_validation_end, narrow_quality,
+        middle_quality, narrow_quality, &held_validation));
+    assert(held_validation.predicted_low_ns == 9780);
+    assert(held_validation.predicted_high_ns == 9820);
+    assert(held_validation.overlap_low_ns == 9780);
+    assert(held_validation.overlap_high_ns == 9820);
+    assert(held_validation.validation_span_ns == 1000000000ULL);
+    assert(held_validation.passed == 1);
+    assert(classify_affine_launch_latency(
+               1200000000ULL, 1200006000ULL, held_start,
+               held_measurement_end, &bin) == LAUNCH_SAMPLE_CLASSIFIED);
+    assert(bin == 1);
+
+    clock_calibration_t malformed_middle = held_measurement_end;
+    malformed_middle.uncertainty_ns++;
+    assert(!held_out_affine_clock_validation(
+        held_start, malformed_middle, held_validation_end, narrow_quality,
+        middle_quality, narrow_quality, &held_validation));
+    clock_calibration_t nonoverlap_middle = held_measurement_end;
+    nonoverlap_middle.offset_low_ns = 11000;
+    nonoverlap_middle.offset_high_ns = 11080;
+    assert(!held_out_affine_clock_validation(
+        held_start, nonoverlap_middle, held_validation_end, narrow_quality,
+        middle_quality, narrow_quality, &held_validation));
+    clock_calibration_t unordered_middle = held_measurement_end;
+    unordered_middle.host_anchor_ns = held_start.host_anchor_ns;
+    assert(!held_out_affine_clock_validation(
+        held_start, unordered_middle, held_validation_end, narrow_quality,
+        middle_quality, narrow_quality, &held_validation));
+    clock_calibration_t unordered_validation = held_validation_end;
+    unordered_validation.host_anchor_ns =
+        held_measurement_end.host_anchor_ns;
+    assert(!held_out_affine_clock_validation(
+        held_start, held_measurement_end, unordered_validation,
+        narrow_quality, middle_quality, narrow_quality, &held_validation));
+    clock_calibration_t short_validation = held_validation_end;
+    short_validation.host_anchor_ns = 2399999999ULL;
+    assert(!held_out_affine_clock_validation(
+        held_start, held_measurement_end, short_validation, narrow_quality,
+        middle_quality, narrow_quality, &held_validation));
+    clock_anchor_quality_t rejected_quality = narrow_quality;
+    rejected_quality.rejected = 1;
+    assert(!held_out_affine_clock_validation(
+        held_start, held_measurement_end, held_validation_end,
+        rejected_quality, middle_quality, narrow_quality, &held_validation));
+    clock_anchor_quality_t incomplete_quality = narrow_quality;
+    incomplete_quality.accepted--;
+    assert(!held_out_affine_clock_validation(
+        held_start, held_measurement_end, held_validation_end,
+        incomplete_quality, middle_quality, narrow_quality,
+        &held_validation));
+    clock_anchor_quality_t wide_quality = middle_quality;
+    wide_quality.bracket_width_ns = CLOCK_MAX_ANCHOR_BRACKET_NS + 1;
+    clock_calibration_t wide_middle = held_measurement_end;
+    wide_middle.offset_high_ns =
+        wide_middle.offset_low_ns + wide_quality.bracket_width_ns;
+    wide_middle.uncertainty_ns =
+        wide_quality.bracket_width_ns / 2 +
+        wide_quality.bracket_width_ns % 2;
+    assert(!held_out_affine_clock_validation(
+        held_start, wide_middle, held_validation_end, narrow_quality,
+        wide_quality, narrow_quality, &held_validation));
+    clock_anchor_quality_t dirty_quality = narrow_quality;
+    dirty_quality.cleanup_complete = 0;
+    assert(!held_out_affine_clock_validation(
+        held_start, held_measurement_end, held_validation_end, narrow_quality,
+        middle_quality, dirty_quality, &held_validation));
+    assert(!held_out_affine_clock_validation(
+        held_start, held_measurement_end, held_validation_end, narrow_quality,
+        middle_quality, narrow_quality, nullptr));
 
     // Invalid raw inputs remain true clock errors.
     assert(classify_launch_latency(0, 5400, calibration, &bin) ==

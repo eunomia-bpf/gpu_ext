@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import run_revision_rq4 as runner
+import analyze_revision_rq4 as analyzer
 
 
 def lossless_exit_log(**overrides):
@@ -152,16 +153,27 @@ def lossless_launchlate_log(**overrides):
         "start_high": 1032,
         "start_uncertainty": 82,
         "start_anchor": 1000000050,
-        "end_low": 888,
-        "end_high": 1052,
-        "end_uncertainty": 82,
-        "end_anchor": 2000000050,
-        "change_low": -144,
-        "change_high": 184,
-        "elapsed": 1000000000,
-        "drift_rate": 184,
+        "measurement_end_low": 888,
+        "measurement_end_high": 1052,
+        "measurement_end_uncertainty": 82,
+        "measurement_end_anchor": 2000000050,
+        "validation_end_low": 908,
+        "validation_end_high": 1072,
+        "validation_end_uncertainty": 82,
+        "validation_end_anchor": 3000000050,
+        "change_low": -124,
+        "change_high": 204,
+        "elapsed": 2000000000,
+        "drift_rate": 102,
         "drift_limit": 10000,
         "drift_bounded": 1,
+        "slope_diagnostic_only": 1,
+        "held_predicted_low": 888,
+        "held_predicted_high": 1052,
+        "held_overlap_low": 888,
+        "held_overlap_high": 1052,
+        "validation_span": 1000000000,
+        "held_passed": 1,
         "rm_samples": 32,
         "rm_accepted": 32,
         "rm_rejected": 0,
@@ -170,11 +182,16 @@ def lossless_launchlate_log(**overrides):
         "start_gpu": 1000001000,
         "start_cpu_after": 1000000100,
         "start_outer_after": 1000000200,
-        "end_outer_before": 1999999900,
-        "end_cpu_before": 2000000000,
-        "end_gpu": 2000001020,
-        "end_cpu_after": 2000000100,
-        "end_outer_after": 2000000200,
+        "measurement_end_outer_before": 1999999900,
+        "measurement_end_cpu_before": 2000000000,
+        "measurement_end_gpu": 2000001020,
+        "measurement_end_cpu_after": 2000000100,
+        "measurement_end_outer_after": 2000000200,
+        "validation_end_outer_before": 2999999900,
+        "validation_end_cpu_before": 3000000000,
+        "validation_end_gpu": 3000001040,
+        "validation_end_cpu_after": 3000000100,
+        "validation_end_outer_after": 3000000200,
         "rm_outer_width": 300,
         "rm_selected_gap": 100,
         "rm_bracket_width": 164,
@@ -202,29 +219,41 @@ def lossless_launchlate_log(**overrides):
         f"Start RM status: 0x{values['rm_status']:08x}",
         f"Start RM cleanup complete: {values['rm_cleanup']}",
         f"Probes detached before final readback: {values['detached']}",
-        f"End clock offset lower: {values['end_low']} ns",
-        f"End clock offset upper: {values['end_high']} ns",
-        f"End clock uncertainty: {values['end_uncertainty']} ns",
-        f"End clock host anchor: {values['end_anchor']} ns",
-        f"End RM samples requested: {values['rm_samples']}",
-        f"End RM samples accepted: {values['rm_accepted']}",
-        f"End RM samples rejected: {values['rm_rejected']}",
-        f"End RM outer before RAW: {values['end_outer_before']} ns",
-        f"End RM CPU before RAW: {values['end_cpu_before']} ns",
-        f"End RM GPU PTIMER: {values['end_gpu']} ns",
-        f"End RM CPU after RAW: {values['end_cpu_after']} ns",
-        f"End RM outer after RAW: {values['end_outer_after']} ns",
-        f"End RM outer width: {values['rm_outer_width']} ns",
-        f"End RM selected gap: {values['rm_selected_gap']} ns",
-        f"End RM bracket width: {values['rm_bracket_width']} ns",
-        f"End RM status: 0x{values['rm_status']:08x}",
-        f"End RM cleanup complete: {values['rm_cleanup']}",
+        *(line for phase, display in (
+            ("measurement_end", "Measurement-end"),
+            ("validation_end", "Validation-end"),
+        ) for line in (
+            f"{display} clock offset lower: {values[f'{phase}_low']} ns",
+            f"{display} clock offset upper: {values[f'{phase}_high']} ns",
+            f"{display} clock uncertainty: {values[f'{phase}_uncertainty']} ns",
+            f"{display} clock host anchor: {values[f'{phase}_anchor']} ns",
+            f"{display} RM samples requested: {values['rm_samples']}",
+            f"{display} RM samples accepted: {values['rm_accepted']}",
+            f"{display} RM samples rejected: {values['rm_rejected']}",
+            f"{display} RM outer before RAW: {values[f'{phase}_outer_before']} ns",
+            f"{display} RM CPU before RAW: {values[f'{phase}_cpu_before']} ns",
+            f"{display} RM GPU PTIMER: {values[f'{phase}_gpu']} ns",
+            f"{display} RM CPU after RAW: {values[f'{phase}_cpu_after']} ns",
+            f"{display} RM outer after RAW: {values[f'{phase}_outer_after']} ns",
+            f"{display} RM outer width: {values['rm_outer_width']} ns",
+            f"{display} RM selected gap: {values['rm_selected_gap']} ns",
+            f"{display} RM bracket width: {values['rm_bracket_width']} ns",
+            f"{display} RM status: 0x{values['rm_status']:08x}",
+            f"{display} RM cleanup complete: {values['rm_cleanup']}",
+        )),
         f"Clock offset change lower: {values['change_low']} ns",
         f"Clock offset change upper: {values['change_high']} ns",
         f"Clock calibration elapsed: {values['elapsed']} ns",
         f"Clock drift rate bound: {values['drift_rate']} ppb",
         f"Clock drift limit: {values['drift_limit']} ppb",
         f"Clock drift bounded: {values['drift_bounded']}",
+        f"Clock slope diagnostic only: {values['slope_diagnostic_only']}",
+        f"Held-out predicted lower: {values['held_predicted_low']} ns",
+        f"Held-out predicted upper: {values['held_predicted_high']} ns",
+        f"Held-out overlap lower: {values['held_overlap_low']} ns",
+        f"Held-out overlap upper: {values['held_overlap_high']} ns",
+        f"Clock validation span: {values['validation_span']} ns",
+        f"Held-out clock validation passed: {values['held_passed']}",
         f"Histogram samples: {values['histogram']}",
         f"Total samples: {values['samples']}",
         f"Host launches: {values['host_launches']}",
@@ -262,17 +291,29 @@ def lossless_nvbit_launchlate_log(**overrides):
         "start_uncertainty": 82,
         "start_anchor": 1000000050,
         "start_valid": 1,
-        "end_low": 888,
-        "end_high": 1052,
-        "end_uncertainty": 82,
-        "end_anchor": 2000000050,
-        "end_valid": 1,
-        "change_low": -144,
-        "change_high": 184,
-        "elapsed": 1000000000,
-        "drift_rate": 184,
+        "measurement_end_low": 888,
+        "measurement_end_high": 1052,
+        "measurement_end_uncertainty": 82,
+        "measurement_end_anchor": 2000000050,
+        "measurement_end_valid": 1,
+        "validation_end_low": 908,
+        "validation_end_high": 1072,
+        "validation_end_uncertainty": 82,
+        "validation_end_anchor": 3000000050,
+        "validation_end_valid": 1,
+        "change_low": -124,
+        "change_high": 204,
+        "elapsed": 2000000000,
+        "drift_rate": 102,
         "drift_limit": 10000,
         "drift_bounded": 1,
+        "slope_diagnostic_only": 1,
+        "held_predicted_low": 888,
+        "held_predicted_high": 1052,
+        "held_overlap_low": 888,
+        "held_overlap_high": 1052,
+        "validation_span": 1000000000,
+        "held_passed": 1,
         "rm_samples": 32,
         "rm_accepted": 32,
         "rm_rejected": 0,
@@ -281,11 +322,16 @@ def lossless_nvbit_launchlate_log(**overrides):
         "start_gpu": 1000001000,
         "start_cpu_after": 1000000100,
         "start_outer_after": 1000000200,
-        "end_outer_before": 1999999900,
-        "end_cpu_before": 2000000000,
-        "end_gpu": 2000001020,
-        "end_cpu_after": 2000000100,
-        "end_outer_after": 2000000200,
+        "measurement_end_outer_before": 1999999900,
+        "measurement_end_cpu_before": 2000000000,
+        "measurement_end_gpu": 2000001020,
+        "measurement_end_cpu_after": 2000000100,
+        "measurement_end_outer_after": 2000000200,
+        "validation_end_outer_before": 2999999900,
+        "validation_end_cpu_before": 3000000000,
+        "validation_end_gpu": 3000001040,
+        "validation_end_cpu_after": 3000000100,
+        "validation_end_outer_after": 3000000200,
         "rm_outer_width": 300,
         "rm_selected_gap": 100,
         "rm_bracket_width": 164,
@@ -320,30 +366,39 @@ def lossless_nvbit_launchlate_log(**overrides):
         f"NVBIT launchlate start_rm_bracket_width_ns={values['rm_bracket_width']}",
         f"NVBIT launchlate start_rm_status={values['rm_status']}",
         f"NVBIT launchlate start_rm_cleanup_complete={values['rm_cleanup']}",
-        f"NVBIT launchlate end_clock_offset_lower_ns={values['end_low']}",
-        f"NVBIT launchlate end_clock_offset_upper_ns={values['end_high']}",
-        f"NVBIT launchlate end_clock_uncertainty_ns={values['end_uncertainty']}",
-        f"NVBIT launchlate end_clock_host_anchor_ns={values['end_anchor']}",
-        f"NVBIT launchlate end_clock_calibration_valid={values['end_valid']}",
-        f"NVBIT launchlate end_rm_samples_requested={values['rm_samples']}",
-        f"NVBIT launchlate end_rm_samples_accepted={values['rm_accepted']}",
-        f"NVBIT launchlate end_rm_samples_rejected={values['rm_rejected']}",
-        f"NVBIT launchlate end_rm_outer_before_raw_ns={values['end_outer_before']}",
-        f"NVBIT launchlate end_rm_cpu_before_raw_ns={values['end_cpu_before']}",
-        f"NVBIT launchlate end_rm_gpu_ptimer_ns={values['end_gpu']}",
-        f"NVBIT launchlate end_rm_cpu_after_raw_ns={values['end_cpu_after']}",
-        f"NVBIT launchlate end_rm_outer_after_raw_ns={values['end_outer_after']}",
-        f"NVBIT launchlate end_rm_outer_width_ns={values['rm_outer_width']}",
-        f"NVBIT launchlate end_rm_selected_gap_ns={values['rm_selected_gap']}",
-        f"NVBIT launchlate end_rm_bracket_width_ns={values['rm_bracket_width']}",
-        f"NVBIT launchlate end_rm_status={values['rm_status']}",
-        f"NVBIT launchlate end_rm_cleanup_complete={values['rm_cleanup']}",
+        *(line for phase in ("measurement_end", "validation_end") for line in (
+            f"NVBIT launchlate {phase}_clock_offset_lower_ns={values[f'{phase}_low']}",
+            f"NVBIT launchlate {phase}_clock_offset_upper_ns={values[f'{phase}_high']}",
+            f"NVBIT launchlate {phase}_clock_uncertainty_ns={values[f'{phase}_uncertainty']}",
+            f"NVBIT launchlate {phase}_clock_host_anchor_ns={values[f'{phase}_anchor']}",
+            f"NVBIT launchlate {phase}_clock_calibration_valid={values[f'{phase}_valid']}",
+            f"NVBIT launchlate {phase}_rm_samples_requested={values['rm_samples']}",
+            f"NVBIT launchlate {phase}_rm_samples_accepted={values['rm_accepted']}",
+            f"NVBIT launchlate {phase}_rm_samples_rejected={values['rm_rejected']}",
+            f"NVBIT launchlate {phase}_rm_outer_before_raw_ns={values[f'{phase}_outer_before']}",
+            f"NVBIT launchlate {phase}_rm_cpu_before_raw_ns={values[f'{phase}_cpu_before']}",
+            f"NVBIT launchlate {phase}_rm_gpu_ptimer_ns={values[f'{phase}_gpu']}",
+            f"NVBIT launchlate {phase}_rm_cpu_after_raw_ns={values[f'{phase}_cpu_after']}",
+            f"NVBIT launchlate {phase}_rm_outer_after_raw_ns={values[f'{phase}_outer_after']}",
+            f"NVBIT launchlate {phase}_rm_outer_width_ns={values['rm_outer_width']}",
+            f"NVBIT launchlate {phase}_rm_selected_gap_ns={values['rm_selected_gap']}",
+            f"NVBIT launchlate {phase}_rm_bracket_width_ns={values['rm_bracket_width']}",
+            f"NVBIT launchlate {phase}_rm_status={values['rm_status']}",
+            f"NVBIT launchlate {phase}_rm_cleanup_complete={values['rm_cleanup']}",
+        )),
         f"NVBIT launchlate clock_offset_change_lower_ns={values['change_low']}",
         f"NVBIT launchlate clock_offset_change_upper_ns={values['change_high']}",
         f"NVBIT launchlate clock_calibration_elapsed_ns={values['elapsed']}",
         f"NVBIT launchlate clock_drift_rate_bound_ppb={values['drift_rate']}",
         f"NVBIT launchlate clock_drift_limit_ppb={values['drift_limit']}",
         f"NVBIT launchlate clock_drift_bounded={values['drift_bounded']}",
+        f"NVBIT launchlate clock_slope_diagnostic_only={values['slope_diagnostic_only']}",
+        f"NVBIT launchlate held_out_predicted_lower_ns={values['held_predicted_low']}",
+        f"NVBIT launchlate held_out_predicted_upper_ns={values['held_predicted_high']}",
+        f"NVBIT launchlate held_out_overlap_lower_ns={values['held_overlap_low']}",
+        f"NVBIT launchlate held_out_overlap_upper_ns={values['held_overlap_high']}",
+        f"NVBIT launchlate validation_span_ns={values['validation_span']}",
+        f"NVBIT launchlate held_out_validation_passed={values['held_passed']}",
         *(f"NVBIT launchlate bin_{index}={count}"
           for index, count in enumerate(bins)),
         f"NVBIT launchlate pair_capacity={values['pair_capacity']}",
@@ -362,7 +417,92 @@ def lossless_nvbit_launchlate_log(**overrides):
     ))
 
 
+def legacy_lossless_launchlate_log(**overrides):
+    """Emit the superseded two-anchor ABI solely for attempt07 failure tests."""
+    renamed = dict(overrides)
+    renamed.setdefault("elapsed", 1_000_000_000)
+    for old, new in (
+        ("end_low", "measurement_end_low"),
+        ("end_high", "measurement_end_high"),
+        ("end_uncertainty", "measurement_end_uncertainty"),
+        ("end_anchor", "measurement_end_anchor"),
+        ("end_outer_before", "measurement_end_outer_before"),
+        ("end_cpu_before", "measurement_end_cpu_before"),
+        ("end_gpu", "measurement_end_gpu"),
+        ("end_cpu_after", "measurement_end_cpu_after"),
+        ("end_outer_after", "measurement_end_outer_after"),
+    ):
+        if old in renamed:
+            renamed[new] = renamed.pop(old)
+    text = lossless_launchlate_log(**renamed).replace(
+        runner.GPUBPF_LAUNCH_CLOCK_METHOD,
+        "RM endpoints-v1 PTIMER intervals with affine CLOCK_MONOTONIC_RAW interpolation",
+    )
+    kept = []
+    for line in text.splitlines():
+        if line.startswith("Validation-end ") or line.startswith("Held-out "):
+            continue
+        if line.startswith("Clock slope diagnostic only:") or line.startswith(
+            "Clock validation span:"
+        ):
+            continue
+        kept.append(line.replace("Measurement-end ", "End "))
+    return "\n".join(kept)
+
+
 class OfflineTests(unittest.TestCase):
+    def test_three_anchor_runner_and_analyzer_fail_closed(self):
+        params = {"pp": 32, "threadhist_gpu_thread_count": 4}
+        gpubpf_text = lossless_launchlate_log()
+        nvbit_text = lossless_nvbit_launchlate_log()
+        gpubpf_runner = runner.parse_gpubpf("launchlate", gpubpf_text)
+        nvbit_runner = runner.parse_nvbit("launchlate", nvbit_text)
+        gpubpf_analyzer = analyzer.parse_gpubpf_launch_raw(gpubpf_text)
+        nvbit_analyzer = analyzer.parse_nvbit_launch_raw(nvbit_text)
+        self.assertTrue(runner.gpubpf_probe_valid("launchlate", gpubpf_runner))
+        self.assertTrue(runner.nvbit_probe_valid("launchlate", nvbit_runner))
+        self.assertTrue(analyzer.gpubpf_valid(
+            "launchlate", gpubpf_analyzer, params, True
+        ))
+        self.assertTrue(analyzer.nvbit_valid(
+            "launchlate", nvbit_analyzer, params, True
+        ))
+        for key in (
+            "measurement_end_clock_host_anchor_ns",
+            "validation_end_clock_host_anchor_ns",
+            "held_out_validation_passed",
+        ):
+            for validator, probe in (
+                (lambda item: runner.gpubpf_probe_valid("launchlate", item), gpubpf_runner),
+                (lambda item: runner.nvbit_probe_valid("launchlate", item), nvbit_runner),
+                (lambda item: analyzer.gpubpf_valid("launchlate", item, params, True), gpubpf_analyzer),
+                (lambda item: analyzer.nvbit_valid("launchlate", item, params, True), nvbit_analyzer),
+            ):
+                with self.subTest(key=key, validator=validator):
+                    broken = dict(probe)
+                    broken.pop(key)
+                    self.assertFalse(validator(broken))
+        duplicated = gpubpf_text + "\nMeasurement-end clock host anchor: 2000000050 ns\n"
+        self.assertFalse(runner.gpubpf_probe_valid(
+            "launchlate", runner.parse_gpubpf("launchlate", duplicated)
+        ))
+        with self.assertRaises(ValueError):
+            analyzer.parse_gpubpf_launch_raw(duplicated)
+        attempt07_abi = legacy_lossless_launchlate_log(
+            end_low=20888,
+            end_high=21052,
+            end_gpu=2000021020,
+            change_low=19856,
+            change_high=20184,
+            drift_rate=20184,
+            drift_bounded=0,
+        )
+        self.assertFalse(runner.gpubpf_probe_valid(
+            "launchlate", runner.parse_gpubpf("launchlate", attempt07_abi)
+        ))
+        with self.assertRaises(ValueError):
+            analyzer.parse_gpubpf_launch_raw(attempt07_abi)
+
     def test_correctness_keeps_generated_token_output_enabled(self):
         command = runner.llama_cli_cmd(SimpleNamespace(
             llama_cli=Path("/llama-cli"), model=Path("/model.gguf"), n_gpu_layers=99))
@@ -762,7 +902,7 @@ class OfflineTests(unittest.TestCase):
             self.assertEqual((result.returncode, result.stdout, result.stderr), (0, "output", "diagnostics"))
 
     def test_private_launch_probe_preserves_parseable_drift_failure(self):
-        text = lossless_launchlate_log(
+        text = legacy_lossless_launchlate_log(
             end_low=20888, end_high=21052, end_gpu=2000021020,
             change_low=19856, change_high=20184,
             drift_rate=20184, drift_bounded=0,
@@ -948,6 +1088,11 @@ class OfflineTests(unittest.TestCase):
                 "Probes detached before final readback:",
                 "Clock drift rate bound:",
                 "Clock drift bounded:",
+                "Clock slope diagnostic only:",
+                "Held-out clock validation passed:",
+                'print_calibration("Measurement-end"',
+                'print_calibration("Validation-end"',
+                "held_out_affine_clock_validation(",
                 "classify_affine_sample(",
             )),
         }
@@ -1044,7 +1189,7 @@ class OfflineTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "coordinate_x"):
                 runner.validate_nvbit_kernelretsnoop_source_schema(target)
 
-    def test_nvbit_launchlate_schema_requires_bounded_clock_accounting(self):
+    def test_nvbit_launchlate_schema_requires_three_anchor_accounting(self):
         names = (
             "Makefile", "clock_domain.h", "common.h", "inject_funcs.cu",
             "observability.cu", "rm_ptimer_575.c",
@@ -1220,7 +1365,7 @@ class OfflineTests(unittest.TestCase):
         self.assertEqual(runner.parse_nvbit("launchlate", "NVBIT launchlate samples=2")["clock_errors"], -1)
 
     def test_launchlate_erange_is_only_parseable_for_exact_unbounded_drift(self):
-        text = lossless_launchlate_log(
+        text = legacy_lossless_launchlate_log(
             end_low=20888,
             end_high=21052,
             end_gpu=2000021020,
@@ -1229,9 +1374,8 @@ class OfflineTests(unittest.TestCase):
             drift_rate=20184,
             drift_bounded=0,
         ) + "\nClock calibration drift exceeds its bound\n"
-        probe = runner.parse_gpubpf("launchlate", text)
-        self.assertEqual(runner.launch_clock_model_rate(probe), 20184)
-        self.assertFalse(runner.launch_clock_model_valid(probe))
+        probe = runner.parse_legacy_gpubpf_launch_clock(text)
+        self.assertEqual(runner.legacy_launch_clock_model_rate(probe), 20184)
         self.assertTrue(runner.launchlate_unbounded_drift_exit(
             "launchlate", runner.errno.ERANGE, text))
         mutations = (
@@ -1254,9 +1398,10 @@ class OfflineTests(unittest.TestCase):
         self.assertTrue(runner.nvbit_probe_valid("launchlate", probe))
         self.assertEqual(probe["uncertain_samples"], 0)
         self.assertEqual(probe["start_clock_offset_lower_ns"], 868)
-        self.assertEqual(probe["end_clock_offset_upper_ns"], 1052)
-        self.assertEqual(probe["clock_offset_change_lower_ns"], -144)
-        self.assertEqual(probe["clock_drift_rate_bound_ppb"], 184)
+        self.assertEqual(probe["measurement_end_clock_offset_upper_ns"], 1052)
+        self.assertEqual(probe["validation_end_clock_offset_upper_ns"], 1072)
+        self.assertEqual(probe["clock_offset_change_lower_ns"], -124)
+        self.assertEqual(probe["clock_drift_rate_bound_ppb"], 102)
         corruptions = {
             "sample_count": 1,
             "selected_launches": 1,
@@ -1275,19 +1420,26 @@ class OfflineTests(unittest.TestCase):
             "result_blocks": 2,
             "calibration_blocks": 2,
             "start_clock_calibration_valid": 2,
-            "end_clock_calibration_valid": 2,
+            "measurement_end_clock_calibration_valid": 2,
+            "validation_end_clock_calibration_valid": 2,
             "start_clock_offset_lower_ns": -79,
-            "end_clock_offset_lower_ns": -69,
+            "measurement_end_clock_offset_lower_ns": -69,
+            "validation_end_clock_offset_lower_ns": -69,
             "start_clock_uncertainty_ns": 19,
-            "end_clock_uncertainty_ns": 14,
+            "measurement_end_clock_uncertainty_ns": 14,
+            "validation_end_clock_uncertainty_ns": 14,
             "start_clock_host_anchor_ns": 0,
-            "end_clock_host_anchor_ns": 999999999,
+            "measurement_end_clock_host_anchor_ns": 999999999,
+            "validation_end_clock_host_anchor_ns": 999999999,
             "clock_offset_change_lower_ns": -19,
             "clock_offset_change_upper_ns": 49,
             "clock_calibration_elapsed_ns": 999999999,
             "clock_drift_rate_bound_ppb": 49,
             "clock_drift_limit_ppb": 9999,
             "clock_drift_bounded": 0,
+            "clock_slope_diagnostic_only": 0,
+            "held_out_validation_passed": 0,
+            "validation_span_ns": 999999999,
             "clock_calibration_method": "CLOCK_REALTIME_approximation",
         }
         for key, value in corruptions.items():
@@ -1313,21 +1465,35 @@ class OfflineTests(unittest.TestCase):
             "start_clock_uncertainty_ns=82",
             "start_clock_host_anchor_ns=1000000050",
             "start_clock_calibration_valid=1",
-            "end_clock_offset_lower_ns=888",
-            "end_clock_offset_upper_ns=1052",
-            "end_clock_uncertainty_ns=82",
-            "end_clock_host_anchor_ns=2000000050",
-            "end_clock_calibration_valid=1",
-            "clock_offset_change_lower_ns=-144",
-            "clock_offset_change_upper_ns=184",
-            "clock_calibration_elapsed_ns=1000000000",
-            "clock_drift_rate_bound_ppb=184",
+            "measurement_end_clock_offset_lower_ns=888",
+            "measurement_end_clock_offset_upper_ns=1052",
+            "measurement_end_clock_uncertainty_ns=82",
+            "measurement_end_clock_host_anchor_ns=2000000050",
+            "measurement_end_clock_calibration_valid=1",
+            "validation_end_clock_offset_lower_ns=908",
+            "validation_end_clock_offset_upper_ns=1072",
+            "validation_end_clock_uncertainty_ns=82",
+            "validation_end_clock_host_anchor_ns=3000000050",
+            "validation_end_clock_calibration_valid=1",
+            "clock_offset_change_lower_ns=-124",
+            "clock_offset_change_upper_ns=204",
+            "clock_calibration_elapsed_ns=2000000000",
+            "clock_drift_rate_bound_ppb=102",
             "clock_drift_limit_ppb=10000",
             "clock_drift_bounded=1",
+            "clock_slope_diagnostic_only=1",
+            "held_out_predicted_lower_ns=888",
+            "held_out_predicted_upper_ns=1052",
+            "held_out_overlap_lower_ns=888",
+            "held_out_overlap_upper_ns=1052",
+            "validation_span_ns=1000000000",
+            "held_out_validation_passed=1",
             "start_rm_samples_requested=32",
             "start_rm_bracket_width_ns=164",
-            "end_rm_samples_requested=32",
-            "end_rm_bracket_width_ns=164",
+            "measurement_end_rm_samples_requested=32",
+            "measurement_end_rm_bracket_width_ns=164",
+            "validation_end_rm_samples_requested=32",
+            "validation_end_rm_bracket_width_ns=164",
             "samples=220 clock_errors=0",
         ):
             with self.subTest(missing=label):
@@ -1339,19 +1505,28 @@ class OfflineTests(unittest.TestCase):
             start_high=163,
             start_uncertainty=82,
             start_gpu=1000000131,
-            end_low=-1,
-            end_high=163,
-            end_uncertainty=82,
-            end_gpu=2000000131,
+            measurement_end_low=-1,
+            measurement_end_high=163,
+            measurement_end_uncertainty=82,
+            measurement_end_gpu=2000000131,
+            validation_end_low=-1,
+            validation_end_high=163,
+            validation_end_uncertainty=82,
+            validation_end_gpu=3000000131,
+            held_predicted_low=-1,
+            held_predicted_high=163,
+            held_overlap_low=-1,
+            held_overlap_high=163,
             change_low=-164,
             change_high=164,
-            drift_rate=164,
+            drift_rate=82,
         )
         parsed = runner.parse_nvbit("launchlate", legal_negative_one)
         self.assertTrue(runner.nvbit_probe_valid("launchlate", parsed))
         for label in (
             "start_clock_offset_lower_ns=-1",
-            "end_clock_offset_lower_ns=-1",
+            "measurement_end_clock_offset_lower_ns=-1",
+            "validation_end_clock_offset_lower_ns=-1",
             "clock_offset_change_lower_ns=-164",
         ):
             with self.subTest(missing_legal_negative_one=label):
@@ -1374,24 +1549,28 @@ class OfflineTests(unittest.TestCase):
         )
         self.assertTrue(runner.nvbit_probe_valid("launchlate", at_limit))
         self.assertFalse(runner.nvbit_probe_valid("launchlate", above_limit))
-        excessive_drift = runner.parse_nvbit(
+        affine_high_slope = runner.parse_nvbit(
             "launchlate",
             lossless_nvbit_launchlate_log(
-                end_low=20000, end_high=20030, end_uncertainty=15,
-                change_low=20080, change_high=20150, drift_rate=20150,
+                measurement_end_low=20888, measurement_end_high=21052,
+                measurement_end_gpu=2000021020,
+                validation_end_low=40908, validation_end_high=41072,
+                validation_end_gpu=3000041040,
+                change_low=39876, change_high=40204, drift_rate=20102,
                 drift_bounded=0,
+                held_predicted_low=20888, held_predicted_high=21052,
+                held_overlap_low=20888, held_overlap_high=21052,
             ),
         )
-        self.assertFalse(runner.nvbit_probe_valid(
-            "launchlate", excessive_drift
-        ))
+        self.assertTrue(runner.nvbit_probe_valid("launchlate", affine_high_slope))
 
         short_but_low_drift = runner.parse_nvbit(
             "launchlate",
             lossless_nvbit_launchlate_log(
-                end_anchor=1_500_000_000,
-                elapsed=500_000_000,
+                validation_end_anchor=2_500_000_000,
+                elapsed=1_499_999_950,
                 drift_rate=100,
+                validation_span=499_999_950,
             ),
         )
         self.assertEqual(short_but_low_drift["clock_drift_bounded"], 1)
@@ -1434,7 +1613,7 @@ class OfflineTests(unittest.TestCase):
         self.assertTrue(runner.gpubpf_probe_valid("launchlate", probe))
         self.assertEqual(probe["host_enqueued"], 220)
         self.assertEqual(probe["matched_samples"], 220)
-        self.assertEqual(probe["clock_offset_change_lower_ns"], -144)
+        self.assertEqual(probe["clock_offset_change_lower_ns"], -124)
         corruptions = {
             "sample_count": 1,
             "histogram_samples": 1,
@@ -1453,15 +1632,20 @@ class OfflineTests(unittest.TestCase):
             "pairing_complete": 0,
             "probes_detached_before_readback": 0,
             "start_clock_uncertainty_ns": 19,
-            "end_clock_uncertainty_ns": 14,
+            "measurement_end_clock_uncertainty_ns": 14,
+            "validation_end_clock_uncertainty_ns": 14,
             "start_clock_host_anchor_ns": 0,
-            "end_clock_host_anchor_ns": 999999999,
+            "measurement_end_clock_host_anchor_ns": 999999999,
+            "validation_end_clock_host_anchor_ns": 999999999,
             "clock_offset_change_lower_ns": -19,
             "clock_offset_change_upper_ns": 49,
             "clock_calibration_elapsed_ns": 999999999,
             "clock_drift_rate_bound_ppb": 49,
             "clock_drift_limit_ppb": 9999,
             "clock_drift_bounded": 0,
+            "clock_slope_diagnostic_only": 0,
+            "held_out_validation_passed": 0,
+            "validation_span_ns": 999999999,
             "clock_calibration_method": "CLOCK_REALTIME approximation",
         }
         for key, value in corruptions.items():

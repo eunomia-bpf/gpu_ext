@@ -44,11 +44,11 @@ LAUNCH_RM_CALIBRATION_SAMPLES = 32
 LAUNCH_RM_MAX_BRACKET_NS = 1500
 LAUNCH_CONTROL_SAMPLES = 200
 GPUBPF_LAUNCH_CLOCK_METHOD = (
-    "RM endpoints-v1 PTIMER intervals with affine CLOCK_MONOTONIC_RAW interpolation"
+    "RM endpoints-v1 PTIMER intervals with three-anchor held-out affine validation"
 )
 NVBIT_LAUNCH_CLOCK_METHOD = (
     "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_"
-    "with_affine_interpolation_and_drift_bound"
+    "with_three_anchor_held_out_affine_validation"
 )
 EXPECTED_DRIVER = "575.57.08"
 EXPECTED_THREADHIST_GPU_THREAD_COUNT = 1048576
@@ -424,37 +424,56 @@ def launch_clock_valid(probe: dict[str, Any]) -> bool:
     try:
         start_low = integer(probe, "start_clock_offset_lower_ns")
         start_high = integer(probe, "start_clock_offset_upper_ns")
-        end_low = integer(probe, "end_clock_offset_lower_ns")
-        end_high = integer(probe, "end_clock_offset_upper_ns")
+        middle_low = integer(probe, "measurement_end_clock_offset_lower_ns")
+        middle_high = integer(probe, "measurement_end_clock_offset_upper_ns")
+        end_low = integer(probe, "validation_end_clock_offset_lower_ns")
+        end_high = integer(probe, "validation_end_clock_offset_upper_ns")
         start_anchor = integer(probe, "start_clock_host_anchor_ns")
-        end_anchor = integer(probe, "end_clock_host_anchor_ns")
+        middle_anchor = integer(probe, "measurement_end_clock_host_anchor_ns")
+        end_anchor = integer(probe, "validation_end_clock_host_anchor_ns")
         elapsed = end_anchor - start_anchor
+        position = middle_anchor - start_anchor
+        validation_span = end_anchor - middle_anchor
         change_low = end_low - start_high
         change_high = end_high - start_low
-        if elapsed <= 0:
+        if elapsed <= 0 or position <= 0 or position >= elapsed:
             return False
         rate = (max(abs(change_low), abs(change_high)) * 1_000_000_000 + elapsed - 1) // elapsed
+        predicted_low = start_low + (end_low - start_low) * position // elapsed
+        high_numerator = (end_high - start_high) * position
+        predicted_high = start_high - (-high_numerator // elapsed)
+        overlap_low = max(predicted_low, middle_low)
+        overlap_high = min(predicted_high, middle_high)
         return (
-            start_low <= start_high and end_low <= end_high
+            start_low <= start_high and middle_low <= middle_high
+            and end_low <= end_high
             and integer(probe, "start_clock_uncertainty_ns") == (start_high - start_low + 1) // 2
-            and integer(probe, "end_clock_uncertainty_ns") == (end_high - end_low + 1) // 2
+            and integer(probe, "measurement_end_clock_uncertainty_ns") == (middle_high - middle_low + 1) // 2
+            and integer(probe, "validation_end_clock_uncertainty_ns") == (end_high - end_low + 1) // 2
             and integer(probe, "clock_offset_change_lower_ns") == change_low
             and integer(probe, "clock_offset_change_upper_ns") == change_high
             and integer(probe, "clock_calibration_elapsed_ns") == elapsed
-            and elapsed >= LAUNCH_MIN_CALIBRATION_SPAN_NS
+            and validation_span >= LAUNCH_MIN_CALIBRATION_SPAN_NS
             and integer(probe, "clock_drift_rate_bound_ppb") == rate
             and integer(probe, "clock_drift_limit_ppb") == LAUNCH_CLOCK_DRIFT_LIMIT_PPB
-            and rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB
-            and integer(probe, "clock_drift_bounded") == 1
+            and integer(probe, "clock_drift_bounded") == int(rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB)
+            and integer(probe, "clock_slope_diagnostic_only") == 1
+            and overlap_low <= overlap_high
+            and integer(probe, "held_out_predicted_lower_ns") == predicted_low
+            and integer(probe, "held_out_predicted_upper_ns") == predicted_high
+            and integer(probe, "held_out_overlap_lower_ns") == overlap_low
+            and integer(probe, "held_out_overlap_upper_ns") == overlap_high
+            and integer(probe, "validation_span_ns") == validation_span
+            and integer(probe, "held_out_validation_passed") == 1
         )
     except ValueError:
         return False
 
 
 def launch_rm_anchors_valid(probe: dict[str, Any]) -> bool:
-    """Recompute the two endpoint-v1 RAW/PTIMER anchor intervals."""
+    """Recompute all three endpoint-v1 RAW/PTIMER anchor intervals."""
     try:
-        for phase in ("start", "end"):
+        for phase in ("start", "measurement_end", "validation_end"):
             names = (
                 "rm_samples_requested", "rm_samples_accepted",
                 "rm_samples_rejected", "rm_outer_before_raw_ns",
@@ -636,7 +655,8 @@ def nvbit_valid(tool: str, probe: dict[str, Any], params: dict[str, Any],
             probe.get("clock_calibration_method")
             == NVBIT_LAUNCH_CLOCK_METHOD
             and integer(probe, "start_clock_calibration_valid") == 1
-            and integer(probe, "end_clock_calibration_valid") == 1
+            and integer(probe, "measurement_end_clock_calibration_valid") == 1
+            and integer(probe, "validation_end_clock_calibration_valid") == 1
             and launch_rm_anchors_valid(probe)
             and launch_clock_valid(probe)
             and integer(probe, "clock_errors") == 0
@@ -689,21 +709,37 @@ def parse_gpubpf_launch_raw(text: str) -> dict[str, Any]:
         "start_clock_offset_upper_ns": "Start clock offset upper",
         "start_clock_uncertainty_ns": "Start clock uncertainty",
         "start_clock_host_anchor_ns": "Start clock host anchor",
-        "end_clock_offset_lower_ns": "End clock offset lower",
-        "end_clock_offset_upper_ns": "End clock offset upper",
-        "end_clock_uncertainty_ns": "End clock uncertainty",
-        "end_clock_host_anchor_ns": "End clock host anchor",
+        "measurement_end_clock_offset_lower_ns": "Measurement-end clock offset lower",
+        "measurement_end_clock_offset_upper_ns": "Measurement-end clock offset upper",
+        "measurement_end_clock_uncertainty_ns": "Measurement-end clock uncertainty",
+        "measurement_end_clock_host_anchor_ns": "Measurement-end clock host anchor",
+        "validation_end_clock_offset_lower_ns": "Validation-end clock offset lower",
+        "validation_end_clock_offset_upper_ns": "Validation-end clock offset upper",
+        "validation_end_clock_uncertainty_ns": "Validation-end clock uncertainty",
+        "validation_end_clock_host_anchor_ns": "Validation-end clock host anchor",
         "clock_offset_change_lower_ns": "Clock offset change lower",
         "clock_offset_change_upper_ns": "Clock offset change upper",
         "clock_calibration_elapsed_ns": "Clock calibration elapsed",
         "clock_drift_rate_bound_ppb": "Clock drift rate bound",
         "clock_drift_limit_ppb": "Clock drift limit",
         "clock_drift_bounded": "Clock drift bounded",
+        "clock_slope_diagnostic_only": "Clock slope diagnostic only",
+        "held_out_predicted_lower_ns": "Held-out predicted lower",
+        "held_out_predicted_upper_ns": "Held-out predicted upper",
+        "held_out_overlap_lower_ns": "Held-out overlap lower",
+        "held_out_overlap_upper_ns": "Held-out overlap upper",
+        "validation_span_ns": "Clock validation span",
+        "held_out_validation_passed": "Held-out clock validation passed",
     }
     signed = {
         "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
-        "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
+        "measurement_end_clock_offset_lower_ns",
+        "measurement_end_clock_offset_upper_ns",
+        "validation_end_clock_offset_lower_ns",
+        "validation_end_clock_offset_upper_ns",
         "clock_offset_change_lower_ns", "clock_offset_change_upper_ns",
+        "held_out_predicted_lower_ns", "held_out_predicted_upper_ns",
+        "held_out_overlap_lower_ns", "held_out_overlap_upper_ns",
     }
     result: dict[str, Any] = {}
     for key, label in labels.items():
@@ -730,8 +766,11 @@ def parse_gpubpf_launch_raw(text: str) -> dict[str, Any]:
         "rm_bracket_width_ns": "RM bracket width",
         "rm_cleanup_complete": "RM cleanup complete",
     }
-    for phase in ("start", "end"):
-        display = phase.title()
+    for phase, display in (
+        ("start", "Start"),
+        ("measurement_end", "Measurement-end"),
+        ("validation_end", "Validation-end"),
+    ):
         for suffix, label in rm_labels.items():
             unit = r"\s+ns" if suffix.endswith("_ns") else ""
             result[f"{phase}_{suffix}"] = int(one_match(
@@ -771,30 +810,49 @@ def parse_nvbit_launch_raw(text: str) -> dict[str, Any]:
         "accounting_complete", "start_clock_offset_lower_ns",
         "start_clock_offset_upper_ns", "start_clock_uncertainty_ns",
         "start_clock_host_anchor_ns", "start_clock_calibration_valid",
-        "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
-        "end_clock_uncertainty_ns", "end_clock_host_anchor_ns",
-        "end_clock_calibration_valid", "clock_offset_change_lower_ns",
+        "measurement_end_clock_offset_lower_ns",
+        "measurement_end_clock_offset_upper_ns",
+        "measurement_end_clock_uncertainty_ns",
+        "measurement_end_clock_host_anchor_ns",
+        "measurement_end_clock_calibration_valid",
+        "validation_end_clock_offset_lower_ns",
+        "validation_end_clock_offset_upper_ns",
+        "validation_end_clock_uncertainty_ns",
+        "validation_end_clock_host_anchor_ns",
+        "validation_end_clock_calibration_valid", "clock_offset_change_lower_ns",
         "clock_offset_change_upper_ns", "clock_calibration_elapsed_ns",
         "clock_drift_rate_bound_ppb", "clock_drift_limit_ppb",
-        "clock_drift_bounded", "start_rm_samples_requested",
+        "clock_drift_bounded", "clock_slope_diagnostic_only",
+        "held_out_predicted_lower_ns", "held_out_predicted_upper_ns",
+        "held_out_overlap_lower_ns", "held_out_overlap_upper_ns",
+        "validation_span_ns", "held_out_validation_passed",
+        "start_rm_samples_requested",
         "start_rm_samples_accepted", "start_rm_samples_rejected",
         "start_rm_outer_before_raw_ns", "start_rm_cpu_before_raw_ns",
         "start_rm_gpu_ptimer_ns", "start_rm_cpu_after_raw_ns",
         "start_rm_outer_after_raw_ns", "start_rm_outer_width_ns",
         "start_rm_selected_gap_ns", "start_rm_bracket_width_ns",
         "start_rm_status", "start_rm_cleanup_complete",
-        "end_rm_samples_requested", "end_rm_samples_accepted",
-        "end_rm_samples_rejected", "end_rm_outer_before_raw_ns",
-        "end_rm_cpu_before_raw_ns", "end_rm_gpu_ptimer_ns",
-        "end_rm_cpu_after_raw_ns", "end_rm_outer_after_raw_ns",
-        "end_rm_outer_width_ns", "end_rm_selected_gap_ns",
-        "end_rm_bracket_width_ns", "end_rm_status",
-        "end_rm_cleanup_complete",
+        *(f"{phase}_{suffix}"
+          for phase in ("measurement_end", "validation_end")
+          for suffix in (
+              "rm_samples_requested", "rm_samples_accepted",
+              "rm_samples_rejected", "rm_outer_before_raw_ns",
+              "rm_cpu_before_raw_ns", "rm_gpu_ptimer_ns",
+              "rm_cpu_after_raw_ns", "rm_outer_after_raw_ns",
+              "rm_outer_width_ns", "rm_selected_gap_ns",
+              "rm_bracket_width_ns", "rm_status", "rm_cleanup_complete",
+          )),
     )
     signed = {
         "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
-        "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
+        "measurement_end_clock_offset_lower_ns",
+        "measurement_end_clock_offset_upper_ns",
+        "validation_end_clock_offset_lower_ns",
+        "validation_end_clock_offset_upper_ns",
         "clock_offset_change_lower_ns", "clock_offset_change_upper_ns",
+        "held_out_predicted_lower_ns", "held_out_predicted_upper_ns",
+        "held_out_overlap_lower_ns", "held_out_overlap_upper_ns",
     }
     for key in fields:
         number = r"(-?\d+)" if key in signed else r"(\d+)"

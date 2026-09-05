@@ -311,6 +311,12 @@ static bool exact_sample_accounting(uint64_t selected, uint64_t classified,
            clock_errors == selected - classified - uncertain;
 }
 
+static clock_anchor_quality_t anchor_quality(
+    const rm_calibration_run& run) {
+    return {run.requested, run.accepted, run.rejected,
+            run.best.bracket_width_ns, run.cleanup_complete};
+}
+
 static void print_launchlate_results(
     const context_state_t* state, const clock_calibration_t& end_calibration) {
     uint64_t histogram[HIST_BINS] = {};
@@ -579,7 +585,7 @@ void nvbit_tool_init(CUcontext ctx) {
         fprintf(stderr,
                 "NVBIT launchlate clock_calibration_method="
                 "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_"
-                "with_affine_interpolation_and_drift_bound\n");
+                "with_three_anchor_held_out_affine_validation\n");
         print_clock_calibration("start", *state->start_calibration,
                                 *state->start_rm);
         if (!calibrated) {
@@ -681,23 +687,35 @@ void nvbit_at_ctx_term(CUcontext ctx) {
                 static_cast<unsigned long long>(nonzero),
                 static_cast<unsigned long long>(total));
     } else if (mode == OBS_LAUNCHLATE && state->launch_pairs != nullptr) {
-        clock_calibration_t end_calibration = {};
-        rm_calibration_run end_rm = {};
+        clock_calibration_t measurement_end_calibration = {};
+        clock_calibration_t validation_end_calibration = {};
+        rm_calibration_run measurement_end_rm = {};
+        rm_calibration_run validation_end_rm = {};
         clock_drift_t drift = {};
+        held_out_clock_validation_t held_out = {};
+        const bool measurement_end_calibrated = calibrate_gpu_clock(
+            &measurement_end_calibration, &measurement_end_rm);
         const bool minimum_span_ready =
-            state->start_calibration != nullptr &&
-            wait_for_minimum_clock_span(*state->start_calibration);
-        const bool end_calibrated = minimum_span_ready &&
-            calibrate_gpu_clock(&end_calibration, &end_rm);
+            measurement_end_calibrated && wait_for_minimum_clock_span(
+                measurement_end_calibration);
+        const bool validation_end_calibrated = calibrate_gpu_clock(
+            &validation_end_calibration, &validation_end_rm);
         const bool drift_measured =
-            end_calibrated && state->start_calibration != nullptr &&
+            validation_end_calibrated && state->start_calibration != nullptr &&
             clock_calibration_drift(*state->start_calibration,
-                                    end_calibration, &drift);
-        const bool clock_model_bounded =
-            drift_measured &&
-            drift.elapsed_ns >= CLOCK_MIN_CALIBRATION_SPAN_NS &&
-            drift.bounded;
-        print_clock_calibration("end", end_calibration, end_rm);
+                                    validation_end_calibration, &drift);
+        const bool clock_model_valid =
+            measurement_end_calibrated && minimum_span_ready &&
+            validation_end_calibrated && state->start_rm != nullptr &&
+            held_out_affine_clock_validation(
+                *state->start_calibration, measurement_end_calibration,
+                validation_end_calibration, anchor_quality(*state->start_rm),
+                anchor_quality(measurement_end_rm),
+                anchor_quality(validation_end_rm), &held_out);
+        print_clock_calibration("measurement_end", measurement_end_calibration,
+                                measurement_end_rm);
+        print_clock_calibration("validation_end", validation_end_calibration,
+                                validation_end_rm);
         fprintf(stderr,
                 "NVBIT launchlate clock_offset_change_lower_ns=%lld\n",
                 static_cast<long long>(drift.offset_change_low_ns));
@@ -711,17 +729,33 @@ void nvbit_at_ctx_term(CUcontext ctx) {
         fprintf(stderr, "NVBIT launchlate clock_drift_limit_ppb=%llu\n",
                 static_cast<unsigned long long>(CLOCK_DRIFT_LIMIT_PPB));
         fprintf(stderr, "NVBIT launchlate clock_drift_bounded=%u\n",
-                clock_model_bounded ? 1U : 0U);
+                drift_measured && drift.bounded ? 1U : 0U);
+        fprintf(stderr, "NVBIT launchlate clock_slope_diagnostic_only=1\n");
+        fprintf(stderr,
+                "NVBIT launchlate held_out_predicted_lower_ns=%lld\n",
+                static_cast<long long>(held_out.predicted_low_ns));
+        fprintf(stderr,
+                "NVBIT launchlate held_out_predicted_upper_ns=%lld\n",
+                static_cast<long long>(held_out.predicted_high_ns));
+        fprintf(stderr, "NVBIT launchlate held_out_overlap_lower_ns=%lld\n",
+                static_cast<long long>(held_out.overlap_low_ns));
+        fprintf(stderr, "NVBIT launchlate held_out_overlap_upper_ns=%lld\n",
+                static_cast<long long>(held_out.overlap_high_ns));
+        fprintf(stderr, "NVBIT launchlate validation_span_ns=%llu\n",
+                static_cast<unsigned long long>(held_out.validation_span_ns));
+        fprintf(stderr, "NVBIT launchlate held_out_validation_passed=%u\n",
+                clock_model_valid ? 1U : 0U);
         if (!minimum_span_ready) {
             fprintf(stderr,
                     "NVBIT_OBS error: launchlate minimum clock calibration "
                     "span wait failed\n");
         }
-        if (!clock_model_bounded) {
+        if (!clock_model_valid) {
             fprintf(stderr,
-                    "NVBIT_OBS error: launchlate clock drift exceeds bound\n");
+                    "NVBIT_OBS error: launchlate held-out clock validation "
+                    "failed\n");
         }
-        print_launchlate_results(state, end_calibration);
+        print_launchlate_results(state, measurement_end_calibration);
     }
     fprintf(stderr, "NVBIT selected_launches=%llu\n",
             static_cast<unsigned long long>(

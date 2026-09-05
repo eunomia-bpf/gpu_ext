@@ -75,11 +75,11 @@ LAUNCH_RM_CALIBRATION_SAMPLES = 32
 LAUNCH_RM_MAX_BRACKET_NS = 1500
 LAUNCH_CONTROL_SAMPLES = 200
 GPUBPF_LAUNCH_CLOCK_METHOD = (
-    "RM endpoints-v1 PTIMER intervals with affine CLOCK_MONOTONIC_RAW interpolation"
+    "RM endpoints-v1 PTIMER intervals with three-anchor held-out affine validation"
 )
 NVBIT_LAUNCH_CLOCK_METHOD = (
     "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_"
-    "with_affine_interpolation_and_drift_bound"
+    "with_three_anchor_held_out_affine_validation"
 )
 EXPECTED_NORMALIZED_STDOUT = "Deterministic tests are essential\n> EOF by user"
 EXPECTED_NORMALIZED_STDOUT_BYTES = 47
@@ -865,7 +865,7 @@ def validate_launchlate_source_schema(directory: Path) -> None:
             "bpftime_ktime_get_raw_ns",
         ),
         "launchlate.c": (
-            "RM endpoints-v1 PTIMER intervals with affine CLOCK_MONOTONIC_RAW interpolation",
+            "RM endpoints-v1 PTIMER intervals with three-anchor held-out affine validation",
             "rm_ptimer_575_sample",
             "RM cleanup complete:",
             "Host enqueued:",
@@ -878,6 +878,11 @@ def validate_launchlate_source_schema(directory: Path) -> None:
             "Probes detached before final readback:",
             "Clock drift rate bound:",
             "Clock drift bounded:",
+            "Clock slope diagnostic only:",
+            "Held-out clock validation passed:",
+            'print_calibration("Measurement-end"',
+            'print_calibration("Validation-end"',
+            "held_out_affine_clock_validation(",
             "classify_affine_sample(",
         ),
     }
@@ -943,8 +948,10 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "clock_calibration_valid",
             "clock_calibration_drift",
             "CLOCK_MIN_CALIBRATION_SPAN_NS",
+            "CLOCK_MAX_ANCHOR_BRACKET_NS",
             "minimum_end_calibration_deadline",
             "affine_clock_offset_interval",
+            "held_out_affine_clock_validation",
             "classify_affine_launch_latency",
             "if (latency_high_ns < 0)",
         ),
@@ -965,21 +972,23 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
         ),
         "observability.cu": (
             "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_",
-            "with_affine_interpolation_and_drift_bound",
+            "with_three_anchor_held_out_affine_validation",
             "rm_ptimer_575_sample",
             "monotonic_raw_ns",
             "cudaMallocManaged(\n            &state->launch_pairs",
             "nvbit_set_at_launch(ctx, func, pair_ptr)",
             "state->launch_pair_overflows++",
-            "print_launchlate_results(state, end_calibration)",
+            "print_launchlate_results(state, measurement_end_calibration)",
             "classify_affine_launch_latency(",
             "accounting_complete=",
             "calibrate_gpu_clock(state->start_calibration, state->start_rm)",
-            "calibrate_gpu_clock(&end_calibration, &end_rm)",
+            "calibrate_gpu_clock(\n            &measurement_end_calibration, &measurement_end_rm)",
+            "calibrate_gpu_clock(\n            &validation_end_calibration, &validation_end_rm)",
             "clock_calibration_drift(",
             "wait_for_minimum_clock_span(",
             'print_clock_calibration("start"',
-            'print_clock_calibration("end"',
+            'print_clock_calibration("measurement_end"',
+            'print_clock_calibration("validation_end"',
             "%s_clock_offset_lower_ns=",
             "%s_clock_offset_upper_ns=",
             "%s_clock_uncertainty_ns=",
@@ -991,6 +1000,13 @@ def validate_nvbit_launchlate_source_schema(directory: Path) -> None:
             "clock_drift_rate_bound_ppb=",
             "clock_drift_limit_ppb=",
             "clock_drift_bounded=",
+            "clock_slope_diagnostic_only=1",
+            "held_out_predicted_lower_ns=",
+            "held_out_predicted_upper_ns=",
+            "held_out_overlap_lower_ns=",
+            "held_out_overlap_upper_ns=",
+            "validation_span_ns=",
+            "held_out_validation_passed=",
             "pair_capacity=",
             "stored_pairs=",
             "device_entries=",
@@ -1162,21 +1178,37 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             "start_clock_offset_upper_ns": "Start clock offset upper",
             "start_clock_uncertainty_ns": "Start clock uncertainty",
             "start_clock_host_anchor_ns": "Start clock host anchor",
-            "end_clock_offset_lower_ns": "End clock offset lower",
-            "end_clock_offset_upper_ns": "End clock offset upper",
-            "end_clock_uncertainty_ns": "End clock uncertainty",
-            "end_clock_host_anchor_ns": "End clock host anchor",
+            "measurement_end_clock_offset_lower_ns": "Measurement-end clock offset lower",
+            "measurement_end_clock_offset_upper_ns": "Measurement-end clock offset upper",
+            "measurement_end_clock_uncertainty_ns": "Measurement-end clock uncertainty",
+            "measurement_end_clock_host_anchor_ns": "Measurement-end clock host anchor",
+            "validation_end_clock_offset_lower_ns": "Validation-end clock offset lower",
+            "validation_end_clock_offset_upper_ns": "Validation-end clock offset upper",
+            "validation_end_clock_uncertainty_ns": "Validation-end clock uncertainty",
+            "validation_end_clock_host_anchor_ns": "Validation-end clock host anchor",
             "clock_offset_change_lower_ns": "Clock offset change lower",
             "clock_offset_change_upper_ns": "Clock offset change upper",
             "clock_calibration_elapsed_ns": "Clock calibration elapsed",
             "clock_drift_rate_bound_ppb": "Clock drift rate bound",
             "clock_drift_limit_ppb": "Clock drift limit",
             "clock_drift_bounded": "Clock drift bounded",
+            "clock_slope_diagnostic_only": "Clock slope diagnostic only",
+            "held_out_predicted_lower_ns": "Held-out predicted lower",
+            "held_out_predicted_upper_ns": "Held-out predicted upper",
+            "held_out_overlap_lower_ns": "Held-out overlap lower",
+            "held_out_overlap_upper_ns": "Held-out overlap upper",
+            "validation_span_ns": "Clock validation span",
+            "held_out_validation_passed": "Held-out clock validation passed",
         }
         signed = {
             "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
-            "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
+            "measurement_end_clock_offset_lower_ns",
+            "measurement_end_clock_offset_upper_ns",
+            "validation_end_clock_offset_lower_ns",
+            "validation_end_clock_offset_upper_ns",
             "clock_offset_change_lower_ns", "clock_offset_change_upper_ns",
+            "held_out_predicted_lower_ns", "held_out_predicted_upper_ns",
+            "held_out_overlap_lower_ns", "held_out_overlap_upper_ns",
         }
         for key, label in labels.items():
             unit = (r"\s+ppb" if key.endswith("_ppb") else
@@ -1185,11 +1217,13 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             values = re.findall(
                 rf"^{re.escape(label)}:\s*{number}{unit}$", text, re.MULTILINE
             )
-            result[key] = int(values[-1]) if values else -1
+            result[key] = int(values[0]) if len(values) == 1 else None
         methods = re.findall(
             r"^Clock calibration method:\s*(.+)$", text, re.MULTILINE
         )
-        result["clock_calibration_method"] = methods[-1].strip() if methods else ""
+        result["clock_calibration_method"] = (
+            methods[0].strip() if len(methods) == 1 else ""
+        )
         rm_labels = {
             "rm_samples_requested": "RM samples requested",
             "rm_samples_accepted": "RM samples accepted",
@@ -1204,8 +1238,11 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
             "rm_bracket_width_ns": "RM bracket width",
             "rm_cleanup_complete": "RM cleanup complete",
         }
-        for phase in ("start", "end"):
-            display = phase.title()
+        for phase, display in (
+            ("start", "Start"),
+            ("measurement_end", "Measurement-end"),
+            ("validation_end", "Validation-end"),
+        ):
             for suffix, label in rm_labels.items():
                 unit = r"\s+ns" if suffix.endswith("_ns") else ""
                 values = re.findall(
@@ -1213,12 +1250,14 @@ def parse_gpubpf(tool: str, text: str) -> dict[str, Any]:
                     text,
                     re.MULTILINE,
                 )
-                result[f"{phase}_{suffix}"] = int(values[-1]) if values else None
+                result[f"{phase}_{suffix}"] = (
+                    int(values[0]) if len(values) == 1 else None
+                )
             statuses = re.findall(
                 rf"^{display} RM status:\s*0x([0-9a-fA-F]+)$", text, re.MULTILINE
             )
             result[f"{phase}_rm_status"] = (
-                int(statuses[-1], 16) if statuses else None
+                int(statuses[0], 16) if len(statuses) == 1 else None
             )
     return result
 
@@ -1261,6 +1300,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         CLOCK_CONTROL_SOURCE_DIR / "rm_ptimer_correlation_sanity.c",
         CLOCK_CONTROL_SOURCE_DIR / "rm_globaltimer_identity.cu",
         CLOCK_CONTROL_SOURCE_DIR / "launchlate-frozen-plan.md",
+        CLOCK_CONTROL_SOURCE_DIR / "launchlate-frozen-plan-v2.md",
         args.bpftime_root / "runtime/include/bpf_attach_ctx.hpp",
         args.bpftime_root / "runtime/include/bpftime_helper_group.hpp",
         args.bpftime_root / "runtime/include/bpftime_gpu_ringbuf.h",
@@ -1780,17 +1820,29 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
         "start_clock_uncertainty_ns": r"\d+",
         "start_clock_host_anchor_ns": r"\d+",
         "start_clock_calibration_valid": r"\d+",
-        "end_clock_offset_lower_ns": r"-?\d+",
-        "end_clock_offset_upper_ns": r"-?\d+",
-        "end_clock_uncertainty_ns": r"\d+",
-        "end_clock_host_anchor_ns": r"\d+",
-        "end_clock_calibration_valid": r"\d+",
+        "measurement_end_clock_offset_lower_ns": r"-?\d+",
+        "measurement_end_clock_offset_upper_ns": r"-?\d+",
+        "measurement_end_clock_uncertainty_ns": r"\d+",
+        "measurement_end_clock_host_anchor_ns": r"\d+",
+        "measurement_end_clock_calibration_valid": r"\d+",
+        "validation_end_clock_offset_lower_ns": r"-?\d+",
+        "validation_end_clock_offset_upper_ns": r"-?\d+",
+        "validation_end_clock_uncertainty_ns": r"\d+",
+        "validation_end_clock_host_anchor_ns": r"\d+",
+        "validation_end_clock_calibration_valid": r"\d+",
         "clock_offset_change_lower_ns": r"-?\d+",
         "clock_offset_change_upper_ns": r"-?\d+",
         "clock_calibration_elapsed_ns": r"\d+",
         "clock_drift_rate_bound_ppb": r"\d+",
         "clock_drift_limit_ppb": r"\d+",
         "clock_drift_bounded": r"\d+",
+        "clock_slope_diagnostic_only": r"\d+",
+        "held_out_predicted_lower_ns": r"-?\d+",
+        "held_out_predicted_upper_ns": r"-?\d+",
+        "held_out_overlap_lower_ns": r"-?\d+",
+        "held_out_overlap_upper_ns": r"-?\d+",
+        "validation_span_ns": r"\d+",
+        "held_out_validation_passed": r"\d+",
         "start_rm_samples_requested": r"\d+",
         "start_rm_samples_accepted": r"\d+",
         "start_rm_samples_rejected": r"\d+",
@@ -1804,19 +1856,19 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
         "start_rm_bracket_width_ns": r"\d+",
         "start_rm_status": r"\d+",
         "start_rm_cleanup_complete": r"\d+",
-        "end_rm_samples_requested": r"\d+",
-        "end_rm_samples_accepted": r"\d+",
-        "end_rm_samples_rejected": r"\d+",
-        "end_rm_outer_before_raw_ns": r"\d+",
-        "end_rm_cpu_before_raw_ns": r"\d+",
-        "end_rm_gpu_ptimer_ns": r"\d+",
-        "end_rm_cpu_after_raw_ns": r"\d+",
-        "end_rm_outer_after_raw_ns": r"\d+",
-        "end_rm_outer_width_ns": r"\d+",
-        "end_rm_selected_gap_ns": r"\d+",
-        "end_rm_bracket_width_ns": r"\d+",
-        "end_rm_status": r"\d+",
-        "end_rm_cleanup_complete": r"\d+",
+        **{
+            f"{phase}_{suffix}": r"\d+"
+            for phase in ("measurement_end", "validation_end")
+            for suffix in (
+                "rm_samples_requested", "rm_samples_accepted",
+                "rm_samples_rejected", "rm_outer_before_raw_ns",
+                "rm_cpu_before_raw_ns", "rm_gpu_ptimer_ns",
+                "rm_cpu_after_raw_ns", "rm_outer_after_raw_ns",
+                "rm_outer_width_ns", "rm_selected_gap_ns",
+                "rm_bracket_width_ns", "rm_status",
+                "rm_cleanup_complete",
+            )
+        },
     }
     for key, number in integer_fields.items():
         values = re.findall(
@@ -1824,36 +1876,39 @@ def parse_nvbit(tool: str, text: str) -> dict[str, Any]:
             text,
             re.MULTILINE,
         )
-        result[key] = int(values[-1]) if values else None
+        result[key] = int(values[0]) if len(values) == 1 else None
     methods = re.findall(
         r"^NVBIT launchlate clock_calibration_method=(\S+)$",
         text,
         re.MULTILINE,
     )
-    result["clock_calibration_method"] = methods[-1] if methods else ""
+    result["clock_calibration_method"] = methods[0] if len(methods) == 1 else ""
     result["calibration_blocks"] = len(methods)
     return result
 
 
 def launch_clock_model_rate(probe: dict[str, Any]) -> int | None:
-    """Recompute a structurally sound clock-model drift rate, bound aside."""
+    """Recompute the start-to-validation slope diagnostic."""
     fields = (
         "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
         "start_clock_uncertainty_ns", "start_clock_host_anchor_ns",
-        "end_clock_offset_lower_ns", "end_clock_offset_upper_ns",
-        "end_clock_uncertainty_ns", "end_clock_host_anchor_ns",
+        "validation_end_clock_offset_lower_ns",
+        "validation_end_clock_offset_upper_ns",
+        "validation_end_clock_uncertainty_ns",
+        "validation_end_clock_host_anchor_ns",
         "clock_offset_change_lower_ns", "clock_offset_change_upper_ns",
         "clock_calibration_elapsed_ns", "clock_drift_rate_bound_ppb",
         "clock_drift_limit_ppb", "clock_drift_bounded",
+        "clock_slope_diagnostic_only",
     )
     if any(type(probe.get(key)) is not int for key in fields):
         return None
     start_low = probe["start_clock_offset_lower_ns"]
     start_high = probe["start_clock_offset_upper_ns"]
-    end_low = probe["end_clock_offset_lower_ns"]
-    end_high = probe["end_clock_offset_upper_ns"]
+    end_low = probe["validation_end_clock_offset_lower_ns"]
+    end_high = probe["validation_end_clock_offset_upper_ns"]
     start_anchor = probe["start_clock_host_anchor_ns"]
-    end_anchor = probe["end_clock_host_anchor_ns"]
+    end_anchor = probe["validation_end_clock_host_anchor_ns"]
     elapsed = end_anchor - start_anchor
     change_low = end_low - start_high
     change_high = end_high - start_low
@@ -1867,7 +1922,7 @@ def launch_clock_model_rate(probe: dict[str, Any]) -> int | None:
         and end_low <= end_high
         and probe["start_clock_uncertainty_ns"]
         == (start_high - start_low + 1) // 2
-        and probe["end_clock_uncertainty_ns"]
+        and probe["validation_end_clock_uncertainty_ns"]
         == (end_high - end_low + 1) // 2
         and probe["clock_offset_change_lower_ns"] == change_low
         and probe["clock_offset_change_upper_ns"] == change_high
@@ -1875,17 +1930,167 @@ def launch_clock_model_rate(probe: dict[str, Any]) -> int | None:
         and elapsed >= LAUNCH_MIN_CALIBRATION_SPAN_NS
         and probe["clock_drift_rate_bound_ppb"] == expected_rate
         and probe["clock_drift_limit_ppb"] == LAUNCH_CLOCK_DRIFT_LIMIT_PPB
+        and probe["clock_drift_bounded"]
+        == int(expected_rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB)
+        and probe["clock_slope_diagnostic_only"] == 1
     )
     return expected_rate if consistent else None
 
 
 def launch_clock_model_valid(probe: dict[str, Any]) -> bool:
-    expected_rate = launch_clock_model_rate(probe)
-    return (
-        expected_rate is not None
-        and expected_rate <= LAUNCH_CLOCK_DRIFT_LIMIT_PPB
-        and probe.get("clock_drift_bounded") == 1
+    """Validate three interval anchors; slope magnitude is diagnostic only."""
+    if launch_clock_model_rate(probe) is None:
+        return False
+    fields = (
+        "start_clock_offset_lower_ns", "start_clock_offset_upper_ns",
+        "start_clock_host_anchor_ns",
+        "measurement_end_clock_offset_lower_ns",
+        "measurement_end_clock_offset_upper_ns",
+        "measurement_end_clock_uncertainty_ns",
+        "measurement_end_clock_host_anchor_ns",
+        "validation_end_clock_offset_lower_ns",
+        "validation_end_clock_offset_upper_ns",
+        "validation_end_clock_host_anchor_ns",
+        "held_out_predicted_lower_ns", "held_out_predicted_upper_ns",
+        "held_out_overlap_lower_ns", "held_out_overlap_upper_ns",
+        "validation_span_ns", "held_out_validation_passed",
     )
+    if any(type(probe.get(key)) is not int for key in fields):
+        return False
+    start_anchor = probe["start_clock_host_anchor_ns"]
+    middle_anchor = probe["measurement_end_clock_host_anchor_ns"]
+    validation_anchor = probe["validation_end_clock_host_anchor_ns"]
+    elapsed = validation_anchor - start_anchor
+    position = middle_anchor - start_anchor
+    if not (elapsed > 0 and 0 < position < elapsed):
+        return False
+    validation_span = validation_anchor - middle_anchor
+    if validation_span < LAUNCH_MIN_CALIBRATION_SPAN_NS:
+        return False
+    middle_low = probe["measurement_end_clock_offset_lower_ns"]
+    middle_high = probe["measurement_end_clock_offset_upper_ns"]
+    if middle_low > middle_high:
+        return False
+    if probe["measurement_end_clock_uncertainty_ns"] != (
+        middle_high - middle_low + 1
+    ) // 2:
+        return False
+    start_low = probe["start_clock_offset_lower_ns"]
+    start_high = probe["start_clock_offset_upper_ns"]
+    validation_low = probe["validation_end_clock_offset_lower_ns"]
+    validation_high = probe["validation_end_clock_offset_upper_ns"]
+    predicted_low = start_low + (
+        (validation_low - start_low) * position // elapsed
+    )
+    numerator = (validation_high - start_high) * position
+    predicted_high = start_high + (-(-numerator // elapsed))
+    overlap_low = max(predicted_low, middle_low)
+    overlap_high = min(predicted_high, middle_high)
+    return (
+        overlap_low <= overlap_high
+        and probe["held_out_predicted_lower_ns"] == predicted_low
+        and probe["held_out_predicted_upper_ns"] == predicted_high
+        and probe["held_out_overlap_lower_ns"] == overlap_low
+        and probe["held_out_overlap_upper_ns"] == overlap_high
+        and probe["validation_span_ns"] == validation_span
+        and probe["held_out_validation_passed"] == 1
+    )
+
+
+def parse_legacy_gpubpf_launch_clock(text: str) -> dict[str, int]:
+    """Parse only the frozen two-anchor fields used by retained attempt07."""
+    labels = {
+        "start_clock_offset_lower_ns": "Start clock offset lower",
+        "start_clock_offset_upper_ns": "Start clock offset upper",
+        "start_clock_uncertainty_ns": "Start clock uncertainty",
+        "start_clock_host_anchor_ns": "Start clock host anchor",
+        "end_clock_offset_lower_ns": "End clock offset lower",
+        "end_clock_offset_upper_ns": "End clock offset upper",
+        "end_clock_uncertainty_ns": "End clock uncertainty",
+        "end_clock_host_anchor_ns": "End clock host anchor",
+        "clock_offset_change_lower_ns": "Clock offset change lower",
+        "clock_offset_change_upper_ns": "Clock offset change upper",
+        "clock_calibration_elapsed_ns": "Clock calibration elapsed",
+        "clock_drift_rate_bound_ppb": "Clock drift rate bound",
+        "clock_drift_limit_ppb": "Clock drift limit",
+        "clock_drift_bounded": "Clock drift bounded",
+    }
+    signed = {key for key in labels if "offset" in key}
+    result: dict[str, int] = {}
+    for key, label in labels.items():
+        unit = (r"\s+ppb" if key.endswith("_ppb") else
+                r"\s+ns" if key.endswith("_ns") else "")
+        number = r"(-?\d+)" if key in signed else r"(\d+)"
+        values = re.findall(
+            rf"^{re.escape(label)}:\s*{number}{unit}$", text, re.MULTILINE
+        )
+        if len(values) != 1:
+            return {}
+        result[key] = int(values[0])
+    rm_labels = {
+        "rm_samples_requested": "RM samples requested",
+        "rm_samples_accepted": "RM samples accepted",
+        "rm_samples_rejected": "RM samples rejected",
+        "rm_outer_before_raw_ns": "RM outer before RAW",
+        "rm_cpu_before_raw_ns": "RM CPU before RAW",
+        "rm_gpu_ptimer_ns": "RM GPU PTIMER",
+        "rm_cpu_after_raw_ns": "RM CPU after RAW",
+        "rm_outer_after_raw_ns": "RM outer after RAW",
+        "rm_outer_width_ns": "RM outer width",
+        "rm_selected_gap_ns": "RM selected gap",
+        "rm_bracket_width_ns": "RM bracket width",
+        "rm_cleanup_complete": "RM cleanup complete",
+    }
+    for phase in ("start", "end"):
+        display = phase.title()
+        for suffix, label in rm_labels.items():
+            unit = r"\s+ns" if suffix.endswith("_ns") else ""
+            values = re.findall(
+                rf"^{display} {re.escape(label)}:\s*(\d+){unit}$",
+                text,
+                re.MULTILINE,
+            )
+            if len(values) != 1:
+                return {}
+            result[f"{phase}_{suffix}"] = int(values[0])
+        statuses = re.findall(
+            rf"^{display} RM status:\s*0x([0-9a-fA-F]+)$",
+            text,
+            re.MULTILINE,
+        )
+        if len(statuses) != 1:
+            return {}
+        result[f"{phase}_rm_status"] = int(statuses[0], 16)
+    return result
+
+
+def legacy_launch_clock_model_rate(probe: dict[str, Any]) -> int | None:
+    """Recompute the superseded attempt07 two-anchor drift gate."""
+    try:
+        start_low = probe["start_clock_offset_lower_ns"]
+        start_high = probe["start_clock_offset_upper_ns"]
+        end_low = probe["end_clock_offset_lower_ns"]
+        end_high = probe["end_clock_offset_upper_ns"]
+        elapsed = probe["end_clock_host_anchor_ns"] - probe["start_clock_host_anchor_ns"]
+        if elapsed < LAUNCH_MIN_CALIBRATION_SPAN_NS:
+            return None
+        change_low = end_low - start_high
+        change_high = end_high - start_low
+        rate = (max(abs(change_low), abs(change_high)) * 1_000_000_000 + elapsed - 1) // elapsed
+        if not (
+            start_low <= start_high and end_low <= end_high
+            and probe["start_clock_uncertainty_ns"] == (start_high - start_low + 1) // 2
+            and probe["end_clock_uncertainty_ns"] == (end_high - end_low + 1) // 2
+            and probe["clock_offset_change_lower_ns"] == change_low
+            and probe["clock_offset_change_upper_ns"] == change_high
+            and probe["clock_calibration_elapsed_ns"] == elapsed
+            and probe["clock_drift_rate_bound_ppb"] == rate
+            and probe["clock_drift_limit_ppb"] == LAUNCH_CLOCK_DRIFT_LIMIT_PPB
+        ):
+            return None
+        return rate
+    except (KeyError, TypeError):
+        return None
 
 
 def launchlate_unbounded_drift_exit(tool: str, returncode: int, text: str) -> bool:
@@ -1895,7 +2100,8 @@ def launchlate_unbounded_drift_exit(tool: str, returncode: int, text: str) -> bo
     if text.count("Clock calibration drift exceeds its bound") != 1:
         return False
     probe = parse_gpubpf(tool, text)
-    expected_rate = launch_clock_model_rate(probe)
+    probe.update(parse_legacy_gpubpf_launch_clock(text))
+    expected_rate = legacy_launch_clock_model_rate(probe)
     count_names = ("sample_count", "matched_samples", "classified_samples",
                    "uncertain_samples")
     if any(type(probe.get(name)) is not int for name in count_names):
@@ -1908,7 +2114,7 @@ def launchlate_unbounded_drift_exit(tool: str, returncode: int, text: str) -> bo
         expected_rate is not None
         and expected_rate > LAUNCH_CLOCK_DRIFT_LIMIT_PPB
         and probe.get("clock_drift_bounded") == 0
-        and launch_rm_anchors_valid(probe)
+        and launch_legacy_rm_anchors_valid(probe)
         and probe.get("probes_detached_before_readback") == 1
         and probe.get("start_rm_cleanup_complete") == 1
         and probe.get("end_rm_cleanup_complete") == 1
@@ -1928,8 +2134,8 @@ def launchlate_unbounded_drift_exit(tool: str, returncode: int, text: str) -> bo
 
 
 def launch_rm_anchors_valid(probe: dict[str, Any]) -> bool:
-    """Recompute both endpoint-v1 RAW/PTIMER intervals from emitted fields."""
-    for phase in ("start", "end"):
+    """Recompute all three endpoint-v1 RAW/PTIMER intervals."""
+    for phase in ("start", "measurement_end", "validation_end"):
         names = (
             "rm_samples_requested", "rm_samples_accepted",
             "rm_samples_rejected", "rm_outer_before_raw_ns",
@@ -1974,6 +2180,49 @@ def launch_rm_anchors_valid(probe: dict[str, Any]) -> bool:
     return True
 
 
+def launch_legacy_rm_anchors_valid(probe: dict[str, Any]) -> bool:
+    """Recompute only the superseded start/end intervals from attempt07."""
+    for phase in ("start", "end"):
+        names = (
+            "rm_samples_requested", "rm_samples_accepted",
+            "rm_samples_rejected", "rm_outer_before_raw_ns",
+            "rm_cpu_before_raw_ns", "rm_gpu_ptimer_ns",
+            "rm_cpu_after_raw_ns", "rm_outer_after_raw_ns",
+            "rm_outer_width_ns", "rm_selected_gap_ns",
+            "rm_bracket_width_ns", "rm_status", "rm_cleanup_complete",
+        )
+        values = {name: probe.get(f"{phase}_{name}") for name in names}
+        if any(type(value) is not int for value in values.values()):
+            return False
+        outer_before = values["rm_outer_before_raw_ns"]
+        cpu_before = values["rm_cpu_before_raw_ns"]
+        gpu = values["rm_gpu_ptimer_ns"]
+        cpu_after = values["rm_cpu_after_raw_ns"]
+        outer_after = values["rm_outer_after_raw_ns"]
+        selected_gap = cpu_after - cpu_before
+        bracket = selected_gap + 64
+        if not (
+            values["rm_samples_requested"] == LAUNCH_RM_CALIBRATION_SAMPLES
+            and values["rm_samples_accepted"] == LAUNCH_RM_CALIBRATION_SAMPLES
+            and values["rm_samples_rejected"] == 0
+            and values["rm_status"] == 0
+            and values["rm_cleanup_complete"] == 1
+            and 0 < outer_before <= cpu_before <= cpu_after <= outer_after
+            and gpu > 0
+            and values["rm_outer_width_ns"] == outer_after - outer_before
+            and values["rm_outer_width_ns"] < 10_000_000
+            and values["rm_selected_gap_ns"] == selected_gap
+            and values["rm_bracket_width_ns"] == bracket
+            and bracket <= LAUNCH_RM_MAX_BRACKET_NS
+            and probe.get(f"{phase}_clock_offset_lower_ns") == gpu - cpu_after - 32
+            and probe.get(f"{phase}_clock_offset_upper_ns") == gpu - cpu_before + 32
+            and probe.get(f"{phase}_clock_uncertainty_ns") == (bracket + 1) // 2
+            and probe.get(f"{phase}_clock_host_anchor_ns") == cpu_before + selected_gap // 2
+        ):
+            return False
+    return True
+
+
 def launch_uncertainty_valid(classified: int, uncertain: int, total: int) -> bool:
     return (
         classified >= 0
@@ -1989,8 +2238,12 @@ def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
                       expected_exit_launches: int | None = None,
                       expected_exit_coordinates: int | None = None,
                       exact_exit_oracle: bool = False) -> bool:
-    samples = int(probe.get("sample_count", 0))
-    selected = int(probe.get("selected_launches", 0))
+    if type(probe.get("sample_count")) is not int or type(
+        probe.get("selected_launches")
+    ) is not int:
+        return False
+    samples = probe["sample_count"]
+    selected = probe["selected_launches"]
     if samples <= 0 or selected <= 0:
         return False
     if tool == "kernelretsnoop":
@@ -2028,7 +2281,9 @@ def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
 
     calibration_fields = (
         "uncertain_samples", "start_clock_calibration_valid",
-        "end_clock_calibration_valid", "pair_capacity", "stored_pairs",
+        "measurement_end_clock_calibration_valid",
+        "validation_end_clock_calibration_valid",
+        "pair_capacity", "stored_pairs",
         "device_entries", "pair_overflows", "capture_errors",
         "selected_counter_overflow", "accounting_complete",
         "process_selected_launches", "result_blocks", "calibration_blocks",
@@ -2041,7 +2296,8 @@ def nvbit_probe_valid(tool: str, probe: dict[str, Any], *,
         probe.get("clock_calibration_method")
         == NVBIT_LAUNCH_CLOCK_METHOD
         and int(probe.get("start_clock_calibration_valid", -1)) == 1
-        and int(probe.get("end_clock_calibration_valid", -1)) == 1
+        and int(probe.get("measurement_end_clock_calibration_valid", -1)) == 1
+        and int(probe.get("validation_end_clock_calibration_valid", -1)) == 1
         and launch_rm_anchors_valid(probe)
         and launch_clock_model_valid(probe)
         and int(probe.get("clock_errors", -1)) == 0
@@ -2113,7 +2369,9 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
                       expected_exit_launches: int | None = None,
                       expected_exit_coordinates: int | None = None,
                       exact_exit_oracle: bool = False) -> bool:
-    samples = int(probe.get("sample_count", 0))
+    if type(probe.get("sample_count")) is not int:
+        return False
+    samples = probe["sample_count"]
     if samples <= 0:
         return False
     if tool == "kernelretsnoop":
@@ -2185,6 +2443,16 @@ def gpubpf_probe_valid(tool: str, probe: dict[str, Any], *,
                 and probe.get("readback_bytes") == expected_thread_count * 8
                 and probe.get("readback_complete") == 1)
 
+    launch_fields = (
+        "histogram_samples", "host_launches", "host_enqueued",
+        "device_entries", "matched_samples", "queue_underflows",
+        "queue_overflows", "queue_update_errors", "classified_samples",
+        "uncertain_samples", "clock_errors", "online_accounting_complete",
+        "accounting_complete", "pairing_complete",
+        "probes_detached_before_readback",
+    )
+    if any(type(probe.get(key)) is not int for key in launch_fields):
+        return False
     calibration_valid = (
         probe.get("clock_calibration_method")
         == GPUBPF_LAUNCH_CLOCK_METHOD

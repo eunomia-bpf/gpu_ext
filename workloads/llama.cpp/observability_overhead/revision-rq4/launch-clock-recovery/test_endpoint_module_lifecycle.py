@@ -51,6 +51,50 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
                           "--correlation-command", "endpoints-v1"))
         self.assertEqual(lifecycle.RESTORE_DIR.name,
                          "gpreempt-849ea75d-6.15.11")
+        self.assertEqual(
+            lifecycle.PREBUILT_CANDIDATE_DIR,
+            Path("/opt/gpubpf/modules/575.57.08/"
+                 "launchlate-endpoint-86e7e0dd-575-02"),
+        )
+        self.assertEqual(len(lifecycle.ENDPOINT_SYMBOLS), 2)
+
+    def test_endpoint_symbol_gate_requires_both_symbols(self) -> None:
+        lines = "\n".join(
+            f"0000000000000001 T {symbol}"
+            for symbol in lifecycle.ENDPOINT_SYMBOLS
+        )
+        with patch.object(lifecycle.base, "checked_stdout", return_value=lines):
+            self.assertEqual(
+                lifecycle.validate_endpoint_symbols(Path("/fixed/nvidia.ko")),
+                list(lifecycle.ENDPOINT_SYMBOLS),
+            )
+        with patch.object(
+                lifecycle.base, "checked_stdout",
+                return_value=f"0000000000000001 T {lifecycle.ENDPOINT_SYMBOLS[0]}"):
+            with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
+                                        "lacks endpoint symbols"):
+                lifecycle.validate_endpoint_symbols(Path("/fixed/nvidia.ko"))
+
+    def test_candidate_path_rejects_source_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
+                                        "exact admitted prebuilt path"):
+                lifecycle.validate_paths(
+                    Path(temp),
+                    Path("/opt/gpubpf/modules/575.57.08/"
+                         "launchlate-endpoint-stage-offline-test"),
+                    HERE.parent / "raw/rm-correlation-575-offline-dry-run",
+                )
+
+    def test_child_paths_are_required_only_for_a_child(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with (patch.object(lifecycle, "BPFTIME_ROOT", root),
+                  patch.object(lifecycle, "BPFTIME_BUILD", root / "missing")):
+                lifecycle.validate_child_paths("none")
+                with self.assertRaisesRegex(lifecycle.EndpointLifecycleError,
+                                            "source/build is absent"):
+                    lifecycle.validate_child_paths("preflight")
 
     def test_child_argv_is_fixed_and_inherits_both_leases(self) -> None:
         output = HERE.parent / "raw/example-preflight"
@@ -105,18 +149,29 @@ class EndpointLifecycleOfflineTests(unittest.TestCase):
 
     def test_cpu_only_real_artifact_preflight(self) -> None:
         result = lifecycle.dry_run(
-            Path("/home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open"),
+            lifecycle.PREBUILT_CANDIDATE_DIR,
             Path("/opt/gpubpf/modules/575.57.08/"
-                 "launchlate-endpoint-86e7e0dd-offline-test"),
+                 "launchlate-endpoint-stage-offline-test"),
             HERE.parent / "raw/rm-correlation-575-offline-dry-run",
-            child_mode="preflight-full",
+            child_mode="none",
         )
         self.assertTrue(result["complete"])
         self.assertEqual(result["mode"], "cpu-only-dry-run")
-        self.assertEqual(result["source"]["revision"],
-                         lifecycle.EXPECTED_CANDIDATE_REVISION)
-        self.assertEqual(result["child_mode"], "preflight-full")
+        self.assertEqual(result["candidate_origin"]["path"],
+                         str(lifecycle.PREBUILT_CANDIDATE_DIR))
+        self.assertEqual(result["child_mode"], "none")
         self.assertEqual(set(result["candidate"]), set(lifecycle.base.LOAD_ORDER))
+        for name, descriptor in result["candidate"].items():
+            self.assertGreater(descriptor["inventory"]["size_bytes"], 0)
+            self.assertEqual(descriptor["version"], lifecycle.base.EXPECTED_DRIVER)
+            self.assertEqual(descriptor["vermagic"],
+                             lifecycle.base.EXPECTED_VERMAGIC)
+            self.assertTrue(descriptor["interface"])
+            if name == "nvidia":
+                self.assertEqual(descriptor["endpoint_symbols"],
+                                 list(lifecycle.ENDPOINT_SYMBOLS))
+            else:
+                self.assertEqual(descriptor["endpoint_symbols"], [])
 
 
 if __name__ == "__main__":

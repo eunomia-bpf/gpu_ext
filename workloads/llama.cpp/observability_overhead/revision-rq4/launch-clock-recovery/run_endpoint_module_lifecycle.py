@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run the endpoint-v1 probe inside one reversible four-module lifecycle.
 
-Without --execute this command is CPU-only: it validates source, module
-artifacts, the fixed probe, and path shape.  --execute is root-only, acquires
+Without --execute this command is CPU-only: it validates the fixed prebuilt
+module artifacts, the fixed probe, and path shape.  --execute is root-only, acquires
 both shared experiment leases, temporarily removes the two node labels that can
 schedule local GPU monitoring, swaps the exact four-module subset, runs the
 fixed endpoint probe, and unconditionally attempts the admitted rollback.
@@ -39,9 +39,14 @@ base = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = base
 _spec.loader.exec_module(base)
 
-EXPECTED_CANDIDATE_REVISION = "86e7e0dd2e7158d45382a0682682f2894a63c9a4"
 EXPECTED_COMMAND = "0x20800408"
-ENDPOINT_SYMBOL = "subdeviceCtrlCmdTimerGetGpuCpuTimeCorrelationEndpointsV1_IMPL"
+ENDPOINT_SYMBOLS = (
+    "subdeviceCtrlCmdTimerGetGpuCpuTimeCorrelationEndpointsV1_IMPL",
+    "subdeviceCtrlCmdTimerGetGpuCpuTimeCorrelationInfo_IMPL",
+)
+PREBUILT_CANDIDATE_DIR = Path(
+    "/opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-02"
+)
 RESTORE_DIR = Path(
     "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11"
 )
@@ -103,46 +108,14 @@ class State:
     labels_restored: bool = False
 
 
-def git_stdout(repo: Path, *args: str) -> str:
-    return base.checked_stdout(["git", "-C", str(repo), *args])
-
-
-def validate_candidate_source(candidate_dir: Path) -> dict[str, Any]:
-    repo = candidate_dir.parent
-    demand((repo / ".git").exists(), f"candidate repository is absent: {repo}")
-    revision = git_stdout(repo, "rev-parse", "HEAD")
-    demand(revision == EXPECTED_CANDIDATE_REVISION,
-           f"candidate revision differs: {revision}")
-    source_paths = (
-        "src/common/sdk/nvidia/inc/ctrl/ctrl2080/ctrl2080tmr.h",
-        "src/nvidia/generated/g_subdevice_nvoc.c",
-        "src/nvidia/generated/g_subdevice_nvoc.h",
-        "src/nvidia/src/kernel/gpu/subdevice/subdevice_ctrl_timer_kernel.c",
-    )
-    for cached in (False, True):
-        argv = ["git", "-C", str(repo), "diff", "--quiet"]
-        if cached:
-            argv.append("--cached")
-        argv.extend(["--", *source_paths])
-        base.run_command(argv)
-    contents = {path: (repo / path).read_text() for path in source_paths}
-    demand(EXPECTED_COMMAND in contents[source_paths[0]],
-           "endpoint command is absent from the public control header")
-    demand(EXPECTED_COMMAND in contents[source_paths[1]] and
-           ENDPOINT_SYMBOL in contents[source_paths[1]],
-           "endpoint command is absent from the generated export table")
-    implementation = contents[source_paths[3]]
-    for token in (ENDPOINT_SYMBOL, "osGetPerformanceCounter",
-                  "tmrReadTimeLoReg_HAL", "cpuBeforeNs", "cpuAfterNs"):
-        demand(token in implementation,
-               f"endpoint implementation token is absent: {token}")
-    core = candidate_dir / "nvidia.ko"
-    symbols = base.checked_stdout(["nm", "-a", str(core)])
-    demand(re.search(rf"^[0-9a-fA-F]+\s+[Tt]\s+{ENDPOINT_SYMBOL}$",
-                     symbols, re.MULTILINE) is not None,
-           "candidate core does not export the endpoint implementation symbol")
-    return {"revision": revision, "command": EXPECTED_COMMAND,
-            "symbol": ENDPOINT_SYMBOL, "source_paths": list(source_paths)}
+def validate_endpoint_symbols(path: Path) -> list[str]:
+    """Require both the versioned endpoint and its stock sibling in nvidia.ko."""
+    symbols = base.checked_stdout(["nm", "-a", str(path)])
+    missing = [symbol for symbol in ENDPOINT_SYMBOLS if re.search(
+        rf"^[0-9a-fA-F]+\s+[Tt]\s+{re.escape(symbol)}$",
+        symbols, re.MULTILINE) is None]
+    demand(not missing, f"candidate core lacks endpoint symbols: {missing}")
+    return list(ENDPOINT_SYMBOLS)
 
 
 def generic_interface(module: Any, raw: str, declarations: str,
@@ -183,10 +156,12 @@ def artifact_descriptor(path: Path, module: Any, *, endpoint_core: bool) -> dict
         module, base.btf_raw(path), base.btf_c(path),
         endpoint_core=endpoint_core,
     )
+    endpoint_symbols = validate_endpoint_symbols(path) if endpoint_core else []
     return {"inventory": inventory, "name": name, "version": version,
             "vermagic": vermagic, "depends": depends,
             "parameter_names": parameter_names, "interface": interface,
-            "endpoint_core": endpoint_core}
+            "endpoint_core": endpoint_core,
+            "endpoint_symbols": endpoint_symbols}
 
 
 def describe_directory(directory: Path, *, candidate: bool) -> dict[str, dict[str, Any]]:
@@ -202,7 +177,7 @@ def describe_directory(directory: Path, *, candidate: bool) -> dict[str, dict[st
 def comparable(value: dict[str, Any]) -> dict[str, Any]:
     result = {key: value[key] for key in
             ("name", "version", "vermagic", "depends", "parameter_names",
-             "interface", "endpoint_core")}
+             "interface", "endpoint_core", "endpoint_symbols")}
     result["size_bytes"] = value["inventory"]["size_bytes"]
     return result
 
@@ -349,14 +324,20 @@ def validate_paths(candidate_dir: Path, stage: Path, output: Path) -> None:
     for label, path in (("candidate", candidate_dir), ("stage", stage),
                         ("output", output)):
         demand(path.is_absolute(), f"{label} path must be absolute: {path}")
+    demand(candidate_dir.is_dir() and not candidate_dir.is_symlink(),
+           "prebuilt candidate directory is absent or a symlink")
+    demand(candidate_dir == PREBUILT_CANDIDATE_DIR,
+           "candidate path is not the exact admitted prebuilt path")
     demand(candidate_dir.resolve(strict=True) ==
-           (WORKSPACE / "gpu_ext-kernel-575/kernel-open").resolve(strict=True),
-           "candidate directory is not the admitted endpoint checkout")
+           PREBUILT_CANDIDATE_DIR.resolve(strict=True),
+           "candidate directory is not the admitted prebuilt module set")
     demand(RESTORE_DIR.is_dir() and not RESTORE_DIR.is_symlink(),
            "known-good restore directory is absent or a symlink")
     demand(stage.parent.resolve(strict=True) == STAGE_ROOT.resolve(strict=True) and
-           stage.name.startswith("launchlate-endpoint-86e7e0dd-"),
+           stage.name.startswith("launchlate-endpoint-stage-"),
            "stage path is outside the launchlate endpoint namespace")
+    demand(stage.resolve() != candidate_dir.resolve(),
+           "candidate and stage directories are identical")
     demand(output.parent.resolve(strict=True) == RAW_ROOT.resolve(strict=True) and
            output.name.startswith("rm-correlation-575-"),
            "output path is outside the RM-correlation namespace")
@@ -368,22 +349,29 @@ def validate_paths(candidate_dir: Path, stage: Path, output: Path) -> None:
     for path in (RUNNER, ANALYZER):
         demand(path.is_file() and not path.is_symlink(),
                f"fixed campaign component is absent or a symlink: {path}")
-    demand(BPFTIME_ROOT.is_dir() and BPFTIME_BUILD.is_dir(),
-           "fixed launchlate bpftime source/build is absent")
+
+
+def validate_child_paths(child_mode: str) -> None:
+    if child_mode != "none":
+        demand(BPFTIME_ROOT.is_dir() and BPFTIME_BUILD.is_dir(),
+               "fixed launchlate bpftime source/build is absent")
 
 
 def dry_run(candidate_dir: Path, stage: Path, output: Path,
             child_mode: str = "none") -> dict[str, Any]:
     demand(child_mode in CHILD_MODES, f"invalid child mode: {child_mode}")
     validate_paths(candidate_dir, stage, output)
-    source = validate_candidate_source(candidate_dir)
+    validate_child_paths(child_mode)
     candidate = describe_directory(candidate_dir, candidate=True)
     restore = describe_directory(RESTORE_DIR, candidate=False)
     child_commands = validate_child_command_lookup(child_environment())
     for name in base.LOAD_ORDER:
         demand(candidate[name]["parameter_names"] == restore[name]["parameter_names"],
                f"candidate/restore parameter inventories differ: {name}")
-    return {"complete": True, "mode": "cpu-only-dry-run", "source": source,
+    return {"complete": True, "mode": "cpu-only-dry-run",
+            "candidate_origin": {"kind": "fixed-prebuilt",
+                                 "path": str(candidate_dir),
+                                 "command": EXPECTED_COMMAND},
             "candidate": candidate, "restore": restore,
             "load_order": list(base.LOAD_ORDER),
             "remove_order": list(base.REMOVE_ORDER),
@@ -515,6 +503,7 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
     demand(os.geteuid() == 0, "--execute is root-only")
     demand(child_mode in CHILD_MODES, f"invalid child mode: {child_mode}")
     validate_paths(candidate_dir, stage, output)
+    validate_child_paths(child_mode)
     child_commands = validate_child_command_lookup(child_environment())
     state = State()
     leases = base.LifecycleLeases()
@@ -551,7 +540,6 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
         event("leases_acquired", leases=leases.inventory())
         subset = base.loaded_module_names()
         demand(subset == base.LOAD_ORDER, "exact four-module subset is required")
-        source = validate_candidate_source(candidate_dir)
         candidate = describe_directory(candidate_dir, candidate=True)
         restore = describe_directory(RESTORE_DIR, candidate=False)
         services = {unit: base.service_state(unit) for unit in base.SERVICES}
@@ -576,14 +564,16 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
                    "k3s": k3s, "cluster": cluster, "nodes": nodes,
                    "runtime": runtime, "safety": safety_before,
                    "candidate": candidate, "restore": restore,
-                   "source": source}
+                   "candidate_origin": {"kind": "fixed-prebuilt",
+                                        "path": str(candidate_dir),
+                                        "command": EXPECTED_COMMAND}}
         record["initial"] = initial
         event("admission_passed")
 
         base.stage_modules(candidate_dir, stage, subset)
         candidate_after_stage = describe_directory(candidate_dir, candidate=True)
         demand(candidate_after_stage == candidate,
-               "candidate source artifacts changed while staging")
+               "prebuilt candidate artifacts changed while staging")
         staged = describe_directory(stage, candidate=True)
         for name in subset:
             demand(comparable(staged[name]) == comparable(candidate[name]),

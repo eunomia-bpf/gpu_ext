@@ -5,12 +5,16 @@ launch-clock recovery probe that needs the endpoint-v1 core module. Its default
 mode is CPU-only admission; no module or cluster state changes without the
 explicit `--execute` flag.
 
-The wrapper admits only the endpoint source checkout at revision `86e7e0dd`,
-the four 575.57.08 modules built there, and the exact known-good rollback stage
-`gpreempt-849ea75d-6.15.11`. It checks the endpoint command, implementation,
-exported symbol, module version/vermagic/dependencies/BTF interfaces, accepted
-parameter inventories, and the fixed 200-sample probe before mutation. It does
-not require the unrelated scheduler-init diagnostic ABI.
+The wrapper admits only the fixed prebuilt directory
+`/opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-02` and the
+exact known-good rollback stage `gpreempt-849ea75d-6.15.11`; it has no source
+checkout dependency. Before any live-state mutation, it validates all four
+candidate and rollback modules using ordinary file inventory and size,
+module version, vermagic, dependencies, parameter names, and BTF interfaces.
+It additionally requires both the versioned endpoint-v1 and stock correlation
+implementation symbols in the candidate `nvidia.ko`. It then copies the
+admitted candidate into a fresh stage and repeats the same artifact validation.
+It does not require the unrelated scheduler-init diagnostic ABI.
 
 Execution takes both existing experiment leases, snapshots the boot, module
 parameters and runtime interfaces, services, device nodes, k3s node readiness
@@ -51,9 +55,9 @@ The only admitted live invocation for the next fresh attempt is:
 
 ```bash
 sudo -n python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/launch-clock-recovery/run_endpoint_module_lifecycle.py \
-  --candidate-dir /home/yunwei37/workspace/gpu/gpu_ext-kernel-575/kernel-open \
-  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-02 \
-  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-07-endpoint-lifecycle \
+  --candidate-dir /opt/gpubpf/modules/575.57.08/launchlate-endpoint-86e7e0dd-575-02 \
+  --stage /opt/gpubpf/modules/575.57.08/launchlate-endpoint-stage-575-08 \
+  --output /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-08-endpoint-lifecycle \
   --child-mode preflight-full \
   --execute
 ```

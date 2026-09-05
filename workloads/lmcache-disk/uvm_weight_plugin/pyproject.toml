@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uvm-weight-plugin"
+version = "0.1.0"
+description = "vLLM general plugin that routes weight loading through a scoped UVM CUDA pluggable allocator pool"
+requires-python = ">=3.10"
+
+[project.entry-points."vllm.general_plugins"]
+uvm_weight_plugin = "uvm_weight_plugin:install"
+
+[tool.setuptools]
+packages = ["uvm_weight_plugin"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

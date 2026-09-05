@@ -623,6 +623,27 @@ class AnalyzeRevisionRQ4Tests(unittest.TestCase):
                 result["launch_clock_controls"]["independently_passed"]
             )
 
+        # Retain the attempt-08 failure shape as a regression: benchmark and
+        # probe records in a tool-only directory cannot borrow safety and
+        # telemetry from a separate config-specific directory.
+        with tempfile.TemporaryDirectory() as tmp:
+            campaign = Path(tmp)
+            state = three_tool_state()
+            materialize_launch_raw(campaign, state)
+            cell = state["configs"]["gpubpf_launchlate"]["runs"][0]
+            config_dir = (campaign / cell["log"]).parent
+            split_dir = campaign / "launchlate_run_101"
+            split_dir.mkdir()
+            for name in ("llama_bench.log", "llama_bench.execution.json", "probe.log"):
+                config_dir.joinpath(name).replace(split_dir / name)
+            cell["log"] = "launchlate_run_101/llama_bench.log"
+            cell["probe_log"] = "launchlate_run_101/probe.log"
+            (campaign / "result.json").write_text(json.dumps(state))
+            result = audit.analyze(campaign)
+            self.assertFalse(result["complete"])
+            self.assertIn({"block": 1, "config": "gpubpf_launchlate"},
+                          result["rejected_cells"])
+
     def test_launch_analysis_rejects_raw_state_disagreement(self):
         with tempfile.TemporaryDirectory() as tmp:
             campaign = Path(tmp)

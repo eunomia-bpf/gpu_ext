@@ -987,6 +987,41 @@ class OfflineTests(unittest.TestCase):
                 result = runner.run_bench("baseline", 1, args, Path("/output"))
             self.assertEqual(result["valid"], valid)
 
+        # A gpubpf timing cell has one config-specific raw boundary.  In
+        # particular, its benchmark log must not use the old tool-only path
+        # while safety and telemetry use the full config name.
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            cell_dir = output / "gpubpf_launchlate_run_101"
+            cell_dir.mkdir()
+            (cell_dir / "probe.log").write_text(lossless_launchlate_log())
+            args = SimpleNamespace(
+                pp=32, gpu_thread_count=22528,
+                threadhist_gpu_thread_count=1048576,
+            )
+            bench_result = {
+                "valid": True,
+                "log": "gpubpf_launchlate_run_101/llama_bench.log",
+            }
+            with (patch.object(runner, "idle_gpu_or_error"),
+                  patch.object(runner.core, "nvidia_smi_snapshot", return_value={}),
+                  patch.object(runner, "private_probe", return_value=runner.nullcontext({})) as probe,
+                  patch.object(runner, "run_bench", return_value=bench_result) as bench,
+                  patch.object(runner, "parse_gpubpf", return_value={}),
+                  patch.object(runner, "gpubpf_probe_valid", return_value=True),
+                  patch.object(runner, "verifier_evidence", return_value={"passed": True})):
+                result = runner.run_instrumented_cell(
+                    "gpubpf_launchlate", 101, args, output,
+                    {"launchlate": Path("/tool-build")},
+                )
+            self.assertEqual(result["log"],
+                             "gpubpf_launchlate_run_101/llama_bench.log")
+            self.assertEqual(result["probe_log"],
+                             "gpubpf_launchlate_run_101/probe.log")
+            self.assertEqual(probe.call_args.args[3], cell_dir)
+            self.assertEqual(bench.call_args.args[:4],
+                             ("gpubpf_launchlate", 101, args, output))
+
     def test_private_probe_preserves_unowned_segments(self):
         for defect in (None, "preexisting", "replaced", "early exit", "survivor"):
             with self.subTest(defect=defect), tempfile.TemporaryDirectory() as tmp:

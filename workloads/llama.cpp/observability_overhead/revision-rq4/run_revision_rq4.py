@@ -1301,6 +1301,7 @@ def source_manifest(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         CLOCK_CONTROL_SOURCE_DIR / "rm_globaltimer_identity.cu",
         CLOCK_CONTROL_SOURCE_DIR / "launchlate-frozen-plan.md",
         CLOCK_CONTROL_SOURCE_DIR / "launchlate-frozen-plan-v2.md",
+        CLOCK_CONTROL_SOURCE_DIR / "launchlate-attempt09-frozen-path.md",
         args.bpftime_root / "runtime/include/bpf_attach_ctx.hpp",
         args.bpftime_root / "runtime/include/bpftime_helper_group.hpp",
         args.bpftime_root / "runtime/include/bpftime_gpu_ringbuf.h",
@@ -2975,11 +2976,14 @@ def run_instrumented_cell(config: str, run_id: int, args: argparse.Namespace,
     system, tool = config.split("_", 1)
     if system == "gpubpf":
         exit_layout = kernelretsnoop_layout(args.pp, correctness=False)
-        run_dir = output_dir / f"{tool}_run_{run_id:02d}"
+        # Keep the benchmark, private-probe, telemetry, and safety records in
+        # the same config-specific directory.  The independent analyzer uses
+        # the benchmark log's parent as the raw cell boundary.
+        run_dir = output_dir / f"{config}_run_{run_id:02d}"
         with private_probe(
             tool, args, tool_dirs[tool], run_dir, exact_exit_oracle=False
         ) as env:
-            result = run_bench(tool, run_id, args, output_dir, env_extra=env)
+            result = run_bench(config, run_id, args, output_dir, env_extra=env)
         result["probe"] = parse_gpubpf(tool, (run_dir / "probe.log").read_text(errors="replace"))
         result["probe_log"] = str((run_dir / "probe.log").relative_to(output_dir))
         result["verifier"] = verifier_evidence(

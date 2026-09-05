@@ -30,6 +30,17 @@ storage-engagement, or performance evidence. After restoring the complete
 model, the batch requires the fresh traced path
 `raw/storage-575-v3-preflight-02/disk`.
 
+On 2026-09-04, that second V3 attempt passed artifact admission and launched
+the server, but EngineCore stopped during PyTorch CUDA initialization with
+`NV_ERR_NO_MEMORY`. GPU memory use was 15 MiB before launch; monitoring found
+no Xid and cleanup succeeded. An immediate root invocation in the same venv
+successfully allocated a one-element CUDA tensor. This is retained narrowly as
+a transient startup failure, not V3 correctness evidence or an established
+V3 failure. The model workload and requests never ran. Before execution, the
+only authorized traced retry is the fresh path
+`raw/storage-575-v3-preflight-03/disk`; the correctness and formal paths remain
+unchanged.
+
 The saved telemetry summary peaks at 30,724 MiB of 32,607 MiB. That observation
 does not establish either an allocation failure or adequate headroom at every
 instant. `--enforce-eager` disables torch compilation/CUDA graphs, not the

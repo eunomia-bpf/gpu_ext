@@ -30,7 +30,7 @@ HERE = Path(__file__).resolve().parent
 PYTHON = HERE / "current-venv/bin/python"
 RUNNER = HERE / "run_lmcache_disk.py"
 OUTPUT = HERE / "raw/storage-575-v3-full-01"
-TRACED = HERE / "raw/storage-575-v3-preflight-02/disk"
+TRACED = HERE / "raw/storage-575-v3-preflight-03/disk"
 CORRECTNESS = HERE / "raw/storage-575-v3-correctness-01"
 HF_CACHE = "/home/yunwei37/.cache/huggingface"
 

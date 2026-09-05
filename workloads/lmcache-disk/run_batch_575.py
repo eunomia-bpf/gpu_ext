@@ -29,9 +29,9 @@ from run_lmcache_disk import CONFIGS, PREFIXES, SCHEDULE, validate_schedule
 HERE = Path(__file__).resolve().parent
 PYTHON = HERE / "current-venv/bin/python"
 RUNNER = HERE / "run_lmcache_disk.py"
-OUTPUT = HERE / "raw/storage-575-full-01"
-TRACED = HERE / "raw/storage-575-preflight-02/disk"
-CORRECTNESS = HERE / "raw/storage-575-correctness-01"
+OUTPUT = HERE / "raw/storage-575-v3-full-01"
+TRACED = HERE / "raw/storage-575-v3-preflight-01/disk"
+CORRECTNESS = HERE / "raw/storage-575-v3-correctness-01"
 HF_CACHE = "/home/yunwei37/.cache/huggingface"
 
 

@@ -161,8 +161,11 @@ make build-sources
 
 The implemented live runner accepts the two already locked read-only lease
 descriptors from the outer lifecycle. The runner—not a monitor sibling—uses
-`pidfd_getfd` to duplicate the owned workload's only UVM fd and passes it to
-`uvm_event_monitor` as an inherited fd. The baseline does not start the BPF
+`pidfd_getfd` to duplicate exactly the owned CUDA 12.9 workload's two
+`/dev/nvidia-uvm` FDs. The monitor uses `UVM_TOOLS_INIT_EVENT_TRACKER_V2` to
+require exactly one driver-validated VA-space FD and one secondary MM FD; it
+does not choose by numeric order or accept an arbitrary same-device FD. The
+baseline does not start the BPF
 loader and refuses all policy files; native starts only the observer; BPF
 starts the observer plus its owned struct_ops policy. It must never run a formal campaign
 until the shared driver interface above exists and an excluded complete

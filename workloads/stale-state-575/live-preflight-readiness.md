@@ -33,7 +33,12 @@ The excluded seven-cell path is now represented end to end in source:
   initial no-snapshot interval from being mislabeled as a policy failure.
 - `live_runner.py` owns the fresh output tree and all child processes. It
   captures an empty compute boundary before launch, starts continuous GPU,
-  compute, and kernel monitoring, duplicates only the owned workload UVM FD,
+  compute, and kernel monitoring, inventories the owned CUDA 12.9 process's
+  two `/dev/nvidia-uvm` FDs, and duplicates both without accepting any other
+  device target. `uvm_event_monitor` asks the driver to classify each candidate
+  and proceeds only when exactly one is the primary VA-space FD and the other
+  returns `NV_ERR_ILLEGAL_ACTION` as the secondary MM-lifetime FD. It records
+  both source FDs and the selected/rejected roles before release,
   runs the truth-FD coordinator, stops/reaps only its children, checks the
   post-cell idle state, and invokes the frozen raw-cell validator. The
   baseline never loads the observer/policy object and refuses policy files.
@@ -56,7 +61,7 @@ The excluded seven-cell path is now represented end to end in source:
 - Workload bridge build/test: the 15-check ABI test, observer fentry section,
   policy struct_ops section, generated skeleton, and `-Werror` userspace
   loader build pass.
-- Python suite: 46 tests pass, including real-pipe truth replay, observer
+- Python suite: 48 tests pass, including real-pipe truth replay, observer
   native/BPF ownership, duplicate JSON, event-loss, counter-drift,
   raw/normalized mismatch, missing verifier evidence, baseline artifact
   rejection, before-release failure, and delayed-bootstrap configuration
@@ -67,6 +72,19 @@ The excluded seven-cell path is now represented end to end in source:
 
 These checks are not live verifier, module-lifecycle, GPU-engagement, UVM
 event, numerical-correctness, or performance evidence.
+
+## Retained live setup failures
+
+Two controlled attempts exercised recovery but produced no live cell result.
+Attempt `owner-01` stopped before any cell because the workload executable was
+absent. Attempt `owner-02` reached block 01's release gate, where PID 3547886
+had two symlinks whose exact target was `/dev/nvidia-uvm`; the old runner
+required one and failed closed. CUDA 12.9 uses a primary `UVM_FD_VA_SPACE` and
+a secondary `UVM_FD_MM` for memory-map lifetime. The process exited after the
+release pipe closed, so its numeric FD table is no longer observable and was
+not retained; no numeric FD roles are inferred post hoc. Both attempts restored
+the original UVM and services with no recovery error or Xid. They are setup
+evidence only, not experiment cells.
 
 ## Remaining gate
 

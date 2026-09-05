@@ -498,6 +498,18 @@ def _validate_execution(path: Path, cell: MatrixCell) -> dict[str, Any]:
     ) != "read_only_exclusive":
         raise ValidationError("execution did not retain both read-only exclusive leases")
     target_pid = _integer(execution.get("target_pid"), "target_pid", 1)
+    uvm_candidates = execution.get("uvm_fd_candidates")
+    if not isinstance(uvm_candidates, list) or len(uvm_candidates) != 2:
+        raise ValidationError("execution UVM candidate inventory is missing")
+    candidate_fds = []
+    for candidate in uvm_candidates:
+        if not isinstance(candidate, dict) or set(candidate) != {"source_fd", "target"}:
+            raise ValidationError("execution UVM candidate schema is invalid")
+        candidate_fds.append(_integer(candidate.get("source_fd"), "candidate source_fd"))
+        if candidate.get("target") != "/dev/nvidia-uvm":
+            raise ValidationError("execution UVM candidate target differs")
+    if candidate_fds != sorted(candidate_fds) or len(set(candidate_fds)) != 2:
+        raise ValidationError("execution UVM candidate FDs are not ordered and unique")
     for group in ("monitor_coverage", "cleanup"):
         values = execution.get(group)
         if not isinstance(values, dict) or not values:
@@ -513,7 +525,8 @@ def _validate_execution(path: Path, cell: MatrixCell) -> dict[str, Any]:
         "new_kernel_anomalies"
     ) != []:
         raise ValidationError("execution observed foreign compute or kernel anomalies")
-    return {"value": execution, "target_pid": target_pid}
+    return {"value": execution, "target_pid": target_pid,
+            "uvm_fd_candidates": uvm_candidates}
 
 
 def _validate_safety(path: Path) -> None:
@@ -736,7 +749,12 @@ def _latest_final_uvm(records: Iterable[dict[str, Any]]) -> dict[str, Any]:
     return finals[0]
 
 
-def _validate_uvm(path: Path, elapsed_ms: float, target_pid: int) -> dict[str, Any]:
+def _validate_uvm(
+    path: Path,
+    elapsed_ms: float,
+    target_pid: int,
+    execution_candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
     records = _load_jsonl(path / "uvm-events.jsonl")
     ready = [row for row in records if row.get("event") == "ready"]
     if len(ready) != 1 or ready[0].get("target_pid") != target_pid:
@@ -744,6 +762,31 @@ def _validate_uvm(path: Path, elapsed_ms: float, target_pid: int) -> dict[str, A
     if ready[0].get("queue_entries") != 65536 or ready[0].get("entry_bytes") != 72:
         raise ValidationError("UVM monitor ready record has an unexpected queue ABI")
     _integer(ready[0].get("uvm_fd"), "UVM inherited fd")
+    source_fds = ready[0].get("candidate_source_fds")
+    if (
+        not isinstance(source_fds, list)
+        or len(source_fds) != 2
+        or any(type(value) is not int or value < 0 for value in source_fds)
+        or len(set(source_fds)) != 2
+    ):
+        raise ValidationError("UVM monitor candidate source FDs are invalid")
+    if ready[0].get("candidate_targets") != [
+        "/dev/nvidia-uvm", "/dev/nvidia-uvm"
+    ]:
+        raise ValidationError("UVM monitor candidate targets differ")
+    if source_fds != [value["source_fd"] for value in execution_candidates] or ready[
+        0
+    ].get("candidate_targets") != [value["target"] for value in execution_candidates]:
+        raise ValidationError("UVM monitor candidates differ from runner-owned inventory")
+    selected_source = _integer(ready[0].get("selected_source_fd"), "selected_source_fd")
+    rejected_source = _integer(ready[0].get("rejected_source_fd"), "rejected_source_fd")
+    if (
+        {selected_source, rejected_source} != set(source_fds)
+        or ready[0].get("rejected_status") != 0x00000016
+    ):
+        raise ValidationError(
+            "UVM monitor did not select exactly one driver-validated VA-space FD"
+        )
     final = _latest_final_uvm(records)
     fields = (
         "gpu_faults",
@@ -1022,7 +1065,12 @@ def validate_cell(path: Path, cell: MatrixCell) -> dict[str, Any]:
     _validate_continuous_records(path, execution["target_pid"])
     intervals = _validate_truth(path)
     workload = _validate_workload(path, intervals)
-    uvm = _validate_uvm(path, workload["end_to_end_ms"], execution["target_pid"])
+    uvm = _validate_uvm(
+        path,
+        workload["end_to_end_ms"],
+        execution["target_pid"],
+        execution["uvm_fd_candidates"],
+    )
     policy_paths = tuple(path / name for name in POLICY_ARTIFACT_NAMES)
     if cell.role == "context_control":
         if any(policy_path.exists() for policy_path in policy_paths):

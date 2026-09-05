@@ -34,6 +34,8 @@
 #define EVENT_ENTRY_V2_BYTES 72U
 #define EVENT_TYPE_COUNT_ALL 64U
 #define NV_OK 0U
+#define NV_ERR_ILLEGAL_ACTION 0x00000016U
+#define UVM_CANDIDATES 2U
 
 struct init_event_tracker_v2 {
     uint64_t queue_buffer;
@@ -104,6 +106,12 @@ _Static_assert(sizeof(struct migration_v2) == EVENT_ENTRY_V2_BYTES,
 
 static volatile sig_atomic_t exiting;
 
+struct uvm_candidate {
+    long source_fd;
+    long inherited_fd;
+    uint32_t probe_status;
+};
+
 static void handle_signal(int signo)
 {
     (void)signo;
@@ -121,6 +129,57 @@ static int checked_ioctl(int fd, unsigned long command, void *params,
         fprintf(stderr, "%s returned NV_STATUS %u\n", name, *rm_status);
         return -EIO;
     }
+    return 0;
+}
+
+static int parse_candidate(const char *text, struct uvm_candidate *candidate)
+{
+    char *separator = NULL;
+    char *end = NULL;
+
+    errno = 0;
+    candidate->source_fd = strtol(text, &separator, 10);
+    if (errno || separator == text || *separator != ':' ||
+        candidate->source_fd < 0 || candidate->source_fd > INT32_MAX)
+        return -EINVAL;
+    errno = 0;
+    candidate->inherited_fd = strtol(separator + 1, &end, 10);
+    if (errno || end == separator + 1 || *end != '\0' ||
+        candidate->inherited_fd < 0 || candidate->inherited_fd > INT32_MAX ||
+        fcntl((int)candidate->inherited_fd, F_GETFD) < 0)
+        return -EINVAL;
+    return 0;
+}
+
+static int probe_candidate(struct uvm_candidate *candidate,
+                           uint8_t *queue,
+                           struct event_control *control)
+{
+    struct init_event_tracker_v2 init = {
+        .queue_buffer = (uintptr_t)queue,
+        .queue_buffer_size = QUEUE_ENTRIES,
+        .control_buffer = (uintptr_t)control,
+        .all_processors = 1,
+        .uvm_fd = (uint32_t)candidate->inherited_fd,
+    };
+    int tools_fd = open("/dev/nvidia-uvm-tools", O_RDWR | O_CLOEXEC);
+    int result;
+
+    if (tools_fd < 0) {
+        fprintf(stderr, "failed to open /dev/nvidia-uvm-tools: %s\n",
+                strerror(errno));
+        return -errno;
+    }
+    result = ioctl(tools_fd, UVM_TOOLS_INIT_EVENT_TRACKER_V2, &init);
+    if (result < 0) {
+        result = -errno;
+        fprintf(stderr, "candidate %ld tracker probe failed: %s\n",
+                candidate->source_fd, strerror(errno));
+        close(tools_fd);
+        return result;
+    }
+    candidate->probe_status = init.rm_status;
+    close(tools_fd);
     return 0;
 }
 
@@ -207,27 +266,34 @@ int main(int argc, char **argv)
     };
     struct event_control *control = NULL;
     struct counters result = {0};
+    struct uvm_candidate candidates[UVM_CANDIDATES] = {0};
     uint8_t *queue = NULL;
-    char *fd_end = NULL;
     char *pid_end = NULL;
-    long inherited_fd;
     long target_pid;
+    unsigned int selected = UVM_CANDIDATES;
+    unsigned int rejected = UVM_CANDIDATES;
+    unsigned int index;
     int tools_fd = -1;
     int err = 1;
 
-    if (argc != 5 || strcmp(argv[1], "--uvm-fd") != 0 ||
-        strcmp(argv[3], "--target-pid") != 0) {
-        fprintf(stderr, "usage: %s --uvm-fd INHERITED_FD --target-pid PID\n",
-                argv[0]);
+    if (argc != 7 || strcmp(argv[1], "--uvm-candidate") != 0 ||
+        strcmp(argv[3], "--uvm-candidate") != 0 ||
+        strcmp(argv[5], "--target-pid") != 0) {
+        fprintf(stderr, "usage: %s --uvm-candidate SOURCE:INHERITED "
+                "--uvm-candidate SOURCE:INHERITED --target-pid PID\n", argv[0]);
+        return 2;
+    }
+    if (parse_candidate(argv[2], &candidates[0]) != 0 ||
+        parse_candidate(argv[4], &candidates[1]) != 0 ||
+        candidates[0].source_fd == candidates[1].source_fd ||
+        candidates[0].inherited_fd == candidates[1].inherited_fd) {
+        fprintf(stderr, "invalid or duplicate inherited UVM candidates\n");
         return 2;
     }
     errno = 0;
-    inherited_fd = strtol(argv[2], &fd_end, 10);
-    target_pid = strtol(argv[4], &pid_end, 10);
-    if (errno || fd_end == NULL || *fd_end != '\0' || pid_end == NULL ||
-        *pid_end != '\0' || inherited_fd < 0 || inherited_fd > INT32_MAX ||
-        target_pid <= 0 || fcntl((int)inherited_fd, F_GETFD) < 0) {
-        fprintf(stderr, "invalid inherited UVM fd or target pid\n");
+    target_pid = strtol(argv[6], &pid_end, 10);
+    if (errno || pid_end == NULL || *pid_end != '\0' || target_pid <= 0) {
+        fprintf(stderr, "invalid target pid\n");
         return 2;
     }
 
@@ -240,6 +306,43 @@ int main(int argc, char **argv)
     memset(queue, 0, (size_t)QUEUE_ENTRIES * EVENT_ENTRY_V2_BYTES);
     memset(control, 0, 4096);
 
+    for (index = 0; index < UVM_CANDIDATES; ++index) {
+        memset(queue, 0, (size_t)QUEUE_ENTRIES * EVENT_ENTRY_V2_BYTES);
+        memset(control, 0, 4096);
+        err = probe_candidate(&candidates[index], queue, control);
+        if (err != 0)
+            goto out;
+        if (candidates[index].probe_status == NV_OK) {
+            if (selected != UVM_CANDIDATES) {
+                fprintf(stderr, "multiple UVM candidates are VA-space FDs\n");
+                err = -EPROTO;
+                goto out;
+            }
+            selected = index;
+        }
+        else if (candidates[index].probe_status == NV_ERR_ILLEGAL_ACTION) {
+            if (rejected != UVM_CANDIDATES) {
+                fprintf(stderr, "multiple UVM candidates are non-VA-space FDs\n");
+                err = -EPROTO;
+                goto out;
+            }
+            rejected = index;
+        }
+        else {
+            fprintf(stderr, "candidate %ld returned unexpected NV_STATUS %u\n",
+                    candidates[index].source_fd, candidates[index].probe_status);
+            err = -EPROTO;
+            goto out;
+        }
+    }
+    if (selected == UVM_CANDIDATES || rejected == UVM_CANDIDATES) {
+        fprintf(stderr, "UVM candidates did not resolve to one VA-space and one MM FD\n");
+        err = -EPROTO;
+        goto out;
+    }
+
+    memset(queue, 0, (size_t)QUEUE_ENTRIES * EVENT_ENTRY_V2_BYTES);
+    memset(control, 0, 4096);
     tools_fd = open("/dev/nvidia-uvm-tools", O_RDWR | O_CLOEXEC);
     if (tools_fd < 0) {
         fprintf(stderr, "failed to open /dev/nvidia-uvm-tools: %s\n",
@@ -251,7 +354,7 @@ int main(int argc, char **argv)
     init.queue_buffer_size = QUEUE_ENTRIES;
     init.control_buffer = (uintptr_t)control;
     init.all_processors = 1;
-    init.uvm_fd = (uint32_t)inherited_fd;
+    init.uvm_fd = (uint32_t)candidates[selected].inherited_fd;
     err = checked_ioctl(tools_fd, UVM_TOOLS_INIT_EVENT_TRACKER_V2, &init,
                         &init.rm_status, "init event tracker v2");
     if (err != 0)
@@ -270,9 +373,14 @@ int main(int argc, char **argv)
     signal(SIGTERM, handle_signal);
     setvbuf(stdout, NULL, _IOLBF, 0);
     printf("{\"event\":\"ready\",\"pid\":%ld,\"target_pid\":%ld,"
-           "\"uvm_fd\":%ld,\"queue_entries\":%u,\"entry_bytes\":%u}\n",
-           (long)getpid(), target_pid, inherited_fd, QUEUE_ENTRIES,
-           EVENT_ENTRY_V2_BYTES);
+           "\"uvm_fd\":%ld,\"candidate_source_fds\":[%ld,%ld],"
+           "\"candidate_targets\":[\"/dev/nvidia-uvm\",\"/dev/nvidia-uvm\"],"
+           "\"selected_source_fd\":%ld,\"rejected_source_fd\":%ld,"
+           "\"rejected_status\":%u,\"queue_entries\":%u,\"entry_bytes\":%u}\n",
+           (long)getpid(), target_pid, candidates[selected].inherited_fd,
+           candidates[0].source_fd, candidates[1].source_fd,
+           candidates[selected].source_fd, candidates[rejected].source_fd,
+           candidates[rejected].probe_status, QUEUE_ENTRIES, EVENT_ENTRY_V2_BYTES);
 
     while (!exiting) {
         struct pollfd pfd = {.fd = tools_fd, .events = POLLIN};
@@ -292,7 +400,8 @@ int main(int argc, char **argv)
 out:
     if (tools_fd >= 0)
         close(tools_fd);
-    close((int)inherited_fd);
+    for (index = 0; index < UVM_CANDIDATES; ++index)
+        close((int)candidates[index].inherited_fd);
     free(control);
     free(queue);
     return err < 0 ? -err : err;

@@ -232,25 +232,58 @@ def validate_idle(snapshot: dict[str, Any], before: dict[str, Any] | None = None
             demand(snapshot[field] == before[field], f"kernel safety history changed: {field}")
 
 
-def duplicate_workload_uvm_fd(pid: int) -> int:
+def discover_workload_uvm_fds(pid: int, proc_root: Path = Path("/proc")) -> list[dict[str, Any]]:
     matches = []
-    for fd_path in (Path("/proc") / str(pid) / "fd").glob("[0-9]*"):
+    for fd_path in (proc_root / str(pid) / "fd").glob("[0-9]*"):
         try:
-            if os.readlink(fd_path) == "/dev/nvidia-uvm":
-                matches.append(int(fd_path.name))
+            target = os.readlink(fd_path)
+            if target == "/dev/nvidia-uvm":
+                matches.append({"source_fd": int(fd_path.name), "target": target})
         except OSError:
             continue
-    demand(len(matches) == 1, f"owned workload has {len(matches)} UVM fds, expected one")
+    matches.sort(key=lambda value: value["source_fd"])
+    demand(len(matches) == 2,
+           f"owned CUDA 12.9 workload has {len(matches)} UVM fds, expected VA-space plus MM")
+    demand(len({value["source_fd"] for value in matches}) == 2 and
+           all(value["target"] == "/dev/nvidia-uvm" for value in matches),
+           "owned UVM candidate inventory is invalid")
+    return matches
+
+
+def duplicate_workload_uvm_fds(pid: int) -> list[dict[str, Any]]:
+    candidates = discover_workload_uvm_fds(pid)
     pidfd = os.pidfd_open(pid, 0)
+    duplicated: list[dict[str, Any]] = []
     try:
         libc = ctypes.CDLL(None, use_errno=True)
-        duplicated = libc.syscall(438, pidfd, matches[0], 0)
-        if duplicated < 0:
-            error = ctypes.get_errno()
-            raise LiveError(f"pidfd_getfd failed: {os.strerror(error)}")
-        return int(duplicated)
+        for candidate in candidates:
+            inherited_fd = libc.syscall(438, pidfd, candidate["source_fd"], 0)
+            if inherited_fd < 0:
+                error = ctypes.get_errno()
+                raise LiveError(
+                    f"pidfd_getfd failed for owned UVM fd {candidate['source_fd']}: "
+                    f"{os.strerror(error)}"
+                )
+            duplicated.append({**candidate, "inherited_fd": int(inherited_fd)})
+        return duplicated
+    except BaseException:
+        for candidate in duplicated:
+            os.close(candidate["inherited_fd"])
+        raise
     finally:
         os.close(pidfd)
+
+
+def uvm_monitor_command(candidates: list[dict[str, Any]], target_pid: int) -> list[str]:
+    demand(len(candidates) == 2, "UVM monitor requires exactly two owned candidates")
+    command = [str(UVM_MONITOR)]
+    for candidate in candidates:
+        command.extend([
+            "--uvm-candidate",
+            f"{candidate['source_fd']}:{candidate['inherited_fd']}",
+        ])
+    command.extend(["--target-pid", str(target_pid)])
+    return command
 
 
 def start_json_process(argv: list[str], output: Path, error: Path,
@@ -402,16 +435,20 @@ def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
 
         def before_release(_: dict[str, Any]) -> None:
             nonlocal uvm, observer
-            duplicated = duplicate_workload_uvm_fd(workload.pid)
+            candidates = duplicate_workload_uvm_fds(workload.pid)
+            execution["uvm_fd_candidates"] = [
+                {"source_fd": value["source_fd"], "target": value["target"]}
+                for value in candidates
+            ]
             try:
                 uvm, uvm_output, uvm_error = start_json_process(
-                    [str(UVM_MONITOR), "--uvm-fd", str(duplicated),
-                     "--target-pid", str(workload.pid)],
+                    uvm_monitor_command(candidates, workload.pid),
                     cell_dir / "uvm-events.jsonl", cell_dir / "uvm-events.stderr.log",
-                    (duplicated,),
+                    tuple(value["inherited_fd"] for value in candidates),
                 )
             finally:
-                os.close(duplicated)
+                for candidate in candidates:
+                    os.close(candidate["inherited_fd"])
             owned.append((uvm, uvm_output, uvm_error))
             wait_event(uvm, cell_dir / "uvm-events.jsonl", "ready")
             if cell.implementation is not None:

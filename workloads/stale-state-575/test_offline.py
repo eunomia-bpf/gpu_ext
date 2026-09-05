@@ -293,6 +293,10 @@ def make_cell(root: Path, cell: protocol.MatrixCell) -> Path:
         "lease_paths": list(protocol.LEASE_PATHS),
         "lease_mode": "read_only_exclusive",
         "target_pid": TARGET_PID,
+        "uvm_fd_candidates": [
+            {"source_fd": 7, "target": "/dev/nvidia-uvm"},
+            {"source_fd": 8, "target": "/dev/nvidia-uvm"},
+        ],
         "monitor_coverage": {
             "uvm": True,
             "gpu_telemetry": True,
@@ -407,6 +411,11 @@ def make_cell(root: Path, cell: protocol.MatrixCell) -> Path:
                 "event": "ready",
                 "target_pid": TARGET_PID,
                 "uvm_fd": 9,
+                "candidate_source_fds": [7, 8],
+                "candidate_targets": ["/dev/nvidia-uvm", "/dev/nvidia-uvm"],
+                "selected_source_fd": 7,
+                "rejected_source_fd": 8,
+                "rejected_status": 0x00000016,
                 "queue_entries": 65536,
                 "entry_bytes": 72,
             },
@@ -1374,6 +1383,42 @@ class ObserverProtocolTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_cuda_12_9_uvm_candidates_are_exact_and_ordered(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fd_root = root / str(TARGET_PID) / "fd"
+            fd_root.mkdir(parents=True)
+            os.symlink("/dev/nvidia-uvm", fd_root / "8")
+            os.symlink("/dev/null", fd_root / "6")
+            os.symlink("/dev/nvidia-uvm", fd_root / "7")
+            candidates = live_runner.discover_workload_uvm_fds(
+                TARGET_PID, proc_root=root
+            )
+        self.assertEqual(candidates, [
+            {"source_fd": 7, "target": "/dev/nvidia-uvm"},
+            {"source_fd": 8, "target": "/dev/nvidia-uvm"},
+        ])
+        inherited = [
+            {**candidates[0], "inherited_fd": 17},
+            {**candidates[1], "inherited_fd": 18},
+        ]
+        self.assertEqual(
+            live_runner.uvm_monitor_command(inherited, TARGET_PID)[1:],
+            ["--uvm-candidate", "7:17", "--uvm-candidate", "8:18",
+             "--target-pid", str(TARGET_PID)],
+        )
+
+    def test_cuda_uvm_candidate_discovery_rejects_wrong_cardinality(self) -> None:
+        for count in (1, 3):
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                fd_root = root / str(TARGET_PID) / "fd"
+                fd_root.mkdir(parents=True)
+                for index in range(count):
+                    os.symlink("/dev/nvidia-uvm", fd_root / str(index + 7))
+                with self.assertRaises(live_runner.LiveError):
+                    live_runner.discover_workload_uvm_fds(TARGET_PID, proc_root=root)
+
     def test_live_preflight_dry_run_is_side_effect_free_and_keeps_baseline_clean(self) -> None:
         with (
             mock.patch.object(Path, "exists", side_effect=AssertionError("exists")),
@@ -1573,7 +1618,11 @@ class RawValidationTests(unittest.TestCase):
                     protocol.validate_cell(path, cell)
 
     def test_validator_rejects_numerical_error_event_loss_and_cleanup_failure(self) -> None:
-        mutations = ("numerical", "event_loss", "cleanup", "effect_error")
+        mutations = (
+            "numerical", "event_loss", "uvm_fd_inventory_missing",
+            "uvm_fd_inventory_mismatch", "uvm_fd_selection", "cleanup",
+            "effect_error",
+        )
         for mutation in mutations:
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
@@ -1591,6 +1640,18 @@ class RawValidationTests(unittest.TestCase):
                 elif mutation == "event_loss":
                     values = [json.loads(line) for line in (path / "uvm-events.jsonl").read_text().splitlines()]
                     values[-1]["dropped_gpu_faults"] = 1
+                    write_jsonl(path / "uvm-events.jsonl", values)
+                elif mutation == "uvm_fd_inventory_missing":
+                    value = json.loads((path / "execution.json").read_text())
+                    del value["uvm_fd_candidates"]
+                    write_json(path / "execution.json", value)
+                elif mutation == "uvm_fd_inventory_mismatch":
+                    value = json.loads((path / "execution.json").read_text())
+                    value["uvm_fd_candidates"][1]["source_fd"] = 9
+                    write_json(path / "execution.json", value)
+                elif mutation == "uvm_fd_selection":
+                    values = [json.loads(line) for line in (path / "uvm-events.jsonl").read_text().splitlines()]
+                    values[0]["selected_source_fd"] = values[0]["rejected_source_fd"]
                     write_jsonl(path / "uvm-events.jsonl", values)
                 elif mutation == "cleanup":
                     value = json.loads((path / "execution.json").read_text())

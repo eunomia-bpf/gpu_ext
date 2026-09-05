@@ -1,0 +1,91 @@
+diff --git a/lmcache/integration/vllm/vllm_v1_adapter.py b/lmcache/integration/vllm/vllm_v1_adapter.py
+--- a/lmcache/integration/vllm/vllm_v1_adapter.py
++++ b/lmcache/integration/vllm/vllm_v1_adapter.py
+@@ -757,6 +757,9 @@ class LMCacheConnectorV1Impl:
+         #  not called, we should consider removing it.
+         assert len(self.kv_caches) == 0 and len(kv_caches) > 0
+         self.kv_caches = kv_caches
++        engine = self.lmcache_engine
++        if engine is not None and engine.gpu_connector is not None:
++            engine.gpu_connector.register_kv_caches(list(kv_caches.values()))
+         self._manager.post_init()
+
+     @_lmcache_nvtx_annotate
+diff --git a/lmcache/v1/gpu_connector/gpu_connectors.py b/lmcache/v1/gpu_connector/gpu_connectors.py
+--- a/lmcache/v1/gpu_connector/gpu_connectors.py
++++ b/lmcache/v1/gpu_connector/gpu_connectors.py
+@@ -42,6 +42,13 @@ logger = init_logger(__name__)
+
+
+ class GPUConnectorInterface(metaclass=abc.ABCMeta):
++    def register_kv_caches(self, kv_caches: DiscoverableKVCache) -> None:
++        """Register engine-owned KV caches before storage initialization.
++
++        Most connectors discover their layout lazily during the first transfer,
++        so their default registration hook intentionally does nothing.
++        """
++
+     @abc.abstractmethod
+     def to_gpu(self, memory_obj: MemoryObj, start: int, end: int, **kwargs):
+         # FIXME (Yihua): We shouldn't put start and end here since
+@@ -435,6 +442,10 @@ class VLLMPagedMemGPUConnectorV3(GPUConnectorInterface):
+         self.use_gpu = use_gpu
+         self.layout_hints: LayoutHints = layout_hints or {}
+         self.kvcaches: Optional[List[torch.Tensor]] = None
++        self._registered_kvcaches: Optional[DiscoverableKVCache] = None
++        self._registered_engine_kv_formats: Optional[
++            list[lmcache_native.EngineKVFormat]
++        ] = None
+
+         self.init = False
+         self.group_kv_cache_pointers_on_gpu: Optional[list[torch.Tensor]] = None
+@@ -454,6 +465,19 @@ class VLLMPagedMemGPUConnectorV3(GPUConnectorInterface):
+         assert device is not None
+         return cls(metadata, device, use_gpu, layout_hints=layout_hints)
+
++    def register_kv_caches(self, kv_caches: DiscoverableKVCache) -> None:
++        """Discover the real vLLM layout before memory pools are created."""
++        normalized, engine_kv_formats = normalize_and_discover_per_layer_formats(
++            kv_caches, [], EngineType.VLLM, self.layout_hints
++        )
++        self._registered_kvcaches = normalized
++        self._registered_engine_kv_formats = engine_kv_formats
++        if self.metadata.kv_layer_groups_manager is None:
++            self.metadata.kv_layer_groups_manager = KVLayerGroupsManager(
++                normalized,
++                engine_kv_formats=engine_kv_formats,
++            )
++
+     def _initialize_kv_cache_pointers(self):
+         """Discover KV-cache layout, build the layer-groups manager, and
+         capture per-group GPU pointer tensors.
+@@ -465,21 +489,20 @@ class VLLMPagedMemGPUConnectorV3(GPUConnectorInterface):
+         if self.init:
+             return
+
+-        empty_layer_index_groups: list[list[int]] = []
+-        self.kvcaches, engine_kv_formats = normalize_and_discover_per_layer_formats(
+-            self.kvcaches, empty_layer_index_groups, EngineType.VLLM, self.layout_hints
+-        )
++        if self._registered_kvcaches is None:
++            assert self.kvcaches is not None
++            self.register_kv_caches(self.kvcaches)
++        assert self._registered_kvcaches is not None
++        assert self._registered_engine_kv_formats is not None
++        self.kvcaches = self._registered_kvcaches
++        engine_kv_formats = self._registered_engine_kv_formats
+         self.engine_kv_format = engine_kv_formats[0]
+         self.num_blocks = get_num_blocks(self.kvcaches, self.engine_kv_format)
+         self.block_size = get_block_size(self.kvcaches, self.engine_kv_format)
+         self.page_buffer_size = self.num_blocks * self.block_size
+         self.head_size = get_head_size(self.kvcaches, self.engine_kv_format)
+
+-        if self.metadata.kv_layer_groups_manager is None:
+-            self.metadata.kv_layer_groups_manager = KVLayerGroupsManager(
+-                self.kvcaches,
+-                engine_kv_formats=engine_kv_formats,
+-            )
+         klg_manager = self.metadata.kv_layer_groups_manager
++        assert klg_manager is not None
+
+         # Heterogeneous-block_size sanity check.

@@ -41,7 +41,44 @@ only authorized traced retry is the fresh path
 `raw/storage-575-v3-preflight-03/disk`; the correctness and formal paths remain
 unchanged.
 
-The saved telemetry summary peaks at 30,724 MiB of 32,607 MiB. That observation
+That third V3 attempt reached the real model and the first cold request. The
+log proves that V3 discovered the physical fused NHD cache as
+`(788, 16, 4, 256)` per layer and initialized its pointers, while the engine
+metadata created earlier still described the legacy split layout
+`(48, 2, 256, 4, 128)`. Consequently, `CacheEngine.store` allocated a
+last-dimension-512 memory object before V3's lazy discovery; the subsequent
+copy from V3's last-dimension-1024 temporary buffer failed with a tensor-size
+mismatch. The request returned an empty HTTP 200 response, no cold store
+completed, and there is no correctness, disk-engagement, or performance
+result. The retained execution record reports unchanged boot, no kernel/Xid
+abnormality, successful cleanup, and GPU memory returning to 15 MiB.
+
+The source repair in
+`patches/lmcache-v0.5.4-v3-register-before-storage.patch` adds a generic
+registration hook and makes the V3 connector discover the actual cache layout
+during vLLM's `register_kv_caches`, before `post_init` creates storage. It does
+not select V3 by private type. The rebuilt fixed wheel passed 39 CPU tests plus
+the existing exact 32-slot fused-NHD GPU D2H-to-pinned-CPU-to-H2D roundtrip;
+the latter checked every selected value and allocator cleanup. These are
+implementation gates only. A fresh full-model run is still required before
+claiming that the compatibility failure is closed, and the failed preflight-03
+directory will not be reused.
+
+For reproduction, start from the source revision recorded in
+`artifacts-current.json`, apply the listed patch with `git apply`, and rebuild
+with the unchanged environment in `build-smoke.md`. The resulting wheel keeps
+the existing `dist-current-py312/lmcache-0.5.4-cp312-cp312-linux_x86_64.whl`
+path and is installed into `current-venv` with `pip install --force-reinstall
+--no-deps`; admission therefore continues to exercise a source-built wheel,
+not an ad-hoc edit under `site-packages`.
+
+This repair is scoped to vLLM's in-process V3 connector. The default hook is a
+no-op, so the legacy, layerwise, multiprocess/NIXL, and non-vLLM connectors are
+unchanged; they are also outside this storage-tier validation and receive no
+new compatibility claim here.
+
+The second attempt's saved telemetry summary peaks at 30,724 MiB of 32,607 MiB.
+That observation
 does not establish either an allocation failure or adequate headroom at every
 instant. `--enforce-eager` disables torch compilation/CUDA graphs, not the
 separately selected Triton MoE kernels.

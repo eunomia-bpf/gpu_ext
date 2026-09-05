@@ -10,6 +10,7 @@ fixed endpoint probe, and unconditionally attempts the admitted rollback.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 import importlib.util
 import json
@@ -84,6 +85,24 @@ KUBECTL = (
     "/var/lib/rancher/k3s/agent/kubelet.kubeconfig",
 )
 NODE = "lab"
+FIXED_SM_CLOCK_MHZ = 2400
+FIXED_MEMORY_CLOCK_MHZ = 14001
+CLOCK_OBSERVATION_COMMAND = (
+    "nvidia-smi", "--query-gpu=pstate,clocks.current.sm,clocks.current.memory,"
+    "clocks_event_reasons.gpu_idle", "--format=csv,noheader,nounits",
+)
+CLOCK_SUPPORT_COMMAND = (
+    "nvidia-smi", "--query-supported-clocks=memory,graphics",
+    "--format=csv,noheader,nounits",
+)
+CLOCK_LOCK_COMMANDS = (
+    ("nvidia-smi", "-i", "0", "--lock-gpu-clocks=2400,2400"),
+    ("nvidia-smi", "-i", "0", "--lock-memory-clocks=14001,14001"),
+)
+CLOCK_RESET_COMMANDS = (
+    ("nvidia-smi", "-i", "0", "--reset-memory-clocks"),
+    ("nvidia-smi", "-i", "0", "--reset-gpu-clocks"),
+)
 
 
 class EndpointLifecycleError(RuntimeError):
@@ -103,9 +122,134 @@ class State:
     candidate_loaded: bool = False
     probe_passed: bool = False
     child_passed: bool = False
+    clock_lock_started: bool = False
+    clocks_locked: bool = False
+    clocks_reset: bool = False
     restore_loaded: bool = False
     services_restored: bool = False
     labels_restored: bool = False
+
+
+def clock_observation() -> dict[str, Any]:
+    raw = base.checked_stdout(list(CLOCK_OBSERVATION_COMMAND))
+    rows = [line.strip() for line in raw.splitlines() if line.strip()]
+    demand(len(rows) == 1, f"clock observation is not one GPU row: {rows}")
+    fields = [value.strip() for value in rows[0].split(",")]
+    demand(len(fields) == 4, f"clock observation field count differs: {fields}")
+    try:
+        sm_clock = int(fields[1])
+        memory_clock = int(fields[2])
+    except ValueError as error:
+        raise EndpointLifecycleError(
+            f"clock observation is not numeric: {fields}") from error
+    return {"pstate": fields[0], "sm_clock_mhz": sm_clock,
+            "memory_clock_mhz": memory_clock, "gpu_idle_reason": fields[3]}
+
+
+def require_fixed_clock_observation() -> dict[str, Any]:
+    observed = clock_observation()
+    demand(observed["sm_clock_mhz"] == FIXED_SM_CLOCK_MHZ and
+           observed["memory_clock_mhz"] == FIXED_MEMORY_CLOCK_MHZ,
+           "fixed GPU clocks are not observed: "
+           f"{observed['sm_clock_mhz']} / {observed['memory_clock_mhz']} MHz")
+    return observed
+
+
+def establish_fixed_clocks(state: State) -> dict[str, Any]:
+    support = base.checked_stdout(list(CLOCK_SUPPORT_COMMAND))
+    supported = []
+    for line in support.splitlines():
+        fields = [value.strip() for value in line.split(",")]
+        if len(fields) != 2:
+            continue
+        try:
+            supported.append((int(fields[0]), int(fields[1])))
+        except ValueError:
+            continue
+    demand((FIXED_MEMORY_CLOCK_MHZ, FIXED_SM_CLOCK_MHZ) in supported,
+           "fixed memory/SM clock pair is not supported")
+    before = clock_observation()
+    commands = []
+    state.clock_lock_started = True
+    for command in CLOCK_LOCK_COMMANDS:
+        completed = base.run_command(list(command))
+        commands.append({"argv": list(command), "returncode": completed.returncode,
+                         "stdout": completed.stdout, "stderr": completed.stderr})
+        demand(completed.returncode == 0,
+               f"clock lock command failed with status "
+               f"{completed.returncode}: {list(command)}")
+    after = require_fixed_clock_observation()
+    return {"target": {"sm_clock_mhz": FIXED_SM_CLOCK_MHZ,
+                       "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ},
+            "supported_pair": True, "before": before, "commands": commands,
+            "after": after}
+
+
+def reset_fixed_clocks() -> dict[str, Any]:
+    commands = []
+    errors = []
+    for command in CLOCK_RESET_COMMANDS:
+        try:
+            completed = base.run_command(list(command))
+        except BaseException as error:
+            errors.append(f"{list(command)}: {type(error).__name__}: {error}")
+            continue
+        commands.append({"argv": list(command),
+                         "returncode": completed.returncode,
+                         "stdout": completed.stdout,
+                         "stderr": completed.stderr})
+        if completed.returncode != 0:
+            errors.append(
+                f"{list(command)}: "
+                f"returned status {completed.returncode}")
+    if errors:
+        raise EndpointLifecycleError("; ".join(errors))
+    return {"commands": commands, "after": clock_observation()}
+
+
+@contextmanager
+def fixed_clock_scope(state: State, recovery_errors: list[str], event):
+    """Hold the frozen clocks and reset them for every body exit path."""
+    body_error = False
+    try:
+        locked = establish_fixed_clocks(state)
+        state.clocks_locked = True
+        event("fixed_clocks_established", **locked)
+        yield
+    except BaseException:
+        body_error = True
+        raise
+    finally:
+        if state.clock_lock_started:
+            try:
+                reset = reset_fixed_clocks()
+                state.clocks_reset = True
+                event("fixed_clocks_reset", **reset)
+            except BaseException as error:
+                message = f"clock reset: {type(error).__name__}: {error}"
+                recovery_errors.append(message)
+                try:
+                    event("fixed_clocks_reset_failed", error=message)
+                except BaseException as event_error:
+                    recovery_errors.append(
+                        "clock reset event: "
+                        f"{type(event_error).__name__}: {event_error}")
+                if not body_error:
+                    raise
+
+
+def retry_fixed_clock_reset(state: State, recovery_errors: list[str], event) -> bool:
+    if not state.clock_lock_started or state.clocks_reset:
+        return False
+    try:
+        reset = reset_fixed_clocks()
+        state.clocks_reset = True
+        event("fixed_clocks_reset_retry", **reset)
+        return True
+    except BaseException as error:
+        recovery_errors.append(
+            f"clock reset retry: {type(error).__name__}: {error}")
+        return False
 
 
 def validate_endpoint_symbols(path: Path) -> list[str]:
@@ -376,6 +520,15 @@ def dry_run(candidate_dir: Path, stage: Path, output: Path,
             "load_order": list(base.LOAD_ORDER),
             "remove_order": list(base.REMOVE_ORDER),
             "probe": [str(PROBE), *PROBE_ARGS],
+            "fixed_clocks": {
+                "sm_clock_mhz": FIXED_SM_CLOCK_MHZ,
+                "memory_clock_mhz": FIXED_MEMORY_CLOCK_MHZ,
+                "support_query": list(CLOCK_SUPPORT_COMMAND),
+                "observation_query": list(CLOCK_OBSERVATION_COMMAND),
+                "lock_commands": [list(value) for value in CLOCK_LOCK_COMMANDS],
+                "reset_commands": [list(value) for value in CLOCK_RESET_COMMANDS],
+                "scope": "candidate probe and both child campaigns",
+            },
             "child_mode": child_mode,
             "child_path": CHILD_PATH, "child_commands": child_commands,
             "stage": str(stage), "output": str(output)}
@@ -611,48 +764,61 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
               safety=candidate_safety, holders=candidate_holders,
               boot_id=boot_id, power_limit_w=candidate_power_limit)
 
-        probe_dir = output / "probe"
-        probe_dir.mkdir()
-        completed = base.run_command(
-            ["taskset", "-c", "8-15", str(PROBE), *PROBE_ARGS], timeout=60.0)
-        (probe_dir / "stdout.jsonl").write_text(completed.stdout)
-        (probe_dir / "stderr.log").write_text(completed.stderr)
-        probe_gate = validate_probe_output(completed.stdout)
-        state.probe_passed = True
-        event("probe_passed", returncode=completed.returncode,
-              command=[str(PROBE), *PROBE_ARGS], gate=probe_gate)
+        with fixed_clock_scope(state, recovery_errors, event):
+            event("fixed_clocks_before_probe",
+                  observation=require_fixed_clock_observation())
+            probe_dir = output / "probe"
+            probe_dir.mkdir()
+            completed = base.run_command(
+                ["taskset", "-c", "8-15", str(PROBE), *PROBE_ARGS], timeout=60.0)
+            (probe_dir / "stdout.jsonl").write_text(completed.stdout)
+            (probe_dir / "stderr.log").write_text(completed.stderr)
+            probe_gate = validate_probe_output(completed.stdout)
+            state.probe_passed = True
+            event("probe_passed", returncode=completed.returncode,
+                  command=[str(PROBE), *PROBE_ARGS], gate=probe_gate)
 
-        if child_mode != "none":
-            base.cells.raise_if_interrupted()
-            lease_fds = tuple(leases.descriptors)
-            preflight_dir = output / "launchlate-preflight"
-            preflight_result = run_campaign_child(
-                "preflight", preflight_dir, lease_fds)
-            record["child_preflight"] = preflight_result
-            event("child_preflight_finished",
-                  returncode=preflight_result["returncode"],
-                  passed=preflight_result["passed"], output=str(preflight_dir))
-            demand(preflight_result["passed"],
-                   preflight_result.get("failure", "preflight child failed"))
-            base.cells.raise_if_interrupted()
-            event("child_preflight_passed",
-                  returncode=preflight_result["returncode"],
-                  output=str(preflight_dir))
-            if child_mode == "preflight-full":
-                full_dir = output / "launchlate-full"
-                full_result = run_campaign_child(
-                    "full", full_dir, lease_fds, preflight=preflight_dir)
-                record["child_full"] = full_result
-                event("child_full_finished", returncode=full_result["returncode"],
-                      passed=full_result["passed"], output=str(full_dir))
-                demand(full_result["passed"],
-                       full_result.get("failure", "full child failed"))
+            if child_mode != "none":
                 base.cells.raise_if_interrupted()
-                event("child_full_passed", returncode=full_result["returncode"],
-                      output=str(full_dir))
-            state.child_passed = True
-        else:
-            state.child_passed = True
+                event("fixed_clocks_before_preflight",
+                      observation=require_fixed_clock_observation())
+                lease_fds = tuple(leases.descriptors)
+                preflight_dir = output / "launchlate-preflight"
+                preflight_result = run_campaign_child(
+                    "preflight", preflight_dir, lease_fds)
+                record["child_preflight"] = preflight_result
+                event("child_preflight_finished",
+                      returncode=preflight_result["returncode"],
+                      passed=preflight_result["passed"], output=str(preflight_dir))
+                event("fixed_clocks_after_preflight",
+                      observation=require_fixed_clock_observation())
+                demand(preflight_result["passed"],
+                       preflight_result.get("failure", "preflight child failed"))
+                base.cells.raise_if_interrupted()
+                event("child_preflight_passed",
+                      returncode=preflight_result["returncode"],
+                      output=str(preflight_dir))
+                if child_mode == "preflight-full":
+                    event("fixed_clocks_before_full",
+                          observation=require_fixed_clock_observation())
+                    full_dir = output / "launchlate-full"
+                    full_result = run_campaign_child(
+                        "full", full_dir, lease_fds, preflight=preflight_dir)
+                    record["child_full"] = full_result
+                    event("child_full_finished",
+                          returncode=full_result["returncode"],
+                          passed=full_result["passed"], output=str(full_dir))
+                    event("fixed_clocks_after_full",
+                          observation=require_fixed_clock_observation())
+                    demand(full_result["passed"],
+                           full_result.get("failure", "full child failed"))
+                    base.cells.raise_if_interrupted()
+                    event("child_full_passed",
+                          returncode=full_result["returncode"],
+                          output=str(full_dir))
+                state.child_passed = True
+            else:
+                state.child_passed = True
     except BaseException as error:
         primary = error
         record["primary_error"] = f"{type(error).__name__}: {error}"
@@ -661,6 +827,7 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
         old_mask = signal.pthread_sigmask(
             signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
         try:
+            retry_fixed_clock_reset(state, recovery_errors, event)
             if initial is not None and state.destructive_started:
                 try:
                     base.stop_active_services()
@@ -735,6 +902,7 @@ def execute(candidate_dir: Path, stage: Path, output: Path,
             record["interrupt_signals"] = pending
             eligible = (primary is None and state.probe_passed and
                         state.child_passed and
+                        state.clocks_locked and state.clocks_reset and
                         state.restore_loaded and state.services_restored and
                         state.labels_restored and not recovery_errors and not pending and
                         "final" in record)

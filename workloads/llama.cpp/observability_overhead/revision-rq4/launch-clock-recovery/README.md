@@ -1,6 +1,6 @@
-# Launch-clock preflight-575-07 recovery audit
+# Launch-clock recovery audit
 
-The attempt-08 follow-up is frozen in
+The three-anchor experiment definition is frozen in
 [`launchlate-frozen-plan-v2.md`](launchlate-frozen-plan-v2.md). It retains the
 unchanged experiment requirements from
 [`launchlate-frozen-plan.md`](launchlate-frozen-plan.md), replaces only the
@@ -8,6 +8,17 @@ two-anchor clock gate with a pre-execution three-anchor validation, and keeps
 attempt 07 failed under its original 10,000 ppb rule. Calibration controls
 remain separate from the paired 10-block result, and the same-stack
 PTIMER/`%globaltimer` identity canary still precedes the 220-launch rerun.
+
+Attempts 08 and 09 remain retained failures. Attempt 09 passed its fresh
+preflight but found two narrow RM endpoint regimes: a 781 ns median bracket
+after candidate activation and a 2,174 ns median bracket after the GPU returned
+to idle clocks. The exact evidence boundary is in
+[`results-launchlate-575-09-clock-state-failed-20260904.md`](results-launchlate-575-09-clock-state-failed-20260904.md).
+The independently reviewed attempt-10 retry in
+[`launchlate-attempt10-frozen-clock-state-plan.md`](launchlate-attempt10-frozen-clock-state-plan.md)
+locks the supported 2400 / 14001 MHz pair symmetrically across all three arms,
+retains fresh controls in both child campaigns, and resets both clocks before
+module rollback on every exit path. It does not relax the 1.5 us gate.
 
 The runnable campaign is the launch-only three-arm matrix; it never mixes the
 old cross-clock records into a result. From the `revision-rq4` directory, first
@@ -68,8 +79,8 @@ assertions), and the launchlate loader CPU self-test passed.  The gpubpf loader,
 the NVBit adapter for `sm_120`, its clock-domain test, and both clock-control
 self-tests also built and passed without executing a GPU campaign.
 
-The runner/analyzer suite passes 76 CPU-only tests, and the endpoint lifecycle
-suite passes 10 more. The launch-only dry runs
+The runner/analyzer suite passes 86 CPU-only tests, and the endpoint lifecycle
+suite passes 24 more. The launch-only dry runs
 produce exactly three preflight timing cells and 30 full timing cells over
 `baseline`, `gpubpf_launchlate`, and `nvbit_launchlate`.  Independent OpenCode
 review session `ses_f92e26cfaffeu90Lyc00BpJNHV` returned PASS with no confirmed

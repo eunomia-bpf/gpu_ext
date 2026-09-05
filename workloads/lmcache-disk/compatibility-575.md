@@ -20,6 +20,16 @@ version caused the failure. No requests were served or storage-tier result
 produced. The adjacent missing MoE tuning configuration is a performance
 warning, not an established cause of the crash.
 
+## V3 readiness attempt
+
+The first V3 attempt, `raw/storage-575-v3-preflight-01/disk`, stopped in
+artifact admission because the local frozen model snapshot was incomplete.
+The server and GPU workload were never started. This admission-only failure is
+preserved, must not be overwritten or reused, and provides no V3 correctness,
+storage-engagement, or performance evidence. After restoring the complete
+model, the batch requires the fresh traced path
+`raw/storage-575-v3-preflight-02/disk`.
+
 The saved telemetry summary peaks at 30,724 MiB of 32,607 MiB. That observation
 does not establish either an allocation failure or adequate headroom at every
 instant. `--enforce-eager` disables torch compilation/CUDA graphs, not the

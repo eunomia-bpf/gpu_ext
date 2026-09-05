@@ -391,7 +391,6 @@ int main(int argc, char **argv)
             goto out;
         }
         drain_events(queue, control, &result);
-        emit("uvm_stats", &result, control);
     }
     drain_events(queue, control, &result);
     emit("final_uvm_stats", &result, control);

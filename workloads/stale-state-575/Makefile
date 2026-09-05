@@ -34,7 +34,7 @@ build/test_policy_jit: test_policy_jit.cpp stale_state_policy_jit.cpp stale_stat
 		$(UBPF_LIB) -o $@
 
 uvm_event_monitor: uvm_event_monitor.c
-	$(CC) $(CFLAGS) -std=c11 uvm_event_monitor.c -o $@
+	$(CC) $(CFLAGS) -std=c11 -Wl,--build-id=none uvm_event_monitor.c -o $@
 
 stale_state_workload: stale_state_workload.cu
 	$(NVCC) $(NVCCFLAGS) stale_state_workload.cu -o $@

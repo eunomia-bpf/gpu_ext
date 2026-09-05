@@ -1383,6 +1383,13 @@ class ObserverProtocolTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_uvm_monitor_keeps_json_off_the_event_drain_path(self) -> None:
+        source = (Path(__file__).parent / "uvm_event_monitor.c").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn('emit("uvm_stats"', source)
+        self.assertEqual(source.count('emit("final_uvm_stats"'), 1)
+
     def test_struct_ops_ownership_preserves_separate_id_namespaces(self) -> None:
         ready = {
             "pid": 5000,

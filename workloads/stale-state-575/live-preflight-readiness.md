@@ -62,7 +62,7 @@ The excluded seven-cell path is now represented end to end in source:
   policy struct_ops section, generated skeleton, and `-Werror` userspace
   loader build pass. The result serializer's host regression preserves a
   non-round nanosecond-derived millisecond duration across JSON output.
-- Python suite: 49 tests pass, including real-pipe truth replay, observer
+- Python suite: 50 tests pass, including real-pipe truth replay, observer
   native/BPF ownership, duplicate JSON, event-loss, counter-drift,
   raw/normalized mismatch, missing verifier evidence, baseline artifact
   rejection, before-release failure, and delayed-bootstrap configuration
@@ -110,6 +110,16 @@ stream precision serialized a timestamp-derived `2030.867201` ms phase as
 now emits doubles with `max_digits10` round-trip precision, backed by a host
 regression for that non-round duration. Attempt 04 remains a validation failure
 and contributes no admitted experiment cell.
+
+Attempt `owner-05` passed the precision gate and again completed a real
+12.049-second, 40-GiB BPF workload with zero numerical mismatches, 654,164
+complete policy decisions, a real struct_ops link, and clean detach. It was
+still rejected because the UVM event consumer wrote one JSON status after
+every drain: 275,058 intermediate records delayed the consumer enough to lose
+320,183 GPU-fault and 365,995 migration events. The zero-loss validator is
+unchanged. The monitor now drains without formatting or writing on its hot
+path and emits only its ready record and unique final raw counters. Attempt 05
+remains a monitor-loss validation failure and contributes no admitted cell.
 
 ## Remaining gate
 

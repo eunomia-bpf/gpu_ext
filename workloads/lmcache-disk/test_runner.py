@@ -117,6 +117,10 @@ class HarnessTests(unittest.TestCase):
                 self.assertEqual(new_env, {**old_env, "TRITON_PTXAS_BLACKWELL_PATH":
                                           str(runner.legacy.TRITON_PTXAS_575)})
                 self.assertEqual(new_env["VLLM_USE_DEEP_GEMM"], "0")
+                if config == "recompute":
+                    self.assertNotIn("LMCACHE_USE_GPU_CONNECTOR_V3", new_env)
+                else:
+                    self.assertEqual(new_env["LMCACHE_USE_GPU_CONNECTOR_V3"], "True")
                 argv = runner.server_argv(config, Path("/model"), 18080)
                 self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.98")
 
@@ -359,6 +363,8 @@ class HarnessTests(unittest.TestCase):
         warm_runtime_id = warm_id + "-0-a1b2c3d4"
         log = "\n".join(
             [
+                "Creating LMCacheEngine with config: {'use_gpu_connector_v3': True}",
+                "init kv cache pointers success in VLLMPagedMemGPUConnectorV3",
                 "LMCache initialized with version 0.5.4, vllm version 0.27.1+cu129",
                 f"Reqid: {cold_runtime_id}, Total tokens 1549, LMCache hit tokens: 0",
                 f"[req_id={cold_runtime_id}] Stored 1536 out of total 1536 tokens",
@@ -439,6 +445,8 @@ class HarnessTests(unittest.TestCase):
 
     def test_runtime_log_accepts_public_base_versions(self):
         runtime_line = (
+            "Creating LMCacheEngine with config: {'use_gpu_connector_v3': True}\n"
+            "init kv cache pointers success in VLLMPagedMemGPUConnectorV3\n"
             "LMCache initialized for role worker with version 0.5.4-gsource, "
             "vllm version 0.27.1, lmcache cache_engine metadata: None"
         )
@@ -447,6 +455,20 @@ class HarnessTests(unittest.TestCase):
                               return_value={"files": 0, "bytes": 0}):
                 value = runner.validate_log("lmcache_cpu", runtime_line, [], Path(tmp))
         self.assertEqual(value["request_evidence"], {})
+        self.assertEqual(value["gpu_connector_v3"], {
+            "config_enabled": True, "connector_initialized": True,
+        })
+
+    def test_runtime_log_rejects_v2_or_uninitialized_connector(self):
+        init = "LMCache initialized with version 0.5.4, vllm version 0.27.1"
+        with tempfile.TemporaryDirectory() as tmp:
+            for evidence in (
+                "Creating LMCacheEngine with config: {'use_gpu_connector_v3': False}\n" + init,
+                "Creating LMCacheEngine with config: {'use_gpu_connector_v3': True}\n" + init,
+            ):
+                with self.subTest(evidence=evidence):
+                    with self.assertRaises(runner.GateError):
+                        runner.validate_log("lmcache_cpu", evidence, [], Path(tmp))
 
     def test_store_state_is_recomputed_for_each_prefix(self):
         request_evidence = {

@@ -23,7 +23,6 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-
 HERE = Path(__file__).resolve().parent
 GPU_EXT = HERE.parents[1]
 sys.path.insert(0, str(GPU_EXT / "workloads/gpreempt"))
@@ -527,12 +526,13 @@ def server_environment(config: str, cache_dir: Path,
     if config == "lmcache_cpu":
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="True",
                    LMCACHE_MAX_LOCAL_CPU_SIZE="8.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
-                   LMCACHE_USE_LAYERWISE="False")
+                   LMCACHE_USE_LAYERWISE="False", LMCACHE_USE_GPU_CONNECTOR_V3="True")
     elif config == "lmcache_disk":
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="False",
                    LMCACHE_MAX_LOCAL_CPU_SIZE="2.0", LMCACHE_LOCAL_DISK="file://" + str(cache_dir),
                    LMCACHE_MAX_LOCAL_DISK_SIZE="16.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
-                   LMCACHE_USE_LAYERWISE="False", LMCACHE_EXTRA_CONFIG=canonical({"use_odirect": True}))
+                   LMCACHE_USE_LAYERWISE="False", LMCACHE_USE_GPU_CONNECTOR_V3="True",
+                   LMCACHE_EXTRA_CONFIG=canonical({"use_odirect": True}))
     return env
 
 
@@ -811,6 +811,14 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
         if "LMCache initialized" in log or "LMCache hit tokens:" in log:
             raise GateError("recompute control unexpectedly engaged LMCache")
     else:
+        v3_evidence = {
+            "config_enabled": "'use_gpu_connector_v3': True" in log,
+            "connector_initialized": (
+                "init kv cache pointers success in VLLMPagedMemGPUConnectorV3" in log
+            ),
+        }
+        if not all(v3_evidence.values()):
+            raise GateError(f"LMCache V3 connector engagement evidence missing: {v3_evidence}")
         init = re.findall(r"LMCache initialized[^\n]*version\s+([^, ]+), vllm version\s+([^, ]+)", log)
         expected_vllm_base = EXPECTED_VLLM_VERSION.split("+", 1)[0]
         if not init or any(
@@ -853,7 +861,11 @@ def validate_log(config: str, log: str, observations: list[dict[str, Any]], cach
             final = sync_and_verify_disk(cache_dir, len(observations) * CHUNKS_PER_PREFIX)
             if final["bytes"] != expected_bytes:
                 raise GateError(f"disk footprint mismatch: {final}")
-    return {"request_evidence": request_evidence, "native_prefix_rates": prefix_rate}
+    return {
+        "request_evidence": request_evidence,
+        "native_prefix_rates": prefix_rate,
+        "gpu_connector_v3": None if config == "recompute" else v3_evidence,
+    }
 
 
 def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,

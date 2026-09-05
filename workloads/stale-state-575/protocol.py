@@ -46,6 +46,7 @@ POLICY_ARTIFACT_NAMES = (
 )
 EXPECTED_GPU = "NVIDIA GeForce RTX 5090"
 EXPECTED_DRIVER = "575.57.08"
+UVM_QUEUE_ENTRIES = 1 << 22
 LIVE_BLOCKER = (
     "the 575 driver has no atomic timestamped snapshot readable by both a "
     "native same-algorithm consumer and the BPF prefetch callback, nor matched "
@@ -759,7 +760,9 @@ def _validate_uvm(
     ready = [row for row in records if row.get("event") == "ready"]
     if len(ready) != 1 or ready[0].get("target_pid") != target_pid:
         raise ValidationError("UVM monitor lacks one ready record for the owned target")
-    if ready[0].get("queue_entries") != 65536 or ready[0].get("entry_bytes") != 72:
+    if ready[0].get("queue_entries") != UVM_QUEUE_ENTRIES or ready[0].get(
+        "entry_bytes"
+    ) != 72:
         raise ValidationError("UVM monitor ready record has an unexpected queue ABI")
     _integer(ready[0].get("uvm_fd"), "UVM inherited fd")
     source_fds = ready[0].get("candidate_source_fds")

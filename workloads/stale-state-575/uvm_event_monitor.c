@@ -30,7 +30,8 @@
 #define UVM_EVENT_ENABLE(type) (UINT64_C(1) << (type))
 #define UVM_MIGRATION_CAUSE_PREFETCH 3U
 
-#define QUEUE_ENTRIES 65536U
+#define PROBE_QUEUE_ENTRIES 2U
+#define QUEUE_ENTRIES (1U << 22)
 #define EVENT_ENTRY_V2_BYTES 72U
 #define EVENT_TYPE_COUNT_ALL 64U
 #define NV_OK 0U
@@ -103,6 +104,10 @@ _Static_assert(sizeof(struct event_control) == 528,
                "UVM event-control ABI drift");
 _Static_assert(sizeof(struct migration_v2) == EVENT_ENTRY_V2_BYTES,
                "UVM migration-event ABI drift");
+_Static_assert((QUEUE_ENTRIES & (QUEUE_ENTRIES - 1U)) == 0,
+               "UVM event queue must remain a power of two");
+_Static_assert((PROBE_QUEUE_ENTRIES & (PROBE_QUEUE_ENTRIES - 1U)) == 0,
+               "UVM probe queue must remain a power of two");
 
 static volatile sig_atomic_t exiting;
 
@@ -157,7 +162,7 @@ static int probe_candidate(struct uvm_candidate *candidate,
 {
     struct init_event_tracker_v2 init = {
         .queue_buffer = (uintptr_t)queue,
-        .queue_buffer_size = QUEUE_ENTRIES,
+        .queue_buffer_size = PROBE_QUEUE_ENTRIES,
         .control_buffer = (uintptr_t)control,
         .all_processors = 1,
         .uvm_fd = (uint32_t)candidate->inherited_fd,
@@ -307,7 +312,8 @@ int main(int argc, char **argv)
     memset(control, 0, 4096);
 
     for (index = 0; index < UVM_CANDIDATES; ++index) {
-        memset(queue, 0, (size_t)QUEUE_ENTRIES * EVENT_ENTRY_V2_BYTES);
+        memset(queue, 0,
+               (size_t)PROBE_QUEUE_ENTRIES * EVENT_ENTRY_V2_BYTES);
         memset(control, 0, 4096);
         err = probe_candidate(&candidates[index], queue, control);
         if (err != 0)

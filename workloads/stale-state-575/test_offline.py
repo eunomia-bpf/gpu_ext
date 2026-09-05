@@ -416,7 +416,7 @@ def make_cell(root: Path, cell: protocol.MatrixCell) -> Path:
                 "selected_source_fd": 7,
                 "rejected_source_fd": 8,
                 "rejected_status": 0x00000016,
-                "queue_entries": 65536,
+                "queue_entries": protocol.UVM_QUEUE_ENTRIES,
                 "entry_bytes": 72,
             },
             {
@@ -1383,6 +1383,22 @@ class ObserverProtocolTests(unittest.TestCase):
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_uvm_queue_can_buffer_the_complete_owner06_event_volume(self) -> None:
+        retained = 607_035 + 946_061
+        dropped = 229_387 + 343_462
+        complete_owner06_events = retained + dropped
+        self.assertEqual(protocol.UVM_QUEUE_ENTRIES, 1 << 22)
+        self.assertEqual(
+            protocol.UVM_QUEUE_ENTRIES & (protocol.UVM_QUEUE_ENTRIES - 1), 0
+        )
+        self.assertLess(complete_owner06_events, protocol.UVM_QUEUE_ENTRIES)
+        self.assertGreater(protocol.UVM_QUEUE_ENTRIES - 1, complete_owner06_events)
+        source = (Path(__file__).parent / "uvm_event_monitor.c").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("#define PROBE_QUEUE_ENTRIES 2U", source)
+        self.assertIn(".queue_buffer_size = PROBE_QUEUE_ENTRIES", source)
+
     def test_uvm_monitor_keeps_json_off_the_event_drain_path(self) -> None:
         source = (Path(__file__).parent / "uvm_event_monitor.c").read_text(
             encoding="utf-8"

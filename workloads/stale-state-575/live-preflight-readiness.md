@@ -62,7 +62,7 @@ The excluded seven-cell path is now represented end to end in source:
   policy struct_ops section, generated skeleton, and `-Werror` userspace
   loader build pass. The result serializer's host regression preserves a
   non-round nanosecond-derived millisecond duration across JSON output.
-- Python suite: 50 tests pass, including real-pipe truth replay, observer
+- Python suite: 51 tests pass, including real-pipe truth replay, observer
   native/BPF ownership, duplicate JSON, event-loss, counter-drift,
   raw/normalized mismatch, missing verifier evidence, baseline artifact
   rejection, before-release failure, and delayed-bootstrap configuration
@@ -120,6 +120,18 @@ every drain: 275,058 intermediate records delayed the consumer enough to lose
 unchanged. The monitor now drains without formatting or writing on its hot
 path and emits only its ready record and unique final raw counters. Attempt 05
 remains a monitor-loss validation failure and contributes no admitted cell.
+
+Attempt `owner-06` verified that removing hot-path JSON reduced the raw UVM
+log to its ready/final records, but the 65,536-entry queue alone was still too
+small for the burst: it retained 607,035 GPU faults and 946,061 migrations
+while the driver reported 229,387 and 343,462 additional dropped events. The
+frozen zero-loss gate rejected the cell, and recovery restored empty
+compute/struct_ops state with no Xid. The monitor now uses a 2^22-entry
+(301,989,888-byte) queue. Its 4,194,303 usable slots exceed all 2,125,945
+observed-plus-dropped owner-06 events even if the consumer makes no concurrent
+progress. Candidate classification retains a separate two-entry probe queue,
+so it does not repeatedly pin the large buffer. The workload, event types,
+and zero-drop gate are unchanged. Attempt 06 contributes no admitted cell.
 
 ## Remaining gate
 

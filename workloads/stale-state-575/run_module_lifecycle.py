@@ -31,9 +31,6 @@ sys.modules[BASE_SPEC.name] = base
 BASE_SPEC.loader.exec_module(base)
 
 EXPECTED_KERNEL = "6.15.11-061511-generic"
-RESTORE = Path(
-    "/opt/gpubpf/modules/575.57.08/gpreempt-849ea75d-6.15.11/nvidia-uvm.ko"
-)
 STAGE_ROOT = Path("/opt/gpubpf/modules/575.57.08")
 RAW_ROOT = HERE / "raw"
 MODULE_NAME = "nvidia_uvm"
@@ -100,6 +97,49 @@ def exact_stale_interface(raw: str) -> dict[str, Any]:
             "required": list(required)}
 
 
+def exact_restore_interface(raw: str) -> dict[str, Any]:
+    """Describe either the admitted gpubpf base ABI or an unmodified stock ABI."""
+    if "gpu_mem_ops" not in raw:
+        return {"kind": "stock_no_gpu_mem_ops", "gpu_mem_ops_present": False}
+    try:
+        interface = base.generic_uvm_interface(raw)
+    except (base.LifecycleError, RuntimeError) as exc:
+        raise LifecycleError(f"restore gpu_mem_ops ABI differs: {exc}") from exc
+    return {"kind": "gpubpf_base_v1", "gpu_mem_ops_present": True,
+            **interface}
+
+
+def restore_descriptor(path: Path) -> dict[str, Any]:
+    inventory = base.file_inventory(path)
+    name = base.checked_stdout(["modinfo", "-F", "name", str(path)])
+    version = base.checked_stdout(["modinfo", "-F", "version", str(path)])
+    vermagic = base.checked_stdout(["modinfo", "-F", "vermagic", str(path)])
+    depends = sorted(item for item in base.checked_stdout(
+        ["modinfo", "-F", "depends", str(path)]
+    ).split(",") if item)
+    parameters = sorted({line.split(":", 1)[0] for line in base.checked_stdout(
+        ["modinfo", "-F", "parm", str(path)]
+    ).splitlines() if ":" in line})
+    raw = base.btf_raw(path)
+    interface = exact_restore_interface(raw)
+    demand(name == MODULE_NAME and version == protocol.EXPECTED_DRIVER,
+           "restore module identity differs")
+    demand(vermagic == base.EXPECTED_VERMAGIC, "restore vermagic differs")
+    demand(depends == ["nvidia"], "restore dependency differs")
+    demand(bool(parameters) and "uvm_perf_prefetch_enable" in parameters,
+           "restore parameter inventory lacks prefetch control")
+    forbidden = (
+        "FUNC 'uvm_stale_state_v1_diagnostic'",
+        "FUNC 'uvm_bpf_prefetch_diagnostic'",
+    )
+    demand(not any(item in raw for item in forbidden),
+           "restore unexpectedly contains an experiment diagnostic")
+    return {"inventory": inventory, "name": name, "version": version,
+            "vermagic": vermagic, "depends": depends,
+            "parameter_names": parameters, "interface": interface,
+            "diagnostic_present": False}
+
+
 def candidate_descriptor(path: Path) -> dict[str, Any]:
     inventory = base.file_inventory(path)
     name = base.checked_stdout(["modinfo", "-F", "name", str(path)])
@@ -131,13 +171,15 @@ def comparable(value: dict[str, Any]) -> dict[str, Any]:
             "interface": value["interface"]}
 
 
-def validate_paths(candidate: Path, stage: Path, output: Path, record: Path) -> None:
-    for label, path in (("candidate", candidate), ("stage", stage),
+def validate_paths(candidate: Path, restore: Path, stage: Path, output: Path,
+                   record: Path) -> None:
+    for label, path in (("candidate", candidate), ("restore", restore), ("stage", stage),
                         ("output", output), ("record", record)):
         demand(path.is_absolute(), f"{label} path must be absolute")
     demand(candidate.name == MODULE_FILENAME and candidate.is_file() and
            not candidate.is_symlink(), "candidate must be a regular nvidia-uvm.ko")
-    demand(RESTORE.is_file() and not RESTORE.is_symlink(), "admitted restore is absent")
+    demand(restore.name == MODULE_FILENAME and restore.is_file() and
+           not restore.is_symlink(), "restore must be a regular nvidia-uvm.ko")
     demand(stage.parent.resolve(strict=True) == STAGE_ROOT.resolve(strict=True) and
            stage.name.startswith("stale-state-v1-stage-"), "stage namespace differs")
     demand(output.parent.resolve(strict=True) == RAW_ROOT.resolve(strict=True) and
@@ -146,7 +188,7 @@ def validate_paths(candidate: Path, stage: Path, output: Path, record: Path) -> 
     demand(record.parent.resolve(strict=True) == RAW_ROOT.resolve(strict=True) and
            record.name.startswith("stale-state-575-lifecycle-"),
            "lifecycle record namespace differs")
-    demand(len({candidate.resolve(), RESTORE.resolve(), stage.resolve(),
+    demand(len({candidate.resolve(), restore.resolve(), stage.resolve(),
                 output.resolve(), record.resolve()}) == 5, "lifecycle paths overlap")
     demand(not stage.exists() and not output.exists() and not record.exists(),
            "stage, preflight output, and lifecycle record must be fresh")
@@ -164,6 +206,42 @@ def loaded_candidate() -> dict[str, Any]:
             "parameters": base.read_parameters()}
 
 
+def loaded_restore() -> dict[str, Any]:
+    demand(base.LOADED_MODULE.is_dir() and base.LOADED_UVM_BTF.is_file(),
+           "restore UVM module/BTF is absent")
+    version = (base.LOADED_MODULE / "version").read_text().strip()
+    demand(version == protocol.EXPECTED_DRIVER, "loaded restore version differs")
+    raw = base.btf_raw(base.LOADED_UVM_BTF)
+    forbidden = (
+        "FUNC 'uvm_stale_state_v1_diagnostic'",
+        "FUNC 'uvm_bpf_prefetch_diagnostic'",
+    )
+    demand(not any(item in raw for item in forbidden),
+           "loaded restore contains an experiment diagnostic")
+    return {"version": version, "interface": exact_restore_interface(raw),
+            "parameters": base.read_parameters()}
+
+
+def demand_restore_matches_live(restore: dict[str, Any], live: dict[str, Any],
+                                parameters: dict[str, str]) -> None:
+    demand(live["version"] == restore["version"],
+           "initial live UVM version differs from explicit restore")
+    demand(live["interface"] == restore["interface"],
+           "initial live UVM differs from explicit restore ABI")
+    demand(sorted(parameters) == restore["parameter_names"],
+           "live/restore parameter inventories differ")
+    demand(live["parameters"] == parameters,
+           "live UVM parameters changed during admission")
+
+
+def require_restore_unchanged(path: Path,
+                              expected: dict[str, Any]) -> dict[str, Any]:
+    observed = restore_descriptor(path)
+    demand(observed == expected,
+           f"restore artifact changed during lifecycle: {path}")
+    return observed
+
+
 def insert_candidate(path: Path, parameters: dict[str, str],
                      expected_interface: dict[str, Any], boot_id: str) -> dict[str, Any]:
     base.require_boot(boot_id)
@@ -176,6 +254,21 @@ def insert_candidate(path: Path, parameters: dict[str, str],
     demand(loaded["interface"] == expected_interface,
            "loaded candidate interface differs from staged module")
     demand(loaded["parameters"] == parameters, "candidate parameters differ")
+    return {"argv": argv, "loaded": loaded}
+
+
+def insert_restore(path: Path, parameters: dict[str, str],
+                   expected_interface: dict[str, Any], boot_id: str) -> dict[str, Any]:
+    base.require_boot(boot_id)
+    demand(not base.LOADED_MODULE.exists(), "refusing restore insertion over UVM")
+    argv = base.insmod_command(path, parameters)
+    base.run_command(argv)
+    base.wait_for("restore UVM insertion",
+                  lambda: base.LOADED_MODULE.is_dir() and base.LOADED_UVM_BTF.is_file())
+    loaded = loaded_restore()
+    demand(loaded["interface"] == expected_interface,
+           "loaded restore interface differs from explicit module")
+    demand(loaded["parameters"] == parameters, "restored UVM parameters differ")
     return {"argv": argv, "loaded": loaded}
 
 
@@ -195,10 +288,11 @@ def child_command(output: Path, lease_fds: Sequence[int]) -> list[str]:
             "--inherited-lease-fds", *(str(fd) for fd in lease_fds)]
 
 
-def dry_run(candidate: Path, stage: Path, output: Path, record: Path) -> dict[str, Any]:
-    validate_paths(candidate, stage, output, record)
+def dry_run(candidate: Path, restore: Path, stage: Path, output: Path,
+            record: Path) -> dict[str, Any]:
+    validate_paths(candidate, restore, stage, output, record)
     candidate_value = candidate_descriptor(candidate)
-    restore_value = base.module_descriptor(RESTORE, diagnostic=False)
+    restore_value = restore_descriptor(restore)
     demand(candidate_value["parameter_names"] == restore_value["parameter_names"],
            "candidate/restore parameter inventories differ")
     return {"complete": True, "mode": "cpu-source-dry-run",
@@ -209,9 +303,10 @@ def dry_run(candidate: Path, stage: Path, output: Path, record: Path) -> dict[st
             "recovery": "remove only the loaded candidate; restore admitted UVM and services"}
 
 
-def execute(candidate: Path, stage: Path, output: Path, record: Path) -> None:
+def execute(candidate: Path, restore: Path, stage: Path, output: Path,
+            record: Path) -> None:
     demand(os.geteuid() == 0, "module lifecycle is root-only")
-    validate_paths(candidate, stage, output, record)
+    validate_paths(candidate, restore, stage, output, record)
     state = State()
     record.mkdir(parents=False, exist_ok=False)
     lifecycle: dict[str, Any] = {"complete": False, "state": asdict(state),
@@ -239,18 +334,15 @@ def execute(candidate: Path, stage: Path, output: Path, record: Path) -> None:
         event("leases_acquired", leases=base.lease_inventory())
         demand(os.uname().release == EXPECTED_KERNEL, "kernel release differs")
         candidate_value = candidate_descriptor(candidate)
-        restore_value = base.module_descriptor(RESTORE, diagnostic=False)
+        restore_value = restore_descriptor(restore)
         demand(candidate_value["parameter_names"] == restore_value["parameter_names"],
                "candidate/restore parameter inventories differ")
         services = {unit: base.service_state(unit) for unit in base.SERVICES}
         base.validate_initial_services(services)
         sessions = base.local_sessions()
         parameters = base.read_parameters()
-        demand(sorted(parameters) == restore_value["parameter_names"],
-               "live/restore parameter inventories differ")
-        live_initial = base.live_uvm_interface(diagnostic=False)
-        demand(live_initial["interface"] == restore_value["interface"],
-               "initial live UVM differs from admitted restore ABI")
+        live_initial = loaded_restore()
+        demand_restore_matches_live(restore_value, live_initial, parameters)
         boot_id = base.BOOT_ID.read_text().strip()
         initial_safety = base.quiet_snapshot(boot_id)
         initial = {"boot_id": boot_id, "services": services,
@@ -269,6 +361,8 @@ def execute(candidate: Path, stage: Path, output: Path, record: Path) -> None:
                 staged_inventory["mode"]) == (0, 0, 0o644),
                "staged candidate ownership/mode differs")
         event("candidate_staged", path=str(staged_path), descriptor=staged)
+        require_restore_unchanged(restore, restore_value)
+        event("restore_revalidated", path=str(restore))
 
         for unit in base.service_stop_plan(services):
             base.stop_service_after_recheck(
@@ -314,18 +408,18 @@ def execute(candidate: Path, stage: Path, output: Path, record: Path) -> None:
                     state.candidate_loaded = False
                     event("candidate_removed")
                 if not base.LOADED_MODULE.exists():
-                    base.insert_uvm(
-                        RESTORE, initial["parameters"], diagnostic=False,
-                        expected_interface=initial["restore"]["interface"],
-                        initial_boot=initial["boot_id"], honor_interrupt=False,
-                    )
+                    require_restore_unchanged(restore, initial["restore"])
+                    insert_restore(restore, initial["parameters"],
+                                   initial["restore"]["interface"],
+                                   initial["boot_id"])
                     state.old_restored = True
                     event("old_uvm_restored")
                 else:
-                    live = base.live_uvm_interface(diagnostic=False)
-                    demand(live["interface"] == initial["restore"]["interface"],
-                           "surviving UVM is not the admitted restore")
+                    live = loaded_restore()
+                    demand_restore_matches_live(
+                        initial["restore"], live, initial["parameters"])
                     state.old_restored = True
+                require_restore_unchanged(restore, initial["restore"])
                 current = {unit: base.service_state(unit) for unit in base.SERVICES}
                 for unit in base.service_restore_plan(initial["services"], current):
                     base.set_service(unit, "start")
@@ -358,16 +452,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=("dry-run", "execute"))
     parser.add_argument("--candidate", required=True, type=Path)
+    parser.add_argument("--restore", required=True, type=Path)
     parser.add_argument("--stage", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--record", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
         if args.command == "dry-run":
-            print(json.dumps(dry_run(args.candidate, args.stage, args.output,
-                                     args.record), indent=2, sort_keys=True))
+            print(json.dumps(dry_run(args.candidate, args.restore, args.stage,
+                                     args.output, args.record), indent=2,
+                             sort_keys=True))
         else:
-            execute(args.candidate, args.stage, args.output, args.record)
+            execute(args.candidate, args.restore, args.stage, args.output,
+                    args.record)
         return 0
     except (LifecycleError, base.LifecycleError, live_runner.LiveError,
             OSError, subprocess.SubprocessError) as exc:

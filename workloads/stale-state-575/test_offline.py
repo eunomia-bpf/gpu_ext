@@ -1616,6 +1616,109 @@ class BoundaryTests(unittest.TestCase):
         with self.assertRaises(run_module_lifecycle.LifecycleError):
             run_module_lifecycle.child_command(Path("/tmp/output"), (31,))
 
+    def test_restore_interface_accepts_only_stock_absence_or_exact_base(self) -> None:
+        stock = run_module_lifecycle.exact_restore_interface(
+            "STRUCT 'unrelated' size=8 vlen=1\n"
+        )
+        self.assertEqual(stock, {
+            "kind": "stock_no_gpu_mem_ops", "gpu_mem_ops_present": False,
+        })
+
+        base_interface = {
+            "gpu_mem_ops_members": ["gpu_test_trigger"],
+            "required_functions": ["bpf_gpu_request_reorder"],
+            "decision_size": 24,
+            "region_size": 4,
+        }
+        with mock.patch.object(
+            run_module_lifecycle.base, "generic_uvm_interface",
+            return_value=base_interface,
+        ):
+            observed = run_module_lifecycle.exact_restore_interface(
+                "STRUCT 'gpu_mem_ops' size=48 vlen=6\n"
+            )
+        self.assertEqual(observed["kind"], "gpubpf_base_v1")
+        self.assertIs(observed["gpu_mem_ops_present"], True)
+        self.assertEqual(observed["decision_size"], 24)
+
+        for malformed, failure in (
+            ("STRUCT 'gpu_mem_ops' size=40 vlen=5\n",
+             run_module_lifecycle.base.LifecycleError("partial ABI")),
+            ("TYPEDEF 'gpu_mem_ops' type_id=17\n",
+             RuntimeError("missing layout")),
+        ):
+            with self.subTest(raw=malformed), mock.patch.object(
+                run_module_lifecycle.base, "generic_uvm_interface",
+                side_effect=failure,
+            ), self.assertRaisesRegex(
+                run_module_lifecycle.LifecycleError,
+                "restore gpu_mem_ops ABI differs",
+            ):
+                run_module_lifecycle.exact_restore_interface(malformed)
+
+    def test_module_lifecycle_cli_requires_explicit_restore(self) -> None:
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            run_module_lifecycle.main([
+                "dry-run",
+                "--candidate", "/tmp/candidate/nvidia-uvm.ko",
+                "--stage", "/opt/gpubpf/modules/575.57.08/stale-state-v1-stage-test",
+                "--output", str(
+                    Path(__file__).parent / "raw" / "stale-state-575-preflight-test"
+                ),
+                "--record", str(
+                    Path(__file__).parent / "raw" / "stale-state-575-lifecycle-test"
+                ),
+            ])
+
+    def test_restore_live_mismatch_fails_before_any_mutation(self) -> None:
+        descriptor = {
+            "version": protocol.EXPECTED_DRIVER,
+            "interface": {"kind": "stock_no_gpu_mem_ops", "gpu_mem_ops_present": False},
+            "parameter_names": ["uvm_perf_prefetch_enable"],
+        }
+        live = {
+            "version": protocol.EXPECTED_DRIVER,
+            "interface": {"kind": "gpubpf_base_v1", "gpu_mem_ops_present": True},
+            "parameters": {"uvm_perf_prefetch_enable": "1"},
+        }
+        with self.assertRaisesRegex(
+            run_module_lifecycle.LifecycleError, "explicit restore ABI"
+        ):
+            run_module_lifecycle.demand_restore_matches_live(
+                descriptor, live, live["parameters"]
+            )
+
+    def test_restore_insertion_uses_the_explicit_path(self) -> None:
+        restore = Path("/opt/gpubpf/modules/575.57.08/stock-575/nvidia-uvm.ko")
+        parameters = {"uvm_perf_prefetch_enable": "1"}
+        interface = {"kind": "stock_no_gpu_mem_ops", "gpu_mem_ops_present": False}
+        loaded = {
+            "version": protocol.EXPECTED_DRIVER,
+            "interface": interface,
+            "parameters": parameters,
+        }
+        command = ["sudo", "-n", "insmod", str(restore),
+                   "uvm_perf_prefetch_enable=1"]
+        fake_loaded_module = mock.Mock()
+        fake_loaded_module.exists.return_value = False
+        with (
+            mock.patch.object(run_module_lifecycle.base, "require_boot"),
+            mock.patch.object(run_module_lifecycle.base, "LOADED_MODULE",
+                              fake_loaded_module),
+            mock.patch.object(run_module_lifecycle.base, "insmod_command",
+                              return_value=command) as insmod,
+            mock.patch.object(run_module_lifecycle.base, "run_command") as run,
+            mock.patch.object(run_module_lifecycle.base, "wait_for"),
+            mock.patch.object(run_module_lifecycle, "loaded_restore",
+                              return_value=loaded),
+        ):
+            result = run_module_lifecycle.insert_restore(
+                restore, parameters, interface, "boot"
+            )
+        insmod.assert_called_once_with(restore, parameters)
+        run.assert_called_once_with(command)
+        self.assertEqual(result["loaded"], loaded)
+
     def test_dry_run_has_no_filesystem_or_process_side_effects(self) -> None:
         output = io.StringIO()
         errors = io.StringIO()

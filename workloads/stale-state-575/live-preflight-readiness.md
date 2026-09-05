@@ -148,12 +148,43 @@ requires the final successful empty-PID sample. Recovery was clean with no
 Xid. Attempt 07 contributes no admitted preflight because the seventh cell did
 not run.
 
+Attempt `owner-08` was interrupted after live work began. Its campaign record
+is incomplete and lists three completed cells; a fourth cell has a locally
+passing execution record but was not committed to the campaign before the
+outer lifecycle process ended. The outer lifecycle itself ends at
+`candidate_loaded` and lacks every child-completion and recovery event. A
+later read-only observation found the stock 575 UVM, idle GPU, active services,
+zero UVM references, empty struct-ops state, and no new kernel abnormality, but
+that observation cannot replace the missing lifecycle-finalization record.
+The seven-cell excluded preflight is atomic, so none of owner08's partial cells
+is admitted or reusable. The exact boundary is retained in
+[`owner08-interruption-20260905.md`](owner08-interruption-20260905.md).
+
+Attempts `owner-09` and `owner-10` made no module or GPU change: the first
+failed because the standard lease files were absent and the second because
+their recreated mode was 0666 rather than the admitted root-owned 0644 mode.
+Attempt `owner-11` acquired corrected leases but stopped at read-only admission
+because the live post-interruption stock UVM has no `gpu_mem_ops` ABI. These
+three attempts contain zero cells.
+
 ## Remaining gate
 
-Independent source review passed before execution. The controlled operator
-must now provide a fresh candidate module path and fresh stage, preflight, and
-lifecycle-record paths. The first live attempt is the excluded seven-cell
-preflight only. Any module restoration error, verifier/attach
+The lifecycle now requires an explicit `--restore` file instead of assuming a
+hard-coded gpreempt restore. It admits either the exact existing six-member
+gpubpf base ABI or complete absence of `gpu_mem_ops`, as in stock 575; any
+partial or different structure fails. The forward candidate still requires
+the exact seven-member stale-state ABI. Before any service/module mutation,
+the file restore descriptor, live ABI, complete parameter inventory, and
+captured live parameter values must agree. The same explicit file, ABI, and
+values are revalidated during recovery. The expanded CPU suite passes 57/57,
+and a source-only owner12 dry run accepted the decompressed installed stock UVM
+as `stock_no_gpu_mem_ops` plus the existing strict stale candidate. It loaded
+no module and ran no GPU work.
+
+Execution must use fresh `owner-12` stage, preflight, and lifecycle-record
+paths and restart at ordinal one. The first live attempt remains the excluded
+seven-cell preflight only.
+Any module restoration error, verifier/attach
 failure, missing/foreign client, dropped diagnostic or UVM event, policy
 counter mismatch, numerical error, monitor gap, surviving child, or nonempty
 post-state invalidates the attempt. Formal 21-cell execution remains disabled

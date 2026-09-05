@@ -1,11 +1,11 @@
 # Stale cross-layer state / thrashing harness
 
-This directory is the CPU/source boundary for Reviewer D's stale-state
-sensitivity experiment.  It contains no GPU result.  No live cell has been
-run. The native decision model now also has a real host-uBPF JIT consumer and
-a deterministic native/JIT differential test. That is dependency evidence;
-it does not close the live-interface boundary below. The exact CPU execution
-and review are retained in
+This directory implements Reviewer D's stale-state sensitivity experiment. It
+contains live setup and partial excluded-preflight traces, but no complete
+preflight or formal GPU result. The native decision model also has a real
+host-uBPF JIT consumer and a deterministic native/JIT differential test. That
+is dependency evidence; it does not turn an interrupted preflight into a
+result. The exact CPU execution and review are retained in
 [`jit-preparation-20260904.md`](jit-preparation-20260904.md).
 
 ## Frozen question and matrix
@@ -95,10 +95,15 @@ compute-client, GPU telemetry, kernel-monitor, safety, and cleanup lifecycle.
 `run_module_lifecycle.py` is the outer UVM-only stage/load/restore hook built
 on the previously exercised revision-prefetch lifecycle primitives.
 
-This remains implementation readiness, not a live result: no stale-state
-module has been loaded, no policy or observer has passed the live verifier or
-attached, and no GPU cell has run. The new lifecycle and runner passed
-independent source review; the controlled excluded preflight remains required.
+This remains implementation and live-engagement readiness, not a result.
+Controlled attempts have loaded the stale-state module, passed live verifier
+and attach checks, and executed real 40-GiB cells, but every seven-cell
+excluded preflight is incomplete or rejected. No partial cell is carried into
+another attempt, and formal execution remains disabled. The retained attempt
+history and current restore-ABI blocker are in
+[`live-preflight-readiness.md`](live-preflight-readiness.md); the owner08
+interruption boundary is recorded separately in
+[`owner08-interruption-20260905.md`](owner08-interruption-20260905.md).
 
 ## Real records required from every future cell
 

@@ -1,0 +1,156 @@
+{
+  "arm_summary": {
+    "lmcache_disk": {
+      "cell_count": 1,
+      "cells": [
+        {
+          "ready": true,
+          "server_returncode": 0,
+          "warm_output_tokens_per_s": 28.59915728016146,
+          "warm_requests_failed": 0,
+          "warm_requests_ok": 8,
+          "warm_requests_per_s": 1.7874473300100913,
+          "warm_ttft_median_ms": 96.3009845
+        }
+      ],
+      "warm_output_tokens_per_s": [
+        28.59915728016146
+      ],
+      "warm_requests_per_s": [
+        1.7874473300100913
+      ],
+      "warm_ttft_median_ms": [
+        96.3009845
+      ]
+    },
+    "lmcache_disk_uvm_kv": {
+      "cell_count": 1,
+      "cells": [
+        {
+          "ready": true,
+          "server_returncode": 0,
+          "warm_output_tokens_per_s": 29.06496525373778,
+          "warm_requests_failed": 0,
+          "warm_requests_ok": 8,
+          "warm_requests_per_s": 1.8165603283586111,
+          "warm_ttft_median_ms": 97.58654250000001
+        }
+      ],
+      "warm_output_tokens_per_s": [
+        29.06496525373778
+      ],
+      "warm_requests_per_s": [
+        1.8165603283586111
+      ],
+      "warm_ttft_median_ms": [
+        97.58654250000001
+      ]
+    },
+    "recompute": {
+      "cell_count": 1,
+      "cells": [
+        {
+          "ready": true,
+          "server_returncode": 0,
+          "warm_output_tokens_per_s": 30.54519469644195,
+          "warm_requests_failed": 0,
+          "warm_requests_ok": 8,
+          "warm_requests_per_s": 1.9090746685276219,
+          "warm_ttft_median_ms": 67.87928550000001
+        }
+      ],
+      "warm_output_tokens_per_s": [
+        30.54519469644195
+      ],
+      "warm_requests_per_s": [
+        1.9090746685276219
+      ],
+      "warm_ttft_median_ms": [
+        67.87928550000001
+      ]
+    }
+  },
+  "block_orders": [
+    [
+      "recompute",
+      "lmcache_disk",
+      "lmcache_disk_uvm_kv"
+    ]
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "config": "recompute",
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/workloads/lmcache-disk/raw/lmcache-uvm-kv-575-canary-01/block-00/position-0-recompute",
+      "warm": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 30.54519469644195,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 1.9090746685276219,
+        "warm_ttft_median_ms": 67.87928550000001
+      }
+    },
+    {
+      "block": 0,
+      "config": "lmcache_disk",
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/workloads/lmcache-disk/raw/lmcache-uvm-kv-575-canary-01/block-00/position-1-lmcache_disk",
+      "warm": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 28.59915728016146,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 1.7874473300100913,
+        "warm_ttft_median_ms": 96.3009845
+      }
+    },
+    {
+      "block": 0,
+      "config": "lmcache_disk_uvm_kv",
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/workloads/lmcache-disk/raw/lmcache-uvm-kv-575-canary-01/block-00/position-2-lmcache_disk_uvm_kv",
+      "warm": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 29.06496525373778,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 1.8165603283586111,
+        "warm_ttft_median_ms": 97.58654250000001
+      }
+    }
+  ],
+  "complete_cells": 3,
+  "kind": "lmcache_uvm_kv_perf",
+  "params": {
+    "attempts_per_cell": 1,
+    "blocks": 1,
+    "configs": [
+      "recompute",
+      "lmcache_disk",
+      "lmcache_disk_uvm_kv"
+    ],
+    "expected_driver": "575.57.08",
+    "gpu_idle_wait": false,
+    "model": "Qwen/Qwen3-30B-A3B-FP8",
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "model_revision": "d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "port": 18080,
+    "prompts": {
+      "model": "Qwen/Qwen3-30B-A3B-FP8",
+      "model_revision": "d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+      "output_tokens": 16,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/workloads/lmcache-disk/prompts.json",
+      "prefix_count": 8,
+      "prefix_tokens": 1536
+    },
+    "result_filtering": false,
+    "retry": false,
+    "store_barrier_timeout_s": 120.0
+  },
+  "timestamp": "20260905T220545"
+}

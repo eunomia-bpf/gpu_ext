@@ -230,6 +230,16 @@ $(OUTPUT)/test_eviction_debt: test_eviction_debt.c eviction_debt_model.h | $(OUT
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $< $(ALL_LDFLAGS) -Wl,--build-id=none -o $@
 
+.PHONY: test_eviction_debt_range_model
+test_eviction_debt_range_model: $(OUTPUT)/test_eviction_debt_range_model
+	$(call msg,TEST,$<)
+	$(Q)$<
+
+$(OUTPUT)/test_eviction_debt_range_model: test_eviction_debt_range_model.c \
+		eviction_debt_range_model.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) $< $(ALL_LDFLAGS) -Wl,--build-id=none -o $@
+
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
 	$(Q)mkdir -p $@

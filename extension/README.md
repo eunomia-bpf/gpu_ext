@@ -139,6 +139,29 @@ Prefetch hook 只能在当前 VA block (2MB) 内操作。原型曾把整数
 | `eviction_freq_pid_decay.bpf.c` | PID 频率衰减 | per-PID 频率计数，频率随时间指数衰减 |
 | `eviction_pid_quota.bpf.c` | PID 配额 | 按进程配额分配 GPU 内存，超额 chunk 不保护 |
 | `eviction_lfu_xcoord.bpf.c` | LFU + xCoord | LFU + GPU 共享状态 map，multi-tenant 协调 |
+| `eviction_debt.bpf.c` | 迁移债务 (opt-in) | LMCache/vLLM 原型，见下节 |
+
+### 迁移债务策略 (`eviction_debt`，opt-in 构建)
+
+实验把 LMCache 的 vLLM KV cache 安排为一个定向的 UVM managed
+allocation；但 struct_ops attachment 是系统级的——策略挂载后作用于整个
+UVM 驱动的所有用户，coarse warm 标志同样是系统全局信号，两者都不隔离
+其他 UVM 用户。
+
+- **系统全局 disk-durable warm flag**：LMCache warm 阶段把 KV pool 完整写
+  本地 NVMe 后，loader 通过 `debt_config` map 的 `DEBT_CONFIG_DISK_DURABLE`
+  键置一个系统全局 warm 标志；此后激活的 chunk 记为 disk-durable，成为
+  优先驱逐候选，warm 命令之前已激活并被跟踪的 chunk 由 loader 回溯标记
+  （retroactive marking）。该标志是 coarse 信号，不是 per-KV，也不对
+  定向 allocation 之外的用户做隔离（warm 窗口内激活的任何 UVM chunk
+  都会被记为 disk-durable）。
+- **未消化的驱逐风险压力代理**：`debt_pressure` 统计的是 outstanding
+  eviction-risk（候选观察累积、复用/驱逐消除），不是已完成迁移的记账。
+- **精确 per-KV 身份不可得**：BPF 侧拿不到 LMCache chunk -> UVM
+  chunk/page 的精确对应，无法做 per-KV 元数据，只能用 pool 级信号近似。
+
+Debt cap (`-m`) 控制候选观察次数；聚合压力达到阈值 (`-p`) 时抑制投机
+prefetch。构建：`make eviction_debt`；状态机 CPU 测试：`make test_eviction_debt`。
 
 ---
 

@@ -468,6 +468,545 @@ class LoaderFailureSkipsServerTests(unittest.TestCase):
                 log_file.close()
 
 
+class PressureCliTests(unittest.TestCase):
+    def test_parse_args_pressure_defaults_disabled(self):
+        args = runner.parse_args([])
+        self.assertIsNone(args.kv_cache_memory_bytes)
+        self.assertEqual(args.pressure_gib, 0)
+        self.assertEqual(args.pressure_passes, 1)
+        self.assertEqual(args.pressure_pause_ms, 0)
+        self.assertEqual(args.pressure_binary, ops.PRESSURE_TENANT)
+
+    def test_parse_args_pressure_options(self):
+        args = runner.parse_args(["--kv-cache-memory-bytes", "48318382080",
+                                  "--pressure-gib", "2", "--pressure-passes", "3",
+                                  "--pressure-pause-ms", "250",
+                                  "--pressure-binary", "/tmp/uvm_fault_stream"])
+        self.assertEqual(args.kv_cache_memory_bytes, 48318382080)
+        self.assertEqual(args.pressure_gib, 2)
+        self.assertEqual(args.pressure_passes, 3)
+        self.assertEqual(args.pressure_pause_ms, 250)
+        self.assertEqual(args.pressure_binary, Path("/tmp/uvm_fault_stream"))
+
+    def test_kv_cache_memory_bytes_must_be_positive(self):
+        for value in ("0", "-8"):
+            with self.assertRaises(ValueError):
+                runner.parse_args(["--kv-cache-memory-bytes", value])
+
+    def test_pressure_gib_must_be_nonnegative(self):
+        with self.assertRaises(ValueError):
+            runner.parse_args(["--pressure-gib", "-1"])
+
+    def test_pressure_passes_must_be_positive_when_enabled(self):
+        with self.assertRaises(ValueError):
+            runner.parse_args(["--pressure-gib", "2", "--pressure-passes", "0"])
+
+    def test_pressure_pause_ms_must_be_nonnegative_when_enabled(self):
+        with self.assertRaises(ValueError):
+            runner.parse_args(["--pressure-gib", "2", "--pressure-pause-ms", "-1"])
+
+    def test_disabled_pressure_ignores_passes_and_pause(self):
+        args = runner.parse_args(["--pressure-gib", "0", "--pressure-passes", "0",
+                                  "--pressure-pause-ms", "-5"])
+        self.assertEqual(args.pressure_gib, 0)
+        self.assertEqual(args.pressure_passes, 0)
+
+
+class KvPoolArgvTests(unittest.TestCase):
+    def test_server_argv_without_pool_bytes_is_unchanged(self):
+        argv = ops.server_argv("lmcache_disk", Path("/model"), 18080)
+        self.assertNotIn("--kv-cache-memory-bytes", argv)
+        self.assertEqual(argv[argv.index("--port") + 1], "18080")
+
+    def test_server_argv_appends_pool_bytes_when_set(self):
+        argv = ops.server_argv("lmcache_disk_uvm_kv", Path("/model"), 18080,
+                               kv_cache_memory_bytes=48 * 1024**3)
+        self.assertEqual(argv[-2:], ["--kv-cache-memory-bytes", str(48 * 1024**3)])
+
+    def test_server_argv_appends_pool_bytes_for_recompute_arm(self):
+        argv = ops.server_argv("recompute", Path("/model"), 18080,
+                               kv_cache_memory_bytes=1)
+        self.assertEqual(argv[-2:], ["--kv-cache-memory-bytes", "1"])
+
+    def test_start_server_forwards_pool_bytes_into_argv(self):
+        captured = {}
+
+        class FakeProc:
+            pid = 1
+
+            def poll(self):
+                return None
+
+        def fake_popen(launch, **kwargs):
+            captured["launch"] = launch
+            return FakeProc()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "server.log"
+            with mock.patch.object(ops.subprocess, "Popen", fake_popen):
+                proc, log_file, argv, launch = ops.start_server(
+                    "lmcache_disk", Path("/model"), Path(tmp), 18080, log_path,
+                    kv_cache_memory_bytes=4096)
+            self.assertEqual(argv[-2:], ["--kv-cache-memory-bytes", "4096"])
+            self.assertEqual(launch[-2:], ["--kv-cache-memory-bytes", "4096"])
+            log_file.close()
+
+
+class PressurePrimitiveTests(unittest.TestCase):
+    def test_pressure_tenant_default_is_the_repo_workload_binary(self):
+        self.assertEqual(ops.PRESSURE_TENANT,
+                         ops.GPU_EXT / "workloads" / "uvm-policy-mechanism" /
+                         "uvm_fault_stream")
+        self.assertEqual(ops.PRESSURE_TENANT.name, "uvm_fault_stream")
+        self.assertTrue(ops.PRESSURE_TENANT.is_absolute())
+
+    def test_pressure_readiness_line_constants_are_exact(self):
+        self.assertEqual(ops.PRESSURE_READY_LINE, "READY pid=")
+        self.assertEqual(ops.PRESSURE_MONITOR_LINE, "MONITOR_PID:")
+
+    def test_start_pressure_tenant_argv_and_process_flags(self):
+        captured = {}
+
+        class FakeProc:
+            pid = 777
+
+            def poll(self):
+                return None
+
+        def fake_popen(launch, **kwargs):
+            captured["launch"] = launch
+            captured["kwargs"] = kwargs
+            return FakeProc()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "uvm_fault_stream"
+            binary.write_bytes(b"\x7fELF-fixture")
+            log_path = Path(tmp) / "pressure.log"
+            result_path = Path(tmp) / "pressure-result.json"
+            with mock.patch.object(ops.subprocess, "Popen", fake_popen):
+                proc, log_file, argv = ops.start_pressure_tenant(
+                    binary, 2, 3, 250, log_path, result_path)
+            self.assertEqual(argv, [str(binary), "--gib", "2", "--passes", "3",
+                                    "--pause-ms", "250", "--wait-for-monitor",
+                                    "--output", str(result_path)])
+            self.assertEqual(captured["launch"], argv)
+            self.assertIs(captured["kwargs"]["stdin"], subprocess.PIPE)
+            self.assertIs(captured["kwargs"]["stderr"], subprocess.STDOUT)
+            self.assertIsInstance(captured["kwargs"]["stdout"], io.TextIOBase)
+            self.assertIs(captured["kwargs"]["start_new_session"], True)
+            self.assertEqual(captured["kwargs"]["env"]["CUDA_VISIBLE_DEVICES"], "0")
+            self.assertEqual(captured["kwargs"]["env"]["PATH"],
+                             "/usr/local/cuda-12.9/bin:/usr/bin:/bin")
+            log_file.close()
+            self.assertTrue(log_path.is_file())
+
+    def test_start_pressure_tenant_missing_binary_is_a_recordable_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "uvm_fault_stream"
+            log_path = Path(tmp) / "pressure.log"
+            with self.assertRaises(FileNotFoundError):
+                ops.start_pressure_tenant(missing, 2, 1, 0, log_path,
+                                          Path(tmp) / "pressure-result.json")
+        self.assertFalse(log_path.exists())
+
+    def test_stop_pressure_tenant_is_a_bounded_process_group_stop(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_file = log_path.open("w")
+            proc = subprocess.Popen(["sleep", "30"], start_new_session=True,
+                                    stdin=subprocess.DEVNULL,
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL)
+            try:
+                started = time.monotonic()
+                returncode, errors = ops.stop_pressure_tenant(proc, log_file)
+                elapsed = time.monotonic() - started
+            finally:
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait()
+            self.assertEqual(errors, [])
+            self.assertIsNotNone(returncode)
+            self.assertIsNotNone(proc.poll())
+            self.assertLess(elapsed, 20)
+
+    def test_stop_pressure_tenant_closes_the_log_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_file = log_path.open("w")
+            proc = subprocess.Popen(["true"], start_new_session=True,
+                                    stdin=subprocess.DEVNULL,
+                                    stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL)
+            proc.wait()
+            returncode, errors = ops.stop_pressure_tenant(proc, log_file)
+            self.assertEqual(errors, [])
+            self.assertEqual(returncode, 0)
+            self.assertTrue(log_file.closed)
+
+
+class PressureReadinessTests(unittest.TestCase):
+    class FakeProc:
+        def __init__(self, returncode=None):
+            self.returncode = returncode
+
+        def poll(self):
+            return self.returncode
+
+    def test_returns_once_both_exact_lines_are_in_the_log(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_path.write_text(
+                "READY pid=123 gib=2 regions=4 passes=3 pause_ms=250\n"
+                "MONITOR_PID: 123\n"
+                "Press Enter after the UVM monitor is ready...\n", encoding="utf-8")
+            started = time.monotonic()
+            ops.wait_pressure_tenant_ready(self.FakeProc(), log_path, timeout=5)
+            self.assertLess(time.monotonic() - started, 5)
+
+    def test_ready_line_alone_does_not_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_path.write_text(
+                "READY pid=123 gib=2 regions=4 passes=1 pause_ms=0\n",
+                encoding="utf-8")
+            with self.assertRaises(ops.GateError):
+                ops.wait_pressure_tenant_ready(self.FakeProc(), log_path, timeout=0.5)
+
+    def test_monitor_line_alone_does_not_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_path.write_text("MONITOR_PID: 123\n", encoding="utf-8")
+            with self.assertRaises(ops.GateError):
+                ops.wait_pressure_tenant_ready(self.FakeProc(), log_path, timeout=0.5)
+
+    def test_partial_ready_line_does_not_count(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_path.write_text("xREADY pid=123\nMONITOR_PID: 123\n",
+                                encoding="utf-8")
+            with self.assertRaises(ops.GateError):
+                ops.wait_pressure_tenant_ready(self.FakeProc(), log_path, timeout=0.5)
+
+    def test_tenant_exit_before_lines_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_path.write_text("starting\n", encoding="utf-8")
+            with self.assertRaises(ops.GateError) as ctx:
+                ops.wait_pressure_tenant_ready(self.FakeProc(returncode=1), log_path,
+                                               timeout=5)
+            self.assertIn("exited 1", str(ctx.exception))
+
+    def test_readiness_timeout_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "pressure.log"
+            log_path.write_text("starting\n", encoding="utf-8")
+            with self.assertRaises(ops.GateError) as ctx:
+                ops.wait_pressure_tenant_ready(self.FakeProc(), log_path, timeout=0.5)
+            self.assertIn("timeout", str(ctx.exception))
+
+
+class PressureReleaseTests(unittest.TestCase):
+    class FakeTenant:
+        def __init__(self, returncode=None, stdin=None):
+            self.returncode = returncode
+            self.stdin = stdin
+
+        def poll(self):
+            return self.returncode
+
+    def test_release_newline_written_and_flushed_while_tenant_alive(self):
+        buf = io.StringIO()
+        outcome = runner.release_pressure_tenant(self.FakeTenant(stdin=buf))
+        self.assertEqual(outcome, {"written": "\n", "released": True})
+        self.assertEqual(buf.getvalue(), "\n")
+
+    def test_release_not_sent_when_tenant_has_exited(self):
+        outcome = runner.release_pressure_tenant(self.FakeTenant(returncode=0))
+        self.assertIs(outcome["released"], False)
+        self.assertIn("return code 0", outcome["error"])
+
+    def test_release_write_failure_is_recorded_not_raised(self):
+        class BrokenStdin:
+            def write(self, text):
+                raise OSError("broken pipe")
+
+            def flush(self):
+                pass
+
+        outcome = runner.release_pressure_tenant(self.FakeTenant(stdin=BrokenStdin()))
+        self.assertIs(outcome["released"], False)
+        self.assertEqual(outcome["error"], "OSError: broken pipe")
+
+    def test_release_not_sent_when_stdin_is_none(self):
+        outcome = runner.release_pressure_tenant(self.FakeTenant(stdin=None))
+        self.assertIs(outcome["released"], False)
+        self.assertIn("stdin", outcome["error"])
+
+
+class PressureCellTests(unittest.TestCase):
+    PREFIXES = [{"index": 0, "cold_token_ids": [1], "warm_token_ids": [2],
+                 "expected_store_tokens": 256}]
+
+    @staticmethod
+    def fake_response(request_id):
+        phase = request_id.rsplit("-", 1)[1]
+        index = request_id.rsplit("-", 2)[1]
+        return {"request_header": request_id,
+                "engine_request_id": f"cmpl-{request_id}",
+                "input_tokens": 1, "status": 200, "ttft_ms": 1.0, "e2e_ms": 2.0,
+                "usage": {"prompt_tokens": 1, "completion_tokens": 16},
+                "text": "x", "generated_token_ids": [3] * 16,
+                "_phase": phase, "_index": index}
+
+    def run_cell_with_fakes(self, tmp, pressure=None, kv_bytes=None,
+                            tenant_readiness_error=None):
+        events = []
+        start_server_kwargs = {}
+        run_dir = Path(tmp) / "cell"
+
+        fake_server = mock.Mock()
+        fake_server.pid = 1
+        fake_server.returncode = None
+        fake_server.poll.return_value = None
+
+        def fake_start_server(*args, **kwargs):
+            start_server_kwargs.update(kwargs)
+            events.append("start_server")
+            return fake_server, (run_dir / "server.log").open("w"), \
+                ["vllm", "serve", "/model"], ["taskset", "-c", "8-15",
+                                               "vllm", "serve", "/model"]
+
+        def fake_streamed_completion(port, token_ids, request_id):
+            events.append(f"request:{request_id}")
+            return self.fake_response(request_id)
+
+        def fake_stop_server(proc, log_file):
+            events.append("stop_server")
+            proc.returncode = 0
+            log_file.close()
+
+        fake_tenant = mock.Mock()
+        fake_tenant.pid = 2
+        fake_tenant.returncode = None
+        fake_tenant.poll.return_value = None
+        fake_tenant_stdin = io.StringIO()
+        fake_tenant.stdin = fake_tenant_stdin
+        tenant_log_file = {"handle": None}
+
+        def fake_start_tenant(binary, gib, passes, pause_ms, log_path, result_path):
+            events.append("start_tenant")
+            handle = log_path.open("w")
+            tenant_log_file["handle"] = handle
+            handle.write("READY pid=2 gib=%d regions=4 passes=%d pause_ms=%d\n"
+                         "MONITOR_PID: 2\n" % (gib, passes, pause_ms))
+            return fake_tenant, handle, [str(binary), "--gib", str(gib),
+                                         "--passes", str(passes),
+                                         "--pause-ms", str(pause_ms),
+                                         "--wait-for-monitor",
+                                         "--output", str(result_path)]
+
+        def fake_wait_tenant(proc, log_path):
+            events.append("wait_tenant")
+            if tenant_readiness_error is not None:
+                raise tenant_readiness_error
+
+        def fake_stop_tenant(proc, log_file):
+            events.append("stop_tenant")
+            (run_dir / "pressure-result.json").write_text(
+                '{"bytes": 2147483648, "passes": 1, "kernel_ms": 0.5, '
+                '"completed_passes": 1, "mismatches": 0, '
+                '"first_mismatch": null}\n', encoding="utf-8")
+            proc.returncode = 0
+            log_file.close()
+            return 0, []
+
+        with mock.patch.object(ops, "start_server", side_effect=fake_start_server), \
+                mock.patch.object(ops, "wait_ready",
+                                  side_effect=lambda *a, **k: events.append(
+                                      "wait_ready")), \
+                mock.patch.object(ops, "streamed_completion",
+                                  side_effect=fake_streamed_completion), \
+                mock.patch.object(ops, "stop_owned_server",
+                                  side_effect=fake_stop_server), \
+                mock.patch.object(ops, "start_pressure_tenant",
+                                  side_effect=fake_start_tenant) as start_tenant, \
+                mock.patch.object(ops, "wait_pressure_tenant_ready",
+                                  side_effect=fake_wait_tenant) as wait_tenant, \
+                mock.patch.object(ops, "stop_pressure_tenant",
+                                  side_effect=fake_stop_tenant) as stop_tenant:
+            record = runner.run_cell("recompute", 0, 0, run_dir, 18080,
+                                     Path("/model"), self.PREFIXES,
+                                     EXPECTED_DRIVER, 120.0,
+                                     kv_cache_memory_bytes=kv_bytes,
+                                     pressure=pressure)
+        return record, events, fake_tenant_stdin, start_server_kwargs, \
+            start_tenant, wait_tenant, stop_tenant, run_dir
+
+    def test_no_pressure_cell_keeps_the_old_shape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record, events, tenant_stdin, start_kwargs, start_tenant, \
+                wait_tenant, stop_tenant, run_dir = self.run_cell_with_fakes(tmp)
+            self.assertEqual(events, ["start_server", "wait_ready",
+                                      "request:lmc-p0-cold",
+                                      "request:lmc-p0-warm", "stop_server"])
+            start_tenant.assert_not_called()
+            wait_tenant.assert_not_called()
+            stop_tenant.assert_not_called()
+            self.assertEqual(record["pressure"], {"enabled": False})
+            self.assertIsNone(record["kv_cache_memory_bytes"])
+            self.assertFalse((run_dir / "pressure.log").exists())
+            self.assertFalse((run_dir / "pressure-result.json").exists())
+            self.assertTrue((run_dir / "result.json").is_file())
+            self.assertEqual(tenant_stdin.getvalue(), "")
+
+    def test_pressure_cell_ordering_release_and_cleanup(self):
+        pressure = {"gib": 2, "passes": 3, "pause_ms": 250, "binary": "/bin/tenant"}
+        with tempfile.TemporaryDirectory() as tmp:
+            record, events, tenant_stdin, start_kwargs, *_ = \
+                self.run_cell_with_fakes(tmp, pressure=pressure,
+                                         kv_bytes=48 * 1024**3)
+            self.assertEqual(events, ["start_server", "wait_ready",
+                                      "request:lmc-p0-cold",
+                                      "start_tenant", "wait_tenant",
+                                      "request:lmc-p0-warm",
+                                      "stop_tenant", "stop_server"])
+            self.assertEqual(start_kwargs.get("kv_cache_memory_bytes"), 48 * 1024**3)
+            self.assertEqual(tenant_stdin.getvalue(), "\n")
+            p = record["pressure"]
+            self.assertIs(p["enabled"], True)
+            self.assertEqual(p["command"], ["/bin/tenant", "--gib", "2",
+                                            "--passes", "3", "--pause-ms", "250",
+                                            "--wait-for-monitor",
+                                            "--output",
+                                            str(Path(tmp) / "cell" /
+                                                "pressure-result.json")])
+            self.assertEqual(p["log_path"], str(Path(tmp) / "cell" / "pressure.log"))
+            self.assertEqual(p["result_path"], str(Path(tmp) / "cell" /
+                                                    "pressure-result.json"))
+            self.assertIs(p["ready"], True)
+            self.assertEqual(p["release"], {"written": "\n", "released": True})
+            self.assertEqual(p["returncode"], 0)
+            self.assertEqual(p["cleanup_errors"], [])
+            self.assertEqual(p["result_json"]["mismatches"], 0)
+            self.assertEqual(record["kv_cache_memory_bytes"], 48 * 1024**3)
+            self.assertEqual(record["warm_phase"]["requests"], 1)
+
+    def test_pressure_launch_error_is_recorded_and_cell_continues(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "cell"
+            events = []
+            fake_server = mock.Mock()
+            fake_server.pid = 1
+            fake_server.returncode = None
+            fake_server.poll.return_value = None
+
+            def fake_streamed_completion(port, token_ids, request_id):
+                events.append(f"request:{request_id}")
+                return self.fake_response(request_id)
+
+            def fake_stop_server(proc, log_file):
+                events.append("stop_server")
+                proc.returncode = 0
+                log_file.close()
+
+            def fake_start_server(*args, **kwargs):
+                return fake_server, (run_dir / "server.log").open("w"), \
+                    ["vllm"], ["vllm"]
+
+            with mock.patch.object(ops, "start_server",
+                                   side_effect=fake_start_server), \
+                    mock.patch.object(ops, "wait_ready"), \
+                    mock.patch.object(ops, "streamed_completion",
+                                      side_effect=fake_streamed_completion), \
+                    mock.patch.object(ops, "stop_owned_server",
+                                      side_effect=fake_stop_server), \
+                    mock.patch.object(ops, "start_pressure_tenant",
+                                      side_effect=FileNotFoundError(
+                                          "pressure tenant binary not found: /bin/missing")) \
+                        as start_tenant, \
+                    mock.patch.object(ops, "stop_pressure_tenant") as stop_tenant:
+                record = runner.run_cell("recompute", 0, 0, run_dir, 18080,
+                                         Path("/model"), self.PREFIXES,
+                                         EXPECTED_DRIVER, 120.0,
+                                         pressure={"gib": 2, "passes": 1,
+                                                   "pause_ms": 0,
+                                                   "binary": "/bin/missing"})
+            start_tenant.assert_called_once()
+            stop_tenant.assert_not_called()
+            p = record["pressure"]
+            self.assertIs(p["enabled"], True)
+            self.assertIn("FileNotFoundError", p["error"])
+            self.assertIs(p["ready"], False)
+            self.assertIsNone(p["command"])
+            self.assertIsNone(p["log_path"])
+            self.assertIsNone(p["result_path"])
+            self.assertIsNone(p["release"])
+            self.assertIsNone(p["returncode"])
+            self.assertEqual(p["cleanup_errors"], [])
+            self.assertEqual(events, ["request:lmc-p0-cold",
+                                      "request:lmc-p0-warm", "stop_server"])
+            self.assertTrue((run_dir / "result.json").is_file())
+
+    def test_pressure_readiness_failure_still_stops_the_tenant(self):
+        pressure = {"gib": 2, "passes": 1, "pause_ms": 0, "binary": "/bin/tenant"}
+        with tempfile.TemporaryDirectory() as tmp:
+            record, events, tenant_stdin, *_ = self.run_cell_with_fakes(
+                tmp, pressure=pressure,
+                tenant_readiness_error=ops.GateError("readiness timeout"))
+            self.assertEqual(events, ["start_server", "wait_ready",
+                                      "request:lmc-p0-cold",
+                                      "start_tenant", "wait_tenant",
+                                      "request:lmc-p0-warm",
+                                      "stop_tenant", "stop_server"])
+            self.assertEqual(tenant_stdin.getvalue(), "")
+            p = record["pressure"]
+            self.assertIn("GateError", p["error"])
+            self.assertIs(p["ready"], False)
+            self.assertIsNone(p["release"])
+            self.assertEqual(p["returncode"], 0)
+            self.assertEqual(p["cleanup_errors"], [])
+            self.assertTrue((Path(tmp) / "cell" / "result.json").is_file())
+
+
+class PressureDryRunTests(unittest.TestCase):
+    def capture_main(self, argv):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = runner.main(argv)
+        return rc, json.loads(buf.getvalue())
+
+    def test_dry_run_default_pressure_is_disabled(self):
+        rc, plan = self.capture_main(["--dry-run"])
+        self.assertEqual(rc, 0)
+        self.assertIsNone(plan["kv_cache_memory_bytes"])
+        self.assertIs(plan["pressure"]["enabled"], False)
+        self.assertEqual(plan["pressure"]["gib"], 0)
+        self.assertEqual(plan["pressure"]["binary"], str(ops.PRESSURE_TENANT))
+        self.assertIn("--wait-for-monitor", plan["pressure"]["launch"])
+        self.assertIn("pressure.log", plan["pressure"]["stdout_stderr"])
+
+    def test_dry_run_pressure_plan_reflects_the_cli(self):
+        rc, plan = self.capture_main(
+            ["--dry-run", "--pressure-gib", "4", "--pressure-passes", "2",
+             "--pressure-pause-ms", "100", "--kv-cache-memory-bytes",
+             "21474836480", "--pressure-binary", "/tmp/uvm_fault_stream"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(plan["kv_cache_memory_bytes"], 21474836480)
+        pressure = plan["pressure"]
+        self.assertIs(pressure["enabled"], True)
+        self.assertEqual(pressure["gib"], 4)
+        self.assertEqual(pressure["passes"], 2)
+        self.assertEqual(pressure["pause_ms"], 100)
+        self.assertEqual(pressure["binary"], "/tmp/uvm_fault_stream")
+        self.assertEqual(pressure["recorded"],
+                         ["command", "log_path", "result_path", "ready", "release",
+                          "returncode", "result_json", "cleanup_errors", "error"])
+        self.assertIn("start_pressure_tenant", plan["reuse"])
+        self.assertIn("wait_pressure_tenant_ready", plan["reuse"])
+        self.assertIn("stop_pressure_tenant", plan["reuse"])
+
+
 class DryRunTests(unittest.TestCase):
     def capture_main(self, argv):
         buf = io.StringIO()

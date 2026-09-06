@@ -34,6 +34,25 @@ launch command, log path, readiness outcome, warm-signal outcome, return
 code, and cleanup errors are recorded in the cell result; only this arm
 launches the loader.
 
+Two optional pressure knobs extend the runner without changing its default
+behavior. --kv-cache-memory-bytes N (positive integer) is appended to the
+vLLM server argv of every cell as --kv-cache-memory-bytes N (explicit KV pool
+size). --pressure-gib N with N > 0 starts the owned UVM fault-stream pressure
+tenant (workloads/uvm-policy-mechanism/uvm_fault_stream, --pressure-binary to
+override) in every cell: after all cold requests and their store barriers,
+before the warm signal and the warm timer, the runner launches
+``<binary> --gib N --passes P --pause-ms M --wait-for-monitor --output
+pressure-result.json`` (--pressure-passes, --pressure-pause-ms), captures
+stdout/stderr in the cell pressure.log, waits (bounded 30 s poll via
+wait_pressure_tenant_ready) for the exact ``READY pid=`` and ``MONITOR_PID:``
+lines, then writes a newline to its stdin immediately before the warm
+requests. During cell cleanup the runner stops the tenant process group with
+a bounded SIGINT/SIGTERM/SIGKILL and records its argv, readiness, release
+outcome, return code, pressure-result.json (when present), and errors in the
+cell result; a launch or readiness failure is recorded and the cell
+continues. With --pressure-gib 0 (default) and no --kv-cache-memory-bytes the
+runner and its CLI behave exactly as before.
+
 This runner deliberately calls none of the validation, admission, or retry
 machinery: no validate-cell, compare-outputs, analyze, engagement checks
 (validate_log), correctness/store checks (wait_for_cold_store,
@@ -221,6 +240,33 @@ def send_loader_warm_signal(proc) -> dict[str, Any]:
     return outcome
 
 
+def release_pressure_tenant(proc) -> dict[str, Any]:
+    """Write the newline that releases the tenant's ``--wait-for-monitor`` wait.
+
+    The outcome is recorded exactly once; a write failure is preserved and
+    never aborts the cell.
+    """
+    outcome: dict[str, Any] = {"written": "\n"}
+    if proc.poll() is not None:
+        outcome["released"] = False
+        outcome["error"] = (f"pressure tenant exited with return code {proc.returncode} "
+                            "before the release")
+        return outcome
+    if proc.stdin is None:
+        outcome["released"] = False
+        outcome["error"] = "pressure tenant stdin is not a pipe"
+        return outcome
+    try:
+        proc.stdin.write("\n")
+        proc.stdin.flush()
+    except (OSError, ValueError) as error:  # noqa: BLE001 - preserved, never fatal
+        outcome["released"] = False
+        outcome["error"] = f"{type(error).__name__}: {error}"
+        return outcome
+    outcome["released"] = True
+    return outcome
+
+
 def warm_aggregates(record: dict[str, Any], warm_start_ns: int,
                     warm_end_ns: int) -> dict[str, Any] | None:
     warm = [entry for entry in record["requests"] if entry["phase"] == "warm"]
@@ -252,13 +298,16 @@ def warm_aggregates(record: dict[str, Any], warm_start_ns: int,
 def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
              model_path: Path, prefixes: list[dict[str, Any]], expected_driver: str,
              store_barrier_timeout_s: float,
-             eviction_loader: Path = ops.EVICTION_LOADER) -> dict[str, Any]:
+             eviction_loader: Path = ops.EVICTION_LOADER,
+             kv_cache_memory_bytes: int | None = None,
+             pressure: dict[str, Any] | None = None) -> dict[str, Any]:
     """One arm, once: no gates, no retry; every number and exit code is kept."""
     record: dict[str, Any] = {
         "schema": 1, "kind": KIND, "config": config, "block": block, "position": position,
         "port": port, "expected_driver_parameter": expected_driver,
         "prompt_count": len(prefixes), "cached_tokens": ops.PREFIX_TOKENS,
         "output_tokens": ops.OUTPUT_TOKENS,
+        "kv_cache_memory_bytes": kv_cache_memory_bytes,
         "started_ns": time.time_ns(), "ready": False, "ready_error": None,
         "requests": [], "barriers": [], "cleanup_errors": [],
         "server_returncode": None, "error": None,
@@ -266,6 +315,10 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
                     "log_path": None, "ready": None, "warm_signal": None,
                     "returncode": None, "cleanup_errors": []}
                    if config == LOADER_ARM else {"enabled": False}),
+        "pressure": ({"enabled": True, "command": None, "log_path": None,
+                      "result_path": None, "ready": None, "release": None,
+                      "returncode": None, "result_json": None, "cleanup_errors": []}
+                     if pressure is not None else {"enabled": False}),
     }
     log_path = run_dir / "server.log"
     cache_dir = run_dir / "cache"
@@ -275,6 +328,8 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
     log_file = None
     loader_proc = None
     loader_log_file = None
+    pressure_proc = None
+    pressure_log_file = None
     stopped = False
     launched = False
     try:
@@ -298,7 +353,8 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
         else:
             try:
                 proc, log_file, argv, launch = ops.start_server(
-                    config, model_path, cache_dir, port, log_path, expected_driver=expected_driver)
+                    config, model_path, cache_dir, port, log_path, expected_driver=expected_driver,
+                    kv_cache_memory_bytes=kv_cache_memory_bytes)
                 launched = True
             except FileExistsError as error:
                 record["error"] = f"server log already exists; launch not attempted: {error}"
@@ -331,8 +387,26 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
                             config, log_path, cold["engine_request_id"],
                             int(item["expected_store_tokens"]), len(item["cold_token_ids"]),
                             store_barrier_timeout_s, DEFAULT_STORE_BARRIER_POLL_S))
+                if pressure is not None:
+                    pressure_log = run_dir / "pressure.log"
+                    pressure_result = run_dir / "pressure-result.json"
+                    try:
+                        pressure_proc, pressure_log_file, pressure_argv = \
+                            ops.start_pressure_tenant(
+                                pressure["binary"], pressure["gib"], pressure["passes"],
+                                pressure["pause_ms"], pressure_log, pressure_result)
+                        record["pressure"]["command"] = pressure_argv
+                        record["pressure"]["log_path"] = str(pressure_log)
+                        record["pressure"]["result_path"] = str(pressure_result)
+                        ops.wait_pressure_tenant_ready(pressure_proc, pressure_log)
+                        record["pressure"]["ready"] = True
+                    except Exception as error:  # noqa: BLE001 - preserved, cell continues
+                        record["pressure"]["error"] = f"{type(error).__name__}: {error}"
+                        record["pressure"]["ready"] = False
                 if config == LOADER_ARM and loader_proc is not None:
                     record["loader"]["warm_signal"] = send_loader_warm_signal(loader_proc)
+                if pressure is not None and record["pressure"]["ready"] is True:
+                    record["pressure"]["release"] = release_pressure_tenant(pressure_proc)
                 warm_start = time.perf_counter_ns()
                 for item in prefixes:
                     index = item["index"]
@@ -361,6 +435,33 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
         if isinstance(error, (KeyboardInterrupt, SystemExit)):
             raise
     finally:
+        if pressure_proc is not None:
+            try:
+                pressure_returncode, pressure_errors = ops.stop_pressure_tenant(
+                    pressure_proc, pressure_log_file)
+                record["pressure"]["returncode"] = pressure_returncode
+                record["pressure"]["cleanup_errors"].extend(pressure_errors)
+                if pressure_returncode is None:
+                    record["pressure"]["cleanup_errors"].append(
+                        "pressure tenant return code unknown after bounded stop")
+            except BaseException as error:  # noqa: BLE001
+                record["pressure"]["cleanup_errors"].append(
+                    f"stop_pressure_tenant: {type(error).__name__}: {error}")
+                try:
+                    if pressure_log_file is not None:
+                        pressure_log_file.close()
+                except OSError:
+                    pass
+                record["pressure"]["returncode"] = pressure_proc.returncode
+            if record["pressure"]["result_path"] is not None:
+                result_file = Path(record["pressure"]["result_path"])
+                if result_file.is_file():
+                    try:
+                        record["pressure"]["result_json"] = \
+                            json.loads(result_file.read_text())
+                    except (OSError, ValueError) as error:
+                        record["pressure"]["result_json_error"] = \
+                            f"{type(error).__name__}: {error}"
         if proc is not None:
             try:
                 ops.stop_owned_server(proc, log_file)
@@ -494,11 +595,21 @@ def run_campaign(args) -> int:
     orders = rotation_orders(args.blocks, configs)
     prompts = load_fixed_prompts()
     prefixes = prompts["prefixes"]
+    pressure = None
+    if args.pressure_gib > 0:
+        pressure = {"gib": args.pressure_gib, "passes": args.pressure_passes,
+                    "pause_ms": args.pressure_pause_ms,
+                    "binary": args.pressure_binary}
     campaign: dict[str, Any] = {
         "kind": KIND, "timestamp": timestamp,
         "params": {
             "blocks": args.blocks, "expected_driver": args.expected_driver,
             "port": args.port, "store_barrier_timeout_s": args.store_barrier_timeout_s,
+            "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
+            "pressure": {"enabled": args.pressure_gib > 0,
+                         "binary": str(args.pressure_binary),
+                         "gib": args.pressure_gib, "passes": args.pressure_passes,
+                         "pause_ms": args.pressure_pause_ms},
             "configs": list(configs), "attempts_per_cell": 1,
             "retry": False, "result_filtering": False, "gpu_idle_wait": False,
             "eviction_loader": {"arm": LOADER_ARM, "path": str(args.eviction_loader),
@@ -527,7 +638,9 @@ def run_campaign(args) -> int:
                     record = run_cell(config, block, position, run_dir, args.port,
                                       Path(campaign["params"]["model_path"]), prefixes,
                                       args.expected_driver, args.store_barrier_timeout_s,
-                                      args.eviction_loader)
+                                      args.eviction_loader,
+                                      kv_cache_memory_bytes=args.kv_cache_memory_bytes,
+                                      pressure=pressure)
                 except Exception as error:  # noqa: BLE001 - preserved, campaign continues
                     record = {"schema": 1, "kind": KIND, "config": config,
                               "block": block, "position": position, "port": args.port,
@@ -535,7 +648,8 @@ def run_campaign(args) -> int:
                               "error": f"{type(error).__name__}: {error}",
                               "requests": [], "barriers": [], "cleanup_errors": [],
                               "server_returncode": None,
-                              "loader": {"enabled": False}}
+                              "loader": {"enabled": False},
+                              "pressure": {"enabled": False}}
                 campaign["cells"].append({"block": block, "position": position,
                                           "config": config, "run_dir": str(run_dir),
                                           "warm": cell_metrics(record)})
@@ -573,6 +687,30 @@ def dry_run_plan(args) -> dict[str, Any]:
         "block_orders": rotation_orders(args.blocks, configs),
         "expected_driver_parameter": args.expected_driver,
         "port": args.port,
+        "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
+        "pressure": {
+            "enabled": args.pressure_gib > 0,
+            "binary": str(args.pressure_binary),
+            "gib": args.pressure_gib,
+            "passes": args.pressure_passes,
+            "pause_ms": args.pressure_pause_ms,
+            "launch": "<binary> --gib N --passes N --pause-ms N --wait-for-monitor "
+                      "--output pressure-result.json (controlled GPU-0 environment, "
+                      "own session; started in every cell after all cold requests and "
+                      "their store barriers, before the loader warm signal and the "
+                      "warm timer)",
+            "readiness": "wait_pressure_tenant_ready polls pressure.log for the exact "
+                         "'READY pid=' and 'MONITOR_PID:' lines (30 s timeout) "
+                         "immediately after start; on failure the error is recorded "
+                         "and the cell continues",
+            "stdin": "PIPE; a newline is written immediately before the warm "
+                     "requests to release the tenant's monitor wait",
+            "stdout_stderr": "per-cell pressure.log",
+            "stop": "bounded SIGINT/SIGTERM/SIGKILL of the tenant process group "
+                    "during cell cleanup, before the server stop",
+            "recorded": ["command", "log_path", "result_path", "ready", "release",
+                         "returncode", "result_json", "cleanup_errors", "error"],
+        },
         "eviction_loader": {
             "arm": LOADER_ARM,
             "path": str(args.eviction_loader),
@@ -605,6 +743,8 @@ def dry_run_plan(args) -> dict[str, Any]:
                   "server_environment", "request_log_values (barrier only)",
                   "start_eviction_loader", "wait_eviction_loader_ready",
                   "stop_eviction_loader",
+                  "start_pressure_tenant", "wait_pressure_tenant_ready",
+                  "stop_pressure_tenant",
                   "resolve_model", "atomic_write_json"],
         "removed_mechanisms": [
             "inter-cell GPU-idle wait",
@@ -621,6 +761,9 @@ def dry_run_plan(args) -> dict[str, Any]:
         ],
         "preserved": [
             "per-cell server.log (server stdout/stderr)",
+            "per-cell pressure.log, pressure command, readiness/release outcome, "
+            "pressure return code, and pressure-result.json when the tenant writes it "
+            "(pressure enabled only)",
             "per-cell loader.log, loader command, warm-signal outcome, and loader return "
             "code (fourth arm only)",
             "per-cell server return code, including nonzero",
@@ -642,6 +785,20 @@ def parse_args(argv: list[str] | None = None):
     parser.add_argument("--eviction-loader", type=Path, default=ops.EVICTION_LOADER,
                         help="eviction-debt BPF loader binary started under sudo -n by "
                              "the lmcache_disk_uvm_kv_gpubpf_debt arm only")
+    parser.add_argument("--kv-cache-memory-bytes", type=int, default=None,
+                        help="explicit vLLM KV pool size in bytes, passed to the server "
+                             "as --kv-cache-memory-bytes (default: unset)")
+    parser.add_argument("--pressure-gib", type=int, default=0,
+                        help="UVM pressure-tenant managed allocation in GiB; 0 "
+                             "(default) disables the pressure tenant")
+    parser.add_argument("--pressure-passes", type=int, default=1,
+                        help="pressure-tenant sparse GPU touch passes after the "
+                             "newline release")
+    parser.add_argument("--pressure-pause-ms", type=int, default=0,
+                        help="milliseconds between consecutive pressure-tenant passes")
+    parser.add_argument("--pressure-binary", type=Path, default=ops.PRESSURE_TENANT,
+                        help="UVM pressure-tenant binary (default: the repo "
+                             "workloads/uvm-policy-mechanism/uvm_fault_stream)")
     parser.add_argument("--configs", default=",".join(CONFIGS),
                         help="comma-separated nonempty unique subset of the four "
                              "arms to run (default: all four in base order)")
@@ -650,6 +807,18 @@ def parse_args(argv: list[str] | None = None):
                         help="print the fixed plan without touching GPU or output state")
     args = parser.parse_args(argv)
     args.configs = parse_configs(args.configs)
+    if args.kv_cache_memory_bytes is not None and args.kv_cache_memory_bytes <= 0:
+        raise ValueError(
+            f"--kv-cache-memory-bytes must be positive, got {args.kv_cache_memory_bytes}")
+    if args.pressure_gib < 0:
+        raise ValueError(f"--pressure-gib must be nonnegative, got {args.pressure_gib}")
+    if args.pressure_gib > 0:
+        if args.pressure_passes < 1:
+            raise ValueError(
+                f"--pressure-passes must be at least 1, got {args.pressure_passes}")
+        if args.pressure_pause_ms < 0:
+            raise ValueError(
+                f"--pressure-pause-ms must be nonnegative, got {args.pressure_pause_ms}")
     return args
 
 

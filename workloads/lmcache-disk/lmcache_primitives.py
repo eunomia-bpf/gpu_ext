@@ -42,8 +42,11 @@ PLAN = HERE / "plan-v2.md"
 RUNNER = Path(__file__).resolve()
 UVM_KV_ALLOCATOR_SO = VLLM_WORKLOAD / "vllm" / "uvm_test" / "uvm_allocator.so"
 EVICTION_LOADER = GPU_EXT / "extension" / "eviction_debt"
+PRESSURE_TENANT = GPU_EXT / "workloads" / "uvm-policy-mechanism" / "uvm_fault_stream"
 LOADER_ARM = "lmcache_disk_uvm_kv_gpubpf_debt"
 EVICTION_LOADER_READY_MARKER = "Successfully loaded migration-debt eviction policy!"
+PRESSURE_READY_LINE = "READY pid="
+PRESSURE_MONITOR_LINE = "MONITOR_PID:"
 
 EXPECTED_DRIVER = "610.43.02"
 EXPERIMENT_DRIVERS = (EXPECTED_DRIVER, "575.57.08")
@@ -542,7 +545,8 @@ def server_environment(config: str, cache_dir: Path,
     return env
 
 
-def server_argv(config: str, model_path: Path, port: int | str) -> list[str]:
+def server_argv(config: str, model_path: Path, port: int | str,
+                kv_cache_memory_bytes: int | None = None) -> list[str]:
     argv = [str(VLLM), "serve", str(model_path), "--served-model-name", MODEL_ID,
             "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.98",
             "--max-num-seqs", "1", "--no-enable-prefix-caching", "--port", str(port)]
@@ -550,12 +554,15 @@ def server_argv(config: str, model_path: Path, port: int | str) -> list[str]:
         argv.extend(["--kv-transfer-config", canonical(
             {"kv_connector": "LMCacheConnectorV1", "kv_role": "kv_both"}
         )])
+    if kv_cache_memory_bytes is not None:
+        argv.extend(["--kv-cache-memory-bytes", str(kv_cache_memory_bytes)])
     return argv
 
 
 def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_path: Path,
-                 trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER):
-    argv = server_argv(config, model_path, port)
+                 trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER,
+                 kv_cache_memory_bytes: int | None = None):
+    argv = server_argv(config, model_path, port, kv_cache_memory_bytes)
     launch = list(argv)
     if trace_dir is not None:
         trace_dir = trace_dir.resolve()
@@ -655,6 +662,77 @@ def stop_eviction_loader(proc: subprocess.Popen, log_file) -> tuple[int | None, 
     """Bounded SIGINT/SIGTERM/SIGKILL stop of the loader process group.
 
     Records the loader return code and any cleanup errors; never retries and
+    never blocks the cell past the shared bounded stop windows.
+    """
+    errors: list[str] = []
+    try:
+        shared.stop_owned(proc)
+    except Exception as error:  # noqa: BLE001 - preserved, never fatal
+        errors.append(f"stop_owned: {type(error).__name__}: {error}")
+    finally:
+        try:
+            log_file.close()
+        except OSError:
+            pass
+    return proc.returncode, errors
+
+
+def start_pressure_tenant(binary_path: Path, gib: int, passes: int, pause_ms: int,
+                          log_path: Path, result_path: Path):
+    """Start the owned UVM fault-stream pressure tenant for a performance cell.
+
+    Launches ``<binary> --gib N --passes N --pause-ms N --wait-for-monitor
+    --output <result_path>`` with the controlled GPU-0 environment, a stdin
+    PIPE for the newline release, stdout/stderr into ``log_path``, and its
+    own session so the tenant can be stopped as a process group. The binary
+    must exist. No retry or admission machinery; readiness is handled by
+    wait_pressure_tenant_ready.
+    """
+    binary_path = Path(binary_path).expanduser().resolve()
+    if not binary_path.is_file():
+        raise FileNotFoundError(f"pressure tenant binary not found: {binary_path}")
+    argv = [str(binary_path), "--gib", str(gib), "--passes", str(passes),
+            "--pause-ms", str(pause_ms), "--wait-for-monitor",
+            "--output", str(result_path)]
+    log_file = log_path.open("x")
+    try:
+        proc = subprocess.Popen(argv, env=controlled_environment(),
+                                stdin=subprocess.PIPE, stdout=log_file,
+                                stderr=subprocess.STDOUT, text=True,
+                                start_new_session=True)
+    except BaseException:
+        log_file.close()
+        raise
+    return proc, log_file, argv
+
+
+def wait_pressure_tenant_ready(proc: subprocess.Popen, log_path: Path,
+                               timeout: float = 30) -> None:
+    """Bounded readiness wait for the UVM pressure tenant.
+
+    Polls ``log_path`` for the exact ``READY pid=`` and ``MONITOR_PID:``
+    lines; raises GateError if the tenant exits first or the timeout elapses.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            tail = log_path.read_text(errors="replace")[-5000:] if log_path.exists() else ""
+            raise GateError(
+                f"pressure tenant exited {proc.returncode} before readiness lines\n{tail}")
+        if log_path.exists():
+            lines = log_path.read_text(errors="replace").splitlines()
+            if (any(line.startswith(PRESSURE_READY_LINE) for line in lines)
+                    and any(line.startswith(PRESSURE_MONITOR_LINE) for line in lines)):
+                return
+        time.sleep(0.25)
+    tail = log_path.read_text(errors="replace")[-5000:] if log_path.exists() else ""
+    raise GateError(f"pressure tenant readiness timeout after {timeout}s\n{tail}")
+
+
+def stop_pressure_tenant(proc: subprocess.Popen, log_file) -> tuple[int | None, list[str]]:
+    """Bounded SIGINT/SIGTERM/SIGKILL stop of the tenant process group.
+
+    Records the tenant return code and any cleanup errors; never retries and
     never blocks the cell past the shared bounded stop windows.
     """
     errors: list[str] = []

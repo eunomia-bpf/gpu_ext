@@ -42,3 +42,27 @@ the closed experiment or authorize the three-cell comparison; see
 The pre-run driver deviation is recorded in `plan.md`: all three cells use
 the same 610.43.02 stack, with the reviewed workload and analysis unchanged.
 No custom module replacement is needed for this storage-only comparison.
+
+## UVM-KV performance runner pressure options
+
+`run_uvm_kv_perf.py` (kind `lmcache_uvm_kv_perf`, CPU-only tests in
+`test_uvm_kv_perf.py`) accepts two optional pressure knobs for the
+recoverability-arbitration pressure cells; both default to off and leave the
+existing CLI and behavior unchanged:
+
+- `--kv-cache-memory-bytes N` (positive integer): explicit vLLM KV pool size
+  in bytes, appended to the server argv of every cell as
+  `--kv-cache-memory-bytes N`.
+- `--pressure-gib N` (default 0 disables) with optional `--pressure-passes P`
+  (default 1), `--pressure-pause-ms M` (default 0), and `--pressure-binary
+  PATH` (default `workloads/uvm-policy-mechanism/uvm_fault_stream`): when N >
+  0, each cell starts the owned UVM fault-stream tenant after all cold
+  requests and their store barriers and before the warm signal/warm timer,
+  with stdout/stderr captured in the cell `pressure.log`; the runner waits
+  (bounded 30 s) for the exact `READY pid=` and `MONITOR_PID:` lines, writes a
+  newline to its stdin immediately before the warm requests, and stops the
+  tenant process group with a bounded SIGINT/SIGTERM/SIGKILL during cleanup.
+  The tenant argv, readiness, release outcome, return code,
+  `pressure-result.json` (when the tenant writes it), and errors are recorded
+  in the cell `result.json`; a launch or readiness failure is recorded and the
+  cell continues. No retries, gates, or filtering are added.

@@ -7,7 +7,7 @@ successful local analogue as a reproduction of the original system.
 
 The machine-readable source of truth is
 [`related-policy-expressibility.json`](related-policy-expressibility.json).  It
-currently contains **48 papers across seven policy families**.  Every row records
+currently contains **50 papers across seven policy families**.  Every row records
 the primary publication/artifact URL, the paper's observations and actions, the
 whole-policy classification, missing primitives, any corresponding in-tree
 programs, and the strongest evidence level actually available.
@@ -151,6 +151,8 @@ observation/action and missing-primitive text.
 | [PowerInfer](https://doi.org/10.1145/3694715.3695964) | 2024 | `NO` | — | Neuron prediction and CPU/GPU compute placement are absent |
 | [ZeRO-Infinity](https://arxiv.org/abs/2104.07857) | 2021 | `NO` | — | Distributed partitioning and NVMe pipelines are absent |
 | [Capuchin](https://doi.org/10.1145/3373376.3378505) | 2020 | `PARTIAL` | LFU/reuse ranking | No tensor liveness, tensor-range action, or recomputation |
+| [MatKV](https://arxiv.org/abs/2512.22195) | 2025 | `PARTIAL` | asynchronous storage submit plus fetch-versus-recompute | gpubpf can choose whether to restore a materialized KV object, but offline RAG-object materialization remains a framework action |
+| [KVPR](https://aclanthology.org/2025.findings-acl.997/) | 2025 | `PARTIAL` | transfer/recompute cost model and bounded split hint | Current storage action is all-or-none; partial activation transfer and KV recomputation require a cooperating runtime executor |
 
 ### GPU scheduling and QoS
 

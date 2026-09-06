@@ -1,0 +1,278 @@
+Checking for old struct_ops instances...
+No old struct_ops instances found.
+libbpf: loading object 'eviction_debt_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 1800, link 1, flags 0, type=2
+libbpf: elf: section(3) struct_ops/gpu_block_activate, size 912, link 0, flags 6, type=1
+libbpf: sec 'struct_ops/gpu_block_activate': found program 'gpu_block_activate' at insn offset 0 (0 bytes), code size 114 insns (912 bytes)
+libbpf: elf: section(4) struct_ops/gpu_block_access, size 672, link 0, flags 6, type=1
+libbpf: sec 'struct_ops/gpu_block_access': found program 'gpu_block_access' at insn offset 0 (0 bytes), code size 84 insns (672 bytes)
+libbpf: elf: section(5) struct_ops/gpu_evict_prepare, size 3872, link 0, flags 6, type=1
+libbpf: sec 'struct_ops/gpu_evict_prepare': found program 'gpu_evict_prepare' at insn offset 0 (0 bytes), code size 484 insns (3872 bytes)
+libbpf: elf: section(6) struct_ops/gpu_page_prefetch, size 248, link 0, flags 6, type=1
+libbpf: sec 'struct_ops/gpu_page_prefetch': found program 'gpu_page_prefetch' at insn offset 0 (0 bytes), code size 31 insns (248 bytes)
+libbpf: elf: section(7) license, size 4, link 0, flags 3, type=1
+libbpf: license of eviction_debt_bpf is GPL
+libbpf: elf: section(8) .struct_ops, size 48, link 0, flags 3, type=1
+libbpf: elf: section(9) .maps, size 128, link 0, flags 3, type=1
+libbpf: elf: section(10) .relstruct_ops/gpu_block_activate, size 80, link 2, flags 40, type=9
+libbpf: elf: section(11) .relstruct_ops/gpu_block_access, size 96, link 2, flags 40, type=9
+libbpf: elf: section(12) .relstruct_ops/gpu_evict_prepare, size 320, link 2, flags 40, type=9
+libbpf: elf: section(13) .relstruct_ops/gpu_page_prefetch, size 48, link 2, flags 40, type=9
+libbpf: elf: section(14) .rel.struct_ops, size 64, link 2, flags 40, type=9
+libbpf: elf: section(15) .BTF, size 41133, link 0, flags 0, type=1
+libbpf: elf: section(16) .BTF.ext, size 4988, link 0, flags 0, type=1
+libbpf: looking for externs among 75 symbols...
+libbpf: collected 2 externs total
+libbpf: extern (ksym) #0: symbol 69, name bpf_gpu_request_reorder
+libbpf: extern (ksym) #1: symbol 72, name bpf_gpu_set_prefetch_region
+libbpf: map 'debt_config': at sec_idx 9, offset 0.
+libbpf: map 'debt_config': found type = 2.
+libbpf: map 'debt_config': found key [8], sz = 4.
+libbpf: map 'debt_config': found value [12], sz = 8.
+libbpf: map 'debt_config': found max_entries = 8.
+libbpf: map 'chunk_debt': at sec_idx 9, offset 32.
+libbpf: map 'chunk_debt': found type = 1.
+libbpf: map 'chunk_debt': found key [12], sz = 8.
+libbpf: map 'chunk_debt': found value [22], sz = 8.
+libbpf: map 'chunk_debt': found max_entries = 65536.
+libbpf: map 'debt_pressure': at sec_idx 9, offset 64.
+libbpf: map 'debt_pressure': found type = 2.
+libbpf: map 'debt_pressure': found key [8], sz = 4.
+libbpf: map 'debt_pressure': found value [12], sz = 8.
+libbpf: map 'debt_pressure': found max_entries = 1.
+libbpf: map 'pid_chunk_count': at sec_idx 9, offset 96.
+libbpf: map 'pid_chunk_count': found type = 1.
+libbpf: map 'pid_chunk_count': found key [8], sz = 4.
+libbpf: map 'pid_chunk_count': found value [33], sz = 40.
+libbpf: map 'pid_chunk_count': found max_entries = 256.
+libbpf: struct_ops init: struct gpu_mem_ops(type_id=474) uvm_ops_debt found at offset 0
+libbpf: sec '.relstruct_ops/gpu_block_activate': collecting relocation for section(3) 'struct_ops/gpu_block_activate'
+libbpf: sec '.relstruct_ops/gpu_block_activate': relo #0: insn #60 against 'chunk_debt'
+libbpf: prog 'gpu_block_activate': found map 1 (chunk_debt, sec 9, off 32) for insn #60
+libbpf: sec '.relstruct_ops/gpu_block_activate': relo #1: insn #68 against 'debt_config'
+libbpf: prog 'gpu_block_activate': found map 0 (debt_config, sec 9, off 0) for insn #68
+libbpf: sec '.relstruct_ops/gpu_block_activate': relo #2: insn #86 against 'chunk_debt'
+libbpf: prog 'gpu_block_activate': found map 1 (chunk_debt, sec 9, off 32) for insn #86
+libbpf: sec '.relstruct_ops/gpu_block_activate': relo #3: insn #92 against 'pid_chunk_count'
+libbpf: prog 'gpu_block_activate': found map 3 (pid_chunk_count, sec 9, off 96) for insn #92
+libbpf: sec '.relstruct_ops/gpu_block_activate': relo #4: insn #108 against 'pid_chunk_count'
+libbpf: prog 'gpu_block_activate': found map 3 (pid_chunk_count, sec 9, off 96) for insn #108
+libbpf: sec '.relstruct_ops/gpu_block_access': collecting relocation for section(4) 'struct_ops/gpu_block_access'
+libbpf: sec '.relstruct_ops/gpu_block_access': relo #0: insn #5 against 'chunk_debt'
+libbpf: prog 'gpu_block_access': found map 1 (chunk_debt, sec 9, off 32) for insn #5
+libbpf: sec '.relstruct_ops/gpu_block_access': relo #1: insn #15 against 'debt_config'
+libbpf: prog 'gpu_block_access': found map 0 (debt_config, sec 9, off 0) for insn #15
+libbpf: sec '.relstruct_ops/gpu_block_access': relo #2: insn #44 against 'debt_pressure'
+libbpf: prog 'gpu_block_access': found map 2 (debt_pressure, sec 9, off 64) for insn #44
+libbpf: sec '.relstruct_ops/gpu_block_access': relo #3: insn #56 against 'pid_chunk_count'
+libbpf: prog 'gpu_block_access': found map 3 (pid_chunk_count, sec 9, off 96) for insn #56
+libbpf: sec '.relstruct_ops/gpu_block_access': relo #4: insn #68 against 'bpf_gpu_request_reorder'
+libbpf: prog 'gpu_block_access': found extern #0 'bpf_gpu_request_reorder' (sym 69) for insn #68
+libbpf: sec '.relstruct_ops/gpu_block_access': relo #5: insn #79 against 'bpf_gpu_request_reorder'
+libbpf: prog 'gpu_block_access': found extern #0 'bpf_gpu_request_reorder' (sym 69) for insn #79
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': collecting relocation for section(5) 'struct_ops/gpu_evict_prepare'
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #0: insn #6 against 'debt_config'
+libbpf: prog 'gpu_evict_prepare': found map 0 (debt_config, sec 9, off 0) for insn #6
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #1: insn #33 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #33
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #2: insn #60 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #60
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #3: insn #78 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #78
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #4: insn #105 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #105
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #5: insn #123 against 'pid_chunk_count'
+libbpf: prog 'gpu_evict_prepare': found map 3 (pid_chunk_count, sec 9, off 96) for insn #123
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #6: insn #137 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #137
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #7: insn #152 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #152
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #8: insn #179 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #179
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #9: insn #205 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #205
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #10: insn #232 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #232
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #11: insn #258 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #258
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #12: insn #285 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #285
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #13: insn #311 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #311
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #14: insn #338 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #338
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #15: insn #366 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #366
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #16: insn #393 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #393
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #17: insn #420 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #420
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #18: insn #446 against 'chunk_debt'
+libbpf: prog 'gpu_evict_prepare': found map 1 (chunk_debt, sec 9, off 32) for insn #446
+libbpf: sec '.relstruct_ops/gpu_evict_prepare': relo #19: insn #473 against 'debt_pressure'
+libbpf: prog 'gpu_evict_prepare': found map 2 (debt_pressure, sec 9, off 64) for insn #473
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': collecting relocation for section(6) 'struct_ops/gpu_page_prefetch'
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #0: insn #5 against 'debt_config'
+libbpf: prog 'gpu_page_prefetch': found map 0 (debt_config, sec 9, off 0) for insn #5
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #1: insn #17 against 'debt_pressure'
+libbpf: prog 'gpu_page_prefetch': found map 2 (debt_pressure, sec 9, off 64) for insn #17
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #2: insn #27 against 'bpf_gpu_set_prefetch_region'
+libbpf: prog 'gpu_page_prefetch': found extern #1 'bpf_gpu_set_prefetch_region' (sym 72) for insn #27
+libbpf: struct_ops reloc uvm_ops_debt: for 71 value 0 shdr_idx 6 rel->r_offset 8 map->sec_offset 0 name 759 ('gpu_page_prefetch')
+libbpf: struct_ops reloc uvm_ops_debt: for 63 value 0 shdr_idx 3 rel->r_offset 24 map->sec_offset 0 name 628 ('gpu_block_activate')
+libbpf: struct_ops reloc uvm_ops_debt: for 67 value 0 shdr_idx 4 rel->r_offset 32 map->sec_offset 0 name 686 ('gpu_block_access')
+libbpf: struct_ops reloc uvm_ops_debt: for 70 value 0 shdr_idx 5 rel->r_offset 40 map->sec_offset 0 name 741 ('gpu_evict_prepare')
+libbpf: object 'eviction_debt_b': failed (-95) to create BPF token from '/sys/fs/bpf', skipping optional step...
+libbpf: loaded kernel BTF from '/sys/kernel/btf/vmlinux'
+libbpf: extern (func ksym) 'bpf_gpu_request_reorder': resolved to nvidia_uvm [150251]
+libbpf: extern (func ksym) 'bpf_gpu_set_prefetch_region': resolved to nvidia_uvm [150254]
+libbpf: struct_ops init_kern uvm_ops_debt: type_id:474 kern_type_id:148522 kern_vtype_id:148540
+libbpf: struct_ops init_kern uvm_ops_debt: func ptr gpu_page_prefetch is set to prog gpu_page_prefetch from data(+8) to kern_data(+8)
+libbpf: struct_ops init_kern uvm_ops_debt: func ptr gpu_block_activate is set to prog gpu_block_activate from data(+24) to kern_data(+24)
+libbpf: struct_ops init_kern uvm_ops_debt: func ptr gpu_block_access is set to prog gpu_block_access from data(+32) to kern_data(+32)
+libbpf: struct_ops init_kern uvm_ops_debt: func ptr gpu_evict_prepare is set to prog gpu_evict_prepare from data(+40) to kern_data(+40)
+libbpf: sec 'struct_ops/gpu_block_activate': found 6 CO-RE relocations
+libbpf: CO-RE relocating [39] typedef uvm_gpu_chunk_t: found target candidate [147854] typedef uvm_gpu_chunk_t in [nvidia_uvm]
+libbpf: prog 'gpu_block_activate': relo #0: <byte_off> [39] typedef uvm_gpu_chunk_t.va_block (0:3 @ offset 32)
+libbpf: prog 'gpu_block_activate': relo #0: matching candidate #0 <byte_off> [147854] typedef uvm_gpu_chunk_t.va_block (0:3 @ offset 32)
+libbpf: prog 'gpu_block_activate': relo #0: patched insn #9 (ALU/ALU64) imm 32 -> 32
+libbpf: CO-RE relocating [46] typedef uvm_va_block_t: found target candidate [147900] typedef uvm_va_block_t in [nvidia_uvm]
+libbpf: prog 'gpu_block_activate': relo #1: <byte_off> [46] typedef uvm_va_block_t.managed_range (0:2 @ offset 40)
+libbpf: prog 'gpu_block_activate': relo #1: matching candidate #0 <byte_off> [147900] typedef uvm_va_block_t.managed_range (0:2 @ offset 40)
+libbpf: prog 'gpu_block_activate': relo #1: patched insn #17 (ALU/ALU64) imm 40 -> 40
+libbpf: CO-RE relocating [53] typedef uvm_va_range_managed_t: found target candidate [147894] typedef uvm_va_range_managed_t in [nvidia_uvm]
+libbpf: prog 'gpu_block_activate': relo #2: <byte_off> [53] typedef uvm_va_range_managed_t.va_range.va_space (0:0:0 @ offset 0)
+libbpf: prog 'gpu_block_activate': relo #2: matching candidate #0 <byte_off> [147894] typedef uvm_va_range_managed_t.va_range.va_space (0:0:0 @ offset 0)
+libbpf: prog 'gpu_block_activate': relo #2: patched insn #25 (ALU/ALU64) imm 0 -> 0
+libbpf: CO-RE relocating [63] typedef uvm_va_space_t: found target candidate [147902] typedef uvm_va_space_t in [nvidia_uvm]
+libbpf: prog 'gpu_block_activate': relo #3: <byte_off> [63] typedef uvm_va_space_t.va_space_mm.mm (0:1:0 @ offset 26688)
+libbpf: prog 'gpu_block_activate': relo #3: matching candidate #0 <byte_off> [147902] typedef uvm_va_space_t.va_space_mm.mm (0:43:0 @ offset 367864)
+libbpf: prog 'gpu_block_activate': relo #3: patched insn #33 (ALU/ALU64) imm 26688 -> 367864
+libbpf: CO-RE relocating [69] struct mm_struct: found target candidate [276] struct mm_struct in [vmlinux]
+libbpf: prog 'gpu_block_activate': relo #4: <byte_off> [69] struct mm_struct.owner (0:0:51 @ offset 1176)
+libbpf: prog 'gpu_block_activate': relo #4: matching candidate #0 <byte_off> [276] struct mm_struct.owner (0:0:51 @ offset 1176)
+libbpf: prog 'gpu_block_activate': relo #4: patched insn #41 (ALU/ALU64) imm 1176 -> 1176
+libbpf: CO-RE relocating [141] struct task_struct: found target candidate [115] struct task_struct in [vmlinux]
+libbpf: prog 'gpu_block_activate': relo #5: <byte_off> [141] struct task_struct.tgid (0:94 @ offset 2772)
+libbpf: prog 'gpu_block_activate': relo #5: matching candidate #0 <byte_off> [115] struct task_struct.tgid (0:94 @ offset 2772)
+libbpf: prog 'gpu_block_activate': relo #5: patched insn #49 (ALU/ALU64) imm 2772 -> 2772
+libbpf: sec 'struct_ops/gpu_evict_prepare': found 8 CO-RE relocations
+libbpf: CO-RE relocating [43] struct list_head: found target candidate [96] struct list_head in [vmlinux]
+libbpf: prog 'gpu_evict_prepare': relo #0: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #0: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #0: patched insn #18 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_evict_prepare': relo #1: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #1: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #1: patched insn #90 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_evict_prepare': relo #2: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #2: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #2: patched insn #164 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_evict_prepare': relo #3: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #3: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #3: patched insn #217 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_evict_prepare': relo #4: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #4: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #4: patched insn #270 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_evict_prepare': relo #5: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #5: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #5: patched insn #323 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_evict_prepare': relo #6: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #6: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #6: patched insn #378 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_evict_prepare': relo #7: <byte_off> [43] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #7: matching candidate #0 <byte_off> [96] struct list_head.next (0:0 @ offset 0)
+libbpf: prog 'gpu_evict_prepare': relo #7: patched insn #432 (ALU/ALU64) imm 0 -> 0
+libbpf: map 'debt_config': created successfully, fd=3
+libbpf: map 'chunk_debt': created successfully, fd=4
+libbpf: map 'debt_pressure': created successfully, fd=5
+libbpf: map 'pid_chunk_count': created successfully, fd=6
+libbpf: map 'uvm_ops_debt': created successfully, fd=7
+Successfully loaded migration-debt eviction policy!
+
+Configuration:
+  Warm-phase disk-durable flag: off (note: coarse warm-phase
+  signal; exact LMCache chunk -> UVM page identity unavailable)
+  Debt cap: 4
+  Prefetch suppression pressure threshold: 32
+
+Press Ctrl-C to exit...
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 0
+  Warm-phase disk-durable flag: off
+
+  Per-PID:
+
+  Totals: activated=0 used=0 saved=0 evicted=0
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 0
+  Warm-phase disk-durable flag: off
+
+  Per-PID:
+
+  Totals: activated=0 used=0 saved=0 evicted=0
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 0
+  Warm-phase disk-durable flag: off
+
+  Per-PID:
+
+  Totals: activated=0 used=0 saved=0 evicted=0
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 0
+  Warm-phase disk-durable flag: off
+
+  Per-PID:
+
+  Totals: activated=0 used=0 saved=0 evicted=0
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 624
+  Warm-phase disk-durable flag: off
+
+  Per-PID:
+    PID 2135086: active=624 used=930 saved=0 evicted=0
+
+  Totals: activated=624 used=930 saved=0 evicted=0
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 624
+  Warm-phase disk-durable flag: off
+
+  Per-PID:
+    PID 2135086: active=624 used=930 saved=0 evicted=0
+
+  Totals: activated=624 used=930 saved=0 evicted=0
+warm-phase disk-durable flag: ON
+  retroactively marked 624 tracked chunks disk-durable
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 624
+  Warm-phase disk-durable flag: ON
+
+  Per-PID:
+    PID 2135086: active=624 used=930 saved=0 evicted=0
+
+  Totals: activated=624 used=930 saved=0 evicted=0
+
+Detaching struct_ops...
+
+=== Migration-Debt Statistics ===
+  Aggregate debt pressure: 0
+  Tracked chunks: 624
+  Warm-phase disk-durable flag: ON
+
+  Per-PID:
+    PID 2135086: active=624 used=930 saved=0 evicted=0
+
+  Totals: activated=624 used=930 saved=0 evicted=0

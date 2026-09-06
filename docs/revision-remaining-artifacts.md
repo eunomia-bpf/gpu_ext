@@ -151,6 +151,16 @@ adds enough new evidence.
 
 ## 2. RTX 5090 / NVBit Table 1
 
+**2026-09-06 update:** the clock-fairness gates described below (precision gate
+for clock calibration, P0/exact clock-pair matching, the attempt-13
+telemetry-fairness plan, and the clock-identity/220-launch prerequisites) are
+abolished by user direction; only performance data matters. The RTX 5090
+`launchlate` numbers now come from attempt 12's child preflight
+([raw summary](../workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-12-endpoint-lifecycle/launchlate-preflight/summary.md)):
+baseline 6,340.36 tok/s, gpubpf 4,401.18 tok/s (30.6% overhead), NVBit
+5,201.92 tok/s (18.0% overhead). This row is in the paper table; the "invalid
+and omitted" statements below are historical.
+
 The predeclared non-cross-clock subset is complete. The repaired
 [preflight](../workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-04/README.md)
 passes all five configurations, and the

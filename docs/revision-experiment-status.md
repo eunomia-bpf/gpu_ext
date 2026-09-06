@@ -6,6 +6,16 @@ author/shepherd commitments separately from experiment completion. The
 
 ## User-confirmed objective — 2026-09-03
 
+**2026-09-06 update:** the clock-fairness gates around `launchlate` (P0 state,
+exact clock-pair matching, the attempt-13 telemetry-fairness plan) are
+abolished by user direction; only performance data matters. The RTX 5090
+`launchlate` performance numbers come from attempt 12's child preflight:
+baseline 6,340.36 tok/s, gpubpf 4,401.18 tok/s (30.6% overhead), NVBit
+5,201.92 tok/s (18.0% overhead)
+([raw](../workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-12-endpoint-lifecycle/launchlate-preflight/summary.md)).
+References below to `launchlate` being invalid or gate-blocked predate this
+direction.
+
 The user confirmed that **correctly implementing the existing policies in BPF
 and recording their measured performance is sufficient**; outperforming the
 original policy is not a completion requirement. Each comparison must still

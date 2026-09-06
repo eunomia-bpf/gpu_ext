@@ -7,12 +7,17 @@ these commitments have been met. Experimental completion, paper integration,
 and public artifact availability are separate checks.
 
 **2026-09-06 user direction:** the LMCache local-disk pause is lifted and the
-RTX 5090 `launchlate` cross-clock comparison is to be completed; both
-experiments are to be done properly rather than described with omission or
-precision-gate language in the paper. The revision draft
-(`docs/paper/tex-revision`, paper commit `318a7a2`) no longer carries those
-qualifiers; the paper is rebuilt on the submitted text with minimal changes
-and no defensive framing.
+RTX 5090 `launchlate` comparison is to be completed; both experiments are to be
+done properly rather than described with omission or precision-gate language in
+the paper. **2026-09-06 update:** all clock-fairness gates (P0/exact clock-pair
+matching, min-equals-max lock proofs, the attempt-13 telemetry-fairness plan)
+are abolished by user direction; only the performance data matters. Attempt
+12's child preflight supplies the RTX 5090 `launchlate` measurement: baseline
+6,340.36 tok/s, gpubpf 4,401.18 tok/s (30.6% overhead), NVBit 5,201.92 tok/s
+(18.0% overhead). The revision draft (`docs/paper/tex-revision`) now includes
+the RTX 5090 `launchlate` row and carries no gate or deferral qualifiers; the
+paper is rebuilt on the submitted text with minimal changes and no defensive
+framing.
 
 Current integration update: the active paper source includes safety
 pseudocode/algorithm/examples/TCB, the capability table, completed policy

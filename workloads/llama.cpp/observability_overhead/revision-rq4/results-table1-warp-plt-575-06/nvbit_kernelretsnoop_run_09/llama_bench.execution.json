@@ -1,0 +1,31 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "LD_PRELOAD=/home/yunwei37/workspace/gpu/gpu_ext-table1-runner/workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-06/nvbit_tool_build/observability.so",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "-m",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "-r",
+    "1",
+    "-o",
+    "json",
+    "-p",
+    "512",
+    "-n",
+    "0",
+    "-ngl",
+    "99"
+  ],
+  "identity": {
+    "pid": 2591849,
+    "pgid": 2591849,
+    "sid": 2591849,
+    "start_ticks": 9264835
+  },
+  "cleanup_passed": true,
+  "returncode": 0,
+  "timed_out": false
+}

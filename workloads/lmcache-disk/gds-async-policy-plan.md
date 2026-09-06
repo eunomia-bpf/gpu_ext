@@ -1,0 +1,62 @@
+# gpubpf-Controlled Asynchronous GPU Storage
+
+## Decision boundary
+
+Place the policy decision immediately before a trusted LMCache/cuFile executor
+submits an asynchronous transfer. A new host-side `gpu_storage_decide`
+struct_ops callback receives only scalar policy inputs: read/write operation,
+byte count, opaque object/request identity, caller identity, priority,
+deadline/slack, estimated transfer and recompute cost, queue depth, and
+GPU-memory pressure. It never receives a file descriptor, file offset, GPU
+pointer, CUDA stream, or another DMA capability.
+
+The callback may request `SUBMIT_NOW`, bounded `DEFER`, or `RECOMPUTE` for a
+read, together with bounded priority and batch hints. The UVM bridge validates
+the request. An absent policy, unknown action, excessive delay or batch, or a
+write-side recompute request becomes `SUBMIT_NOW`. LMCache/cuFile retains file,
+buffer, stream, completion, and error ownership. Deferred requests stay in a
+trusted per-GPU deadline queue and are released through cuFile stream or batch
+submission. Completion updates queue and transfer estimates used by later
+decisions.
+
+```
+SSD_ONLY -> READ_QUEUED -> READING -> GPU_READY
+GPU_DIRTY -> WRITE_QUEUED -> WRITING -> SSD_DURABLE
+READ_QUEUED -> RECOMPUTE_SELECTED -> GPU_READY
+```
+
+## Policies
+
+The first policy port is slack-aware read/write decoupling: urgent reads bypass
+background writes, while slack-rich writes are coalesced. The gpubpf-specific
+extension combines that policy with live HBM pressure and fetch-versus-
+recompute cost. Under high pressure it submits enough dirty writes to make KV
+objects durable and evictable, suppresses speculative reads, and still submits
+or recomputes demand reads before their deadlines. This is a cross-layer
+storage-placement policy; it does not claim to reproduce a GPU-native I/O
+transport.
+
+## Comparison
+
+Use three matched storage-control arms over the same LMCache/cuFile executor:
+
+1. plain FIFO LMCache/cuFile submission;
+2. the deadline/pressure/recompute policy implemented natively; and
+3. the identical policy executed through `gpu_storage_decide`.
+
+Measure representative 24 MiB KV objects in mixed urgent-read/background-write
+traffic, then the end-to-end LMCache workload. Report read tail latency, TTFT,
+request and token throughput, storage bandwidth, queue delay, batch size,
+defer/recompute counts, and native-versus-BPF policy cost. Record direct
+P2PDMA, cuFile compatibility, and POSIX execution as separate transport labels;
+none suppresses performance collection.
+
+## Current RTX 5090 path
+
+The host uses Linux 6.15.11, NVIDIA OpenRM 575.57.08, CUDA 12.9, an RTX 5090,
+and local ext4 NVMe storage. cuFile and its tools are installed, and `gdscheck`
+reports that the GPU supports GDS. The current platform report nevertheless
+marks NVMe and NVMe P2PDMA unsupported and enables compatibility mode. Initial
+plain/native/BPF measurements therefore run and are labelled compatibility;
+direct P2PDMA is a second transport-labelled campaign after the platform path
+is enabled.

@@ -1,5 +1,34 @@
 # Recoverability-Aware Arbitration Plan — LMCache/UVM-KV + gpubpf
 
+## Reviewer-facing execution decision — 2026-09-06
+
+The paper-facing experiment must exercise LMCache's real local-disk backend;
+an unrelated UVM policy run beside LMCache is insufficient. The final matched
+campaign uses five arms:
+
+1. `recompute`: no-cache control;
+2. `lmcache_cpu`: original LMCache CPU tier;
+3. `lmcache_disk_uvm_kv`: original LMCache local-disk tier with default UVM;
+4. `lmcache_disk_uvm_kv_native_recovery`: local disk plus the recoverability
+   policy implemented as a native selector; and
+5. `lmcache_disk_uvm_kv_gpubpf_debt_range`: local disk plus the identical
+   decision implemented through gpubpf.
+
+The native and BPF policy arms consume the same per-range tenant, generation,
+lifecycle, disk-durability, recovery-cost, and next-use metadata and use the
+same bounded victim order. LMCache remains responsible for actual disk store
+and restore; the policy selects UVM/HBM residency using the fact that a range
+has a durable disk copy and its expected restore cost. A completed disk-store
+barrier marks the range durable and inactive, while reuse marks it active.
+This makes disk state an input to the resource decision and isolates the cost
+of the BPF mechanism from the policy benefit.
+
+Report warm TTFT, request/s, output-token/s, available LMCache disk read/write
+bytes or operation totals, and available UVM migration/eviction counters. Run
+five rotated complete blocks and retain every performance result. These
+observations are recorded, not used as admission gates; do not add clock,
+preflight, correctness, or result-filtering gates to this campaign.
+
 Design plan only, no implementation. Replaces the single-largest-allocation durable
 bool with a per-range semantic ABI and a bounded eviction order, defines the two
 experiments that separate policy from mechanism, adds a compact discard-isolation

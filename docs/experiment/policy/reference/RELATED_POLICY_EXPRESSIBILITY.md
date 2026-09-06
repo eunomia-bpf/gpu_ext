@@ -61,10 +61,12 @@ paper's own evaluation:
 4. `performance`: a controlled run recorded an outcome metric for that local
    analogue.
 
-Four rows now have bounded local performance evidence: Expert Buffering,
-MoE-Infinity, GPREEMPT, and XSched.  The eGPU row also reaches `performance`,
-but through two deliberately separate local paths: strict real-device callback
-engagement and a verification-disabled trampoline microbenchmark.  An evidence
+Multiple rows now have bounded local performance evidence, including Expert
+Buffering, MoE-Infinity, GPREEMPT, XSched, FineMoE, Hummingbird, POD-Attention,
+the same-policy UVM comparison, and RTX 5090 observability. The eGPU row also
+reaches `performance`, but through two deliberately separate local paths:
+strict real-device callback engagement and a verification-disabled trampoline
+microbenchmark. An evidence
 level describes the strongest tested **local mapping**; it does not promote a
 `PARTIAL` or `ANALOGUE` whole-system classification.  The four local PDFs
 previously found to contain unrelated papers are excluded as evidence;
@@ -88,16 +90,16 @@ complete repeated campaign and retain adverse outcomes.
 | POD-Attention selector | FA serial/streams -> POD inline and matched CUDA adapter -> device-BPF | [`performance`](../../../../workloads/pod-attention/results-575-20260903.md), 250 cells; [`phase decomposition`](../../../../workloads/pod-attention/results-phase-full-575-01.md), 15 cells | BPF/CUDA costs 0.51--1.18% in nine shapes and is 0.44% faster in one; the fixed shape shows +1.78% [1.64%, 1.92%]. Fusion gains are POD policy gains. Current fresh-process BPF setup is about 271 s and strict verification was off. |
 | Same-policy UVM no-prefetch | Built-in no-prefetch -> identical decision through gpubpf | [`performance`](../../../../workloads/uvm-policy-mechanism/results/analysis.md), 15 paired blocks | gpubpf adds 3.219% [2.247%, 4.202%] kernel time on one CPU-resident, non-first-touch fault path. This isolates mechanism cost, not an application-policy benefit. |
 | Device callback and trampoline | Native kernel -> BPF return-only -> BPF per-thread counter | [`performance`](../../../../microbench/trampoline-scaling/results-575-20260903.md), 270 measurements; separate [`strict engagement`](../../../../workloads/bpftime-device-smoke/results-strict-575-20260903.md) | Return-only adds 0.0012--0.0022 ms at fixed geometry; counter cost grows with active work. The performance runtime disables verification and uses per-thread calls, so it does not prove once-per-warp or arbitrary-handler constant cost. |
-| RTX 5090 observability | No probe -> matched NVBit and gpubpf exit records / exit-count histogram | [`performance`](../../../../workloads/llama.cpp/observability_overhead/revision-rq4/result-review.md), ten blocks / 50 timing cells | Exit-record overhead is 99.663%/99.621% for gpubpf/NVBit; histogram overhead is 4.007%/10.301%. The mixed result is task-specific. Adapters retain native transports, histogram validation is aggregate, verification was disabled, and cross-clock `launchlate` remains invalid. |
+| RTX 5090 observability | No probe -> matched NVBit and gpubpf kernel-return records / thread histogram / launch observation | [`performance`](../../../../workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-06/README.md), ten rotated blocks / 70 cells | Baseline is 37,586.3225 token/s. gpubpf/NVBit overhead is 90.7051%/99.6210% for `kernelretsnoop`, 2.9653%/10.3501% for `threadhist`, and 0.2208%/8.7959% for `launchlate`. All submitted P40 and earlier 5090 values remain retained. `kernelretsnoop` optimization is follow-on work, not a missing Table 1 row. |
 | Raw non-composable map state | Native control -> instrumented producer -> host probe, plus overflow-negative control | [`engagement`](../../../../workloads/cross-layer-raw-map/results-full-575-02.md), five blocks / 15 cells | All 34,560 bounded tuples and all 2,560 deliberate drops reconcile. This is raw host readback, not a latency/bandwidth, on-chip-shard, automatic-placement, or unbounded-data result. |
-| LMCache local disk | Planned recompute / original CPU / original disk; no BPF arm | **Paused by user** after correctness failure; see [retained status](../../../revision-completion-checklist.md) | No formal performance cells and no BPF storage policy. Cold outputs agree, but all warm CPU/disk outputs disagree with recompute. Do not claim completion or storage-tier performance. |
+| LMCache local disk | Recompute / original CPU / original disk, followed by matched native/BPF storage policy | [`performance`](../../../../workloads/lmcache-disk/results-575-perf-only-five-block-20260906.md), five blocks / 15 baseline cells | Recompute/CPU/disk output throughput is 30.6422/30.1168/28.5723 token/s and median TTFT is 67.1691/72.6468/96.3280 ms. Native/BPF recoverability and asynchronous GDS-decision arms remain active implementation work; the baseline campaign alone is not that comparison. |
 
 The ledger is intentionally broader than the fixed 48-paper JSON matrix: POD,
 Hummingbird, FineMoE, the UVM control, the raw-map check, trampoline scaling and
 the RTX 5090 observability comparison are local policy/mechanism studies rather
-than reclassifications of rows in that survey. The valid two-tool device result
-is performance evidence for those two tasks, not completion of the invalid
-cross-clock `launchlate` comparison or the original three-tool campaign.
+than reclassifications of rows in that survey. The complete current Table 1
+campaign covers all three tools; its unusually expensive `kernelretsnoop` arm
+is being optimized without removing or replacing any earlier measurement.
 
 ## Survey matrix
 
@@ -198,9 +200,10 @@ two-context blocking-kernel executor with a compatibility signaling path.
 
 The highest-value open expressibility questions are therefore mechanism gaps,
 not more names in a baseline list: arbitrary cross-block/tier migration, exact
-victim and destination choice, lossless command admission/completion, and
-multi-tenant policy isolation.  Papers classified `NO` identify these missing
-actions and must not be relabeled from a similarly named local heuristic.
+victim and destination choice, lossless command admission/completion,
+asynchronous storage-transfer decisions, and multi-tenant policy isolation.
+Papers classified `NO` identify these missing actions and must not be relabeled
+from a similarly named local heuristic.
 
 **Current GPREEMPT feasibility:** the old build-only status is superseded.
 The 45-cell load study and 27-cell LC-knee sweep run native, original-C, and

@@ -22,7 +22,7 @@ typography repairs. It also now includes Expert Buffering, the POD phase
 decomposition, bounded raw-map evidence, and the operation-matched RTX 5090
 device-map placement result. The abstract/introduction
 distinguish policy benefits from measured mechanism costs. The latest source is
-pushed as paper commit `5e34a56`. A fresh build at that revision succeeds in
+pushed as paper commit `5941a65`. A fresh build at that revision succeeds in
 16 pages with no undefined references. The current detailed
 [build review](paper/asplos-27-rebuttal/revision-build-review.md), recorded at
 paper commit `e22af4c`, reports a successful 16-page build with conclusion and

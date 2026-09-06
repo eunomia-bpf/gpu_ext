@@ -19,6 +19,22 @@ trusted per-GPU deadline queue and are released through cuFile stream or batch
 submission. Completion updates queue and transfer estimates used by later
 decisions.
 
+Use LMCache MP mode's `GDSContext.transfer_async()` as the first real adapter
+point. It already reaches `cuFileReadAsync` and `cuFileWriteAsync` and retains
+each submission until its CUDA-stream completion event. Call
+`gpu_storage_decide` once per logical KV chunk, before `transfer_async()`
+splits the chunk into at most 16 MiB registered-buffer regions. A decision per
+region would be incorrect because a 24 MiB KV chunk could otherwise be only
+partially submitted.
+
+The trusted adapter marks whether a request is safe to defer. Background
+writes and speculative prefetches run on owned storage streams and may enter a
+deadline queue. A demand read on an application stream is never deferred: the
+bridge reduces `DEFER` to `SUBMIT_NOW`, unless the caller also marked the read
+as recomputable, in which case `RECOMPUTE` returns a cache miss to LMCache's
+request layer. This preserves CUDA stream ordering while still allowing the
+policy to schedule asynchronous storage work.
+
 ```
 SSD_ONLY -> READ_QUEUED -> READING -> GPU_READY
 GPU_DIRTY -> WRITE_QUEUED -> WRITING -> SSD_DURABLE
@@ -35,6 +51,21 @@ objects durable and evictable, suppresses speculative reads, and still submits
 or recomputes demand reads before their deadlines. This is a cross-layer
 storage-placement policy; it does not claim to reproduce a GPU-native I/O
 transport.
+
+Use a separate `gpu_storage_ops` struct_ops type rather than adding the hook to
+`gpu_mem_ops`. Storage scheduling and UVM residency policies can then be
+attached simultaneously. The ioctl bridge fills the caller process identity;
+application-provided tenant, cost, deadline, and pressure values remain policy
+hints and never become DMA capabilities. The BPF callback records its requested
+action through a kfunc, after which trusted code bounds delay, priority, and
+batch size. The adapter alone retains the file handle, slab offset, GPU buffer,
+stream, and completion object.
+
+The matched native implementation evaluates the same deadline/pressure/cost
+formula in the adapter. The BPF arm evaluates it through the ioctl and
+`gpu_storage_ops`; both feed the same trusted deadline queue and cuFile
+executor. This makes their difference the mechanism cost rather than a change
+in transport or policy.
 
 ## Comparison
 

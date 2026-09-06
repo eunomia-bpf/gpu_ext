@@ -11,7 +11,7 @@
  	u64 timestamp;
  };
  
-@@ -30,11 +28,16 @@
+@@ -30,11 +28,17 @@
  int cuda__retprobe()
  {
  	struct data data = {};
@@ -25,8 +25,9 @@
 -			  &data.block_dim_z);
 +	bpf_get_block_idx(&block_x, &block_y, &block_z);
 +	bpf_get_thread_idx(&thread_x, &thread_y, &thread_z);
++	if ((thread_x & 31) != 0) return 0;
 +	bpf_get_block_dim(&block_dim_x, &block_dim_y, &block_dim_z);
-+	data.coordinate_x = block_x * block_dim_x + thread_x;
++	data.coordinate_x = (block_x * block_dim_x + thread_x) >> 5;
 +	data.coordinate_y = block_y * block_dim_y + thread_y;
 +	data.coordinate_z = block_z * block_dim_z + thread_z;
  	data.timestamp = bpf_get_globaltimer();

@@ -67,6 +67,18 @@ formula in the adapter. The BPF arm evaluates it through the ioctl and
 executor. This makes their difference the mechanism cost rather than a change
 in transport or policy.
 
+After the all-or-none path runs, add a bounded hybrid-restore policy inspired
+by KVPR rather than another transport. For each read, evaluate only five legal
+splits (fetch 0%, 25%, 50%, 75%, or 100% of aligned KV subchunks). For split
+`p`, estimate completion as
+`max(queue_delay + p * full_fetch_time, (1 - p) * full_recompute_time)` and
+choose the minimum that meets the request deadline. Return aligned
+`fetch_bytes` and `recompute_tokens`; the trusted LMCache runtime performs both
+operations and their synchronization. Native and BPF implementations use the
+same five-candidate calculation. Adding HBM pressure to suppress speculative
+fetches and accelerate dirty writes then tests a gpubpf-specific cross-layer
+extension without claiming that BPF implements the storage transport.
+
 ## Comparison
 
 Use three matched storage-control arms over the same LMCache/cuFile executor:

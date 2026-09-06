@@ -4,6 +4,11 @@ Never touch the GPU, never import real vLLM: the GPU worker class and the
 torch allocator/mempool APIs are stubbed, and the plugin module is imported
 fresh for every test. Tests focus on tag routing: the ``kv_cache`` tag is
 routed to the UVM pool, every other tag (e.g. ``weights``) delegates.
+
+The pool is built from the KV-specific allocator ABI exported by
+``uvm_allocator.so``: ``uvm_kv_malloc``/``uvm_kv_free`` (thin KV-lane
+aliases of ``uvm_malloc``/``uvm_free``), passed to
+``CUDAPluggableAllocator`` as its malloc/free symbol names.
 """
 
 import importlib
@@ -222,7 +227,7 @@ class TagRoutingTest(PluginTestCase):
         with ctx:
             pass
 
-        self.alloc_cls.assert_called_once_with(so, "uvm_malloc", "uvm_free")
+        self.alloc_cls.assert_called_once_with(so, "uvm_kv_malloc", "uvm_kv_free")
         self.pool_cls.assert_called_once_with("fake-cpp-allocator")
         self.assertEqual(self.entered, ["fake-pool"])
         self.assertEqual(self.exited, ["fake-pool"])

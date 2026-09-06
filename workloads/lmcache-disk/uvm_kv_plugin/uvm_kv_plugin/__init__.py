@@ -3,8 +3,8 @@
 Installed through the official ``vllm.general_plugins`` entry-point group.
 When enabled, the GPU worker's ``_maybe_get_memory_pool_context`` is wrapped
 so the ``kv_cache`` tag is backed by the same UVM pluggable allocator used
-for weights (``uvm_allocator.so`` exporting ``uvm_malloc``/``uvm_free``)
-inside a scoped ``torch.cuda.MemPool``. Every other memory-pool tag
+for weights (``uvm_allocator.so`` exporting the KV-specific symbols
+``uvm_kv_malloc``/``uvm_kv_free``) inside a scoped ``torch.cuda.MemPool``. Every other memory-pool tag
 (e.g. ``weights``) delegates to stock vLLM behavior.
 
 Environment (read once, at install time, per process):
@@ -31,8 +31,8 @@ import torch
 logger = logging.getLogger("uvm_kv_plugin")
 
 KV_TAG = "kv_cache"
-MALLOC_FN = "uvm_malloc"
-FREE_FN = "uvm_free"
+MALLOC_FN = "uvm_kv_malloc"
+FREE_FN = "uvm_kv_free"
 
 ENABLE_ENV = "UVM_KV_PLUGIN"
 SO_ENV = "UVM_KV_PLUGIN_SO"

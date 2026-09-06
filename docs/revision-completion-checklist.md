@@ -26,6 +26,12 @@ it does not establish dynamic storage-policy gains or hardware NVMe/GPU P2P.
 The separate policy-input ablation is running. Earlier failed attempts and the
 one-block pilot are retained separately; none is pooled into these five blocks.
 
+The [end-to-end report](../workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md)
+and raw records are pushed. Paper commit `c254a98` adds the measured storage
+comparison only under `tex-revision`; its current build succeeds with no
+undefined references, at **17 pages**. The older 16-page build records below
+remain historical; final page-budget fitting is still outstanding.
+
 Current integration update: the active paper source includes safety
 pseudocode/algorithm/examples/TCB, the capability table, completed policy
 comparisons and four-panel scheduling figure, discussion additions and

@@ -147,7 +147,7 @@ int BPF_URETPROBE(uvm_kv_malloc_ret, void *ret)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct kv_alloc_args *args;
-    u32 tgid, i, slot;
+    u32 tgid, i, slot, key;
     u64 start, end;
     int free_slot = -1;
 
@@ -161,10 +161,12 @@ int BPF_URETPROBE(uvm_kv_malloc_ret, void *ret)
 
         if (start && args->size && end > start) {
             tgid = pid_tgid >> 32;
+            #pragma unroll
             for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
                 struct debt_kv_entry *e;
 
-                e = bpf_map_lookup_elem(&kv_pool_table, &i);
+                key = i;
+                e = bpf_map_lookup_elem(&kv_pool_table, &key);
                 if (!e)
                     continue;
                 if (e->active && e->start == start && e->end == end &&
@@ -205,7 +207,7 @@ SEC("uprobe")
 int BPF_UPROBE(uvm_kv_free_enter, void *ptr, u64 size, int device, void *stream)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
-    u32 tgid, i;
+    u32 tgid, i, key;
     u64 start, end;
 
     start = (u64)ptr;
@@ -216,10 +218,12 @@ int BPF_UPROBE(uvm_kv_free_enter, void *ptr, u64 size, int device, void *stream)
         return 0;
 
     tgid = pid_tgid >> 32;
+    #pragma unroll
     for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
         struct debt_kv_entry *e;
 
-        e = bpf_map_lookup_elem(&kv_pool_table, &i);
+        key = i;
+        e = bpf_map_lookup_elem(&kv_pool_table, &key);
         if (e && e->active && e->owner_tgid == tgid &&
             e->start == start && e->end == end) {
             e->active = 0;
@@ -269,7 +273,7 @@ int BPF_PROG(gpu_block_activate,
 {
     u64 chunk_ptr = (u64)chunk;
     u32 owner_pid;
-    u32 i;
+    u32 i, key;
     u64 va_start = 0;
     int is_kv = 0;
     uvm_va_block_t *va_block;
@@ -296,10 +300,12 @@ int BPF_PROG(gpu_block_activate,
     va_block = BPF_CORE_READ(chunk, va_block);
     if (va_block)
         va_start = BPF_CORE_READ(va_block, start);
+    #pragma unroll
     for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
         struct debt_kv_entry *e;
 
-        e = bpf_map_lookup_elem(&kv_pool_table, &i);
+        key = i;
+        e = bpf_map_lookup_elem(&kv_pool_table, &key);
         if (debt_kv_entry_contains(e, owner_pid, va_start)) {
             is_kv = 1;
             break;

@@ -19,13 +19,25 @@ trusted per-GPU deadline queue and are released through cuFile stream or batch
 submission. Completion updates queue and transfer estimates used by later
 decisions.
 
-Use LMCache MP mode's `GDSContext.transfer_async()` as the first real adapter
-point. It already reaches `cuFileReadAsync` and `cuFileWriteAsync` and retains
-each submission until its CUDA-stream completion event. Call
-`gpu_storage_decide` once per logical KV chunk, before `transfer_async()`
-splits the chunk into at most 16 MiB registered-buffer regions. A decision per
-region would be incorrect because a 24 MiB KV chunk could otherwise be only
-partially submitted.
+Place the real LMCache admission point immediately above MP mode's
+`GDSContext.transfer_async()`, not in a delayed monkey patch of that void
+method. `GDSContext` already reaches `cuFileReadAsync` and
+`cuFileWriteAsync`, retains each submission until its CUDA-stream completion
+event, and splits a logical chunk into at most 16 MiB registered-buffer
+regions. The upper admission layer calls `gpu_storage_decide` once per logical
+KV chunk and invokes `transfer_async()` only after the action is executable. A
+decision per region would be incorrect because a 24 MiB KV chunk could
+otherwise be only partially submitted.
+
+This placement is also required for lifetime and miss semantics. A transfer
+deferred inside `GDSContext.transfer_async()` can later run under a different
+current CUDA stream, after its staging buffer has been released, or remain
+queued forever if no later call drains it. Likewise, `RECOMPUTE` cannot be
+reported through a void copy API after the lookup has already declared a hit.
+The admission layer therefore owns an eventual-release timer/queue and returns
+an explicit miss before any GPU copy; LMCache continues to own the buffer,
+stream, object reference, file handle, and completion while a request is
+pending.
 
 The trusted adapter marks whether a request is safe to defer. Background
 writes and speculative prefetches run on owned storage streams and may enter a
@@ -34,6 +46,17 @@ bridge reduces `DEFER` to `SUBMIT_NOW`, unless the caller also marked the read
 as recomputable, in which case `RECOMPUTE` returns a cache miss to LMCache's
 request layer. This preserves CUDA stream ordering while still allowing the
 policy to schedule asynchronous storage work.
+
+LMCache v0.5.4 contains two distinct local-storage paths. The classic
+`GdsBackend` uses `submit_put_task()` / `_async_save_bytes_to_disk()` for
+asynchronous write admission and `batched_get_blocking()` / `_load_gds()` for
+reads; its current Python cuFile calls execute in event-loop or thread-pool
+workers. The newer GDS-L1 path uses `GDSContext.transfer_async()` and actual
+stream-ordered cuFile async calls. The same scalar decider can serve both, but
+the queue belongs above these executors: write deferral begins after
+`submit_put_task()` has retained the `MemoryObj`, while read recomputation is
+resolved at the StorageManager hit/miss boundary before `_load_gds()` or
+`transfer_async()` touches the destination buffer.
 
 ```
 SSD_ONLY -> READ_QUEUED -> READING -> GPU_READY
@@ -166,6 +189,21 @@ does not expose or depend on a DMA implementation: LMCache/cuFile owns the
 file, registered GPU buffer, CUDA stream, and completion in either mode. A
 future supported P2PDMA campaign changes only the executor's transport label,
 not the BPF program, native control, request sequence, or decision ABI.
+
+## Implemented result
+
+The 575 UVM path now exposes raw command 82 and a `gpu_storage_ops` struct_ops
+callback. The live BPF policy, loader, ioctl probe, matched native policy, and
+trusted CUDA/cuFile executor are committed. The executor makes one decision
+per 24 MiB logical chunk and then submits two registered 16 MiB and 8 MiB
+operations. Five rotated blocks of FIFO/native/BPF control completed on the
+RTX 5090 compatibility path. Native and BPF made the same 40 immediate, 16
+deferred, and 8 recompute decisions per 64 requests. Median decision cost was
+0.063 us natively and 1.005 us through the UVM ioctl plus BPF callback. Storage
+service time varied substantially across the five pairs, so this result shows
+working asynchronous policy control and microsecond-scale decision cost, not a
+native/BPF throughput advantage. The end-to-end LMCache five-arm run remains
+the next integration step.
 
 Platform references: NVIDIA's
 [GDS troubleshooting guide](https://docs.nvidia.com/gpudirect-storage/troubleshooting-guide/)

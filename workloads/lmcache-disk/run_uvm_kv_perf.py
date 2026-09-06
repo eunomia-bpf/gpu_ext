@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Minimal performance-only runner: recompute vs lmcache_disk vs lmcache_disk_uvm_kv.
+"""Minimal performance-only runner: recompute vs lmcache_disk vs lmcache_disk_uvm_kv
+vs lmcache_disk_uvm_kv_gpubpf_debt.
 
 A minimal copy of run_perf_only.py that measures only warm performance on the
 existing Qwen3 workload over rotated complete blocks (default one block; every
@@ -14,6 +15,23 @@ local-disk environment with UVM_KV_PLUGIN=1 and the absolute UVM_KV_PLUGIN_SO
 path to the prepared allocator (workloads/vllm/vllm/uvm_test/uvm_allocator.so)
 so the installed vllm.general_plugins entry point (uvm_kv_plugin) routes the
 kv_cache tag through that UVM pluggable allocator.
+
+The fourth arm, lmcache_disk_uvm_kv_gpubpf_debt, runs that identical
+lmcache_disk_uvm_kv server environment with the repo extension eviction-debt
+BPF loader attached: before the vLLM server starts, the runner launches
+``sudo -n /usr/bin/stdbuf -oL -eL <loader> -w 0`` (CLI --eviction-loader,
+default the repo extension/eviction_debt) with a stdin PIPE, stdout/stderr
+in the cell loader.log, and its own session, then immediately waits for the
+exact readiness marker ``Successfully loaded migration-debt eviction
+policy!`` in loader.log (bounded 30 s poll via wait_eviction_loader_ready);
+if the loader fails to start or reach readiness, the loader error is
+recorded and start_server is not called. After all cold requests and their
+store barriers, the runner writes ``w`` + newline to the loader stdin (the
+warm-phase disk-durable key); after server shutdown it stops the loader
+process group with a bounded SIGINT/SIGTERM/SIGKILL. The loader command,
+launch command, log path, readiness outcome, warm-signal outcome, return
+code, and cleanup errors are recorded in the cell result; only this arm
+launches the loader.
 
 This runner deliberately calls none of the validation, admission, or retry
 machinery: no validate-cell, compare-outputs, analyze, engagement checks
@@ -53,7 +71,8 @@ ops = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ops)
 
 KIND = "lmcache_uvm_kv_perf"
-CONFIGS = ("recompute", "lmcache_disk", "lmcache_disk_uvm_kv")
+LOADER_ARM = ops.LOADER_ARM
+CONFIGS = ("recompute", "lmcache_disk", "lmcache_disk_uvm_kv", LOADER_ARM)
 DEFAULT_BLOCKS = 1
 DEFAULT_PORT = 18080
 DEFAULT_STORE_BARRIER_TIMEOUT_S = 120.0
@@ -88,10 +107,10 @@ def load_fixed_prompts() -> dict[str, Any]:
 
 
 def rotation_orders(blocks: int) -> list[list[str]]:
-    """Rotated complete block orders over the three arms.
+    """Rotated complete block orders over the four arms.
 
     Block ``b`` rotates the fixed base order left by ``b`` positions (period
-    three); every block still runs each arm exactly once.
+    four); every block still runs each arm exactly once.
     """
     if blocks < 1:
         raise ValueError(f"--blocks must be at least 1, got {blocks}")
@@ -155,6 +174,33 @@ def worker_affinity(proc) -> list[int] | None:
         return None
 
 
+def send_loader_warm_signal(proc) -> dict[str, Any]:
+    """Write the loader warm key ``w`` + newline after the cold store barriers.
+
+    The outcome is recorded exactly once; a write failure is preserved and
+    never aborts the cell.
+    """
+    outcome: dict[str, Any] = {"key": "w", "written": "w\n"}
+    if proc.poll() is not None:
+        outcome["sent"] = False
+        outcome["error"] = (f"loader exited with return code {proc.returncode} "
+                            "before the warm key")
+        return outcome
+    if proc.stdin is None:
+        outcome["sent"] = False
+        outcome["error"] = "loader stdin is not a pipe"
+        return outcome
+    try:
+        proc.stdin.write("w\n")
+        proc.stdin.flush()
+    except (OSError, ValueError) as error:  # noqa: BLE001 - preserved, never fatal
+        outcome["sent"] = False
+        outcome["error"] = f"{type(error).__name__}: {error}"
+        return outcome
+    outcome["sent"] = True
+    return outcome
+
+
 def warm_aggregates(record: dict[str, Any], warm_start_ns: int,
                     warm_end_ns: int) -> dict[str, Any] | None:
     warm = [entry for entry in record["requests"] if entry["phase"] == "warm"]
@@ -185,7 +231,8 @@ def warm_aggregates(record: dict[str, Any], warm_start_ns: int,
 
 def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
              model_path: Path, prefixes: list[dict[str, Any]], expected_driver: str,
-             store_barrier_timeout_s: float) -> dict[str, Any]:
+             store_barrier_timeout_s: float,
+             eviction_loader: Path = ops.EVICTION_LOADER) -> dict[str, Any]:
     """One arm, once: no gates, no retry; every number and exit code is kept."""
     record: dict[str, Any] = {
         "schema": 1, "kind": KIND, "config": config, "block": block, "position": position,
@@ -195,6 +242,10 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
         "started_ns": time.time_ns(), "ready": False, "ready_error": None,
         "requests": [], "barriers": [], "cleanup_errors": [],
         "server_returncode": None, "error": None,
+        "loader": ({"enabled": True, "command": None, "launch_command": None,
+                    "log_path": None, "ready": None, "warm_signal": None,
+                    "returncode": None, "cleanup_errors": []}
+                   if config == LOADER_ARM else {"enabled": False}),
     }
     log_path = run_dir / "server.log"
     cache_dir = run_dir / "cache"
@@ -202,15 +253,34 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
     record["environment"] = ops.server_environment(config, cache_dir, expected_driver)
     proc = None
     log_file = None
+    loader_proc = None
+    loader_log_file = None
     stopped = False
     launched = False
     try:
-        try:
-            proc, log_file, argv, launch = ops.start_server(
-                config, model_path, cache_dir, port, log_path, expected_driver=expected_driver)
-            launched = True
-        except FileExistsError as error:
-            record["error"] = f"server log already exists; launch not attempted: {error}"
+        if config == LOADER_ARM:
+            loader_log = run_dir / "loader.log"
+            try:
+                loader_proc, loader_log_file, loader_argv, loader_launch = \
+                    ops.start_eviction_loader(eviction_loader, loader_log)
+                record["loader"]["command"] = loader_argv
+                record["loader"]["launch_command"] = loader_launch
+                record["loader"]["log_path"] = str(loader_log)
+                ops.wait_eviction_loader_ready(loader_proc, loader_log)
+                record["loader"]["ready"] = True
+            except Exception as error:  # noqa: BLE001 - preserved, cell continues
+                record["loader"]["error"] = f"{type(error).__name__}: {error}"
+                record["loader"]["ready"] = False
+        if config == LOADER_ARM and record["loader"].get("error") is not None:
+            record["error"] = ("server not started: eviction loader failed "
+                               "to start or become ready")
+        else:
+            try:
+                proc, log_file, argv, launch = ops.start_server(
+                    config, model_path, cache_dir, port, log_path, expected_driver=expected_driver)
+                launched = True
+            except FileExistsError as error:
+                record["error"] = f"server log already exists; launch not attempted: {error}"
         if launched:
             record["command"] = argv
             record["launch_command"] = launch
@@ -240,6 +310,8 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
                             config, log_path, cold["engine_request_id"],
                             int(item["expected_store_tokens"]), len(item["cold_token_ids"]),
                             store_barrier_timeout_s, DEFAULT_STORE_BARRIER_POLL_S))
+                if config == LOADER_ARM and loader_proc is not None:
+                    record["loader"]["warm_signal"] = send_loader_warm_signal(loader_proc)
                 warm_start = time.perf_counter_ns()
                 for item in prefixes:
                     index = item["index"]
@@ -287,6 +359,24 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
                     log_file.close()
             except OSError:
                 pass
+        if loader_proc is not None:
+            try:
+                loader_returncode, loader_errors = ops.stop_eviction_loader(
+                    loader_proc, loader_log_file)
+                record["loader"]["returncode"] = loader_returncode
+                record["loader"]["cleanup_errors"].extend(loader_errors)
+                if loader_returncode is None:
+                    record["loader"]["cleanup_errors"].append(
+                        "loader return code unknown after bounded stop")
+            except BaseException as error:  # noqa: BLE001
+                record["loader"]["cleanup_errors"].append(
+                    f"stop_eviction_loader: {type(error).__name__}: {error}")
+                try:
+                    if loader_log_file is not None:
+                        loader_log_file.close()
+                except OSError:
+                    pass
+                record["loader"]["returncode"] = loader_proc.returncode
         record["finished_ns"] = time.time_ns()
         ops.atomic_write_json(run_dir / "result.json", record)
     return record
@@ -324,7 +414,7 @@ def arm_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
 
 def write_summary(root: Path, campaign: dict[str, Any]) -> None:
     lines = [
-        "# LMCache/UVM-KV three-arm performance-only comparison",
+        "# LMCache/UVM-KV four-arm performance-only comparison",
         "",
         f"- Kind: `{campaign['kind']}`",
         f"- Timestamp: `{campaign['timestamp']}`",
@@ -387,6 +477,7 @@ def run_campaign(args) -> int:
             "port": args.port, "store_barrier_timeout_s": args.store_barrier_timeout_s,
             "configs": list(CONFIGS), "attempts_per_cell": 1,
             "retry": False, "result_filtering": False, "gpu_idle_wait": False,
+            "eviction_loader": {"arm": LOADER_ARM, "path": str(args.eviction_loader)},
             "model": ops.MODEL_ID, "model_revision": ops.MODEL_REVISION,
             "prompts": {
                 "path": str(ops.PROMPTS), "prefix_count": len(prefixes),
@@ -410,14 +501,16 @@ def run_campaign(args) -> int:
                 try:
                     record = run_cell(config, block, position, run_dir, args.port,
                                       Path(campaign["params"]["model_path"]), prefixes,
-                                      args.expected_driver, args.store_barrier_timeout_s)
+                                      args.expected_driver, args.store_barrier_timeout_s,
+                                      args.eviction_loader)
                 except Exception as error:  # noqa: BLE001 - preserved, campaign continues
                     record = {"schema": 1, "kind": KIND, "config": config,
                               "block": block, "position": position, "port": args.port,
                               "ready": False,
                               "error": f"{type(error).__name__}: {error}",
                               "requests": [], "barriers": [], "cleanup_errors": [],
-                              "server_returncode": None}
+                              "server_returncode": None,
+                              "loader": {"enabled": False}}
                 campaign["cells"].append({"block": block, "position": position,
                                           "config": config, "run_dir": str(run_dir),
                                           "warm": cell_metrics(record)})
@@ -454,6 +547,23 @@ def dry_run_plan(args) -> dict[str, Any]:
         "block_orders": rotation_orders(args.blocks),
         "expected_driver_parameter": args.expected_driver,
         "port": args.port,
+        "eviction_loader": {
+            "arm": LOADER_ARM,
+            "path": str(args.eviction_loader),
+            "launch": "sudo -n /usr/bin/stdbuf -oL -eL <loader> -w 0 "
+                      "(controlled PATH, own session, started before the server)",
+            "readiness": "wait_eviction_loader_ready polls loader.log for the exact "
+                         "marker 'Successfully loaded migration-debt eviction policy!' "
+                         "(30 s timeout) immediately after loader start and before "
+                         "start_server; on failure the loader error is recorded and "
+                         "start_server is not called",
+            "stdin": "PIPE; the warm key 'w\\n' is written after all cold requests and "
+                     "store barriers, before the warm requests",
+            "stdout_stderr": "per-cell loader.log",
+            "stop": "bounded SIGINT/SIGTERM/SIGKILL of the loader process group after server shutdown",
+            "recorded": ["command", "launch_command", "log_path", "ready", "warm_signal",
+                         "returncode", "cleanup_errors"],
+        },
         "store_barrier": {
             "timeout_s": args.store_barrier_timeout_s,
             "note": "non-gating log-parse wait; a timeout is recorded and the cell continues",
@@ -465,6 +575,8 @@ def dry_run_plan(args) -> dict[str, Any]:
         },
         "reuse": ["start_server", "wait_ready", "streamed_completion", "stop_owned_server",
                   "server_environment", "request_log_values (barrier only)",
+                  "start_eviction_loader", "wait_eviction_loader_ready",
+                  "stop_eviction_loader",
                   "resolve_model", "atomic_write_json"],
         "removed_mechanisms": [
             "inter-cell GPU-idle wait",
@@ -481,6 +593,8 @@ def dry_run_plan(args) -> dict[str, Any]:
         ],
         "preserved": [
             "per-cell server.log (server stdout/stderr)",
+            "per-cell loader.log, loader command, warm-signal outcome, and loader return "
+            "code (fourth arm only)",
             "per-cell server return code, including nonzero",
             "per-request cold/warm ttft_ms, e2e_ms, status, usage counts, and token ids",
             "warm-phase request rate and output-token rate",
@@ -497,6 +611,9 @@ def parse_args(argv: list[str] | None = None):
     parser.add_argument("--blocks", type=int, default=DEFAULT_BLOCKS)
     parser.add_argument("--store-barrier-timeout-s", type=float,
                         default=DEFAULT_STORE_BARRIER_TIMEOUT_S)
+    parser.add_argument("--eviction-loader", type=Path, default=ops.EVICTION_LOADER,
+                        help="eviction-debt BPF loader binary started under sudo -n by "
+                             "the lmcache_disk_uvm_kv_gpubpf_debt arm only")
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true",
                         help="print the fixed plan without touching GPU or output state")

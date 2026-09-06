@@ -41,6 +41,9 @@ PROMPTS = HERE / "prompts.json"
 PLAN = HERE / "plan-v2.md"
 RUNNER = Path(__file__).resolve()
 UVM_KV_ALLOCATOR_SO = VLLM_WORKLOAD / "vllm" / "uvm_test" / "uvm_allocator.so"
+EVICTION_LOADER = GPU_EXT / "extension" / "eviction_debt"
+LOADER_ARM = "lmcache_disk_uvm_kv_gpubpf_debt"
+EVICTION_LOADER_READY_MARKER = "Successfully loaded migration-debt eviction policy!"
 
 EXPECTED_DRIVER = "610.43.02"
 EXPERIMENT_DRIVERS = (EXPECTED_DRIVER, "575.57.08")
@@ -528,13 +531,13 @@ def server_environment(config: str, cache_dir: Path,
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="True",
                    LMCACHE_MAX_LOCAL_CPU_SIZE="8.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
                    LMCACHE_USE_LAYERWISE="False", LMCACHE_USE_GPU_CONNECTOR_V3="True")
-    elif config in ("lmcache_disk", "lmcache_disk_uvm_kv"):
+    elif config in ("lmcache_disk", "lmcache_disk_uvm_kv", LOADER_ARM):
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="False",
                    LMCACHE_MAX_LOCAL_CPU_SIZE="2.0", LMCACHE_LOCAL_DISK="file://" + str(cache_dir),
                    LMCACHE_MAX_LOCAL_DISK_SIZE="16.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
                    LMCACHE_USE_LAYERWISE="False", LMCACHE_USE_GPU_CONNECTOR_V3="True",
                    LMCACHE_EXTRA_CONFIG=canonical({"use_odirect": True}))
-        if config == "lmcache_disk_uvm_kv":
+        if config in ("lmcache_disk_uvm_kv", LOADER_ARM):
             env.update(UVM_KV_PLUGIN="1", UVM_KV_PLUGIN_SO=str(UVM_KV_ALLOCATOR_SO))
     return env
 
@@ -593,6 +596,72 @@ def stop_owned_server(proc: subprocess.Popen, log_file) -> None:
         shared.stop_owned(proc)
     finally:
         log_file.close()
+
+
+def start_eviction_loader(loader_path: Path, log_path: Path):
+    """Start the owned eviction-debt BPF loader for the gpubpf-debt arm.
+
+    Launches ``sudo -n /usr/bin/stdbuf -oL -eL <loader> -w 0`` with the
+    controlled PATH environment, a stdin PIPE for the warm-phase ``w``
+    key, stdout/stderr into ``log_path``, and its own session so the
+    loader can be stopped as a process group. No retry or admission
+    machinery; readiness is handled by wait_eviction_loader_ready.
+    """
+    loader_path = Path(loader_path).expanduser().resolve()
+    if not loader_path.is_file():
+        raise FileNotFoundError(f"eviction loader binary not found: {loader_path}")
+    argv = [str(loader_path), "-w", "0"]
+    launch = ["/usr/bin/sudo", "-n", "/usr/bin/stdbuf", "-oL", "-eL", *argv]
+    log_file = log_path.open("x")
+    try:
+        proc = subprocess.Popen(launch, env=controlled_environment(cuda_visible_devices=""),
+                                stdin=subprocess.PIPE, stdout=log_file,
+                                stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    except BaseException:
+        log_file.close()
+        raise
+    return proc, log_file, argv, launch
+
+
+def wait_eviction_loader_ready(proc: subprocess.Popen, log_path: Path,
+                               timeout: float = 30) -> None:
+    """Bounded readiness wait for the eviction-debt loader.
+
+    Polls ``log_path`` for the exact policy-load marker; raises GateError
+    if the loader process exits first or the timeout elapses.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            tail = log_path.read_text(errors="replace")[-5000:] if log_path.exists() else ""
+            raise GateError(
+                f"eviction loader exited {proc.returncode} before readiness marker\n{tail}")
+        if log_path.exists():
+            log = log_path.read_text(errors="replace")
+            if EVICTION_LOADER_READY_MARKER in log:
+                return
+        time.sleep(0.25)
+    tail = log_path.read_text(errors="replace")[-5000:] if log_path.exists() else ""
+    raise GateError(f"eviction loader readiness timeout after {timeout}s\n{tail}")
+
+
+def stop_eviction_loader(proc: subprocess.Popen, log_file) -> tuple[int | None, list[str]]:
+    """Bounded SIGINT/SIGTERM/SIGKILL stop of the loader process group.
+
+    Records the loader return code and any cleanup errors; never retries and
+    never blocks the cell past the shared bounded stop windows.
+    """
+    errors: list[str] = []
+    try:
+        shared.stop_owned(proc)
+    except Exception as error:  # noqa: BLE001 - preserved, never fatal
+        errors.append(f"stop_owned: {type(error).__name__}: {error}")
+    finally:
+        try:
+            log_file.close()
+        except OSError:
+            pass
+    return proc.returncode, errors
 
 
 def wait_gpu_idle(timeout: float = 120) -> None:

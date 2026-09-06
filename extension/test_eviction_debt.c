@@ -285,6 +285,340 @@ static void test_pressure_ledger_closes(void)
 	tests_run++;
 }
 
+/* Recoverability-ordering ranges (MVP). */
+
+static void rcov_base(struct debt_rcov_record *rec)
+{
+	rec->start = 0x1000;
+	rec->end = 0x2000;
+	rec->deadline = 0;
+	rec->last_update = 500;
+	rec->tgid = 7;
+	rec->generation = 4;
+	rec->lifecycle = DEBT_RCOV_LIFECYCLE_INACTIVE;
+	rec->tier = DEBT_RCOV_TIER_LOCAL_DISK;
+	rec->recovery = DEBT_RCOV_RECOVERY_CHEAP;
+	rec->retired = 0;
+}
+
+static void test_rcov_record_validity(void)
+{
+	struct debt_rcov_record rec;
+
+	rcov_base(&rec);
+	assert(debt_rcov_record_valid(&rec));
+
+	rec.start = 0;                       /* never-recorded start */
+	assert(!debt_rcov_record_valid(&rec));
+	rec.start = 0x1000;
+	rec.end = rec.start;                 /* empty range */
+	assert(!debt_rcov_record_valid(&rec));
+	rec.end = 0xfff;                     /* end < start */
+	assert(!debt_rcov_record_valid(&rec));
+	rec.end = 0x2000;
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_MAX;
+	assert(!debt_rcov_record_valid(&rec));
+	rec.lifecycle = 99;                  /* corrupt field */
+	assert(!debt_rcov_record_valid(&rec));
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_INACTIVE;
+	rec.tier = DEBT_RCOV_TIER_MAX;
+	assert(!debt_rcov_record_valid(&rec));
+	rec.tier = DEBT_RCOV_TIER_NONE;
+	rec.recovery = DEBT_RCOV_RECOVERY_MAX;
+	assert(!debt_rcov_record_valid(&rec));
+	rec.recovery = DEBT_RCOV_RECOVERY_CHEAP;
+	assert(debt_rcov_record_valid(&rec));
+	assert(!debt_rcov_record_valid(NULL));
+	tests_run++;
+}
+
+static void test_rcov_contains_boundaries(void)
+{
+	struct debt_rcov_record rec;
+
+	rcov_base(&rec);                     /* [0x1000, 0x2000), tgid 7 */
+
+	assert(debt_rcov_contains(&rec, 7, 0x1000));  /* start in */
+	assert(debt_rcov_contains(&rec, 7, 0x1fff));
+	assert(!debt_rcov_contains(&rec, 7, 0x2000)); /* end out */
+	assert(!debt_rcov_contains(&rec, 7, 0xfff));  /* before start */
+	assert(!debt_rcov_contains(&rec, 8, 0x1000)); /* other owner */
+	assert(!debt_rcov_contains(&rec, 0, 0x1000)); /* zero owner */
+	assert(!debt_rcov_contains(NULL, 7, 0x1000));
+
+	/* Invalid records contain nothing. */
+	rec.start = 0;
+	assert(!debt_rcov_contains(&rec, 7, 0x1000));
+	rec.start = 0x1000;
+	rec.end = 0x1000;
+	assert(!debt_rcov_contains(&rec, 7, 0x1000));
+	tests_run++;
+}
+
+static void test_rcov_deadline_window(void)
+{
+	/* Unknown deadline is never deadline-protected. */
+	assert(!debt_rcov_deadline_in_window(100, 50, 0));
+	assert(!debt_rcov_deadline_in_window(0, 0, 0));
+
+	/* Inside the window, at the edge, and just past it. */
+	assert(debt_rcov_deadline_in_window(100, 50, 120));
+	assert(debt_rcov_deadline_in_window(100, 50, 150));
+	assert(!debt_rcov_deadline_in_window(100, 50, 151));
+
+	/* A past deadline is conservatively still in-window. */
+	assert(debt_rcov_deadline_in_window(100, 50, 99));
+	assert(debt_rcov_deadline_in_window(100, 50, 1));
+
+	/* A zero window covers now itself (and past deadlines). */
+	assert(debt_rcov_deadline_in_window(100, 0, 100));
+	assert(!debt_rcov_deadline_in_window(100, 0, 101));
+	assert(debt_rcov_deadline_in_window(100, 0, 50));
+
+	/* now + window wraps the u64 timeline: protect everything. */
+	assert(debt_rcov_deadline_in_window(~(u64)0 - 2, 5, ~(u64)0));
+	assert(debt_rcov_deadline_in_window(~(u64)0, 5, 1));
+
+	/* Without wrap, a far deadline stays out of a small window. */
+	assert(!debt_rcov_deadline_in_window(~(u64)0 - 2, 1, ~(u64)0));
+	assert(debt_rcov_deadline_in_window(~(u64)0 - 2, 1, ~(u64)0 - 2));
+	tests_run++;
+}
+
+static void test_rcov_classify_stale(void)
+{
+	struct debt_rcov_record rec;
+	u64 now = 100;
+
+	rcov_base(&rec);
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE); /* live baseline */
+
+	rec.retired = 1;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	rec.retired = 0;
+
+	/* Generation mismatch: older and newer than the table. */
+	assert(debt_rcov_classify(&rec, 5, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	assert(debt_rcov_classify(&rec, 3, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+
+	/* Invalid bounds are stale regardless of coverage. */
+	rec.start = 0;
+	assert(debt_rcov_classify(&rec, 4, 7, 0, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	rec.start = 0x1000;
+	rec.end = 0x1000;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	rec.end = 0x2000;
+	rec.start = 0x3000;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x2000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	rec.start = 0x1000;
+	rec.end = 0x2000;
+
+	/* Out-of-range semantic fields are stale. */
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_MAX;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_INACTIVE;
+	rec.tier = DEBT_RCOV_TIER_MAX;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	rec.tier = DEBT_RCOV_TIER_LOCAL_DISK;
+	rec.recovery = DEBT_RCOV_RECOVERY_MAX;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+
+	/* NULL record is stale. */
+	assert(debt_rcov_classify(NULL, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	tests_run++;
+}
+
+static void test_rcov_classify_protect(void)
+{
+	struct debt_rcov_record rec;
+	u64 now = 1000;
+
+	rcov_base(&rec);
+
+	/* Pinned and active are always protected. */
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_PINNED;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_ACTIVE;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+
+	/* Loss recovery class protects even on local-disk inactive. */
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_INACTIVE;
+	rec.recovery = DEBT_RCOV_RECOVERY_LOSS;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+
+	/* Deadline inside the protect window, including the edge. */
+	rec.recovery = DEBT_RCOV_RECOVERY_CHEAP;
+	rec.deadline = now + 5;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+	rec.deadline = now + 10;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+
+	/* A past deadline stays protected (conservative). */
+	rec.deadline = now - 1;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+
+	/* Protection beats cheap eligibility. */
+	rec.deadline = 0;
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_PINNED;
+	rec.recovery = DEBT_RCOV_RECOVERY_CHEAP;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+	tests_run++;
+}
+
+static void test_rcov_classify_cheap_and_default(void)
+{
+	struct debt_rcov_record rec;
+	u64 now = 1000;
+
+	/* Inactive + local-disk + cheap, no deadline. */
+	rcov_base(&rec);
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE);
+
+	/* A deadline just past the window keeps it eligible. */
+	rec.deadline = now + 11;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE);
+	rec.deadline = 0;
+
+	/* Not cheap: backing tier NONE. */
+	rec.tier = DEBT_RCOV_TIER_NONE;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+
+	/* Not cheap: recovery SLOW on local disk. */
+	rec.tier = DEBT_RCOV_TIER_LOCAL_DISK;
+	rec.recovery = DEBT_RCOV_RECOVERY_SLOW;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+
+	/* Local disk + cheap but active: PROTECT, not cheap. */
+	rec.recovery = DEBT_RCOV_RECOVERY_CHEAP;
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_ACTIVE;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+	tests_run++;
+}
+
+static void test_rcov_classify_owner_range_boundaries(void)
+{
+	struct debt_rcov_record rec;
+	u64 now = 1000;
+
+	rcov_base(&rec);                     /* [0x1000, 0x2000), tgid 7 */
+
+	/* Range and owner boundaries through the classifier. */
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE);
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1fff, now, 10) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE);
+	assert(debt_rcov_classify(&rec, 4, 7, 0x2000, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+	assert(debt_rcov_classify(&rec, 4, 7, 0xfff, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+	assert(debt_rcov_classify(&rec, 4, 8, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+	assert(debt_rcov_classify(&rec, 4, 0, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+
+	/* A pinned range protects only its own owner's range. */
+	rec.lifecycle = DEBT_RCOV_LIFECYCLE_PINNED;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+	assert(debt_rcov_classify(&rec, 4, 8, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+
+	/* A record with tgid 0 never matches any nonzero owner. */
+	rec.tgid = 0;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, now, 10) ==
+	       DEBT_RCOV_CLASS_DEFAULT);
+	tests_run++;
+}
+
+static void test_rcov_classify_unknown_deadline_and_max_time(void)
+{
+	struct debt_rcov_record rec;
+	u64 near_max = ~(u64)0 - 2;
+
+	/* Unknown deadline: no deadline protection near max time. */
+	rcov_base(&rec);
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, near_max, 10) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE);
+
+	/* now + window wraps: far deadline conservatively protected. */
+	rec.deadline = ~(u64)0;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, near_max, 10) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+
+	/* Without wrap the same far deadline is out of a small window. */
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, near_max, 1) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE);
+
+	/* Zero window: only a same-instant deadline protects. */
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, near_max, 0) ==
+	       DEBT_RCOV_CLASS_CHEAP_ELIGIBLE);
+	rec.deadline = near_max;
+	assert(debt_rcov_classify(&rec, 4, 7, 0x1000, near_max, 0) ==
+	       DEBT_RCOV_CLASS_PROTECT);
+	tests_run++;
+}
+
+static void test_rcov_table_find_bounded(void)
+{
+	struct debt_rcov_table tab;
+	struct debt_rcov_record *a, *b;
+
+	memset(&tab, 0, sizeof(tab));
+	tab.generation = 4;
+	tab.count = 2;
+	a = &tab.ranges[0];
+	b = &tab.ranges[1];
+
+	rcov_base(a);                        /* [0x1000, 0x2000) tgid 7 */
+	rcov_base(b);
+	b->start = 0x4000;
+	b->end = 0x5000;
+	b->tgid = 8;
+	b->generation = 3;                   /* stale generation */
+
+	/* Spatial lookup: covers the first matching live-or-stale slot. */
+	assert(debt_rcov_table_find(&tab, 7, 0x1000) == a);
+	assert(debt_rcov_table_find(&tab, 7, 0x1fff) == a);
+	assert(debt_rcov_table_find(&tab, 8, 0x4000) == b);
+	/* ...but the classifier still marks it stale. */
+	assert(debt_rcov_classify(b, tab.generation, 8, 0x4000, 100, 10) ==
+	       DEBT_RCOV_CLASS_STALE);
+	assert(debt_rcov_table_find(&tab, 7, 0x4000) == NULL);
+	assert(debt_rcov_table_find(&tab, 9, 0x1000) == NULL);
+	assert(debt_rcov_table_find(NULL, 7, 0x1000) == NULL);
+
+	/* A corrupt count beyond the array cannot run off the end. */
+	tab.count = 999;
+	assert(debt_rcov_table_find(&tab, 7, 0x1000) == a);
+	assert(debt_rcov_table_find(&tab, 99, 0x1000) == NULL);
+	tab.count = 0;
+	assert(debt_rcov_table_find(&tab, 7, 0x1000) == NULL);
+	tests_run++;
+}
+
 int main(void)
 {
 	test_activate_samples_warm_flag();
@@ -300,6 +634,15 @@ int main(void)
 	test_default_debt_max();
 	test_prefetch_gate();
 	test_pressure_ledger_closes();
+	test_rcov_record_validity();
+	test_rcov_contains_boundaries();
+	test_rcov_deadline_window();
+	test_rcov_classify_stale();
+	test_rcov_classify_protect();
+	test_rcov_classify_cheap_and_default();
+	test_rcov_classify_owner_range_boundaries();
+	test_rcov_classify_unknown_deadline_and_max_time();
+	test_rcov_table_find_bounded();
 
 	printf("eviction debt policy tests: %u passed\n", tests_run);
 	return 0;

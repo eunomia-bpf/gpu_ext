@@ -94,6 +94,18 @@ LEASE_PATHS = (
 RELATIVE_RUNTIME_INCLUDE = "../../../runtime/include"
 RELATIVE_RUNTIME_INCLUDE_PATTERN = re.compile(r"(?:\.\./)+runtime/include")
 KERNELRETSNOOP_CAPACITY_PATCH = HERE / "kernelretsnoop-phase-capacity.patch"
+KERNELRETSNOOP_CAPACITY_FORM_MARKERS = {
+    "kernelretsnoop.bpf.c": (
+        "u64 coordinate_x, coordinate_y, coordinate_z;",
+        "data.coordinate_x = block_x * warps_per_block + (linear_thread >> 5);",
+    ),
+    "kernelretsnoop.c": (
+        "uint64_t coordinate_x, coordinate_y, coordinate_z;",
+        "static uint64_t requested_ring_entries(void)",
+        "bpf_map__set_max_entries(skel->maps.rb, requested_entries)",
+        "BPFTIME_KERNELRETSNOOP_RING_ENTRIES",
+    ),
+}
 LATE_BOOTSTRAP_TARGET_FILTER_PATCH = (
     HERE / "runtime-575/late-bootstrap-target-filter.patch"
 )
@@ -1075,6 +1087,18 @@ def validate_kernelretsnoop_source_schema(directory: Path) -> None:
             )
 
 
+def kernelretsnoop_capacity_form_applied(directory: Path) -> bool:
+    """True only when the copy already holds the declared optimized/capacity form."""
+    for name, markers in KERNELRETSNOOP_CAPACITY_FORM_MARKERS.items():
+        path = directory / name
+        if not path.is_file():
+            return False
+        text = path.read_text(errors="replace")
+        if any(marker not in text for marker in markers):
+            return False
+    return True
+
+
 def prepare_tool_source(
     spec: core.ToolSpec,
     *,
@@ -1090,16 +1114,17 @@ def prepare_tool_source(
         target_symbol=target_symbol,
     )
     if spec.name == "kernelretsnoop" and (directory / spec.user_file).exists():
-        completed = subprocess.run(
-            ["patch", "--batch", "--forward", "--fuzz=0", "-p1", "-i",
-             str(KERNELRETSNOOP_CAPACITY_PATCH)],
-            cwd=directory, text=True, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        if completed.returncode != 0:
-            raise RuntimeError(
-                "failed to apply declared kernelretsnoop capacity patch:\n" + completed.stdout
+        if not kernelretsnoop_capacity_form_applied(directory):
+            completed = subprocess.run(
+                ["patch", "--batch", "--forward", "--fuzz=0", "-p1", "-i",
+                 str(KERNELRETSNOOP_CAPACITY_PATCH)],
+                cwd=directory, text=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
             )
+            if completed.returncode != 0:
+                raise RuntimeError(
+                    "failed to apply declared kernelretsnoop capacity patch:\n" + completed.stdout
+                )
     makefile = directory / "Makefile"
     text = makefile.read_text()
     relative_includes = set(RELATIVE_RUNTIME_INCLUDE_PATTERN.findall(text))

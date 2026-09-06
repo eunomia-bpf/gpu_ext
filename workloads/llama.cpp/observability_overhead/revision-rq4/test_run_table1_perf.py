@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Unittest for run_table1_perf.py: seven-arm rotation schedule and dry-run only."""
+"""Unittest for run_table1_perf.py: rotation schedule, dry-run, and the
+idempotence of the declared kernelretsnoop capacity patch."""
 
 from __future__ import annotations
 
@@ -188,6 +189,229 @@ class RunArmCellProbeTeardownErrorTests(unittest.TestCase):
         self.assertNotIn("error", record)
         self.assertIn("LD_PRELOAD=/tools/kernelretsnoop/libbpftime.so", record["command"])
         self.assertIn(str(args.llama_bench), record["command"])
+
+
+class CapacityPatchIdempotenceTests(unittest.TestCase):
+    APPLIED_BPF = (
+        "struct data {\n"
+        "\tu64 coordinate_x, coordinate_y, coordinate_z;\n"
+        "\tu64 timestamp;\n"
+        "};\n"
+        "\n"
+        "int cuda__retprobe()\n"
+        "{\n"
+        "\tstruct data data = {};\n"
+        "\tu64 block_x = 0;\n"
+        "\tu64 linear_thread = 0;\n"
+        "\tu64 warps_per_block = 0;\n"
+        "\tdata.coordinate_x = block_x * warps_per_block + (linear_thread >> 5);\n"
+        "\tdata.coordinate_y = 0;\n"
+        "\tdata.coordinate_z = 0;\n"
+        "\treturn 0;\n"
+        "}\n"
+    )
+    APPLIED_USER = (
+        "#include <stdio.h>\n"
+        "\n"
+        "struct data {\n"
+        "\tuint64_t coordinate_x, coordinate_y, coordinate_z;\n"
+        "\tuint64_t timestamp;\n"
+        "};\n"
+        "\n"
+        "static uint64_t requested_ring_entries(void)\n"
+        "{\n"
+        "\tconst char *value = getenv(\"BPFTIME_KERNELRETSNOOP_RING_ENTRIES\");\n"
+        "\treturn value ? 1 : 0;\n"
+        "}\n"
+        "\n"
+        "int main(int argc, char **argv)\n"
+        "{\n"
+        "\tint err = bpf_map__set_max_entries(skel->maps.rb, requested_entries);\n"
+        "\treturn err;\n"
+        "}\n"
+    )
+    OLD_BPF = (
+        "struct data {\n"
+        "\tu64 block_x, block_y, block_z;\n"
+        "\tu64 thread_x, thread_y, thread_z;\n"
+        "\tu64 block_dim_x, block_dim_y, block_dim_z;\n"
+        "\tu64 timestamp;\n"
+        "};\n"
+        "\n"
+        "int cuda__retprobe()\n"
+        "{\n"
+        "\tstruct data data = {};\n"
+        "\n"
+        "\tbpf_get_block_idx(&data.block_x, &data.block_y, &data.block_z);\n"
+        "\tbpf_get_thread_idx(&data.thread_x, &data.thread_y, &data.thread_z);\n"
+        "\tbpf_get_block_dim(&data.block_dim_x, &data.block_dim_y,\n"
+        "\t\t\t  &data.block_dim_z);\n"
+        "\tdata.timestamp = bpf_get_globaltimer();\n"
+        "\treturn bpf_perf_event_output(NULL, &rb, 0, &data,\n"
+        "\t\t\t\t     sizeof(struct data));\n"
+        "}\n"
+    )
+    OLD_USER = (
+        "#include <stdio.h>\n"
+        "\n"
+        "struct data {\n"
+        "\tuint64_t block_x, block_y, block_z;\n"
+        "\tuint64_t thread_x, thread_y, thread_z;\n"
+        "\tuint64_t block_dim_x, block_dim_y, block_dim_z;\n"
+        "\tuint64_t timestamp;\n"
+        "};\n"
+        "\n"
+        "int main(int argc, char **argv)\n"
+        "{\n"
+        "\treturn 0;\n"
+        "}\n"
+    )
+
+    def _bpftime_root(self, root: Path) -> Path:
+        (root / "runtime" / "include").mkdir(parents=True)
+        return root
+
+    def _write_source(self, directory: Path, bpf: str, user: str, makefile: str) -> None:
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "kernelretsnoop.bpf.c").write_text(bpf, encoding="utf-8")
+        (directory / "kernelretsnoop.c").write_text(user, encoding="utf-8")
+        (directory / "Makefile").write_text(makefile, encoding="utf-8")
+
+    def test_pure_runner_does_not_reapply_capacity_patch_when_capacity_form_present(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bpftime_root = self._bpftime_root(root / "bpftime")
+            output_dir = root / "out"
+            output_dir.mkdir()
+            source_dir = root / "kernelretsnoop"
+            self._write_source(
+                source_dir,
+                self.APPLIED_BPF,
+                self.APPLIED_USER,
+                "INCLUDES := -I../../../runtime/include\n",
+            )
+            built = []
+            args = SimpleNamespace(bpftime_root=bpftime_root, target_symbol="target")
+            with (
+                mock.patch.object(
+                    table1.core, "prepare_tool_source", return_value=source_dir
+                ),
+                mock.patch.object(
+                    table1.core,
+                    "build_tool",
+                    side_effect=lambda spec, directory: built.append(spec.name),
+                ),
+                mock.patch.object(
+                    table1.shutil,
+                    "copytree",
+                    side_effect=lambda src, dst, ignore=None: dst.mkdir(parents=True),
+                ),
+                mock.patch.object(
+                    table1.runner,
+                    "build_nvbit",
+                    return_value=output_dir / "nvbit_tool_build" / "observability.so",
+                ),
+                mock.patch.object(
+                    table1.runner.subprocess,
+                    "run",
+                    side_effect=AssertionError(
+                        "pure runner must not reapply the declared capacity patch"
+                    ),
+                ),
+            ):
+                tool_dirs, nvbit_tool = table1.build_tools(args, output_dir)
+            self.assertEqual(sorted(tool_dirs), sorted(table1.TASKS))
+            for tool in table1.TASKS:
+                self.assertIs(tool_dirs[tool], source_dir)
+            self.assertEqual(built, list(table1.TASKS))
+            self.assertEqual(
+                nvbit_tool, output_dir / "nvbit_tool_build" / "observability.so"
+            )
+            self.assertEqual(
+                (source_dir / "kernelretsnoop.bpf.c").read_text(encoding="utf-8"),
+                self.APPLIED_BPF,
+            )
+            self.assertEqual(
+                (source_dir / "kernelretsnoop.c").read_text(encoding="utf-8"),
+                self.APPLIED_USER,
+            )
+            self.assertEqual([], list(source_dir.glob("*.rej")))
+            self.assertEqual([], list(source_dir.glob("*.orig")))
+            makefile = (source_dir / "Makefile").read_text(encoding="utf-8")
+            self.assertNotIn("../../../runtime/include", makefile)
+            self.assertIn(
+                str((bpftime_root / "runtime/include").resolve()), makefile
+            )
+
+    def test_capacity_patch_still_applies_to_genuinely_old_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bpftime_root = self._bpftime_root(root / "bpftime")
+            source_dir = root / "kernelretsnoop"
+            self._write_source(source_dir, self.OLD_BPF, self.OLD_USER, "all:\n\techo old\n")
+            calls = []
+
+            def fake_run(command, **kwargs):
+                calls.append((list(command), kwargs.get("cwd")))
+                return SimpleNamespace(
+                    returncode=0,
+                    stdout="patching file kernelretsnoop.bpf.c\n",
+                )
+
+            with (
+                mock.patch.object(
+                    table1.core, "prepare_tool_source", return_value=source_dir
+                ),
+                mock.patch.object(table1.runner.subprocess, "run", side_effect=fake_run),
+            ):
+                tool_dir = table1.runner.prepare_tool_source(
+                    table1.core.TOOLS["kernelretsnoop"],
+                    bpftime_root=bpftime_root,
+                    build_root=root / "build",
+                    target_symbol="target",
+                )
+        self.assertIs(tool_dir, source_dir)
+        self.assertEqual(len(calls), 1)
+        command, cwd = calls[0]
+        self.assertEqual(
+            command,
+            [
+                "patch", "--batch", "--forward", "--fuzz=0", "-p1",
+                "-i", str(table1.runner.KERNELRETSNOOP_CAPACITY_PATCH),
+            ],
+        )
+        self.assertEqual(cwd, source_dir)
+
+    def test_capacity_patch_failure_on_genuinely_old_source_still_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bpftime_root = self._bpftime_root(root / "bpftime")
+            source_dir = root / "kernelretsnoop"
+            self._write_source(source_dir, self.OLD_BPF, self.OLD_USER, "all:\n\techo old\n")
+            with (
+                mock.patch.object(
+                    table1.core, "prepare_tool_source", return_value=source_dir
+                ),
+                mock.patch.object(
+                    table1.runner.subprocess,
+                    "run",
+                    return_value=SimpleNamespace(
+                        returncode=1,
+                        stdout="Reversed (or previously applied) patch detected!  "
+                               "Skipping patch.\n",
+                    ),
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "failed to apply declared kernelretsnoop capacity patch",
+                ):
+                    table1.runner.prepare_tool_source(
+                        table1.core.TOOLS["kernelretsnoop"],
+                        bpftime_root=bpftime_root,
+                        build_root=root / "build",
+                        target_symbol="target",
+                    )
 
 
 if __name__ == "__main__":

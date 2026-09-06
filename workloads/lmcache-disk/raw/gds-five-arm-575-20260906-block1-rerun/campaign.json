@@ -1,0 +1,113 @@
+{
+  "block_orders": [
+    [
+      "recompute",
+      "lmcache_cpu",
+      "gds_fifo",
+      "gds_native",
+      "gds_bpf"
+    ]
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "config": "recompute",
+      "metrics": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 31.97871328955203,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 1.9986695805970018,
+        "warm_ttft_median_ms": 63.9410525
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-five-arm-575-20260906-block1-rerun/block-00/position-0-recompute"
+    },
+    {
+      "block": 0,
+      "config": "lmcache_cpu",
+      "metrics": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 30.54545544550416,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 1.90909096534401,
+        "warm_ttft_median_ms": 73.0717785
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-five-arm-575-20260906-block1-rerun/block-00/position-1-lmcache_cpu"
+    }
+  ],
+  "kind": "lmcache_gds_five_arm",
+  "params": {
+    "attempts_per_cell": 1,
+    "blocks": 1,
+    "configs": [
+      "recompute",
+      "lmcache_cpu",
+      "gds_fifo",
+      "gds_native",
+      "gds_bpf"
+    ],
+    "expected_driver": "575.57.08",
+    "gds_buffer_size_mib": 512,
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "port": 18080,
+    "retry": false,
+    "store_barrier_timeout_s": 120.0
+  },
+  "summary": {
+    "cells_attempted": 2,
+    "kind": "lmcache_gds_five_arm",
+    "per_arm": {
+      "gds_bpf": {
+        "cells_attempted": 0,
+        "cells_measured": 0,
+        "medians": {
+          "warm_output_tokens_per_s": null,
+          "warm_requests_per_s": null,
+          "warm_ttft_median_ms": null
+        }
+      },
+      "gds_fifo": {
+        "cells_attempted": 0,
+        "cells_measured": 0,
+        "medians": {
+          "warm_output_tokens_per_s": null,
+          "warm_requests_per_s": null,
+          "warm_ttft_median_ms": null
+        }
+      },
+      "gds_native": {
+        "cells_attempted": 0,
+        "cells_measured": 0,
+        "medians": {
+          "warm_output_tokens_per_s": null,
+          "warm_requests_per_s": null,
+          "warm_ttft_median_ms": null
+        }
+      },
+      "lmcache_cpu": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "warm_output_tokens_per_s": 30.54545544550416,
+          "warm_requests_per_s": 1.90909096534401,
+          "warm_ttft_median_ms": 73.0717785
+        }
+      },
+      "recompute": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "warm_output_tokens_per_s": 31.97871328955203,
+          "warm_requests_per_s": 1.9986695805970018,
+          "warm_ttft_median_ms": 63.9410525
+        }
+      }
+    }
+  },
+  "timestamp": "20260906T160137"
+}

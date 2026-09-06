@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uvm-kv-plugin"
+version = "0.1.0"
+description = "vLLM general plugin that routes the kv_cache memory-pool tag through a scoped UVM CUDA pluggable allocator pool"
+requires-python = ">=3.10"
+
+[project.entry-points."vllm.general_plugins"]
+uvm_kv_plugin = "uvm_kv_plugin:install"
+
+[tool.setuptools]
+packages = ["uvm_kv_plugin"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

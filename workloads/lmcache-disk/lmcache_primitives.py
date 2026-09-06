@@ -40,6 +40,7 @@ SCHEDULE = HERE / "schedule.json"
 PROMPTS = HERE / "prompts.json"
 PLAN = HERE / "plan-v2.md"
 RUNNER = Path(__file__).resolve()
+UVM_KV_ALLOCATOR_SO = VLLM_WORKLOAD / "vllm" / "uvm_test" / "uvm_allocator.so"
 
 EXPECTED_DRIVER = "610.43.02"
 EXPERIMENT_DRIVERS = (EXPECTED_DRIVER, "575.57.08")
@@ -527,12 +528,14 @@ def server_environment(config: str, cache_dir: Path,
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="True",
                    LMCACHE_MAX_LOCAL_CPU_SIZE="8.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
                    LMCACHE_USE_LAYERWISE="False", LMCACHE_USE_GPU_CONNECTOR_V3="True")
-    elif config == "lmcache_disk":
+    elif config in ("lmcache_disk", "lmcache_disk_uvm_kv"):
         env.update(LMCACHE_CHUNK_SIZE=str(CHUNK_TOKENS), LMCACHE_LOCAL_CPU="False",
                    LMCACHE_MAX_LOCAL_CPU_SIZE="2.0", LMCACHE_LOCAL_DISK="file://" + str(cache_dir),
                    LMCACHE_MAX_LOCAL_DISK_SIZE="16.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
                    LMCACHE_USE_LAYERWISE="False", LMCACHE_USE_GPU_CONNECTOR_V3="True",
                    LMCACHE_EXTRA_CONFIG=canonical({"use_odirect": True}))
+        if config == "lmcache_disk_uvm_kv":
+            env.update(UVM_KV_PLUGIN="1", UVM_KV_PLUGIN_SO=str(UVM_KV_ALLOCATOR_SO))
     return env
 
 

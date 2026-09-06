@@ -310,7 +310,7 @@ def arm_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
             "cells": rows,
             "warm_ttft_median_ms": [row.get("warm_ttft_median_ms") for row in rows],
             "warm_requests_per_s": [row.get("warm_requests_per_s") for row in rows],
-            "warm_output_tokens_per_s": [row.get("output_tokens_per_s") for row in rows],
+            "warm_output_tokens_per_s": [row.get("warm_output_tokens_per_s") for row in rows],
         }
         summary[config]["cell_count"] = len(rows)
     return summary

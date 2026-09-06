@@ -350,6 +350,11 @@ class RecordAggregationTests(unittest.TestCase):
         self.assertEqual(summary["lmcache_cpu"]["cell_count"], 1)
         self.assertEqual(summary["lmcache_disk"]["cell_count"], 0)
         self.assertEqual(summary["recompute"]["warm_ttft_median_ms"], [1.0])
+        self.assertEqual(summary["recompute"]["warm_requests_per_s"], [2.0])
+        self.assertEqual(summary["recompute"]["warm_output_tokens_per_s"], [3.0])
+        self.assertEqual(summary["lmcache_cpu"]["warm_requests_per_s"], [4.0])
+        self.assertEqual(summary["lmcache_cpu"]["warm_output_tokens_per_s"], [5.0])
+        self.assertEqual(summary["lmcache_disk"]["warm_output_tokens_per_s"], [])
 
     def test_output_root_default_under_raw_and_explicit_path(self):
         default = runner.output_root(None)

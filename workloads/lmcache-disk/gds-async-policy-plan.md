@@ -150,3 +150,25 @@ marks NVMe and NVMe P2PDMA unsupported and enables compatibility mode. Initial
 plain/native/BPF measurements therefore run and are labelled compatibility;
 direct P2PDMA is a second transport-labelled campaign after the platform path
 is enabled.
+
+The host kernel exports `p2pdma_pgmap_ops`, and the target NVMe controller and
+GPU sit below the same host PCIe root complex. The remaining direct-path
+conditions are not met: NVMe multipathing is enabled, no `nvidia-fs` module is
+installed, the NVIDIA driver registry has no static-BAR/P2P overrides, and
+NVIDIA's documented NVMe-P2PDMA GPU list does not include GeForce RTX 5090.
+Consequently, a successful cuFile call on this host is not evidence of direct
+NVMe-to-GPU DMA. The experiment records the cuFile compatibility path as the
+transport while still measuring real O_DIRECT local-NVMe transfers and the
+storage scheduling policy above them.
+
+This distinction does not change the policy experiment. `gpu_storage_decide`
+does not expose or depend on a DMA implementation: LMCache/cuFile owns the
+file, registered GPU buffer, CUDA stream, and completion in either mode. A
+future supported P2PDMA campaign changes only the executor's transport label,
+not the BPF program, native control, request sequence, or decision ABI.
+
+Platform references: NVIDIA's
+[GDS troubleshooting guide](https://docs.nvidia.com/gpudirect-storage/troubleshooting-guide/)
+describes the NVMe-P2PDMA kernel, multipath, registry and GPU requirements;
+the [GDS overview](https://docs.nvidia.com/gpudirect-storage/overview-guide/)
+defines compatibility mode as the staged fallback path.

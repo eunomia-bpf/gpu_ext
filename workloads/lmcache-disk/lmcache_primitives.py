@@ -598,19 +598,25 @@ def stop_owned_server(proc: subprocess.Popen, log_file) -> None:
         log_file.close()
 
 
-def start_eviction_loader(loader_path: Path, log_path: Path):
+def start_eviction_loader(loader_path: Path, log_path: Path,
+                          allocator_path: Path = UVM_KV_ALLOCATOR_SO):
     """Start the owned eviction-debt BPF loader for the gpubpf-debt arm.
 
-    Launches ``sudo -n /usr/bin/stdbuf -oL -eL <loader> -w 0`` with the
-    controlled PATH environment, a stdin PIPE for the warm-phase ``w``
-    key, stdout/stderr into ``log_path``, and its own session so the
-    loader can be stopped as a process group. No retry or admission
-    machinery; readiness is handled by wait_eviction_loader_ready.
+    Launches ``sudo -n /usr/bin/stdbuf -oL -eL <loader> -a <allocator>
+    -w 0`` with the controlled PATH environment, a stdin PIPE for the
+    warm-phase ``w`` key, stdout/stderr into ``log_path``, and its own
+    session so the loader can be stopped as a process group. Both the
+    loader binary and the UVM KV allocator shared object must exist. No
+    retry or admission machinery; readiness is handled by
+    wait_eviction_loader_ready.
     """
     loader_path = Path(loader_path).expanduser().resolve()
     if not loader_path.is_file():
         raise FileNotFoundError(f"eviction loader binary not found: {loader_path}")
-    argv = [str(loader_path), "-w", "0"]
+    allocator_path = Path(allocator_path).expanduser().resolve()
+    if not allocator_path.is_file():
+        raise FileNotFoundError(f"UVM KV allocator not found: {allocator_path}")
+    argv = [str(loader_path), "-a", str(allocator_path), "-w", "0"]
     launch = ["/usr/bin/sudo", "-n", "/usr/bin/stdbuf", "-oL", "-eL", *argv]
     log_file = log_path.open("x")
     try:

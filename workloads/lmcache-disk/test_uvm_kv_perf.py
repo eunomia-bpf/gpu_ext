@@ -198,7 +198,7 @@ class LoaderPrimitiveTests(unittest.TestCase):
         self.assertIn("LMCacheConnectorV1", joined)
         self.assertIn("kv_both", joined)
 
-    def test_start_eviction_loader_runs_sudo_n_with_w0_and_new_session(self):
+    def test_start_eviction_loader_runs_sudo_n_with_allocator_and_w0_new_session(self):
         captured = {}
 
         class FakeProc:
@@ -218,9 +218,11 @@ class LoaderPrimitiveTests(unittest.TestCase):
                     mock.patch.object(ops.subprocess, "Popen", fake_popen):
                 proc, log_file, argv, launch = ops.start_eviction_loader(
                     ops.EVICTION_LOADER, log_path)
-            self.assertEqual(argv, [str(ops.EVICTION_LOADER), "-w", "0"])
+            self.assertEqual(argv, [str(ops.EVICTION_LOADER), "-a",
+                                    str(ops.UVM_KV_ALLOCATOR_SO), "-w", "0"])
             self.assertEqual(launch, ["/usr/bin/sudo", "-n", "/usr/bin/stdbuf", "-oL", "-eL",
-                                      str(ops.EVICTION_LOADER), "-w", "0"])
+                                      str(ops.EVICTION_LOADER), "-a",
+                                      str(ops.UVM_KV_ALLOCATOR_SO), "-w", "0"])
             self.assertIs(captured["kwargs"]["stdin"], subprocess.PIPE)
             self.assertIs(captured["kwargs"]["stderr"], subprocess.STDOUT)
             self.assertIsInstance(captured["kwargs"]["stdout"], io.TextIOBase)
@@ -231,12 +233,47 @@ class LoaderPrimitiveTests(unittest.TestCase):
             log_file.close()
             self.assertTrue(log_path.is_file())
 
+    def test_start_eviction_loader_accepts_explicit_allocator(self):
+        captured = {}
+
+        class FakeProc:
+            pid = 4242
+
+            def poll(self):
+                return None
+
+        def fake_popen(launch, **kwargs):
+            captured["launch"] = launch
+            return FakeProc()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "loader.log"
+            allocator = Path("/tmp/other-uvm-allocator.so")
+            with mock.patch.object(Path, "is_file", return_value=True), \
+                    mock.patch.object(ops.subprocess, "Popen", fake_popen):
+                proc, log_file, argv, launch = ops.start_eviction_loader(
+                    ops.EVICTION_LOADER, log_path, allocator)
+            self.assertEqual(argv, [str(ops.EVICTION_LOADER), "-a",
+                                    str(allocator), "-w", "0"])
+            self.assertEqual(captured["launch"][-4:], ["-a", str(allocator), "-w", "0"])
+            log_file.close()
+
     def test_start_eviction_loader_missing_binary_is_a_recordable_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             log_path = Path(tmp) / "loader.log"
             with mock.patch.object(Path, "is_file", return_value=False):
                 with self.assertRaises(FileNotFoundError):
                     ops.start_eviction_loader(ops.EVICTION_LOADER, log_path)
+        self.assertFalse(log_path.exists())
+
+    def test_start_eviction_loader_missing_allocator_is_a_recordable_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            loader = Path(tmp) / "eviction_debt"
+            loader.write_bytes(b"")
+            log_path = Path(tmp) / "loader.log"
+            missing_allocator = Path(tmp) / "missing-uvm-allocator.so"
+            with self.assertRaises(FileNotFoundError):
+                ops.start_eviction_loader(loader, log_path, missing_allocator)
         self.assertFalse(log_path.exists())
 
     def test_stop_eviction_loader_is_a_bounded_process_group_stop(self):
@@ -407,9 +444,11 @@ class LoaderFailureSkipsServerTests(unittest.TestCase):
                 with mock.patch.object(
                         ops, "start_eviction_loader",
                         return_value=(mock.Mock(), log_file,
-                                      ["loader", "-w", "0"],
-                                      ["/usr/bin/sudo", "-n", "/usr/bin/stdbuf",
-                                       "-oL", "-eL", "loader", "-w", "0"])), \
+                                       ["loader", "-a", str(ops.UVM_KV_ALLOCATOR_SO),
+                                        "-w", "0"],
+                                       ["/usr/bin/sudo", "-n", "/usr/bin/stdbuf",
+                                        "-oL", "-eL", "loader", "-a",
+                                        str(ops.UVM_KV_ALLOCATOR_SO), "-w", "0"])), \
                         mock.patch.object(ops, "wait_eviction_loader_ready",
                                           side_effect=ops.GateError("readiness timeout")), \
                         mock.patch.object(ops, "start_server") as start_server, \
@@ -449,7 +488,9 @@ class DryRunTests(unittest.TestCase):
         self.assertEqual(plan["store_barrier"]["timeout_s"], 120.0)
         self.assertEqual(plan["eviction_loader"]["arm"], "lmcache_disk_uvm_kv_gpubpf_debt")
         self.assertEqual(plan["eviction_loader"]["path"], str(ops.EVICTION_LOADER))
+        self.assertEqual(plan["eviction_loader"]["allocator"], str(ops.UVM_KV_ALLOCATOR_SO))
         self.assertIn("sudo -n", plan["eviction_loader"]["launch"])
+        self.assertIn("-a <allocator> -w 0", plan["eviction_loader"]["launch"])
         self.assertIn("loader.log", plan["eviction_loader"]["stdout_stderr"])
 
     def test_main_dry_run_eviction_loader_override(self):

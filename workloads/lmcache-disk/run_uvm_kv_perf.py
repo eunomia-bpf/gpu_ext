@@ -19,8 +19,9 @@ kv_cache tag through that UVM pluggable allocator.
 The fourth arm, lmcache_disk_uvm_kv_gpubpf_debt, runs that identical
 lmcache_disk_uvm_kv server environment with the repo extension eviction-debt
 BPF loader attached: before the vLLM server starts, the runner launches
-``sudo -n /usr/bin/stdbuf -oL -eL <loader> -w 0`` (CLI --eviction-loader,
-default the repo extension/eviction_debt) with a stdin PIPE, stdout/stderr
+``sudo -n /usr/bin/stdbuf -oL -eL <loader> -a <allocator> -w 0`` (CLI
+--eviction-loader, default the repo extension/eviction_debt; allocator
+fixed to the prepared ops.UVM_KV_ALLOCATOR_SO, no CLI override) with a stdin PIPE, stdout/stderr
 in the cell loader.log, and its own session, then immediately waits for the
 exact readiness marker ``Successfully loaded migration-debt eviction
 policy!`` in loader.log (bounded 30 s poll via wait_eviction_loader_ready);
@@ -281,7 +282,8 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
             loader_log = run_dir / "loader.log"
             try:
                 loader_proc, loader_log_file, loader_argv, loader_launch = \
-                    ops.start_eviction_loader(eviction_loader, loader_log)
+                    ops.start_eviction_loader(eviction_loader, loader_log,
+                                              ops.UVM_KV_ALLOCATOR_SO)
                 record["loader"]["command"] = loader_argv
                 record["loader"]["launch_command"] = loader_launch
                 record["loader"]["log_path"] = str(loader_log)
@@ -499,7 +501,8 @@ def run_campaign(args) -> int:
             "port": args.port, "store_barrier_timeout_s": args.store_barrier_timeout_s,
             "configs": list(configs), "attempts_per_cell": 1,
             "retry": False, "result_filtering": False, "gpu_idle_wait": False,
-            "eviction_loader": {"arm": LOADER_ARM, "path": str(args.eviction_loader)},
+            "eviction_loader": {"arm": LOADER_ARM, "path": str(args.eviction_loader),
+                                "allocator": str(ops.UVM_KV_ALLOCATOR_SO)},
             "model": ops.MODEL_ID, "model_revision": ops.MODEL_REVISION,
             "prompts": {
                 "path": str(ops.PROMPTS), "prefix_count": len(prefixes),
@@ -573,8 +576,10 @@ def dry_run_plan(args) -> dict[str, Any]:
         "eviction_loader": {
             "arm": LOADER_ARM,
             "path": str(args.eviction_loader),
-            "launch": "sudo -n /usr/bin/stdbuf -oL -eL <loader> -w 0 "
-                      "(controlled PATH, own session, started before the server)",
+            "allocator": str(ops.UVM_KV_ALLOCATOR_SO),
+            "launch": "sudo -n /usr/bin/stdbuf -oL -eL <loader> -a <allocator> -w 0 "
+                      "(controlled PATH, own session, started before the server; "
+                      "allocator fixed to the prepared UVM KV allocator, no CLI)",
             "readiness": "wait_eviction_loader_ready polls loader.log for the exact "
                          "marker 'Successfully loaded migration-debt eviction policy!' "
                          "(30 s timeout) immediately after loader start and before "

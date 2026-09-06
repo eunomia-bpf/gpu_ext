@@ -202,8 +202,21 @@ deferred, and 8 recompute decisions per 64 requests. Median decision cost was
 0.063 us natively and 1.005 us through the UVM ioctl plus BPF callback. Storage
 service time varied substantially across the five pairs, so this result shows
 working asynchronous policy control and microsecond-scale decision cost, not a
-native/BPF throughput advantage. The end-to-end LMCache five-arm run remains
-the next integration step.
+native/BPF throughput advantage. The end-to-end LMCache five-arm run has now
+completed five rotated blocks / 25 cells. Recompute, CPU, GDS FIFO, native,
+and BPF median output throughput is 31.0098, 29.7637, 37.4099, 37.4703, and
+38.3743 token/s; corresponding median TTFT is 66.8884, 74.4118, 78.0768,
+78.4502, and 77.4424 ms. The same-block BPF/native throughput change has median
++0.2795% and range -3.4230% to +5.1679%. See the
+[raw campaign](raw/gds-five-arm-575-20260906-five-block-formal/campaign.json).
+
+This integration uses the classic GdsBackend with immediate-submission inputs.
+The backend adapter retains deferred write references and provides an explicit
+speculative-read Future, but this campaign does not exercise live telemetry,
+priority ordering, batch-hint enforcement, or hybrid restore. The separate
+policy-input ablation enables fixed pressure/slack/cost inputs; those are
+controlled inputs rather than measurements of live HBM pressure. The broader
+queue/feedback design above remains proposed where it exceeds these paths.
 
 Platform references: NVIDIA's
 [GDS troubleshooting guide](https://docs.nvidia.com/gpudirect-storage/troubleshooting-guide/)

@@ -23,7 +23,15 @@ The same-block BPF/native throughput change has median **+0.2795%** and range
 **-3.4230% to +5.1679%**. Default telemetry yields immediate submission, so this
 is a mechanism-floor comparison using real cuFile compatibility-mode storage;
 it does not establish dynamic storage-policy gains or hardware NVMe/GPU P2P.
-The separate policy-input ablation is running. Earlier failed attempts and the
+The separate [policy-input ablation](../workloads/lmcache-disk/results-575-gds-policy-input-ablation-20260906.md)
+also completes **25/25 cells and 200 warm requests**. FIFO / BPF immediate /
+native defer / native full inputs / BPF full inputs median throughput is
+**38.2426 / 36.6713 / 37.2024 / 37.8628 / 36.7143 token/s**. Paired throughput
+changes are **-0.1853%** median for BPF full/native full and **-3.1112%** for
+BPF immediate/FIFO. Both favorable and adverse pairs remain published.
+The sequence separates cold writes from warm reads and does not demonstrate
+read/write contention benefits; the next runner overlaps real writes with
+urgent reads. Earlier failed attempts and the
 one-block pilot are retained separately; none is pooled into these five blocks.
 
 The [end-to-end report](../workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md)

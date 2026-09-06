@@ -1,10 +1,18 @@
 # Revision completion checklist
 
-Updated 2026-09-05 UTC. The user requests completion of the remaining items,
+Updated 2026-09-06 UTC. The user requests completion of the remaining items,
 not only a status audit. The [complete review archive](paper/asplos-27-rebuttal/README.md)
 define the scope. The dated plan in the paper repository is not evidence that
 these commitments have been met. Experimental completion, paper integration,
 and public artifact availability are separate checks.
+
+**2026-09-06 user direction:** the LMCache local-disk pause is lifted and the
+RTX 5090 `launchlate` cross-clock comparison is to be completed; both
+experiments are to be done properly rather than described with omission or
+precision-gate language in the paper. The revision draft
+(`docs/paper/tex-revision`, paper commit `318a7a2`) no longer carries those
+qualifiers; the paper is rebuilt on the submitted text with minimal changes
+and no defensive framing.
 
 Current integration update: the active paper source includes safety
 pseudocode/algorithm/examples/TCB, the capability table, completed policy

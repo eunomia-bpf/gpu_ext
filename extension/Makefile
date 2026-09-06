@@ -210,6 +210,16 @@ $(OUTPUT)/test_safe_policy_models: test_safe_policy_models.c safe_policy_models.
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $< -o $@
 
+.PHONY: test_eviction_debt_range_model
+test_eviction_debt_range_model: $(OUTPUT)/test_eviction_debt_range_model
+	$(call msg,TEST,$<)
+	$(Q)$<
+
+$(OUTPUT)/test_eviction_debt_range_model: test_eviction_debt_range_model.c \
+		eviction_debt_range_model.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) $< $(ALL_LDFLAGS) -Wl,--build-id=none -o $@
+
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
 	$(Q)mkdir -p $@

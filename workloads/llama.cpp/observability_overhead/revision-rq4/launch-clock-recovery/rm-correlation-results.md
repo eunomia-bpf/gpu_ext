@@ -5,13 +5,11 @@
 **2026-09-06: 时钟公平性门槛已由用户指示废除；P0 状态、精确时钟对匹配、
 min=max 锁定证明等要求不再适用，仅以性能数据为准。** The versioned endpoint
 control passes calibration: 200/200 samples with a 759 ns median conservative
-bracket. The RTX 5090 `launchlate` performance measurement comes from attempt
-12's child preflight
-(`raw/rm-correlation-575-12-endpoint-lifecycle/launchlate-preflight`):
-baseline 6,340.36 tok/s, gpubpf 4,401.18 tok/s (30.6% overhead), NVBit
-5,201.92 tok/s (18.0% overhead). The public xfer/direct brackets (4,759/4,730
-ns) were not used for calibration. The lifecycle outcomes below are retained
-as history.
+bracket. The RTX 5090 `launchlate` performance result comes from the complete
+Table 1 campaign (`../results-table1-warp-plt-575-06`, 10 blocks / 70 valid
+cells): gpubpf 0.221% overhead versus NVBit 8.796%. The public xfer/direct
+brackets (4,759/4,730 ns) were not used for calibration. The lifecycle outcomes
+below are retained as history.
 
 All runs used RTX 5090, NVIDIA 575.57.08, and Linux 6.15.11. The first two
 canaries reached no timer sample. The third retained eight complete samples,

@@ -48,6 +48,7 @@ class RunnerShapeTests(unittest.TestCase):
         self.assertIsNone(args.output)
         self.assertEqual(args.eviction_loader, ops.EVICTION_LOADER)
         self.assertEqual(args.gpu_memory_utilization, 0.98)
+        self.assertEqual(args.cpu_offload_gb, 0.0)
 
     def test_parse_args_eviction_loader_override(self):
         args = runner.parse_args(["--eviction-loader", "/tmp/eviction_debt"])
@@ -609,6 +610,88 @@ class GpuMemoryUtilizationTests(unittest.TestCase):
             log_file.close()
 
 
+class CpuOffloadGbTests(unittest.TestCase):
+    def test_default_constant_is_zero(self):
+        self.assertEqual(ops.DEFAULT_CPU_OFFLOAD_GB, 0.0)
+
+    def test_parse_args_default_is_zero(self):
+        args = runner.parse_args([])
+        self.assertEqual(args.cpu_offload_gb, 0.0)
+
+    def test_parse_args_override(self):
+        args = runner.parse_args(["--cpu-offload-gb", "8"])
+        self.assertEqual(args.cpu_offload_gb, 8.0)
+
+    def test_parse_args_accepts_explicit_zero(self):
+        args = runner.parse_args(["--cpu-offload-gb", "0"])
+        self.assertEqual(args.cpu_offload_gb, 0.0)
+
+    def test_parse_args_rejects_negative_and_non_finite_values(self):
+        for value in ("-0.5", "-1", "inf", "nan"):
+            with self.assertRaises(ValueError):
+                runner.parse_args(["--cpu-offload-gb", value])
+        with self.assertRaises(ValueError):
+            runner.parse_args(["--cpu-offload-gb=-inf"])
+
+    def test_server_argv_default_does_not_append_cpu_offload(self):
+        argv = ops.server_argv("lmcache_disk", Path("/model"), 18080)
+        self.assertNotIn("--cpu-offload-gb", argv)
+
+    def test_server_argv_zero_does_not_append_cpu_offload(self):
+        argv = ops.server_argv("lmcache_disk", Path("/model"), 18080,
+                               cpu_offload_gb=0.0)
+        self.assertNotIn("--cpu-offload-gb", argv)
+
+    def test_server_argv_appends_cpu_offload_when_positive(self):
+        argv = ops.server_argv("lmcache_disk_uvm_kv", Path("/model"), 18080,
+                               cpu_offload_gb=8.0)
+        self.assertEqual(argv[-2:], ["--cpu-offload-gb", "8.0"])
+
+    def test_server_argv_cpu_offload_for_recompute_arm(self):
+        argv = ops.server_argv("recompute", Path("/model"), 18080,
+                               cpu_offload_gb=4.5)
+        self.assertEqual(argv[argv.index("--cpu-offload-gb") + 1], "4.5")
+
+    def test_start_server_forwards_cpu_offload_into_argv(self):
+        class FakeProc:
+            pid = 1
+
+            def poll(self):
+                return None
+
+        def fake_popen(launch, **kwargs):
+            return FakeProc()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "server.log"
+            with mock.patch.object(ops.subprocess, "Popen", fake_popen):
+                proc, log_file, argv, launch = ops.start_server(
+                    "lmcache_disk", Path("/model"), Path(tmp), 18080, log_path,
+                    cpu_offload_gb=8.0)
+            self.assertEqual(argv[-2:], ["--cpu-offload-gb", "8.0"])
+            self.assertEqual(launch[-2:], ["--cpu-offload-gb", "8.0"])
+            log_file.close()
+
+    def test_start_server_default_cpu_offload_leaves_argv_unchanged(self):
+        class FakeProc:
+            pid = 1
+
+            def poll(self):
+                return None
+
+        def fake_popen(launch, **kwargs):
+            return FakeProc()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "server.log"
+            with mock.patch.object(ops.subprocess, "Popen", fake_popen):
+                proc, log_file, argv, launch = ops.start_server(
+                    "lmcache_disk", Path("/model"), Path(tmp), 18080, log_path)
+            self.assertNotIn("--cpu-offload-gb", argv)
+            self.assertNotIn("--cpu-offload-gb", launch)
+            log_file.close()
+
+
 class PressurePrimitiveTests(unittest.TestCase):
     def test_pressure_tenant_default_is_the_repo_workload_binary(self):
         self.assertEqual(ops.PRESSURE_TENANT,
@@ -817,7 +900,7 @@ class PressureCellTests(unittest.TestCase):
                 "_phase": phase, "_index": index}
 
     def run_cell_with_fakes(self, tmp, pressure=None, kv_bytes=None, gpu_util=None,
-                            tenant_readiness_error=None):
+                            cpu_offload_gb=None, tenant_readiness_error=None):
         events = []
         start_server_kwargs = {}
         run_dir = Path(tmp) / "cell"
@@ -826,6 +909,8 @@ class PressureCellTests(unittest.TestCase):
             extra["kv_cache_memory_bytes"] = kv_bytes
         if gpu_util is not None:
             extra["gpu_memory_utilization"] = gpu_util
+        if cpu_offload_gb is not None:
+            extra["cpu_offload_gb"] = cpu_offload_gb
 
         fake_server = mock.Mock()
         fake_server.pid = 1
@@ -966,6 +1051,20 @@ class PressureCellTests(unittest.TestCase):
                 self.run_cell_with_fakes(tmp)
             self.assertEqual(start_kwargs.get("gpu_memory_utilization"), 0.98)
             self.assertEqual(record["gpu_memory_utilization"], 0.98)
+
+    def test_cpu_offload_gb_forwarded_to_start_server_and_recorded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record, events, tenant_stdin, start_kwargs, *_ = \
+                self.run_cell_with_fakes(tmp, cpu_offload_gb=8.0)
+            self.assertEqual(start_kwargs.get("cpu_offload_gb"), 8.0)
+            self.assertEqual(record["cpu_offload_gb"], 8.0)
+
+    def test_cpu_offload_gb_defaults_to_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record, events, tenant_stdin, start_kwargs, *_ = \
+                self.run_cell_with_fakes(tmp)
+            self.assertEqual(start_kwargs.get("cpu_offload_gb"), 0.0)
+            self.assertEqual(record["cpu_offload_gb"], 0.0)
 
     def test_pressure_launch_error_is_recorded_and_cell_continues(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1197,6 +1296,43 @@ class PressureDryRunTests(unittest.TestCase):
         self.assertIn("stop_pressure_tenant", plan["reuse"])
 
 
+class CampaignCpuOffloadTests(unittest.TestCase):
+    def run_campaign_with_fake_cells(self, extra_argv):
+        kwargs_seen = {}
+
+        def fake_run_cell(*args, **kwargs):
+            kwargs_seen.update(kwargs)
+            return {"ready": True, "warm_phase": {"requests_per_s": 1.0},
+                    "server_returncode": 0}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "campaign"
+            args = runner.parse_args(
+                ["--configs", "recompute", "--output", str(out)] + extra_argv)
+            with mock.patch.object(ops, "resolve_model",
+                                   return_value=Path("/model")), \
+                    mock.patch.object(runner, "run_cell",
+                                      side_effect=fake_run_cell) as run_cell:
+                rc = runner.run_campaign(args)
+            campaign = json.loads((out / "campaign.json").read_text(encoding="utf-8"))
+            return rc, run_cell, kwargs_seen, campaign
+
+    def test_run_campaign_records_default_cpu_offload_gb(self):
+        rc, run_cell, kwargs_seen, campaign = self.run_campaign_with_fake_cells([])
+        self.assertEqual(rc, 0)
+        self.assertEqual(run_cell.call_count, 1)
+        self.assertEqual(campaign["params"]["cpu_offload_gb"], 0.0)
+        self.assertEqual(kwargs_seen.get("cpu_offload_gb"), 0.0)
+
+    def test_run_campaign_forwards_override_to_cells_and_records_it(self):
+        rc, run_cell, kwargs_seen, campaign = self.run_campaign_with_fake_cells(
+            ["--cpu-offload-gb", "8"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(run_cell.call_count, 1)
+        self.assertEqual(campaign["params"]["cpu_offload_gb"], 8.0)
+        self.assertEqual(kwargs_seen.get("cpu_offload_gb"), 8.0)
+
+
 class DryRunTests(unittest.TestCase):
     def capture_main(self, argv):
         buf = io.StringIO()
@@ -1236,6 +1372,14 @@ class DryRunTests(unittest.TestCase):
             ["--dry-run", "--gpu-memory-utilization", "0.9"])
         self.assertEqual(rc, 0)
         self.assertEqual(plan["gpu_memory_utilization"], 0.9)
+
+    def test_main_dry_run_records_cpu_offload_gb(self):
+        rc, plan = self.capture_main(["--dry-run"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(plan["cpu_offload_gb"], 0.0)
+        rc, plan = self.capture_main(["--dry-run", "--cpu-offload-gb", "8"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(plan["cpu_offload_gb"], 8.0)
 
     def test_main_dry_run_three_blocks_matches_rotation(self):
         rc, plan = self.capture_main(["--dry-run", "--blocks", "3"])

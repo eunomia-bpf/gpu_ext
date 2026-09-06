@@ -65,6 +65,19 @@ value of every cell; it is threaded through run_campaign, run_cell,
 start_server, and server_argv and recorded in the dry-run plan, the
 campaign parameters, and each cell result.
 
+--cpu-offload-gb F (float, default 0.0, validated finite and >=0) appends
+the vLLM --cpu-offload-gb F argv to the server of every cell only when F >
+0 (F == 0.0 leaves the argv exactly as before, preserving the old
+behavior); it is threaded through run_campaign, run_cell, start_server,
+and server_argv and recorded in the dry-run plan, the campaign
+parameters, and each cell result. It moves the model's first F GiB of
+weights to pinned CPU memory so that the sole local model,
+Qwen3-30B-A3B-FP8 (model runtime ~30.05 GiB on the RTX 5090, against which
+the second CUDA UVM pressure process's ~498 MiB context leaves no headroom
+and OOMs the first request even at --gpu-memory-utilization 0.95), can
+coexist with the pressure process; both arms of a comparison use the
+identical offload value.
+
 This runner deliberately calls none of the validation, admission, or retry
 machinery: no validate-cell, compare-outputs, analyze, engagement checks
 (validate_log), correctness/store checks (wait_for_cold_store,
@@ -85,6 +98,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -313,6 +327,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
               eviction_loader: Path = ops.EVICTION_LOADER,
               kv_cache_memory_bytes: int | None = None,
               gpu_memory_utilization: float = ops.DEFAULT_GPU_MEMORY_UTILIZATION,
+              cpu_offload_gb: float = ops.DEFAULT_CPU_OFFLOAD_GB,
               pressure: dict[str, Any] | None = None) -> dict[str, Any]:
     """One arm, once: no gates, no retry; every number and exit code is kept."""
     record: dict[str, Any] = {
@@ -322,6 +337,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
         "output_tokens": ops.OUTPUT_TOKENS,
         "kv_cache_memory_bytes": kv_cache_memory_bytes,
         "gpu_memory_utilization": gpu_memory_utilization,
+        "cpu_offload_gb": cpu_offload_gb,
         "started_ns": time.time_ns(), "ready": False, "ready_error": None,
         "requests": [], "barriers": [], "cleanup_errors": [],
         "server_returncode": None, "error": None,
@@ -385,7 +401,8 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
                 proc, log_file, argv, launch = ops.start_server(
                     config, model_path, cache_dir, port, log_path, expected_driver=expected_driver,
                     kv_cache_memory_bytes=kv_cache_memory_bytes,
-                    gpu_memory_utilization=gpu_memory_utilization)
+                    gpu_memory_utilization=gpu_memory_utilization,
+                    cpu_offload_gb=cpu_offload_gb)
                 launched = True
             except FileExistsError as error:
                 record["error"] = f"server log already exists; launch not attempted: {error}"
@@ -622,6 +639,7 @@ def run_campaign(args) -> int:
             "port": args.port, "store_barrier_timeout_s": args.store_barrier_timeout_s,
             "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
             "gpu_memory_utilization": args.gpu_memory_utilization,
+            "cpu_offload_gb": args.cpu_offload_gb,
             "pressure": {"enabled": args.pressure_gib > 0,
                          "binary": str(args.pressure_binary),
                          "gib": args.pressure_gib, "passes": args.pressure_passes,
@@ -657,6 +675,7 @@ def run_campaign(args) -> int:
                                        args.eviction_loader,
                                        kv_cache_memory_bytes=args.kv_cache_memory_bytes,
                                        gpu_memory_utilization=args.gpu_memory_utilization,
+                                       cpu_offload_gb=args.cpu_offload_gb,
                                        pressure=pressure)
                 except Exception as error:  # noqa: BLE001 - preserved, campaign continues
                     record = {"schema": 1, "kind": KIND, "config": config,
@@ -706,6 +725,7 @@ def dry_run_plan(args) -> dict[str, Any]:
         "port": args.port,
         "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
         "gpu_memory_utilization": args.gpu_memory_utilization,
+        "cpu_offload_gb": args.cpu_offload_gb,
         "pressure": {
             "enabled": args.pressure_gib > 0,
             "binary": str(args.pressure_binary),
@@ -814,6 +834,13 @@ def parse_args(argv: list[str] | None = None):
                              "server argv of every cell (default 0.98; must be >0 and "
                              "<=1; lower it when a pressure tenant holds part of the "
                              "GPU memory)")
+    parser.add_argument("--cpu-offload-gb", type=float, default=0.0,
+                         help="vLLM --cpu-offload-gb GiB of model weights moved to "
+                              "pinned CPU memory, appended to the server argv of every "
+                              "cell only when > 0 (default 0.0 keeps the argv unchanged; "
+                              "must be finite and >= 0). Lets the sole local "
+                              "Qwen3-30B-A3B-FP8 model coexist with the UVM pressure "
+                              "process; both arms use the identical value")
     parser.add_argument("--pressure-gib", type=int, default=0,
                         help="UVM pressure-tenant managed allocation in GiB; 0 "
                              "(default) disables the pressure tenant")
@@ -840,6 +867,9 @@ def parse_args(argv: list[str] | None = None):
         raise ValueError(
             f"--gpu-memory-utilization must be >0 and <=1, got "
             f"{args.gpu_memory_utilization}")
+    if not math.isfinite(args.cpu_offload_gb) or args.cpu_offload_gb < 0:
+        raise ValueError(
+            f"--cpu-offload-gb must be finite and >=0, got {args.cpu_offload_gb}")
     if args.pressure_gib < 0:
         raise ValueError(f"--pressure-gib must be nonnegative, got {args.pressure_gib}")
     if args.pressure_gib > 0:

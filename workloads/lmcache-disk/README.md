@@ -59,6 +59,16 @@ behavior and leave the existing CLI unchanged:
 - `--kv-cache-memory-bytes N` (positive integer): explicit vLLM KV pool size
   in bytes, appended to the server argv of every cell as
   `--kv-cache-memory-bytes N`.
+- `--cpu-offload-gb F` (float, default 0.0, validated finite and >= 0): when
+  F > 0, the vLLM `--cpu-offload-gb F` value is appended to the server argv of
+  every cell, moving the model's first F GiB of weights to pinned CPU memory;
+  at the default 0.0 the argv is unchanged. This lets the sole local model,
+  Qwen3-30B-A3B-FP8, coexist with the second CUDA UVM pressure process: the
+  model runtime uses ~30.05 GiB on the RTX 5090, so the pressure tenant's
+  ~498 MiB CUDA context OOMs the first request even at
+  `--gpu-memory-utilization 0.95` without it. Both arms of a comparison use
+  the identical offload value. The value is recorded in the dry-run plan, the
+  campaign parameters, and each cell `result.json`.
 - `--pressure-gib N` (default 0 disables) with optional `--pressure-passes P`
   (default 1), `--pressure-pause-ms M` (default 0), and `--pressure-binary
   PATH` (default `workloads/uvm-policy-mechanism/uvm_fault_stream`): when N >

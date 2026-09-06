@@ -48,6 +48,7 @@ EVICTION_LOADER_READY_MARKER = "Successfully loaded migration-debt eviction poli
 PRESSURE_READY_LINE = "READY pid="
 PRESSURE_MONITOR_LINE = "MONITOR_PID:"
 DEFAULT_GPU_MEMORY_UTILIZATION = 0.98
+DEFAULT_CPU_OFFLOAD_GB = 0.0
 
 EXPECTED_DRIVER = "610.43.02"
 EXPERIMENT_DRIVERS = (EXPECTED_DRIVER, "575.57.08")
@@ -548,7 +549,8 @@ def server_environment(config: str, cache_dir: Path,
 
 def server_argv(config: str, model_path: Path, port: int | str,
                 kv_cache_memory_bytes: int | None = None,
-                gpu_memory_utilization: float = DEFAULT_GPU_MEMORY_UTILIZATION) -> list[str]:
+                gpu_memory_utilization: float = DEFAULT_GPU_MEMORY_UTILIZATION,
+                cpu_offload_gb: float = DEFAULT_CPU_OFFLOAD_GB) -> list[str]:
     argv = [str(VLLM), "serve", str(model_path), "--served-model-name", MODEL_ID,
             "--enforce-eager", "--max-model-len", "4096",
             "--gpu-memory-utilization", str(gpu_memory_utilization),
@@ -559,15 +561,18 @@ def server_argv(config: str, model_path: Path, port: int | str,
         )])
     if kv_cache_memory_bytes is not None:
         argv.extend(["--kv-cache-memory-bytes", str(kv_cache_memory_bytes)])
+    if cpu_offload_gb > 0:
+        argv.extend(["--cpu-offload-gb", str(cpu_offload_gb)])
     return argv
 
 
 def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_path: Path,
                  trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER,
                  kv_cache_memory_bytes: int | None = None,
-                 gpu_memory_utilization: float = DEFAULT_GPU_MEMORY_UTILIZATION):
+                 gpu_memory_utilization: float = DEFAULT_GPU_MEMORY_UTILIZATION,
+                 cpu_offload_gb: float = DEFAULT_CPU_OFFLOAD_GB):
     argv = server_argv(config, model_path, port, kv_cache_memory_bytes,
-                       gpu_memory_utilization)
+                       gpu_memory_utilization, cpu_offload_gb)
     launch = list(argv)
     if trace_dir is not None:
         trace_dir = trace_dir.resolve()

@@ -7,25 +7,23 @@ release have completed. It supplements the
 Hummingbird and POD-Attention have their own plans; do not rerun them merely to
 fill this checklist. GPU work is exclusive and coordinated by the main thread.
 
-## 1. LMCache local disk: paused by user direction
+## 1. LMCache local disk and storage-policy comparison
 
-Current update: the repaired 575 traced disk preflight passed its storage
-engagement checks, but the subsequent full eight-prefix correctness comparison
-failed: cold output matches across all three arms; CPU and disk warm output
-match each other but disagree with recompute for every prefix. No formal
-performance cells started. A shared KV layout/stride defect is a concrete
-source-level candidate, not a validated root cause. Preserve those raw records
-without changing their identity-sensitive permissions. The sequence below is
-retained for history and possible resumption, **not an active execution queue**.
-The user explicitly paused this work on 2026-09-03; keep the storage discussion
-and disclose the deferred measurement in the revision response.
+LMCache is active work. The first five-block performance-only campaign completed
+15/15 cells. Recompute/CPU/disk median TTFT is
+67.1691/72.6468/96.3280 ms, request throughput is
+1.9151/1.8823/1.7858 req/s, and output throughput is
+30.6422/30.1168/28.5723 token/s. Earlier correctness failures and their raw
+records remain retained but no longer suspend performance work.
 
-The highest-value remaining LMCache result is the already specified matched
-**recompute / native LMCache CPU / native LMCache disk** comparison. It answers
-whether disk retrieval saves first-token latency and what request-rate cost it
-pays on this model and SSD. This is a runnable research-baseline measurement,
-not yet a BPF policy port or evidence that the mechanism accelerates storage.
-See the existing [protocol](../workloads/lmcache-disk/plan-v2.md).
+The next result extends this real local-disk path with two matched arms: the
+same recoverability/slack-aware policy implemented natively and through
+gpubpf. In parallel, a GPU-storage decision hook is being implemented so BPF
+can select submit, defer, recompute, priority and batch hints while LMCache and
+cuFile retain transport ownership. Direct P2PDMA, cuFile compatibility mode and
+POSIX fallback are recorded as execution-path labels, not used to suppress
+performance measurements. See the current
+[recoverability plan](../workloads/lmcache-disk/recoverability-arbitration-plan.md).
 
 ### What actually exists
 
@@ -43,7 +41,7 @@ See the existing [protocol](../workloads/lmcache-disk/plan-v2.md).
   defaults to an exact 610.43.02 requirement; using its old launch command
   unchanged will fail admission. All old 610 records must retain that identity.
 
-### Harness repairs and remaining launch preparation
+### Historical harness preparation
 
 1. **Implemented, CPU-checked:** explicit `--expected-driver 575.57.08`, preserving
    the legacy 610 default and offline validation. New cells record expected and
@@ -76,7 +74,7 @@ native prefix caching off, max model length 4,096, one sequence, common memory
 budget 0.98, DeepGEMM off, and 16 generated tokens. CPU retention is 8 GiB;
 disk uses no CPU retention, a 2 GiB staging allocator and a 16 GiB disk tier.
 
-### Required real sequence
+### Historical full-protocol sequence
 
 1. Recheck source/environment, the same model, the NVMe filesystem and exclusive
    idle GPU on 575. File presence is not runtime compatibility.
@@ -131,77 +129,32 @@ eight-prefix cell's wall time. The earlier single-prefix server log spans about
 CPU-side admission and persistence dominate the reservation; this is not a
 promise of completion within one hour or measured GPU utilization time.
 
-### What is still missing for a BPF comparison
+### Active native/BPF comparison
 
-There is **no BPF configuration in this adapter**. Recompute is the no-cache
-control; CPU and disk are original user-space LMCache backends, not native/BPF
-implementations of one new policy. A successful three-arm campaign closes the
-bounded disk-baseline measurement, not the user's general same-policy BPF test.
-
-The [older vLLM UVM workload](../workloads/vllm/README.md) uses a different fork,
-allocator, concurrency and request protocol. Its BPF page-prefetch result cannot
-be appended to the above table as a matched cache-retention arm. A genuine next
-BPF comparison needs a defined cache/tier decision, the same observed inputs and
-executor in original-native and BPF modes, real BPF engagement, identical cache
-budgets and correctness, then repeated matched cells. No such executable entry
-point or credible timing estimate exists yet; do not invent a `--config bpf`
-command or call UVM page migration a disk-backend port. Finish the promised
-native storage-tier measurement before deciding whether that additional port
-adds enough new evidence.
+The existing recompute/CPU/disk arms remain the storage baselines. The active
+implementation adds native and BPF variants of one integer-only policy over the
+same inputs and trusted LMCache/cuFile executor. It must report both policy
+benefit over plain transport and BPF mechanism cost relative to native. The
+older vLLM UVM page-prefetch result stays separate and is not relabelled as a
+disk-policy result.
 
 ## 2. RTX 5090 / NVBit Table 1
 
-**2026-09-06 update:** the clock-fairness gates described below (precision gate
-for clock calibration, P0/exact clock-pair matching, the attempt-13
-telemetry-fairness plan, and the clock-identity/220-launch prerequisites) are
-abolished by user direction; only performance data matters. The RTX 5090
-`launchlate` numbers now come from attempt 12's child preflight
-([raw summary](../workloads/llama.cpp/observability_overhead/revision-rq4/raw/rm-correlation-575-12-endpoint-lifecycle/launchlate-preflight/summary.md)):
-baseline 6,340.36 tok/s, gpubpf 4,401.18 tok/s (30.6% overhead), NVBit
-5,201.92 tok/s (18.0% overhead). This row is in the paper table; the "invalid
-and omitted" statements below are historical.
+The current [three-tool result](../workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-06/README.md)
+completes the original seven arms across 10 rotated blocks / 70 successful
+numeric cells. Baseline is 37,586.3225 token/s. gpubpf/NVBit overhead is
+90.7051%/99.6210% for `kernelretsnoop`, 2.9653%/10.3501% for `threadhist`, and
+0.2208%/8.7959% for `launchlate`. The submitted P40 values remain
+8%/85%, 3%/87%, and 14%/93% respectively. Earlier 5090 attempts and verifier
+studies remain retained as separate historical results.
 
-The predeclared non-cross-clock subset is complete. The repaired
-[preflight](../workloads/llama.cpp/observability_overhead/revision-rq4/raw/preflight-575-noncross-clock-04/README.md)
-passes all five configurations, and the
-[paper-value run](../workloads/llama.cpp/observability_overhead/revision-rq4/result-review.md)
-passes all five correctness cells and 10/10 randomized pp512 blocks with no
-rejected or retried cell. Exit-record overhead is 99.663% for gpubpf and
-99.621% for matched NVBit; exit-count-histogram overhead is 4.007% and 10.301%.
-The result is mixed: NVBit is 0.04185 percentage points lower-overhead for the
-full record stream, whereas gpubpf is 6.29351 points lower-overhead for the
-histogram. The two corrected rows are integrated into the 16-page paper build.
+Remaining Table 1 work is performance optimization, not row completion:
 
-This does not complete the original three-tool/seven-arm campaign. The
-host/device cross-clock `launchlate` comparison remains invalid and is omitted
-from the paper. The [RM/PTIMER recovery canaries](../workloads/llama.cpp/observability_overhead/revision-rq4/launch-clock-recovery/rm-correlation-results.md)
-reached the public 575 timer control through xfer and direct paths with 8/8
-valid samples each, but their 4.759/4.730 us median conservative brackets both
-failed the predeclared <1.5 us precision gate. A separately versioned driver
-control now returns the selected CPU endpoints and passes Phase 0 with 200/200
-valid samples and a 0.759 us median bracket. This admits, but does not replace,
-the remaining PTIMER/%globaltimer identity and 220-launch gates.
-The performance runtime had GPU verification disabled. A separate completed
-STRICT/NO_VERIFY S0 campaign covers steady-state verifier-mode sensitivity for
-the two gpubpf tools, but its intervals span zero and no equivalence margin was
-preregistered; it neither relabels Table 1 nor proves zero verifier overhead. NVBit
-uses custom matched adapters while both systems retain native transports. The
-histogram arms close aggregate counts, but only gpubpf retained the complete
-vector. The frozen plan named llama.cpp build 7101; every accepted preflight
-and full arm consistently used build 7102, so the disclosed deviation creates
-no cross-arm binary mismatch.
-
-Remaining work is limited to these explicit boundaries:
-
-1. Preserve every earlier failure and do not rerun or pool the accepted two-tool
-   cells merely to seek a more favorable result.
-2. Treat a future same-clock or principled RM-correlation `launchlate` repair as
-   a separate experiment; until then the row remains absent, not zero-overhead.
-3. Keep the completed [strict/off result](../workloads/llama.cpp/observability_overhead/revision-rq4/device-verifier-s0/results-s0-575-02-20260904.md)
-   separate from this verifier-off performance study and retain its
-   no-equivalence limitation.
-4. Repeat the whole-paper placement review after later source edits; the
-   device-map integration itself has already rebuilt successfully at 16 pages.
+1. Preserve the complete 70-cell campaign and every earlier result.
+2. Optimize `kernelretsnoop` using GPU-local preallocated event storage and a
+   bulk drain while retaining its full per-warp record stream.
+3. Run a one-block measurement, then a new ten-block campaign if it improves.
+4. Repeat the paper placement review after the optimized numbers are integrated.
 
 ### Separate device-map placement result
 

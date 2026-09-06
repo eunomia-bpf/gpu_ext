@@ -866,9 +866,9 @@ class PressureCellTests(unittest.TestCase):
             record, events, tenant_stdin, start_kwargs, *_ = \
                 self.run_cell_with_fakes(tmp, pressure=pressure,
                                          kv_bytes=48 * 1024**3)
-            self.assertEqual(events, ["start_server", "wait_ready",
+            self.assertEqual(events, ["start_tenant", "wait_tenant",
+                                      "start_server", "wait_ready",
                                       "request:lmc-p0-cold",
-                                      "start_tenant", "wait_tenant",
                                       "request:lmc-p0-warm",
                                       "stop_tenant", "stop_server"])
             self.assertEqual(start_kwargs.get("kv_cache_memory_bytes"), 48 * 1024**3)
@@ -954,9 +954,9 @@ class PressureCellTests(unittest.TestCase):
             record, events, tenant_stdin, *_ = self.run_cell_with_fakes(
                 tmp, pressure=pressure,
                 tenant_readiness_error=ops.GateError("readiness timeout"))
-            self.assertEqual(events, ["start_server", "wait_ready",
+            self.assertEqual(events, ["start_tenant", "wait_tenant",
+                                      "start_server", "wait_ready",
                                       "request:lmc-p0-cold",
-                                      "start_tenant", "wait_tenant",
                                       "request:lmc-p0-warm",
                                       "stop_tenant", "stop_server"])
             self.assertEqual(tenant_stdin.getvalue(), "")
@@ -967,6 +967,121 @@ class PressureCellTests(unittest.TestCase):
             self.assertEqual(p["returncode"], 0)
             self.assertEqual(p["cleanup_errors"], [])
             self.assertTrue((Path(tmp) / "cell" / "result.json").is_file())
+
+    def test_loader_arm_pressure_started_before_loader_and_server(self):
+        pressure = {"gib": 2, "passes": 3, "pause_ms": 250, "binary": "/bin/tenant"}
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "cell"
+            events = []
+            loader_stdin = io.StringIO()
+            tenant_stdin = io.StringIO()
+
+            fake_server = mock.Mock()
+            fake_server.pid = 1
+            fake_server.returncode = None
+            fake_server.poll.return_value = None
+
+            fake_loader = mock.Mock()
+            fake_loader.pid = 3
+            fake_loader.returncode = None
+            fake_loader.poll.return_value = None
+            fake_loader.stdin = loader_stdin
+
+            fake_tenant = mock.Mock()
+            fake_tenant.pid = 2
+            fake_tenant.returncode = None
+            fake_tenant.poll.return_value = None
+            fake_tenant.stdin = tenant_stdin
+
+            def fake_start_server(*args, **kwargs):
+                events.append("start_server")
+                return fake_server, (run_dir / "server.log").open("w"), \
+                    ["vllm"], ["vllm"]
+
+            def fake_wait_ready(*args, **kwargs):
+                events.append("wait_ready")
+
+            def fake_streamed_completion(port, token_ids, request_id):
+                events.append(f"request:{request_id}")
+                return self.fake_response(request_id)
+
+            def fake_stop_server(proc, log_file):
+                events.append("stop_server")
+                proc.returncode = 0
+                log_file.close()
+
+            def fake_start_tenant(binary, gib, passes, pause_ms, log_path, result_path):
+                events.append("start_tenant")
+                return fake_tenant, log_path.open("w"), [str(binary)]
+
+            def fake_wait_tenant(proc, log_path):
+                events.append("wait_tenant")
+
+            def fake_stop_tenant(proc, log_file):
+                events.append("stop_tenant")
+                proc.returncode = 0
+                log_file.close()
+                return 0, []
+
+            def fake_start_loader(loader_path, log_path, allocator_path):
+                events.append("start_loader")
+                return fake_loader, log_path.open("w"), \
+                    [str(loader_path), "-a", str(allocator_path), "-w", "0"], \
+                    ["/usr/bin/sudo", "-n"]
+
+            def fake_wait_loader(proc, log_path):
+                events.append("wait_loader")
+
+            def fake_stop_loader(proc, log_file):
+                events.append("stop_loader")
+                proc.returncode = 0
+                log_file.close()
+                return 0, []
+
+            with mock.patch.object(ops, "start_server",
+                                   side_effect=fake_start_server), \
+                    mock.patch.object(ops, "wait_ready",
+                                      side_effect=fake_wait_ready), \
+                    mock.patch.object(ops, "streamed_completion",
+                                      side_effect=fake_streamed_completion), \
+                    mock.patch.object(ops, "stop_owned_server",
+                                      side_effect=fake_stop_server), \
+                    mock.patch.object(ops, "start_pressure_tenant",
+                                      side_effect=fake_start_tenant), \
+                    mock.patch.object(ops, "wait_pressure_tenant_ready",
+                                      side_effect=fake_wait_tenant), \
+                    mock.patch.object(ops, "stop_pressure_tenant",
+                                      side_effect=fake_stop_tenant), \
+                    mock.patch.object(ops, "start_eviction_loader",
+                                      side_effect=fake_start_loader), \
+                    mock.patch.object(ops, "wait_eviction_loader_ready",
+                                      side_effect=fake_wait_loader), \
+                    mock.patch.object(ops, "stop_eviction_loader",
+                                      side_effect=fake_stop_loader):
+                record = runner.run_cell(runner.LOADER_ARM, 0, 0, run_dir, 18080,
+                                         Path("/model"), self.PREFIXES,
+                                         EXPECTED_DRIVER, 0.0,
+                                         pressure=pressure)
+            self.assertEqual(events, ["start_tenant", "wait_tenant",
+                                      "start_loader", "wait_loader",
+                                      "start_server", "wait_ready",
+                                      "request:lmc-p0-cold",
+                                      "request:lmc-p0-warm",
+                                      "stop_tenant", "stop_server",
+                                      "stop_loader"])
+            self.assertEqual(loader_stdin.getvalue(), "w\n")
+            self.assertEqual(tenant_stdin.getvalue(), "\n")
+            self.assertIs(record["loader"]["ready"], True)
+            self.assertIs(record["loader"]["warm_signal"]["sent"], True)
+            self.assertIs(record["pressure"]["ready"], True)
+            self.assertEqual(record["pressure"]["release"],
+                             {"written": "\n", "released": True})
+            self.assertEqual(record["pressure"]["returncode"], 0)
+            self.assertEqual(record["loader"]["returncode"], 0)
+            self.assertEqual(record["server_returncode"], 0)
+            self.assertEqual(record["pressure"]["cleanup_errors"], [])
+            self.assertEqual(record["loader"]["cleanup_errors"], [])
+            self.assertTrue((run_dir / "result.json").is_file())
 
 
 class PressureDryRunTests(unittest.TestCase):

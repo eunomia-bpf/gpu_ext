@@ -18,7 +18,8 @@ kv_cache tag through that UVM pluggable allocator.
 
 The fourth arm, lmcache_disk_uvm_kv_gpubpf_debt, runs that identical
 lmcache_disk_uvm_kv server environment with the repo extension eviction-debt
-BPF loader attached: before the vLLM server starts, the runner launches
+BPF loader attached: before the vLLM server starts (and, when pressure is
+enabled on the same cell, after the UVM pressure tenant), the runner launches
 ``sudo -n /usr/bin/stdbuf -oL -eL <loader> -a <allocator> -w 0`` (CLI
 --eviction-loader, default the repo extension/eviction_debt; allocator
 fixed to the prepared ops.UVM_KV_ALLOCATOR_SO, no CLI override) with a stdin PIPE, stdout/stderr
@@ -39,19 +40,24 @@ behavior. --kv-cache-memory-bytes N (positive integer) is appended to the
 vLLM server argv of every cell as --kv-cache-memory-bytes N (explicit KV pool
 size). --pressure-gib N with N > 0 starts the owned UVM fault-stream pressure
 tenant (workloads/uvm-policy-mechanism/uvm_fault_stream, --pressure-binary to
-override) in every cell: after all cold requests and their store barriers,
-before the warm signal and the warm timer, the runner launches
+override) in every cell: before the eviction-debt BPF loader (on the loader
+arm) and before the vLLM server, the runner launches
 ``<binary> --gib N --passes P --pause-ms M --wait-for-monitor --output
 pressure-result.json`` (--pressure-passes, --pressure-pause-ms), captures
-stdout/stderr in the cell pressure.log, waits (bounded 30 s poll via
+stdout/stderr in the cell pressure.log, and waits (bounded 30 s poll via
 wait_pressure_tenant_ready) for the exact ``READY pid=`` and ``MONITOR_PID:``
-lines, then writes a newline to its stdin immediately before the warm
-requests. During cell cleanup the runner stops the tenant process group with
-a bounded SIGINT/SIGTERM/SIGKILL and records its argv, readiness, release
-outcome, return code, pressure-result.json (when present), and errors in the
-cell result; a launch or readiness failure is recorded and the cell
-continues. With --pressure-gib 0 (default) and no --kv-cache-memory-bytes the
-runner and its CLI behave exactly as before.
+lines; the tenant then holds its monitor wait through the cold requests and
+their store barriers. After all cold requests and their store barriers, and
+immediately before the warm requests (after the loader warm signal on the
+loader arm), the runner writes a newline to the tenant's stdin to release the
+monitor wait. Starting the tenant early lets its CUDA context and managed
+allocation exist before the model fills the device memory. During cell
+cleanup the runner stops the tenant process group with a bounded
+SIGINT/SIGTERM/SIGKILL (before the server stop) and records its argv,
+readiness, release outcome, return code, pressure-result.json (when present),
+and errors in the cell result; a launch or readiness failure is recorded and
+the cell continues. With --pressure-gib 0 (default) and no
+--kv-cache-memory-bytes the runner and its CLI behave exactly as before.
 
 This runner deliberately calls none of the validation, admission, or retry
 machinery: no validate-cell, compare-outputs, analyze, engagement checks
@@ -333,6 +339,22 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
     stopped = False
     launched = False
     try:
+        if pressure is not None:
+            pressure_log = run_dir / "pressure.log"
+            pressure_result = run_dir / "pressure-result.json"
+            try:
+                pressure_proc, pressure_log_file, pressure_argv = \
+                    ops.start_pressure_tenant(
+                        pressure["binary"], pressure["gib"], pressure["passes"],
+                        pressure["pause_ms"], pressure_log, pressure_result)
+                record["pressure"]["command"] = pressure_argv
+                record["pressure"]["log_path"] = str(pressure_log)
+                record["pressure"]["result_path"] = str(pressure_result)
+                ops.wait_pressure_tenant_ready(pressure_proc, pressure_log)
+                record["pressure"]["ready"] = True
+            except Exception as error:  # noqa: BLE001 - preserved, cell continues
+                record["pressure"]["error"] = f"{type(error).__name__}: {error}"
+                record["pressure"]["ready"] = False
         if config == LOADER_ARM:
             loader_log = run_dir / "loader.log"
             try:
@@ -387,22 +409,6 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
                             config, log_path, cold["engine_request_id"],
                             int(item["expected_store_tokens"]), len(item["cold_token_ids"]),
                             store_barrier_timeout_s, DEFAULT_STORE_BARRIER_POLL_S))
-                if pressure is not None:
-                    pressure_log = run_dir / "pressure.log"
-                    pressure_result = run_dir / "pressure-result.json"
-                    try:
-                        pressure_proc, pressure_log_file, pressure_argv = \
-                            ops.start_pressure_tenant(
-                                pressure["binary"], pressure["gib"], pressure["passes"],
-                                pressure["pause_ms"], pressure_log, pressure_result)
-                        record["pressure"]["command"] = pressure_argv
-                        record["pressure"]["log_path"] = str(pressure_log)
-                        record["pressure"]["result_path"] = str(pressure_result)
-                        ops.wait_pressure_tenant_ready(pressure_proc, pressure_log)
-                        record["pressure"]["ready"] = True
-                    except Exception as error:  # noqa: BLE001 - preserved, cell continues
-                        record["pressure"]["error"] = f"{type(error).__name__}: {error}"
-                        record["pressure"]["ready"] = False
                 if config == LOADER_ARM and loader_proc is not None:
                     record["loader"]["warm_signal"] = send_loader_warm_signal(loader_proc)
                 if pressure is not None and record["pressure"]["ready"] is True:
@@ -696,12 +702,14 @@ def dry_run_plan(args) -> dict[str, Any]:
             "pause_ms": args.pressure_pause_ms,
             "launch": "<binary> --gib N --passes N --pause-ms N --wait-for-monitor "
                       "--output pressure-result.json (controlled GPU-0 environment, "
-                      "own session; started in every cell after all cold requests and "
-                      "their store barriers, before the loader warm signal and the "
-                      "warm timer)",
+                      "own session; started in every cell before the BPF loader and "
+                      "the server, i.e. before the cold requests, so its CUDA context "
+                      "and managed allocation exist before the model fills VRAM; "
+                      "released immediately before the warm requests)",
             "readiness": "wait_pressure_tenant_ready polls pressure.log for the exact "
                          "'READY pid=' and 'MONITOR_PID:' lines (30 s timeout) "
-                         "immediately after start; on failure the error is recorded "
+                         "immediately after start, before the BPF loader (debt arm) "
+                         "and the server; on failure the error is recorded "
                          "and the cell continues",
             "stdin": "PIPE; a newline is written immediately before the warm "
                      "requests to release the tenant's monitor wait",

@@ -56,13 +56,16 @@ existing CLI and behavior unchanged:
 - `--pressure-gib N` (default 0 disables) with optional `--pressure-passes P`
   (default 1), `--pressure-pause-ms M` (default 0), and `--pressure-binary
   PATH` (default `workloads/uvm-policy-mechanism/uvm_fault_stream`): when N >
-  0, each cell starts the owned UVM fault-stream tenant after all cold
-  requests and their store barriers and before the warm signal/warm timer,
-  with stdout/stderr captured in the cell `pressure.log`; the runner waits
-  (bounded 30 s) for the exact `READY pid=` and `MONITOR_PID:` lines, writes a
-  newline to its stdin immediately before the warm requests, and stops the
-  tenant process group with a bounded SIGINT/SIGTERM/SIGKILL during cleanup.
-  The tenant argv, readiness, release outcome, return code,
+  0, each cell starts the owned UVM fault-stream tenant before the BPF loader
+  (debt arm) and before the vLLM server, so its CUDA context and managed
+  allocation exist before the model fills VRAM; stdout/stderr is captured in
+  the cell `pressure.log` and the runner waits (bounded 30 s) for the exact
+  `READY pid=` and `MONITOR_PID:` lines. The tenant holds its monitor wait
+  through the cold requests and their store barriers; the runner writes a
+  newline to its stdin after the loader warm signal and immediately before
+  the warm requests, and stops the tenant process group with a bounded
+  SIGINT/SIGTERM/SIGKILL during cleanup (before the server stop). The tenant
+  argv, readiness, release outcome, return code,
   `pressure-result.json` (when the tenant writes it), and errors are recorded
-  in the cell `result.json`; a launch or readiness failure is recorded and the
-  cell continues. No retries, gates, or filtering are added.
+  in the cell `result.json`; a launch or readiness failure is recorded and
+  the cell continues. No retries, gates, or filtering are added.

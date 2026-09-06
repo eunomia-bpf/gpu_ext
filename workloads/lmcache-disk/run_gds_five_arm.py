@@ -35,6 +35,7 @@ CONFIGS = ("recompute", "lmcache_cpu", "gds_fifo", "gds_native", "gds_bpf")
 GDS_MODES = {"gds_fifo": "fifo", "gds_native": "native", "gds_bpf": "bpf"}
 DEFAULT_BLOCKS = 5
 DEFAULT_GDS_BUFFER_SIZE_MIB = 512
+DEFAULT_EXPECTED_DRIVER = "575.57.08"
 GDS_CONTROL = HERE / "gds-control"
 BOOTSTRAP = GDS_CONTROL / "bootstrap"
 RAW_NAME = "raw.jsonl"
@@ -239,7 +240,7 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-driver", choices=ops.EXPERIMENT_DRIVERS,
-                        default=ops.EXPECTED_DRIVER)
+                        default=DEFAULT_EXPECTED_DRIVER)
     parser.add_argument("--port", type=int, default=perf.DEFAULT_PORT)
     parser.add_argument("--blocks", type=int, default=DEFAULT_BLOCKS)
     parser.add_argument("--store-barrier-timeout-s", type=float,

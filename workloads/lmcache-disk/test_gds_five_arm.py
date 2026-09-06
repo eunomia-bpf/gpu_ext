@@ -100,6 +100,10 @@ class FiveArmTests(unittest.TestCase):
             self.assertEqual(plan["configs"], list(runner.CONFIGS))
             self.assertEqual(plan["gds"]["buffer_size_mib"], 512)
 
+    def test_default_driver_is_the_live_575_campaign_driver(self):
+        args = runner.parse_args([])
+        self.assertEqual(args.expected_driver, "575.57.08")
+
 
 if __name__ == "__main__":
     unittest.main()

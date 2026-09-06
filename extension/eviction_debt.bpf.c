@@ -2,40 +2,52 @@
 /*
  * Migration-Debt Eviction Policy (LMCache/gpubpf prototype)
  *
- * Debt signal:
- * - gpu_evict_prepare walks the head of the USED list; each tracked chunk
- *   that is an eviction candidate increments its at-risk debt.
+ * Debt signal (KV-scoped):
+ * - gpu_evict_prepare walks the head of the USED list; each tracked KV
+ *   chunk that is an eviction candidate increments its at-risk debt.
+ *   Non-KV chunks are ignored: they never increment debt, reorder, or
+ *   contribute aggregate pressure, and are left to native eviction.
  * - gpu_block_access on a chunk with debt > 0 observes a later reuse: the
  *   debt is cleared and the chunk is saved to the tail (second chance),
  *   except disk-durable low-reuse chunks, which are held as preferred
  *   eviction candidates.
  *
  * High debt:
- * - When aggregate debt pressure reaches the configured threshold,
+ * - When aggregate (KV) debt pressure reaches the configured threshold,
  *   speculative prefetch is suppressed (empty region, BYPASS).
- * - Disk-durable low-reuse chunks at the debt cap are preferred eviction
- *   candidates: tracking is dropped and they are left at the head of the
- *   USED list so the kernel evicts them (cheap to restore from local NVMe
+ * - Disk-durable KV chunks are immediate preferred eviction candidates:
+ *   tracking is released on the first eviction-candidate observation,
+ *   without waiting for the debt cap, at the chunk's current native
+ *   list position; it then becomes eligible for native eviction when
+ *   the kernel's walker reaches it (cheap to restore from local NVMe
  *   once the LMCache warm phase has made the pool disk-durable).
  *
  * Warm-phase disk-durable flag (KV-range scoped):
  * - The loader attaches a uprobe/uretprobe pair on uvm_kv_malloc in the
- *   workload's allocator shared object.  The uprobe saves the enter args
- *   (size) in a HASH map keyed by pid_tgid; the uretprobe records a
- *   successful (non-NULL) allocation as {start, end, tgid} in a single
- *   ARRAY-map slot, keeping only the largest successful allocation
- *   (documented limitation: a KV pool split across several smaller
- *   allocations is only partially covered, and a freed pool stays
- *   recorded until a larger allocation replaces it).
- * - gpu_block_activate reads the chunk's va_block start and owner pid:
- *   the chunk is marked KV only when the start lies inside the recorded
- *   range for the same tgid.  The warm-phase disk-durable flag
- *   (debt_config key DEBT_CONFIG_DISK_DURABLE, set by the loader once
- *   the LMCache warm phase has durably written the KV pool to local
- *   NVMe) is sampled at activation only for KV chunks; UVM memory
- *   outside the recorded range is never claimed durable.  The loader's
- *   'w' command also marks currently tracked chunks retroactively,
- *   again only entries already marked KV.
+ *   workload's allocator shared object, plus an entry uprobe on
+ *   uvm_kv_free.  The malloc uprobe saves the enter args (size) in a
+ *   HASH map keyed by pid_tgid; the uretprobe records each successful
+ *   (non-NULL) allocation as {start, end, owner_tgid, active} in the
+ *   bounded 64-slot ARRAY range table (kv_pool_table): a live duplicate
+ *   re-records into its own slot, otherwise the first inactive slot is
+ *   taken.  When all slots are live, further allocations are not
+ *   recorded (documented limitation).  The uvm_kv_free uprobe retires
+ *   the live entry whose bounds and owner tgid match; if the loader
+ *   cannot attach that probe, entries live for the process run
+ *   lifetime.
+ * - gpu_block_activate reads the chunk's va_block start and owner pid
+ *   and scans the bounded table: the chunk enters the debt ledger only
+ *   when the start lies inside a live entry recorded for the same
+ *   tgid; non-KV chunks stay untracked (no debt entry, no PID stats).
+ *   The warm-phase disk-durable flag (debt_config key
+ *   DEBT_CONFIG_DISK_DURABLE, set by the loader once the LMCache warm
+ *   phase has durably written the KV pool to local NVMe) is sampled at
+ *   activation only for KV chunks; UVM memory outside any live entry is
+ *   never claimed durable.  The loader's 'w' command also marks
+ *   currently tracked chunks retroactively, again only entries already
+ *   marked KV.  Disk-durable KV chunks are immediate eviction victims
+ *   in gpu_evict_prepare: they are left for native eviction without
+ *   waiting for the debt cap.
  */
 
 #include <vmlinux.h>
@@ -74,7 +86,9 @@ struct {
     __type(value, u64);
 } debt_pressure SEC(".maps");
 
-/* Per-PID stats. */
+/* Per-PID stats for tracked (KV) chunks.  policy_deny counts
+ * policy-release / preferred-candidate observations, not proof that
+ * the exact chunk was evicted. */
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
     __uint(max_entries, 256);
@@ -94,13 +108,18 @@ struct {
     __type(value, struct kv_alloc_args);
 } kv_alloc_args SEC(".maps");
 
-/* Single-KV-pool range: largest successful uvm_kv_malloc (key 0). */
+/*
+ * Bounded KV pool range table: DEBT_KV_RANGE_MAX ARRAY slots, slot i
+ * holding the i-th recorded successful uvm_kv_malloc range
+ * {start, end, owner_tgid, active} (0 = free slot).  Scans are bounded
+ * by the constant DEBT_KV_RANGE_MAX, so they are verifier-friendly.
+ */
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 1);
+    __uint(max_entries, DEBT_KV_RANGE_MAX);
     __type(key, u32);
-    __type(value, struct debt_kv_range);
-} kv_pool_range SEC(".maps");
+    __type(value, struct debt_kv_entry);
+} kv_pool_table SEC(".maps");
 
 SEC("uprobe")
 int BPF_UPROBE(uvm_kv_malloc_enter, u64 size, int device, void *stream)
@@ -113,29 +132,100 @@ int BPF_UPROBE(uvm_kv_malloc_enter, u64 size, int device, void *stream)
     return 0;
 }
 
+/*
+ * Successful uvm_kv_malloc: record [ret, ret+size) in the bounded range
+ * table for the allocating tgid.  Mirrors the bounded scan of
+ * debt_kv_table_slot_for(): a live duplicate of the same [start, end)
+ * and owner_tgid re-records into its own slot (idempotent); otherwise
+ * the first inactive slot is taken; a full table is left alone.  A
+ * concurrent free of the same range between the scan and the write
+ * could re-record it, but the allocator serializes allocations against
+ * frees, so the window is not observable in practice.
+ */
 SEC("uretprobe")
 int BPF_URETPROBE(uvm_kv_malloc_ret, void *ret)
 {
-    u32 zero = 0;
     u64 pid_tgid = bpf_get_current_pid_tgid();
     struct kv_alloc_args *args;
-    struct debt_kv_range *cur;
-    struct debt_kv_range range = {};
+    u32 tgid, i, slot;
+    u64 start, end;
+    int free_slot = -1;
 
     args = bpf_map_lookup_elem(&kv_alloc_args, &pid_tgid);
     if (!args)
         return 0;
 
-    cur = bpf_map_lookup_elem(&kv_pool_range, &zero);
-    if (ret && debt_kv_range_replace(cur, (u64)ret, args->size)) {
-        range.start = (u64)ret;
-        range.end = (u64)ret + args->size;
-        range.tgid = pid_tgid >> 32;
-        range._pad = 0;
-        bpf_map_update_elem(&kv_pool_range, &zero, &range, BPF_ANY);
+    if (ret) {
+        start = (u64)ret;
+        end = start + args->size;
+
+        if (start && args->size && end > start) {
+            tgid = pid_tgid >> 32;
+            for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
+                struct debt_kv_entry *e;
+
+                e = bpf_map_lookup_elem(&kv_pool_table, &i);
+                if (!e)
+                    continue;
+                if (e->active && e->start == start && e->end == end &&
+                    e->owner_tgid == tgid) {
+                    free_slot = (int)i;
+                    break;
+                }
+                if (!e->active && free_slot < 0)
+                    free_slot = (int)i;
+            }
+            if (free_slot >= 0) {
+                struct debt_kv_entry *e;
+
+                slot = (u32)free_slot;
+                e = bpf_map_lookup_elem(&kv_pool_table, &slot);
+                if (e) {
+                    e->start = start;
+                    e->end = end;
+                    e->owner_tgid = tgid;
+                    e->active = 1;
+                }
+            }
+        }
     }
 
     bpf_map_delete_elem(&kv_alloc_args, &pid_tgid);
+    return 0;
+}
+
+/*
+ * uvm_kv_free(ptr, size, ...): retire the live table entry recorded by
+ * the same tgid whose bounds match [ptr, ptr+size).  Mirrors the
+ * bounded scan of debt_kv_table_retire_slot().  Frees without a
+ * matching live entry (e.g. a range that was never recorded because
+ * the table was full) are ignored.
+ */
+SEC("uprobe")
+int BPF_UPROBE(uvm_kv_free_enter, void *ptr, u64 size, int device, void *stream)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u32 tgid, i;
+    u64 start, end;
+
+    start = (u64)ptr;
+    if (!start || !size)
+        return 0;
+    end = start + size;
+    if (end <= start)
+        return 0;
+
+    tgid = pid_tgid >> 32;
+    for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
+        struct debt_kv_entry *e;
+
+        e = bpf_map_lookup_elem(&kv_pool_table, &i);
+        if (e && e->active && e->owner_tgid == tgid &&
+            e->start == start && e->end == end) {
+            e->active = 0;
+            break;
+        }
+    }
     return 0;
 }
 
@@ -179,11 +269,10 @@ int BPF_PROG(gpu_block_activate,
 {
     u64 chunk_ptr = (u64)chunk;
     u32 owner_pid;
-    u32 zero = 0;
+    u32 i;
     u64 va_start = 0;
     int is_kv = 0;
     uvm_va_block_t *va_block;
-    struct debt_kv_range *kv;
     struct debt_chunk_state state;
     struct pid_chunk_stats *stats;
     struct pid_chunk_stats new_stats = {0};
@@ -196,22 +285,37 @@ int BPF_PROG(gpu_block_activate,
     if (bpf_map_lookup_elem(&chunk_debt, &chunk_ptr))
         return 0;
 
-    /* KV only when the chunk's VA block starts inside the recorded
-     * single-KV-pool range for the same owner tgid. */
+    /*
+     * Bounded KV-range scan: track the chunk only when its va_block
+     * start lies inside a live table entry recorded for the same
+     * owner tgid.  Mirrors debt_kv_table_contains() over the
+     * DEBT_KV_RANGE_MAX ARRAY slots; a non-KV chunk stays out of
+     * chunk_debt and the PID stats (no map/stat overhead) and is
+     * left to native eviction.
+     */
     va_block = BPF_CORE_READ(chunk, va_block);
     if (va_block)
         va_start = BPF_CORE_READ(va_block, start);
-    kv = bpf_map_lookup_elem(&kv_pool_range, &zero);
-    is_kv = debt_kv_range_matches(kv, owner_pid, va_start);
+    for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
+        struct debt_kv_entry *e;
 
-    /* Sample the warm-phase disk-durable flag at activation time; the
-     * model gates it on is_kv (non-KV chunks are never durable). */
-    debt_activate(&state, owner_pid, is_kv,
+        e = bpf_map_lookup_elem(&kv_pool_table, &i);
+        if (debt_kv_entry_contains(e, owner_pid, va_start)) {
+            is_kv = 1;
+            break;
+        }
+    }
+
+    if (!is_kv)
+        return 0; /* non-KV: untracked, default decision */
+
+    /* Sample the warm-phase disk-durable flag at activation time. */
+    debt_activate(&state, owner_pid, 1,
                   get_debt_config_u64(DEBT_CONFIG_DISK_DURABLE) != 0);
 
     bpf_map_update_elem(&chunk_debt, &chunk_ptr, &state, BPF_ANY);
 
-    /* Update per-PID stats */
+    /* Update per-PID stats (tracked = KV chunks only). */
     stats = bpf_map_lookup_elem(&pid_chunk_count, &owner_pid);
     if (stats) {
         __sync_fetch_and_add(&stats->current_count, 1);
@@ -283,12 +387,19 @@ int BPF_PROG(gpu_evict_prepare,
     debt_max = get_debt_config_u64(DEBT_CONFIG_DEBT_MAX);
 
     /*
-     * Walk up to 8 chunks from HEAD. For each tracked chunk:
-     * - Below the cap: increment debt (mark "at risk").  A later
+     * Walk up to 8 chunks from HEAD.  Non-KV chunks never enter the
+     * debt ledger (gpu_block_activate leaves them untracked), so their
+     * lookup misses; the scan continues past those entries so tracked
+     * KV chunks later in the bounded window are still reached.  For
+     * each tracked (KV) chunk:
+     * - Disk-durable KV: immediate preferred eviction victim (no
+     *   debt-cap wait); tracking is released at its current native
+     *   list position, and it becomes eligible for native eviction
+     *   when reached.
+     * - KV below the cap: increment debt (mark "at risk").  A later
      *   gpu_block_access clears it and saves the chunk.
-     * - At/above the cap (low reuse): disk-durable chunks are dropped
-     *   from tracking and left at HEAD as preferred eviction victims;
-     *   non-durable ones stay pending their next reuse save.
+     * - KV at/above the cap (low reuse, not durable): stays pending its
+     *   next reuse save.
      *
      * We cannot request a reorder here because the chunk pointer
      * derived from container_of is not a trusted pointer for the
@@ -311,14 +422,17 @@ int BPF_PROG(gpu_evict_prepare,
 
         state = bpf_map_lookup_elem(&chunk_debt, &chunk_ptr);
         if (!state)
-            break;
+            continue; /* untracked entry (non-KV): keep walking */
 
         action = debt_prepare(state, debt_max, &delta);
         pressure_add(pressure_ptr(), delta);
 
         if (action == DEBT_PREPARE_VICTIM) {
             /* Preferred eviction candidate: release its debt from the
-             * aggregate pressure, stop tracking, leave it at HEAD. */
+             * aggregate pressure and stop tracking at its current
+             * native list position; it becomes eligible for native
+             * eviction when reached.  The counters observe the policy
+             * release, not proof the exact chunk was evicted. */
             u64 *p = pressure_ptr();
             if (p)
                 pressure_sub(p, debt_cleanup_delta(state));

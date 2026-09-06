@@ -7,14 +7,19 @@
  * unit provides the fixed-width aliases (u8/u32/u64).
  *
  * Semantics:
- * - debt_kv_range_*: single-KV-pool range tracking.  The uprobe/
- *   uretprobe pair on uvm_kv_malloc records the largest successful
- *   allocation as {start, end, tgid}; membership is checked per owner
- *   tgid at activation time.
+ * - debt_kv_entry_* and debt_kv_table_*: bounded KV pool range table.
+ *   The uprobe/uretprobe pair on uvm_kv_malloc records each successful
+ *   allocation as a {start, end, owner_tgid, active} entry in the
+ *   DEBT_KV_RANGE_MAX-bounded table; an entry uprobe on uvm_kv_free
+ *   retires the matching entry.  Activation marks a chunk is_kv only
+ *   when its va_block start lies inside a live entry recorded by the
+ *   same owner tgid.
  * - debt_prepare: one eviction-candidate observation for a chunk walked
- *   at the head of the USED list.  Below the debt cap it increments the
- *   chunk's at-risk debt signal; at/above the cap the chunk is a
- *   low-reuse candidate (disk-durable ones are preferred victims).
+ *   at the head of the USED list.  The debt signal is KV-scoped:
+ *   non-KV chunks are ignored (no debt, no pressure, no reorder);
+ *   disk-durable KV chunks are immediate preferred victims (no
+ *   debt-cap wait); other KV chunks accumulate the at-risk debt signal
+ *   below the cap and are low-reuse candidates at or above it.
  * - debt_access: one observed reuse.  Reuse reduces/clears the debt.
  *   A cleared sub-cap chunk is saved (moved to tail); a low-reuse
  *   disk-durable chunk is held as a preferred eviction candidate.
@@ -49,50 +54,127 @@ _Static_assert(sizeof(struct debt_chunk_state) == 8,
 	       "debt chunk state ABI");
 
 /*
- * Single-KV-pool range: the largest successful uvm_kv_malloc allocation,
- * recorded by the uprobe/uretprobe pair.  [start, end) with end exclusive.
+ * Bounded KV pool range table.  The uprobe/uretprobe pair on
+ * uvm_kv_malloc records each successful allocation as one entry
+ * {start, end, owner_tgid, active}; an entry uprobe on uvm_kv_free
+ * retires (deactivates) the matching entry.  The BPF policy keeps the
+ * entries in a DEBT_KV_RANGE_MAX-slot ARRAY map; the in-memory table
+ * below has the same entry layout and drives the bounded scans, so
+ * every scan is verifier-bounded by DEBT_KV_RANGE_MAX.  [start, end)
+ * with end exclusive.  Documented limitation: when all slots are live,
+ * further successful allocations are not recorded, and without the
+ * free uprobe an entry lives for the process run lifetime.
  */
-struct debt_kv_range {
+#define DEBT_KV_RANGE_MAX 64
+
+struct debt_kv_entry {
 	u64 start;
 	u64 end;
-	u32 tgid;
-	u32 _pad;
+	u32 owner_tgid;
+	u32 active;
 };
 
-/* Non-empty [start, end) containing va. */
-DEBT_INLINE int debt_kv_range_contains(const struct debt_kv_range *range,
-				       u64 va)
-{
-	return range && range->start != 0 && range->end > range->start &&
-	       va >= range->start && va < range->end;
-}
+_Static_assert(sizeof(struct debt_kv_entry) == 24, "kv entry ABI");
 
-/* Membership scoped to the owner: va inside the range recorded for tgid. */
-DEBT_INLINE int debt_kv_range_matches(const struct debt_kv_range *range,
-				      u32 tgid, u64 va)
+/* Bounded in-memory view of the range table (CPU tests). */
+struct debt_kv_table {
+	struct debt_kv_entry entries[DEBT_KV_RANGE_MAX];
+};
+
+/* Live slot: marked active with sane bounds. */
+DEBT_INLINE int debt_kv_entry_valid(const struct debt_kv_entry *e)
 {
-	return range && tgid != 0 && range->tgid == tgid &&
-	       debt_kv_range_contains(range, va);
+	return e && e->active && e->start != 0 && e->end > e->start;
 }
 
 /*
- * Largest-wins record policy: a successful allocation replaces the
- * recorded range only when strictly larger.  Rejects empty and
- * wrapping (start + size overflow) allocations.
+ * Membership scoped to the owner: the entry is live, recorded for the
+ * same owner tgid (nonzero), and va lies inside [start, end).
  */
-DEBT_INLINE int debt_kv_range_replace(const struct debt_kv_range *cur,
-				      u64 new_start, u64 new_size)
+DEBT_INLINE int debt_kv_entry_contains(const struct debt_kv_entry *e,
+				       u32 owner_tgid, u64 va)
 {
-	u64 new_end;
+	return debt_kv_entry_valid(e) && owner_tgid != 0 &&
+	       e->owner_tgid == owner_tgid &&
+	       va >= e->start && va < e->end;
+}
 
-	if (!new_start || !new_size)
+/*
+ * Bounded table scan: is va inside any live entry recorded by owner
+ * tgid?  The loop is bounded by DEBT_KV_RANGE_MAX regardless of the
+ * entry contents, so inactive or corrupt slots can never change the
+ * answer.
+ */
+DEBT_INLINE int debt_kv_table_contains(const struct debt_kv_table *tab,
+				       u32 owner_tgid, u64 va)
+{
+	u32 i;
+
+	if (!tab)
 		return 0;
-	new_end = new_start + new_size;
-	if (new_end <= new_start)
-		return 0;
-	if (cur && cur->end > cur->start && cur->end - cur->start >= new_size)
-		return 0;
-	return 1;
+	for (i = 0; i < DEBT_KV_RANGE_MAX; i++)
+		if (debt_kv_entry_contains(&tab->entries[i], owner_tgid, va))
+			return 1;
+	return 0;
+}
+
+/*
+ * Slot selection for a new successful allocation (start, size):
+ * - invalid input (NULL table, zero start/size/owner, or a wrapping
+ *   start + size): -1.
+ * - a live entry with the same [start, end) and owner_tgid: that slot
+ *   (idempotent re-record).
+ * - otherwise the first inactive slot, or -1 when all slots are live.
+ */
+DEBT_INLINE int debt_kv_table_slot_for(const struct debt_kv_table *tab,
+				       u64 start, u64 size, u32 owner_tgid)
+{
+	u32 i;
+	u64 end;
+	int free_slot = -1;
+
+	if (!tab || !start || !size || owner_tgid == 0)
+		return -1;
+	end = start + size;
+	if (end <= start)
+		return -1;
+	for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
+		const struct debt_kv_entry *e = &tab->entries[i];
+
+		if (e->active && e->start == start && e->end == end &&
+		    e->owner_tgid == owner_tgid)
+			return (int)i;
+		if (!e->active && free_slot < 0)
+			free_slot = (int)i;
+	}
+	return free_slot;
+}
+
+/*
+ * Slot retirement for a free of (ptr, size): the first live entry
+ * recorded by the same owner tgid whose bounds match
+ * [ptr, ptr+size), or -1 when there is no such entry.  The caller
+ * deactivates the slot.
+ */
+DEBT_INLINE int debt_kv_table_retire_slot(const struct debt_kv_table *tab,
+					  u32 owner_tgid, u64 ptr, u64 size)
+{
+	u32 i;
+	u64 end;
+
+	if (!tab || !ptr || !size || owner_tgid == 0)
+		return -1;
+	end = ptr + size;
+	if (end <= ptr)
+		return -1;
+	for (i = 0; i < DEBT_KV_RANGE_MAX; i++) {
+		const struct debt_kv_entry *e = &tab->entries[i];
+
+		if (e->active && e->owner_tgid == owner_tgid &&
+		    e->start == ptr && e->end == end)
+			return (int)i;
+	}
+	return -1;
 }
 
 DEBT_INLINE u64 debt_effective_max(u64 configured)
@@ -121,32 +203,41 @@ DEBT_INLINE void debt_activate(struct debt_chunk_state *state,
 
 enum debt_prepare_action {
 	DEBT_PREPARE_MARK = 0,    /* debt incremented, chunk is now at risk */
-	DEBT_PREPARE_VICTIM = 1,  /* low-reuse disk-durable: preferred eviction candidate */
-	DEBT_PREPARE_PENDING = 2, /* low-reuse, not durable: next reuse saves the chunk */
+	DEBT_PREPARE_VICTIM = 1,  /* disk-durable KV: immediate preferred eviction candidate */
+	DEBT_PREPARE_PENDING = 2, /* low-reuse KV, not durable: next reuse saves the chunk */
+	DEBT_PREPARE_IGNORE = 3,  /* non-KV chunk: no debt, no pressure, left to native eviction */
 };
 
 /*
- * One eviction-candidate observation.
+ * One eviction-candidate observation.  The debt signal is KV-scoped:
+ * non-KV chunks never increment debt, reorder, or contribute aggregate
+ * pressure.
  *
+ * - non-KV: no state change, *pressure_delta = 0, returns IGNORE.
+ * - disk_durable (KV): immediate victim; no state change,
+ *   *pressure_delta = 0.  The chunk is left for native eviction
+ *   without waiting for the debt cap.
  * - debt < debt_max: debt += 1, *pressure_delta = 1, returns MARK.
  * - debt >= debt_max: low-reuse candidate; no state change,
- *   *pressure_delta = 0, returns VICTIM for disk-durable chunks
- *   and PENDING otherwise.
+ *   *pressure_delta = 0, returns PENDING.
  */
 DEBT_INLINE enum debt_prepare_action
 debt_prepare(struct debt_chunk_state *state, u64 debt_max, u64 *pressure_delta)
 {
-	debt_max = debt_effective_max(debt_max);
+	*pressure_delta = 0;
 
+	if (!state->is_kv)
+		return DEBT_PREPARE_IGNORE;
+
+	if (state->disk_durable)
+		return DEBT_PREPARE_VICTIM;
+
+	debt_max = debt_effective_max(debt_max);
 	if (state->debt < (u8)debt_max) {
 		state->debt++;
 		*pressure_delta = 1;
 		return DEBT_PREPARE_MARK;
 	}
-
-	*pressure_delta = 0;
-	if (state->disk_durable)
-		return DEBT_PREPARE_VICTIM;
 	return DEBT_PREPARE_PENDING;
 }
 
@@ -164,7 +255,9 @@ enum debt_access_action {
  *   *pressure_delta = cleared debt.
  * - debt >= debt_max: low-reuse candidate; the debt is cleared either
  *   way.  Disk-durable chunks return HOLD (they remain preferred
- *   eviction candidates until re-capped); the rest return SAVE.
+ *   eviction candidates; retroactively marked chunks can reach this
+ *   branch before their next evict_prepare observation); the rest
+ *   return SAVE.
  */
 DEBT_INLINE enum debt_access_action
 debt_access(struct debt_chunk_state *state, u64 debt_max, u64 *pressure_delta)
@@ -211,8 +304,8 @@ DEBT_INLINE int debt_suppress_prefetch(u64 pressure, u64 threshold)
  * Recoverability-ordering ranges (MVP).  Semantic KV-pool ranges tagged
  * with recovery metadata, so eviction candidates can be ordered by how
  * costly it is to bring the range back.  Pure and pointer-bounded like
- * the single-range helpers above; all names are kept separate from the
- * debt_kv_range_* single-pool API.
+ * the bounded KV range-table helpers above; all names are kept separate
+ * from the debt_kv_* allocator-traced range API.
  *
  * Classification (first match wins):
  * - STALE:          record is NULL, retired, invalid (bounds or

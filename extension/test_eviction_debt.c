@@ -42,60 +42,150 @@ static void test_activate_samples_warm_flag(void)
 	tests_run++;
 }
 
-static void test_kv_range_membership(void)
+static void kv_set(struct debt_kv_entry *e, u64 start, u64 end,
+		   u32 owner_tgid, u32 active)
 {
-	struct debt_kv_range range = {
-		.start = 0x100000, .end = 0x500000, .tgid = 42,
-	};
-	struct debt_kv_range empty = {0};
+	e->start = start;
+	e->end = end;
+	e->owner_tgid = owner_tgid;
+	e->active = active;
+}
 
-	assert(debt_kv_range_contains(&range, 0x100000));  /* start in */
-	assert(debt_kv_range_contains(&range, 0x4fffff));
-	assert(!debt_kv_range_contains(&range, 0x500000)); /* end out */
-	assert(!debt_kv_range_contains(&range, 0xfffff));
-	assert(!debt_kv_range_contains(&range, 0x900000));
-	assert(!debt_kv_range_contains(NULL, 0x100000));
+static void test_kv_entry_membership(void)
+{
+	struct debt_kv_entry e;
 
-	/* Zero-filled (never recorded) range contains nothing. */
-	assert(!debt_kv_range_contains(&empty, 0));
-	assert(!debt_kv_range_contains(&empty, 0x100000));
+	kv_set(&e, 0x100000, 0x500000, 42, 1);
+	assert(debt_kv_entry_valid(&e));
+	assert(debt_kv_entry_contains(&e, 42, 0x100000));  /* start in */
+	assert(debt_kv_entry_contains(&e, 42, 0x4fffff));
+	assert(!debt_kv_entry_contains(&e, 42, 0x500000)); /* end out */
+	assert(!debt_kv_entry_contains(&e, 42, 0xfffff));
+	assert(!debt_kv_entry_contains(&e, 43, 0x100000)); /* other owner */
+	assert(!debt_kv_entry_contains(&e, 0, 0x100000));  /* zero owner */
+	assert(!debt_kv_entry_contains(NULL, 42, 0x100000));
 
-	/* Membership is scoped to the recording tgid. */
-	assert(debt_kv_range_matches(&range, 42, 0x100000));
-	assert(!debt_kv_range_matches(&range, 43, 0x100000));
-	assert(!debt_kv_range_matches(&range, 0, 0x100000));
-	assert(!debt_kv_range_matches(&empty, 42, 0x100000));
-	assert(!debt_kv_range_matches(NULL, 42, 0x100000));
+	/* Inactive entries contain nothing. */
+	kv_set(&e, 0x100000, 0x500000, 42, 0);
+	assert(!debt_kv_entry_valid(&e));
+	assert(!debt_kv_entry_contains(&e, 42, 0x100000));
+
+	/* Invalid bounds contain nothing. */
+	kv_set(&e, 0, 0x500000, 42, 1);
+	assert(!debt_kv_entry_valid(&e));
+	assert(!debt_kv_entry_contains(&e, 42, 0x100000));
+	kv_set(&e, 0x100000, 0x100000, 42, 1);
+	assert(!debt_kv_entry_valid(&e));
+	kv_set(&e, 0x100000, 0xfffff, 42, 1);
+	assert(!debt_kv_entry_valid(&e));
+	assert(!debt_kv_entry_contains(&e, 42, 0x200000));
 	tests_run++;
 }
 
-static void test_kv_range_largest_wins(void)
+static void test_kv_table_contains_bounded_scan(void)
 {
-	struct debt_kv_range range = {0};
+	struct debt_kv_table tab;
+	u32 i;
 
-	/* First successful allocation records the range. */
-	assert(debt_kv_range_replace(&range, 0x100000, 0x10000));
-	range.start = 0x100000;
-	range.end = 0x110000;
-	range.tgid = 7;
+	memset(&tab, 0, sizeof(tab));
+	for (i = 0; i < DEBT_KV_RANGE_MAX; i++)
+		/* Every slot live, each for a different owner/range. */
+		kv_set(&tab.entries[i], 0x1000000ULL * (i + 1),
+		       0x1000000ULL * (i + 1) + 0x1000,
+		       (u32)(i + 1), 1);
 
-	/* Smaller and equal allocations do not replace it. */
-	assert(!debt_kv_range_replace(&range, 0x200000, 0xffff));
-	assert(!debt_kv_range_replace(&range, 0x200000, 0x10000));
-	assert(range.end == 0x110000);
+	/* Match on the first and the last slot, scoped by owner. */
+	assert(debt_kv_table_contains(&tab, 1, 0x1000000));
+	assert(debt_kv_table_contains(&tab, DEBT_KV_RANGE_MAX,
+				      0x1000000ULL * DEBT_KV_RANGE_MAX));
+	/* End exclusive; out of range; wrong owner; zero owner. */
+	assert(!debt_kv_table_contains(&tab, 1, 0x1000000 + 0x1000));
+	assert(!debt_kv_table_contains(&tab, 1, 0x2000000));
+	assert(!debt_kv_table_contains(&tab, 2, 0x1000000));
+	assert(!debt_kv_table_contains(&tab, 0, 0x1000000));
 
-	/* A strictly larger one does. */
-	assert(debt_kv_range_replace(&range, 0x300000, 0x20000));
-	range.start = 0x300000;
-	range.end = 0x320000;
-	assert(debt_kv_range_contains(&range, 0x300000));
+	/* Retiring one slot drops only its coverage. */
+	tab.entries[3].active = 0;
+	assert(!debt_kv_table_contains(&tab, 4, 0x4000000));
+	assert(debt_kv_table_contains(&tab, 5, 0x5000000));
 
-	/* Failed (NULL) and zero-size allocations never record. */
-	assert(!debt_kv_range_replace(&range, 0, 0x20000));
-	assert(!debt_kv_range_replace(&range, 0x300000, 0));
+	/* An all-inactive (fresh) table contains nothing. */
+	memset(&tab, 0, sizeof(tab));
+	assert(!debt_kv_table_contains(&tab, 1, 0x1000000));
+	assert(!debt_kv_table_contains(NULL, 1, 0x1000000));
+	tests_run++;
+}
 
+static void test_kv_table_slot_for(void)
+{
+	struct debt_kv_table tab;
+	u32 i;
+
+	memset(&tab, 0, sizeof(tab));
+
+	/* First successful allocation takes slot 0. */
+	assert(debt_kv_table_slot_for(&tab, 0x1000, 0x100, 7) == 0);
+	kv_set(&tab.entries[0], 0x1000, 0x1100, 7, 1);
+
+	/* Second allocation takes slot 1. */
+	assert(debt_kv_table_slot_for(&tab, 0x2000, 0x200, 7) == 1);
+	kv_set(&tab.entries[1], 0x2000, 0x2200, 7, 1);
+
+	/* A live duplicate re-records into its own slot. */
+	assert(debt_kv_table_slot_for(&tab, 0x1000, 0x100, 7) == 0);
+	/* Same bounds, different owner: not a duplicate -> slot 2. */
+	assert(debt_kv_table_slot_for(&tab, 0x1000, 0x100, 8) == 2);
+
+	/* A retired slot is reusable before later live slots. */
+	kv_set(&tab.entries[0], 0x1000, 0x1100, 7, 0);
+	assert(debt_kv_table_slot_for(&tab, 0x4000, 0x100, 7) == 0);
+
+	/* Invalid inputs never record. */
+	assert(debt_kv_table_slot_for(&tab, 0, 0x100, 7) == -1);
+	assert(debt_kv_table_slot_for(&tab, 0x1000, 0, 7) == -1);
+	assert(debt_kv_table_slot_for(&tab, 0x1000, 0x100, 0) == -1);
 	/* Wrapping start + size is rejected. */
-	assert(!debt_kv_range_replace(&range, ~(u64)0, 2));
+	assert(debt_kv_table_slot_for(&tab, ~(u64)0 - 0xff, 0x100, 7) == -1);
+	assert(debt_kv_table_slot_for(NULL, 0x1000, 0x100, 7) == -1);
+
+	/* A full table of live entries rejects new ranges... */
+	memset(&tab, 0, sizeof(tab));
+	for (i = 0; i < DEBT_KV_RANGE_MAX; i++)
+		kv_set(&tab.entries[i], 0x10000000ULL * (i + 1),
+		       0x10000000ULL * (i + 1) + 0x1000,
+		       (u32)(i + 1), 1);
+	assert(debt_kv_table_slot_for(&tab, 0x9000000, 0x100, 99) == -1);
+	/* ...but a duplicate still finds its slot. */
+	assert(debt_kv_table_slot_for(&tab, 0x10000000, 0x1000, 1) == 0);
+	tests_run++;
+}
+
+static void test_kv_table_retire_slot(void)
+{
+	struct debt_kv_table tab;
+
+	memset(&tab, 0, sizeof(tab));
+	kv_set(&tab.entries[0], 0x1000, 0x1100, 7, 1);
+	kv_set(&tab.entries[1], 0x2000, 0x2200, 8, 1);
+
+	/* Exact bounds + owner match retires that entry. */
+	assert(debt_kv_table_retire_slot(&tab, 7, 0x1000, 0x100) == 0);
+	assert(debt_kv_table_retire_slot(&tab, 8, 0x2000, 0x200) == 1);
+
+	/* Different owner, different bounds, or a dead slot: no match. */
+	assert(debt_kv_table_retire_slot(&tab, 8, 0x1000, 0x100) == -1);
+	assert(debt_kv_table_retire_slot(&tab, 7, 0x1000, 0x104) == -1);
+	assert(debt_kv_table_retire_slot(&tab, 7, 0x1004, 0x100) == -1);
+	tab.entries[0].active = 0;
+	assert(debt_kv_table_retire_slot(&tab, 7, 0x1000, 0x100) == -1);
+
+	/* Inputs are validated. */
+	assert(debt_kv_table_retire_slot(&tab, 0, 0x2000, 0x200) == -1);
+	assert(debt_kv_table_retire_slot(&tab, 8, 0, 0x200) == -1);
+	assert(debt_kv_table_retire_slot(&tab, 8, 0x2000, 0) == -1);
+	assert(debt_kv_table_retire_slot(&tab, 8, ~(u64)0 - 0x1ff,
+					 0x200) == -1);
+	assert(debt_kv_table_retire_slot(NULL, 7, 0x1000, 0x100) == -1);
 	tests_run++;
 }
 
@@ -114,27 +204,66 @@ static void test_prepare_marks_before_cap(void)
 	tests_run++;
 }
 
-static void test_prepare_caps_and_flags_low_reuse(void)
+static void test_prepare_immediate_durable_victim(void)
 {
 	struct debt_chunk_state durable, plain;
 	u64 delta;
 
 	debt_activate(&durable, 1, 1, 1);
+	/* Disk-durable KV is an immediate victim on the first
+	 * candidate observation, without waiting for the debt cap. */
+	assert(debt_prepare(&durable, 4, &delta) == DEBT_PREPARE_VICTIM);
+	assert(delta == 0 && durable.debt == 0 && durable.accesses == 0);
+	/* ...and on every later observation; the ledger is untouched. */
+	assert(debt_prepare(&durable, 4, &delta) == DEBT_PREPARE_VICTIM);
+	assert(delta == 0 && durable.debt == 0);
+
+	/* Non-durable KV chunks keep the mark-toward-cap behavior. */
 	debt_activate(&plain, 2, 1, 0);
-
-	while (debt_prepare(&durable, 4, &delta) == DEBT_PREPARE_MARK)
+	assert(debt_prepare(&plain, 4, &delta) == DEBT_PREPARE_MARK);
+	assert(delta == 1 && plain.debt == 1);
+	while (debt_prepare(&plain, 4, &delta) == DEBT_PREPARE_MARK)
 		;
-	assert(durable.debt == 4);
-	/* Terminal VICTIM call leaves the ledger unchanged. */
-	assert(delta == 0);
+	assert(plain.debt == 4);
+	assert(debt_prepare(&plain, 4, &delta) == DEBT_PREPARE_PENDING);
+	assert(delta == 0 && plain.debt == 4);
+	tests_run++;
+}
 
+static void test_prepare_ignores_non_kv_chunks(void)
+{
+	struct debt_chunk_state state;
+	u64 delta;
+
+	/* Non-KV chunks are never part of the debt ledger, even when
+	 * the warm-phase flag is on (activation gates durable on is_kv). */
+	debt_activate(&state, 1, 0, 1);
+	assert(state.is_kv == 0 && state.disk_durable == 0);
+	assert(debt_prepare(&state, 4, &delta) == DEBT_PREPARE_IGNORE);
+	assert(delta == 0 && state.debt == 0 && state.accesses == 0);
+	assert(debt_prepare(&state, 4, &delta) == DEBT_PREPARE_IGNORE);
+	assert(delta == 0 && state.debt == 0);
+
+	/* With no debt, reuse never saves (reorders) the chunk and
+	 * releases no pressure. */
+	assert(debt_access(&state, 4, &delta) == DEBT_ACCESS_KEEP);
+	assert(delta == 0 && state.debt == 0);
+	assert(debt_cleanup_delta(&state) == 0);
+	tests_run++;
+}
+
+static void test_prepare_caps_and_flags_low_reuse(void)
+{
+	struct debt_chunk_state plain;
+	u64 delta;
+
+	debt_activate(&plain, 2, 1, 0);
 	while (debt_prepare(&plain, 4, &delta) == DEBT_PREPARE_MARK)
 		;
 	assert(plain.debt == 4);
 
-	/* At the cap the chunk is low-reuse; no state change. */
-	assert(debt_prepare(&durable, 4, &delta) == DEBT_PREPARE_VICTIM);
-	assert(delta == 0 && durable.debt == 4);
+	/* At the cap the non-durable chunk is low-reuse; no state
+	 * change. */
 	assert(debt_prepare(&plain, 4, &delta) == DEBT_PREPARE_PENDING);
 	assert(delta == 0 && plain.debt == 4);
 	tests_run++;
@@ -180,17 +309,21 @@ static void test_reuse_holds_durable_low_reuse_candidate(void)
 	struct debt_chunk_state state;
 	u64 delta;
 
-	debt_activate(&state, 1, 1, 1);
+	/* Marked toward the cap while the warm flag is still off... */
+	debt_activate(&state, 1, 1, 0);
 	while (debt_prepare(&state, 4, &delta) == DEBT_PREPARE_MARK)
 		;
 	assert(state.debt == 4);
 
-	/* Reuse of a low-reuse disk-durable chunk does not save it. */
+	/* ...then the loader's 'w' key marks it disk-durable
+	 * retroactively.  A reuse still does not save it. */
+	state.disk_durable = 1;
 	assert(debt_access(&state, 4, &delta) == DEBT_ACCESS_HOLD);
 	assert(delta == 4 && state.debt == 0 && state.accesses == 1);
 
-	/* It is at risk again from the next candidate observation. */
-	assert(debt_prepare(&state, 4, &delta) == DEBT_PREPARE_MARK);
+	/* And it is an immediate victim on the next observation. */
+	assert(debt_prepare(&state, 4, &delta) == DEBT_PREPARE_VICTIM);
+	assert(delta == 0);
 	tests_run++;
 }
 
@@ -214,7 +347,9 @@ static void test_cleanup_releases_remaining_debt(void)
 	struct debt_chunk_state state;
 	u64 delta;
 
-	debt_activate(&state, 1, 1, 1);
+	/* Non-durable: disk-durable KV would be an immediate victim
+	 * and never accumulate debt toward the cap. */
+	debt_activate(&state, 1, 1, 0);
 	assert(debt_cleanup_delta(&state) == 0);
 	while (debt_prepare(&state, 3, &delta) == DEBT_PREPARE_MARK)
 		;
@@ -254,12 +389,14 @@ static void test_prefetch_gate(void)
 
 static void test_pressure_ledger_closes(void)
 {
-	/* Three chunks with debts 3, 2, 1: pressure must equal the sum. */
+	/* Three chunks with debts 3, 2, 1: pressure must equal the sum.
+	 * All non-durable so the MARK loops can run (disk-durable KV
+	 * would be an immediate victim and never accumulate). */
 	struct debt_chunk_state a, b, c;
 	u64 delta, pressure = 0;
 
 	debt_activate(&a, 1, 1, 0);
-	debt_activate(&b, 2, 1, 1);
+	debt_activate(&b, 2, 1, 0);
 	debt_activate(&c, 3, 1, 0);
 
 	while (a.debt < 3)
@@ -622,9 +759,13 @@ static void test_rcov_table_find_bounded(void)
 int main(void)
 {
 	test_activate_samples_warm_flag();
-	test_kv_range_membership();
-	test_kv_range_largest_wins();
+	test_kv_entry_membership();
+	test_kv_table_contains_bounded_scan();
+	test_kv_table_slot_for();
+	test_kv_table_retire_slot();
 	test_prepare_marks_before_cap();
+	test_prepare_immediate_durable_victim();
+	test_prepare_ignores_non_kv_chunks();
 	test_prepare_caps_and_flags_low_reuse();
 	test_reuse_clears_debt_and_saves();
 	test_reuse_keeps_chunk_without_debt();

@@ -2,25 +2,27 @@
 /*
  * Migration-debt eviction policy loader (LMCache/gpubpf prototype).
  *
- * Tracks the single-KV-pool range by attaching a uprobe/uretprobe pair
- * (func_name uvm_kv_malloc) on the workload's allocator shared object
- * (-a path).  The BPF side saves the enter args in a HASH map and, on a
- * successful (non-NULL) return, records {start, end, tgid} in a single
- * ARRAY-map slot, keeping only the largest successful allocation.
- * gpu_block_activate marks a chunk is_kv only when its va_block start
- * lies inside the recorded range for the same tgid; the warm-phase
- * disk-durable flag (debt_config key DEBT_CONFIG_DISK_DURABLE) is
- * sampled at activation only for KV chunks, so UVM memory outside the
- * recorded range is never claimed durable.  Turning the flag ON with
- * the 'w' key is retroactive but KV-scoped: the loader walks the
- * chunk_debt keys, reads each debt_chunk_state, and sets disk_durable=1
- * only on entries already marked is_kv.
- *
- * Documented limitation: only the single largest successful
- * uvm_kv_malloc allocation is tracked.  A KV pool split across several
- * smaller allocations is only partially covered (its largest piece),
- * and a freed pool stays recorded until a larger allocation replaces
- * it.
+ * Tracks the KV pool ranges by attaching a uprobe/uretprobe pair
+ * (func_name uvm_kv_malloc) plus an entry uprobe (uvm_kv_free) on the
+ * workload's allocator shared object (-a path).  The BPF side saves the
+ * malloc enter args in a HASH map and, on a successful (non-NULL)
+ * return, records {start, end, owner_tgid, active} in a bounded
+ * 64-slot ARRAY range table (kv_pool_table): a live duplicate re-records
+ * into its own slot, otherwise the first free slot is taken, and a full
+ * table leaves further allocations unrecorded.  The uvm_kv_free uprobe
+ * retires the live entry whose bounds and owner tgid match; if that
+ * probe cannot be attached, entries live for the process run lifetime
+ * and activation is at worst slightly over-approximated.
+ * gpu_block_activate scans the bounded table and marks a chunk is_kv
+ * only when its va_block start lies inside a live entry recorded for
+ * the same tgid; the warm-phase disk-durable flag (debt_config key
+ * DEBT_CONFIG_DISK_DURABLE) is sampled at activation only for KV
+ * chunks, so UVM memory outside any live entry is never claimed
+ * durable.  Disk-durable KV chunks are immediate eviction victims in
+ * gpu_evict_prepare (no debt-cap wait).  Turning the flag ON with the
+ * 'w' key is retroactive but KV-scoped: the loader walks the chunk_debt
+ * keys, reads each debt_chunk_state, and sets disk_durable=1 only on
+ * entries already marked is_kv.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,12 +86,12 @@ static int attach_uprobe_symbol(struct bpf_program *prog, const char *path,
 /*
  * Set the warm-phase disk-durable flag through the debt_config map.
  * The flag is sampled by the BPF policy only for chunks activated
- * inside the recorded single-KV-pool range (is_kv).  Marking is
- * retroactive but KV-scoped when the flag goes ON: walk the chunk_debt
- * keys (u64 chunk pointers), read each debt_chunk_state, set
- * disk_durable = 1 only on is_kv entries not yet marked, update the
- * entry, and report how many chunks were marked.  Tracked chunks
- * outside the KV range are never marked durable.
+ * inside a live KV range table entry (is_kv).  Marking is retroactive
+ * but KV-scoped when the flag goes ON: walk the chunk_debt keys (u64
+ * chunk pointers), read each debt_chunk_state, set disk_durable = 1
+ * only on is_kv entries not yet marked, update the entry, and report
+ * how many chunks were marked.  Tracked chunks outside the live KV
+ * range entries are never marked durable.
  */
 static void set_warm_flag(struct eviction_debt_bpf *skel, int on)
 {
@@ -133,7 +135,7 @@ static void print_stats(struct eviction_debt_bpf *skel)
     int pressure_fd = bpf_map__fd(skel->maps.debt_pressure);
     int chunks_fd = bpf_map__fd(skel->maps.chunk_debt);
     int pid_fd = bpf_map__fd(skel->maps.pid_chunk_count);
-    int kv_fd = bpf_map__fd(skel->maps.kv_pool_range);
+    int kv_fd = bpf_map__fd(skel->maps.kv_pool_table);
     u32 pkey = 0;
     u64 pressure = 0;
     u64 prev_chunk = 0, next_chunk = 0, tracked = 0;
@@ -141,8 +143,9 @@ static void print_stats(struct eviction_debt_bpf *skel)
     u32 next_pid = 0;
     u64 total_allow = 0, total_deny = 0;
     u64 total_activate = 0, total_used = 0;
-    u32 kv_key = 0;
-    struct debt_kv_range kv = {0};
+    u64 kv_active_ranges = 0, kv_covered_bytes = 0;
+    u32 kv_slot = 0;
+    struct debt_kv_entry entry = {0};
     struct debt_chunk_state state;
 
     printf("\n=== Migration-Debt Statistics ===\n");
@@ -165,16 +168,29 @@ static void print_stats(struct eviction_debt_bpf *skel)
            (unsigned long long)tracked, (unsigned long long)kv_tracked,
            (unsigned long long)kv_durable);
 
-    bpf_map_lookup_elem(kv_fd, &kv_key, &kv);
-    if (kv.start)
-        printf("  KV pool range: [0x%llx, 0x%llx) tgid %u (%llu MiB;"
-               " largest uvm_kv_malloc)\n",
-               (unsigned long long)kv.start, (unsigned long long)kv.end,
-               kv.tgid, (unsigned long long)((kv.end - kv.start) >> 20));
+    /* Bounded scan of the 64-slot range table: count live entries;
+     * sum covered bytes first and shift to MiB once, so sub-MiB
+     * allocations are not truncated individually. */
+    while (kv_slot < DEBT_KV_RANGE_MAX) {
+        if (bpf_map_lookup_elem(kv_fd, &kv_slot, &entry) == 0 &&
+            entry.active && entry.end > entry.start) {
+            kv_active_ranges++;
+            kv_covered_bytes += entry.end - entry.start;
+        }
+        kv_slot++;
+    }
+    if (kv_active_ranges)
+        printf("  KV range table: %llu active ranges, %llu MiB covered"
+               " (%u slots)\n",
+               (unsigned long long)kv_active_ranges,
+               (unsigned long long)(kv_covered_bytes >> 20),
+               DEBT_KV_RANGE_MAX);
     else
-        printf("  KV pool range: none captured yet\n");
+        printf("  KV range table: no active ranges yet (%u slots)\n",
+               DEBT_KV_RANGE_MAX);
     printf("  Warm-phase disk-durable flag: %s (sampled for KV-range"
-           " chunks only; single-largest-allocation tracking)\n",
+           " chunks only; disk-durable KV is an immediate eviction"
+           " victim)\n",
            g_warm ? "ON" : "off");
 
     printf("\n  Per-PID:\n");
@@ -210,12 +226,15 @@ static void usage(const char *prog)
     printf("            speculative prefetch; 0 disables the gate (default %d)\n",
            PRESSURE_THRESHOLD_DEFAULT);
     printf("  -h        Show this help\n");
-    printf("\nMigration-debt eviction policy:\n");
-    printf("  - Eviction candidates accumulate an at-risk debt signal;\n");
+    printf("\nMigration-debt eviction policy (KV-scoped):\n");
+    printf("  - KV eviction candidates accumulate an at-risk debt signal;\n");
     printf("    a later observed reuse clears it and saves the chunk.\n");
-    printf("  - High aggregate debt suppresses speculative prefetch.\n");
-    printf("  - KV-range chunks (largest uvm_kv_malloc allocation, same\n");
-    printf("    tgid) are the only disk-durable / preferred victims.\n");
+    printf("    Non-KV chunks never increment debt, reorder, or\n");
+    printf("    contribute aggregate pressure.\n");
+    printf("  - High aggregate KV debt suppresses speculative prefetch.\n");
+    printf("  - Disk-durable KV chunks (bounded uvm_kv_malloc range\n");
+    printf("    table, same owner tgid) are immediate eviction victims\n");
+    printf("    without a debt-cap wait.\n");
     printf("\nKeys while running:\n");
     printf("  w  set warm-phase disk-durable flag ON  (after warm phase;\n");
     printf("     retroactively marks tracked KV-range entries only)\n");
@@ -229,6 +248,7 @@ int main(int argc, char **argv)
     struct bpf_link *link = NULL;
     struct bpf_link *link_malloc_enter = NULL;
     struct bpf_link *link_malloc_ret = NULL;
+    struct bpf_link *link_kv_free = NULL;
     const char *allocator_path = NULL;
     int err;
     u64 warm = 0;
@@ -325,17 +345,43 @@ int main(int argc, char **argv)
     }
     printf("uretprobe attached: %s:uvm_kv_malloc\n", allocator_path);
 
+    /* Range retirement is advisory: if the free uprobe cannot be
+     * attached, table entries live for the process run lifetime and
+     * activation is at worst slightly over-approximated. */
+    err = attach_uprobe_symbol(skel->progs.uvm_kv_free_enter, allocator_path,
+                               "uvm_kv_free", false, &link_kv_free);
+    if (err) {
+        fprintf(stderr,
+                "Warning: could not attach uprobe on %s:uvm_kv_free: %s (%d);"
+                " KV table entries are kept for the run lifetime\n",
+                allocator_path, strerror(errno), err);
+        err = 0; /* advisory: the policy still loads without retirement */
+    } else {
+        printf("uprobe attached: %s:uvm_kv_free\n", allocator_path);
+    }
+
     g_warm = (int)warm;
-    /* Ready marker: only after struct_ops and both uprobe attachments. */
+    /* Ready marker: after struct_ops and the mandatory uvm_kv_malloc
+     * uprobe/uretprobe pair; the optional uvm_kv_free probe may have
+     * failed (range retirement is advisory). */
     printf("Successfully loaded migration-debt eviction policy!\n");
     printf("\nConfiguration:\n");
-    printf("  KV allocator: %s (uvm_kv_malloc uprobe/uretprobe)\n",
-           allocator_path);
+    if (link_kv_free)
+        printf("  KV allocator: %s (uvm_kv_malloc uprobe/uretprobe,"
+               " uvm_kv_free uprobe)\n", allocator_path);
+    else
+        printf("  KV allocator: %s (uvm_kv_malloc uprobe/uretprobe;"
+               " uvm_kv_free probe not attached, table entries live"
+               " for the run lifetime)\n", allocator_path);
+    printf("  KV range table: %u bounded slots; a chunk is KV only when its\n",
+           DEBT_KV_RANGE_MAX);
+    printf("  owner tgid and va_block start match a live entry; freed\n");
+    printf("  ranges retire their entry, so a KV pool split across smaller\n");
+    printf("  allocations is covered entry by entry\n");
     printf("  Warm-phase disk-durable flag: %s (sampled only for chunks\n",
            g_warm ? "ON" : "off");
-    printf("  inside the recorded KV pool range; single-largest-allocation\n");
-    printf("  tracking, so a KV pool split across smaller allocations is\n");
-    printf("  only partially covered)\n");
+    printf("  inside a live KV range entry; disk-durable KV is an immediate\n");
+    printf("  eviction victim)\n");
     printf("  Debt cap: %llu\n", (unsigned long long)debt_max);
     printf("  Prefetch suppression pressure threshold: %llu\n",
            (unsigned long long)threshold);
@@ -369,6 +415,8 @@ int main(int argc, char **argv)
     print_stats(skel);
 
 cleanup:
+    if (link_kv_free)
+        bpf_link__destroy(link_kv_free);
     if (link_malloc_ret)
         bpf_link__destroy(link_malloc_ret);
     if (link_malloc_enter)

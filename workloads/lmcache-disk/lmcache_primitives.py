@@ -47,6 +47,7 @@ LOADER_ARM = "lmcache_disk_uvm_kv_gpubpf_debt"
 EVICTION_LOADER_READY_MARKER = "Successfully loaded migration-debt eviction policy!"
 PRESSURE_READY_LINE = "READY pid="
 PRESSURE_MONITOR_LINE = "MONITOR_PID:"
+DEFAULT_GPU_MEMORY_UTILIZATION = 0.98
 
 EXPECTED_DRIVER = "610.43.02"
 EXPERIMENT_DRIVERS = (EXPECTED_DRIVER, "575.57.08")
@@ -546,9 +547,11 @@ def server_environment(config: str, cache_dir: Path,
 
 
 def server_argv(config: str, model_path: Path, port: int | str,
-                kv_cache_memory_bytes: int | None = None) -> list[str]:
+                kv_cache_memory_bytes: int | None = None,
+                gpu_memory_utilization: float = DEFAULT_GPU_MEMORY_UTILIZATION) -> list[str]:
     argv = [str(VLLM), "serve", str(model_path), "--served-model-name", MODEL_ID,
-            "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.98",
+            "--enforce-eager", "--max-model-len", "4096",
+            "--gpu-memory-utilization", str(gpu_memory_utilization),
             "--max-num-seqs", "1", "--no-enable-prefix-caching", "--port", str(port)]
     if config != "recompute":
         argv.extend(["--kv-transfer-config", canonical(
@@ -561,8 +564,10 @@ def server_argv(config: str, model_path: Path, port: int | str,
 
 def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_path: Path,
                  trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER,
-                 kv_cache_memory_bytes: int | None = None):
-    argv = server_argv(config, model_path, port, kv_cache_memory_bytes)
+                 kv_cache_memory_bytes: int | None = None,
+                 gpu_memory_utilization: float = DEFAULT_GPU_MEMORY_UTILIZATION):
+    argv = server_argv(config, model_path, port, kv_cache_memory_bytes,
+                       gpu_memory_utilization)
     launch = list(argv)
     if trace_dir is not None:
         trace_dir = trace_dir.resolve()

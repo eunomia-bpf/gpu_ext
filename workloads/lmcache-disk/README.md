@@ -46,10 +46,16 @@ No custom module replacement is needed for this storage-only comparison.
 ## UVM-KV performance runner pressure options
 
 `run_uvm_kv_perf.py` (kind `lmcache_uvm_kv_perf`, CPU-only tests in
-`test_uvm_kv_perf.py`) accepts two optional pressure knobs for the
-recoverability-arbitration pressure cells; both default to off and leave the
-existing CLI and behavior unchanged:
+`test_uvm_kv_perf.py`) accepts optional memory and pressure knobs for the
+recoverability-arbitration pressure cells; all default to the current
+behavior and leave the existing CLI unchanged:
 
+- `--gpu-memory-utilization F` (float, default 0.98, validated > 0 and <= 1):
+  the vLLM `--gpu-memory-utilization` value passed to the server argv of every
+  cell, replacing the previously hardcoded 0.98; lower it (for example to
+  0.95) when the pressure tenant's CUDA context leaves less VRAM free than the
+  default budget requires. The value is recorded in the dry-run plan, the
+  campaign parameters, and each cell `result.json`.
 - `--kv-cache-memory-bytes N` (positive integer): explicit vLLM KV pool size
   in bytes, appended to the server argv of every cell as
   `--kv-cache-memory-bytes N`.

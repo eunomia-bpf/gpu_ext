@@ -47,6 +47,7 @@ class RunnerShapeTests(unittest.TestCase):
         self.assertIs(args.dry_run, False)
         self.assertIsNone(args.output)
         self.assertEqual(args.eviction_loader, ops.EVICTION_LOADER)
+        self.assertEqual(args.gpu_memory_utilization, 0.98)
 
     def test_parse_args_eviction_loader_override(self):
         args = runner.parse_args(["--eviction-loader", "/tmp/eviction_debt"])
@@ -552,6 +553,62 @@ class KvPoolArgvTests(unittest.TestCase):
             log_file.close()
 
 
+class GpuMemoryUtilizationTests(unittest.TestCase):
+    def test_default_constant_is_098(self):
+        self.assertEqual(ops.DEFAULT_GPU_MEMORY_UTILIZATION, 0.98)
+
+    def test_parse_args_default_is_098(self):
+        args = runner.parse_args([])
+        self.assertEqual(args.gpu_memory_utilization, 0.98)
+
+    def test_parse_args_override(self):
+        args = runner.parse_args(["--gpu-memory-utilization", "0.9"])
+        self.assertEqual(args.gpu_memory_utilization, 0.9)
+
+    def test_parse_args_accepts_upper_boundary_one(self):
+        args = runner.parse_args(["--gpu-memory-utilization", "1"])
+        self.assertEqual(args.gpu_memory_utilization, 1.0)
+
+    def test_parse_args_rejects_values_outside_the_open_closed_range(self):
+        for value in ("0", "0.0", "-0.5", "1.01", "1.5", "2", "nan"):
+            with self.assertRaises(ValueError):
+                runner.parse_args(["--gpu-memory-utilization", value])
+
+    def test_server_argv_default_gpu_memory_utilization_is_098(self):
+        argv = ops.server_argv("lmcache_disk", Path("/model"), 18080)
+        self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.98")
+
+    def test_server_argv_overrides_gpu_memory_utilization(self):
+        argv = ops.server_argv("lmcache_disk_uvm_kv", Path("/model"), 18080,
+                               gpu_memory_utilization=0.95)
+        self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.95")
+
+    def test_server_argv_gpu_memory_utilization_for_recompute_arm(self):
+        argv = ops.server_argv("recompute", Path("/model"), 18080,
+                               gpu_memory_utilization=0.5)
+        self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.5")
+
+    def test_start_server_forwards_gpu_memory_utilization_into_argv(self):
+        class FakeProc:
+            pid = 1
+
+            def poll(self):
+                return None
+
+        def fake_popen(launch, **kwargs):
+            return FakeProc()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "server.log"
+            with mock.patch.object(ops.subprocess, "Popen", fake_popen):
+                proc, log_file, argv, launch = ops.start_server(
+                    "lmcache_disk", Path("/model"), Path(tmp), 18080, log_path,
+                    gpu_memory_utilization=0.7)
+            self.assertEqual(argv[argv.index("--gpu-memory-utilization") + 1], "0.7")
+            self.assertEqual(launch[launch.index("--gpu-memory-utilization") + 1], "0.7")
+            log_file.close()
+
+
 class PressurePrimitiveTests(unittest.TestCase):
     def test_pressure_tenant_default_is_the_repo_workload_binary(self):
         self.assertEqual(ops.PRESSURE_TENANT,
@@ -759,11 +816,16 @@ class PressureCellTests(unittest.TestCase):
                 "text": "x", "generated_token_ids": [3] * 16,
                 "_phase": phase, "_index": index}
 
-    def run_cell_with_fakes(self, tmp, pressure=None, kv_bytes=None,
+    def run_cell_with_fakes(self, tmp, pressure=None, kv_bytes=None, gpu_util=None,
                             tenant_readiness_error=None):
         events = []
         start_server_kwargs = {}
         run_dir = Path(tmp) / "cell"
+        extra = {}
+        if kv_bytes is not None:
+            extra["kv_cache_memory_bytes"] = kv_bytes
+        if gpu_util is not None:
+            extra["gpu_memory_utilization"] = gpu_util
 
         fake_server = mock.Mock()
         fake_server.pid = 1
@@ -838,8 +900,7 @@ class PressureCellTests(unittest.TestCase):
             record = runner.run_cell("recompute", 0, 0, run_dir, 18080,
                                      Path("/model"), self.PREFIXES,
                                      EXPECTED_DRIVER, 120.0,
-                                     kv_cache_memory_bytes=kv_bytes,
-                                     pressure=pressure)
+                                     pressure=pressure, **extra)
         return record, events, fake_tenant_stdin, start_server_kwargs, \
             start_tenant, wait_tenant, stop_tenant, run_dir
 
@@ -891,6 +952,20 @@ class PressureCellTests(unittest.TestCase):
             self.assertEqual(p["result_json"]["mismatches"], 0)
             self.assertEqual(record["kv_cache_memory_bytes"], 48 * 1024**3)
             self.assertEqual(record["warm_phase"]["requests"], 1)
+
+    def test_gpu_memory_utilization_forwarded_to_start_server_and_recorded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record, events, tenant_stdin, start_kwargs, *_ = \
+                self.run_cell_with_fakes(tmp, gpu_util=0.75)
+            self.assertEqual(start_kwargs.get("gpu_memory_utilization"), 0.75)
+            self.assertEqual(record["gpu_memory_utilization"], 0.75)
+
+    def test_gpu_memory_utilization_defaults_to_098(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record, events, tenant_stdin, start_kwargs, *_ = \
+                self.run_cell_with_fakes(tmp)
+            self.assertEqual(start_kwargs.get("gpu_memory_utilization"), 0.98)
+            self.assertEqual(record["gpu_memory_utilization"], 0.98)
 
     def test_pressure_launch_error_is_recorded_and_cell_continues(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1152,6 +1227,15 @@ class DryRunTests(unittest.TestCase):
             ["--dry-run", "--eviction-loader", "/tmp/eviction_debt"])
         self.assertEqual(rc, 0)
         self.assertEqual(plan["eviction_loader"]["path"], "/tmp/eviction_debt")
+
+    def test_main_dry_run_records_gpu_memory_utilization(self):
+        rc, plan = self.capture_main(["--dry-run"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(plan["gpu_memory_utilization"], 0.98)
+        rc, plan = self.capture_main(
+            ["--dry-run", "--gpu-memory-utilization", "0.9"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(plan["gpu_memory_utilization"], 0.9)
 
     def test_main_dry_run_three_blocks_matches_rotation(self):
         rc, plan = self.capture_main(["--dry-run", "--blocks", "3"])

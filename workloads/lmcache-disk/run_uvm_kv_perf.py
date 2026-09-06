@@ -59,6 +59,12 @@ and errors in the cell result; a launch or readiness failure is recorded and
 the cell continues. With --pressure-gib 0 (default) and no
 --kv-cache-memory-bytes the runner and its CLI behave exactly as before.
 
+--gpu-memory-utilization F (float, default 0.98, validated >0 and <=1)
+replaces the previously hardcoded 0.98 vLLM --gpu-memory-utilization argv
+value of every cell; it is threaded through run_campaign, run_cell,
+start_server, and server_argv and recorded in the dry-run plan, the
+campaign parameters, and each cell result.
+
 This runner deliberately calls none of the validation, admission, or retry
 machinery: no validate-cell, compare-outputs, analyze, engagement checks
 (validate_log), correctness/store checks (wait_for_cold_store,
@@ -304,9 +310,10 @@ def warm_aggregates(record: dict[str, Any], warm_start_ns: int,
 def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
              model_path: Path, prefixes: list[dict[str, Any]], expected_driver: str,
              store_barrier_timeout_s: float,
-             eviction_loader: Path = ops.EVICTION_LOADER,
-             kv_cache_memory_bytes: int | None = None,
-             pressure: dict[str, Any] | None = None) -> dict[str, Any]:
+              eviction_loader: Path = ops.EVICTION_LOADER,
+              kv_cache_memory_bytes: int | None = None,
+              gpu_memory_utilization: float = ops.DEFAULT_GPU_MEMORY_UTILIZATION,
+              pressure: dict[str, Any] | None = None) -> dict[str, Any]:
     """One arm, once: no gates, no retry; every number and exit code is kept."""
     record: dict[str, Any] = {
         "schema": 1, "kind": KIND, "config": config, "block": block, "position": position,
@@ -314,6 +321,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
         "prompt_count": len(prefixes), "cached_tokens": ops.PREFIX_TOKENS,
         "output_tokens": ops.OUTPUT_TOKENS,
         "kv_cache_memory_bytes": kv_cache_memory_bytes,
+        "gpu_memory_utilization": gpu_memory_utilization,
         "started_ns": time.time_ns(), "ready": False, "ready_error": None,
         "requests": [], "barriers": [], "cleanup_errors": [],
         "server_returncode": None, "error": None,
@@ -376,7 +384,8 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
             try:
                 proc, log_file, argv, launch = ops.start_server(
                     config, model_path, cache_dir, port, log_path, expected_driver=expected_driver,
-                    kv_cache_memory_bytes=kv_cache_memory_bytes)
+                    kv_cache_memory_bytes=kv_cache_memory_bytes,
+                    gpu_memory_utilization=gpu_memory_utilization)
                 launched = True
             except FileExistsError as error:
                 record["error"] = f"server log already exists; launch not attempted: {error}"
@@ -612,6 +621,7 @@ def run_campaign(args) -> int:
             "blocks": args.blocks, "expected_driver": args.expected_driver,
             "port": args.port, "store_barrier_timeout_s": args.store_barrier_timeout_s,
             "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
+            "gpu_memory_utilization": args.gpu_memory_utilization,
             "pressure": {"enabled": args.pressure_gib > 0,
                          "binary": str(args.pressure_binary),
                          "gib": args.pressure_gib, "passes": args.pressure_passes,
@@ -644,9 +654,10 @@ def run_campaign(args) -> int:
                     record = run_cell(config, block, position, run_dir, args.port,
                                       Path(campaign["params"]["model_path"]), prefixes,
                                       args.expected_driver, args.store_barrier_timeout_s,
-                                      args.eviction_loader,
-                                      kv_cache_memory_bytes=args.kv_cache_memory_bytes,
-                                      pressure=pressure)
+                                       args.eviction_loader,
+                                       kv_cache_memory_bytes=args.kv_cache_memory_bytes,
+                                       gpu_memory_utilization=args.gpu_memory_utilization,
+                                       pressure=pressure)
                 except Exception as error:  # noqa: BLE001 - preserved, campaign continues
                     record = {"schema": 1, "kind": KIND, "config": config,
                               "block": block, "position": position, "port": args.port,
@@ -694,6 +705,7 @@ def dry_run_plan(args) -> dict[str, Any]:
         "expected_driver_parameter": args.expected_driver,
         "port": args.port,
         "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
+        "gpu_memory_utilization": args.gpu_memory_utilization,
         "pressure": {
             "enabled": args.pressure_gib > 0,
             "binary": str(args.pressure_binary),
@@ -796,6 +808,12 @@ def parse_args(argv: list[str] | None = None):
     parser.add_argument("--kv-cache-memory-bytes", type=int, default=None,
                         help="explicit vLLM KV pool size in bytes, passed to the server "
                              "as --kv-cache-memory-bytes (default: unset)")
+    parser.add_argument("--gpu-memory-utilization", type=float,
+                        default=ops.DEFAULT_GPU_MEMORY_UTILIZATION,
+                        help="vLLM --gpu-memory-utilization fraction passed to the "
+                             "server argv of every cell (default 0.98; must be >0 and "
+                             "<=1; lower it when a pressure tenant holds part of the "
+                             "GPU memory)")
     parser.add_argument("--pressure-gib", type=int, default=0,
                         help="UVM pressure-tenant managed allocation in GiB; 0 "
                              "(default) disables the pressure tenant")
@@ -818,6 +836,10 @@ def parse_args(argv: list[str] | None = None):
     if args.kv_cache_memory_bytes is not None and args.kv_cache_memory_bytes <= 0:
         raise ValueError(
             f"--kv-cache-memory-bytes must be positive, got {args.kv_cache_memory_bytes}")
+    if not 0 < args.gpu_memory_utilization <= 1:
+        raise ValueError(
+            f"--gpu-memory-utilization must be >0 and <=1, got "
+            f"{args.gpu_memory_utilization}")
     if args.pressure_gib < 0:
         raise ValueError(f"--pressure-gib must be nonnegative, got {args.pressure_gib}")
     if args.pressure_gib > 0:

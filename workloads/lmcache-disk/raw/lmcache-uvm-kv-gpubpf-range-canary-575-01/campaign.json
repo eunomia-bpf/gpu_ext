@@ -1,0 +1,81 @@
+{
+  "arm_summary": {
+    "lmcache_disk_uvm_kv_gpubpf_debt": {
+      "cell_count": 1,
+      "cells": [
+        {
+          "ready": true,
+          "server_returncode": 0,
+          "warm_output_tokens_per_s": 29.93856354621477,
+          "warm_requests_failed": 0,
+          "warm_requests_ok": 8,
+          "warm_requests_per_s": 1.871160221638423,
+          "warm_ttft_median_ms": 93.841292
+        }
+      ],
+      "warm_output_tokens_per_s": [
+        29.93856354621477
+      ],
+      "warm_requests_per_s": [
+        1.871160221638423
+      ],
+      "warm_ttft_median_ms": [
+        93.841292
+      ]
+    }
+  },
+  "block_orders": [
+    [
+      "lmcache_disk_uvm_kv_gpubpf_debt"
+    ]
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "config": "lmcache_disk_uvm_kv_gpubpf_debt",
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/workloads/lmcache-disk/raw/lmcache-uvm-kv-gpubpf-range-canary-575-01/block-00/position-0-lmcache_disk_uvm_kv_gpubpf_debt",
+      "warm": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 29.93856354621477,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 1.871160221638423,
+        "warm_ttft_median_ms": 93.841292
+      }
+    }
+  ],
+  "complete_cells": 1,
+  "kind": "lmcache_uvm_kv_perf",
+  "params": {
+    "attempts_per_cell": 1,
+    "blocks": 1,
+    "configs": [
+      "lmcache_disk_uvm_kv_gpubpf_debt"
+    ],
+    "eviction_loader": {
+      "allocator": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/workloads/vllm/vllm/uvm_test/uvm_allocator.so",
+      "arm": "lmcache_disk_uvm_kv_gpubpf_debt",
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/extension/eviction_debt"
+    },
+    "expected_driver": "575.57.08",
+    "gpu_idle_wait": false,
+    "model": "Qwen/Qwen3-30B-A3B-FP8",
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "model_revision": "d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "port": 18080,
+    "prompts": {
+      "model": "Qwen/Qwen3-30B-A3B-FP8",
+      "model_revision": "d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+      "output_tokens": 16,
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-kv-page-governor/workloads/lmcache-disk/prompts.json",
+      "prefix_count": 8,
+      "prefix_tokens": 1536
+    },
+    "result_filtering": false,
+    "retry": false,
+    "store_barrier_timeout_s": 120.0
+  },
+  "timestamp": "20260906T004614"
+}

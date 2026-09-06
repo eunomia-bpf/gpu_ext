@@ -2,9 +2,10 @@
 """Minimal LMCache performance runner: recompute, CPU, and three GDS policies.
 
 The request lifecycle and per-cell raw result come from ``run_perf_only.py``.
-This wrapper only supplies a five-arm rotation, the GDS backend environment,
-append-only JSONL capture, and per-arm medians.  It intentionally adds no
-correctness, engagement, admission, retry, GPU-idle, or clock-stability gates.
+This wrapper only supplies a five-arm rotation, a shared explicit KV-cache
+size applied to every arm, the GDS backend environment, append-only JSONL
+capture, and per-arm medians.  It intentionally adds no correctness,
+engagement, admission, retry, GPU-idle, or clock-stability gates.
 """
 
 from __future__ import annotations
@@ -34,7 +35,8 @@ KIND = "lmcache_gds_five_arm"
 CONFIGS = ("recompute", "lmcache_cpu", "gds_fifo", "gds_native", "gds_bpf")
 GDS_MODES = {"gds_fifo": "fifo", "gds_native": "native", "gds_bpf": "bpf"}
 DEFAULT_BLOCKS = 5
-DEFAULT_GDS_BUFFER_SIZE_MIB = 512
+DEFAULT_GDS_BUFFER_SIZE_MIB = 256
+DEFAULT_KV_CACHE_MEMORY_BYTES = 805306368
 DEFAULT_EXPECTED_DRIVER = "575.57.08"
 GDS_CONTROL = HERE / "gds-control"
 BOOTSTRAP = GDS_CONTROL / "bootstrap"
@@ -77,22 +79,37 @@ def gds_server_environment(config: str, cache_dir: Path, expected_driver: str,
         "LMCACHE_USE_GDS": "True",
         "LMCACHE_GDS_BACKEND": "cufile",
         "LMCACHE_GDS_POLICY_MODE": GDS_MODES[config],
+        "LMCACHE_EXTRA_CONFIG": ops.canonical({"use_direct_io": True}),
     })
     return env
 
 
 def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
              model_path: Path, prefixes: list[dict[str, Any]], expected_driver: str,
-             store_barrier_timeout_s: float,
-             gds_buffer_size_mib: int) -> dict[str, Any]:
-    """Delegate one cell while temporarily supplying its launch environment."""
+             store_barrier_timeout_s: float, gds_buffer_size_mib: int,
+             kv_cache_memory_bytes: int) -> dict[str, Any]:
+    """Delegate one cell while supplying its launch environment and shared KV size."""
     original = ops.server_environment
+    original_start_server = ops.start_server
 
     def cell_environment(_config: str, cache_dir: Path,
                          driver: str = ops.EXPECTED_DRIVER) -> dict[str, str]:
         return gds_server_environment(config, cache_dir, driver, gds_buffer_size_mib)
 
+    def cell_start_server(cell_config: str, cell_model_path: Path, cell_cache_dir: Path,
+                          cell_port: int, cell_log_path: Path,
+                          trace_dir: Path | None = None,
+                          expected_driver: str = ops.EXPECTED_DRIVER,
+                          **server_options: Any) -> Any:
+        server_options.pop("kv_cache_memory_bytes", None)
+        return original_start_server(
+            cell_config, cell_model_path, cell_cache_dir, cell_port, cell_log_path,
+            trace_dir=trace_dir, expected_driver=expected_driver,
+            kv_cache_memory_bytes=kv_cache_memory_bytes,
+            **server_options)
+
     ops.server_environment = cell_environment
+    ops.start_server = cell_start_server
     try:
         record = perf.run_cell(config, block, position, run_dir, port, model_path,
                                prefixes, expected_driver, store_barrier_timeout_s)
@@ -101,6 +118,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
         return record
     finally:
         ops.server_environment = original
+        ops.start_server = original_start_server
 
 
 def cell_metrics(record: dict[str, Any]) -> dict[str, Any]:
@@ -154,6 +172,7 @@ def run_campaign(args: argparse.Namespace) -> int:
             "expected_driver": args.expected_driver,
             "store_barrier_timeout_s": args.store_barrier_timeout_s,
             "gds_buffer_size_mib": args.gds_buffer_size_mib,
+            "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
             "attempts_per_cell": 1,
             "retry": False,
             "model_path": str(model_path),
@@ -175,7 +194,7 @@ def run_campaign(args: argparse.Namespace) -> int:
                         record = run_cell(
                             config, block, position, run_dir, args.port, model_path,
                             prefixes, args.expected_driver, args.store_barrier_timeout_s,
-                            args.gds_buffer_size_mib,
+                            args.gds_buffer_size_mib, args.kv_cache_memory_bytes,
                         )
                     except Exception as error:  # preserve the attempt and continue
                         record = {
@@ -224,6 +243,7 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
         "configs": list(CONFIGS),
         "blocks": args.blocks,
         "block_orders": rotation_orders(args.blocks),
+        "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
         "gds": {
             "buffer_size_mib": args.gds_buffer_size_mib,
             "backend": "cufile",
@@ -247,11 +267,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         default=perf.DEFAULT_STORE_BARRIER_TIMEOUT_S)
     parser.add_argument("--gds-buffer-size-mib", type=int,
                         default=DEFAULT_GDS_BUFFER_SIZE_MIB)
+    parser.add_argument("--kv-cache-memory-bytes", type=int,
+                        default=DEFAULT_KV_CACHE_MEMORY_BYTES)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.gds_buffer_size_mib < 1:
         parser.error("--gds-buffer-size-mib must be at least 1")
+    if args.kv_cache_memory_bytes < 1:
+        parser.error("--kv-cache-memory-bytes must be at least 1")
     return args
 
 

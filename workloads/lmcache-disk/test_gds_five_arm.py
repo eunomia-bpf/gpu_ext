@@ -26,29 +26,92 @@ class FiveArmTests(unittest.TestCase):
         for position in range(5):
             self.assertEqual({order[position] for order in orders}, set(runner.CONFIGS))
 
-    def test_gds_environment_replaces_disk_backend_and_activates_adapter(self):
+    def test_gds_environment_replaces_disk_backend_and_activates_direct_io(self):
         base = {
             "LMCACHE_LOCAL_CPU": "False",
             "LMCACHE_MAX_LOCAL_CPU_SIZE": "2.0",
             "LMCACHE_LOCAL_DISK": "file:///old",
             "LMCACHE_MAX_LOCAL_DISK_SIZE": "16.0",
+            "LMCACHE_EXTRA_CONFIG": '{"use_odirect":true}',
             "PYTHONPATH": "/existing",
         }
         with mock.patch.object(runner, "_BASE_SERVER_ENVIRONMENT", return_value=base.copy()):
             env = runner.gds_server_environment(
-                "gds_bpf", Path("/cache"), "610.43.02", 512
+                "gds_bpf", Path("/cache"), "610.43.02", 256
             )
         self.assertNotIn("LMCACHE_LOCAL_DISK", env)
         self.assertNotIn("LMCACHE_MAX_LOCAL_DISK_SIZE", env)
         self.assertEqual(env["LMCACHE_GDS_PATH"], "/cache")
-        self.assertEqual(env["LMCACHE_GDS_BUFFER_SIZE"], "512")
+        self.assertEqual(env["LMCACHE_GDS_BUFFER_SIZE"], "256")
         self.assertEqual(env["LMCACHE_USE_GDS"], "True")
         self.assertEqual(env["LMCACHE_GDS_BACKEND"], "cufile")
         self.assertEqual(env["LMCACHE_GDS_POLICY_MODE"], "bpf")
+        self.assertEqual(env["LMCACHE_EXTRA_CONFIG"], '{"use_direct_io":true}')
         self.assertEqual(env["LMCACHE_LOCAL_CPU"], "False")
         self.assertEqual(env["PYTHONPATH"].split(":"), [
             str(runner.BOOTSTRAP), str(runner.GDS_CONTROL), "/existing"
         ])
+
+    def test_run_cell_injects_shared_kv_bytes_into_every_start_server_call(self):
+        calls: list[tuple[str, int | None, str]] = []
+
+        def fake_start_server(config, model_path, cache_dir, port, log_path,
+                              trace_dir=None, expected_driver=runner.ops.EXPECTED_DRIVER,
+                              kv_cache_memory_bytes=None,
+                              gpu_memory_utilization=runner.ops.DEFAULT_GPU_MEMORY_UTILIZATION,
+                              cpu_offload_gb=runner.ops.DEFAULT_CPU_OFFLOAD_GB):
+            calls.append((config, kv_cache_memory_bytes, expected_driver))
+            return ("proc", "log-file", ["argv"], ["launch"])
+
+        def fake_perf_run_cell(config, block, position, run_dir, port, model_path,
+                               prefixes, expected_driver, store_barrier_timeout_s):
+            return {
+                "config": config,
+                "start_server": runner.ops.start_server(
+                    config, model_path, run_dir / "cache", port, run_dir / "server.log",
+                    expected_driver=expected_driver),
+            }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for index, config in enumerate(runner.CONFIGS):
+                run_dir = Path(tmp) / f"position-{index}-{config}"
+                run_dir.mkdir()
+                with mock.patch.object(runner.ops, "start_server", fake_start_server), \
+                        mock.patch.object(runner.perf, "run_cell", fake_perf_run_cell):
+                    runner.run_cell(config, 0, index, run_dir, 18080, Path("/model"),
+                                    [], "575.57.08", 120.0, 256, 805306368)
+        self.assertEqual([entry[0] for entry in calls], list(runner.CONFIGS))
+        for _config, kv_bytes, driver in calls:
+            self.assertEqual(kv_bytes, 805306368)
+            self.assertEqual(driver, "575.57.08")
+
+    def test_run_cell_shared_kv_bytes_override_caller_supplied_value(self):
+        calls: list[int | None] = []
+
+        def fake_start_server(config, model_path, cache_dir, port, log_path,
+                              trace_dir=None, expected_driver=runner.ops.EXPECTED_DRIVER,
+                              kv_cache_memory_bytes=None,
+                              gpu_memory_utilization=runner.ops.DEFAULT_GPU_MEMORY_UTILIZATION,
+                              cpu_offload_gb=runner.ops.DEFAULT_CPU_OFFLOAD_GB):
+            calls.append(kv_cache_memory_bytes)
+            return ("proc", "log-file", ["argv"], ["launch"])
+
+        def fake_perf_run_cell(config, block, position, run_dir, port, model_path,
+                               prefixes, expected_driver, store_barrier_timeout_s):
+            runner.ops.start_server(config, model_path, run_dir / "cache", port,
+                                    run_dir / "server.log",
+                                    expected_driver=expected_driver,
+                                    kv_cache_memory_bytes=123)
+            return {"config": config}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "cell"
+            run_dir.mkdir()
+            with mock.patch.object(runner.ops, "start_server", fake_start_server), \
+                    mock.patch.object(runner.perf, "run_cell", fake_perf_run_cell):
+                runner.run_cell("gds_fifo", 0, 0, run_dir, 18080, Path("/model"),
+                                [], "575.57.08", 120.0, 256, 805306368)
+        self.assertEqual(calls, [805306368])
 
     def test_non_gds_environment_is_unchanged(self):
         expected = {"ordinary": "environment"}
@@ -98,11 +161,21 @@ class FiveArmTests(unittest.TestCase):
             self.assertFalse(output.exists())
             plan = json.loads(stdout.getvalue())
             self.assertEqual(plan["configs"], list(runner.CONFIGS))
-            self.assertEqual(plan["gds"]["buffer_size_mib"], 512)
+            self.assertEqual(plan["gds"]["buffer_size_mib"], 256)
+            self.assertEqual(plan["kv_cache_memory_bytes"], 805306368)
 
     def test_default_driver_is_the_live_575_campaign_driver(self):
         args = runner.parse_args([])
         self.assertEqual(args.expected_driver, "575.57.08")
+
+    def test_default_kv_cache_bytes_and_reduced_gds_buffer(self):
+        args = runner.parse_args([])
+        self.assertEqual(args.kv_cache_memory_bytes, 805306368)
+        self.assertEqual(args.gds_buffer_size_mib, 256)
+
+    def test_kv_cache_memory_bytes_must_be_positive(self):
+        with self.assertRaises(SystemExit):
+            runner.parse_args(["--kv-cache-memory-bytes", "0"])
 
 
 if __name__ == "__main__":

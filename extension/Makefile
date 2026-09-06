@@ -210,6 +210,26 @@ $(OUTPUT)/test_safe_policy_models: test_safe_policy_models.c safe_policy_models.
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $< -o $@
 
+# Opt-in migration-debt eviction prototype (LMCache). Not part of the default
+# build: attaching it replaces the driver's live eviction policy, so it is
+# built only through the explicit targets below.
+EVICTION_DEBT_APPS = eviction_debt
+ALL_APPS += $(EVICTION_DEBT_APPS)
+.PHONY: eviction_debt test_eviction_debt
+eviction_debt: $(OUTPUT)/eviction_debt.o $(LIBBPF_OBJ) | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
+
+test_eviction_debt: $(OUTPUT)/test_eviction_debt
+	$(call msg,TEST,$<)
+	$(Q)$<
+
+$(OUTPUT)/eviction_debt.o: $(OUTPUT)/eviction_debt.skel.h
+$(OUTPUT)/eviction_debt.bpf.o $(OUTPUT)/eviction_debt.o: eviction_debt_model.h
+$(OUTPUT)/test_eviction_debt: test_eviction_debt.c eviction_debt_model.h | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) $< $(ALL_LDFLAGS) -Wl,--build-id=none -o $@
+
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
 	$(Q)mkdir -p $@

@@ -106,15 +106,34 @@ def load_fixed_prompts() -> dict[str, Any]:
     return json.loads(ops.PROMPTS.read_text())
 
 
-def rotation_orders(blocks: int) -> list[list[str]]:
-    """Rotated complete block orders over the four arms.
+def parse_configs(value: str) -> tuple[str, ...]:
+    """Parse a comma-separated --configs value into a validated arm selection.
+
+    The value must be a nonempty, duplicate-free subset of CONFIGS; the CLI
+    default (all four names joined) selects every arm in base order.
+    """
+    items = value.split(",")
+    if not all(items):
+        raise ValueError(f"--configs names must be nonempty: {value!r}")
+    unknown = [item for item in items if item not in CONFIGS]
+    if unknown:
+        raise ValueError(
+            f"--configs must select from {list(CONFIGS)}; unknown: {unknown}")
+    if len(set(items)) != len(items):
+        raise ValueError(f"--configs names must be unique: {items}")
+    return tuple(items)
+
+
+def rotation_orders(blocks: int,
+                    configs: tuple[str, ...] | list[str] = CONFIGS) -> list[list[str]]:
+    """Rotated complete block orders over the selected arms.
 
     Block ``b`` rotates the fixed base order left by ``b`` positions (period
-    four); every block still runs each arm exactly once.
+    ``len(configs)``); every block still runs each selected arm exactly once.
     """
     if blocks < 1:
         raise ValueError(f"--blocks must be at least 1, got {blocks}")
-    base = list(CONFIGS)
+    base = list(configs)
     return [base[index % len(base):] + base[:index % len(base)]
             for index in range(blocks)]
 
@@ -395,12 +414,13 @@ def cell_metrics(record: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def arm_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
-    by_config: dict[str, list[dict[str, Any]]] = {config: [] for config in CONFIGS}
+def arm_summary(cells: list[dict[str, Any]],
+                configs: tuple[str, ...] | list[str] = CONFIGS) -> dict[str, Any]:
+    by_config: dict[str, list[dict[str, Any]]] = {config: [] for config in configs}
     for cell in cells:
         by_config.setdefault(cell["config"], []).append(cell["warm"])
     summary: dict[str, Any] = {}
-    for config in CONFIGS:
+    for config in configs:
         rows = by_config.get(config, [])
         summary[config] = {
             "cells": rows,
@@ -413,8 +433,9 @@ def arm_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def write_summary(root: Path, campaign: dict[str, Any]) -> None:
+    selected = list(campaign["params"]["configs"])
     lines = [
-        "# LMCache/UVM-KV four-arm performance-only comparison",
+        "# LMCache/UVM-KV selected-arm performance-only comparison",
         "",
         f"- Kind: `{campaign['kind']}`",
         f"- Timestamp: `{campaign['timestamp']}`",
@@ -451,7 +472,7 @@ def write_summary(root: Path, campaign: dict[str, Any]) -> None:
     lines.extend(["", "## Per-arm values across attempted cells", "",
                   "| Arm | cells | warm TTFT medians (ms) | warm requests/s | warm out tok/s |",
                   "|---|---:|---|---|---|"])
-    for config in CONFIGS:
+    for config in selected:
         values = campaign["arm_summary"].get(config, {})
         def fmt_list(series: list[Any]) -> str:
             return ", ".join(f"{x:.4f}" for x in series
@@ -467,7 +488,8 @@ def write_summary(root: Path, campaign: dict[str, Any]) -> None:
 def run_campaign(args) -> int:
     timestamp = time.strftime("%Y%m%dT%H%M%S")
     root = output_root(args.output)
-    orders = rotation_orders(args.blocks)
+    configs = tuple(args.configs)
+    orders = rotation_orders(args.blocks, configs)
     prompts = load_fixed_prompts()
     prefixes = prompts["prefixes"]
     campaign: dict[str, Any] = {
@@ -475,7 +497,7 @@ def run_campaign(args) -> int:
         "params": {
             "blocks": args.blocks, "expected_driver": args.expected_driver,
             "port": args.port, "store_barrier_timeout_s": args.store_barrier_timeout_s,
-            "configs": list(CONFIGS), "attempts_per_cell": 1,
+            "configs": list(configs), "attempts_per_cell": 1,
             "retry": False, "result_filtering": False, "gpu_idle_wait": False,
             "eviction_loader": {"arm": LOADER_ARM, "path": str(args.eviction_loader)},
             "model": ops.MODEL_ID, "model_revision": ops.MODEL_REVISION,
@@ -514,7 +536,7 @@ def run_campaign(args) -> int:
                 campaign["cells"].append({"block": block, "position": position,
                                           "config": config, "run_dir": str(run_dir),
                                           "warm": cell_metrics(record)})
-                campaign["arm_summary"] = arm_summary(campaign["cells"])
+                campaign["arm_summary"] = arm_summary(campaign["cells"], configs)
                 campaign["complete_cells"] = sum(
                     1 for cell in campaign["cells"]
                     if cell["warm"]["warm_requests_per_s"] is not None)
@@ -522,7 +544,7 @@ def run_campaign(args) -> int:
                 if stop.signum is not None:
                     raise InterruptedError(
                         f"deferred {stop.signum_name()} request; stopping between cells")
-        complete = campaign["complete_cells"] == len(orders) * len(CONFIGS)
+        complete = campaign["complete_cells"] == len(orders) * len(configs)
         write_summary(root, campaign)
         print((root / "summary.md").read_text(encoding="utf-8"), flush=True)
         return 0 if complete else 2
@@ -539,12 +561,13 @@ def run_campaign(args) -> int:
 
 def dry_run_plan(args) -> dict[str, Any]:
     prompts = load_fixed_prompts()
+    configs = tuple(args.configs)
     return {
         "dry_run": True, "kind": KIND,
         "metric": "warm TTFT, warm request rate, and warm output-token rate per arm",
-        "configs": list(CONFIGS),
+        "configs": list(configs),
         "blocks": args.blocks,
-        "block_orders": rotation_orders(args.blocks),
+        "block_orders": rotation_orders(args.blocks, configs),
         "expected_driver_parameter": args.expected_driver,
         "port": args.port,
         "eviction_loader": {
@@ -614,10 +637,15 @@ def parse_args(argv: list[str] | None = None):
     parser.add_argument("--eviction-loader", type=Path, default=ops.EVICTION_LOADER,
                         help="eviction-debt BPF loader binary started under sudo -n by "
                              "the lmcache_disk_uvm_kv_gpubpf_debt arm only")
+    parser.add_argument("--configs", default=",".join(CONFIGS),
+                        help="comma-separated nonempty unique subset of the four "
+                             "arms to run (default: all four in base order)")
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true",
                         help="print the fixed plan without touching GPU or output state")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    args.configs = parse_configs(args.configs)
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:

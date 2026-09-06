@@ -85,6 +85,56 @@ class RotationTests(unittest.TestCase):
             runner.rotation_orders(0)
 
 
+class ConfigSelectionTests(unittest.TestCase):
+    def test_parse_args_configs_default_is_all_four_in_base_order(self):
+        args = runner.parse_args([])
+        self.assertEqual(args.configs, runner.CONFIGS)
+
+    def test_parse_args_selects_the_loader_arm_alone(self):
+        args = runner.parse_args(["--configs", "lmcache_disk_uvm_kv_gpubpf_debt"])
+        self.assertEqual(args.configs, ("lmcache_disk_uvm_kv_gpubpf_debt",))
+
+    def test_parse_args_rejects_unknown_config(self):
+        with self.assertRaises(ValueError):
+            runner.parse_args(["--configs", "recompute,nosuch_arm"])
+
+    def test_parse_args_rejects_duplicate_config(self):
+        with self.assertRaises(ValueError):
+            runner.parse_args(["--configs", "recompute,lmcache_disk,recompute"])
+
+    def test_parse_args_rejects_empty_config_names(self):
+        for value in ("", "recompute,", ",recompute", "recompute,,lmcache_disk"):
+            with self.assertRaises(ValueError):
+                runner.parse_args(["--configs", value])
+
+    def test_rotation_orders_one_arm_repeats_it_every_block(self):
+        configs = ("lmcache_disk_uvm_kv_gpubpf_debt",)
+        orders = runner.rotation_orders(3, configs)
+        self.assertEqual(orders, [["lmcache_disk_uvm_kv_gpubpf_debt"]] * 3)
+        self.assertEqual(len(orders) * len(configs), 3)
+        for order in orders:
+            self.assertEqual(order, list(configs))
+
+    def test_rotation_orders_subset_rotates_only_selected_arms(self):
+        subset = ("lmcache_disk_uvm_kv_gpubpf_debt", "recompute")
+        self.assertEqual(runner.rotation_orders(2, subset),
+                         [["lmcache_disk_uvm_kv_gpubpf_debt", "recompute"],
+                          ["recompute", "lmcache_disk_uvm_kv_gpubpf_debt"]])
+
+    def test_rotation_orders_configs_default_matches_all_four(self):
+        self.assertEqual(runner.rotation_orders(3),
+                         runner.rotation_orders(3, runner.CONFIGS))
+
+    def test_arm_summary_iterates_only_selected_configs(self):
+        cells = [{"config": "lmcache_disk_uvm_kv_gpubpf_debt",
+                  "warm": {"warm_ttft_median_ms": 12.5}}]
+        summary = runner.arm_summary(cells, ("lmcache_disk_uvm_kv_gpubpf_debt",))
+        self.assertEqual(list(summary), ["lmcache_disk_uvm_kv_gpubpf_debt"])
+        self.assertEqual(summary["lmcache_disk_uvm_kv_gpubpf_debt"]["cell_count"], 1)
+        self.assertEqual(summary["lmcache_disk_uvm_kv_gpubpf_debt"]["warm_ttft_median_ms"],
+                         [12.5])
+
+
 class EnvironmentTests(unittest.TestCase):
     def test_uvm_arm_is_disk_arm_plus_plugin_vars(self):
         disk = ops.server_environment("lmcache_disk", Path(CACHE_DIR))
@@ -413,6 +463,37 @@ class DryRunTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(plan["blocks"], 3)
         self.assertEqual(plan["block_orders"], runner.rotation_orders(3))
+
+    def test_main_dry_run_one_arm_selection_drives_configs_and_orders(self):
+        rc, plan = self.capture_main(
+            ["--dry-run", "--configs", "lmcache_disk_uvm_kv_gpubpf_debt"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(plan["configs"], ["lmcache_disk_uvm_kv_gpubpf_debt"])
+        self.assertEqual(plan["block_orders"], [["lmcache_disk_uvm_kv_gpubpf_debt"]])
+
+    def test_main_dry_run_two_arm_selection_rotates_selected_arms(self):
+        rc, plan = self.capture_main(
+            ["--dry-run", "--configs", "lmcache_disk_uvm_kv_gpubpf_debt,recompute",
+             "--blocks", "2"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(plan["configs"],
+                         ["lmcache_disk_uvm_kv_gpubpf_debt", "recompute"])
+        self.assertEqual(plan["block_orders"],
+                         [["lmcache_disk_uvm_kv_gpubpf_debt", "recompute"],
+                          ["recompute", "lmcache_disk_uvm_kv_gpubpf_debt"]])
+
+    def test_main_dry_run_rejects_invalid_configs_without_output(self):
+        with self.assertRaises(ValueError):
+            self.capture_main(["--dry-run", "--configs", "nosuch_arm"])
+
+    def test_main_dry_run_rejects_duplicate_configs_without_output(self):
+        with self.assertRaises(ValueError):
+            self.capture_main(["--dry-run", "--configs",
+                               "lmcache_disk,lmcache_disk"])
+
+    def test_main_dry_run_rejects_empty_configs_without_output(self):
+        with self.assertRaises(ValueError):
+            self.capture_main(["--dry-run", "--configs", ""])
 
     def test_main_dry_run_rejects_zero_blocks_without_output(self):
         with self.assertRaises(ValueError):

@@ -1,8 +1,10 @@
 # Recoverability-Aware Arbitration Plan — LMCache/UVM-KV + gpubpf
 
 Design plan only, no implementation. Replaces the single-largest-allocation durable
-bool with a per-range semantic ABI and a bounded eviction order, and defines the two
-experiments that separate policy from mechanism. Built on
+bool with a per-range semantic ABI and a bounded eviction order, defines the two
+experiments that separate policy from mechanism, adds a compact discard-isolation
+matrix (Section 5.3), and reframes the stronger design as verified recovery
+contracts over the existing 575 `UvmDiscard` API (Section 6). Built on
 [results-575-gpubpf-kv-range-canary-20260906.md](results-575-gpubpf-kv-range-canary-20260906.md)
 and `extension/eviction_debt.bpf.c`, `eviction_debt_model.h`, `eviction_debt.c` (loader).
 
@@ -136,12 +138,34 @@ gate is unchanged.
 - **Verified hot-swappable policy.** A verifier-checked BPF program attaches to the
   live driver through struct_ops with bounded maps and loops; swapping policy is
   attach/detach, not a driver or GPU-memory-API change.
+- **Recovery contract over an existing driver capability, not a new primitive.**
+  The checked-out 575 UVM already implements `UvmDiscard`
+  (`kernel-open/nvidia-uvm/uvm.h`): discarded pages are selected for eviction
+  *before* pages that require copies, and eviction of discarded pages does not
+  copy their contents; with `UVM_DISCARD_FLAGS_UNMAP` (`uvm_types.h`) later
+  writes are guaranteed to land and clear the discard status, and reads after a
+  write observe the written data. What the driver does *not* provide is a
+  policy-controlled entry point: the gpubpf struct_ops surface
+  (`uvm_bpf_struct_ops.h`) exposes only prefetch / block-activate / block-access /
+  evict-prepare, and the transition validator's PMM request space
+  (`nv-gpu-transition-validator.h`) is chunk destination/position only — no
+  discard transition. The stronger design is therefore a set of **verified
+  recovery contracts** (Section 6): (i) after a durable store, the LMCache
+  connector publishes each block's exact UVM range, tenant, generation,
+  lifecycle, and restore capability; (ii) a validated asynchronous gpubpf
+  transition may request discard only for ranges that are inactive,
+  disk-durable, generation-current, and unpinned; (iii) LMCache must restore
+  (write) a discarded range before the model reads it; (iv) stale or missing
+  metadata falls back to native UVM, and a failed restore falls back to
+  ordinary LMCache recovery/recompute.
 - **Not claimed here:** KV-reuse prediction (debt/second-chance is a standard
   recency heuristic), tiering (LMCache already tiers to disk; CachedAttention and
-  ECHO also tier KV), or file-backed GPU memory (UVM migration and GAIA precede it).
-  The scope difference is *where and for whom* the eviction decision is made:
-  inside the driver's page lifecycle, across tenants, under a hot-swappable
-  verified policy.
+  ECHO also tier KV), file-backed GPU memory (UVM migration and GAIA precede it),
+  or the discard primitive itself — `UvmDiscard` and `UVM_DISCARD_FLAGS_UNMAP`
+  are existing 575 driver APIs. The scope difference is *where and for whom* the
+  eviction/recovery decision is made: inside the driver's page lifecycle, across
+  tenants, under a hot-swappable verified policy, against an explicit recovery
+  contract.
 
 ## 5. Experiments
 
@@ -234,15 +258,117 @@ Recorded observations (non-gating): both tenants live through the timed phase in
 all arms; B2 shows non-zero tracked counts for both PIDs; T1 `evicted` > 0. No
 performance filtering is applied.
 
-## 6. Stretch: writeback-free discard / direct-disk refault (not current capability)
+### 5.3 Experiment D — discard isolation matrix (stretch arms labeled)
 
-Separately from everything above: when the policy evicts a `TIER_DISK_LOCAL` page,
-the stretch mechanism discards HBM without a UVM writeback and serves the next
-fault directly from the LMCache O_DIRECT file. This is **not a current
-capability**: the current struct_ops surface has no discard-without-writeback hook
-and the allocator is not a fault handler. It needs a new `nvidia_uvm` hook plus
-allocator-level fault handling, so it is a mechanism extension, not part of
-Experiments A or B; any result depending on it is labeled stretch-only.
+Compact matrix isolating the discard mechanism from the policy that requests
+it. D0 and D1 run on the current 575 driver: `UVM_DISCARD` is an existing
+ioctl (`uvm_ioctl.h`), so D1 needs connector-side publication of exact block
+spans, not a driver change. D2 and D3 require the stretch-level B driver bridge
+(Section 6) and are **stretch-only**; the current code implements neither, and
+no arm claims first use of discard.
+
+| arm | name | discard trigger |
+|---|---|---|
+| D0 | `discard_native_uvm` | none (native UVM, LMCache disk pool) |
+| D1 | `discard_lmcache_direct` | the LMCache connector itself calls `UVM_DISCARD` with `UVM_DISCARD_FLAGS_UNMAP` on its own inactive, durable blocks after the store barrier |
+| D2 | `discard_gpubpf_mechanic` | gpubpf policy requests the *same discard action set* through a validated asynchronous transition (B bridge) |
+| D3 | `discard_gpubpf_semantic` | gpubpf semantic policy (Sections 2-3 range ABI: tenant, generation, lifecycle, pin, deadline, restore capability) selects which ranges to discard |
+
+Common: the A/B pressure setup (explicit pool cap plus pressure tenant `U`),
+the same `P` prefixes and timed warm reuse; D2/D3 additionally run B's second
+tenant T2 for the foreground-SLO metric. A recorded, non-gating preflight for
+D1+ probes `UVM_DISCARD` on a scratch pool subrange and confirms the
+connector's block spans lie in UVM-managed VA ranges (otherwise
+`NV_ERR_INVALID_ADDRESS`).
+
+Metrics per cell:
+
+- Warm TTFT median/p95 and throughput (req/s, out tok/s).
+- **GPU-to-CPU eviction bytes avoided** vs D0: total bytes UVM migrated to host
+  in the timed phase (per-PID PMM counters plus plugin byte counters); the
+  predicted effect of discard is that durable discarded pages never copy to
+  host.
+- **Discard/refill counts**: `UvmDiscard` invocations and
+  applied/rejected transition outcomes (connector-side in D1; driver-side in
+  D2/D3), restore writes into discarded ranges (refill), and faults observed
+  on discarded ranges (indeterminate-data hazard indicator: must be zero under
+  the restore-before-read contract).
+- **Foreground SLO under a second tenant** (T2 present): T1 warm TTFT p95 and
+  deadline-miss rate, T2 per-cycle miss rate; D3 vs D0/D1 isolates
+  tenant-aware discard selection.
+
+Attribution: **D1 vs D0** = discard mechanism alone (no policy). **D2 vs D1**
+= the same action, policy-driven: cost and behavior of the validated
+asynchronous path. **D3 vs D2** = semantic selection. **D3 vs D0** = combined.
+Recorded observations (non-gating): all arms HTTP 200 with exact
+retrieved-token counts matching D0 — the UNMAP contract makes any read served
+from a discarded range before its restore detectable as wrong content — and
+D1/D2 show discard count > 0 with eviction bytes avoided > 0.
+
+## 6. Stretch: UvmDiscard-backed recovery contracts (A / B / C)
+
+Verified source fact in this checked-out 575 UVM (`kernel-open/nvidia-uvm/uvm.h`,
+`UvmDiscard`): when a VA range is discarded, read-duplicated copies are
+collapsed, *discarded pages are selected for eviction before pages that require
+copies during eviction*, and *if discarded memory is evicted, the data in the
+pages backing the evicted range is not copied to the eviction destination* and
+the discard status is not cleared. With `UVM_DISCARD_FLAGS_UNMAP`
+(`uvm_types.h`) the discarded pages are unmapped so that *later writes are
+guaranteed to land and remove the discard status*, and reads after a write
+observe the written data. Discard may happen concurrently with memory
+migrations, so the caller must serialize page accesses and/or migrations
+against the discard. The current gpubpf struct_ops interface
+(`uvm_bpf_struct_ops.h`) does not expose discard as a policy transition: its
+PMM request space is chunk destination/position only
+(`nv-gpu-transition-validator.h`). No new fault handler is needed for the
+discard itself: the existing UVM fault/migration path plus the
+`UVM_DISCARD_FLAGS_UNMAP` write semantics is what restores a range. What is
+missing is a validated policy-controlled trigger and precise block-range
+publication.
+
+Three levels, in increasing scope:
+
+- **(A) Bounded semantic eviction ordering — the current plan.** Sections 2-3:
+  the per-range ABI and verifier-friendly victim order over the existing
+  struct_ops hooks. No new driver surface, no discard. This is what Experiments
+  A and B (Sections 5.1-5.2) exercise.
+- **(B) UvmDiscard-backed prototype — near-term stretch.** A driver bridge in
+  the driver-bridge-v1 pattern (driver-owned snapshot, append-only struct_ops
+  op, validated transition) through which a validated asynchronous gpubpf
+  transition may request discard. The contract:
+  1. **Publication.** After a durable store, the LMCache connector publishes
+     each block's exact UVM subrange, tenant, generation, lifecycle, and
+     restore capability (per-block VA spans at save/load/free; the range-wide
+     store barrier of Section 2 is an approximation, not sufficient provenance
+     for discard).
+  2. **Eligibility.** A transition may request discard only for ranges that are
+     `RANGE_INACTIVE` (not active, not pinned), `TIER_DISK_LOCAL`,
+     generation-current (record generation matches the live allocation), and
+     whose chunk is not `CHUNK_PINNED`. Stale, missing, or absent metadata, or
+     a failed snapshot validation, is `NOOP_STALE`/rejected and falls back to
+     **native UVM** (ordinary copy-requiring migration).
+  3. **Restore-before-read.** LMCache must restore (write) a discarded range
+     before the model reads it: a read of an UNMAP-discarded range before the
+     restore returns indeterminate data. The connector gates model reads on
+     restore completion for the affected blocks.
+  4. **Restore failure.** If the restore fails (e.g. the O_DIRECT object is
+     gone), the connector falls back to **normal LMCache recovery/recompute**
+     and never reads the discarded HBM range; the UVM side needs no special
+     path.
+  5. **Serialization.** The bridge serializes the `UvmDiscard` call against
+     concurrent access/migration of the range, per the `UvmDiscard` caller
+     responsibility.
+  B is **not implemented in the current code**; D2/D3 (Section 5.3) are
+  stretch-only until the bridge and the connector publication land.
+- **(C) Direct storage-to-GPU refill — optional future.** Serve the next fault
+  on a discarded range by streaming the LMCache O_DIRECT file directly into
+  HBM, bypassing the CPU-staged restore. This has no verified path in the 575
+  source tree (there is no storage-backed UVM fill today); it is a long-term
+  option, out of scope for this plan, and no experiment here claims it.
+
+Claim discipline for this section: `UvmDiscard` and `UVM_DISCARD_FLAGS_UNMAP`
+are existing driver capabilities; nothing here claims first use of discard in
+serving, and nothing claims the current code implements B or C.
 
 ## 7. Literature boundary
 
@@ -268,4 +394,9 @@ where gpubpf's decision point differs; no priority or novelty claims.
   the verified hot-swappable policy model.
 - The canary results are quoted as mechanism-engagement evidence only; no
   performance win/loss is claimed from non-contemporaneous cells.
-- Stretch items are labeled as such and excluded from the experiment claims.
+- The discard framing is scoped to the existing 575 driver API
+  (`UvmDiscard` / `UVM_DISCARD_FLAGS_UNMAP` in `uvm.h` / `uvm_types.h`):
+  no "first" claim on the primitive, and no claim that the current tree
+  implements B or C.
+- Stretch items are labeled as such and excluded from the experiment claims;
+  D2/D3 (Section 5.3) are stretch-only until the B bridge lands.

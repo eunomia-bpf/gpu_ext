@@ -18,15 +18,24 @@
  *   USED list so the kernel evicts them (cheap to restore from local NVMe
  *   once the LMCache warm phase has made the pool disk-durable).
  *
- * Warm-phase disk-durable flag (documented limitation):
- * - The exact LMCache chunk -> UVM chunk/page identity is not available
- *   to this policy.  Instead the loader exposes one explicit warm-phase
- *   flag through the existing BPF map/control path: debt_config key
- *   DEBT_CONFIG_DISK_DURABLE.  The loader sets it to 1 when the LMCache
- *   warm phase has durably written the KV pool to local NVMe.  Chunks
- *   activated while the flag is set are tracked as disk-durable; when the
- *   loader receives 'w' it also marks currently tracked chunks
- *   retroactively.
+ * Warm-phase disk-durable flag (KV-range scoped):
+ * - The loader attaches a uprobe/uretprobe pair on uvm_kv_malloc in the
+ *   workload's allocator shared object.  The uprobe saves the enter args
+ *   (size) in a HASH map keyed by pid_tgid; the uretprobe records a
+ *   successful (non-NULL) allocation as {start, end, tgid} in a single
+ *   ARRAY-map slot, keeping only the largest successful allocation
+ *   (documented limitation: a KV pool split across several smaller
+ *   allocations is only partially covered, and a freed pool stays
+ *   recorded until a larger allocation replaces it).
+ * - gpu_block_activate reads the chunk's va_block start and owner pid:
+ *   the chunk is marked KV only when the start lies inside the recorded
+ *   range for the same tgid.  The warm-phase disk-durable flag
+ *   (debt_config key DEBT_CONFIG_DISK_DURABLE, set by the loader once
+ *   the LMCache warm phase has durably written the KV pool to local
+ *   NVMe) is sampled at activation only for KV chunks; UVM memory
+ *   outside the recorded range is never claimed durable.  The loader's
+ *   'w' command also marks currently tracked chunks retroactively,
+ *   again only entries already marked KV.
  */
 
 #include <vmlinux.h>
@@ -73,6 +82,63 @@ struct {
     __type(value, struct pid_chunk_stats);
 } pid_chunk_count SEC(".maps");
 
+/* Enter args for in-flight uvm_kv_malloc calls: pid_tgid -> size. */
+struct kv_alloc_args {
+    u64 size;
+};
+
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 1024);
+    __type(key, u64);
+    __type(value, struct kv_alloc_args);
+} kv_alloc_args SEC(".maps");
+
+/* Single-KV-pool range: largest successful uvm_kv_malloc (key 0). */
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, u32);
+    __type(value, struct debt_kv_range);
+} kv_pool_range SEC(".maps");
+
+SEC("uprobe")
+int BPF_UPROBE(uvm_kv_malloc_enter, u64 size, int device, void *stream)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct kv_alloc_args args = {};
+
+    args.size = size;
+    bpf_map_update_elem(&kv_alloc_args, &pid_tgid, &args, BPF_ANY);
+    return 0;
+}
+
+SEC("uretprobe")
+int BPF_URETPROBE(uvm_kv_malloc_ret, void *ret)
+{
+    u32 zero = 0;
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct kv_alloc_args *args;
+    struct debt_kv_range *cur;
+    struct debt_kv_range range = {};
+
+    args = bpf_map_lookup_elem(&kv_alloc_args, &pid_tgid);
+    if (!args)
+        return 0;
+
+    cur = bpf_map_lookup_elem(&kv_pool_range, &zero);
+    if (ret && debt_kv_range_replace(cur, (u64)ret, args->size)) {
+        range.start = (u64)ret;
+        range.end = (u64)ret + args->size;
+        range.tgid = pid_tgid >> 32;
+        range._pad = 0;
+        bpf_map_update_elem(&kv_pool_range, &zero, &range, BPF_ANY);
+    }
+
+    bpf_map_delete_elem(&kv_alloc_args, &pid_tgid);
+    return 0;
+}
+
 static __always_inline u64 get_debt_config_u64(u32 key)
 {
     u64 *val = bpf_map_lookup_elem(&debt_config, &key);
@@ -113,6 +179,11 @@ int BPF_PROG(gpu_block_activate,
 {
     u64 chunk_ptr = (u64)chunk;
     u32 owner_pid;
+    u32 zero = 0;
+    u64 va_start = 0;
+    int is_kv = 0;
+    uvm_va_block_t *va_block;
+    struct debt_kv_range *kv;
     struct debt_chunk_state state;
     struct pid_chunk_stats *stats;
     struct pid_chunk_stats new_stats = {0};
@@ -125,8 +196,17 @@ int BPF_PROG(gpu_block_activate,
     if (bpf_map_lookup_elem(&chunk_debt, &chunk_ptr))
         return 0;
 
-    /* Sample the warm-phase disk-durable flag at activation time. */
-    debt_activate(&state, owner_pid,
+    /* KV only when the chunk's VA block starts inside the recorded
+     * single-KV-pool range for the same owner tgid. */
+    va_block = BPF_CORE_READ(chunk, va_block);
+    if (va_block)
+        va_start = BPF_CORE_READ(va_block, start);
+    kv = bpf_map_lookup_elem(&kv_pool_range, &zero);
+    is_kv = debt_kv_range_matches(kv, owner_pid, va_start);
+
+    /* Sample the warm-phase disk-durable flag at activation time; the
+     * model gates it on is_kv (non-KV chunks are never durable). */
+    debt_activate(&state, owner_pid, is_kv,
                   get_debt_config_u64(DEBT_CONFIG_DISK_DURABLE) != 0);
 
     bpf_map_update_elem(&chunk_debt, &chunk_ptr, &state, BPF_ANY);

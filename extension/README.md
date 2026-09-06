@@ -145,23 +145,36 @@ Prefetch hook 只能在当前 VA block (2MB) 内操作。原型曾把整数
 
 实验把 LMCache 的 vLLM KV cache 安排为一个定向的 UVM managed
 allocation；但 struct_ops attachment 是系统级的——策略挂载后作用于整个
-UVM 驱动的所有用户，coarse warm 标志同样是系统全局信号，两者都不隔离
-其他 UVM 用户。
+UVM 驱动的所有用户。策略通过 allocator 级 uprobe 把 disk-durable 语义
+限定在单个 KV pool 范围内（不再声明所有 UVM 内存 durable）：
 
-- **系统全局 disk-durable warm flag**：LMCache warm 阶段把 KV pool 完整写
-  本地 NVMe 后，loader 通过 `debt_config` map 的 `DEBT_CONFIG_DISK_DURABLE`
-  键置一个系统全局 warm 标志；此后激活的 chunk 记为 disk-durable，成为
-  优先驱逐候选，warm 命令之前已激活并被跟踪的 chunk 由 loader 回溯标记
-  （retroactive marking）。该标志是 coarse 信号，不是 per-KV，也不对
-  定向 allocation 之外的用户做隔离（warm 窗口内激活的任何 UVM chunk
-  都会被记为 disk-durable）。
+- **KV pool 范围跟踪**：loader 挂载 allocator `.so`（`-a` 必须指定
+   路径，例如 `gpu_ext/workloads/vllm/vllm/uvm_test/uvm_allocator.so`）中
+  `uvm_kv_malloc` 的 uprobe/uretprobe。BPF 侧在 HASH map 保存进入参数
+  （size，按 pid_tgid 键控），返回非 NULL 视为成功，把
+  `{start, end, tgid}` 记入单槽 ARRAY map，只保留最大的一次成功分配
+  （largest-wins，相等不替换）。
+- **KV 标记**：`gpu_block_activate` 读取 chunk 的 `va_block->start` 与
+  owner tgid，仅当 start 落在记录范围内且 tgid 一致时置 `is_kv`；
+  warm-phase disk-durable 标志（`debt_config` 的
+  `DEBT_CONFIG_DISK_DURABLE` 键）只对 KV chunk 采样，`w` 命令的回溯
+  标记也只作用于已跟踪的 `is_kv` 条目。
+- **单一最大分配限制**：只跟踪最大的一次成功 `uvm_kv_malloc` 分配。
+  KV pool 拆分成多个较小 allocation 时只覆盖最大的那块；分配被释放后
+  记录仍保留，直到更大的分配替换；成员判定以 2MB va_block start 为
+  粒度。
 - **未消化的驱逐风险压力代理**：`debt_pressure` 统计的是 outstanding
   eviction-risk（候选观察累积、复用/驱逐消除），不是已完成迁移的记账。
-- **精确 per-KV 身份不可得**：BPF 侧拿不到 LMCache chunk -> UVM
-  chunk/page 的精确对应，无法做 per-KV 元数据，只能用 pool 级信号近似。
 
 Debt cap (`-m`) 控制候选观察次数；聚合压力达到阈值 (`-p`) 时抑制投机
-prefetch。构建：`make eviction_debt`；状态机 CPU 测试：`make test_eviction_debt`。
+prefetch。构建：`make eviction_debt`；状态机 CPU 测试：
+`make test_eviction_debt`。
+
+```bash
+# 挂载策略并跟踪 KV pool 范围（ready 标记在 struct_ops 与两个 uprobe
+# 全部 attach 成功后才打印）
+sudo ./eviction_debt -a /path/to/uvm_allocator.so
+```
 
 ---
 

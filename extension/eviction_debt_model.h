@@ -7,6 +7,10 @@
  * unit provides the fixed-width aliases (u8/u32/u64).
  *
  * Semantics:
+ * - debt_kv_range_*: single-KV-pool range tracking.  The uprobe/
+ *   uretprobe pair on uvm_kv_malloc records the largest successful
+ *   allocation as {start, end, tgid}; membership is checked per owner
+ *   tgid at activation time.
  * - debt_prepare: one eviction-candidate observation for a chunk walked
  *   at the head of the USED list.  Below the debt cap it increments the
  *   chunk's at-risk debt signal; at/above the cap the chunk is a
@@ -37,12 +41,59 @@ struct debt_chunk_state {
 	u32 owner_pid;
 	u8  debt;          /* at-risk signal: candidate hits without an effective save */
 	u8  accesses;      /* observed reuse count, saturated */
-	u8  disk_durable;  /* warm-phase flag sampled at activation */
-	u8  _pad;
+	u8  is_kv;         /* activated inside the recorded KV pool range */
+	u8  disk_durable;  /* warm-phase flag sampled at activation (KV only) */
 };
 
 _Static_assert(sizeof(struct debt_chunk_state) == 8,
 	       "debt chunk state ABI");
+
+/*
+ * Single-KV-pool range: the largest successful uvm_kv_malloc allocation,
+ * recorded by the uprobe/uretprobe pair.  [start, end) with end exclusive.
+ */
+struct debt_kv_range {
+	u64 start;
+	u64 end;
+	u32 tgid;
+	u32 _pad;
+};
+
+/* Non-empty [start, end) containing va. */
+DEBT_INLINE int debt_kv_range_contains(const struct debt_kv_range *range,
+				       u64 va)
+{
+	return range && range->start != 0 && range->end > range->start &&
+	       va >= range->start && va < range->end;
+}
+
+/* Membership scoped to the owner: va inside the range recorded for tgid. */
+DEBT_INLINE int debt_kv_range_matches(const struct debt_kv_range *range,
+				      u32 tgid, u64 va)
+{
+	return range && tgid != 0 && range->tgid == tgid &&
+	       debt_kv_range_contains(range, va);
+}
+
+/*
+ * Largest-wins record policy: a successful allocation replaces the
+ * recorded range only when strictly larger.  Rejects empty and
+ * wrapping (start + size overflow) allocations.
+ */
+DEBT_INLINE int debt_kv_range_replace(const struct debt_kv_range *cur,
+				      u64 new_start, u64 new_size)
+{
+	u64 new_end;
+
+	if (!new_start || !new_size)
+		return 0;
+	new_end = new_start + new_size;
+	if (new_end <= new_start)
+		return 0;
+	if (cur && cur->end > cur->start && cur->end - cur->start >= new_size)
+		return 0;
+	return 1;
+}
 
 DEBT_INLINE u64 debt_effective_max(u64 configured)
 {
@@ -53,14 +104,19 @@ DEBT_INLINE u64 debt_effective_max(u64 configured)
 	return configured;
 }
 
+/*
+ * Activation record.  The warm-phase disk_durable flag is sampled only
+ * for KV chunks: a chunk outside the recorded KV pool range can never
+ * be marked disk-durable, regardless of the flag.
+ */
 DEBT_INLINE void debt_activate(struct debt_chunk_state *state,
-			       u32 owner_pid, int disk_durable)
+			       u32 owner_pid, int is_kv, int disk_durable)
 {
 	state->owner_pid = owner_pid;
 	state->debt = 0;
 	state->accesses = 0;
-	state->disk_durable = disk_durable ? 1 : 0;
-	state->_pad = 0;
+	state->is_kv = is_kv ? 1 : 0;
+	state->disk_durable = (is_kv && disk_durable) ? 1 : 0;
 }
 
 enum debt_prepare_action {

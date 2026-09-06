@@ -1,0 +1,120 @@
+{
+  "block_orders": [
+    [
+      "gds_fifo",
+      "gds_native",
+      "gds_bpf"
+    ]
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "config": "gds_fifo",
+      "metrics": {
+        "completed_reads": 4,
+        "completed_writes": 6,
+        "defer_decisions": 0,
+        "read_end_to_end_p50_ms": 32.74317849991348,
+        "read_end_to_end_p99_ms": 33.871979000650754,
+        "total_storage_bandwidth_mib_s": 5191.172834504117,
+        "write_completion_ops_s": 131.64004162723228,
+        "write_completion_throughput_mib_s": 3159.360999053575
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-mixed-backend-575-20260906-01/block-00/position-0-gds_fifo"
+    },
+    {
+      "block": 0,
+      "config": "gds_native",
+      "metrics": {
+        "completed_reads": 4,
+        "completed_writes": 6,
+        "defer_decisions": 6,
+        "read_end_to_end_p50_ms": 3.8668080001116323,
+        "read_end_to_end_p99_ms": 3.9809740001146565,
+        "total_storage_bandwidth_mib_s": 7105.639452951851,
+        "write_completion_ops_s": 180.8688560023688,
+        "write_completion_throughput_mib_s": 4340.852544056851
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-mixed-backend-575-20260906-01/block-00/position-1-gds_native"
+    },
+    {
+      "block": 0,
+      "config": "gds_bpf",
+      "metrics": {
+        "completed_reads": 4,
+        "completed_writes": 6,
+        "defer_decisions": 6,
+        "read_end_to_end_p50_ms": 3.34249749994342,
+        "read_end_to_end_p99_ms": 3.4236359997521504,
+        "total_storage_bandwidth_mib_s": 7073.436625189427,
+        "write_completion_ops_s": 179.25257233760993,
+        "write_completion_throughput_mib_s": 4302.061736102639
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-mixed-backend-575-20260906-01/block-00/position-2-gds_bpf"
+    }
+  ],
+  "kind": "lmcache_gds_mixed_backend",
+  "params": {
+    "attempts_per_cell": 1,
+    "blocks": 1,
+    "configs": [
+      "gds_fifo",
+      "gds_native",
+      "gds_bpf"
+    ],
+    "controlled_policy_inputs": {
+      "hbm_pressure_permille": 801,
+      "label": "explicit controlled inputs, not measured live HBM pressure",
+      "slack_ns": 10000000,
+      "speculative_recomputable": false
+    },
+    "dst_device": "cuda:0",
+    "gds_buffer_size_mib": 256,
+    "object_mib": 24,
+    "read_stagger_ms": 2.0,
+    "reads": 4,
+    "retry": false,
+    "write_stagger_ms": 4.0,
+    "writes": 6
+  },
+  "summary": {
+    "cells_attempted": 3,
+    "kind": "lmcache_gds_mixed_backend",
+    "per_mode": {
+      "gds_bpf": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "read_end_to_end_p50_ms": 3.34249749994342,
+          "read_end_to_end_p99_ms": 3.4236359997521504,
+          "total_storage_bandwidth_mib_s": 7073.436625189427,
+          "write_completion_throughput_mib_s": 4302.061736102639
+        }
+      },
+      "gds_fifo": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "read_end_to_end_p50_ms": 32.74317849991348,
+          "read_end_to_end_p99_ms": 33.871979000650754,
+          "total_storage_bandwidth_mib_s": 5191.172834504117,
+          "write_completion_throughput_mib_s": 3159.360999053575
+        }
+      },
+      "gds_native": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "read_end_to_end_p50_ms": 3.8668080001116323,
+          "read_end_to_end_p99_ms": 3.9809740001146565,
+          "total_storage_bandwidth_mib_s": 7105.639452951851,
+          "write_completion_throughput_mib_s": 4340.852544056851
+        }
+      }
+    }
+  },
+  "timestamp": "20260906T165437"
+}

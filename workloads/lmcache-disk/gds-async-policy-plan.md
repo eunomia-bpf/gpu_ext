@@ -67,6 +67,45 @@ formula in the adapter. The BPF arm evaluates it through the ioctl and
 executor. This makes their difference the mechanism cost rather than a change
 in transport or policy.
 
+## Concrete control flow
+
+Keep the kernel boundary synchronous and the storage work asynchronous. The
+LMCache adapter constructs one versioned scalar request for a logical KV chunk
+and invokes the UVM decision ioctl. The ioctl calls the attached
+`gpu_storage_ops.decide` callback and immediately returns a validated reply.
+It never submits storage I/O from kernel context. The trusted adapter then
+places the request in one of two execution lanes:
+
+1. **Ordered demand lane.** Demand reads use `cuFileReadAsync` on the owned
+   CUDA storage stream. They preserve stream ordering and may be changed to
+   recomputation, but an unsafe `DEFER` reply is reduced to `SUBMIT_NOW`.
+2. **Independent background lane.** Durable writes and speculative reads are
+   held in a per-GPU deadline queue. The adapter releases them as cuFile batch
+   submissions when the requested batch is full, the oldest deadline expires,
+   or an urgent read needs the device. This lane is where BPF can reorder,
+   defer, and coalesce transfers without violating application-stream order.
+
+The first ABI needs four operations, not storage capabilities:
+
+- `DECIDE(request) -> reply`: choose action, bounded delay, priority, and batch
+  target for one logical chunk;
+- `COMPLETE(request_id, bytes, latency, status)`: update scalar service-time
+  and queue estimates after the trusted executor observes completion;
+- `CANCEL(request_id)`: remove a request that LMCache no longer needs; and
+- `QUERY_CAPS`: report ABI version and bounded limits to the adapter.
+
+The trusted side validates the request size/version and reply bounds. Missing
+policy, malformed reply, timeout, unsupported recomputation, and write-side
+`RECOMPUTE` all fall back to `SUBMIT_NOW`. The BPF program sees opaque object
+and request IDs but never the file handle, file offset, GPU address, CUDA
+stream, completion event, or batch handle.
+
+Completion telemetry is deliberately aggregate: exponentially weighted read
+and write service time, current queue bytes/depth, deadline misses, and recent
+HBM pressure. This is enough to make scheduling decisions without turning BPF
+maps into a second request queue. LMCache remains the sole owner of request
+lifetime and buffer reuse.
+
 After the all-or-none path runs, add a bounded hybrid-restore policy inspired
 by KVPR rather than another transport. For each read, evaluate only five legal
 splits (fetch 0%, 25%, 50%, 75%, or 100% of aligned KV subchunks). For split
@@ -93,6 +132,14 @@ request and token throughput, storage bandwidth, queue delay, batch size,
 defer/recompute counts, and native-versus-BPF policy cost. Record direct
 P2PDMA, cuFile compatibility, and POSIX execution as separate transport labels;
 none suppresses performance collection.
+
+Run the transport microbenchmark as a 3-by-2 comparison: FIFO, matched native,
+and BPF control, each with the ordered-stream executor and the mixed
+stream-plus-batch executor. The first publishable result is not raw peak NVMe
+bandwidth; it is whether scheduling background writes away from urgent reads
+reduces read p99/TTFT while preserving aggregate bandwidth, followed by the
+native-versus-BPF delta under the identical policy. The end-to-end five-arm
+LMCache experiment then adds recompute, CPU tier, and ordinary disk baselines.
 
 ## Current RTX 5090 path
 

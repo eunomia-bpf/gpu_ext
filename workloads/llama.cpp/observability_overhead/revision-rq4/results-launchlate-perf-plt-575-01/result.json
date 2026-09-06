@@ -1,0 +1,529 @@
+{
+  "kind": "launchlate_perf_only",
+  "timestamp": "20260905_203555",
+  "params": {
+    "kind": "launchlate_perf_only",
+    "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "llama_cli": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+    "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt",
+    "bpftime_build_dir": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575",
+    "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "runs": 1,
+    "pp": 512,
+    "tg": 0,
+    "n_gpu_layers": 99,
+    "timeout_s": 300,
+    "probe_startup_s": 3.0,
+    "gpu_thread_count": 22528,
+    "uprobe_binary": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+    "uprobe_symbol_hint": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+    "nvbit_tool": null,
+    "uvm": false,
+    "no_warmup": false,
+    "cuda_graphs_disabled": true,
+    "schedule_seed": 1797,
+    "worker_cpus": "8-15",
+    "attempts_per_cell": 1
+  },
+  "provenance": {
+    "nvidia_smi": {
+      "gpu": "NVIDIA GeForce RTX 5090, 575.57.08, 32607, 15, 0, 12.87",
+      "compute_apps": ""
+    },
+    "driver": "575.57.08",
+    "boot_id": "764b3c68-c75c-4ea5-aeb8-0142da056281",
+    "model_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+      "exists": true,
+      "bytes": 668788096,
+      "device": 66305,
+      "inode": 92561303,
+      "mtime_ns": 1772776302766880924,
+      "ctime_ns": 1786245720455318115
+    },
+    "llama_bench_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+      "exists": true,
+      "bytes": 527880,
+      "device": 66305,
+      "inode": 92556388,
+      "mtime_ns": 1783383234718689913,
+      "ctime_ns": 1786245718135780259
+    },
+    "llama_cli_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-cli",
+      "exists": true,
+      "bytes": 2716232,
+      "device": 66305,
+      "inode": 92556389,
+      "mtime_ns": 1772776388902529402,
+      "ctime_ns": 1786245718138989568
+    },
+    "libggml_cuda_file": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so",
+      "exists": true,
+      "bytes": 48833696,
+      "device": 66305,
+      "inode": 92556385,
+      "mtime_ns": 1783383226290119050,
+      "ctime_ns": 1786245718129982510
+    },
+    "bpftime_agent_file": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575/runtime/agent/libbpftime-agent.so",
+      "exists": true,
+      "bytes": 277356352,
+      "device": 66305,
+      "inode": 92289497,
+      "mtime_ns": 1788583676796931979,
+      "ctime_ns": 1788583676797932001
+    },
+    "bpftime_syscall_server_file": {
+      "path": "/home/yunwei37/workspace/gpu/bpftime-table1-575/build-launchlate-575/runtime/syscall-server/libbpftime-syscall-server.so",
+      "exists": true,
+      "bytes": 272467072,
+      "device": 66305,
+      "inode": 92290667,
+      "mtime_ns": 1788583681108029537,
+      "ctime_ns": 1788583681109003486
+    }
+  },
+  "artifacts": {
+    "gpubpf_launchlate": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/results-launchlate-perf-plt-575-01/gpubpf_tool_build/launchlate/launchlate"
+    },
+    "nvbit_tool": {
+      "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/results-launchlate-perf-plt-575-01/nvbit_tool_build/observability.so"
+    }
+  },
+  "schedule": {
+    "1": [
+      "nvbit_launchlate",
+      "baseline",
+      "gpubpf_launchlate"
+    ]
+  },
+  "configs": {
+    "baseline": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "baseline_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 37842.420318,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              37842.4
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-06T03:36:11Z",
+              "avg_ns": 13529790,
+              "stddev_ns": 0,
+              "avg_ts": 37842.420318,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13529790
+              ],
+              "samples_ts": [
+                37842.4
+              ]
+            }
+          ],
+          "block": 1,
+          "attempt": 1
+        }
+      ]
+    },
+    "gpubpf_launchlate": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "gpubpf_launchlate_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 37088.274875,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              37088.3
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-06T03:37:30Z",
+              "avg_ns": 13804902,
+              "stddev_ns": 0,
+              "avg_ts": 37088.274875,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                13804902
+              ],
+              "samples_ts": [
+                37088.3
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 44,
+            "host_launches": 44,
+            "device_entries": 44,
+            "queue_underflows": 0,
+            "queue_overflows": 0,
+            "histogram_samples": null,
+            "host_enqueued": null,
+            "matched_samples": null,
+            "queue_update_errors": null,
+            "classified_samples": null,
+            "uncertain_samples": null,
+            "clock_errors": null,
+            "online_accounting_complete": null,
+            "accounting_complete": null,
+            "pairing_complete": null,
+            "probes_detached_before_readback": null,
+            "start_clock_offset_lower_ns": null,
+            "start_clock_offset_upper_ns": null,
+            "start_clock_uncertainty_ns": null,
+            "start_clock_host_anchor_ns": null,
+            "measurement_end_clock_offset_lower_ns": null,
+            "measurement_end_clock_offset_upper_ns": null,
+            "measurement_end_clock_uncertainty_ns": null,
+            "measurement_end_clock_host_anchor_ns": null,
+            "validation_end_clock_offset_lower_ns": null,
+            "validation_end_clock_offset_upper_ns": null,
+            "validation_end_clock_uncertainty_ns": null,
+            "validation_end_clock_host_anchor_ns": null,
+            "clock_offset_change_lower_ns": null,
+            "clock_offset_change_upper_ns": null,
+            "clock_calibration_elapsed_ns": null,
+            "clock_drift_rate_bound_ppb": null,
+            "clock_drift_limit_ppb": null,
+            "clock_drift_bounded": null,
+            "clock_slope_diagnostic_only": null,
+            "held_out_predicted_lower_ns": null,
+            "held_out_predicted_upper_ns": null,
+            "held_out_overlap_lower_ns": null,
+            "held_out_overlap_upper_ns": null,
+            "validation_span_ns": null,
+            "held_out_validation_passed": null,
+            "clock_calibration_method": "",
+            "start_rm_samples_requested": null,
+            "start_rm_samples_accepted": null,
+            "start_rm_samples_rejected": null,
+            "start_rm_outer_before_raw_ns": null,
+            "start_rm_cpu_before_raw_ns": null,
+            "start_rm_gpu_ptimer_ns": null,
+            "start_rm_cpu_after_raw_ns": null,
+            "start_rm_outer_after_raw_ns": null,
+            "start_rm_outer_width_ns": null,
+            "start_rm_selected_gap_ns": null,
+            "start_rm_bracket_width_ns": null,
+            "start_rm_cleanup_complete": null,
+            "start_rm_status": null,
+            "measurement_end_rm_samples_requested": null,
+            "measurement_end_rm_samples_accepted": null,
+            "measurement_end_rm_samples_rejected": null,
+            "measurement_end_rm_outer_before_raw_ns": null,
+            "measurement_end_rm_cpu_before_raw_ns": null,
+            "measurement_end_rm_gpu_ptimer_ns": null,
+            "measurement_end_rm_cpu_after_raw_ns": null,
+            "measurement_end_rm_outer_after_raw_ns": null,
+            "measurement_end_rm_outer_width_ns": null,
+            "measurement_end_rm_selected_gap_ns": null,
+            "measurement_end_rm_bracket_width_ns": null,
+            "measurement_end_rm_cleanup_complete": null,
+            "measurement_end_rm_status": null,
+            "validation_end_rm_samples_requested": null,
+            "validation_end_rm_samples_accepted": null,
+            "validation_end_rm_samples_rejected": null,
+            "validation_end_rm_outer_before_raw_ns": null,
+            "validation_end_rm_cpu_before_raw_ns": null,
+            "validation_end_rm_gpu_ptimer_ns": null,
+            "validation_end_rm_cpu_after_raw_ns": null,
+            "validation_end_rm_outer_after_raw_ns": null,
+            "validation_end_rm_outer_width_ns": null,
+            "validation_end_rm_selected_gap_ns": null,
+            "validation_end_rm_bracket_width_ns": null,
+            "validation_end_rm_cleanup_complete": null,
+            "validation_end_rm_status": null
+          },
+          "probe_log": "gpubpf_launchlate_run_101/probe.log",
+          "block": 1,
+          "attempt": 1
+        }
+      ]
+    },
+    "nvbit_launchlate": {
+      "runs": [
+        {
+          "run": 101,
+          "log": "nvbit_launchlate_run_101/llama_bench.log",
+          "returncode": 0,
+          "valid": true,
+          "metrics": {
+            "pp_tok_s": 33376.346666,
+            "pp_stddev": 0.0,
+            "pp_tokens": 512,
+            "pp_samples_tok_s": [
+              33376.3
+            ]
+          },
+          "raw": [
+            {
+              "build_commit": "26836b27",
+              "build_number": 7102,
+              "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+              "gpu_info": "NVIDIA GeForce RTX 5090",
+              "backends": "CUDA",
+              "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+              "model_type": "llama 1B Q4_K - Medium",
+              "model_size": 667078656,
+              "model_n_params": 1100048384,
+              "n_batch": 2048,
+              "n_ubatch": 512,
+              "n_threads": 4,
+              "cpu_mask": "0x0",
+              "cpu_strict": false,
+              "poll": 50,
+              "type_k": "f16",
+              "type_v": "f16",
+              "n_gpu_layers": 99,
+              "n_cpu_moe": 0,
+              "split_mode": "layer",
+              "main_gpu": 0,
+              "no_kv_offload": false,
+              "flash_attn": false,
+              "devices": "auto",
+              "tensor_split": "0.00",
+              "tensor_buft_overrides": "none",
+              "use_mmap": true,
+              "embeddings": false,
+              "no_op_offload": 0,
+              "no_host": false,
+              "n_prompt": 512,
+              "n_gen": 0,
+              "n_depth": 0,
+              "test_time": "2026-09-06T03:36:10Z",
+              "avg_ns": 15340205,
+              "stddev_ns": 0,
+              "avg_ts": 33376.346666,
+              "stddev_ts": 0.0,
+              "samples_ns": [
+                15340205
+              ],
+              "samples_ts": [
+                33376.3
+              ]
+            }
+          ],
+          "probe": {
+            "sample_count": 0,
+            "clock_errors": 44,
+            "histogram": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "histogram_sum": 0,
+            "selected_launches": 44,
+            "process_selected_launches": 44,
+            "result_blocks": 1,
+            "uncertain_samples": 0,
+            "pair_capacity": 65536,
+            "stored_pairs": 44,
+            "device_entries": 44,
+            "pair_overflows": 0,
+            "capture_errors": 0,
+            "selected_counter_overflow": 0,
+            "accounting_complete": 1,
+            "start_clock_offset_lower_ns": 0,
+            "start_clock_offset_upper_ns": 0,
+            "start_clock_uncertainty_ns": 0,
+            "start_clock_host_anchor_ns": 0,
+            "start_clock_calibration_valid": 0,
+            "measurement_end_clock_offset_lower_ns": 0,
+            "measurement_end_clock_offset_upper_ns": 0,
+            "measurement_end_clock_uncertainty_ns": 0,
+            "measurement_end_clock_host_anchor_ns": 0,
+            "measurement_end_clock_calibration_valid": 0,
+            "validation_end_clock_offset_lower_ns": 0,
+            "validation_end_clock_offset_upper_ns": 0,
+            "validation_end_clock_uncertainty_ns": 0,
+            "validation_end_clock_host_anchor_ns": 0,
+            "validation_end_clock_calibration_valid": 0,
+            "clock_offset_change_lower_ns": 0,
+            "clock_offset_change_upper_ns": 0,
+            "clock_calibration_elapsed_ns": 0,
+            "clock_drift_rate_bound_ppb": 0,
+            "clock_drift_limit_ppb": 10000,
+            "clock_drift_bounded": 0,
+            "clock_slope_diagnostic_only": 1,
+            "held_out_predicted_lower_ns": 0,
+            "held_out_predicted_upper_ns": 0,
+            "held_out_overlap_lower_ns": 0,
+            "held_out_overlap_upper_ns": 0,
+            "validation_span_ns": 0,
+            "held_out_validation_passed": 0,
+            "start_rm_samples_requested": 32,
+            "start_rm_samples_accepted": 0,
+            "start_rm_samples_rejected": 0,
+            "start_rm_outer_before_raw_ns": 0,
+            "start_rm_cpu_before_raw_ns": 0,
+            "start_rm_gpu_ptimer_ns": 0,
+            "start_rm_cpu_after_raw_ns": 0,
+            "start_rm_outer_after_raw_ns": 0,
+            "start_rm_outer_width_ns": 0,
+            "start_rm_selected_gap_ns": 0,
+            "start_rm_bracket_width_ns": 0,
+            "start_rm_status": 0,
+            "start_rm_cleanup_complete": 1,
+            "measurement_end_rm_samples_requested": 32,
+            "measurement_end_rm_samples_accepted": 0,
+            "measurement_end_rm_samples_rejected": 0,
+            "measurement_end_rm_outer_before_raw_ns": 0,
+            "measurement_end_rm_cpu_before_raw_ns": 0,
+            "measurement_end_rm_gpu_ptimer_ns": 0,
+            "measurement_end_rm_cpu_after_raw_ns": 0,
+            "measurement_end_rm_outer_after_raw_ns": 0,
+            "measurement_end_rm_outer_width_ns": 0,
+            "measurement_end_rm_selected_gap_ns": 0,
+            "measurement_end_rm_bracket_width_ns": 0,
+            "measurement_end_rm_status": 0,
+            "measurement_end_rm_cleanup_complete": 1,
+            "validation_end_rm_samples_requested": 32,
+            "validation_end_rm_samples_accepted": 0,
+            "validation_end_rm_samples_rejected": 0,
+            "validation_end_rm_outer_before_raw_ns": 0,
+            "validation_end_rm_cpu_before_raw_ns": 0,
+            "validation_end_rm_gpu_ptimer_ns": 0,
+            "validation_end_rm_cpu_after_raw_ns": 0,
+            "validation_end_rm_outer_after_raw_ns": 0,
+            "validation_end_rm_outer_width_ns": 0,
+            "validation_end_rm_selected_gap_ns": 0,
+            "validation_end_rm_bracket_width_ns": 0,
+            "validation_end_rm_status": 0,
+            "validation_end_rm_cleanup_complete": 1,
+            "clock_calibration_method": "rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_with_three_anchor_held_out_affine_validation",
+            "calibration_blocks": 1
+          },
+          "block": 1,
+          "attempt": 1
+        }
+      ]
+    }
+  },
+  "summary": {
+    "blocks": [
+      {
+        "block": 1,
+        "complete": true,
+        "baseline": 37842.420318,
+        "gpubpf_launchlate": 37088.274875,
+        "nvbit_launchlate": 33376.346666,
+        "gpubpf_launchlate_overhead_pct": 1.9928573190158234,
+        "nvbit_launchlate_overhead_pct": 11.801765358743932
+      }
+    ],
+    "configs": [
+      {
+        "config": "baseline",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 37842.42031800002,
+        "mean_overhead_pct_vs_baseline": null
+      },
+      {
+        "config": "gpubpf_launchlate",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 37088.27487499999,
+        "mean_overhead_pct_vs_baseline": 1.9928573190158234
+      },
+      {
+        "config": "nvbit_launchlate",
+        "valid_blocks": 1,
+        "attempts": 1,
+        "pp_tok_s_geomean": 33376.34666599999,
+        "mean_overhead_pct_vs_baseline": 11.801765358743932
+      }
+    ]
+  }
+}

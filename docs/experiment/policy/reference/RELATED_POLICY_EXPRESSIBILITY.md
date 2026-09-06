@@ -7,7 +7,7 @@ successful local analogue as a reproduction of the original system.
 
 The machine-readable source of truth is
 [`related-policy-expressibility.json`](related-policy-expressibility.json).  It
-currently contains **50 papers across seven policy families**.  Every row records
+currently contains **52 papers across seven policy families**.  Every row records
 the primary publication/artifact URL, the paper's observations and actions, the
 whole-policy classification, missing primitives, any corresponding in-tree
 programs, and the strongest evidence level actually available.
@@ -190,6 +190,8 @@ observation/action and missing-primitive text.
 | [GPS](https://research.nvidia.com/publication/2021-10_gps-global-publish-subscribe-model-multi-gpu-memory-management) | 2021 | `NO` | — | No replication, global directory, or coherence action |
 | [CARVE](https://research.nvidia.com/publication/2018-10_combining-hwsw-mechanisms-improve-numa-performance-multi-gpu-systems) | 2018 | `NO` | — | No peer topology, remote-cache allocation, or coherence control |
 | [Griffin](https://doi.org/10.1109/HPCA47549.2020.00055) | 2020 | `NO` | — | No peer identity/destination or exact peer migration |
+| [ObjectCache](https://arxiv.org/abs/2605.22850) | 2026 | `PARTIAL` | planned `gpu_storage_ops` deadline/order decision | Object-store transport, server scheduling, and layerwise completion protocol remain external |
+| [ParisKV](https://arxiv.org/abs/2602.07721) | 2026 | `NO` | — | No token-level similarity estimator, quantized reranking, or selective attention retrieval actuator |
 
 ## Completed routes and still-missing mechanism surface
 

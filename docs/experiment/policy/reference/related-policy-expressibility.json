@@ -745,6 +745,66 @@
       "missing_primitives": ["peer GPU identity", "source/destination selection", "exact peer migration"],
       "in_tree_programs": [],
       "evidence": {"level": "source", "paths": [], "note": "No multi-GPU migration claim."}
+    },
+    {
+      "id": "matkv-arxiv25",
+      "title": "MatKV: Trading Compute for Flash Storage in LLM Inference",
+      "year": 2025,
+      "venue": "arXiv",
+      "category": "multi_gpu_storage",
+      "primary_url": "https://arxiv.org/abs/2512.22195",
+      "observes": ["flash fetch time, recomputation time, request progress, and available overlap"],
+      "acts": ["chooses whether KV state is materialized from flash or recomputed"],
+      "classification": "PARTIAL",
+      "mapping_reason": "The planned storage hook can select fetch or recomputation from scalar cost estimates, while LMCache and the model runtime remain responsible for transport, recomputation, and synchronization.",
+      "missing_primitives": ["KV recomputation executor", "fetch-compute synchronization", "model progress metadata"],
+      "in_tree_programs": [],
+      "evidence": {"level": "source", "paths": [], "note": "A bounded fetch/recompute policy is planned; no MatKV reproduction is claimed."}
+    },
+    {
+      "id": "kvpr-acl25",
+      "title": "KVPR: Efficient LLM Inference with I/O-Aware KV Cache Partial Recomputation",
+      "year": 2025,
+      "venue": "ACL Findings",
+      "category": "multi_gpu_storage",
+      "primary_url": "https://aclanthology.org/2025.findings-acl.997/",
+      "observes": ["KV transfer cost, recomputation cost, sequence length, and batch shape"],
+      "acts": ["chooses a partial transfer and recomputation split and overlaps both paths"],
+      "classification": "PARTIAL",
+      "mapping_reason": "The planned storage ABI can return one of five bounded fetch fractions, but the attention runtime must execute and synchronize partial recomputation.",
+      "missing_primitives": ["partial attention recomputation", "subchunk dependency tracking", "fetch-compute join"],
+      "in_tree_programs": [],
+      "evidence": {"level": "source", "paths": [], "note": "The public KVPR artifact is available locally; no full artifact result is claimed."}
+    },
+    {
+      "id": "objectcache-arxiv26",
+      "title": "ObjectCache: Layerwise Object-Storage Retrieval for KV Cache Reuse",
+      "year": 2026,
+      "venue": "arXiv",
+      "category": "multi_gpu_storage",
+      "primary_url": "https://arxiv.org/abs/2605.22850",
+      "observes": ["layer consumption order, object availability, request concurrency, and transfer progress"],
+      "acts": ["orders layerwise object retrieval and overlaps transfer with GPU computation"],
+      "classification": "PARTIAL",
+      "mapping_reason": "A deadline-aware storage callback can choose local submission order, while remote object transport, server scheduling, and layerwise completion remain outside gpubpf.",
+      "missing_primitives": ["object-store transport", "server-side scheduling", "layerwise completion protocol"],
+      "in_tree_programs": [],
+      "evidence": {"level": "source", "paths": [], "note": "The paper motivates deadline/order inputs; no ObjectCache reproduction is claimed."}
+    },
+    {
+      "id": "pariskv-arxiv26",
+      "title": "ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs",
+      "year": 2026,
+      "venue": "arXiv",
+      "category": "multi_gpu_storage",
+      "primary_url": "https://arxiv.org/abs/2602.07721",
+      "observes": ["token similarity candidates, quantized reranking scores, and workload drift"],
+      "acts": ["selects KV entries for content-aware retrieval"],
+      "classification": "NO",
+      "mapping_reason": "The storage-decision ABI lacks token-level similarity estimation, quantized reranking, and a selective-attention retrieval actuator.",
+      "missing_primitives": ["token similarity estimator", "quantized reranking", "selective attention retrieval"],
+      "in_tree_programs": [],
+      "evidence": {"level": "source", "paths": [], "note": "This is a semantic retrieval policy rather than storage submission scheduling."}
     }
   ]
 }

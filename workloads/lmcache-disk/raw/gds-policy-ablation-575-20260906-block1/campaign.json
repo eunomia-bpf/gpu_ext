@@ -1,0 +1,159 @@
+{
+  "block_orders": [
+    [
+      "gds_fifo",
+      "gds_bpf_floor",
+      "gds_defer_native",
+      "gds_full_native",
+      "gds_full_bpf"
+    ]
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "config": "gds_fifo",
+      "metrics": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 38.511322330269444,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 2.4069576456418402,
+        "warm_ttft_median_ms": 74.893052
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-policy-ablation-575-20260906-block1/block-00/position-0-gds_fifo"
+    },
+    {
+      "block": 0,
+      "config": "gds_bpf_floor",
+      "metrics": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 38.29980695051126,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 2.393737934406954,
+        "warm_ttft_median_ms": 76.5971335
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-policy-ablation-575-20260906-block1/block-00/position-1-gds_bpf_floor"
+    },
+    {
+      "block": 0,
+      "config": "gds_defer_native",
+      "metrics": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 36.644045920182684,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 2.2902528700114178,
+        "warm_ttft_median_ms": 77.21023600000001
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-policy-ablation-575-20260906-block1/block-00/position-2-gds_defer_native"
+    },
+    {
+      "block": 0,
+      "config": "gds_full_native",
+      "metrics": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 38.10612939407442,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 2.3816330871296514,
+        "warm_ttft_median_ms": 74.9578515
+      },
+      "position": 3,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-policy-ablation-575-20260906-block1/block-00/position-3-gds_full_native"
+    },
+    {
+      "block": 0,
+      "config": "gds_full_bpf",
+      "metrics": {
+        "ready": true,
+        "server_returncode": 0,
+        "warm_output_tokens_per_s": 37.73310990202927,
+        "warm_requests_failed": 0,
+        "warm_requests_ok": 8,
+        "warm_requests_per_s": 2.3583193688768294,
+        "warm_ttft_median_ms": 79.3582775
+      },
+      "position": 4,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-policy-ablation-575-20260906-block1/block-00/position-4-gds_full_bpf"
+    }
+  ],
+  "kind": "lmcache_gds_policy_ablation",
+  "params": {
+    "attempts_per_cell": 1,
+    "blocks": 1,
+    "configs": [
+      "gds_fifo",
+      "gds_bpf_floor",
+      "gds_defer_native",
+      "gds_full_native",
+      "gds_full_bpf"
+    ],
+    "expected_driver": "575.57.08",
+    "gds_buffer_size_mib": 256,
+    "kv_cache_memory_bytes": 805306368,
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "port": 18080,
+    "retry": false,
+    "store_barrier_timeout_s": 120.0
+  },
+  "summary": {
+    "cells_attempted": 5,
+    "kind": "lmcache_gds_policy_ablation",
+    "per_arm": {
+      "gds_bpf_floor": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "warm_output_tokens_per_s": 38.29980695051126,
+          "warm_requests_per_s": 2.393737934406954,
+          "warm_ttft_median_ms": 76.5971335
+        }
+      },
+      "gds_defer_native": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "warm_output_tokens_per_s": 36.644045920182684,
+          "warm_requests_per_s": 2.2902528700114178,
+          "warm_ttft_median_ms": 77.21023600000001
+        }
+      },
+      "gds_fifo": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "warm_output_tokens_per_s": 38.511322330269444,
+          "warm_requests_per_s": 2.4069576456418402,
+          "warm_ttft_median_ms": 74.893052
+        }
+      },
+      "gds_full_bpf": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "warm_output_tokens_per_s": 37.73310990202927,
+          "warm_requests_per_s": 2.3583193688768294,
+          "warm_ttft_median_ms": 79.3582775
+        }
+      },
+      "gds_full_native": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "warm_output_tokens_per_s": 38.10612939407442,
+          "warm_requests_per_s": 2.3816330871296514,
+          "warm_ttft_median_ms": 74.9578515
+        }
+      }
+    }
+  },
+  "timestamp": "20260906T163253"
+}

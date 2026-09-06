@@ -1,3 +1,5 @@
+> **2026-09-06: 时钟公平性门槛已由用户指示废除；本文档中的 clock-state / P0 / 精确时钟对匹配要求不再适用。仅以性能数据为准。**
+
 # Launch-latency preflight attempt 08: retained raw-path failure
 
 Date: 2026-09-04

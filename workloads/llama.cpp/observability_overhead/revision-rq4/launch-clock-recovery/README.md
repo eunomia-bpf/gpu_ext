@@ -1,5 +1,12 @@
 # Launch-clock recovery audit
 
+**2026-09-06: 时钟公平性门槛已由用户指示全部废除（P0 状态、精确时钟对匹配、
+min=max 锁定证明、attempt 13 的 telemetry-fairness 计划均不再适用），只以性能
+数据为准。RTX 5090 的 launchlate 性能数据来自 attempt 12 的子 preflight：
+baseline 6,340.36 tok/s、gpubpf 4,401.18 tok/s（30.6% 开销）、NVBit
+5,201.92 tok/s（18.0% 开销）。版本化 endpoint 校准为 200/200 样本、759 ns 中位
+bracket。下文中所有 gate 相关表述均为历史记录。**
+
 The three-anchor experiment definition is frozen in
 [`launchlate-frozen-plan-v2.md`](launchlate-frozen-plan-v2.md). It retains the
 unchanged experiment requirements from

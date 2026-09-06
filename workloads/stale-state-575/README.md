@@ -98,12 +98,24 @@ on the previously exercised revision-prefetch lifecycle primitives.
 This remains implementation and live-engagement readiness, not a result.
 Controlled attempts have loaded the stale-state module, passed live verifier
 and attach checks, and executed real 40-GiB cells, but every seven-cell
-excluded preflight is incomplete or rejected. No partial cell is carried into
-another attempt, and formal execution remains disabled. The retained attempt
+excluded preflight was incomplete or rejected until the owner-12 attempt,
+whose completed campaign now passes the frozen validator while its outer
+lifecycle record stays incomplete and unadmitted. No partial cell is carried
+into another attempt, and formal execution remains gated on the reviewed
+lifecycle window. The retained attempt
 history and current restore-ABI blocker are in
 [`live-preflight-readiness.md`](live-preflight-readiness.md); the owner08
 interruption boundary is recorded separately in
 [`owner08-interruption-20260905.md`](owner08-interruption-20260905.md).
+
+The formal 21-cell performance path is now implemented end to end:
+`live_runner.py execute-full --preflight <absolute excluded preflight>`
+fails closed on the named preflight before any lease, output, or cell, and
+`run_module_lifecycle.py execute --preflight …` drives it with the reviewed
+module load/restore lifecycle. `run_study.py validate-preflight` revalidates
+one excluded preflight root from the CLI. Precondition history, the exact
+formal execution command, the measurement fields, and the owner-12 boundary
+are in [`live-formal-campaign-20260905.md`](live-formal-campaign-20260905.md).
 
 ## Real records required from every future cell
 

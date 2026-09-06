@@ -3,8 +3,9 @@
 This directory is deliberately separate from `../ref-paper/`. None of the four
 known-mismatched files in that directory were read, overwritten, or reused.
 
-As of 2026-09-02, the catalog contains 59 primary-source entries. Fifty-four
-PDFs (96,870,994 bytes) were retained. Every retained file passed `pdfinfo` and
+As of 2026-09-05 (ASPLOS revision 1797 scouting addendum, six new entries 60-65),
+the catalog contains 65 primary-source entries. Sixty
+PDFs (105,731,172 bytes) were retained. Every retained file passed `pdfinfo` and
 page-one `pdftotext` extraction, followed by a manual title-and-author check.
 Five entries could not be retained: one is source code rather than a paper, two
 ACM endpoints rejected automated retrieval, one advertised author link is
@@ -75,6 +76,12 @@ contains the same required provenance and validation fields in compact form.
 | 57 | Improving GPU Sharing Performance through Adaptive Bubbleless Spatial-Temporal Sharing / Bless (2025, EuroSys) | [DOI](https://doi.org/10.1145/3689031.3696070) | [PDF](https://jamesthez.github.io/files/bless-eurosys25.pdf) | `57-eurosys25-bless.pdf` / 2,327,832 | verified title and authors |
 | 58 | TimeGraph: GPU Scheduling for Real-Time Multi-Tasking Environments (2011, USENIX ATC) | [USENIX](https://www.usenix.org/conference/usenixatc11/timegraph-gpu-scheduling-real-time-multi-tasking-environments) | [PDF](https://www.usenix.org/legacy/events/atc11/tech/final_files/Kato.pdf) | `58-atc11-timegraph.pdf` / 493,655 | verified title and authors |
 | 59 | Gdev: First-Class GPU Resource Management in the Operating System (2012, USENIX ATC) | [USENIX](https://www.usenix.org/system/files/conference/atc12/atc12-final319.pdf) | [PDF](https://www.usenix.org/system/files/conference/atc12/atc12-final319.pdf) | `59-atc12-gdev.pdf` / 1,018,373 | verified title and authors |
+| 60 | Llumnix: Dynamic Scheduling for Large Language Model Serving (2024, USENIX OSDI) | [arXiv](https://arxiv.org/abs/2406.03243) | [PDF](https://arxiv.org/pdf/2406.03243) | `60-osdi24-llumnix.pdf` / 1,770,503 | verified title and authors |
+| 61 | ShadowKV: KV Cache in Shadows for High-Throughput Long-Context LLM Inference (2025, ICML Spotlight) | [arXiv](https://arxiv.org/abs/2410.21465) | [PDF](https://arxiv.org/pdf/2410.21465) | `61-icml25-shadowkv.pdf` / 1,712,244 | verified title and authors |
+| 62 | LLM in a flash: Efficient Large Language Model Inference with Limited Memory (2024, ACL) | [arXiv](https://arxiv.org/abs/2312.11514) | [PDF](https://arxiv.org/pdf/2312.11514) | `62-acl24-llm-in-a-flash.pdf` / 1,333,354 | verified title and authors |
+| 63 | CuAsmRL: Optimizing GPU SASS Schedules via Deep Reinforcement Learning (2025, CGO) | [arXiv](https://arxiv.org/abs/2501.08071) | [PDF](https://arxiv.org/pdf/2501.08071) | `63-cgo25-cuasmrl.pdf` / 1,708,161 | verified title and authors |
+| 64 | Towards Agentic OS: An LLM Agent Framework for Linux Schedulers (2025, arXiv) | [arXiv](https://arxiv.org/abs/2509.01245) | [PDF](https://arxiv.org/pdf/2509.01245) | `64-arxiv25-agentic-os-schedulers.pdf` / 430,348 | verified title and authors |
+| 65 | KunServe: Parameter-centric Memory Management for Efficient Memory Overloading Handling in LLM Serving (2024, arXiv) | [arXiv](https://arxiv.org/abs/2412.18169) | [PDF](https://arxiv.org/pdf/2412.18169) | `65-arxiv24-kunserve.pdf` / 1,905,568 | verified title and authors |
 
 ## Verification commands
 

@@ -1,0 +1,51 @@
+{
+  "mode": "gpu",
+  "started_utc": "2026-09-05T22:58:39.472841+00:00",
+  "kernel": "hotspot",
+  "size_factor": "0.6",
+  "iterations": 1,
+  "tenants": 2,
+  "arms": [
+    "baseline",
+    "memory_only",
+    "sched_only",
+    "combined"
+  ],
+  "arm_orders": {
+    "0": [
+      "baseline",
+      "memory_only",
+      "sched_only",
+      "combined"
+    ],
+    "1": [
+      "memory_only",
+      "sched_only",
+      "combined",
+      "baseline"
+    ],
+    "2": [
+      "sched_only",
+      "combined",
+      "baseline",
+      "memory_only"
+    ],
+    "3": [
+      "combined",
+      "baseline",
+      "memory_only",
+      "sched_only"
+    ],
+    "4": [
+      "baseline",
+      "memory_only",
+      "sched_only",
+      "combined"
+    ]
+  },
+  "timeout_s": 600.0,
+  "mem_policy": "extension/prefetch_eviction_pid -p HIGH_PID -P 20 -l LOW_PID -L 80",
+  "sched_policy": "extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200",
+  "uvmbench": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench",
+  "engagement": "counters recorded as metadata only; never a gate"
+}

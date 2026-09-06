@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Run the excluded seven-cell stale-state preflight on an already loaded bridge.
+"""Run stale-state cells on an already loaded bridge.
 
-The destructive module swap is deliberately outside this child. A lifecycle
-wrapper must load the reviewed candidate, invoke this runner with both lease
-descriptors inherited, and restore the admitted module even if this child fails.
+`execute-preflight` runs the excluded seven-cell preflight. `execute-full`
+revalidates that excluded preflight first, then runs the 21-cell formal
+performance matrix and returns its paired analysis. The destructive module
+swap is deliberately outside this child. A lifecycle wrapper must load the
+reviewed candidate, invoke this runner with both lease descriptors inherited,
+and restore the admitted module even if this child fails.
 """
 
 from __future__ import annotations
@@ -45,6 +48,10 @@ KERNEL_ABNORMAL = re.compile(
     r"NVRM:.*(?:fatal|error)|nvidia-uvm.*(?:fatal|error)",
     re.IGNORECASE,
 )
+STAGE_NAMESPACES = {
+    "preflight": "stale-state-575-preflight-",
+    "full": "stale-state-575-full-",
+}
 
 
 class LiveError(RuntimeError):
@@ -389,11 +396,12 @@ def validate_loaded_bridge() -> dict[str, Any]:
     return {"version": protocol.EXPECTED_DRIVER, "required_btf": list(required)}
 
 
-def validate_paths(output: Path) -> Path:
+def validate_paths(output: Path, stage: str = "preflight") -> Path:
+    demand(stage in STAGE_NAMESPACES, "unknown live stage")
     output = protocol.lexical_absolute(output)
     demand(output.parent == RAW_ROOT, f"output must be a fresh direct child of {RAW_ROOT}")
-    demand(output.name.startswith("stale-state-575-preflight-"), "output namespace differs")
-    demand(not output.exists(), "refusing to reuse preflight output")
+    demand(output.name.startswith(STAGE_NAMESPACES[stage]), "output namespace differs")
+    demand(not output.exists(), "refusing to reuse output")
     for path in (WORKLOAD, UVM_MONITOR, LIVE_LOADER):
         demand(path.is_file() and not path.is_symlink() and os.access(path, os.X_OK),
                f"required executable is absent: {path}")
@@ -402,17 +410,26 @@ def validate_paths(output: Path) -> Path:
     return output
 
 
-def dry_run(output: Path, lease_fds: Sequence[int]) -> dict[str, Any]:
+def dry_run(output: Path, lease_fds: Sequence[int], stage: str = "preflight",
+            excluded: Path | None = None) -> dict[str, Any]:
+    demand(stage in STAGE_NAMESPACES, "unknown live stage")
     output = protocol.lexical_absolute(output)
-    return {
+    excluded = protocol.lexical_absolute(excluded) if excluded is not None else None
+    if stage == "full":
+        demand(excluded is not None, "formal dry-run requires an excluded preflight root")
+    else:
+        demand(excluded is None, "preflight dry-run does not accept an excluded preflight")
+    cells = protocol.matrix(stage)
+    result = {
         "mode": "cpu-only-dry-run",
+        "stage": stage,
         "experiment_evidence": False,
         "executes_gpu": False,
         "loads_modules": False,
         "output": str(output),
         "lease_fds": list(lease_fds),
         "baseline_policy_artifacts": False,
-        "order": [asdict(cell) for cell in protocol.matrix("preflight")],
+        "order": [asdict(cell) for cell in cells],
         "policy_loader": {
             "native": "fentry observer only",
             "bpf": "fentry observer plus one owned struct_ops link",
@@ -423,6 +440,13 @@ def dry_run(output: Path, lease_fds: Sequence[int]) -> dict[str, Any]:
             "admitted 575 module; this child never changes modules"
         ),
     }
+    if stage == "full":
+        result["excluded_preflight"] = str(excluded)
+        result["preflight_gate"] = (
+            "validate_preflight(excluded) fails closed before leases, output "
+            "creation, bridge checks, or any formal cell"
+        )
+    return result
 
 
 def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
@@ -619,28 +643,54 @@ def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
     return protocol.validate_cell(cell_dir, cell)
 
 
-def execute(output: Path, lease_fds: Sequence[int]) -> dict[str, Any]:
-    output = validate_paths(output)
+def campaign_manifest(
+    stage: str, cells: list[protocol.MatrixCell], leases: list[dict[str, Any]],
+    bridge: dict[str, Any], excluded: Path | None,
+) -> dict[str, Any]:
+    manifest = {
+        "protocol": protocol.PROTOCOL, "timeline": protocol.TIMELINE,
+        "stage": stage, "seed": protocol.SEED,
+        "blocks": (protocol.PREFLIGHT_BLOCKS if stage == "preflight"
+                   else protocol.FORMAL_BLOCKS),
+        "complete": False,
+        "order": [asdict(cell) for cell in cells], "completed": [],
+        "leases": leases, "loaded_bridge": bridge,
+    }
+    if stage == "full":
+        manifest["preflight"] = str(protocol.lexical_absolute(excluded))
+    return manifest
+
+
+def multi_stage_validation(output: Path, stage: str) -> dict[str, Any]:
+    if stage == "full":
+        return protocol.validate_campaign(output)
+    return protocol.validate_preflight(output)
+
+
+def execute(output: Path, lease_fds: Sequence[int], stage: str = "preflight",
+            excluded: Path | None = None) -> dict[str, Any]:
+    demand(stage in STAGE_NAMESPACES, "unknown live stage")
+    output = validate_paths(output, stage)
+    excluded = protocol.lexical_absolute(excluded) if excluded is not None else None
+    if stage == "full":
+        demand(excluded is not None, "formal execution requires an excluded preflight root")
+        demand(excluded != output, "the excluded preflight cannot be the formal output")
+        protocol.validate_preflight(excluded)
+    else:
+        demand(excluded is None, "preflight execution does not accept an excluded preflight")
     leases = InheritedLeases(lease_fds).validate()
     bridge = validate_loaded_bridge()
     output.mkdir(parents=False, exist_ok=False)
-    cells = protocol.matrix("preflight")
-    completed = []
-    manifest = {
-        "protocol": protocol.PROTOCOL, "timeline": protocol.TIMELINE,
-        "stage": "preflight", "seed": protocol.SEED,
-        "blocks": protocol.PREFLIGHT_BLOCKS, "complete": False,
-        "order": [asdict(cell) for cell in cells], "completed": completed,
-        "leases": leases, "loaded_bridge": bridge,
-    }
+    cells = protocol.matrix(stage)
+    manifest = campaign_manifest(stage, cells, leases, bridge, excluded)
     atomic_json(output / "campaign.json", manifest)
     for cell in cells:
         run_cell(cell, output / f"block-{cell.block:02d}-{cell.arm}")
-        completed.append(asdict(cell))
+        manifest["completed"].append(asdict(cell))
         atomic_json(output / "campaign.json", manifest)
     manifest["complete"] = True
     atomic_json(output / "campaign.json", manifest)
-    return protocol.validate_preflight(output)
+    return multi_stage_validation(output, stage)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -650,11 +700,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         command = commands.add_parser(name)
         command.add_argument("--output", required=True, type=Path)
         command.add_argument("--inherited-lease-fds", nargs="*", type=int, default=[])
+        command.add_argument("--preflight", type=Path)
+    command = commands.add_parser("execute-full")
+    command.add_argument("--output", required=True, type=Path)
+    command.add_argument("--inherited-lease-fds", nargs="*", type=int, default=[])
+    command.add_argument("--preflight", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
-        result = (dry_run(args.output, args.inherited_lease_fds)
-                  if args.command == "dry-run"
-                  else execute(args.output, args.inherited_lease_fds))
+        if args.command == "dry-run":
+            stage = "full" if args.preflight is not None else "preflight"
+            result = dry_run(args.output, args.inherited_lease_fds, stage=stage,
+                             excluded=args.preflight)
+        elif args.command == "execute-preflight":
+            demand(args.preflight is None, "execute-preflight does not accept --preflight")
+            result = execute(args.output, args.inherited_lease_fds, stage="preflight")
+        else:
+            result = execute(args.output, args.inherited_lease_fds, stage="full",
+                             excluded=args.preflight)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
     except (LiveError, protocol.ValidationError, OSError, subprocess.SubprocessError) as exc:

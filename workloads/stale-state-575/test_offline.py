@@ -2049,5 +2049,221 @@ class RawValidationTests(unittest.TestCase):
             self.assertTrue(all(row["negative_result"] for row in result["information_cost"]))
 
 
+class FormalCampaignPathTests(unittest.TestCase):
+    @staticmethod
+    def excluded_preflight_root(root: Path) -> Path:
+        preflight_root = root / "excluded-preflight"
+        preflight_root.mkdir()
+        preflight_cells = protocol.matrix("preflight")
+        for cell in preflight_cells:
+            make_cell(preflight_root, cell)
+        preflight_order = [asdict(cell) for cell in preflight_cells]
+        write_json(
+            preflight_root / "campaign.json",
+            {
+                "protocol": protocol.PROTOCOL,
+                "timeline": protocol.TIMELINE,
+                "stage": "preflight",
+                "seed": protocol.SEED,
+                "blocks": protocol.PREFLIGHT_BLOCKS,
+                "complete": True,
+                "order": preflight_order,
+                "completed": preflight_order,
+            },
+        )
+        return preflight_root
+
+    def test_full_live_dry_run_declares_formal_matrix_and_excluded_gate(self) -> None:
+        with (
+            mock.patch.object(Path, "exists", side_effect=AssertionError("exists")),
+            mock.patch.object(Path, "mkdir", side_effect=AssertionError("mkdir")),
+            mock.patch.object(subprocess, "run", side_effect=AssertionError("run")),
+            mock.patch.object(subprocess, "Popen", side_effect=AssertionError("Popen")),
+            mock.patch.object(os, "open", side_effect=AssertionError("open")),
+        ):
+            result = live_runner.dry_run(
+                Path("relative/full"), (11, 12), stage="full",
+                excluded="/absolute/excluded/preflight",
+            )
+            self.assertEqual(result["stage"], "full")
+            self.assertEqual(len(result["order"]), 21)
+            self.assertEqual(result["excluded_preflight"], "/absolute/excluded/preflight")
+            self.assertIn("validate_preflight", result["preflight_gate"])
+            self.assertFalse(result["experiment_evidence"])
+            self.assertFalse(result["executes_gpu"])
+            self.assertFalse(result["loads_modules"])
+            self.assertFalse(result["baseline_policy_artifacts"])
+            self.assertIsNone(result["policy_loader"]["baseline"])
+        with self.assertRaisesRegex(live_runner.LiveError, "excluded preflight"):
+            live_runner.dry_run(Path("relative/full"), (11, 12), stage="full")
+        with self.assertRaisesRegex(live_runner.LiveError, "excluded preflight"):
+            live_runner.dry_run(
+                Path("relative/preflight"), (11, 12), stage="preflight",
+                excluded="/absolute/excluded/preflight",
+            )
+
+    def test_full_execution_gates_on_the_excluded_preflight_before_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            fake_raw = temporary_root / "raw"
+            fake_raw.mkdir()
+            output = fake_raw / "stale-state-575-full-01"
+            missing = temporary_root / "missing-preflight"
+            with (
+                mock.patch.object(live_runner, "RAW_ROOT", fake_raw),
+                mock.patch.object(live_runner.InheritedLeases, "validate",
+                                  side_effect=AssertionError("leases")),
+                mock.patch.object(live_runner, "validate_loaded_bridge",
+                                  side_effect=AssertionError("bridge")),
+            ):
+                with self.assertRaisesRegex(
+                    protocol.ValidationError, "cannot read JSON object"
+                ):
+                    live_runner.execute(output, (11, 12), stage="full",
+                                        excluded=missing)
+            self.assertFalse(output.exists())
+
+    def test_full_execution_rejects_self_reference_before_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            fake_raw = temporary_root / "raw"
+            fake_raw.mkdir()
+            output = fake_raw / "stale-state-575-full-01"
+            with mock.patch.object(live_runner, "RAW_ROOT", fake_raw):
+                with self.assertRaisesRegex(
+                    live_runner.LiveError, "excluded preflight cannot be the formal"
+                ):
+                    live_runner.execute(output, (11, 12), stage="full",
+                                        excluded=output)
+            self.assertFalse(output.exists())
+            relative = Path("relative/excluded/preflight")
+            manifest = live_runner.campaign_manifest(
+                "full", protocol.matrix("preflight"), [], {}, relative
+            )
+            self.assertEqual(
+                manifest["preflight"], str(protocol.lexical_absolute(relative))
+            )
+
+    def test_runner_manifest_binds_absolute_preflight_for_formal_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            preflight_root = self.excluded_preflight_root(temporary_root)
+            root = temporary_root / "stale-state-575-full-01"
+            root.mkdir()
+            cells = protocol.matrix("full")
+            for cell in cells:
+                make_cell(root, cell)
+            manifest = live_runner.campaign_manifest(
+                "full", cells,
+                [{"path": "/tmp/lease", "device": 1, "inode": 2}],
+                {"version": protocol.EXPECTED_DRIVER, "required_btf": []},
+                preflight_root,
+            )
+            manifest["complete"] = True
+            for name in ("completed",):
+                manifest[name] = manifest["order"]
+            write_json(root / "campaign.json", manifest)
+            result = protocol.validate_campaign(root)
+            self.assertEqual(result["run_status"], "valid")
+            self.assertEqual(len(result["cells"]), 21)
+            self.assertEqual(len(result["mechanism_cost"]), 9)
+
+            manifest_relative = dict(manifest)
+            manifest_relative["preflight"] = str(preflight_root.relative_to(temporary_root))
+            write_json(root / "campaign.json", manifest_relative)
+            with self.assertRaisesRegex(
+                protocol.ValidationError, "preflight reference is not absolute"
+            ):
+                protocol.validate_campaign(root)
+
+    def test_module_lifecycle_child_and_paths_drive_both_stages(self) -> None:
+        command = run_module_lifecycle.child_command(Path("/tmp/output"), (31, 32))
+        self.assertEqual(command[3], "execute-preflight")
+        self.assertEqual(command[-2:], ["31", "32"])
+        formal = run_module_lifecycle.child_command(
+            Path("/tmp/stale-state-575-full-01"), (31, 32),
+            campaign_preflight=Path("/absolute/excluded/preflight"),
+        )
+        self.assertEqual(formal[3], "execute-full")
+        self.assertEqual(formal[formal.index("--preflight") + 1],
+                         "/absolute/excluded/preflight")
+        self.assertEqual(formal[-2:], ["31", "32"])
+        with self.assertRaisesRegex(
+            run_module_lifecycle.LifecycleError, "requires a full-stage output"
+        ):
+            run_module_lifecycle.child_command(
+                Path("/tmp/output"), (31, 32),
+                campaign_preflight=Path("/absolute/excluded/preflight"),
+            )
+        with self.assertRaisesRegex(
+            run_module_lifecycle.LifecycleError, "excluded preflight command"
+        ):
+            run_module_lifecycle.child_command(Path("/tmp/stale-state-575-full-01"), (31, 32))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            raw_root = temporary_root / "raw"
+            raw_root.mkdir()
+            stage_root = temporary_root / "modules"
+            stage_root.mkdir()
+            candidate = temporary_root / "candidate" / "nvidia-uvm.ko"
+            candidate.parent.mkdir()
+            candidate.write_bytes(b"c")
+            restore = temporary_root / "restore" / "nvidia-uvm.ko"
+            restore.parent.mkdir()
+            restore.write_bytes(b"r")
+            stage_dir = stage_root / "stale-state-v1-stage-test"
+            record = raw_root / "stale-state-575-lifecycle-test"
+            preflight_output = raw_root / "stale-state-575-preflight-test"
+            formal_output = raw_root / "stale-state-575-full-test"
+            with (
+                mock.patch.object(run_module_lifecycle, "RAW_ROOT", raw_root),
+                mock.patch.object(run_module_lifecycle, "STAGE_ROOT", stage_root),
+            ):
+                stage = run_module_lifecycle.validate_paths(
+                    candidate, restore, stage_dir, preflight_output, record
+                )
+                self.assertEqual(stage, "preflight")
+                with self.assertRaisesRegex(
+                    run_module_lifecycle.LifecycleError, "absolute excluded preflight"
+                ):
+                    run_module_lifecycle.validate_paths(
+                        candidate, restore, stage_dir, formal_output, record
+                    )
+                with self.assertRaisesRegex(
+                    run_module_lifecycle.LifecycleError,
+                    "preflight stage does not accept an excluded preflight",
+                ):
+                    run_module_lifecycle.validate_paths(
+                        candidate, restore, stage_dir, preflight_output, record,
+                        Path("../relative/preflight"),
+                    )
+                stage = run_module_lifecycle.validate_paths(
+                    candidate, restore, stage_dir, formal_output, record,
+                    Path("/absolute/excluded/preflight"),
+                )
+                self.assertEqual(stage, "full")
+
+    def test_study_cli_validates_the_excluded_preflight_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            preflight_root = self.excluded_preflight_root(temporary_root)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                status = run_study.main(["validate-preflight", "--input", str(preflight_root)])
+            self.assertEqual(status, 0)
+            result = json.loads(output.getvalue())
+            self.assertEqual(result["run_status"], "valid")
+            self.assertEqual(len(result["cells"]), 7)
+            self.assertTrue(all(cell["valid"] for cell in result["cells"]))
+        errors = io.StringIO()
+        with contextlib.redirect_stderr(errors):
+            status = run_study.main(
+                ["validate-preflight", "--input", "/absent/stale-state-preflight-root"]
+            )
+        self.assertEqual(status, 2)
+        self.assertIn("ERROR: ", errors.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

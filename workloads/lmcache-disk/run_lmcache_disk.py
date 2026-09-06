@@ -35,6 +35,7 @@ SPEC.loader.exec_module(legacy)
 
 GateError = legacy.GateError
 CONFIGS = legacy.CONFIGS
+UVM_WEIGHT_ARMS = legacy.UVM_WEIGHT_ARMS
 PROMPTS = legacy.PROMPTS
 SCHEDULE = legacy.SCHEDULE
 PREFIXES = legacy.PREFIXES
@@ -162,12 +163,18 @@ def inspect_environment(port: int, storage_root: Path,
 
 def run_cell(config: str, output: Path, port: int, trace: bool,
              prefix_limit: int = PREFIXES,
-             expected_driver: str = EXPECTED_DRIVER) -> dict[str, Any]:
+             expected_driver: str = EXPECTED_DRIVER,
+             arm: str | None = None) -> dict[str, Any]:
     """Run one cell through the official vLLM serve path and retain raw output."""
     if config not in CONFIGS:
         raise GateError(f"unknown configuration: {config}")
     if not 1 <= prefix_limit <= PREFIXES:
         raise GateError(f"prefix limit must be between 1 and {PREFIXES}")
+    if arm is not None:
+        if arm not in legacy.UVM_WEIGHT_ARMS:
+            raise GateError(f"unknown UVM weight arm: {arm}")
+        if config != "lmcache_disk":
+            raise GateError(f"UVM weight arm {arm} requires --config lmcache_disk")
     with managed_cell(output, expected_driver) as execution:
         observations = inspect_environment(port, output, expected_driver)
         observations.update({key: execution[key] for key in ("boot_id", "worker_cpu_affinity", "telemetry_cpu")})
@@ -176,6 +183,7 @@ def run_cell(config: str, output: Path, port: int, trace: bool,
         result = legacy.run_config(
             config, output, prompts, port, Path(observations["model_path"]),
             trace=trace, recorded_environment=observations, expected_driver=expected_driver,
+            arm=arm,
         )
     return result
 
@@ -399,8 +407,10 @@ def validate_cell(run_dir: Path, require_trace: bool = False) -> dict[str, Any]:
     if result.get("command") != expected_command:
         raise GateError(f"server command differs from fixed cell configuration: {run_dir}")
     cache_dir = (run_dir / "cache").resolve()
+    arm = legacy.uvm_arm_from_environment(result.get("environment", {}))
     expected_environment = server_environment(
-        config, cache_dir, recorded_environment.get("expected_driver", EXPECTED_DRIVER))
+        config, cache_dir, recorded_environment.get("expected_driver", EXPECTED_DRIVER),
+        uvm_weights=legacy.uvm_arm_environment(arm, run_dir) if arm is not None else {})
     if result.get("environment") != expected_environment:
         raise GateError(f"server environment differs from fixed cell configuration: {run_dir}")
     if ("server_environment" in recorded_environment
@@ -693,6 +703,8 @@ def main() -> int:
     prepare.add_argument("--output", type=Path, default=PROMPTS)
     cell = sub.add_parser("run-cell")
     cell.add_argument("--config", choices=CONFIGS, required=True)
+    cell.add_argument("--arm", choices=legacy.UVM_WEIGHT_ARMS, default=None,
+                      help="UVM weight performance arm; requires --config lmcache_disk")
     cell.add_argument("--output", type=Path, required=True)
     cell.add_argument("--port", type=int, default=18080)
     cell.add_argument("--trace", action="store_true")
@@ -714,7 +726,7 @@ def main() -> int:
             value = prepare_prompts(args.output)
         elif args.command == "run-cell":
             value = run_cell(args.config, args.output, args.port, args.trace,
-                             args.prefix_limit, args.expected_driver)
+                             args.prefix_limit, args.expected_driver, args.arm)
         elif args.command == "validate-cell":
             value = validate_cell(args.run_dir, args.require_trace)
         elif args.command == "compare-outputs":

@@ -1,0 +1,68 @@
+{
+  "block": 3,
+  "arm": "combined",
+  "mode": "gpu",
+  "kernel": "hotspot",
+  "size_factor": "0.6",
+  "iterations": 1,
+  "high_name": "uvmbench_high",
+  "low_name": "uvmbench_low",
+  "mem_params": "high=20/low=80",
+  "sched_params": "high=1000000us/low=200us",
+  "high_pid": 1341875,
+  "low_pid": 1341876,
+  "t_spawn_high": 1788649139.847559,
+  "t_spawn_low": 1788649139.8479028,
+  "states_after_spawn": {
+    "high": "T",
+    "low": "T"
+  },
+  "t_sched_start": 1788649140.8992825,
+  "command_sched": [
+    "sudo",
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices",
+    "-p",
+    "uvmbench_high:1000000",
+    "-p",
+    "uvmbench_low:200"
+  ],
+  "t_mem_start": 1788649141.9001997,
+  "command_mem": [
+    "sudo",
+    "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid",
+    "-p",
+    "1341875",
+    "-P",
+    "20",
+    "-l",
+    "1341876",
+    "-L",
+    "80"
+  ],
+  "t_cont_high": 1788649141.900202,
+  "t_cont_low": 1788649141.9202812,
+  "rc_mem_tool": 3,
+  "rc_sched_tool": 1,
+  "t_done_high": 1788649141.9205108,
+  "rc_high": 1,
+  "t_done_low": 1788649141.9237485,
+  "rc_low": 1,
+  "engagement_metadata": {
+    "sched": {
+      "hit": null,
+      "miss": null,
+      "mod": null
+    },
+    "mem": {
+      "act": null,
+      "allow": null,
+      "deny": null
+    },
+    "note": "metadata only; never a gate"
+  },
+  "timeouts": {
+    "high": false,
+    "low": false
+  },
+  "notes": []
+}

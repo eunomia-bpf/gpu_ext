@@ -171,8 +171,26 @@ def comparable(value: dict[str, Any]) -> dict[str, Any]:
             "interface": value["interface"]}
 
 
+def output_stage(output: Path) -> str:
+    if output.name.startswith("stale-state-575-full-"):
+        return "full"
+    if output.name.startswith("stale-state-575-preflight-"):
+        return "preflight"
+    raise LifecycleError("stage output namespace differs")
+
+
+def normalize_abs(path: Path) -> Path:
+    return Path(os.path.abspath(os.fspath(path)))
+
+
+def multi_stage_validation(output: Path, campaign_stage: str) -> dict[str, Any]:
+    if campaign_stage == "full":
+        return protocol.validate_campaign(output)
+    return protocol.validate_preflight(output)
+
+
 def validate_paths(candidate: Path, restore: Path, stage: Path, output: Path,
-                   record: Path) -> None:
+                   record: Path, campaign_preflight: Path | None = None) -> str:
     for label, path in (("candidate", candidate), ("restore", restore), ("stage", stage),
                         ("output", output), ("record", record)):
         demand(path.is_absolute(), f"{label} path must be absolute")
@@ -182,16 +200,25 @@ def validate_paths(candidate: Path, restore: Path, stage: Path, output: Path,
            not restore.is_symlink(), "restore must be a regular nvidia-uvm.ko")
     demand(stage.parent.resolve(strict=True) == STAGE_ROOT.resolve(strict=True) and
            stage.name.startswith("stale-state-v1-stage-"), "stage namespace differs")
-    demand(output.parent.resolve(strict=True) == RAW_ROOT.resolve(strict=True) and
-           output.name.startswith("stale-state-575-preflight-"),
-           "preflight output namespace differs")
+    demand(output.parent.resolve(strict=True) == RAW_ROOT.resolve(strict=True),
+           "stage output namespace differs")
+    campaign_stage = output_stage(output)
+    if campaign_stage == "full":
+        demand(campaign_preflight is not None and campaign_preflight.is_absolute(),
+               "formal stage requires an absolute excluded preflight root")
+        demand(normalize_abs(campaign_preflight) != normalize_abs(output),
+               "the excluded preflight cannot be the formal output")
+    else:
+        demand(campaign_preflight is None,
+               "preflight stage does not accept an excluded preflight")
     demand(record.parent.resolve(strict=True) == RAW_ROOT.resolve(strict=True) and
            record.name.startswith("stale-state-575-lifecycle-"),
            "lifecycle record namespace differs")
     demand(len({candidate.resolve(), restore.resolve(), stage.resolve(),
                 output.resolve(), record.resolve()}) == 5, "lifecycle paths overlap")
     demand(not stage.exists() and not output.exists() and not record.exists(),
-           "stage, preflight output, and lifecycle record must be fresh")
+           "stage, output, and lifecycle record must be fresh")
+    return campaign_stage
 
 
 def loaded_candidate() -> dict[str, Any]:
@@ -281,32 +308,48 @@ def stage_candidate(candidate: Path, stage: Path) -> Path:
     return destination
 
 
-def child_command(output: Path, lease_fds: Sequence[int]) -> list[str]:
+def child_command(output: Path, lease_fds: Sequence[int],
+                  campaign_preflight: Path | None = None) -> list[str]:
     demand(len(lease_fds) == 2, "child requires two inherited leases")
-    return [sys.executable, "-B", str(HERE / "live_runner.py"),
-            "execute-preflight", "--output", str(output),
-            "--inherited-lease-fds", *(str(fd) for fd in lease_fds)]
+    command = [sys.executable, "-B", str(HERE / "live_runner.py")]
+    if campaign_preflight is not None:
+        demand(output.name.startswith("stale-state-575-full-"),
+               "the formal child command requires a full-stage output namespace")
+        command += ["execute-full", "--output", str(output),
+                    "--preflight", str(campaign_preflight)]
+    else:
+        demand(not output.name.startswith("stale-state-575-full-"),
+               "full-stage output requires the excluded preflight command")
+        command += ["execute-preflight", "--output", str(output)]
+    command.extend(["--inherited-lease-fds", *(str(fd) for fd in lease_fds)])
+    return command
 
 
 def dry_run(candidate: Path, restore: Path, stage: Path, output: Path,
-            record: Path) -> dict[str, Any]:
-    validate_paths(candidate, restore, stage, output, record)
+            record: Path, campaign_preflight: Path | None = None) -> dict[str, Any]:
+    campaign_stage = validate_paths(candidate, restore, stage, output, record,
+                                    campaign_preflight)
     candidate_value = candidate_descriptor(candidate)
     restore_value = restore_descriptor(restore)
     demand(candidate_value["parameter_names"] == restore_value["parameter_names"],
            "candidate/restore parameter inventories differ")
     return {"complete": True, "mode": "cpu-source-dry-run",
             "loads_modules": False, "executes_gpu": False,
+            "campaign_stage": campaign_stage,
+            "excluded_preflight": (str(campaign_preflight)
+                                   if campaign_preflight is not None else None),
             "candidate": candidate_value, "restore": restore_value,
             "stage": str(stage), "output": str(output), "record": str(record),
-            "child": child_command(output, ("<lease-0>", "<lease-1>")),
+            "child": child_command(output, ("<lease-0>", "<lease-1>"),
+                                   campaign_preflight),
             "recovery": "remove only the loaded candidate; restore admitted UVM and services"}
 
 
 def execute(candidate: Path, restore: Path, stage: Path, output: Path,
-            record: Path) -> None:
+            record: Path, campaign_preflight: Path | None = None) -> None:
     demand(os.geteuid() == 0, "module lifecycle is root-only")
-    validate_paths(candidate, restore, stage, output, record)
+    campaign_stage = validate_paths(candidate, restore, stage, output, record,
+                                    campaign_preflight)
     state = State()
     record.mkdir(parents=False, exist_ok=False)
     lifecycle: dict[str, Any] = {"complete": False, "state": asdict(state),
@@ -383,19 +426,19 @@ def execute(candidate: Path, restore: Path, stage: Path, output: Path,
         child_stdout = (record / "child.stdout.log").open("x")
         child_stderr = (record / "child.stderr.log").open("x")
         try:
-            command = child_command(output, lease.fds)
+            command = child_command(output, lease.fds, campaign_preflight)
             child = subprocess.run(command, stdout=child_stdout, stderr=child_stderr,
                                    text=True, check=False, timeout=1800,
                                    pass_fds=tuple(lease.fds))
         finally:
             child_stdout.close()
             child_stderr.close()
-        demand(child.returncode == 0, f"preflight child exited {child.returncode}")
+        demand(child.returncode == 0, f"stage child exited {child.returncode}")
         base.cells.raise_if_interrupted()
-        validated = protocol.validate_preflight(output)
+        validated = multi_stage_validation(output, campaign_stage)
         state.child_complete = True
-        event("preflight_complete", command=command, returncode=child.returncode,
-              validation=validated)
+        event("campaign_complete" if campaign_stage == "full" else "preflight_complete",
+              command=command, returncode=child.returncode, validation=validated)
     except BaseException as exc:
         primary = exc
         lifecycle["primary_error"] = f"{type(exc).__name__}: {exc}"
@@ -456,17 +499,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--stage", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--record", required=True, type=Path)
+    parser.add_argument("--preflight", type=Path)
     args = parser.parse_args(argv)
     try:
         if args.command == "dry-run":
             print(json.dumps(dry_run(args.candidate, args.restore, args.stage,
-                                     args.output, args.record), indent=2,
-                             sort_keys=True))
+                                     args.output, args.record, args.preflight),
+                             indent=2, sort_keys=True))
         else:
             execute(args.candidate, args.restore, args.stage, args.output,
-                    args.record)
+                    args.record, args.preflight)
         return 0
     except (LifecycleError, base.LifecycleError, live_runner.LiveError,
+            protocol.ValidationError,
             OSError, subprocess.SubprocessError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

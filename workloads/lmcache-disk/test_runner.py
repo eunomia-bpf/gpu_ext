@@ -533,6 +533,104 @@ class HarnessTests(unittest.TestCase):
         self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "0")
         self.assertEqual(env["VLLM_WORKER_MULTIPROC_METHOD"], "spawn")
 
+    def test_server_environment_forwards_exactly_the_optional_uvm_variables(self):
+        for config in runner.CONFIGS:
+            self.assertEqual(runner.server_environment(config, Path("/cache")),
+                              runner.server_environment(config, Path("/cache"), uvm_weights={}))
+            for key in runner.legacy.UVM_WEIGHT_ENV:
+                self.assertNotIn(key, runner.server_environment(config, Path("/cache")))
+        values = {"UVM_WEIGHT_PLUGIN": "1", "UVM_WEIGHT_PLUGIN_SO": "/opt/uvm_allocator.so",
+                  "UVM_WEIGHT_PLUGIN_COUNTERS": "1", "VLLM_UVM_LOG_FILE": "/cell/uvm-allocations.log"}
+        for config in runner.CONFIGS:
+            with self.subTest(config=config):
+                env = runner.server_environment(config, Path("/cache"), uvm_weights=values)
+                self.assertEqual({key: env[key] for key in runner.legacy.UVM_WEIGHT_ENV}, values)
+        partial = runner.server_environment("lmcache_disk", Path("/cache"),
+                                           uvm_weights={"UVM_WEIGHT_PLUGIN": "1"})
+        self.assertEqual(partial["UVM_WEIGHT_PLUGIN"], "1")
+        for key in ("UVM_WEIGHT_PLUGIN_SO", "UVM_WEIGHT_PLUGIN_COUNTERS", "VLLM_UVM_LOG_FILE"):
+            self.assertNotIn(key, partial)
+        blocked = runner.server_environment("lmcache_disk", Path("/cache"),
+                                            uvm_weights={"UVM_WEIGHT_PLUGIN": "1",
+                                                         "UVM_UNRELATED": "1",
+                                                         "LD_PRELOAD": "/lib/hook.so"})
+        self.assertNotIn("UVM_UNRELATED", blocked)
+        self.assertNotIn("LD_PRELOAD", blocked)
+
+    def test_uvm_arm_environments_select_the_existing_plugin_exactly(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "cell"
+            self.assertEqual(runner.UVM_WEIGHT_ARMS,
+                             ("stock_lmcache_disk", "uvm_weights_native", "uvm_weights_bpf"))
+            self.assertEqual(runner.legacy.uvm_arm_environment("stock_lmcache_disk", run_dir), {})
+            native = runner.legacy.uvm_arm_environment("uvm_weights_native", run_dir)
+            self.assertEqual(native, {"UVM_WEIGHT_PLUGIN": "1",
+                                      "UVM_WEIGHT_PLUGIN_SO": str(runner.legacy.UVM_ALLOCATOR_SO),
+                                      "VLLM_UVM_LOG_FILE": str(run_dir.resolve() / "uvm-allocations.log")})
+            self.assertEqual(runner.legacy.uvm_arm_environment("uvm_weights_bpf", run_dir),
+                             {**native, "UVM_WEIGHT_PLUGIN_COUNTERS": "1"})
+            with self.assertRaises(runner.GateError):
+                runner.legacy.uvm_arm_environment("uvm_unknown", run_dir)
+
+    def test_uvm_arm_is_recovered_from_recorded_environment(self):
+        self.assertIsNone(runner.legacy.uvm_arm_from_environment({}))
+        self.assertIsNone(runner.legacy.uvm_arm_from_environment({"UVM_WEIGHT_PLUGIN": "0"}))
+        native = {"UVM_WEIGHT_PLUGIN": "1",
+                  "UVM_WEIGHT_PLUGIN_SO": str(runner.legacy.UVM_ALLOCATOR_SO),
+                  "VLLM_UVM_LOG_FILE": "/cell/uvm-allocations.log"}
+        self.assertEqual(runner.legacy.uvm_arm_from_environment(native), "uvm_weights_native")
+        self.assertEqual(runner.legacy.uvm_arm_from_environment(
+            {**native, "UVM_WEIGHT_PLUGIN_COUNTERS": "1"}), "uvm_weights_bpf")
+        with self.assertRaises(runner.GateError):
+            runner.legacy.uvm_arm_from_environment({**native, "UVM_WEIGHT_PLUGIN_SO": "/wrong/so"})
+
+    def test_uvm_arm_environment_reaches_server_launch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for arm, counters in (("stock_lmcache_disk", False),
+                                  ("uvm_weights_native", False),
+                                  ("uvm_weights_bpf", True)):
+                with self.subTest(arm=arm), patch.object(runner.legacy.subprocess, "Popen") as start:
+                    uvm_weights = runner.legacy.uvm_arm_environment(arm, root / "cell")
+                    _, log, _, _ = runner.start_server(
+                        "lmcache_disk", Path("/model"), root / "cache", 18080,
+                        root / f"{arm}.log", uvm_weights=uvm_weights)
+                    log.close()
+                    self.assertEqual(start.call_args.kwargs["env"],
+                                     runner.server_environment("lmcache_disk", root / "cache",
+                                                              uvm_weights=uvm_weights))
+                    self.assertEqual(start.call_args.kwargs["env"].get(
+                        "UVM_WEIGHT_PLUGIN_COUNTERS", "absent") == "1", counters)
+
+    def test_validate_cell_recomputes_the_uvm_arm_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "cell"
+            for arm in runner.UVM_WEIGHT_ARMS:
+                with self.subTest(arm=arm):
+                    recorded = runner.server_environment(
+                        "lmcache_disk", run_dir / "cache",
+                        uvm_weights=runner.legacy.uvm_arm_environment(arm, run_dir))
+                    recovered = runner.legacy.uvm_arm_from_environment(recorded)
+                    expected = (runner.legacy.uvm_arm_environment(recovered, run_dir)
+                                if recovered is not None else {})
+                    self.assertEqual(runner.server_environment(
+                        "lmcache_disk", run_dir / "cache", uvm_weights=expected), recorded)
+
+    def test_run_cell_arm_requires_lmcache_disk_and_passes_arm_through(self):
+        prompts = {"prefixes": [{"index": 0}]}
+        with (patch.object(runner, "managed_cell", return_value=nullcontext(PLACEMENT)),
+              patch.object(runner, "inspect_environment", return_value={"model_path": "/model"}),
+              patch.object(runner, "load_prompts", return_value=prompts),
+              patch.object(runner.legacy, "run_config", return_value={"status": "ok"}) as run):
+            runner.run_cell("lmcache_disk", Path("/output"), 18080, False, 1, arm="uvm_weights_bpf")
+            self.assertEqual(run.call_args.kwargs["arm"], "uvm_weights_bpf")
+            runner.run_cell("lmcache_disk", Path("/output"), 18080, False, 1)
+            self.assertIsNone(run.call_args.kwargs["arm"])
+        with self.assertRaises(runner.GateError):
+            runner.run_cell("recompute", Path("/output"), 18080, False, 1, arm="uvm_weights_native")
+        with self.assertRaises(runner.GateError):
+            runner.run_cell("lmcache_disk", Path("/output"), 18080, False, 1, arm="uvm_unknown")
+
     def test_runtime_log_accepts_public_base_versions(self):
         runtime_line = (
             "Creating LMCacheEngine with config: {'use_gpu_connector_v3': True}\n"

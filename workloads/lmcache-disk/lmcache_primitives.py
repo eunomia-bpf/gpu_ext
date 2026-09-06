@@ -65,6 +65,11 @@ KV_CHUNK_BYTES = CHUNK_TOKENS * KV_BYTES_PER_TOKEN
 EXPECTED_DISK_BYTES = PREFIXES * CHUNKS_PER_PREFIX * KV_CHUNK_BYTES
 ROW_STARTS = [0, 173, 509, 997, 1499, 2203, 3109, 4211]
 CONFIGS = ("recompute", "lmcache_cpu", "lmcache_disk")
+UVM_WEIGHT_ARMS = ("stock_lmcache_disk", "uvm_weights_native", "uvm_weights_bpf")
+UVM_WEIGHT_ENV = ("UVM_WEIGHT_PLUGIN", "UVM_WEIGHT_PLUGIN_SO",
+                  "UVM_WEIGHT_PLUGIN_COUNTERS", "VLLM_UVM_LOG_FILE")
+UVM_ALLOCATOR_SO = VLLM_WORKLOAD / "vllm" / "uvm_test" / "uvm_allocator.so"
+UVM_WEIGHT_LOG = "uvm-allocations.log"
 FATAL_LOG_PATTERNS = (
     r"Traceback",
     r"CUDA error",
@@ -515,8 +520,35 @@ def load_prompts(path: Path) -> dict[str, Any]:
     return prompts
 
 
+def uvm_arm_environment(arm: str, run_dir: Path) -> dict[str, str]:
+    """Exact UVM weight-plugin variables for one performance arm; empty for stock."""
+    if arm not in UVM_WEIGHT_ARMS:
+        raise GateError(f"unknown UVM weight arm: {arm}")
+    if arm == "stock_lmcache_disk":
+        return {}
+    env = {"UVM_WEIGHT_PLUGIN": "1",
+           "UVM_WEIGHT_PLUGIN_SO": str(UVM_ALLOCATOR_SO),
+           "VLLM_UVM_LOG_FILE": str(Path(run_dir).resolve() / UVM_WEIGHT_LOG)}
+    if arm == "uvm_weights_bpf":
+        env["UVM_WEIGHT_PLUGIN_COUNTERS"] = "1"
+    return env
+
+
+def uvm_arm_from_environment(env: dict[str, str]) -> str | None:
+    """Recover the UVM weight arm from a recorded server environment."""
+    if env.get("UVM_WEIGHT_PLUGIN") != "1":
+        return None
+    if env.get("UVM_WEIGHT_PLUGIN_SO") != str(UVM_ALLOCATOR_SO):
+        raise GateError(f"recorded UVM allocator differs from the pinned binary: "
+                        f"{env.get('UVM_WEIGHT_PLUGIN_SO')}")
+    if env.get("UVM_WEIGHT_PLUGIN_COUNTERS") == "1":
+        return "uvm_weights_bpf"
+    return "uvm_weights_native"
+
+
 def server_environment(config: str, cache_dir: Path,
-                       expected_driver: str = EXPECTED_DRIVER) -> dict[str, str]:
+                       expected_driver: str = EXPECTED_DRIVER,
+                       uvm_weights: dict[str, str] | None = None) -> dict[str, str]:
     validate_driver(expected_driver, expected_driver)
     env = controlled_environment()
     if expected_driver == "575.57.08":
@@ -533,6 +565,10 @@ def server_environment(config: str, cache_dir: Path,
                    LMCACHE_MAX_LOCAL_DISK_SIZE="16.0", LMCACHE_SAVE_UNFULL_CHUNK="False",
                    LMCACHE_USE_LAYERWISE="False", LMCACHE_USE_GPU_CONNECTOR_V3="True",
                    LMCACHE_EXTRA_CONFIG=canonical({"use_odirect": True}))
+    for key in UVM_WEIGHT_ENV:
+        value = (uvm_weights or {}).get(key)
+        if value is not None:
+            env[key] = value
     return env
 
 
@@ -548,7 +584,8 @@ def server_argv(config: str, model_path: Path, port: int | str) -> list[str]:
 
 
 def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_path: Path,
-                 trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER):
+                 trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER,
+                 uvm_weights: dict[str, str] | None = None):
     argv = server_argv(config, model_path, port)
     launch = list(argv)
     if trace_dir is not None:
@@ -560,7 +597,8 @@ def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_
     log_file = log_path.open("x")
     try:
         proc = subprocess.Popen(launch, cwd=VLLM_WORKLOAD,
-                                env=server_environment(config, cache_dir, expected_driver),
+                                env=server_environment(config, cache_dir, expected_driver,
+                                                      uvm_weights=uvm_weights),
                                 stdout=log_file, stderr=subprocess.STDOUT, text=True, start_new_session=True)
     except BaseException:
         log_file.close()
@@ -945,15 +983,19 @@ def _log_for_fatal_scan(log: str) -> str:
 def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
                model_path: Path, trace: bool = False,
                recorded_environment: dict[str, Any] | None = None,
-               expected_driver: str = EXPECTED_DRIVER) -> dict[str, Any]:
+               expected_driver: str = EXPECTED_DRIVER,
+               arm: str | None = None) -> dict[str, Any]:
     prefix_count = len(prompts.get("prefixes", []))
     if not 1 <= prefix_count <= PREFIXES:
         raise GateError(f"run requires between 1 and {PREFIXES} prefixes")
+    if arm is not None and config != "lmcache_disk":
+        raise GateError(f"UVM weight arm {arm} requires config lmcache_disk")
     # The thin runner creates this unique directory while holding the leases.
     if not run_dir.is_dir():
         raise GateError("run directory must be prepared by the lease-owning runner")
     cache_dir = (run_dir / "cache").resolve()
-    environment = server_environment(config, cache_dir, expected_driver)
+    uvm_weights = uvm_arm_environment(arm, run_dir) if arm is not None else {}
+    environment = server_environment(config, cache_dir, expected_driver, uvm_weights=uvm_weights)
     if recorded_environment is not None:
         validate_driver(recorded_environment["gpu"]["driver"], expected_driver)
         atomic_write_json(run_dir / "environment.json",
@@ -962,7 +1004,8 @@ def run_config(config: str, run_dir: Path, prompts: dict[str, Any], port: int,
     log_path = run_dir / "server.log"
     trace_dir = run_dir / "strace" if trace else None
     proc, log_file, argv, launch = start_server(
-        config, model_path, cache_dir, port, log_path, trace_dir, expected_driver=expected_driver)
+        config, model_path, cache_dir, port, log_path, trace_dir,
+        expected_driver=expected_driver, uvm_weights=uvm_weights)
     observations: list[dict[str, Any]] = []
     try:
         wait_ready(proc, port, log_path)

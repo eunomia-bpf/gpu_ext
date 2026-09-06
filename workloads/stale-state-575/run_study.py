@@ -170,6 +170,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     analyze.add_argument("--input", required=True, type=Path)
 
+    excluded = commands.add_parser(
+        "validate-preflight",
+        help="fail-closed validation of one excluded preflight root",
+    )
+    excluded.add_argument("--input", required=True, type=Path)
+
     cell = commands.add_parser(
         "validate-cell", help="validate one raw cell against its matrix identity"
     )
@@ -221,6 +227,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "analyze":
             _emit(protocol.validate_campaign(args.input))
+            return 0
+        if args.command == "validate-preflight":
+            _emit(protocol.validate_preflight(args.input))
             return 0
         if args.command == "validate-cell":
             _emit(protocol.validate_cell(args.input, _find_cell(args.block, args.arm)))

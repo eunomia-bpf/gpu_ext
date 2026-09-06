@@ -10,6 +10,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 HERE = Path(__file__).resolve().parent
@@ -125,6 +126,68 @@ class Table1RotationAndDryRunTests(unittest.TestCase):
         self.assertEqual(plan["cell_count"], 21)
         self.assertEqual(plan["schedule"], table1.build_schedule(3))
         self.assertFalse(out_dir.exists())
+
+
+class RunArmCellProbeTeardownErrorTests(unittest.TestCase):
+    def test_gpubpf_completed_bench_survives_runtime_error_on_probe_exit(self):
+        probe_env = {
+            "LD_PRELOAD": "/tools/kernelretsnoop/libbpftime.so",
+            "BPFTIME_GLOBAL_SHM_NAME": "rq4_table1_test_1",
+        }
+        bench_calls = []
+
+        @contextlib.contextmanager
+        def fake_private_probe(tool_name, args_ns, tool_dir, run_dir):
+            yield probe_env
+            raise RuntimeError("private probe exited unsuccessfully: 1")
+
+        def fake_run_bench(label, run_id, args_ns, output_dir_arg, env_extra=None):
+            bench_calls.append(env_extra)
+            return {
+                "run": run_id,
+                "log": None,
+                "returncode": 0,
+                "valid": True,
+                "metrics": {"pp_tokens": 512, "pp_tok_s": 100.0},
+            }
+
+        args = SimpleNamespace(
+            uvm=False,
+            llama_bench=Path("/bench/llama-bench"),
+            model=Path("/models/model.gguf"),
+            pp=512,
+            tg=0,
+            n_gpu_layers=99,
+            no_warmup=False,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            with (
+                mock.patch.object(
+                    table1.runner, "private_probe", side_effect=fake_private_probe
+                ),
+                mock.patch.object(table1.runner, "run_bench", side_effect=fake_run_bench),
+            ):
+                record = table1.run_arm_cell(
+                    "gpubpf_kernelretsnoop",
+                    4,
+                    args,
+                    output_dir,
+                    {"kernelretsnoop": output_dir / "tool"},
+                    output_dir / "nvbit_build",
+                )
+        self.assertEqual(bench_calls, [probe_env])
+        self.assertEqual(record["returncode"], 0)
+        self.assertFalse(record["timed_out"])
+        self.assertEqual(record["throughput_tok_s"], 100.0)
+        self.assertEqual(record["metrics"], {"pp_tokens": 512, "pp_tok_s": 100.0})
+        self.assertEqual(
+            record["probe_teardown_error"],
+            "RuntimeError: private probe exited unsuccessfully: 1",
+        )
+        self.assertNotIn("error", record)
+        self.assertIn("LD_PRELOAD=/tools/kernelretsnoop/libbpftime.so", record["command"])
+        self.assertIn(str(args.llama_bench), record["command"])
 
 
 if __name__ == "__main__":

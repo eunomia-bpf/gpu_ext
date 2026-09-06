@@ -162,10 +162,20 @@ def run_arm_cell(
     env_extra = nvbit_env(args, tool) if is_nvbit else None
 
     started = time.monotonic()
+    probe_teardown_error: str | None = None
     if is_gpubpf:
-        with runner.private_probe(tool, args, tool_dirs[tool], cell_dir) as probe_env:
-            result = runner.run_bench(arm, block, args, output_dir, env_extra=probe_env)
-            bench_env = {**bench_base_env(args), **probe_env}
+        result = None
+        bench_env = bench_base_env(args)
+        try:
+            with runner.private_probe(tool, args, tool_dirs[tool], cell_dir) as probe_env:
+                result = runner.run_bench(arm, block, args, output_dir, env_extra=probe_env)
+                bench_env = {**bench_base_env(args), **probe_env}
+        except runner.OwnedCleanupError:
+            raise
+        except RuntimeError as exc:
+            if result is None:
+                raise
+            probe_teardown_error = f"{type(exc).__name__}: {exc}"
     else:
         result = runner.run_bench(arm, block, args, output_dir, env_extra=env_extra)
         bench_env = {**bench_base_env(args), **(env_extra or {})}
@@ -185,6 +195,8 @@ def run_arm_cell(
         record["metrics"] = result["metrics"]
     if result.get("error"):
         record["bench_error"] = result["error"]
+    if probe_teardown_error is not None:
+        record["probe_teardown_error"] = probe_teardown_error
 
     log_path = output_dir / result["log"] if result.get("log") else cell_dir / "llama_bench.log"
     if log_path.exists():

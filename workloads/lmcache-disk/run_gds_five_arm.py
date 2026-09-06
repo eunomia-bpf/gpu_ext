@@ -42,6 +42,12 @@ SUMMARY_NAME = "summary.json"
 _BASE_SERVER_ENVIRONMENT = ops.server_environment
 
 
+def output_root(output: Path | None) -> Path:
+    if output is None:
+        output = HERE / "raw" / f"{KIND}-{time.strftime('%Y%m%dT%H%M%S')}"
+    return output.resolve()
+
+
 def rotation_orders(blocks: int) -> list[list[str]]:
     """Return complete cyclic rotations; every arm occupies every position in five blocks."""
     if blocks < 1:
@@ -131,7 +137,7 @@ def write_jsonl_record(raw_file, record: dict[str, Any]) -> None:
 
 
 def run_campaign(args: argparse.Namespace) -> int:
-    root = perf.output_root(args.output)
+    root = output_root(args.output)
     orders = rotation_orders(args.blocks)
     prompts = perf.load_fixed_prompts()
     prefixes = prompts["prefixes"]

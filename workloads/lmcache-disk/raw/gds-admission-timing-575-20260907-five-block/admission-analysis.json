@@ -1,0 +1,1729 @@
+{
+  "scope": "Instrumented diagnostic; timing overhead included. No headline replacement.",
+  "source_commit": "b18c342e",
+  "rows": [
+    {
+      "block": 0,
+      "config": "gds_fifo",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 213.748302001477,
+        "read_dispatch_to_completion_p99_ms": 269.7418479983753,
+        "read_end_to_end_p50_ms": 213.748302001477,
+        "read_end_to_end_p99_ms": 269.7418479983753,
+        "read_scheduled_offer_to_completion_p50_ms": 213.81917799991788,
+        "read_scheduled_offer_to_completion_p99_ms": 269.80022599888616,
+        "total_storage_bandwidth_mib_s": 7967.446623203525,
+        "write_completion_ops_s": 199.18616558008813,
+        "write_completion_throughput_mib_s": 4780.467973922115
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.696,
+              "p99_us": 54.663,
+              "max_us": 54.663,
+              "sum_us": 611.676
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.214,
+              "p99_us": 1.309,
+              "max_us": 1.309,
+              "sum_us": 16.56
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.442,
+              "p99_us": 5.638,
+              "max_us": 5.638,
+              "sum_us": 105.165
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4035,
+              "p99_us": 1.206,
+              "max_us": 1.206,
+              "sum_us": 29.182
+            },
+            {
+              "field": "total_ns",
+              "median_us": 11.111,
+              "p99_us": 67.948,
+              "max_us": 67.948,
+              "sum_us": 864.064
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 96,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 5.795,
+              "p99_us": 15.819,
+              "max_us": 15.819,
+              "sum_us": 624.927
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.1985,
+              "p99_us": 0.605,
+              "max_us": 0.605,
+              "sum_us": 25.299
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.0895,
+              "p99_us": 5.151,
+              "max_us": 5.151,
+              "sum_us": 128.11
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 5.366,
+              "p99_us": 50.253,
+              "max_us": 50.253,
+              "sum_us": 612.49
+            },
+            {
+              "field": "total_ns",
+              "median_us": 13.4895,
+              "p99_us": 60.673,
+              "max_us": 60.673,
+              "sum_us": 1493.431
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 0,
+      "config": "gds_native",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 169.19663350199698,
+        "read_dispatch_to_completion_p99_ms": 260.4962859986699,
+        "read_end_to_end_p50_ms": 169.19663350199698,
+        "read_end_to_end_p99_ms": 260.4962859986699,
+        "read_scheduled_offer_to_completion_p50_ms": 169.373792000275,
+        "read_scheduled_offer_to_completion_p99_ms": 260.55621799852815,
+        "total_storage_bandwidth_mib_s": 8111.845723260734,
+        "write_completion_ops_s": 202.79614308151835,
+        "write_completion_throughput_mib_s": 4867.10743395644
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.9865,
+              "p99_us": 30.579,
+              "max_us": 30.579,
+              "sum_us": 621.602
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.234,
+              "p99_us": 1.004,
+              "max_us": 1.004,
+              "sum_us": 18.59
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.827,
+              "p99_us": 6.957,
+              "max_us": 6.957,
+              "sum_us": 145.092
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.47,
+              "p99_us": 2.147,
+              "max_us": 2.147,
+              "sum_us": 37.812
+            },
+            {
+              "field": "total_ns",
+              "median_us": 11.9725,
+              "p99_us": 60.468,
+              "max_us": 60.468,
+              "sum_us": 948.061
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 264,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.5615,
+              "p99_us": 22.352,
+              "max_us": 28.757,
+              "sum_us": 2350.82
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.234,
+              "p99_us": 0.713,
+              "max_us": 1.075,
+              "sum_us": 73.976
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 2.3465,
+              "p99_us": 6.905,
+              "max_us": 12.605,
+              "sum_us": 728.311
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.573,
+              "p99_us": 25.312,
+              "max_us": 66.253,
+              "sum_us": 2106.834
+            },
+            {
+              "field": "total_ns",
+              "median_us": 18.23,
+              "p99_us": 59.674,
+              "max_us": 72.127,
+              "sum_us": 5612.957
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 0,
+      "config": "gds_bpf",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 48.937315499642864,
+        "read_dispatch_to_completion_p99_ms": 336.1117189997458,
+        "read_end_to_end_p50_ms": 48.937315499642864,
+        "read_end_to_end_p99_ms": 336.1117189997458,
+        "read_scheduled_offer_to_completion_p50_ms": 49.000418498922954,
+        "read_scheduled_offer_to_completion_p99_ms": 336.172419998009,
+        "total_storage_bandwidth_mib_s": 7770.515345277872,
+        "write_completion_ops_s": 194.2628836319468,
+        "write_completion_throughput_mib_s": 4662.309207166723
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.166,
+              "p99_us": 46.793,
+              "max_us": 46.793,
+              "sum_us": 628.774
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.2825,
+              "p99_us": 5884.749,
+              "max_us": 5884.749,
+              "sum_us": 12232.095
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 17.3895,
+              "p99_us": 335.249,
+              "max_us": 335.249,
+              "sum_us": 2169.675
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4765,
+              "p99_us": 1.23,
+              "max_us": 1.23,
+              "sum_us": 34.019
+            },
+            {
+              "field": "total_ns",
+              "median_us": 29.6855,
+              "p99_us": 5914.727,
+              "max_us": 5914.727,
+              "sum_us": 15186.767
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 284,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.8975,
+              "p99_us": 27.906,
+              "max_us": 604.833,
+              "sum_us": 3272.832
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.287,
+              "p99_us": 410.037,
+              "max_us": 981.061,
+              "sum_us": 2800.494
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 14.246,
+              "p99_us": 203.937,
+              "max_us": 388.655,
+              "sum_us": 5430.823
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.628,
+              "p99_us": 17.515,
+              "max_us": 19.382,
+              "sum_us": 2094.096
+            },
+            {
+              "field": "total_ns",
+              "median_us": 32.4745,
+              "p99_us": 638.814,
+              "max_us": 1063.916,
+              "sum_us": 13988.159
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 1,
+      "config": "gds_native",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 145.5929659987305,
+        "read_dispatch_to_completion_p99_ms": 231.3665520014183,
+        "read_end_to_end_p50_ms": 145.5929659987305,
+        "read_end_to_end_p99_ms": 231.3665520014183,
+        "read_scheduled_offer_to_completion_p50_ms": 145.670664997946,
+        "read_scheduled_offer_to_completion_p99_ms": 231.50721199932738,
+        "total_storage_bandwidth_mib_s": 8290.991824676521,
+        "write_completion_ops_s": 207.274795616913,
+        "write_completion_throughput_mib_s": 4974.595094805913
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.6375,
+              "p99_us": 27.239,
+              "max_us": 27.239,
+              "sum_us": 578.716
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.2335,
+              "p99_us": 0.668,
+              "max_us": 0.668,
+              "sum_us": 17.225
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.743,
+              "p99_us": 5.552,
+              "max_us": 5.552,
+              "sum_us": 129.118
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.3805,
+              "p99_us": 1.265,
+              "max_us": 1.265,
+              "sum_us": 28.871
+            },
+            {
+              "field": "total_ns",
+              "median_us": 11.3045,
+              "p99_us": 39.418,
+              "max_us": 39.418,
+              "sum_us": 850.555
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 254,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 5.248,
+              "p99_us": 23.259,
+              "max_us": 28.873,
+              "sum_us": 1658.263
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.197,
+              "p99_us": 0.98,
+              "max_us": 1.716,
+              "sum_us": 61.708
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.6865,
+              "p99_us": 7.164,
+              "max_us": 12.188,
+              "sum_us": 543.329
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 4.9765,
+              "p99_us": 50.34,
+              "max_us": 110.531,
+              "sum_us": 1757.08
+            },
+            {
+              "field": "total_ns",
+              "median_us": 12.789,
+              "p99_us": 87.288,
+              "max_us": 116.345,
+              "sum_us": 4297.518
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 1,
+      "config": "gds_bpf",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 24.214090499299346,
+        "read_dispatch_to_completion_p99_ms": 259.75456600281177,
+        "read_end_to_end_p50_ms": 24.214090499299346,
+        "read_end_to_end_p99_ms": 259.75456600281177,
+        "read_scheduled_offer_to_completion_p50_ms": 25.305609501359868,
+        "read_scheduled_offer_to_completion_p99_ms": 259.82298700266983,
+        "total_storage_bandwidth_mib_s": 8522.45566860183,
+        "write_completion_ops_s": 213.06139171504574,
+        "write_completion_throughput_mib_s": 5113.473401161098
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.965,
+              "p99_us": 22.435,
+              "max_us": 22.435,
+              "sum_us": 599.058
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.3315,
+              "p99_us": 690.823,
+              "max_us": 690.823,
+              "sum_us": 1494.28
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 16.929,
+              "p99_us": 3008.087,
+              "max_us": 3008.087,
+              "sum_us": 5152.464
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.5,
+              "p99_us": 1.302,
+              "max_us": 1.302,
+              "sum_us": 36.993
+            },
+            {
+              "field": "total_ns",
+              "median_us": 28.782,
+              "p99_us": 3018.164,
+              "max_us": 3018.164,
+              "sum_us": 7400.776
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 240,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.147,
+              "p99_us": 21.803,
+              "max_us": 29.995,
+              "sum_us": 2315.567
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.322,
+              "p99_us": 276.491,
+              "max_us": 768.699,
+              "sum_us": 1918.509
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 14.87,
+              "p99_us": 69.926,
+              "max_us": 557.416,
+              "sum_us": 4906.36
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 7.174,
+              "p99_us": 18.229,
+              "max_us": 18.48,
+              "sum_us": 1894.961
+            },
+            {
+              "field": "total_ns",
+              "median_us": 33.0655,
+              "p99_us": 500.153,
+              "max_us": 800.759,
+              "sum_us": 11418.356
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 1,
+      "config": "gds_fifo",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 144.10206449974794,
+        "read_dispatch_to_completion_p99_ms": 233.49461700126994,
+        "read_end_to_end_p50_ms": 144.10206449974794,
+        "read_end_to_end_p99_ms": 233.49461700126994,
+        "read_scheduled_offer_to_completion_p50_ms": 144.18321799884143,
+        "read_scheduled_offer_to_completion_p99_ms": 236.51727300003404,
+        "total_storage_bandwidth_mib_s": 8440.83482008534,
+        "write_completion_ops_s": 211.0208705021335,
+        "write_completion_throughput_mib_s": 5064.500892051204
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.1755,
+              "p99_us": 29.06,
+              "max_us": 29.06,
+              "sum_us": 693.177
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.2455,
+              "p99_us": 0.749,
+              "max_us": 0.749,
+              "sum_us": 21.501
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.5315,
+              "p99_us": 4.271,
+              "max_us": 4.271,
+              "sum_us": 129.283
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4535,
+              "p99_us": 1.418,
+              "max_us": 1.418,
+              "sum_us": 39.743
+            },
+            {
+              "field": "total_ns",
+              "median_us": 12.27,
+              "p99_us": 38.302,
+              "max_us": 38.302,
+              "sum_us": 1005.399
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 96,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.626,
+              "p99_us": 23.435,
+              "max_us": 23.435,
+              "sum_us": 920.681
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.207,
+              "p99_us": 0.53,
+              "max_us": 0.53,
+              "sum_us": 25.459
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.4145,
+              "p99_us": 4.863,
+              "max_us": 4.863,
+              "sum_us": 169.653
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 7.19,
+              "p99_us": 22.125,
+              "max_us": 22.125,
+              "sum_us": 862.216
+            },
+            {
+              "field": "total_ns",
+              "median_us": 17.5835,
+              "p99_us": 54.647,
+              "max_us": 54.647,
+              "sum_us": 2143.635
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 2,
+      "config": "gds_bpf",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 202.65627049775503,
+        "read_dispatch_to_completion_p99_ms": 251.8174299984821,
+        "read_end_to_end_p50_ms": 202.65627049775503,
+        "read_end_to_end_p99_ms": 251.8174299984821,
+        "read_scheduled_offer_to_completion_p50_ms": 202.76437049906235,
+        "read_scheduled_offer_to_completion_p99_ms": 251.88945599936415,
+        "total_storage_bandwidth_mib_s": 8216.342406440472,
+        "write_completion_ops_s": 205.4085601610118,
+        "write_completion_throughput_mib_s": 4929.805443864283
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.893,
+              "p99_us": 23.971,
+              "max_us": 23.971,
+              "sum_us": 646.62
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.353,
+              "p99_us": 3033.037,
+              "max_us": 3033.037,
+              "sum_us": 5467.877
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 19.0225,
+              "p99_us": 196.54,
+              "max_us": 196.54,
+              "sum_us": 2224.526
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.505,
+              "p99_us": 1.374,
+              "max_us": 1.374,
+              "sum_us": 37.298
+            },
+            {
+              "field": "total_ns",
+              "median_us": 32.2185,
+              "p99_us": 3070.322,
+              "max_us": 3070.322,
+              "sum_us": 8495.652
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 262,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 5.9595,
+              "p99_us": 21.157,
+              "max_us": 28.859,
+              "sum_us": 1814.915
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.2075,
+              "p99_us": 283.032,
+              "max_us": 800.21,
+              "sum_us": 2544.702
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 11.668,
+              "p99_us": 333.273,
+              "max_us": 3140.357,
+              "sum_us": 8308.37
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 5.4645,
+              "p99_us": 18.222,
+              "max_us": 161.851,
+              "sum_us": 1815.191
+            },
+            {
+              "field": "total_ns",
+              "median_us": 25.7985,
+              "p99_us": 430.782,
+              "max_us": 3183.115,
+              "sum_us": 14795.203
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 2,
+      "config": "gds_fifo",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 858.9797394997731,
+        "read_dispatch_to_completion_p99_ms": 1249.2313610018755,
+        "read_end_to_end_p50_ms": 858.9797394997731,
+        "read_end_to_end_p99_ms": 1249.2313610018755,
+        "read_scheduled_offer_to_completion_p50_ms": 859.0408510011621,
+        "read_scheduled_offer_to_completion_p99_ms": 1250.3035890012397,
+        "total_storage_bandwidth_mib_s": 1457.681324625338,
+        "write_completion_ops_s": 36.44203311563345,
+        "write_completion_throughput_mib_s": 874.6087947752028
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 9.226,
+              "p99_us": 31.944,
+              "max_us": 31.944,
+              "sum_us": 740.623
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.232,
+              "p99_us": 0.767,
+              "max_us": 0.767,
+              "sum_us": 22.274
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.595,
+              "p99_us": 10.143,
+              "max_us": 10.143,
+              "sum_us": 137.557
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.475,
+              "p99_us": 6.401,
+              "max_us": 6.401,
+              "sum_us": 53.527
+            },
+            {
+              "field": "total_ns",
+              "median_us": 13.9635,
+              "p99_us": 41.677,
+              "max_us": 41.677,
+              "sum_us": 1091.774
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 96,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 9.4635,
+              "p99_us": 44.138,
+              "max_us": 44.138,
+              "sum_us": 1174.19
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.34,
+              "p99_us": 3.357,
+              "max_us": 3.357,
+              "sum_us": 32.372
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.8945,
+              "p99_us": 10.636,
+              "max_us": 10.636,
+              "sum_us": 207.15
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 8.7995,
+              "p99_us": 70.663,
+              "max_us": 70.663,
+              "sum_us": 1106.861
+            },
+            {
+              "field": "total_ns",
+              "median_us": 22.9055,
+              "p99_us": 89.634,
+              "max_us": 89.634,
+              "sum_us": 2729.074
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 2,
+      "config": "gds_native",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 889.0372064979601,
+        "read_dispatch_to_completion_p99_ms": 1154.1907710015948,
+        "read_end_to_end_p50_ms": 889.0372064979601,
+        "read_end_to_end_p99_ms": 1154.1907710015948,
+        "read_scheduled_offer_to_completion_p50_ms": 889.0976259982999,
+        "read_scheduled_offer_to_completion_p99_ms": 1154.3143549999804,
+        "total_storage_bandwidth_mib_s": 1385.610347771679,
+        "write_completion_ops_s": 34.64025869429197,
+        "write_completion_throughput_mib_s": 831.3662086630073
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.338,
+              "p99_us": 26.708,
+              "max_us": 26.708,
+              "sum_us": 535.214
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.2,
+              "p99_us": 0.641,
+              "max_us": 0.641,
+              "sum_us": 15.488
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.7065,
+              "p99_us": 68.517,
+              "max_us": 68.517,
+              "sum_us": 198.102
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.412,
+              "p99_us": 1.309,
+              "max_us": 1.309,
+              "sum_us": 31.329
+            },
+            {
+              "field": "total_ns",
+              "median_us": 11.2875,
+              "p99_us": 78.735,
+              "max_us": 78.735,
+              "sum_us": 878.826
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 285,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 6.519,
+              "p99_us": 18.671,
+              "max_us": 26.425,
+              "sum_us": 1890.872
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.176,
+              "p99_us": 0.585,
+              "max_us": 0.645,
+              "sum_us": 60.421
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 2.095,
+              "p99_us": 6.48,
+              "max_us": 7.645,
+              "sum_us": 634.758
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.143,
+              "p99_us": 24.159,
+              "max_us": 65.581,
+              "sum_us": 1954.332
+            },
+            {
+              "field": "total_ns",
+              "median_us": 16.116,
+              "p99_us": 51.756,
+              "max_us": 76.08,
+              "sum_us": 4848.393
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 3,
+      "config": "gds_fifo",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 321.58941900161153,
+        "read_dispatch_to_completion_p99_ms": 488.2040020020213,
+        "read_end_to_end_p50_ms": 321.58941900161153,
+        "read_end_to_end_p99_ms": 488.2040020020213,
+        "read_scheduled_offer_to_completion_p50_ms": 321.6324445006903,
+        "read_scheduled_offer_to_completion_p99_ms": 490.33065299809095,
+        "total_storage_bandwidth_mib_s": 3339.4209702173944,
+        "write_completion_ops_s": 83.48552425543485,
+        "write_completion_throughput_mib_s": 2003.6525821304365
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.042,
+              "p99_us": 22.84,
+              "max_us": 22.84,
+              "sum_us": 621.758
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.221,
+              "p99_us": 0.729,
+              "max_us": 0.729,
+              "sum_us": 17.049
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.377,
+              "p99_us": 4.933,
+              "max_us": 4.933,
+              "sum_us": 109.894
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.3995,
+              "p99_us": 3.025,
+              "max_us": 3.025,
+              "sum_us": 34.045
+            },
+            {
+              "field": "total_ns",
+              "median_us": 11.702,
+              "p99_us": 33.008,
+              "max_us": 33.008,
+              "sum_us": 891.702
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 96,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 6.4875,
+              "p99_us": 23.462,
+              "max_us": 23.462,
+              "sum_us": 747.833
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.1725,
+              "p99_us": 0.53,
+              "max_us": 0.53,
+              "sum_us": 21.707
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.316,
+              "p99_us": 5.694,
+              "max_us": 5.694,
+              "sum_us": 152.68
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.292,
+              "p99_us": 60.213,
+              "max_us": 60.213,
+              "sum_us": 726.183
+            },
+            {
+              "field": "total_ns",
+              "median_us": 15.58,
+              "p99_us": 86.446,
+              "max_us": 86.446,
+              "sum_us": 1768.332
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 3,
+      "config": "gds_native",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 640.0057215014385,
+        "read_dispatch_to_completion_p99_ms": 957.7569709981617,
+        "read_end_to_end_p50_ms": 640.0057215014385,
+        "read_end_to_end_p99_ms": 957.7569709981617,
+        "read_scheduled_offer_to_completion_p50_ms": 640.1525890013145,
+        "read_scheduled_offer_to_completion_p99_ms": 958.0199620008643,
+        "total_storage_bandwidth_mib_s": 1819.7895609020577,
+        "write_completion_ops_s": 45.49473902255144,
+        "write_completion_throughput_mib_s": 1091.8737365412346
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.402,
+              "p99_us": 23.443,
+              "max_us": 23.443,
+              "sum_us": 613.068
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.237,
+              "p99_us": 0.657,
+              "max_us": 0.657,
+              "sum_us": 19.669
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.885,
+              "p99_us": 5.277,
+              "max_us": 5.277,
+              "sum_us": 144.592
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4865,
+              "p99_us": 3.844,
+              "max_us": 3.844,
+              "sum_us": 39.089
+            },
+            {
+              "field": "total_ns",
+              "median_us": 12.6505,
+              "p99_us": 34.284,
+              "max_us": 34.284,
+              "sum_us": 918.302
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 286,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 6.833,
+              "p99_us": 23.234,
+              "max_us": 23.549,
+              "sum_us": 2145.423
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.1955,
+              "p99_us": 0.626,
+              "max_us": 0.677,
+              "sum_us": 68.44
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 2.267,
+              "p99_us": 7.203,
+              "max_us": 10.892,
+              "sum_us": 702.844
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.0275,
+              "p99_us": 21.632,
+              "max_us": 37.58,
+              "sum_us": 1936.534
+            },
+            {
+              "field": "total_ns",
+              "median_us": 16.5155,
+              "p99_us": 53.21,
+              "max_us": 56.06,
+              "sum_us": 5213.842
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 3,
+      "config": "gds_bpf",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 304.740382500313,
+        "read_dispatch_to_completion_p99_ms": 485.0507569972251,
+        "read_end_to_end_p50_ms": 304.740382500313,
+        "read_end_to_end_p99_ms": 485.0507569972251,
+        "read_scheduled_offer_to_completion_p50_ms": 304.8054384989955,
+        "read_scheduled_offer_to_completion_p99_ms": 486.68350299762096,
+        "total_storage_bandwidth_mib_s": 3230.457444646153,
+        "write_completion_ops_s": 80.76143611615383,
+        "write_completion_throughput_mib_s": 1938.2744667876918
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.299,
+              "p99_us": 30.959,
+              "max_us": 30.959,
+              "sum_us": 644.562
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.288,
+              "p99_us": 3543.696,
+              "max_us": 3543.696,
+              "sum_us": 7657.958
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 17.9615,
+              "p99_us": 459.382,
+              "max_us": 459.382,
+              "sum_us": 2606.687
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4875,
+              "p99_us": 5.019,
+              "max_us": 5.019,
+              "sum_us": 42.89
+            },
+            {
+              "field": "total_ns",
+              "median_us": 30.9215,
+              "p99_us": 3577.943,
+              "max_us": 3577.943,
+              "sum_us": 11079.469
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 284,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 5.1405,
+              "p99_us": 23.778,
+              "max_us": 670.035,
+              "sum_us": 2519.451
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.172,
+              "p99_us": 146.556,
+              "max_us": 433.288,
+              "sum_us": 1005.931
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 9.6185,
+              "p99_us": 955.509,
+              "max_us": 2486.838,
+              "sum_us": 8852.14
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 4.7735,
+              "p99_us": 20.044,
+              "max_us": 73.505,
+              "sum_us": 1765.951
+            },
+            {
+              "field": "total_ns",
+              "median_us": 20.9415,
+              "p99_us": 972.332,
+              "max_us": 2507.831,
+              "sum_us": 14466.816
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 4,
+      "config": "gds_native",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 177.44733399922552,
+        "read_dispatch_to_completion_p99_ms": 706.889023000258,
+        "read_end_to_end_p50_ms": 177.44733399922552,
+        "read_end_to_end_p99_ms": 706.889023000258,
+        "read_scheduled_offer_to_completion_p50_ms": 177.5400395001343,
+        "read_scheduled_offer_to_completion_p99_ms": 708.4727609989932,
+        "total_storage_bandwidth_mib_s": 2003.1358591092041,
+        "write_completion_ops_s": 50.0783964777301,
+        "write_completion_throughput_mib_s": 1201.8815154655226
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.9075,
+              "p99_us": 27.79,
+              "max_us": 27.79,
+              "sum_us": 603.403
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.244,
+              "p99_us": 0.721,
+              "max_us": 0.721,
+              "sum_us": 19.096
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.916,
+              "p99_us": 6.296,
+              "max_us": 6.296,
+              "sum_us": 153.619
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4335,
+              "p99_us": 2.686,
+              "max_us": 2.686,
+              "sum_us": 36.216
+            },
+            {
+              "field": "total_ns",
+              "median_us": 12.18,
+              "p99_us": 38.389,
+              "max_us": 38.389,
+              "sum_us": 919.879
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 286,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.095,
+              "p99_us": 20.66,
+              "max_us": 96.953,
+              "sum_us": 2268.959
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.194,
+              "p99_us": 0.665,
+              "max_us": 0.688,
+              "sum_us": 70.915
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 2.247,
+              "p99_us": 6.678,
+              "max_us": 9.654,
+              "sum_us": 706.781
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.3575,
+              "p99_us": 19.17,
+              "max_us": 24.734,
+              "sum_us": 2027.819
+            },
+            {
+              "field": "total_ns",
+              "median_us": 17.0975,
+              "p99_us": 52.514,
+              "max_us": 105.641,
+              "sum_us": 5420.055
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 4,
+      "config": "gds_bpf",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 563.0296375002217,
+        "read_dispatch_to_completion_p99_ms": 665.1834799995413,
+        "read_end_to_end_p50_ms": 563.0296375002217,
+        "read_end_to_end_p99_ms": 665.1834799995413,
+        "read_scheduled_offer_to_completion_p50_ms": 563.1557795015979,
+        "read_scheduled_offer_to_completion_p99_ms": 665.2797379996337,
+        "total_storage_bandwidth_mib_s": 2867.246568978406,
+        "write_completion_ops_s": 71.68116422446013,
+        "write_completion_throughput_mib_s": 1720.3479413870434
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.9895,
+              "p99_us": 20.204,
+              "max_us": 20.204,
+              "sum_us": 556.521
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.277,
+              "p99_us": 738.987,
+              "max_us": 738.987,
+              "sum_us": 3290.931
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 18.032,
+              "p99_us": 2844.733,
+              "max_us": 2844.733,
+              "sum_us": 5237.555
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4585,
+              "p99_us": 1.432,
+              "max_us": 1.432,
+              "sum_us": 33.186
+            },
+            {
+              "field": "total_ns",
+              "median_us": 30.14,
+              "p99_us": 2867.863,
+              "max_us": 2867.863,
+              "sum_us": 9251.393
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 286,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 7.43,
+              "p99_us": 27.953,
+              "max_us": 28.873,
+              "sum_us": 2647.148
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.2795,
+              "p99_us": 447.008,
+              "max_us": 619.015,
+              "sum_us": 2810.369
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 13.607,
+              "p99_us": 277.379,
+              "max_us": 2643.868,
+              "sum_us": 8382.96
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.8655,
+              "p99_us": 21.994,
+              "max_us": 31.348,
+              "sum_us": 2254.668
+            },
+            {
+              "field": "total_ns",
+              "median_us": 30.062,
+              "p99_us": 506.631,
+              "max_us": 2668.435,
+              "sum_us": 16521.611
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 4,
+      "config": "gds_fifo",
+      "status": null,
+      "errors": null,
+      "cleanup_errors": [],
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "read_dispatch_to_completion_p50_ms": 499.58552200041595,
+        "read_dispatch_to_completion_p99_ms": 836.6604870025185,
+        "read_end_to_end_p50_ms": 499.58552200041595,
+        "read_end_to_end_p99_ms": 836.6604870025185,
+        "read_scheduled_offer_to_completion_p50_ms": 499.7170424993237,
+        "read_scheduled_offer_to_completion_p99_ms": 836.7214960001584,
+        "total_storage_bandwidth_mib_s": 2135.368544792402,
+        "write_completion_ops_s": 53.38421361981006,
+        "write_completion_throughput_mib_s": 1281.2211268754413
+      },
+      "timing": [
+        {
+          "kind": "read_demand",
+          "n": 64,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.3705,
+              "p99_us": 22.915,
+              "max_us": 22.915,
+              "sum_us": 677.441
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.237,
+              "p99_us": 0.838,
+              "max_us": 0.838,
+              "sum_us": 19.653
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.6445,
+              "p99_us": 12.695,
+              "max_us": 12.695,
+              "sum_us": 140.642
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 0.4315,
+              "p99_us": 1.209,
+              "max_us": 1.209,
+              "sum_us": 34.275
+            },
+            {
+              "field": "total_ns",
+              "median_us": 11.968,
+              "p99_us": 37.042,
+              "max_us": 37.042,
+              "sum_us": 991.539
+            }
+          ]
+        },
+        {
+          "kind": "write",
+          "n": 96,
+          "stages": [
+            {
+              "field": "provider_ns",
+              "median_us": 8.298,
+              "p99_us": 29.348,
+              "max_us": 29.348,
+              "sum_us": 949.384
+            },
+            {
+              "field": "lock_wait_ns",
+              "median_us": 0.184,
+              "p99_us": 0.511,
+              "max_us": 0.511,
+              "sum_us": 22.273
+            },
+            {
+              "field": "decider_ns",
+              "median_us": 1.395,
+              "p99_us": 11.329,
+              "max_us": 11.329,
+              "sum_us": 186.519
+            },
+            {
+              "field": "locked_accounting_ns",
+              "median_us": 6.782,
+              "p99_us": 43.304,
+              "max_us": 43.304,
+              "sum_us": 822.432
+            },
+            {
+              "field": "total_ns",
+              "median_us": 18.533,
+              "p99_us": 72.182,
+              "max_us": 72.182,
+              "sum_us": 2112.956
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "arms": {
+    "gds_fifo": {
+      "cells": 5,
+      "p99_ms": 490.33065299809095,
+      "write_mib_s": 2003.6525821304365,
+      "timing": {
+        "read_demand": {
+          "provider_ns": {
+            "median_of_cell_medians_us": 8.1755,
+            "max_us": 54.663
+          },
+          "lock_wait_ns": {
+            "median_of_cell_medians_us": 0.232,
+            "max_us": 1.309
+          },
+          "decider_ns": {
+            "median_of_cell_medians_us": 1.5315,
+            "max_us": 12.695
+          },
+          "total_ns": {
+            "median_of_cell_medians_us": 11.968,
+            "max_us": 67.948
+          }
+        },
+        "write": {
+          "provider_ns": {
+            "median_of_cell_medians_us": 7.626,
+            "max_us": 44.138
+          },
+          "lock_wait_ns": {
+            "median_of_cell_medians_us": 0.1985,
+            "max_us": 3.357
+          },
+          "decider_ns": {
+            "median_of_cell_medians_us": 1.395,
+            "max_us": 11.329
+          },
+          "total_ns": {
+            "median_of_cell_medians_us": 17.5835,
+            "max_us": 89.634
+          }
+        }
+      }
+    },
+    "gds_native": {
+      "cells": 5,
+      "p99_ms": 708.4727609989932,
+      "write_mib_s": 1201.8815154655226,
+      "timing": {
+        "read_demand": {
+          "provider_ns": {
+            "median_of_cell_medians_us": 7.9075,
+            "max_us": 30.579
+          },
+          "lock_wait_ns": {
+            "median_of_cell_medians_us": 0.234,
+            "max_us": 1.004
+          },
+          "decider_ns": {
+            "median_of_cell_medians_us": 1.827,
+            "max_us": 68.517
+          },
+          "total_ns": {
+            "median_of_cell_medians_us": 11.9725,
+            "max_us": 78.735
+          }
+        },
+        "write": {
+          "provider_ns": {
+            "median_of_cell_medians_us": 6.833,
+            "max_us": 96.953
+          },
+          "lock_wait_ns": {
+            "median_of_cell_medians_us": 0.1955,
+            "max_us": 1.716
+          },
+          "decider_ns": {
+            "median_of_cell_medians_us": 2.247,
+            "max_us": 12.605
+          },
+          "total_ns": {
+            "median_of_cell_medians_us": 16.5155,
+            "max_us": 116.345
+          }
+        }
+      }
+    },
+    "gds_bpf": {
+      "cells": 5,
+      "p99_ms": 336.172419998009,
+      "write_mib_s": 4662.309207166723,
+      "timing": {
+        "read_demand": {
+          "provider_ns": {
+            "median_of_cell_medians_us": 8.166,
+            "max_us": 46.793
+          },
+          "lock_wait_ns": {
+            "median_of_cell_medians_us": 0.288,
+            "max_us": 5884.749
+          },
+          "decider_ns": {
+            "median_of_cell_medians_us": 17.9615,
+            "max_us": 3008.087
+          },
+          "total_ns": {
+            "median_of_cell_medians_us": 30.14,
+            "max_us": 5914.727
+          }
+        },
+        "write": {
+          "provider_ns": {
+            "median_of_cell_medians_us": 7.43,
+            "max_us": 670.035
+          },
+          "lock_wait_ns": {
+            "median_of_cell_medians_us": 0.2795,
+            "max_us": 981.061
+          },
+          "decider_ns": {
+            "median_of_cell_medians_us": 13.607,
+            "max_us": 3140.357
+          },
+          "total_ns": {
+            "median_of_cell_medians_us": 30.062,
+            "max_us": 3183.115
+          }
+        }
+      }
+    }
+  },
+  "pairs": {
+    "gds_bpf/gds_native": {
+      "values_pct": [
+        29.021069840639147,
+        12.23105524825927,
+        -78.17843511099987,
+        -49.19902274466574,
+        -6.09663848451344
+      ],
+      "median_pct": -6.09663848451344
+    },
+    "gds_bpf/gds_fifo": {
+      "values_pct": [
+        24.600496072007317,
+        9.8537048508218,
+        -79.85373646727056,
+        -0.7438143991548851,
+        -20.48970401980592
+      ],
+      "median_pct": -0.7438143991548851
+    },
+    "gds_native/gds_fifo": {
+      "values_pct": [
+        -3.426241755778281,
+        -2.1182643183552785,
+        -7.677274131312128,
+        95.38243349525901,
+        -15.327529603845736
+      ],
+      "median_pct": -3.426241755778281
+    }
+  }
+}

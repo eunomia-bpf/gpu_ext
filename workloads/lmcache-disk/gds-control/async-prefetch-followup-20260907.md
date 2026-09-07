@@ -62,6 +62,19 @@ object-level async serving extension. Full automatic offload still needs
 backing-version/writeback/reclaim coordination beyond retrieval; no completed
 transparent UVM storage tier or corresponding performance is claimed.
 
+At 16:13 UTC, September 7, the live OpenCode endpoint confirms three active
+sessions: GLM continues its backend draft, Qwen 27B resumes the serving runner,
+and Qwen Next resumes an independent temporary backend candidate. The prior
+runner call ended with a recorded APIError, and the prior candidate call ended
+with HTTP 524; both were absent from the live endpoint before continuation.
+Neither was terminated by root. GLM's draft exists at
+`/tmp/opencode/startup-stage-timing/async-prefetch-draft.py` (22,473 bytes at
+inspection), but is not installed: bootstrap and executable read-lifecycle
+integration remain incomplete. The runner and candidate patch were not yet
+written at continuation. Small incremental model writes are requested to
+preserve partial progress, not as an execution timeout. No new serving cells
+have run, and no additional performance result is claimed.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

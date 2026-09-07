@@ -430,3 +430,137 @@ def run_cell(config: str, block: int, position: int, run_dir: Path, port: int,
         record["finished_ns"] = time.time_ns()
         ops.atomic_write_json(run_dir / "result.json", record)
     return record
+
+
+def cell_metrics(record: dict[str, Any]) -> dict[str, Any]:
+    """Per-cell metrics from the preserved warm phase; None when the phase is absent."""
+    warm = record.get("warm_phase") or {}
+    return {
+        "warm_requests": warm.get("requests"),
+        "warm_attempts": warm.get("attempts"),
+        "warm_failures": warm.get("failures"),
+        "warm_output_tokens": warm.get("output_tokens"),
+        "warm_elapsed_s": warm.get("elapsed_s"),
+        "warm_requests_per_s": warm.get("requests_per_s"),
+        "warm_output_tokens_per_s": warm.get("output_tokens_per_s"),
+        "warm_ttft_median_ms": warm.get("warm_ttft_median_ms"),
+        "ready": record.get("ready", False),
+        "server_returncode": record.get("server_returncode"),
+        "error": record.get("error"),
+    }
+
+
+def median_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
+    """Per-arm medians across attempted blocks; failed cells simply lack values."""
+    metric_names = (
+        "warm_ttft_median_ms",
+        "warm_requests_per_s",
+        "warm_output_tokens_per_s",
+    )
+    per_arm: dict[str, Any] = {}
+    for config in CONFIGS:
+        rows = [cell["metrics"] for cell in cells if cell["config"] == config]
+        medians = {}
+        for name in metric_names:
+            values = [float(row[name]) for row in rows
+                      if isinstance(row.get(name), (int, float))]
+            medians[name] = statistics.median(values) if values else None
+        per_arm[config] = {
+            "cells_attempted": len(rows),
+            "cells_measured": sum(row.get("warm_requests_per_s") is not None
+                                  for row in rows),
+            "medians": medians,
+        }
+    return {"kind": KIND, "cells_attempted": len(cells), "per_arm": per_arm}
+
+
+def run_campaign(args: argparse.Namespace) -> int:
+    root = output_root(args.output)
+    orders = rotation_orders(args.blocks)
+    prefixes = perf.load_fixed_prompts()["prefixes"]
+    root.mkdir(parents=True, exist_ok=False)
+    model_path = ops.resolve_model(local_only=True)
+    campaign: dict[str, Any] = {
+        "kind": KIND,
+        "timestamp": time.strftime("%Y%m%dT%H%M%S"),
+        "params": {
+            "blocks": args.blocks,
+            "configs": list(CONFIGS),
+            "port": args.port,
+            "expected_driver": args.expected_driver,
+            "store_barrier_timeout_s": args.store_barrier_timeout_s,
+            "gds_buffer_size_mib": args.gds_buffer_size_mib,
+            "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
+            "warm_concurrency": args.warm_concurrency,
+            "warm_stagger_ms": args.warm_stagger_ms,
+            "prefetch_lead_ms": args.prefetch_lead_ms,
+            "attempts_per_cell": 1,
+            "retry": False,
+            "model_path": str(model_path),
+        },
+        "block_orders": orders,
+        "cells": [],
+    }
+    stop = perf.DeferredStop()
+    previous = {sig: signal.signal(sig, stop.request)
+                for sig in (signal.SIGINT, signal.SIGTERM)}
+    try:
+        with (root / RAW_NAME).open("x", encoding="utf-8") as raw_file:
+            for block, order in enumerate(orders):
+                for position, config in enumerate(order):
+                    run_dir = root / f"block-{block:02d}" / f"position-{position}-{config}"
+                    run_dir.parent.mkdir(parents=True, exist_ok=True)
+                    print(f"block={block} position={position} config={config}", flush=True)
+                    try:
+                        record = run_cell(
+                            config=config, block=block, position=position,
+                            run_dir=run_dir, port=args.port, model_path=model_path,
+                            prefixes=prefixes, expected_driver=args.expected_driver,
+                            store_barrier_timeout_s=args.store_barrier_timeout_s,
+                            gds_buffer_size_mib=args.gds_buffer_size_mib,
+                            kv_cache_memory_bytes=args.kv_cache_memory_bytes,
+                            warm_concurrency=args.warm_concurrency,
+                            warm_stagger_ms=args.warm_stagger_ms,
+                            prefetch_lead_ms=args.prefetch_lead_ms,
+                        )
+                    except Exception as error:  # noqa: BLE001 - preserved, never fatal
+                        record = {
+                            "schema": 1, "kind": KIND, "config": config,
+                            "block": block, "position": position, "port": args.port,
+                            "ready": False, "requests": [], "warm_phase": None,
+                            "barriers": [], "cleanup_errors": [],
+                            "server_returncode": None,
+                            "error": f"{type(error).__name__}: {error}",
+                        }
+                        run_dir.mkdir(parents=True, exist_ok=True)
+                        ops.atomic_write_json(run_dir / "result.json", record)
+                    raw_file.write(json.dumps(record, ensure_ascii=False,
+                                              separators=(",", ":")) + "\n")
+                    raw_file.flush()
+                    os.fsync(raw_file.fileno())
+                    campaign["cells"].append({
+                        "block": block,
+                        "position": position,
+                        "config": config,
+                        "run_dir": str(run_dir),
+                        "metrics": cell_metrics(record),
+                    })
+                    campaign["summary"] = median_summary(campaign["cells"])
+                    ops.atomic_write_json(root / "campaign.json", campaign)
+                    ops.atomic_write_json(root / SUMMARY_NAME, campaign["summary"])
+                    if stop.signum is not None:
+                        campaign["stopped_early"] = (
+                            f"deferred {stop.signum_name()} request; stopping between cells"
+                        )
+                        ops.atomic_write_json(root / "campaign.json", campaign)
+                        return 3
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+
+    expected_cells = args.blocks * len(CONFIGS)
+    complete = (all(cell["metrics"]["warm_requests_per_s"] is not None
+                    for cell in campaign["cells"])
+                and len(campaign["cells"]) == expected_cells)
+    print(json.dumps(campaign["summary"], ensure_ascii=False, indent=2), flush=True)
+    return 0 if complete else 2

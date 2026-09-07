@@ -125,6 +125,29 @@ The campaign/CLI tail is the remaining runner integration, and real serving
 results remain pending. Full KV-residency/reclaim control is a separate gap
 described in section 7 of `disk-uvm-source-boundary-20260907.md`.
 
+## First four-arm serving campaign invocation
+
+The completed Qwen campaign functions are appended to the per-cell module.
+Root invokes `run_campaign` directly while the CLI convenience wrapper is
+still being completed; this uses the same function, not a substitute harness.
+Output is the new `raw/gds-async-prefetch-575-20260907-01` directory.
+Five rotated blocks use all four arms, 2 server sequences, 768 MiB KV,
+256 MiB GDS staging, 4 HTTP workers, and 250 ms scheduled warm-request spacing.
+Every arm receives the same explicit 50 ms prefetch-lead hint. This positive
+lead makes JIT deferral possible after completion-derived estimates exist;
+it is an application hint, not a measured scheduler prediction or a promised
+performance benefit. The zero-lead default would not measure adaptive timing.
+
+Invocation from the repository root, after activating the built new policy
+while holding the existing GPU/struct-ops coordination leases:
+
+```sh
+python3 -u -c 'import sys; from pathlib import Path; from argparse import Namespace; sys.path.insert(0,"workloads/lmcache-disk"); import run_gds_async_prefetch as r; raise SystemExit(r.run_campaign(Namespace(output=Path("workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-01"),blocks=5,port=18080,expected_driver="575.57.08",store_barrier_timeout_s=120.0,gds_buffer_size_mib=256,kv_cache_memory_bytes=805306368,warm_concurrency=4,warm_stagger_ms=250.0,prefetch_lead_ms=50.0)))'
+```
+
+This records the planned invocation before execution, not a completed result.
+All attempts, including failures and adverse results, remain in the new output.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

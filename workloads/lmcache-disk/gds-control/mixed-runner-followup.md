@@ -1,5 +1,28 @@
 # Mixed runner: first execution and immediate follow-up
 
+## Latest root collection
+
+Root has now completed the full 15-measurement comparison by invoking one
+configuration in a fresh process, using the committed main-worktree runner.
+See `../results-575-gds-mixed-fresh-process-20260906.md` and its raw directory.
+All 960 reads and 1440 writes completed, and CUDA memory returned to 15 MiB
+after process exit. FIFO/native/BPF p99 medians are 225.177/208.939/218.392 ms,
+with substantial paired variability. A separate zero-spacing burst comparison
+also completes all 15 measurements; see `../results-575-gds-mixed-burst-20260906.md`.
+It likewise does not establish stable policy benefit. Do not repeat either
+completed comparison or overwrite any raw records.
+
+Immediate implementation follow-up remains narrow: integrate fresh-process
+per-measurement execution and distinguish scheduled offers from dispatch.
+The root has not withheld performance while awaiting these changes. After
+that, the higher-value policy question is pending-demand feedback rather than
+another unchanged fixed 10 ms delay: native and BPF should see the same live
+outstanding-read state and decide through the same executor. Do not label
+queue depth as measured HBM pressure or implement fake recomputation.
+No broad test expansion or additional nested agent sessions is needed.
+
+## Original first-run observations
+
 The first real execution is retained at
 `../raw/gds-mixed-backend-575-20260906-01/` (three cells, default 4 reads and
 6 writes of 24 MiB). FIFO recorded 10 submit decisions; native and BPF each

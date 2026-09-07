@@ -23,6 +23,22 @@ local-model edit should fix them before using the enlarged workload's numbers:
    Use wall time for the wall label and monotonic time only for durations.
 4. `allocate_object` uses a global default 24 MiB even when `--object-mib`
    changes. Use the requested object size for allocation and metadata.
+5. A subsequent five-block run with 64 reads, 96 writes and a 4096 MiB pool
+   completed seven cells, then failed the last eight with CUDA OOM. The
+   exception reports **28 GiB still allocated by PyTorch**, exactly seven
+   pools, despite calling backend.close. The records and runner snapshot are
+   in `../raw/gds-mixed-backend-dispatch-575-20260906-five-block/`.
+   Prefer a fresh child process per cell to release the CUDA context and
+   equalize allocator state; alternatively demonstrate actual pool release
+   after dropping adapter/backend cycles. Do not use a smaller workload to
+   conceal the retained pools. Preserve this failed campaign and collect a
+   new full run after the fix.
+
+The larger one-block run at `../raw/gds-mixed-backend-575-20260906-02/`
+completed all 480 requests, with native and BPF each making 64 submit and 96
+defer decisions; all submission timestamps are present after the ordering
+fix. Its call-to-completion read p99 is FIFO 227.864 ms, native 133.470 ms,
+and BPF 133.342 ms. It remains separate first-block evidence.
 
 Keep these first records. Then collect a larger same-workload three-arm
 comparison (enough reads that p99 is more informative than a four-sample max),

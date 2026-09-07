@@ -218,6 +218,8 @@ def main():
     shm = f'pod_attention_{os.getpid()}_{time.monotonic_ns()}' if args.arm == 'pod_bpf' else None
     segment = Path('/dev/shm') / shm if shm else None
     target_env = base.environment(args.arm, ptx, shm)
+    if args.arm == 'pod_bpf' and 'BPFTIME_CUDA_STARTUP_TIMING' in os.environ:
+        target_env['BPFTIME_CUDA_STARTUP_TIMING'] = os.environ['BPFTIME_CUDA_STARTUP_TIMING']
     launch_env = dict(target_env)
     preload = launch_env.pop('LD_PRELOAD', None)
     loader_env = None

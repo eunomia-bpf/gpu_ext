@@ -162,3 +162,13 @@ was live at handoff. The new module remains loaded, the experiment locks
 are released, and the saved pre-change module remains at
 `/var/tmp/gds-restore-before-stale-20260907.AWgdmi/nvidia-uvm.ko`.
 No new KV reclaim policy is attached and no serving performance was measured.
+
+Source clarification for that actual rejection: Linux v6.15
+[`check_ptr_to_btf_access`](https://github.com/torvalds/linux/blob/v6.15/kernel/bpf/verifier.c#L6722)
+rejects non-constant or nonzero `var_off` before inspecting BTF fields.
+Bounding a runtime candidate index therefore does not by itself permit
+direct indexing into this typed context. The implementation owner was
+directed to use constant-offset reads or a suitable bounded snapshot, while
+keeping the matched policy algorithm and the verifier unchanged. The
+in-progress index-argument edit has not been counted as a successful repair
+or retried against the live module.

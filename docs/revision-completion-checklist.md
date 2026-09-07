@@ -53,6 +53,17 @@ medians worsen. BPF/native paired p99 has median **+0.538%**, range
 This closes the runner's process/timing implementation follow-up and measures
 the fixed-delay storage-policy tradeoff. Live pending-demand feedback remains
 distinct unfinished policy work. Prior dispatch-only and burst data remain.
+Paper commit `277c77f` now integrates this policy-behavior comparison into
+`tex-revision/tex/eval.tex`, including the adverse p50/write-throughput results,
+the BPF/native range, and the storage-request versus application-TTFT distinction.
+Two `pdflatex` passes complete successfully at **17 pages**; no new experiment
+or figure was introduced for this integration.
+
+The separate [final-only collector comparison](../workloads/llama.cpp/observability_overhead/revision-rq4/results-final-only-575-20260907/README.md)
+completes five baseline/tool pairs with **3493.318 token/s / 90.812% overhead**
+and all 720896 events per tool run retained. It does not resolve kernelretsnoop's
+high overhead. The GPU-local producer-array candidates remain unmeasured;
+the existing three-tool Table 1 and every earlier result are unchanged.
 
 The [end-to-end report](../workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md)
 and raw records are pushed. Paper commit `c254a98` adds the measured storage

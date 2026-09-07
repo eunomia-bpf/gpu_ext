@@ -96,6 +96,20 @@ This splits the remaining runner work without overlapping live file owners;
 root will integrate the tail after handoff. No live session was stopped, no
 fourth session was started, and no serving measurements have run yet.
 
+The per-cell runner implementation is now recorded in
+`../run_gds_async_prefetch.py`: sequential cold population, scheduled
+bounded-concurrent warm HTTP requests, the same optional deadline hints in
+all four arms, actual response/usage/arrival recording, and per-cell result
+and cleanup records. Output/token-ID equality checks are not used. Responses
+without a first-token sample retain their E2E/usage, while the TTFT aggregate
+counts only available samples. Root imported the module and constructed the
+new argv (2 sequences, 805306368 KV bytes); the model also completed Python
+compilation. Its temporary fake-request check then failed because the fake
+did not set the arrival fields that the real request method sets; this is
+not a GPU or serving result. No further fake-request campaign is required.
+The campaign/CLI tail and async-backend integration remain pending, so the
+per-cell implementation commit does not mark the performance campaign done.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

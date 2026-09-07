@@ -25,6 +25,23 @@ of five pairs improve on both. Native p99 regresses by paired median 14.304%.
 Keep the option opt-in, preserve native's stronger default-worker result, and
 do not rerun this matrix when the reusable launcher becomes available.
 
+Current follow-up is offline, with three local OpenCode owners: Qwen 27B
+converts the unfinished launcher into a small analyzer of the existing 30
+cells; GLM decomposes their stored request timings; Qwen Next inspects the
+completed POD phase study and startup source for a concrete cold-path fix.
+These tasks have no GPU execution authority and do not repeat completed cells.
+The coordinating session and its delegated tasks do not edit paper files;
+this is session-specific and does not restrict other sessions' paper work.
+
+The first read-only LMCache decomposition selects the worst scheduled-latency
+read in each of the 30 cells: at least 99.170% of each selected request's time
+occurs after dispatch. The recorded read submission timestamp equals dispatch,
+so this interval includes admission, scheduling, backend work and completion
+bookkeeping; it is not measured SSD service time or a causal explanation.
+The POD target is the existing 271.225-second median pre-Python interval,
+not another operator-throughput comparison. Both detailed localizations and
+the reusable offline scripts remain unfinished until their outputs are reviewed.
+
 The [GPU-local kernel-return record study](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)
 is also complete: five paired blocks, mean prefill overhead 5.5726%, all
 720,896 records retained per run, final host readback reported separately.

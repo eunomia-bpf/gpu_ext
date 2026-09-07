@@ -20,10 +20,11 @@ Under them, demand reads always submit immediately in every mode, while
 native and BPF defer each background write by 10 ms and FIFO submits every
 write immediately.  In the ``live-feedback`` variant all three modes share
 the adapter's ``LiveDemandRequestProvider`` on a live telemetry view: the
-pending-demand-read count is the actual count of pending demand reads, the
-10 ms slack acts as a cumulative background-write delay budget consumed in
-steps of at most 1 ms, the runner injects no constant 801 permille, and no
-measured HBM pressure is claimed.  The opt-in ``live-event-driven`` variant
+pending-demand-read count is the actual count of pending demand reads, and
+the cumulative background-write delay budget (``--write-delay-budget-ms``,
+default 10 ms, passed to the provider as ``total_write_delay_budget_ns``)
+is consumed in steps of at most 1 ms; the runner injects no constant 801
+permille and no measured HBM pressure is claimed.  The opt-in ``live-event-driven`` variant
 instead waits for zero pending reads or cumulative budget expiry before
 re-evaluation, using the same provider for native and BPF.  In every variant the same request
 provider feeds every policy mode; only the decider mode differs.  A
@@ -96,6 +97,7 @@ DEFAULT_READS = 4
 DEFAULT_WRITES = 6
 DEFAULT_READ_STAGGER_S = 0.002
 DEFAULT_WRITE_STAGGER_S = 0.004
+DEFAULT_WRITE_DELAY_BUDGET_MS = 10.0
 DEFAULT_DST_DEVICE = "cuda:0"
 WAIT_TIMEOUT_S = 120.0
 EXPECTED_LMCACHE_VERSION = "0.5.4"
@@ -112,34 +114,58 @@ CONTROLLED_POLICY_INPUTS: dict[str, Any] = {
 POLICY_VARIANTS = ("fixed-delay", "live-feedback", "live-event-driven")
 DEFAULT_POLICY_VARIANT = "fixed-delay"
 
+LIVE_TELEMETRY_SLACK_NS = 10_000_000
+
 LIVE_FEEDBACK_POLICY_INPUTS: dict[str, Any] = {
     "provider": "LiveDemandRequestProvider",
-    "slack_ns": 10_000_000,
-    "slack_label": "10 ms cumulative background-write delay budget",
+    "telemetry_slack_ns": LIVE_TELEMETRY_SLACK_NS,
+    "telemetry_slack_label": (
+        "fixed telemetry slack carried on the read requests; demand reads "
+        "are never deferred by any decider"
+    ),
     "background_write_delay_step_ns_max": 1_000_000,
     "pending_demand_reads": "actual pending-demand-read count",
     "hbm_pressure_permille": 0,
     "speculative_recomputable": False,
-    "label": (
-        "live inputs: the pending-demand-read count is the actual count of "
-        "pending demand reads; slack_ns is a 10 ms cumulative "
-        "background-write delay budget consumed in steps of at most 1 ms; "
-        "no constant 801 permille is injected and no measured HBM pressure "
-        "is claimed"
-    ),
 }
 
 
-def policy_metadata(policy_variant: str) -> dict[str, Any]:
+def write_delay_budget_ns(write_delay_budget_ms: float) -> int:
+    """Convert the CLI millisecond budget to the provider's nanosecond value."""
+    return int(round(write_delay_budget_ms * 1_000_000))
+
+
+def policy_metadata(policy_variant: str,
+                    write_delay_budget_ms: float = DEFAULT_WRITE_DELAY_BUDGET_MS
+                    ) -> dict[str, Any]:
     """Record metadata naming the variant and its policy inputs."""
     if policy_variant in ("live-feedback", "live-event-driven"):
+        budget_ns = write_delay_budget_ns(write_delay_budget_ms)
         inputs = dict(LIVE_FEEDBACK_POLICY_INPUTS)
+        inputs["write_delay_budget_ms"] = write_delay_budget_ms
+        inputs["total_write_delay_budget_ns"] = budget_ns
+        inputs["total_write_delay_budget_label"] = (
+            f"{write_delay_budget_ms:g} ms cumulative background-write "
+            "delay budget passed to LiveDemandRequestProvider as "
+            "total_write_delay_budget_ns"
+        )
         if policy_variant == "live-event-driven":
             inputs.pop("background_write_delay_step_ns_max")
             inputs["wakeup"] = "zero pending demand reads or cumulative budget expiry"
             inputs["label"] = (
-                "actual pending demand reads; 10 ms cumulative write budget; "
-                "event-driven wakeup, no periodic polling or measured HBM pressure"
+                f"actual pending demand reads; {write_delay_budget_ms:g} ms "
+                "cumulative write budget; event-driven wakeup, no periodic "
+                "polling or measured HBM pressure"
+            )
+        else:
+            inputs["label"] = (
+                "live inputs: the pending-demand-read count is the actual "
+                "count of pending demand reads; the cumulative "
+                "background-write delay budget is the provider's "
+                f"total_write_delay_budget_ns ({budget_ns} ns, "
+                f"{write_delay_budget_ms:g} ms) consumed in steps of at "
+                "most 1 ms; no constant 801 permille is injected and no "
+                "measured HBM pressure is claimed"
             )
         return {
             "policy_variant": policy_variant,
@@ -467,13 +493,15 @@ def wrap_submit_timing(backend: Any, log: dict[Any, dict[str, Any]],
 
 
 def install_policy(backend: Any, mode: str, parts: BackendParts,
-                   policy_variant: str) -> Any:
+                   policy_variant: str,
+                   write_delay_budget_ns: int) -> Any:
     """Install one policy adapter handle under the chosen input variant."""
     if policy_variant in ("live-feedback", "live-event-driven"):
         provider = parts.adapter.LiveDemandRequestProvider(
-            parts.adapter.Telemetry(slack_ns=10_000_000,
+            parts.adapter.Telemetry(slack_ns=LIVE_TELEMETRY_SLACK_NS,
                                     hbm_pressure_permille=0,
                                     speculative_recomputable=False),
+            total_write_delay_budget_ns=write_delay_budget_ns,
             event_driven=(policy_variant == "live-event-driven"),
         )
     else:
@@ -689,10 +717,13 @@ def gds_effective_backend_facts(backend: Any) -> dict[str, Any]:
 
 def run_cell(config: str, block: int, position: int, run_dir: Path,
              plan: TrafficPlan, dst_device: str,
-             policy_variant: str = DEFAULT_POLICY_VARIANT) -> dict[str, Any]:
+             policy_variant: str = DEFAULT_POLICY_VARIANT,
+             write_delay_budget_ms: float = DEFAULT_WRITE_DELAY_BUDGET_MS
+             ) -> dict[str, Any]:
     """One rotated cell: fresh cache, prestore, one policy mode, mixed traffic."""
     parts = load_backend_parts()
     cache_dir = run_dir / "cache"
+    write_delay_budget_ns_value = write_delay_budget_ns(write_delay_budget_ms)
     record: dict[str, Any] = {
         "schema": 1,
         "kind": KIND,
@@ -700,7 +731,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
         "block": block,
         "position": position,
         "policy_mode": POLICY_MODES[config],
-        **policy_metadata(policy_variant),
+        **policy_metadata(policy_variant, write_delay_budget_ms),
         "gds": {},
         "traffic": dict(plan.to_dict(), prestore=None),
         "requests": [],
@@ -751,7 +782,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
                                           time.localtime())
         wrap_submit_timing(backend, log, log_lock, t0)
         adapter = install_policy(backend, POLICY_MODES[config], parts,
-                                 policy_variant)
+                                 policy_variant, write_delay_budget_ns_value)
         run_mixed_traffic(backend, parts, keys, plan, log, log_lock, t0)
         record["decision_counts"] = dict(adapter.stats)
         record["metrics"] = compute_metrics(record["requests"])
@@ -825,6 +856,7 @@ def single_cell_command(args: argparse.Namespace, config: str, block: int,
         "--gds-buffer-size-mib", str(args.gds_buffer_size_mib),
         "--dst-device", args.dst_device,
         "--policy-variant", args.policy_variant,
+        "--write-delay-budget-ms", str(args.write_delay_budget_ms),
     ]
 
 
@@ -847,7 +879,7 @@ def run_single_cell(args: argparse.Namespace) -> int:
     try:
         record = run_cell(args.config, args.block, args.position,
                           args.cell_dir, plan, args.dst_device,
-                          args.policy_variant)
+                          args.policy_variant, args.write_delay_budget_ms)
     except Exception as error:
         record = {
             "schema": 1,
@@ -856,7 +888,7 @@ def run_single_cell(args: argparse.Namespace) -> int:
             "block": args.block,
             "position": args.position,
             "policy_mode": POLICY_MODES[args.config],
-            **policy_metadata(args.policy_variant),
+            **policy_metadata(args.policy_variant, args.write_delay_budget_ms),
             "gds": {},
             "traffic": dict(plan.to_dict(), prestore=None),
             "requests": [],
@@ -892,10 +924,11 @@ def run_campaign(args: argparse.Namespace) -> int:
             "writes": args.writes,
             "read_stagger_ms": args.read_stagger_ms,
             "write_stagger_ms": args.write_stagger_ms,
+            "write_delay_budget_ms": args.write_delay_budget_ms,
             "attempts_per_cell": 1,
             "retry": False,
             "fresh_process_per_cell": not args.inline,
-            **policy_metadata(args.policy_variant),
+            **policy_metadata(args.policy_variant, args.write_delay_budget_ms),
         },
         "block_orders": orders,
         "cells": [],
@@ -913,7 +946,8 @@ def run_campaign(args: argparse.Namespace) -> int:
                     if args.inline:
                         record = run_cell(config, block, position, run_dir,
                                           plan, args.dst_device,
-                                          args.policy_variant)
+                                          args.policy_variant,
+                                          args.write_delay_budget_ms)
                         atomic_write_json(run_dir / "result.json", record)
                         child_exit = 0
                     else:
@@ -935,7 +969,8 @@ def run_campaign(args: argparse.Namespace) -> int:
                             "block": block,
                             "position": position,
                             "policy_mode": POLICY_MODES[config],
-                            **policy_metadata(args.policy_variant),
+                            **policy_metadata(args.policy_variant,
+                                              args.write_delay_budget_ms),
                             "gds": {},
                             "traffic": dict(plan.to_dict(), prestore=None),
                             "requests": [],
@@ -1004,7 +1039,7 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
             "policy_modes": POLICY_MODES,
             "expected_lmcache_version": EXPECTED_LMCACHE_VERSION,
         },
-        **policy_metadata(args.policy_variant),
+        **policy_metadata(args.policy_variant, args.write_delay_budget_ms),
         "outputs": [RAW_NAME, SUMMARY_NAME, "campaign.json", "per-cell result.json"],
         "reused": ["installed LMCache 0.5.4 GdsBackend",
                    "committed lmcache_gds_backend_adapter",
@@ -1042,6 +1077,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--policy-variant", choices=POLICY_VARIANTS,
                         default=DEFAULT_POLICY_VARIANT,
                         help="fixed-delay or live pending-demand feedback")
+    parser.add_argument("--write-delay-budget-ms", type=float,
+                        default=DEFAULT_WRITE_DELAY_BUDGET_MS,
+                        help="live-variant cumulative background-write delay "
+                             "budget in ms, passed to "
+                             "LiveDemandRequestProvider as "
+                             "total_write_delay_budget_ns (default 10)")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--single-cell", action="store_true",
@@ -1059,6 +1100,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--gds-buffer-size-mib must be at least 1")
     if args.object_mib < 1:
         parser.error("--object-mib must be at least 1")
+    if args.write_delay_budget_ms < 0:
+        parser.error("--write-delay-budget-ms must be non-negative")
     if args.dst_device and not args.dst_device.startswith("cuda"):
         parser.error("--dst-device must start with 'cuda'")
     if args.block < 0 or args.position < 0:

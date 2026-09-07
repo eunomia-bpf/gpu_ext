@@ -14,12 +14,18 @@
  *                                    -> DEFER (batched to the queue depth)
  *  5. everything else                -> SUBMIT_NOW
  *
+ * Opt-in live-demand override: a write whose caller_hint carries
+ * HINT_LIVE_DEMAND bypasses rule 4 entirely; it defers (capped at
+ * LIVE_DEMAND_FEEDBACK_STEP_NS, unbatched) only when safe-to-defer with
+ * queue_depth > 0 and slack_ns > 0, otherwise SUBMIT_NOW.
+ *
  * Every decision is recorded with bpf_gpu_storage_record(), which clamps
  * defer_ns to the 10 ms maximum, priority to <= 7, and batch_target to
  * 1..64 exactly like the policy contract (MIN/MAX_DEFER_NS,
  * MIN/MAX_BATCH_SIZE). Flags/ops/actions mirror the live ABI:
  * DEMAND=1 SPECULATIVE=2 RECOMPUTABLE=4 SAFE_TO_DEFER=8,
- * READ=0 WRITE=1, SUBMIT_NOW=0 DEFER=1 RECOMPUTE=2.
+ * READ=0 WRITE=1, SUBMIT_NOW=0 DEFER=1 RECOMPUTE=2,
+ * HINT_LIVE_DEMAND=1ULL<<63 (caller_hint bit).
  */
 
 #include <vmlinux.h>
@@ -102,6 +108,8 @@ extern int bpf_gpu_storage_record(uvm_bpf_storage_decision_ctx_t *decision_ctx,
 #define FLAG_RECOMPUTABLE		4
 #define FLAG_SAFE_TO_DEFER		8
 
+#define HINT_LIVE_DEMAND		(1ULL << 63)
+
 #define ACTION_SUBMIT_NOW		0
 #define ACTION_DEFER			1
 #define ACTION_RECOMPUTE		2
@@ -114,6 +122,8 @@ extern int bpf_gpu_storage_record(uvm_bpf_storage_decision_ctx_t *decision_ctx,
 
 #define READ_DEFER_PRESSURE_PERMILLE	800
 #define WRITE_DEFER_PRESSURE_PERMILLE	600
+
+#define LIVE_DEMAND_FEEDBACK_STEP_NS	1000000ULL
 
 /* priority: the request's input priority, clamped by the kfunc to <= 7. */
 static void gds_submit(uvm_bpf_storage_decision_ctx_t *ctx, u32 priority)
@@ -154,7 +164,7 @@ int BPF_PROG(gds_gpu_storage_decide,
 	     uvm_bpf_storage_decision_ctx_t *decision_ctx)
 {
 	u32 flags, op, priority, pressure;
-	u64 recompute_ns, transfer_ns, slack_ns;
+	u64 recompute_ns, transfer_ns, slack_ns, defer_ns;
 
 	if (!decision_ctx)
 		return 0;
@@ -199,6 +209,24 @@ write:
 	if (!(op == OP_WRITE))
 		/* Unknown op falls through to the SUBMIT_NOW default. */
 		goto submit;
+
+	/* Opt-in live-demand feedback (HINT_LIVE_DEMAND caller_hint bit):
+	 * replaces the legacy pressure branch below. Defer with the capped
+	 * feedback step only when the write is safe to defer and live
+	 * pending demand reads exist. */
+	if (decision_ctx->request.caller_hint & HINT_LIVE_DEMAND) {
+		if ((flags & FLAG_SAFE_TO_DEFER) &&
+		    decision_ctx->request.queue_depth > 0 &&
+		    slack_ns > 0) {
+			defer_ns = slack_ns;
+			if (defer_ns > LIVE_DEMAND_FEEDBACK_STEP_NS)
+				defer_ns = LIVE_DEMAND_FEEDBACK_STEP_NS;
+			gds_defer(decision_ctx, priority, defer_ns, 0, 0);
+		} else {
+			gds_submit(decision_ctx, priority);
+		}
+		return 0;
+	}
 
 	/* Safe-to-defer writes under high HBM pressure: defer batched to
 	 * the current queue depth. */

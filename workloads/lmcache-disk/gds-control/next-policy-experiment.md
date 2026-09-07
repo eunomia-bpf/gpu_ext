@@ -61,10 +61,15 @@ The Qwen 27B takeover in existing LMCache session
 `ses_f86e7cf67ffeiTI9l4PQ5lbDWu` also ended with APIError HTTP 524 before
 source changes. Its last completed request recorded 97279 input tokens;
 this is context-size evidence, not proof of the error's cause. A fresh
-Qwen 27B session, `ses_f86352254ffeAZaYGUr1nqjZnI`, now owns only the first
-two-file step: matching native/BPF flagged-write decisions. The provider,
-re-evaluating executor and runner integration follow separately, so completing
-this source step will not mean the full feature is complete. Both failed
+Qwen 27B session, `ses_f86352254ffeAZaYGUr1nqjZnI`, has implemented the first
+two-file step: matching native/BPF flagged-write decisions. The root built
+`gds_policy.bpf.o` with the existing Makefile and Python syntax compilation
+passed. `HINT_LIVE_DEMAND` selects the new branch, with a maximum 1 ms
+individual deferral; unflagged requests retain the old decisions. This is
+source/build evidence only: the new BPF object is not yet loaded, and no
+feedback-policy performance is claimed. The same session now continues with
+the live provider, re-evaluating executor and opt-in runner integration.
+Those parts remain unfinished. Both failed
 sessions exited themselves; neither was stopped for silence.
 The earlier runner task remains complete and is not rerun. No feedback-policy
 result is claimed yet. There are still at most three active root model sessions;

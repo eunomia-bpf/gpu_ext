@@ -64,3 +64,18 @@ does not establish automatic offload: request association, actual block reclaim,
 write completion, and the selected recovery route still need to be connected.
 Freeing a staging buffer or returning KV blocks to a fixed pool is not evidence
 of releasing physical HBM to other processes.
+
+## Execution update, September 7, 19:58 UTC
+
+The consumed-event repair and its complete 20-cell comparison are published
+in `8987a14b` / `c3c6d42e`; the warning disappears but the deadline-prefetch
+policy still loses to demand FIFO. Those completed cells will not be repeated.
+Root installed the committed vLLM selection seam after that campaign ended;
+installation and the preserved original are recorded in `8d7493e5`.
+
+The registry's Qwen Next request ended with an actual gateway API 524 after
+automatic retries. Root confirmed the terminal CLI and absent live session,
+then resumed the same task/session with GLM. This was not termination for
+silence or an artificial execution deadline. The selector, registry repair,
+and serving integration remain the three live local tasks; the last two now
+use GLM because the Next request failed. No new reclaim performance is claimed.

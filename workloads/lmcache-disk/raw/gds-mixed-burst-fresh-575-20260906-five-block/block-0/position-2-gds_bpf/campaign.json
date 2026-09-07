@@ -1,0 +1,64 @@
+{
+  "block_orders": [
+    [
+      "gds_bpf"
+    ]
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "config": "gds_bpf",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 96,
+        "read_end_to_end_p50_ms": 264.24173600025824,
+        "read_end_to_end_p99_ms": 363.3872340005837,
+        "total_storage_bandwidth_mib_s": 8435.741736867833,
+        "write_completion_ops_s": 235.2007890516587,
+        "write_completion_throughput_mib_s": 5644.818937239808
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-mixed-burst-fresh-575-20260906-five-block/block-0/position-2-gds_bpf/block-00/position-0-gds_bpf"
+    }
+  ],
+  "kind": "lmcache_gds_mixed_backend",
+  "params": {
+    "attempts_per_cell": 1,
+    "blocks": 1,
+    "configs": [
+      "gds_bpf"
+    ],
+    "controlled_policy_inputs": {
+      "hbm_pressure_permille": 801,
+      "label": "explicit controlled inputs, not measured live HBM pressure",
+      "slack_ns": 10000000,
+      "speculative_recomputable": false
+    },
+    "dst_device": "cuda:0",
+    "gds_buffer_size_mib": 4096,
+    "object_mib": 24,
+    "read_stagger_ms": 0.0,
+    "reads": 64,
+    "retry": false,
+    "write_stagger_ms": 0.0,
+    "writes": 96
+  },
+  "summary": {
+    "cells_attempted": 1,
+    "kind": "lmcache_gds_mixed_backend",
+    "per_mode": {
+      "gds_bpf": {
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "medians": {
+          "read_end_to_end_p50_ms": 264.24173600025824,
+          "read_end_to_end_p99_ms": 363.3872340005837,
+          "total_storage_bandwidth_mib_s": 8435.741736867833,
+          "write_completion_throughput_mib_s": 5644.818937239808
+        }
+      }
+    }
+  },
+  "timestamp": "20260906T173025"
+}

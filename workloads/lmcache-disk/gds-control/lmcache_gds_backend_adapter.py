@@ -38,7 +38,7 @@ import os
 import threading
 import time
 from concurrent.futures import Future
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from importlib.metadata import PackageNotFoundError, version
 from types import MethodType
 from typing import Any, Awaitable, Callable, Mapping, Optional, Sequence
@@ -220,6 +220,9 @@ class WriteFeedback:
     decision: int
     requested_wait_ns: int
 
+    def as_dict(self) -> dict[str, int]:
+        return asdict(self)
+
 
 class _WriteDelayBudget:
     """Monotonic delay budget for one deferred write, started at admission."""
@@ -341,6 +344,11 @@ class GdsBackendAdmissionAdapter:
         self.backend = backend
         self.decider = decider or build_decider(mode, uvm_device=uvm_device)
         self.request_provider = request_provider or EnvironmentRequestProvider()
+        self._live_provider = (
+            self.request_provider
+            if isinstance(self.request_provider, LiveDemandRequestProvider)
+            else None
+        )
         self._async_wait = async_wait
         self._decision_lock = threading.Lock()
         self._request_id = 0
@@ -357,6 +365,7 @@ class GdsBackendAdmissionAdapter:
             "recompute": 0,
             "blocking_defer_miss": 0,
         }
+        self.feedback_records: list[dict[str, int]] = []
 
     def install(self) -> "GdsBackendAdmissionAdapter":
         if self._installed:
@@ -389,8 +398,19 @@ class GdsBackendAdmissionAdapter:
             self._installed = False
         self.decider.close()
 
-    def _admit(self, kind: str, key: Any, memory_obj: Any = None) -> tuple[PolicyRequest, Decision]:
-        request = self.request_provider(kind, key, memory_obj, self.backend)
+    def _admit(
+        self,
+        kind: str,
+        key: Any,
+        memory_obj: Any = None,
+        write_budget: Optional[_WriteDelayBudget] = None,
+    ) -> tuple[PolicyRequest, Decision]:
+        if write_budget is None:
+            request = self.request_provider(kind, key, memory_obj, self.backend)
+        else:
+            request = self.request_provider(
+                kind, key, memory_obj, self.backend, write_budget=write_budget
+            )
         expected_op = OP_WRITE if kind == WRITE else OP_READ
         if request.op != expected_op:
             raise AdmissionError(
@@ -411,6 +431,16 @@ class GdsBackendAdmissionAdapter:
                 self.stats["recompute"] += 1
             else:
                 raise AdmissionError(f"unknown policy action {decision.action}")
+            if kind == WRITE and self._live_provider is not None:
+                self.feedback_records.append(
+                    WriteFeedback(
+                        request_id=request_id,
+                        pending_demand_reads=request.queue_depth,
+                        remaining_budget_ns=request.slack_ns,
+                        decision=decision.action,
+                        requested_wait_ns=decision.defer_ns,
+                    ).as_dict()
+                )
         if request.flags & FLAG_DEMAND and decision.action != ACTION_SUBMIT_NOW:
             raise AdmissionError("policy violated the demand-read SUBMIT_NOW contract")
         return request, decision
@@ -425,7 +455,12 @@ class GdsBackendAdmissionAdapter:
         on_complete_callback: Optional[Callable[[Any], None]] = None,
     ) -> Future:
         del bound_backend
-        _request, decision = self._admit(WRITE, key, memory_obj)
+        budget = (
+            self._live_provider.begin_write_delay()
+            if self._live_provider is not None
+            else None
+        )
+        _request, decision = self._admit(WRITE, key, memory_obj, write_budget=budget)
         if decision.action == ACTION_SUBMIT_NOW:
             return self._original_submit(key, memory_obj, on_complete_callback)
         if decision.action == ACTION_RECOMPUTE:
@@ -441,10 +476,30 @@ class GdsBackendAdmissionAdapter:
             self.backend.put_tasks.add(key)
 
         async def delayed_save() -> None:
+            current = decision
             handed_to_lmcache = False
             try:
-                if decision.defer_ns:
-                    await self._async_wait(decision.defer_ns / 1_000_000_000)
+                while True:
+                    if budget is not None:
+                        # Fresh decision from the live provider before every
+                        # wait, including the first: the budget is charged
+                        # monotonic from the first write admission, so time
+                        # queued before this coroutine runs is already spent,
+                        # and pending demand reads may have completed.
+                        _fresh_request, current = self._admit(
+                            WRITE, key, memory_obj, write_budget=budget
+                        )
+                        if current.action == ACTION_SUBMIT_NOW:
+                            break
+                        if current.action == ACTION_RECOMPUTE:
+                            raise AdmissionError(
+                                "RECOMPUTE is invalid for a GDS write"
+                            )
+                    if not current.defer_ns:
+                        break
+                    await self._async_wait(current.defer_ns / 1_000_000_000)
+                    if budget is None:
+                        break
                 handed_to_lmcache = True
                 await self._original_async_save(
                     key, memory_obj, on_complete_callback
@@ -469,12 +524,19 @@ class GdsBackendAdmissionAdapter:
 
     def _get_blocking(self, bound_backend: Any, key: Any) -> Any:
         del bound_backend
-        _request, decision = self._admit(READ_DEMAND, key)
-        if decision.action == ACTION_SUBMIT_NOW:
-            return self._original_get(key)
-        # RECOMPUTE is an explicit miss before allocation/GPU copy.  DEFER is
-        # unreachable for a conforming demand policy and also fails closed.
-        return None
+        live = self._live_provider
+        if live is not None:
+            live.demand_read_started()
+        try:
+            _request, decision = self._admit(READ_DEMAND, key)
+            if decision.action == ACTION_SUBMIT_NOW:
+                return self._original_get(key)
+            # RECOMPUTE is an explicit miss before allocation/GPU copy.  DEFER
+            # is unreachable for a conforming demand policy and fails closed.
+            return None
+        finally:
+            if live is not None:
+                live.demand_read_finished()
 
     def _get_non_blocking(
         self, bound_backend: Any, key: Any, location: Optional[str] = None
@@ -502,22 +564,43 @@ class GdsBackendAdmissionAdapter:
         self, bound_backend: Any, keys: Sequence[Any]
     ) -> list[Any]:
         del bound_backend
+        live = self._live_provider
         submitted_keys: list[Any] = []
         submitted_indices: list[int] = []
         output: list[Any] = [None] * len(keys)
-        for index, key in enumerate(keys):
-            _request, decision = self._admit(READ_DEMAND, key)
-            if decision.action == ACTION_SUBMIT_NOW:
-                submitted_keys.append(key)
-                submitted_indices.append(index)
-            elif decision.action == ACTION_DEFER:
-                self.stats["blocking_defer_miss"] += 1
-        if submitted_keys:
-            loaded = self._original_batched_get(submitted_keys)
-            if len(loaded) != len(submitted_keys):
-                raise AdmissionError("GdsBackend returned a misaligned batch")
-            for index, memory_obj in zip(submitted_indices, loaded, strict=True):
-                output[index] = memory_obj
+        try:
+            for index, key in enumerate(keys):
+                if live is not None:
+                    live.demand_read_started()
+                try:
+                    _request, decision = self._admit(READ_DEMAND, key)
+                except BaseException:
+                    if live is not None:
+                        live.demand_read_finished()
+                    raise
+                if decision.action == ACTION_SUBMIT_NOW:
+                    submitted_keys.append(key)
+                    submitted_indices.append(index)
+                else:
+                    # A key that is not submitted never reaches the storage
+                    # layer, so its count window closes here.
+                    if decision.action == ACTION_DEFER:
+                        self.stats["blocking_defer_miss"] += 1
+                    if live is not None:
+                        live.demand_read_finished()
+            if submitted_keys:
+                loaded = self._original_batched_get(submitted_keys)
+                if len(loaded) != len(submitted_keys):
+                    raise AdmissionError("GDS backend returned a misaligned batch")
+                for index, memory_obj in zip(submitted_indices, loaded, strict=True):
+                    output[index] = memory_obj
+        finally:
+            # Every submitted key still holds one count whether the batched
+            # I/O succeeded or errored, or a later admission failed earlier
+            # in the loop.  Exactly one decrement per increment.
+            if live is not None:
+                for _key in submitted_keys:
+                    live.demand_read_finished()
         return output
 
 

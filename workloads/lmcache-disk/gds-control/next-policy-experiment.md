@@ -57,11 +57,18 @@ reads instead of deferring every write based on a constant pressure input.
 Local OpenCode/Qwen Next session `ses_f866bda8dffeljd81GZlstX8rx` attempted
 this opt-in variant but exited with CLI status 1 and APIError HTTP 524 before
 producing source. It was not stopped for silence or by a root-imposed timeout.
-Qwen 27B now takes over in the existing LMCache session
-`ses_f86e7cf67ffeiTI9l4PQ5lbDWu`, reusing its implementation context with an
-explicit new task. The earlier runner task remains complete and is not rerun.
-No feedback-policy result is claimed yet. There are still at most three active
-root model sessions; the two device-array implementations continue unchanged.
+The Qwen 27B takeover in existing LMCache session
+`ses_f86e7cf67ffeiTI9l4PQ5lbDWu` also ended with APIError HTTP 524 before
+source changes. Its last completed request recorded 97279 input tokens;
+this is context-size evidence, not proof of the error's cause. A fresh
+Qwen 27B session, `ses_f86352254ffeAZaYGUr1nqjZnI`, now owns only the first
+two-file step: matching native/BPF flagged-write decisions. The provider,
+re-evaluating executor and runner integration follow separately, so completing
+this source step will not mean the full feature is complete. Both failed
+sessions exited themselves; neither was stopped for silence.
+The earlier runner task remains complete and is not rerun. No feedback-policy
+result is claimed yet. There are still at most three active root model sessions;
+the two device-array implementations continue unchanged.
 
 Native and BPF will consume the same live pending-read count, explicitly
 identified by a caller-hint flag in the existing 136-byte command-82 ABI.

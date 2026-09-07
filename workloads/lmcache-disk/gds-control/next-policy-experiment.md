@@ -66,14 +66,25 @@ two-file step: matching native/BPF flagged-write decisions. The root built
 `gds_policy.bpf.o` with the existing Makefile and Python syntax compilation
 passed. `HINT_LIVE_DEMAND` selects the new branch, with a maximum 1 ms
 individual deferral; unflagged requests retain the old decisions. This is
-source/build evidence only: the new BPF object is not yet loaded, and no
-feedback-policy performance is claimed. The same session now continues with
-the live provider, re-evaluating executor and opt-in runner integration.
-Those parts remain unfinished. Both failed
+source/build evidence, not feedback-policy performance. After the completed
+device-tool campaign, the root replaced the earlier owned loader with this
+new object; the existing loader printed `attached` on the unchanged 575
+driver. No new workload ran for that loading step. That session subsequently exited 0
+after reading the integration files, without producing provider/executor or
+runner edits. A fresh Qwen 27B session, `ses_f861098a9ffe4pASzKSgl4K6Lx`,
+now owns only the backend-adapter file: live pending-read state and the
+re-evaluating write executor. A parallel Qwen Next session titled
+`gds-live-feedback-runner-step` owns only `run_gds_mixed_backend.py` and adds
+the opt-in selection and feedback-record serialization. The shared API is
+`LiveDemandRequestProvider(Telemetry(...))` and `adapter.feedback_records`.
+No completed
+decision step or experiment is repeated. Those parts remain unfinished.
+Both earlier API-failed
 sessions exited themselves; neither was stopped for silence.
 The earlier runner task remains complete and is not rerun. No feedback-policy
 result is claimed yet. There are still at most three active root model sessions;
-the two device-array implementations continue unchanged.
+the measured device-array implementation is complete and its workers are
+finishing their handoff, without a duplicate implementation request.
 
 Native and BPF will consume the same live pending-read count, explicitly
 identified by a caller-hint flag in the existing 136-byte command-82 ABI.

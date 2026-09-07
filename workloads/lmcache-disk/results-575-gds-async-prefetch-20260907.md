@@ -257,3 +257,36 @@ not yet been installed into serving or measured. This completes an
 implementation dependency, not the disk-backed reclaim experiment: real
 LMCache state, native/BPF selection, and pressure-serving measurements still
 need integration. No old campaign cells or paper files were changed.
+
+### Next selector implementation, September 7, 18:51 UTC
+
+After the seam task completed normally and its CLI exited zero, a fresh
+Qwen 27B session took its slot. The two GLM sessions remain live, so total
+OpenCode concurrency is still three. The backing-state session was reminded
+to persist its bounded implementation as its input context approached
+180,490 tokens of the configured roughly 200k window; it was not stopped.
+
+The new task owns a typed candidate selector with matched native and BPF
+code. Existing storage command 82 only decides a single read/write request;
+it does not provide a candidate-set selection result. The proposed additive
+driver patch therefore exposes at most eight scalar candidate records and
+returns a selected candidate, preserving command 82 and existing hooks.
+It must not repurpose an I/O priority or timestamp as a hidden victim index.
+The task produces a patch artifact against the current clean 575 source,
+not a live module change, plus callable native/BPF bindings in the workload.
+
+The proposed policy minimizes estimated recovery cost per actually freeable
+KV byte, considering full recomputation versus reading a known disk-backed
+prefix and recomputing its unsaved tail. Native and BPF receive the same
+metadata and use the same bounded integer rule; unknown coverage/rates and
+unusable candidates preserve the stock choice. The disk registry supplies
+real backing information, while vLLM supplies live computed tokens and
+reclaimable blocks. No chosen action, future outcome, or measured favorable
+timing is embedded in the BPF input. This remains an unmeasured heuristic,
+not a novelty or improvement claim.
+
+The vLLM scheduler still performs actual block release, and LMCache/cuFile
+still executes storage I/O. This planned extension is not transparent
+same-address SSD paging and does not make the kernel a disk transport.
+Root will integrate and measure the completed path; no driver replacement,
+new serving run, or paper modification occurred for this assignment.

@@ -11,12 +11,24 @@ writes never overlap demand reads.  This runner drives the installed LMCache
 - asynchronous background writes of different real objects, submitted through
   the backend's ``submit_put_task`` and completed on the backend event loop.
 
-All three modes receive the SAME explicit controlled policy inputs (HBM
-pressure 801 permille, slack 10 ms, speculative_recomputable false).  These
-are values chosen by the runner and labelled as controlled inputs; they are
-not measured live HBM pressure.  Under them, demand reads always submit
-immediately in every mode, while native and BPF defer each background write
-by 10 ms and FIFO submits every write immediately.
+The policy inputs follow the opt-in ``--policy-variant`` choice.  In the
+default ``fixed-delay`` variant all three modes receive the SAME explicit
+controlled policy inputs (HBM pressure 801 permille, slack 10 ms,
+speculative_recomputable false).  These are values chosen by the runner and
+labelled as controlled inputs; they are not measured live HBM pressure.
+Under them, demand reads always submit immediately in every mode, while
+native and BPF defer each background write by 10 ms and FIFO submits every
+write immediately.  In the ``live-feedback`` variant all three modes share
+the adapter's ``LiveDemandRequestProvider`` on a live telemetry view: the
+pending-demand-read count is the actual count of pending demand reads, the
+10 ms slack acts as a cumulative background-write delay budget consumed in
+steps of at most 1 ms, the runner injects no constant 801 permille, and no
+measured HBM pressure is claimed.  In either variant the same request
+provider feeds every policy mode; only the decider mode differs.  A
+``live-feedback`` result additionally records the adapter's
+``feedback_records`` before the adapter is closed, on the failure path too
+wherever the adapter exists, and the campaign, cell, and summary metadata
+name the chosen variant.
 
 Objects live in the backend's bounded GPU staging pool
 (``gds_buffer_size`` MiB, default 256, sized for an RTX 5090 that already
@@ -89,6 +101,39 @@ CONTROLLED_POLICY_INPUTS: dict[str, Any] = {
     "speculative_recomputable": False,
     "label": "explicit controlled inputs, not measured live HBM pressure",
 }
+
+POLICY_VARIANTS = ("fixed-delay", "live-feedback")
+DEFAULT_POLICY_VARIANT = "fixed-delay"
+
+LIVE_FEEDBACK_POLICY_INPUTS: dict[str, Any] = {
+    "provider": "LiveDemandRequestProvider",
+    "slack_ns": 10_000_000,
+    "slack_label": "10 ms cumulative background-write delay budget",
+    "background_write_delay_step_ns_max": 1_000_000,
+    "pending_demand_reads": "actual pending-demand-read count",
+    "hbm_pressure_permille": 0,
+    "speculative_recomputable": False,
+    "label": (
+        "live inputs: the pending-demand-read count is the actual count of "
+        "pending demand reads; slack_ns is a 10 ms cumulative "
+        "background-write delay budget consumed in steps of at most 1 ms; "
+        "no constant 801 permille is injected and no measured HBM pressure "
+        "is claimed"
+    ),
+}
+
+
+def policy_metadata(policy_variant: str) -> dict[str, Any]:
+    """Record metadata naming the variant and its policy inputs."""
+    if policy_variant == "live-feedback":
+        return {
+            "policy_variant": "live-feedback",
+            "live_policy_inputs": dict(LIVE_FEEDBACK_POLICY_INPUTS),
+        }
+    return {
+        "policy_variant": "fixed-delay",
+        "controlled_policy_inputs": dict(CONTROLLED_POLICY_INPUTS),
+    }
 
 
 @dataclass(frozen=True)
@@ -220,7 +265,9 @@ def cell_metrics(record: dict[str, Any]) -> dict[str, Any]:
     return metrics
 
 
-def median_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
+def median_summary(cells: list[dict[str, Any]],
+                   policy_variant: str = DEFAULT_POLICY_VARIANT
+                   ) -> dict[str, Any]:
     metric_names = (
         "read_end_to_end_p50_ms",
         "read_end_to_end_p99_ms",
@@ -246,7 +293,8 @@ def median_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
             ),
             "medians": medians,
         }
-    return {"kind": KIND, "cells_attempted": len(cells), "per_mode": per_mode}
+    return {"kind": KIND, "policy_variant": policy_variant,
+            "cells_attempted": len(cells), "per_mode": per_mode}
 
 
 def write_jsonl_record(raw_file, record: dict[str, Any]) -> None:
@@ -403,14 +451,23 @@ def wrap_submit_timing(backend: Any, log: dict[Any, dict[str, Any]],
     backend._async_save_bytes_to_disk = timed_save
 
 
-def install_policy(backend: Any, mode: str, parts: BackendParts) -> Any:
-    provider = parts.adapter.EnvironmentRequestProvider(
-        parts.adapter.Telemetry(**{
-            key: CONTROLLED_POLICY_INPUTS[key]
-            for key in ("hbm_pressure_permille", "slack_ns",
-                        "speculative_recomputable")
-        })
-    )
+def install_policy(backend: Any, mode: str, parts: BackendParts,
+                   policy_variant: str) -> Any:
+    """Install one policy adapter handle under the chosen input variant."""
+    if policy_variant == "live-feedback":
+        provider = parts.adapter.LiveDemandRequestProvider(
+            parts.adapter.Telemetry(slack_ns=10_000_000,
+                                    hbm_pressure_permille=0,
+                                    speculative_recomputable=False)
+        )
+    else:
+        provider = parts.adapter.EnvironmentRequestProvider(
+            parts.adapter.Telemetry(**{
+                key: CONTROLLED_POLICY_INPUTS[key]
+                for key in ("hbm_pressure_permille", "slack_ns",
+                            "speculative_recomputable")
+            })
+        )
     return parts.adapter.install_backend(backend, mode=mode,
                                          request_provider=provider)
 
@@ -615,7 +672,8 @@ def gds_effective_backend_facts(backend: Any) -> dict[str, Any]:
 
 
 def run_cell(config: str, block: int, position: int, run_dir: Path,
-             plan: TrafficPlan, dst_device: str) -> dict[str, Any]:
+             plan: TrafficPlan, dst_device: str,
+             policy_variant: str = DEFAULT_POLICY_VARIANT) -> dict[str, Any]:
     """One rotated cell: fresh cache, prestore, one policy mode, mixed traffic."""
     parts = load_backend_parts()
     cache_dir = run_dir / "cache"
@@ -626,7 +684,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
         "block": block,
         "position": position,
         "policy_mode": POLICY_MODES[config],
-        "controlled_policy_inputs": dict(CONTROLLED_POLICY_INPUTS),
+        **policy_metadata(policy_variant),
         "gds": {},
         "traffic": dict(plan.to_dict(), prestore=None),
         "requests": [],
@@ -676,7 +734,8 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
         record["t0_wall"] = time.strftime("%Y-%m-%dT%H:%M:%S%z",
                                           time.localtime())
         wrap_submit_timing(backend, log, log_lock, t0)
-        adapter = install_policy(backend, POLICY_MODES[config], parts)
+        adapter = install_policy(backend, POLICY_MODES[config], parts,
+                                 policy_variant)
         run_mixed_traffic(backend, parts, keys, plan, log, log_lock, t0)
         record["decision_counts"] = dict(adapter.stats)
         record["metrics"] = compute_metrics(record["requests"])
@@ -686,6 +745,11 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
         return record
     finally:
         cleanup_errors: list[str] = record["cleanup_errors"]
+        if adapter is not None and policy_variant == "live-feedback":
+            try:
+                record["feedback_records"] = list(adapter.feedback_records)
+            except Exception as error:
+                cleanup_errors.append(f"feedback_records: {error}")
         if adapter is not None:
             try:
                 adapter.close()
@@ -735,6 +799,7 @@ def single_cell_command(args: argparse.Namespace, config: str, block: int,
         "--write-stagger-ms", str(args.write_stagger_ms),
         "--gds-buffer-size-mib", str(args.gds_buffer_size_mib),
         "--dst-device", args.dst_device,
+        "--policy-variant", args.policy_variant,
     ]
 
 
@@ -756,7 +821,8 @@ def run_single_cell(args: argparse.Namespace) -> int:
     plan = make_plan(args)
     try:
         record = run_cell(args.config, args.block, args.position,
-                          args.cell_dir, plan, args.dst_device)
+                          args.cell_dir, plan, args.dst_device,
+                          args.policy_variant)
     except Exception as error:
         record = {
             "schema": 1,
@@ -765,7 +831,7 @@ def run_single_cell(args: argparse.Namespace) -> int:
             "block": args.block,
             "position": args.position,
             "policy_mode": POLICY_MODES[args.config],
-            "controlled_policy_inputs": dict(CONTROLLED_POLICY_INPUTS),
+            **policy_metadata(args.policy_variant),
             "gds": {},
             "traffic": dict(plan.to_dict(), prestore=None),
             "requests": [],
@@ -804,7 +870,7 @@ def run_campaign(args: argparse.Namespace) -> int:
             "attempts_per_cell": 1,
             "retry": False,
             "fresh_process_per_cell": not args.inline,
-            "controlled_policy_inputs": dict(CONTROLLED_POLICY_INPUTS),
+            **policy_metadata(args.policy_variant),
         },
         "block_orders": orders,
         "cells": [],
@@ -821,7 +887,8 @@ def run_campaign(args: argparse.Namespace) -> int:
                           f"inline={args.inline}", flush=True)
                     if args.inline:
                         record = run_cell(config, block, position, run_dir,
-                                          plan, args.dst_device)
+                                          plan, args.dst_device,
+                                          args.policy_variant)
                         atomic_write_json(run_dir / "result.json", record)
                         child_exit = 0
                     else:
@@ -843,8 +910,7 @@ def run_campaign(args: argparse.Namespace) -> int:
                             "block": block,
                             "position": position,
                             "policy_mode": POLICY_MODES[config],
-                            "controlled_policy_inputs": dict(
-                                CONTROLLED_POLICY_INPUTS),
+                            **policy_metadata(args.policy_variant),
                             "gds": {},
                             "traffic": dict(plan.to_dict(), prestore=None),
                             "requests": [],
@@ -863,12 +929,14 @@ def run_campaign(args: argparse.Namespace) -> int:
                         "block": block,
                         "position": position,
                         "config": config,
+                        "policy_variant": args.policy_variant,
                         "run_dir": str(run_dir),
                         "child_exit": child_exit,
                         "result_present": result_present,
                         "metrics": cell_metrics(record),
                     })
-                    campaign["summary"] = median_summary(campaign["cells"])
+                    campaign["summary"] = median_summary(campaign["cells"],
+                                                         args.policy_variant)
                     atomic_write_json(root / "campaign.json", campaign)
                     atomic_write_json(root / SUMMARY_NAME, campaign["summary"])
                     if stop.signum is not None:
@@ -911,7 +979,7 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
             "policy_modes": POLICY_MODES,
             "expected_lmcache_version": EXPECTED_LMCACHE_VERSION,
         },
-        "controlled_policy_inputs": dict(CONTROLLED_POLICY_INPUTS),
+        **policy_metadata(args.policy_variant),
         "outputs": [RAW_NAME, SUMMARY_NAME, "campaign.json", "per-cell result.json"],
         "reused": ["installed LMCache 0.5.4 GdsBackend",
                    "committed lmcache_gds_backend_adapter",
@@ -946,6 +1014,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         default=DEFAULT_GDS_BUFFER_SIZE_MIB,
                         help="bounded GPU staging pool in MiB")
     parser.add_argument("--dst-device", default=DEFAULT_DST_DEVICE)
+    parser.add_argument("--policy-variant", choices=POLICY_VARIANTS,
+                        default=DEFAULT_POLICY_VARIANT,
+                        help="fixed-delay or live pending-demand feedback")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--single-cell", action="store_true",

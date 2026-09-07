@@ -61,8 +61,33 @@ Bounded forward-port of `driver-bridge-v1.patch` onto the GDS target tree
 - All new files (nv-gpu-stale-state-v1.h, uvm_stale_state_v1.c/.h,
   tests/stale-state-v1/) are carried over unchanged from v1.
 
-## Pending (not done here, by design)
+## Root build follow-up
+
+The root applied the published patch to the GDS driver tree and committed
+the implementation as `a2b40efd` on `revision/gpu-storage-decision-575`;
+the branch is pushed. Building both `nvidia` and `nvidia-uvm` succeeds:
+
+```sh
+make -C kernel-open modules -j8 KERNEL_UNAME=6.15.11-061511-generic \
+  CC=/usr/bin/gcc-14 NV_KERNEL_MODULES='nvidia nvidia-uvm'
+```
+
+The first build requested only `nvidia-uvm` and failed at modpost because
+the companion NVIDIA exports were missing from that invocation. Compiling
+both modules resolves those undefined references; no source workaround was
+needed. Compiler-build-version and missing MODULE_DESCRIPTION warnings
+remain in `current-gds-build-20260907.log`.
+
+The resulting `kernel-open/nvidia-uvm.ko` is 62,374,152 bytes, with vermagic
+`6.15.11-061511-generic SMP preempt mod_unload modversions`.
+Before building, the existing GDS module (61,945,872 bytes) was preserved at
+`/var/tmp/gds-restore-before-stale-20260907.AWgdmi/nvidia-uvm.ko`.
+No module was unloaded or loaded; LMCache's active GDS path is unchanged.
+
+## Pending
 
 - Formal 21-cells campaign and the lifecycle exact-GDS restore remain pending.
-- No readiness/import/engagement runs were executed; a later step must apply
-  this patch to the driver tree to continue the stale-state workstream.
+- No new live GPU cells were executed. The historical runner still requires
+  an excluded preflight and its lifecycle names the old stock restore module;
+  the next execution step must use the saved current GDS module and must not
+  introduce that preflight as a performance prerequisite.

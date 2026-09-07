@@ -28,6 +28,14 @@ publishes the reusable analyzer and matching reanalysis. The root inspected
 compiled page 12. The build has 17 pages including references, with the
 conclusion on page 14. The GPU matrix must not repeat. All historical data remain.
 
+**Current implementation:** the [PTX-free application follow-up](experiment/sass-existing-application-next-20260907.md)
+has finished source investigation and is now split between local OpenCode
+Qwen 27B (NVBit EXIT tool/build embedding) and GLM (BPF device-function
+exporter). This is not yet a live application result. The root owns GPU
+execution and publication. Separately, paper `da7c547` adds FineMoE's faster
+demand-only baseline (5.17 versus native/BPF 4.50/4.51 token/s) alongside the
+retained all-positive improvement; no completed FineMoE cells repeat.
+
 **Latest execution — 2026-09-07 PDT:** the [stale-state repeated campaign](../workloads/stale-state-575/results-performance-gds-20260907.md)
 completes all 21 cells and restoration of the saved GDS module (`bc0ff88a`).
 Fresh native/BPF throughput medians are 272832.196/271397.413 checked words/s;

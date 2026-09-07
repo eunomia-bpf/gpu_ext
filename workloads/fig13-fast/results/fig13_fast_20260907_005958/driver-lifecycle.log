@@ -1,0 +1,312 @@
+Script started on 2026-09-07 00:58:57-07:00 [COMMAND="sudo -n bash --noprofile --norc" TERM="dumb" TTY="/dev/pts/6" COLUMNS="80" LINES="24"]
+bash-5.2# <n-gpu0.lock 12</tmp/gpubpf-revision-struct-ops.lock
+bash-5.2# flock -n 11 && flock -n 12 && echo FIG13_LOCKS_HELD
+FIG13_LOCKS_HELD
+bash-5.2# date -u
+Mon Sep  7 07:59:18 UTC 2026
+bash-5.2# kill -INT 944157
+bash-5.2# systemctl stop gdm nvidia-persistenced
+bash-5.2# fuser /dev/nvidia0 /dev/nvidiactl /dev/nvidia-modeset
+bash-5.2# <rmmod nvidia && echo ORIGINAL_MODULE_STACK_UNLOADED
+ORIGINAL_MODULE_STACK_UNLOADED
+bash-5.2# <o && echo FIG13_CANDIDATE_CORE_SAVED_GDS_UVM_LOADED
+FIG13_CANDIDATE_CORE_SAVED_GDS_UVM_LOADED
+bash-5.2# nvidia-smi --query-gpu=name,driver_version,memory.used --format=csv
+name, driver_version, memory.used [MiB]
+NVIDIA GeForce RTX 5090, 575.57.08, 0 MiB
+bash-5.2# cd /home/yunwei37/workspace/gpu/gpu_ext
+bash-5.2# </workspace/gpu/gpu_ext/workloads/fig13-fast/results
+2026-09-07T07:59:58.071059+00:00 fig13-fast start mode=gpu blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958
+2026-09-07T07:59:58.071133+00:00 block 0 arm order: baseline,memory_only,sched_only,combined
+2026-09-07T07:59:58.071141+00:00 --- block 0 arm baseline ---
+2026-09-07T07:59:58.071237+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T07:59:58.071275+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T07:59:58.071688+00:00 tenant uvmbench_high spawned pid=987204 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_baseline/tenant_uvmbench_high.log
+2026-09-07T07:59:58.071998+00:00 tenant uvmbench_low spawned pid=987205 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_baseline/tenant_uvmbench_low.log
+2026-09-07T07:59:58.122224+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T07:59:58.122317+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T07:59:58.142442+00:00 SIGCONT sent: high=1788767998.1223278 low=1788767998.142412
+2026-09-07T08:00:54.561322+00:00 tenant high finished rc=0
+2026-09-07T08:00:54.799262+00:00 tenant low finished rc=0
+2026-09-07T08:00:54.800053+00:00 --- block 0 arm memory_only ---
+2026-09-07T08:00:54.800212+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:00:54.800260+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:00:54.800894+00:00 tenant uvmbench_high spawned pid=987953 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_memory_only/tenant_uvmbench_high.log
+2026-09-07T08:00:54.801289+00:00 tenant uvmbench_low spawned pid=987954 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_memory_only/tenant_uvmbench_low.log
+2026-09-07T08:00:54.851590+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:00:54.851665+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:00:54.852324+00:00 mem tool started pid=987957 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 987953 -P 20 -l 987954 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_memory_only/mem_tool.log
+2026-09-07T08:00:55.872747+00:00 SIGCONT sent: high=1788768055.8526363 low=1788768055.8727198
+2026-09-07T08:01:21.080701+00:00 tenant high finished rc=0
+2026-09-07T08:01:22.790094+00:00 tenant low finished rc=0
+2026-09-07T08:01:22.904151+00:00 mem tool stopped rc=0
+2026-09-07T08:01:22.904821+00:00 --- block 0 arm sched_only ---
+2026-09-07T08:01:22.904958+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:01:22.904999+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:01:22.905563+00:00 tenant uvmbench_high spawned pid=988282 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_sched_only/tenant_uvmbench_high.log
+2026-09-07T08:01:22.905975+00:00 tenant uvmbench_low spawned pid=988283 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_sched_only/tenant_uvmbench_low.log
+2026-09-07T08:01:22.956161+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:01:22.956212+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:01:22.956680+00:00 sched tool started pid=988284 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_sched_only/sched_tool.log
+2026-09-07T08:01:23.976994+00:00 SIGCONT sent: high=1788768083.956891 low=1788768083.9769642
+2026-09-07T08:01:27.916721+00:00 tenant high finished rc=0
+2026-09-07T08:01:30.057160+00:00 tenant low finished rc=0
+2026-09-07T08:01:30.060632+00:00 sched tool stopped rc=0
+2026-09-07T08:01:30.061216+00:00 --- block 0 arm combined ---
+2026-09-07T08:01:30.061324+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:01:30.061353+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:01:30.061708+00:00 tenant uvmbench_high spawned pid=988324 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_combined/tenant_uvmbench_high.log
+2026-09-07T08:01:30.062092+00:00 tenant uvmbench_low spawned pid=988325 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_combined/tenant_uvmbench_low.log
+2026-09-07T08:01:30.112308+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:01:30.112352+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:01:30.112845+00:00 sched tool started pid=988326 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_combined/sched_tool.log
+2026-09-07T08:01:31.113754+00:00 mem tool started pid=988330 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 988324 -P 20 -l 988325 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block00_combined/mem_tool.log
+2026-09-07T08:01:32.142586+00:00 SIGCONT sent: high=1788768092.1224039 low=1788768092.1425507
+2026-09-07T08:01:35.671882+00:00 tenant high finished rc=0
+2026-09-07T08:01:38.605727+00:00 tenant low finished rc=0
+2026-09-07T08:01:38.719761+00:00 mem tool stopped rc=0
+2026-09-07T08:01:38.722986+00:00 sched tool stopped rc=0
+2026-09-07T08:01:38.723525+00:00 block 1 arm order: memory_only,sched_only,combined,baseline
+2026-09-07T08:01:38.723536+00:00 --- block 1 arm memory_only ---
+2026-09-07T08:01:38.723684+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:01:38.723726+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:01:38.724131+00:00 tenant uvmbench_high spawned pid=988392 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_memory_only/tenant_uvmbench_high.log
+2026-09-07T08:01:38.724444+00:00 tenant uvmbench_low spawned pid=988393 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_memory_only/tenant_uvmbench_low.log
+2026-09-07T08:01:38.774625+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:01:38.774665+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:01:38.774989+00:00 mem tool started pid=988394 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 988392 -P 20 -l 988393 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_memory_only/mem_tool.log
+2026-09-07T08:01:39.795420+00:00 SIGCONT sent: high=1788768099.7752016 low=1788768099.7953854
+2026-09-07T08:02:04.935071+00:00 tenant high finished rc=0
+2026-09-07T08:02:06.647450+00:00 tenant low finished rc=0
+2026-09-07T08:02:06.761263+00:00 mem tool stopped rc=0
+2026-09-07T08:02:06.761835+00:00 --- block 1 arm sched_only ---
+2026-09-07T08:02:06.761991+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:02:06.762035+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:02:06.762896+00:00 tenant uvmbench_high spawned pid=988731 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_sched_only/tenant_uvmbench_high.log
+2026-09-07T08:02:06.763274+00:00 tenant uvmbench_low spawned pid=988732 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_sched_only/tenant_uvmbench_low.log
+2026-09-07T08:02:06.813486+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:02:06.813583+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:02:06.814278+00:00 sched tool started pid=988733 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_sched_only/sched_tool.log
+2026-09-07T08:02:07.834640+00:00 SIGCONT sent: high=1788768127.814394 low=1788768127.8345916
+2026-09-07T08:02:11.752848+00:00 tenant high finished rc=0
+2026-09-07T08:02:13.910646+00:00 tenant low finished rc=0
+2026-09-07T08:02:13.914065+00:00 sched tool stopped rc=0
+2026-09-07T08:02:13.914537+00:00 --- block 1 arm combined ---
+2026-09-07T08:02:13.914685+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:02:13.914729+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:02:13.915203+00:00 tenant uvmbench_high spawned pid=988772 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_combined/tenant_uvmbench_high.log
+2026-09-07T08:02:13.915475+00:00 tenant uvmbench_low spawned pid=988773 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_combined/tenant_uvmbench_low.log
+2026-09-07T08:02:13.965690+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:02:13.965773+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:02:13.966433+00:00 sched tool started pid=988774 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_combined/sched_tool.log
+2026-09-07T08:02:14.967216+00:00 mem tool started pid=988779 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 988772 -P 20 -l 988773 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_combined/mem_tool.log
+2026-09-07T08:02:15.987477+00:00 SIGCONT sent: high=1788768135.967358 low=1788768135.9874353
+2026-09-07T08:02:19.505426+00:00 tenant high finished rc=0
+2026-09-07T08:02:22.444139+00:00 tenant low finished rc=0
+2026-09-07T08:02:22.557900+00:00 mem tool stopped rc=0
+2026-09-07T08:02:22.561120+00:00 sched tool stopped rc=0
+2026-09-07T08:02:22.561664+00:00 --- block 1 arm baseline ---
+2026-09-07T08:02:22.561806+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:02:22.561850+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:02:22.562376+00:00 tenant uvmbench_high spawned pid=988835 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_baseline/tenant_uvmbench_high.log
+2026-09-07T08:02:22.562624+00:00 tenant uvmbench_low spawned pid=988836 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block01_baseline/tenant_uvmbench_low.log
+2026-09-07T08:02:22.612791+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:02:22.612847+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:02:22.632956+00:00 SIGCONT sent: high=1788768142.6128569 low=1788768142.632931
+2026-09-07T08:03:19.228060+00:00 tenant low finished rc=0
+2026-09-07T08:03:19.463442+00:00 tenant high finished rc=0
+2026-09-07T08:03:19.464060+00:00 block 2 arm order: sched_only,combined,baseline,memory_only
+2026-09-07T08:03:19.464084+00:00 --- block 2 arm sched_only ---
+2026-09-07T08:03:19.464253+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:03:19.464308+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:03:19.464750+00:00 tenant uvmbench_high spawned pid=989533 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_sched_only/tenant_uvmbench_high.log
+2026-09-07T08:03:19.465044+00:00 tenant uvmbench_low spawned pid=989534 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_sched_only/tenant_uvmbench_low.log
+2026-09-07T08:03:19.515304+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:03:19.515382+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:03:19.516094+00:00 sched tool started pid=989535 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_sched_only/sched_tool.log
+2026-09-07T08:03:20.536328+00:00 SIGCONT sent: high=1788768200.516204 low=1788768200.5362854
+2026-09-07T08:03:24.417714+00:00 tenant high finished rc=0
+2026-09-07T08:03:26.555032+00:00 tenant low finished rc=0
+2026-09-07T08:03:26.558398+00:00 sched tool stopped rc=0
+2026-09-07T08:03:26.558942+00:00 --- block 2 arm combined ---
+2026-09-07T08:03:26.559079+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:03:26.559122+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:03:26.559945+00:00 tenant uvmbench_high spawned pid=989586 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_combined/tenant_uvmbench_high.log
+2026-09-07T08:03:26.560351+00:00 tenant uvmbench_low spawned pid=989587 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_combined/tenant_uvmbench_low.log
+2026-09-07T08:03:26.610576+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:03:26.610657+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:03:26.611194+00:00 sched tool started pid=989588 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_combined/sched_tool.log
+2026-09-07T08:03:27.612090+00:00 mem tool started pid=989592 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 989586 -P 20 -l 989587 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_combined/mem_tool.log
+2026-09-07T08:03:28.632577+00:00 SIGCONT sent: high=1788768208.6123877 low=1788768208.6325433
+2026-09-07T08:03:32.151397+00:00 tenant high finished rc=0
+2026-09-07T08:03:35.080957+00:00 tenant low finished rc=0
+2026-09-07T08:03:35.194778+00:00 mem tool stopped rc=0
+2026-09-07T08:03:35.198015+00:00 sched tool stopped rc=0
+2026-09-07T08:03:35.198460+00:00 --- block 2 arm baseline ---
+2026-09-07T08:03:35.198568+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:03:35.198604+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:03:35.199046+00:00 tenant uvmbench_high spawned pid=989660 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_baseline/tenant_uvmbench_high.log
+2026-09-07T08:03:35.199483+00:00 tenant uvmbench_low spawned pid=989661 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_baseline/tenant_uvmbench_low.log
+2026-09-07T08:03:35.249733+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:03:35.249806+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:03:35.269964+00:00 SIGCONT sent: high=1788768215.249814 low=1788768215.2699218
+2026-09-07T08:04:31.876379+00:00 tenant high finished rc=0
+2026-09-07T08:04:32.114699+00:00 tenant low finished rc=0
+2026-09-07T08:04:32.115260+00:00 --- block 2 arm memory_only ---
+2026-09-07T08:04:32.115376+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:04:32.115408+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:04:32.115823+00:00 tenant uvmbench_high spawned pid=990631 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_memory_only/tenant_uvmbench_high.log
+2026-09-07T08:04:32.116289+00:00 tenant uvmbench_low spawned pid=990632 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_memory_only/tenant_uvmbench_low.log
+2026-09-07T08:04:32.166604+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:04:32.166641+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:04:32.167087+00:00 mem tool started pid=990633 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 990631 -P 20 -l 990632 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block02_memory_only/mem_tool.log
+2026-09-07T08:04:33.187681+00:00 SIGCONT sent: high=1788768273.1674259 low=1788768273.1876278
+2026-09-07T08:04:59.738470+00:00 tenant high finished rc=0
+2026-09-07T08:05:01.417038+00:00 tenant low finished rc=0
+2026-09-07T08:05:01.530712+00:00 mem tool stopped rc=0
+2026-09-07T08:05:01.531153+00:00 block 3 arm order: combined,baseline,memory_only,sched_only
+2026-09-07T08:05:01.531163+00:00 --- block 3 arm combined ---
+2026-09-07T08:05:01.531282+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:05:01.531312+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:05:01.531659+00:00 tenant uvmbench_high spawned pid=990804 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_combined/tenant_uvmbench_high.log
+2026-09-07T08:05:01.531878+00:00 tenant uvmbench_low spawned pid=990805 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_combined/tenant_uvmbench_low.log
+2026-09-07T08:05:01.582043+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:05:01.582112+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:05:01.582627+00:00 sched tool started pid=990807 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_combined/sched_tool.log
+2026-09-07T08:05:02.583473+00:00 mem tool started pid=990816 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 990804 -P 20 -l 990805 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_combined/mem_tool.log
+2026-09-07T08:05:03.603735+00:00 SIGCONT sent: high=1788768303.5836084 low=1788768303.6037002
+2026-09-07T08:05:07.146123+00:00 tenant high finished rc=0
+2026-09-07T08:05:10.059169+00:00 tenant low finished rc=0
+2026-09-07T08:05:10.173095+00:00 mem tool stopped rc=0
+2026-09-07T08:05:10.176374+00:00 sched tool stopped rc=0
+2026-09-07T08:05:10.176834+00:00 --- block 3 arm baseline ---
+2026-09-07T08:05:10.176946+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:05:10.176976+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:05:10.177323+00:00 tenant uvmbench_high spawned pid=990875 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_baseline/tenant_uvmbench_high.log
+2026-09-07T08:05:10.177544+00:00 tenant uvmbench_low spawned pid=990876 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_baseline/tenant_uvmbench_low.log
+2026-09-07T08:05:10.227760+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:05:10.227832+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:05:10.247949+00:00 SIGCONT sent: high=1788768310.2278404 low=1788768310.2479208
+2026-09-07T08:06:06.526980+00:00 tenant low finished rc=0
+2026-09-07T08:06:06.775512+00:00 tenant high finished rc=0
+2026-09-07T08:06:06.775958+00:00 --- block 3 arm memory_only ---
+2026-09-07T08:06:06.776078+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:06:06.776110+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:06:06.776443+00:00 tenant uvmbench_high spawned pid=992258 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_memory_only/tenant_uvmbench_high.log
+2026-09-07T08:06:06.776639+00:00 tenant uvmbench_low spawned pid=992259 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_memory_only/tenant_uvmbench_low.log
+2026-09-07T08:06:06.827002+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:06:06.827041+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:06:06.827521+00:00 mem tool started pid=992260 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 992258 -P 20 -l 992259 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_memory_only/mem_tool.log
+2026-09-07T08:06:07.848069+00:00 SIGCONT sent: high=1788768367.8278992 low=1788768367.84804
+2026-09-07T08:06:32.488313+00:00 tenant high finished rc=0
+2026-09-07T08:06:34.203157+00:00 tenant low finished rc=0
+2026-09-07T08:06:34.317142+00:00 mem tool stopped rc=0
+2026-09-07T08:06:34.317554+00:00 --- block 3 arm sched_only ---
+2026-09-07T08:06:34.317680+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:06:34.317711+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:06:34.318278+00:00 tenant uvmbench_high spawned pid=992813 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_sched_only/tenant_uvmbench_high.log
+2026-09-07T08:06:34.318818+00:00 tenant uvmbench_low spawned pid=992814 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_sched_only/tenant_uvmbench_low.log
+2026-09-07T08:06:34.368997+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:06:34.369053+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:06:34.369786+00:00 sched tool started pid=992815 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block03_sched_only/sched_tool.log
+2026-09-07T08:06:35.390025+00:00 SIGCONT sent: high=1788768395.3699243 low=1788768395.3899992
+2026-09-07T08:06:39.268199+00:00 tenant high finished rc=0
+2026-09-07T08:06:41.414876+00:00 tenant low finished rc=0
+2026-09-07T08:06:41.418330+00:00 sched tool stopped rc=0
+2026-09-07T08:06:41.418718+00:00 block 4 arm order: baseline,memory_only,sched_only,combined
+2026-09-07T08:06:41.418728+00:00 --- block 4 arm baseline ---
+2026-09-07T08:06:41.418829+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:06:41.418860+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:06:41.419328+00:00 tenant uvmbench_high spawned pid=993165 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_baseline/tenant_uvmbench_high.log
+2026-09-07T08:06:41.419550+00:00 tenant uvmbench_low spawned pid=993166 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_baseline/tenant_uvmbench_low.log
+2026-09-07T08:06:41.469808+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:06:41.469847+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:06:41.490002+00:00 SIGCONT sent: high=1788768401.4698534 low=1788768401.4899564
+2026-09-07T08:07:37.751931+00:00 tenant high finished rc=0
+2026-09-07T08:07:38.027121+00:00 tenant low finished rc=0
+2026-09-07T08:07:38.036527+00:00 --- block 4 arm memory_only ---
+2026-09-07T08:07:38.036680+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:07:38.036717+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:07:38.037242+00:00 tenant uvmbench_high spawned pid=994011 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_memory_only/tenant_uvmbench_high.log
+2026-09-07T08:07:38.037634+00:00 tenant uvmbench_low spawned pid=994012 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_memory_only/tenant_uvmbench_low.log
+2026-09-07T08:07:38.087931+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:07:38.087981+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:07:38.088420+00:00 mem tool started pid=994013 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 994011 -P 20 -l 994012 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_memory_only/mem_tool.log
+2026-09-07T08:07:39.108840+00:00 SIGCONT sent: high=1788768459.088686 low=1788768459.1087854
+2026-09-07T08:08:04.036737+00:00 tenant high finished rc=0
+2026-09-07T08:08:05.749254+00:00 tenant low finished rc=0
+2026-09-07T08:08:05.862979+00:00 mem tool stopped rc=0
+2026-09-07T08:08:05.863432+00:00 --- block 4 arm sched_only ---
+2026-09-07T08:08:05.863547+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:08:05.863578+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:08:05.863940+00:00 tenant uvmbench_high spawned pid=994286 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_sched_only/tenant_uvmbench_high.log
+2026-09-07T08:08:05.864164+00:00 tenant uvmbench_low spawned pid=994287 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_sched_only/tenant_uvmbench_low.log
+2026-09-07T08:08:05.914337+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:08:05.914405+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:08:05.915073+00:00 sched tool started pid=994288 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_sched_only/sched_tool.log
+2026-09-07T08:08:06.935281+00:00 SIGCONT sent: high=1788768486.9151738 low=1788768486.9352489
+2026-09-07T08:08:10.879185+00:00 tenant high finished rc=0
+2026-09-07T08:08:13.040234+00:00 tenant low finished rc=0
+2026-09-07T08:08:13.043809+00:00 sched tool stopped rc=0
+2026-09-07T08:08:13.044306+00:00 --- block 4 arm combined ---
+2026-09-07T08:08:13.044449+00:00 symlink /tmp/uvmbench_high -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:08:13.044492+00:00 symlink /tmp/uvmbench_low -> /home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench
+2026-09-07T08:08:13.045032+00:00 tenant uvmbench_high spawned pid=994474 via tenant_launcher (target=/tmp/uvmbench_high) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_combined/tenant_uvmbench_high.log
+2026-09-07T08:08:13.045313+00:00 tenant uvmbench_low spawned pid=994475 via tenant_launcher (target=/tmp/uvmbench_low) log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_combined/tenant_uvmbench_low.log
+2026-09-07T08:08:13.095536+00:00 tenant uvmbench_high state after spawn: T
+2026-09-07T08:08:13.095631+00:00 tenant uvmbench_low state after spawn: T
+2026-09-07T08:08:13.096086+00:00 sched tool started pid=994493 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_combined/sched_tool.log
+2026-09-07T08:08:14.096954+00:00 mem tool started pid=994513 cmd=sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 994474 -P 20 -l 994475 -L 80 log=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/block04_combined/mem_tool.log
+2026-09-07T08:08:15.117362+00:00 SIGCONT sent: high=1788768495.0971687 low=1788768495.1173277
+2026-09-07T08:08:18.643577+00:00 tenant high finished rc=0
+2026-09-07T08:08:21.554573+00:00 tenant low finished rc=0
+2026-09-07T08:08:21.668440+00:00 mem tool stopped rc=0
+2026-09-07T08:08:21.671832+00:00 sched tool stopped rc=0
+2026-09-07T08:08:21.672371+00:00 SUMMARY (descriptive only; no gates)
+arm          n    high_lat(s)   low_lat(s)  high_med(ms)  low_med(ms)
+2026-09-07T08:08:21.672390+00:00 arm          n    high_lat(s)   low_lat(s)  high_med(ms)  low_med(ms)
+baseline     5          56.55        56.58       15626.8      15597.8
+2026-09-07T08:08:21.672419+00:00 baseline     5          56.55        56.58       15626.8      15597.8
+memory_only  5          25.31        27.00       13712.8        413.5
+2026-09-07T08:08:21.672435+00:00 memory_only  5          25.31        27.00       13712.8        413.5
+sched_only   5           3.93         6.06         413.4        413.5
+2026-09-07T08:08:21.672448+00:00 sched_only   5           3.93         6.06         413.4        413.5
+combined     5           3.55         6.45         413.4        413.5
+2026-09-07T08:08:21.672461+00:00 combined     5           3.55         6.45         413.4        413.5
+2026-09-07T08:08:21.672468+00:00 fig13-fast done csv=/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/fig13_fast.csv
+
+Results: /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/results/fig13_fast_20260907_005958/fig13_fast.csv
+bash-5.2# echo FIG13_RUN_RC=$?
+FIG13_RUN_RC=0
+bash-5.2# fuser /dev/nvidia0 /dev/nvidiactl /dev/nvidia-modeset
+bash-5.2# lsmod | rg nvidia
+nvidia_uvm           2183168  0
+nvidia              11579392  1 nvidia_uvm
+bash-5.2# rmmod nvidia_uvm && rmmod nvidia && echo FIG13_CANDIDATE_UNLOADED
+FIG13_CANDIDATE_UNLOADED
+bash-5.2# <=1 && echo ORIGINAL_CORE_AND_SAVED_GDS_UVM_RESTORED
+ORIGINAL_CORE_AND_SAVED_GDS_UVM_RESTORED
+bash-5.2# systemctl start nvidia-persistenced gdm
+bash-5.2# systemctl is-active nvidia-persistenced gdm
+active
+active
+bash-5.2# nvidia-smi --query-gpu=name,driver_version,memory.used --format=csv
+name, driver_version, memory.used [MiB]
+NVIDIA GeForce RTX 5090, 575.57.08, 2 MiB
+bash-5.2# ps -p 996479 -o pid,user,args
+    PID USER     COMMAND
+ 996479 root     ./gds_policy ./gds_policy.bpf.o
+bash-5.2# readlink /proc/996479/cwd
+/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/gds-control
+bash-5.2# systemctl is-active gdm nvidia-persistenced
+active
+active
+bash-5.2# echo RESTORED_ORIGINAL_CORE_SAVED_GDS_UVM_SERVICES_AND_GDS_LOADER
+RESTORED_ORIGINAL_CORE_SAVED_GDS_UVM_SERVICES_AND_GDS_LOADER
+bash-5.2# date -u
+Mon Sep  7 08:10:29 UTC 2026
+bash-5.2# exit
+exit
+
+Script done on 2026-09-07 01:10:29-07:00 [COMMAND_EXIT_CODE="0"]

@@ -230,13 +230,21 @@ class ControlledPolicyInputTests(unittest.TestCase):
         self.assertEqual(decision.action, gds_policy.ACTION_SUBMIT_NOW)
 
 
+class _FakeFill:
+    def view(self, _dtype):
+        return self
+
+    def fill_(self, _value):
+        pass
+
+
 class FakeMemoryObj:
     """Mirrors the reference-count contract of a LMCache TensorMemoryObj."""
 
     def __init__(self, nbytes):
         self.nbytes = nbytes
         self.refs = 1
-        self.tensor = object()
+        self.tensor = _FakeFill()
 
     def get_size(self):
         return self.nbytes
@@ -264,6 +272,10 @@ class FakeBackend:
         self.hot_lock = threading.Lock()
         self.hot_cache = {}
         self.save_started = []
+
+    def allocate(self, shape, dtype, fmt, eviction=True, busy_loop=True):
+        del dtype, fmt, eviction, busy_loop
+        return FakeMemoryObj(int(shape[0]))
 
     def submit_put_task(self, key, memory_obj, on_complete_callback=None):
         assert memory_obj.tensor is not None
@@ -399,6 +411,106 @@ class AdapterWiringTests(unittest.TestCase):
         memory_obj.ref_count_down()
         self.assertEqual(memory_obj.ref_count, 0)
         adapter.close()
+
+
+class ExecutorWiringTests(unittest.TestCase):
+    """Drive the real run_mixed_traffic loop on a fake backend, no GPU."""
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        self.loop_thread = threading.Thread(target=self.loop.run_forever,
+                                             daemon=True)
+        self.loop_thread.start()
+
+    def tearDown(self):
+        self.loop.call_soon_threadsafe(self.loop.stop)
+        self.loop_thread.join(timeout=5.0)
+        self.loop.close()
+
+    def _parts(self):
+        import types
+
+        torch = types.SimpleNamespace(Size=list, uint8="uint8")
+        memory_format = types.SimpleNamespace(BINARY="BINARY")
+        return types.SimpleNamespace(torch=torch, MemoryFormat=memory_format,
+                                     adapter=gds_adapter)
+
+    def _provider(self):
+        return gds_adapter.EnvironmentRequestProvider(
+            gds_adapter.Telemetry(
+                hbm_pressure_permille=runner.CONTROLLED_POLICY_INPUTS[
+                    "hbm_pressure_permille"],
+                slack_ns=runner.CONTROLLED_POLICY_INPUTS["slack_ns"],
+                speculative_recomputable=runner.CONTROLLED_POLICY_INPUTS[
+                    "speculative_recomputable"],
+            )
+        )
+
+    def test_native_mixed_phase_defers_writes_and_completes_reads(self):
+        import types
+
+        object_bytes = 4 * MIB
+        plan = runner.TrafficPlan(
+            reads=2, writes=2, object_bytes=object_bytes,
+            read_stagger_s=0.001, write_stagger_s=0.002,
+            pool_bytes=4 * object_bytes,
+        )
+        keys = ["r0", "r1", "w0", "w1"]
+        backend = FakeBackend(self.loop)
+        for key in ("r0", "r1"):
+            backend.hot_cache[key] = types.SimpleNamespace(size=object_bytes)
+
+        log_lock = threading.Lock()
+        log = {
+            key: {
+                "id": key,
+                "role": "read_demand" if key.startswith("r") else "write_background",
+                "object": key,
+                "bytes": object_bytes,
+                "offer_s": None,
+                "submitted_s": None,
+                "completed_s": None,
+                "status": "pending",
+            }
+            for key in keys
+        }
+
+        t0 = time.perf_counter()
+        runner.wrap_submit_timing(backend, log, log_lock, t0)
+        adapter = gds_adapter.install_backend(
+            backend, mode="native", request_provider=self._provider())
+        try:
+            runner.run_mixed_traffic(backend, self._parts(), keys, plan,
+                                     log, log_lock, t0)
+        finally:
+            adapter.close()
+
+        reads = [log[k] for k in ("r0", "r1")]
+        writes = [log[k] for k in ("w0", "w1")]
+        for record in reads + writes:
+            self.assertEqual(record["status"], "completed")
+            self.assertIsNotNone(record["offer_s"])
+            self.assertIsNotNone(record["submitted_s"])
+            self.assertIsNotNone(record["completed_s"])
+
+        self.assertAlmostEqual(
+            reads[1]["offer_s"] - reads[0]["offer_s"],
+            plan.read_stagger_s, delta=0.01)
+        for record in writes:
+            self.assertGreaterEqual(record["submitted_s"] - record["offer_s"],
+                                    0.009)
+
+        stats = adapter.stats
+        self.assertEqual(stats["decisions"], 4)
+        self.assertEqual(stats["submit_now"], 2)
+        self.assertEqual(stats["defer"], 2)
+
+        metrics = runner.compute_metrics([log[k] for k in keys])
+        self.assertEqual(metrics["completed_reads"], 2)
+        self.assertEqual(metrics["completed_writes"], 2)
+        self.assertIsNotNone(metrics["read_end_to_end_p50_ms"])
+
+        self.assertEqual(backend.put_tasks, set())
 
 
 class CliTests(unittest.TestCase):

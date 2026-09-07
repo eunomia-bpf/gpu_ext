@@ -4,6 +4,34 @@ Status: implementation follow-up, not a completed experiment or novelty claim.
 User direction on 2026-09-07: prioritize real disk prefetch coordinated with
 gpubpf; do not start more paper reproductions or edit paper files.
 
+## Implemented decision interface; serving integration pending
+
+Main `3dd808ac` adds matched native/BPF opt-in decisions. Qwen 27B generated
+the BPF branch; root completed its mechanical Python mirror and the explicit
+read-op condition. `make gds_policy.bpf.o` and Python compilation pass. The
+new object has not replaced the live attached policy or supplied serving data.
+`HINT_PREFETCH_JIT = 1 << 62` selects the new speculative-read branch: with a
+positive transfer estimate and slack exceeding that estimate, defer for the
+difference capped at the existing 10 ms scalar limit; otherwise submit now.
+Demand reads and all no-hint paths retain their old behavior.
+
+The two local-model assignments use this integration contract:
+
+- GLM: opt-in async backend/bootstrap through
+  `LMCACHE_GDS_ASYNC_PREFETCH=1`, with ordinary LMCache
+  `LMCACHE_ENABLE_ASYNC_LOADING=True`; existing policy modes remain
+  `fifo`, `native`, `bpf`.
+- Qwen 27B: new `run_gds_async_prefetch.py`, with overlapping warm serving
+  requests and four demand/eager/native/BPF arms, reusing existing assets.
+- Optional `kv_transfer_params` entry `lmcache.prefetch_deadline_ns` travels
+  through the existing request-config/lookup/CacheEngineKey path. This is an
+  explicit application host-monotonic deadline, not a measured prediction of
+  scheduler use time. All arms receive the same hints. A zero/default lead
+  cannot establish benefit from adaptive timing.
+- Native/BPF get completion-derived service estimates and fresh remaining
+  slack; neither receives a preselected action. Backend/runner code and their
+  end-to-end performance are still pending.
+
 ## Question and scope
 
 RQ1 (Policy Expressibility and Benefits): Can AI agents safely express GPU

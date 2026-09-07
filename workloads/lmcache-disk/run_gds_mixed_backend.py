@@ -31,6 +31,11 @@ live-input result additionally records the adapter's
 ``feedback_records`` before the adapter is closed, on the failure path too
 wherever the adapter exists, and the campaign, cell, and summary metadata
 name the chosen variant.
+Setting
+``LMCACHE_GDS_DECISION_TIMING=1`` (default off; inherited by the per-cell
+subprocesses) makes the adapter record per-admission stage durations, and
+every cell record then carries a ``decision_timing`` block with the enabled
+flag and those records, captured in the same finally as the feedback.
 
 Objects live in the backend's bounded GPU staging pool
 (``gds_buffer_size`` MiB, default 256, sized for an RTX 5090 that already
@@ -761,6 +766,15 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
                 record["feedback_records"] = list(adapter.feedback_records)
             except Exception as error:
                 cleanup_errors.append(f"feedback_records: {error}")
+        if adapter is not None:
+            try:
+                record["decision_timing"] = {
+                    "env": parts.adapter.DECISION_TIMING_ENV,
+                    "enabled": adapter.decision_timing_enabled,
+                    "records": list(adapter.decision_timing_records),
+                }
+            except Exception as error:
+                cleanup_errors.append(f"decision_timing: {error}")
         if adapter is not None:
             try:
                 adapter.close()

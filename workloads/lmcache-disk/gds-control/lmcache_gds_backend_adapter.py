@@ -31,6 +31,11 @@ importing this module also bootstraps when that variable is present.  The class
 hook is intentionally version/signature checked and fails closed on LMCache
 drift.  ``install_backend`` remains available for an already-created backend
 or for dependency-free tests.
+
+``LMCACHE_GDS_DECISION_TIMING=1`` (default off) is a performance diagnostic:
+each ``_admit`` then records the monotonic durations of request construction,
+decision-lock wait, decider call, and in-lock stats/feedback accounting in
+``decision_timing_records``.  It changes no decision, lock, or error behavior.
 """
 
 from __future__ import annotations
@@ -66,6 +71,7 @@ from lmcache_gds_policy_adapter import (
 
 __all__ = [
     "MODE_ENV",
+    "DECISION_TIMING_ENV",
     "EXPECTED_LMCACHE_VERSION",
     "AdmissionError",
     "Telemetry",
@@ -79,6 +85,7 @@ __all__ = [
 ]
 
 MODE_ENV = "LMCACHE_GDS_POLICY_MODE"
+DECISION_TIMING_ENV = "LMCACHE_GDS_DECISION_TIMING"
 EXPECTED_LMCACHE_VERSION = "0.5.4"
 _ADAPTER_ATTR = "_gds_admission_adapter"
 _CLASS_HOOK_ATTR = "_gds_admission_class_hook"
@@ -128,6 +135,18 @@ def _env_bool(environ: Mapping[str, str], suffix: str, default: bool = False) ->
     if normalized in {"0", "false", "no", "off"}:
         return False
     raise ValueError(f"LMCACHE_GDS_POLICY_{suffix} is not a boolean: {raw!r}")
+
+
+def _decision_timing_enabled(environ: Mapping[str, str] = os.environ) -> bool:
+    raw = environ.get(DECISION_TIMING_ENV)
+    if raw is None:
+        return False
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{DECISION_TIMING_ENV} is not a boolean: {raw!r}")
 
 
 class EnvironmentRequestProvider:
@@ -428,6 +447,8 @@ class GdsBackendAdmissionAdapter:
             "blocking_defer_miss": 0,
         }
         self.feedback_records: list[dict[str, int]] = []
+        self.decision_timing_enabled = _decision_timing_enabled()
+        self.decision_timing_records: list[dict[str, Any]] = []
 
     def install(self) -> "GdsBackendAdmissionAdapter":
         if self._installed:
@@ -467,12 +488,17 @@ class GdsBackendAdmissionAdapter:
         memory_obj: Any = None,
         write_budget: Optional[_WriteDelayBudget] = None,
     ) -> tuple[PolicyRequest, Decision]:
+        timing = self.decision_timing_enabled
+        if timing:
+            start_ns = time.monotonic_ns()
         if write_budget is None:
             request = self.request_provider(kind, key, memory_obj, self.backend)
         else:
             request = self.request_provider(
                 kind, key, memory_obj, self.backend, write_budget=write_budget
             )
+        if timing:
+            provider_end_ns = time.monotonic_ns()
         expected_op = OP_WRITE if kind == WRITE else OP_READ
         if request.op != expected_op:
             raise AdmissionError(
@@ -480,10 +506,18 @@ class GdsBackendAdmissionAdapter:
             )
         if kind == READ_DEMAND and not request.flags & FLAG_DEMAND:
             raise AdmissionError("blocking reads must be marked demand")
+        if timing:
+            lock_wait_start_ns = time.monotonic_ns()
         with self._decision_lock:
+            if timing:
+                lock_acquired_ns = time.monotonic_ns()
             request_id = self._request_id
             self._request_id += 1
+            if timing:
+                decider_start_ns = time.monotonic_ns()
             decision = self.decider.decide(request, request_id)
+            if timing:
+                decider_end_ns = time.monotonic_ns()
             self.stats["decisions"] += 1
             if decision.action == ACTION_SUBMIT_NOW:
                 self.stats["submit_now"] += 1
@@ -503,8 +537,23 @@ class GdsBackendAdmissionAdapter:
                         requested_wait_ns=decision.defer_ns,
                     ).as_dict()
                 )
+            if timing:
+                locked_accounting_end_ns = time.monotonic_ns()
         if request.flags & FLAG_DEMAND and decision.action != ACTION_SUBMIT_NOW:
             raise AdmissionError("policy violated the demand-read SUBMIT_NOW contract")
+        if timing:
+            self.decision_timing_records.append(
+                {
+                    "request_id": request_id,
+                    "kind": kind,
+                    "start_ns": start_ns,
+                    "provider_ns": provider_end_ns - start_ns,
+                    "lock_wait_ns": lock_acquired_ns - lock_wait_start_ns,
+                    "decider_ns": decider_end_ns - decider_start_ns,
+                    "locked_accounting_ns": locked_accounting_end_ns - decider_end_ns,
+                    "total_ns": time.monotonic_ns() - start_ns,
+                }
+            )
         return request, decision
 
     # MethodType supplies ``bound_backend``; all operations use saved LMCache

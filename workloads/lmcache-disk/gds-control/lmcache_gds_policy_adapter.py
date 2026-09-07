@@ -218,7 +218,10 @@ _LIBC: Optional[ctypes.CDLL] = None
 def _libc() -> ctypes.CDLL:
     global _LIBC
     if _LIBC is None:
-        _LIBC = ctypes.CDLL(None, use_errno=True)
+        # Opt-in ablation: keep the GIL across this short scalar policy ioctl.
+        # Every request still enters the same driver/BPF decision path.
+        library = ctypes.PyDLL if os.environ.get("LMCACHE_GDS_IOCTL_KEEP_GIL") == "1" else ctypes.CDLL
+        _LIBC = library(None, use_errno=True)
     return _LIBC
 
 

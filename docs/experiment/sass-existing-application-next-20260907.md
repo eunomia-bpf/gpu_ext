@@ -16,6 +16,18 @@ active implementation tasks, not completed application-injection evidence.
 The root will review the build and run the actual target; no new GPU matrix,
 standalone-42 rerun, or additional verification campaign is requested.
 
+Current build checkpoint (2026-09-07): the real BPF input compiles with
+clang-15 and is published in main `596fefcc`. After fixing two ordinary CUDA
+type/API compilation errors, the root successfully compiled the NVBit host
+tool object and the device wrapper's PTX. The initial device-object command
+`nvcc -dc ... -Xptxas -astoolspatch` fails because ptxas prohibits combining
+`--compile-only` and `--compile-as-tools-patch`. Qwen is therefore changing
+the build glue to merge the wrapper and compiler-generated BPF functions in
+one PTX translation unit, then assemble and embed it without separable
+tool-patch compilation. GLM still owns the BPF exporter. These are build
+steps only; no completed in-body SASS execution or performance result is
+claimed, and no old GPU experiment is being repeated.
+
 ## Established facts (evidence)
 
 ### 1. The bpftime attach path is PTX-only; SASS-only fatbins produce no

@@ -441,3 +441,38 @@ The queued stock scheduling-overlap ablation acquired the GPU locks and
 started automatically after BPF exited. Its server receives
 `--no-async-scheduling`; the runner source was still unchanged at launch.
 It has begun real cold population and warm serving, with no final result yet.
+
+## Scheduling-overlap control completed all requests
+
+The stock control with `--no-async-scheduling` completes all eight warm
+requests, each with 1,024 generated tokens, and has no request errors.
+Its 8,192 output tokens take 114.115222 seconds: 71.787093 token/s. All eight
+cold requests also succeed; the server returns zero. The actual command
+retains the added flag, with unchanged model, 384 MiB KV, two running
+sequences, four HTTP workers, 250 ms stagger, prompts, generation bound,
+GDS transport and price proxy. Runner source had not changed.
+
+Raw `result.json` and `server.log` (171,259 and 212,503 bytes) are retained
+under `../raw/gds-kv-reclaim-scheduling-ablation-575-20260907-01/stock-sync/`.
+Warm TTFT median is 25,599.252 ms across all eight successful requests;
+unlike the failed first-block medians, this includes the entire workload.
+Comparing those medians without their different completion sets would be
+misleading. Ordinary shutdown still contains the previously documented
+EngineCore termination/semaphore warning; request completion is not a claim
+about clean process teardown.
+
+This single-variable control supports dependence on vLLM scheduling overlap
+in this workload, but does not isolate the exact faulty line or prove a
+general repair. It specifically contradicts interpreting the failed
+stock-to-native/BPF comparison as an established storage-policy gain: an
+existing stock runtime option completes the workload without either policy.
+It does not disable gpubpf's asynchronous resource-state model or turn the
+cuFile backend into a different transport.
+
+Root has started native with the same non-overlapped configuration, followed
+by the matching BPF comparison; no old completed cell is rerun. In parallel,
+the GLM scheduler diagnosis is now tasked with a minimal async-preserving
+compatibility patch, confined to the existing preemption-seam artifact and
+its note. Root will apply any accepted patch only after active GPU work
+finishes. The working non-overlapped comparison does not close or replace
+repair of the original overlapped path.

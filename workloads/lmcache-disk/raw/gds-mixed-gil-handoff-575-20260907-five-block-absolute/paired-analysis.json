@@ -1,0 +1,487 @@
+{
+  "source_commit": "2d27777d",
+  "invocation_correction_commit": "8cae0ff3",
+  "cells": 20,
+  "requests_completed": 3200,
+  "errors": [],
+  "medians": {
+    "fifo": {
+      "read_scheduled_offer_to_completion_p50_ms": 233.56771199913055,
+      "read_scheduled_offer_to_completion_p99_ms": 399.49063899961766,
+      "write_completion_throughput_mib_s": 2548.8499144467805,
+      "total_storage_bandwidth_mib_s": 4248.0831907446345
+    },
+    "native": {
+      "read_scheduled_offer_to_completion_p50_ms": 173.89779900069698,
+      "read_scheduled_offer_to_completion_p99_ms": 444.17600900219986,
+      "write_completion_throughput_mib_s": 1839.2481825257896,
+      "total_storage_bandwidth_mib_s": 3065.4136375429825
+    },
+    "bpf_release": {
+      "read_scheduled_offer_to_completion_p50_ms": 138.65016199921956,
+      "read_scheduled_offer_to_completion_p99_ms": 310.3741029998928,
+      "write_completion_throughput_mib_s": 1369.7697997691012,
+      "total_storage_bandwidth_mib_s": 2282.949666281835
+    },
+    "bpf_keep": {
+      "read_scheduled_offer_to_completion_p50_ms": 220.62632550028502,
+      "read_scheduled_offer_to_completion_p99_ms": 406.13055999958306,
+      "write_completion_throughput_mib_s": 3485.265147595037,
+      "total_storage_bandwidth_mib_s": 5808.775245991728
+    }
+  },
+  "pairs": {
+    "bpf_keep/bpf_release": {
+      "read_scheduled_offer_to_completion_p50_ms": {
+        "values": [
+          -69.96178367604038,
+          51.438009995072306,
+          685.7890735872294,
+          -9.926227481849248,
+          -11.804162317668121
+        ],
+        "median": -9.926227481849248,
+        "min": -69.96178367604038,
+        "max": 685.7890735872294
+      },
+      "read_scheduled_offer_to_completion_p99_ms": {
+        "values": [
+          4.9225236120847615,
+          -28.10608654398252,
+          513.5739279030065,
+          -50.738939869487496,
+          -42.62998459168894
+        ],
+        "median": -28.10608654398252,
+        "min": -50.738939869487496,
+        "max": 513.5739279030065
+      },
+      "write_completion_throughput_mib_s": {
+        "values": [
+          -0.09440554126011191,
+          -0.12674498454573468,
+          -16.460320928399863,
+          74.78225637173904,
+          169.53708369558856
+        ],
+        "median": -0.09440554126011191,
+        "min": -16.460320928399863,
+        "max": 169.53708369558856
+      },
+      "total_storage_bandwidth_mib_s": {
+        "values": [
+          -0.09440554126010081,
+          -0.1267449845457569,
+          -16.460320928399884,
+          74.78225637173905,
+          169.5370836955886
+        ],
+        "median": -0.09440554126010081,
+        "min": -16.460320928399884,
+        "max": 169.5370836955886
+      }
+    },
+    "bpf_keep/native": {
+      "read_scheduled_offer_to_completion_p50_ms": {
+        "values": [
+          -76.67481863915096,
+          -14.442826397994379,
+          66.90214062813571,
+          -56.0834631729626,
+          126.70173386804993
+        ],
+        "median": -14.442826397994379,
+        "min": -76.67481863915096,
+        "max": 126.70173386804993
+      },
+      "read_scheduled_offer_to_completion_p99_ms": {
+        "values": [
+          12.662539910853177,
+          7.476594723876606,
+          33.4481383908702,
+          -52.17933882078313,
+          1.1034929617718792
+        ],
+        "median": 7.476594723876606,
+        "min": -52.17933882078313,
+        "max": 33.4481383908702
+      },
+      "write_completion_throughput_mib_s": {
+        "values": [
+          0.3575304159467274,
+          -2.4268183877473537,
+          -16.892870244178017,
+          30.168108136842875,
+          108.7808236047823
+        ],
+        "median": 0.3575304159467274,
+        "min": -16.892870244178017,
+        "max": 108.7808236047823
+      },
+      "total_storage_bandwidth_mib_s": {
+        "values": [
+          0.3575304159467496,
+          -2.4268183877473426,
+          -16.892870244178017,
+          30.168108136842875,
+          108.7808236047823
+        ],
+        "median": 0.3575304159467496,
+        "min": -16.892870244178017,
+        "max": 108.7808236047823
+      }
+    },
+    "bpf_release/native": {
+      "read_scheduled_offer_to_completion_p50_ms": {
+        "values": [
+          -22.34831419652571,
+          -43.5035011323844,
+          -78.75993110133159,
+          -51.24381315528026,
+          157.04357464645375
+        ],
+        "median": -43.5035011323844,
+        "min": -78.75993110133159,
+        "max": 157.04357464645375
+      },
+      "read_scheduled_offer_to_completion_p99_ms": {
+        "values": [
+          7.376887280546618,
+          49.493315299392535,
+          -78.25068303554684,
+          -2.924011272756688,
+          76.23054873212611
+        ],
+        "median": 7.376887280546618,
+        "min": -78.25068303554684,
+        "max": 76.23054873212611
+      },
+      "write_completion_throughput_mib_s": {
+        "values": [
+          0.45236301295767944,
+          -2.302992330474962,
+          -0.5177770857934694,
+          -25.525559150585465,
+          -22.54096514579179
+        ],
+        "median": -2.302992330474962,
+        "min": -25.525559150585465,
+        "max": 0.45236301295767944
+      },
+      "total_storage_bandwidth_mib_s": {
+        "values": [
+          0.45236301295767944,
+          -2.30299233047494,
+          -0.5177770857934472,
+          -25.525559150585465,
+          -22.5409651457918
+        ],
+        "median": -2.30299233047494,
+        "min": -25.525559150585465,
+        "max": 0.45236301295767944
+      }
+    },
+    "native/fifo": {
+      "read_scheduled_offer_to_completion_p50_ms": {
+        "values": [
+          36.26877036657352,
+          33.72221380635456,
+          -30.75769153849931,
+          115.08812827832608,
+          -55.17885060401916
+        ],
+        "median": 33.72221380635456,
+        "min": -55.17885060401916,
+        "max": 115.08812827832608
+      },
+      "read_scheduled_offer_to_completion_p99_ms": {
+        "values": [
+          -0.742125124962556,
+          -9.882669376021925,
+          -16.663111099892724,
+          112.5903202951859,
+          -17.90696669090419
+        ],
+        "median": -9.882669376021925,
+        "min": -17.90696669090419,
+        "max": 112.5903202951859
+      },
+      "write_completion_throughput_mib_s": {
+        "values": [
+          -0.849929194455179,
+          -1.6763186422389942,
+          18.49000790196167,
+          12.966366322902868,
+          -34.50608474144142
+        ],
+        "median": -0.849929194455179,
+        "min": -34.50608474144142,
+        "max": 18.49000790196167
+      },
+      "total_storage_bandwidth_mib_s": {
+        "values": [
+          -0.8499291944551901,
+          -1.6763186422390164,
+          18.49000790196167,
+          12.966366322902845,
+          -34.506084741441434
+        ],
+        "median": -0.8499291944551901,
+        "min": -34.506084741441434,
+        "max": 18.49000790196167
+      }
+    },
+    "bpf_keep/fifo": {
+      "read_scheduled_offer_to_completion_p50_ms": {
+        "values": [
+          -68.2150621737978,
+          14.408946610747897,
+          15.566895042581397,
+          -5.54074293406347,
+          1.6103228202775544
+        ],
+        "median": 1.6103228202775544,
+        "min": -68.2150621737978,
+        "max": 15.566895042581397
+      },
+      "read_scheduled_offer_to_completion_p99_ms": {
+        "values": [
+          11.826442895753765,
+          -3.1449617892911452,
+          11.211526830060903,
+          1.6620967681727716,
+          -17.00107584623327
+        ],
+        "median": 1.6620967681727716,
+        "min": -17.00107584623327,
+        "max": 11.826442895753765
+      },
+      "write_completion_throughput_mib_s": {
+        "values": [
+          -0.4954375338926398,
+          -4.062455820939248,
+          -1.5263553852329914,
+          47.04618187345824,
+          36.738735687836765
+        ],
+        "median": -0.4954375338926398,
+        "min": -4.062455820939248,
+        "max": 47.04618187345824
+      },
+      "total_storage_bandwidth_mib_s": {
+        "values": [
+          -0.4954375338926287,
+          -4.06245582093927,
+          -1.5263553852329914,
+          47.04618187345822,
+          36.738735687836765
+        ],
+        "median": -0.4954375338926287,
+        "min": -4.06245582093927,
+        "max": 47.04618187345822
+      }
+    }
+  },
+  "decision_counts": [
+    {
+      "block": 0,
+      "arm": "fifo",
+      "blocking_defer_miss": 0,
+      "decisions": 160,
+      "defer": 0,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 0
+    },
+    {
+      "block": 0,
+      "arm": "native",
+      "blocking_defer_miss": 0,
+      "decisions": 779,
+      "defer": 619,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 79
+    },
+    {
+      "block": 0,
+      "arm": "bpf_release",
+      "blocking_defer_miss": 0,
+      "decisions": 766,
+      "defer": 606,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 74
+    },
+    {
+      "block": 0,
+      "arm": "bpf_keep",
+      "blocking_defer_miss": 0,
+      "decisions": 794,
+      "defer": 634,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 74
+    },
+    {
+      "block": 1,
+      "arm": "native",
+      "blocking_defer_miss": 0,
+      "decisions": 752,
+      "defer": 592,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 75
+    },
+    {
+      "block": 1,
+      "arm": "bpf_release",
+      "blocking_defer_miss": 0,
+      "decisions": 843,
+      "defer": 683,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 80
+    },
+    {
+      "block": 1,
+      "arm": "bpf_keep",
+      "blocking_defer_miss": 0,
+      "decisions": 784,
+      "defer": 624,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 80
+    },
+    {
+      "block": 1,
+      "arm": "fifo",
+      "blocking_defer_miss": 0,
+      "decisions": 160,
+      "defer": 0,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 0
+    },
+    {
+      "block": 2,
+      "arm": "bpf_release",
+      "blocking_defer_miss": 0,
+      "decisions": 772,
+      "defer": 612,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 78
+    },
+    {
+      "block": 2,
+      "arm": "bpf_keep",
+      "blocking_defer_miss": 0,
+      "decisions": 952,
+      "defer": 792,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    },
+    {
+      "block": 2,
+      "arm": "fifo",
+      "blocking_defer_miss": 0,
+      "decisions": 160,
+      "defer": 0,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 0
+    },
+    {
+      "block": 2,
+      "arm": "native",
+      "blocking_defer_miss": 0,
+      "decisions": 903,
+      "defer": 743,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    },
+    {
+      "block": 3,
+      "arm": "bpf_keep",
+      "blocking_defer_miss": 0,
+      "decisions": 960,
+      "defer": 800,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    },
+    {
+      "block": 3,
+      "arm": "fifo",
+      "blocking_defer_miss": 0,
+      "decisions": 160,
+      "defer": 0,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 0
+    },
+    {
+      "block": 3,
+      "arm": "native",
+      "blocking_defer_miss": 0,
+      "decisions": 932,
+      "defer": 772,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    },
+    {
+      "block": 3,
+      "arm": "bpf_release",
+      "blocking_defer_miss": 0,
+      "decisions": 946,
+      "defer": 786,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    },
+    {
+      "block": 4,
+      "arm": "fifo",
+      "blocking_defer_miss": 0,
+      "decisions": 160,
+      "defer": 0,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 0
+    },
+    {
+      "block": 4,
+      "arm": "native",
+      "blocking_defer_miss": 0,
+      "decisions": 946,
+      "defer": 786,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    },
+    {
+      "block": 4,
+      "arm": "bpf_release",
+      "blocking_defer_miss": 0,
+      "decisions": 938,
+      "defer": 778,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    },
+    {
+      "block": 4,
+      "arm": "bpf_keep",
+      "blocking_defer_miss": 0,
+      "decisions": 915,
+      "defer": 755,
+      "recompute": 0,
+      "submit_now": 160,
+      "budget_exhausted_submits": 95
+    }
+  ]
+}

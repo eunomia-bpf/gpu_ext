@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Render the five matched policy ports as a 1x5 panel figure.
 
-Each panel is one independent replication: bars for baseline (no policy),
-the original implementation, and the gpubpf port of the same policy, from
+Each panel is one scoped policy comparison: bars for its stated baseline,
+the native policy implementation, and the gpubpf port of the same policy, from
 port-panels.json (transcribed published values with per-panel sources).
 XSched and GPREEMPT are in the separate scheduling figure; mechanism cost
 is reported in text. No GPU execution and no paper edits.
@@ -48,17 +48,21 @@ def _draw(panels: list[dict], paths: list[Path]) -> None:
     from matplotlib.ticker import MaxNLocator
 
     with plt.rc_context(STYLE):
-        figure, axes = plt.subplots(1, 5, figsize=(7.2, 1.6))
+        figure, axes = plt.subplots(1, 5, figsize=(7.0, 1.6))
         for panel, axis in zip(panels, axes.flat):
-            width = .8 / max(len(LEGEND) - 1, 1)
-            positions = {}
+            n_arms = max(sum(1 for key, _ in LEGEND if key in group)
+                         for group in panel["groups"])
+            span = .7
+            step = span / (n_arms - 1) if n_arms > 1 else 0.0
+            width = span / n_arms * .95
             for group_index, group in enumerate(panel["groups"]):
                 arms = [key for key, _ in LEGEND if key in group]
                 for slot, arm in enumerate(arms):
-                    center = group_index + (slot - (len(arms) - 1) / 2) * width * 1.1
-                    positions.setdefault(arm, []).append(
-                        axis.bar(center, group[arm], color=COLORS[arm],
-                                 width=width))
+                    center = group_index + (slot - (len(arms) - 1) / 2) * step
+                    style = {"hatch": "///", "edgecolor": "#404040",
+                             "linewidth": .3} if arm == "baseline" else {}
+                    axis.bar(center, group[arm], color=COLORS[arm],
+                             width=width, **style)
             top = max(g[k] for g in panel["groups"] for k in g if k != "label")
             axis.set_ylim(0, top * 1.32)
             axis.set_xticks(range(len(panel["groups"])),

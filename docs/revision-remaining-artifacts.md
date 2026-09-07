@@ -1,4 +1,4 @@
-# Remaining revision artifacts — 2026-09-03
+# Remaining revision artifacts — updated 2026-09-07
 
 This is an execution checklist, not evidence that the missing experiments or
 release have completed. It supplements the
@@ -6,6 +6,29 @@ release have completed. It supplements the
 [current experiment status](revision-experiment-status.md). FineMoE,
 Hummingbird and POD-Attention have their own plans; do not rerun them merely to
 fill this checklist. GPU work is exclusive and coordinated by the main thread.
+
+## Current execution queue
+
+The LMCache five-arm, mixed-storage, event-driven and write-budget studies
+are complete, including adverse data. The latest [25-cell budget result](../workloads/lmcache-disk/results-575-gds-write-budget-20260907.md)
+is published in `a451db6a` and integrated in the paper: BPF 200/10 ms paired
+read p99 improves 51.011% and write throughput 15.315%; native also improves,
+while BPF/native latency remains variable. No completed LMCache cell repeats.
+
+The [GPU-local kernel-return record study](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)
+is also complete: five paired blocks, mean prefill overhead 5.5726%, all
+720,896 records retained per run, final host readback reported separately.
+No extra ten-block repeat is queued. The [stale-state study](../workloads/stale-state-575/results-performance-gds-20260907.md),
+[expanded Fig. 13](../workloads/fig13-fast/results-performance-575-20260907.md)
+and [in-body SASS EXIT run](../workloads/sass-kretprobe/results/sass-exit-575-20260907-01/results.md)
+are complete at their reported scope. The latter is not general helper/map
+or late-attach coverage.
+
+Current work is the [targeted attribution/commitment integration](experiment/revision-claim-attribution-20260907.md)
+in `tex-revision`, followed by build and publication. Original agent-log
+recovery remains open as described in section 3. The dated preparation and
+protocol below are retained history, not permission to reinstate former
+preflight requirements or rerun completed performance cells.
 
 ## 1. LMCache local disk and storage-policy comparison
 
@@ -148,13 +171,17 @@ numeric cells. Baseline is 37,586.3225 token/s. gpubpf/NVBit overhead is
 8%/85%, 3%/87%, and 14%/93% respectively. Earlier 5090 attempts and verifier
 studies remain retained as separate historical results.
 
-Remaining Table 1 work is performance optimization, not row completion:
+The former Table 1 optimization plan was:
 
 1. Preserve the complete 70-cell campaign and every earlier result.
 2. Optimize `kernelretsnoop` using GPU-local preallocated event storage and a
    bulk drain while retaining its full per-warp record stream.
 3. Run a one-block measurement, then a new ten-block campaign if it improves.
 4. Repeat the paper placement review after the optimized numbers are integrated.
+
+This historical sequence is superseded by the completed five-pair result
+linked in the current queue above. All prior numeric results remain; the
+old ten-block suggestion does not require an additional campaign.
 
 ### Separate device-map placement result
 

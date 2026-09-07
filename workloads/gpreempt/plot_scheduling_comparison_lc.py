@@ -21,7 +21,7 @@ from plot_scheduling_comparison_bars import XS_ARMS, XS_TICKS, GP_TICKS, \
     SCENARIO_TICKS, COLORS, STYLE, DEFAULT_POINTS, load_points
 
 
-def _labels(panel, bars, values, fontsize=5.5):
+def _labels(panel, bars, values, fontsize=7):
     for bar, value in zip(bars, values):
         panel.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
                    f"{value:.3g}", ha="center", va="bottom", rotation=90,
@@ -46,11 +46,11 @@ def _draw(data: dict, paths: list[Path]) -> None:
         values = [statistics.median(p["queue_p99_s"] for p in xs if p["arm"] == arm)
                   for arm in XS_ARMS]
         _labels(panel, panel.bar(range(3), values, color=COLORS, width=.62),
-                values, fontsize=6.5)
+                values, fontsize=8)
         panel.set_ylim(0, max(values) * 1.35)
         panel.set_xticks(range(3), XS_TICKS)
         panel.set_ylabel("LC queue-entry p99 (s)")
-        panel.set_title("(a) XSched workload", loc="left", fontsize=7.5, pad=4)
+        panel.set_title("(a) XSched workload", loc="left", fontsize=9, pad=4)
         # (b) GPreempt (only 100 and 200, no cont.)
         panel = axes[1]
         tops = []
@@ -66,7 +66,7 @@ def _draw(data: dict, paths: list[Path]) -> None:
         panel.set_xticks(range(len(gp_scenarios)), gp_scenario_ticks)
         panel.set_xlabel("BE supply (req/s)")
         panel.set_ylabel("LC response p99 (ms)")
-        panel.set_title("(b) GPreempt workload", loc="left", fontsize=7.5, pad=4)
+        panel.set_title("(b) GPreempt workload", loc="left", fontsize=9, pad=4)
         for panel in axes:
             panel.yaxis.set_major_locator(MaxNLocator(nbins=4))
             panel.ticklabel_format(axis="y", style="plain", useOffset=False)

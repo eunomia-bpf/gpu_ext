@@ -7,6 +7,12 @@ restored. Root used logged ordinary shell commands and the existing runner;
 the proposed reusable lifecycle script below was not used. Do not rerun the
 completed matrix when that script or the reusable analyzer finishes.
 
+The Qwen Next lifecycle session subsequently returned `Error: <none>` and
+its process exited; it produced no script. It was not stopped for silence or
+by a root-imposed timeout. This does not affect the completed logged manual
+execution. The remaining work is the reusable analysis and expanded plot,
+not another module swap or performance campaign.
+
 ## Retained preparation record
 
 The old `results/fig13_fast_20260905_155839` contains startup failures, not

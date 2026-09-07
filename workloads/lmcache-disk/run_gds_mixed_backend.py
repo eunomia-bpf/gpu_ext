@@ -24,12 +24,28 @@ holds a live experiment).  Storage is real cuFile I/O with ``use_direct_io``
 on the cell's fresh cache directory.  The same executor code and the same
 deterministic traffic plan run for every mode; only the decider differs.
 
-Per request the record captures offer, submitted, and completion times plus
-bytes.  Metrics are read end-to-end p50/p99 (offer through completion),
-write completion throughput, total storage bandwidth, and the adapter's
-decision counts.  No correctness, clock, preflight, admission, or retry
-gates are added; failures are recorded in the cell and the campaign
-continues.
+Every measurement cell runs by default in a fresh subprocess of the current
+Python executable (the internal ``--single-cell`` child route).  The parent
+tracks the rotated order, each child's exit code, and the result the child
+writes; it never retries a failed cell.  This releases the CUDA context
+between measurements, because in-process cells retained one GPU pool each
+and OOMed after seven cells (gds-control/mixed-runner-followup.md).
+``--inline`` runs cells in the parent process for debugging.  Process
+startup stays outside request timing: all request times are relative to the
+child's own t0.
+
+Per request the record captures the scheduled arrival
+(``scheduled_offer_s``, derived from one shared monotonic start and the
+configured stagger intervals), the actual dispatch time (``offer_s``, whose
+meaning is unchanged), the save-start time (``submitted_s``), the
+completion time, and bytes.  All write buffers are allocated and all reader
+threads are created, blocked on a common start event, before that shared
+start is released.  ``read_end_to_end`` remains dispatch-to-completion;
+``read_dispatch_to_completion`` and ``read_scheduled_offer_to_completion``
+record the two read latencies with unambiguous names.  Write completion
+throughput, total storage bandwidth, and the adapter's decision counts are
+also recorded.  No correctness, clock, preflight, admission, or retry gates
+are added; failures are recorded in the cell and the campaign continues.
 """
 
 from __future__ import annotations
@@ -42,6 +58,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import signal
 import statistics
+import subprocess
 import sys
 import threading
 import time
@@ -149,18 +166,34 @@ def _percentile_nearest_rank(values: list[float], pct: float) -> Optional[float]
 
 
 def compute_metrics(requests: list[dict[str, Any]]) -> dict[str, Any]:
-    """Derive the cell metrics from per-request offer/submitted/completed records."""
+    """Derive the cell metrics from per-request timing records.
+
+    ``offer_s`` is the actual dispatch time, so ``read_end_to_end`` and
+    ``read_dispatch_to_completion`` are the same dispatch-to-completion
+    latency (the former keeps its historical meaning).  The scheduled
+    variants additionally include the delay between the derived scheduled
+    arrival and the actual dispatch.
+    """
     completed = [r for r in requests if r.get("status") == "completed"]
     reads = [r for r in completed if r["role"] == "read_demand"]
     writes = [r for r in completed if r["role"] == "write_background"]
-    read_latency_ms = [
+    dispatch_ms = [
         (r["completed_s"] - r["offer_s"]) * 1000.0 for r in reads
+        if r.get("offer_s") is not None
+    ]
+    scheduled_ms = [
+        (r["completed_s"] - r["scheduled_offer_s"]) * 1000.0 for r in reads
+        if r.get("scheduled_offer_s") is not None
     ]
     metrics: dict[str, Any] = {
         "completed_reads": len(reads),
         "completed_writes": len(writes),
-        "read_end_to_end_p50_ms": statistics.median(read_latency_ms) if read_latency_ms else None,
-        "read_end_to_end_p99_ms": _percentile_nearest_rank(read_latency_ms, 99),
+        "read_end_to_end_p50_ms": statistics.median(dispatch_ms) if dispatch_ms else None,
+        "read_end_to_end_p99_ms": _percentile_nearest_rank(dispatch_ms, 99),
+        "read_dispatch_to_completion_p50_ms": statistics.median(dispatch_ms) if dispatch_ms else None,
+        "read_dispatch_to_completion_p99_ms": _percentile_nearest_rank(dispatch_ms, 99),
+        "read_scheduled_offer_to_completion_p50_ms": statistics.median(scheduled_ms) if scheduled_ms else None,
+        "read_scheduled_offer_to_completion_p99_ms": _percentile_nearest_rank(scheduled_ms, 99),
     }
     if writes:
         window = max(r["completed_s"] for r in writes) - min(r["offer_s"] for r in writes)
@@ -191,6 +224,10 @@ def median_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
     metric_names = (
         "read_end_to_end_p50_ms",
         "read_end_to_end_p99_ms",
+        "read_dispatch_to_completion_p50_ms",
+        "read_dispatch_to_completion_p99_ms",
+        "read_scheduled_offer_to_completion_p50_ms",
+        "read_scheduled_offer_to_completion_p99_ms",
         "write_completion_throughput_mib_s",
         "total_storage_bandwidth_mib_s",
     )
@@ -429,7 +466,13 @@ def run_mixed_traffic(backend: Any, parts: BackendParts, keys: list[Any],
                       log: dict[Any, dict[str, Any]],
                       log_lock: threading.Lock,
                       t0: float) -> None:
-    """Run the overlapping demand reads and background writes for one cell."""
+    """Run the overlapping demand reads and background writes for one cell.
+
+    All write buffers are allocated and all reader threads are created,
+    blocked on a common start event, before the shared monotonic start is
+    released.  ``scheduled_offer_s`` is derived from that start and the
+    configured intervals; ``offer_s`` records the actual dispatch time.
+    """
     write_memory_objs: list[Any] = []
     for index in range(plan.writes):
         memory_obj = allocate_object(backend, parts, plan.object_bytes,
@@ -443,10 +486,18 @@ def run_mixed_traffic(backend: Any, parts: BackendParts, keys: list[Any],
         else:
             write_memory_objs.append(memory_obj)
 
-    phase_start = time.perf_counter()
+    phase_start = 0.0
+    start_event = threading.Event()
 
     def read_worker(index: int) -> None:
         key = keys[index]
+        if not start_event.wait(timeout=WAIT_TIMEOUT_S):
+            with log_lock:
+                record = log[key]
+                record["completed_s"] = time.perf_counter() - t0
+                record["status"] = "error"
+                record["error"] = "start event not released"
+            return
         target = phase_start + index * plan.read_stagger_s
         delay = target - time.perf_counter()
         if delay > 0:
@@ -479,6 +530,17 @@ def run_mixed_traffic(backend: Any, parts: BackendParts, keys: list[Any],
     ]
     for reader in readers:
         reader.start()
+
+    phase_start = time.perf_counter()
+    base = phase_start - t0
+    with log_lock:
+        for index in range(plan.reads):
+            log[keys[index]]["scheduled_offer_s"] = (
+                base + index * plan.read_stagger_s)
+        for index in range(plan.writes):
+            log[keys[plan.reads + index]]["scheduled_offer_s"] = (
+                base + index * plan.write_stagger_s)
+    start_event.set()
 
     write_futures: list[tuple[Any, Any, Any]] = []
     for index in range(plan.writes):
@@ -602,6 +664,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
                 "role": role,
                 "object": f"{'read' if index < plan.reads else 'write'}-{number}",
                 "bytes": plan.object_bytes,
+                "scheduled_offer_s": None,
                 "offer_s": None,
                 "submitted_s": None,
                 "completed_s": None,
@@ -654,6 +717,72 @@ class DeferredStop:
         return signal.Signals(self.signum).name if self.signum is not None else ""
 
 
+def single_cell_command(args: argparse.Namespace, config: str, block: int,
+                        position: int, run_dir: Path) -> list[str]:
+    """Child argv: one fresh-process measurement with the parent's workload."""
+    return [
+        sys.executable,
+        str(HERE / "run_gds_mixed_backend.py"),
+        "--single-cell",
+        "--config", config,
+        "--block", str(block),
+        "--position", str(position),
+        "--cell-dir", str(run_dir),
+        "--reads", str(args.reads),
+        "--writes", str(args.writes),
+        "--object-mib", str(args.object_mib),
+        "--read-stagger-ms", str(args.read_stagger_ms),
+        "--write-stagger-ms", str(args.write_stagger_ms),
+        "--gds-buffer-size-mib", str(args.gds_buffer_size_mib),
+        "--dst-device", args.dst_device,
+    ]
+
+
+def run_cell_in_subprocess(args: argparse.Namespace, config: str, block: int,
+                           position: int, run_dir: Path) -> int:
+    """Invoke the child and wait for it without an artificial timeout."""
+    command = single_cell_command(args, config, block, position, run_dir)
+    completed = subprocess.run(command, cwd=str(HERE))
+    return completed.returncode
+
+
+def run_single_cell(args: argparse.Namespace) -> int:
+    """Internal child route: run exactly one measurement and write its result.
+
+    The child is a fresh process, so its t0 (and therefore every request
+    time) excludes process startup.  A missing or failing measurement is
+    recorded in result.json; the caller never retries it.
+    """
+    plan = make_plan(args)
+    try:
+        record = run_cell(args.config, args.block, args.position,
+                          args.cell_dir, plan, args.dst_device)
+    except Exception as error:
+        record = {
+            "schema": 1,
+            "kind": KIND,
+            "config": args.config,
+            "block": args.block,
+            "position": args.position,
+            "policy_mode": POLICY_MODES[args.config],
+            "controlled_policy_inputs": dict(CONTROLLED_POLICY_INPUTS),
+            "gds": {},
+            "traffic": dict(plan.to_dict(), prestore=None),
+            "requests": [],
+            "decision_counts": {},
+            "metrics": {},
+            "error": f"{type(error).__name__}: {error}",
+            "cleanup_errors": [],
+        }
+    try:
+        args.cell_dir.mkdir(parents=True, exist_ok=True)
+        atomic_write_json(args.cell_dir / "result.json", record)
+    except OSError as error:
+        print(f"CELL RESULT NOT WRITTEN: {error}", file=sys.stderr, flush=True)
+        return 3
+    return 0 if not record.get("error") and not record.get("cleanup_errors") else 2
+
+
 def run_campaign(args: argparse.Namespace) -> int:
     plan = make_plan(args)
     root = output_root(args.output)
@@ -674,6 +803,7 @@ def run_campaign(args: argparse.Namespace) -> int:
             "write_stagger_ms": args.write_stagger_ms,
             "attempts_per_cell": 1,
             "retry": False,
+            "fresh_process_per_cell": not args.inline,
             "controlled_policy_inputs": dict(CONTROLLED_POLICY_INPUTS),
         },
         "block_orders": orders,
@@ -687,16 +817,55 @@ def run_campaign(args: argparse.Namespace) -> int:
             for block, order in enumerate(orders):
                 for position, config in enumerate(order):
                     run_dir = root / f"block-{block:02d}" / f"position-{position}-{config}"
-                    print(f"block={block} position={position} config={config}", flush=True)
-                    record = run_cell(config, block, position, run_dir, plan,
-                                      args.dst_device)
-                    atomic_write_json(run_dir / "result.json", record)
+                    print(f"block={block} position={position} config={config} "
+                          f"inline={args.inline}", flush=True)
+                    if args.inline:
+                        record = run_cell(config, block, position, run_dir,
+                                          plan, args.dst_device)
+                        atomic_write_json(run_dir / "result.json", record)
+                        child_exit = 0
+                    else:
+                        child_exit = run_cell_in_subprocess(args, config, block,
+                                                            position, run_dir)
+                    result_path = run_dir / "result.json"
+                    record = None
+                    if result_path.exists():
+                        try:
+                            record = json.loads(
+                                result_path.read_text(encoding="utf-8"))
+                        except (OSError, ValueError):
+                            record = None
+                    if record is None:
+                        record = {
+                            "schema": 1,
+                            "kind": KIND,
+                            "config": config,
+                            "block": block,
+                            "position": position,
+                            "policy_mode": POLICY_MODES[config],
+                            "controlled_policy_inputs": dict(
+                                CONTROLLED_POLICY_INPUTS),
+                            "gds": {},
+                            "traffic": dict(plan.to_dict(), prestore=None),
+                            "requests": [],
+                            "decision_counts": {},
+                            "metrics": {},
+                            "child_exit": child_exit,
+                            "error": ("measurement child exited without a "
+                                      "result.json"),
+                            "cleanup_errors": [],
+                        }
+                        result_present = False
+                    else:
+                        result_present = True
                     write_jsonl_record(raw_file, record)
                     campaign["cells"].append({
                         "block": block,
                         "position": position,
                         "config": config,
                         "run_dir": str(run_dir),
+                        "child_exit": child_exit,
+                        "result_present": result_present,
                         "metrics": cell_metrics(record),
                     })
                     campaign["summary"] = median_summary(campaign["cells"])
@@ -750,6 +919,12 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
         "gates": [],
         "retries": False,
         "attempts_per_cell": 1,
+        "execution": {
+            "fresh_process_per_cell": not args.inline,
+            "child_route": "--single-cell",
+            "note": ("each measurement runs in a fresh subprocess of "
+                     "sys.executable by default; --inline runs in-process"),
+        },
     }
 
 
@@ -773,6 +948,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dst-device", default=DEFAULT_DST_DEVICE)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--single-cell", action="store_true",
+                        help="internal: run exactly one measurement in this "
+                             "process (invoked by the campaign parent)")
+    parser.add_argument("--config", choices=CONFIGS)
+    parser.add_argument("--block", type=int, default=0)
+    parser.add_argument("--position", type=int, default=0)
+    parser.add_argument("--cell-dir", type=Path)
+    parser.add_argument("--inline", action="store_true",
+                        help="run measurements in the parent process instead "
+                             "of one fresh subprocess per measurement")
     args = parser.parse_args(argv)
     if args.gds_buffer_size_mib < 1:
         parser.error("--gds-buffer-size-mib must be at least 1")
@@ -780,6 +965,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--object-mib must be at least 1")
     if args.dst_device and not args.dst_device.startswith("cuda"):
         parser.error("--dst-device must start with 'cuda'")
+    if args.block < 0 or args.position < 0:
+        parser.error("--block and --position must be non-negative")
+    if args.single_cell and (args.config is None or args.cell_dir is None):
+        parser.error("--single-cell requires --config and --cell-dir")
     return args
 
 
@@ -788,6 +977,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         print(json.dumps(dry_run_plan(args), ensure_ascii=False, indent=2), flush=True)
         return 0
+    if args.single_cell:
+        try:
+            return run_single_cell(args)
+        except (ValueError, OSError, RuntimeError) as error:
+            print(f"NOT STARTED: {type(error).__name__}: {error}",
+                  file=sys.stderr, flush=True)
+            return 2
     try:
         return run_campaign(args)
     except (ValueError, OSError, RuntimeError) as error:

@@ -1,0 +1,182 @@
+{
+  "source": "b207c878",
+  "cells": 15,
+  "paired": {
+    "read_scheduled_offer_to_completion_p99_ms": {
+      "gds_native/gds_fifo": {
+        "percent_by_block": [
+          -8.554682962809213,
+          -47.231658055205486,
+          -43.715952227463994,
+          -60.49077268331,
+          -48.160514533431574
+        ],
+        "median_percent": -47.231658055205486,
+        "range_percent": [
+          -60.49077268331,
+          -8.554682962809213
+        ]
+      },
+      "gds_bpf/gds_fifo": {
+        "percent_by_block": [
+          9.969964199981085,
+          -38.82123689905127,
+          17.688420647942138,
+          -26.71628849984967,
+          -35.926082172891746
+        ],
+        "median_percent": -26.71628849984967,
+        "range_percent": [
+          -38.82123689905127,
+          17.688420647942138
+        ]
+      },
+      "gds_bpf/gds_native": {
+        "percent_by_block": [
+          20.257622547534424,
+          15.938384353544933,
+          109.09729364803896,
+          85.48505368818708,
+          23.60060531162076
+        ],
+        "median_percent": 23.60060531162076,
+        "range_percent": [
+          15.938384353544933,
+          109.09729364803896
+        ]
+      }
+    },
+    "read_scheduled_offer_to_completion_p50_ms": {
+      "gds_native/gds_fifo": {
+        "percent_by_block": [
+          294.5082672036182,
+          131.17774407327673,
+          -55.15407163180927,
+          -95.03618187853142,
+          -84.9678590377977
+        ],
+        "median_percent": -55.15407163180927,
+        "range_percent": [
+          -95.03618187853142,
+          294.5082672036182
+        ]
+      },
+      "gds_bpf/gds_fifo": {
+        "percent_by_block": [
+          369.64726903208833,
+          -1.711574404358951,
+          -28.1469813786384,
+          -57.93753780734683,
+          -50.750981784793204
+        ],
+        "median_percent": -28.1469813786384,
+        "range_percent": [
+          -57.93753780734683,
+          369.64726903208833
+        ]
+      },
+      "gds_bpf/gds_native": {
+        "percent_by_block": [
+          19.04624264557895,
+          -57.48361245168721,
+          60.221944858492506,
+          747.3812126744226,
+          227.6247763977292
+        ],
+        "median_percent": 60.221944858492506,
+        "range_percent": [
+          -57.48361245168721,
+          747.3812126744226
+        ]
+      }
+    },
+    "write_completion_throughput_mib_s": {
+      "gds_native/gds_fifo": {
+        "percent_by_block": [
+          18.03362935463515,
+          56.1856238153966,
+          -26.741970609392784,
+          76.59907891641038,
+          7.706449863395015
+        ],
+        "median_percent": 18.03362935463515,
+        "range_percent": [
+          -26.741970609392784,
+          76.59907891641038
+        ]
+      },
+      "gds_bpf/gds_fifo": {
+        "percent_by_block": [
+          26.358180719196977,
+          0.20657844183211704,
+          -37.83170796186438,
+          -14.84469421368374,
+          -3.3739829675961452
+        ],
+        "median_percent": -3.3739829675961452,
+        "range_percent": [
+          -37.83170796186438,
+          26.358180719196977
+        ]
+      },
+      "gds_bpf/gds_native": {
+        "percent_by_block": [
+          7.052694566859841,
+          -35.84135594946232,
+          -15.13791381602938,
+          -51.78043605390331,
+          -10.28762237084646
+        ],
+        "median_percent": -15.13791381602938,
+        "range_percent": [
+          -51.78043605390331,
+          7.052694566859841
+        ]
+      }
+    }
+  },
+  "medians": {
+    "gds_bpf": {
+      "cells_attempted": 5,
+      "cells_measured": 5,
+      "medians": {
+        "read_dispatch_to_completion_p50_ms": 394.8007900016819,
+        "read_dispatch_to_completion_p99_ms": 805.3541449990007,
+        "read_end_to_end_p50_ms": 394.8007900016819,
+        "read_end_to_end_p99_ms": 805.3541449990007,
+        "read_scheduled_offer_to_completion_p50_ms": 394.86062550016504,
+        "read_scheduled_offer_to_completion_p99_ms": 806.273748999607,
+        "total_storage_bandwidth_mib_s": 2259.6860781733367,
+        "write_completion_throughput_mib_s": 1355.8116469040021
+      }
+    },
+    "gds_fifo": {
+      "cells_attempted": 5,
+      "cells_measured": 5,
+      "medians": {
+        "read_dispatch_to_completion_p50_ms": 549.4471974998305,
+        "read_dispatch_to_completion_p99_ms": 1068.9787010014697,
+        "read_end_to_end_p50_ms": 549.4471974998305,
+        "read_end_to_end_p99_ms": 1068.9787010014697,
+        "read_scheduled_offer_to_completion_p50_ms": 549.5393695022503,
+        "read_scheduled_offer_to_completion_p99_ms": 1070.424246999959,
+        "total_storage_bandwidth_mib_s": 2341.334792552332,
+        "write_completion_throughput_mib_s": 1404.8008755313995
+      }
+    },
+    "gds_native": {
+      "cells_attempted": 5,
+      "cells_measured": 5,
+      "medians": {
+        "read_dispatch_to_completion_p50_ms": 246.24589050108625,
+        "read_dispatch_to_completion_p99_ms": 472.48934999879566,
+        "read_end_to_end_p50_ms": 246.24589050108625,
+        "read_end_to_end_p99_ms": 472.48934999879566,
+        "read_scheduled_offer_to_completion_p50_ms": 246.44603200198617,
+        "read_scheduled_offer_to_completion_p99_ms": 473.1465080016933,
+        "total_storage_bandwidth_mib_s": 2521.7685844746015,
+        "write_completion_throughput_mib_s": 1513.0611506847608
+      }
+    }
+  }
+}

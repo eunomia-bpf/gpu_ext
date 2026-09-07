@@ -1,5 +1,17 @@
 # Next storage-policy experiment: overlapping reads and writes
 
+## Current result — 2026-09-07 UTC
+
+The live-feedback runner and its five-block/15-cell campaign are now complete:
+see [the report](../results-575-gds-mixed-live-feedback-20260907.md). BPF/FIFO
+paired read-p99 change has median -26.716%, but BPF/native is +23.601% and
+adverse in every block. In every native/BPF cell, 95 of 96 writes reach their
+delay-budget limit despite repeated feedback decisions. The next candidate
+is event-driven wakeup on demand completion or budget expiry, not another
+run of the completed polling executor. The implementation sequence below is
+retained as history; earlier statements that runner wiring is pending are
+superseded by this completed result.
+
 The completed end-to-end five-arm campaign measures immediate-submit policy
 overhead. The policy-input ablation adds fixed pressure/slack/cost inputs, but
 its cold-store-then-warm-read sequence does not establish benefit under

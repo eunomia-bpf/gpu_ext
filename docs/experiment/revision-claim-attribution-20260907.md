@@ -127,3 +127,12 @@ edits before publication; assigning the task is not evidence of page reduction.
 GLM's unsubmitted response draft remains a separate live task. Qwen 27B's
 already-published figure task is retrying a provider response; no session was
 stopped for silence and no fourth local session was opened.
+
+The figure runner 61325 subsequently exited normally with a final completion
+message. Its freed slot now runs Qwen 27B session
+`ses_f849e2c96ffezAXflkG6Y5ompc` (runner 35509), owning only
+`tex-revision/tex/intro.tex`: remove repeated wording without changing paragraph
+order, numerical claims, citations or the scoped policy/mechanism attribution.
+This is separate from Qwen Next's matched-policy subsection and GLM's reply
+draft. Three local sessions remain the maximum; Qwen Next's live provider
+retries are not treated as a terminal failure or grounds to restart it.

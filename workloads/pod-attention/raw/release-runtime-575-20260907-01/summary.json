@@ -1,0 +1,210 @@
+{
+  "campaign": "workloads/pod-attention/raw/release-runtime-575-20260907-01",
+  "cell_count": 3,
+  "completed_count": 3,
+  "cells": [
+    {
+      "cell": "block-01-pod_bpf",
+      "arm": "pod_bpf",
+      "block": 1,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.328349118232727
+        }
+      ],
+      "mean_cuda_ms": 3.328349118232727,
+      "pre_python_main_ns": 220892286101,
+      "client_wall_ns": 225158700978,
+      "loader_ready_ns": 201156088,
+      "cleanup_ns": 181935329,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 54142953540045,
+          "cleanup_complete_ns": 54368510795031,
+          "client_exit_ns": 54368328859702,
+          "client_spawn_ns": 54143170158724,
+          "loader_ready_marker": "POD_LOADER_READY kernels=6",
+          "loader_ready_ns": 54143170104460,
+          "loader_spawn_ns": 54142968948372
+        },
+        "operator": {
+          "process_main_ns": 54364062444825,
+          "stdlib_imports_done_ns": 54364066565626,
+          "runtime_imports_start_ns": 54364068775410,
+          "runtime_imports_done_ns": 54364824782644,
+          "pre_first_diagnostic_ns": 54365768778203,
+          "post_first_sync_ns": 54365801860055,
+          "warmup_done_ns": 54365867260574,
+          "steady_complete_ns": 54367510191546
+        }
+      }
+    },
+    {
+      "cell": "block-02-pod_bpf",
+      "arm": "pod_bpf",
+      "block": 2,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.318938548564911
+        }
+      ],
+      "mean_cuda_ms": 3.318938548564911,
+      "pre_python_main_ns": 223995660541,
+      "client_wall_ns": 228160801465,
+      "loader_ready_ns": 201186768,
+      "cleanup_ns": 173244967,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 54429455878405,
+          "cleanup_complete_ns": 54658005876283,
+          "client_exit_ns": 54657832631316,
+          "client_spawn_ns": 54429671829851,
+          "loader_ready_marker": "POD_LOADER_READY kernels=6",
+          "loader_ready_ns": 54429671762178,
+          "loader_spawn_ns": 54429470575410
+        },
+        "operator": {
+          "process_main_ns": 54653667490392,
+          "stdlib_imports_done_ns": 54653671643706,
+          "runtime_imports_start_ns": 54653673866274,
+          "runtime_imports_done_ns": 54654441391438,
+          "pre_first_diagnostic_ns": 54655377573156,
+          "post_first_sync_ns": 54655409594341,
+          "warmup_done_ns": 54655474851041,
+          "steady_complete_ns": 54657113300397
+        }
+      }
+    },
+    {
+      "cell": "block-03-pod_bpf",
+      "arm": "pod_bpf",
+      "block": 3,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.3201564884185792
+        }
+      ],
+      "mean_cuda_ms": 3.3201564884185792,
+      "pre_python_main_ns": 220542719491,
+      "client_wall_ns": 224761692803,
+      "loader_ready_ns": 100985658,
+      "cleanup_ns": 186485387,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 54658075506408,
+          "cleanup_complete_ns": 54883131817994,
+          "client_exit_ns": 54882945332607,
+          "client_spawn_ns": 54658183639804,
+          "loader_ready_marker": "POD_LOADER_READY kernels=6",
+          "loader_ready_ns": 54658183579118,
+          "loader_spawn_ns": 54658082593460
+        },
+        "operator": {
+          "process_main_ns": 54878726359295,
+          "stdlib_imports_done_ns": 54878730632170,
+          "runtime_imports_start_ns": 54878733015073,
+          "runtime_imports_done_ns": 54879484995297,
+          "pre_first_diagnostic_ns": 54880416119818,
+          "post_first_sync_ns": 54880450241127,
+          "warmup_done_ns": 54880515568834,
+          "steady_complete_ns": 54882155670262
+        }
+      }
+    }
+  ],
+  "completed_observations_ms": {
+    "pod_bpf": {
+      "mean_cuda_ms": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 3.328349118232727
+          },
+          {
+            "block": 2,
+            "value_ms": 3.318938548564911
+          },
+          {
+            "block": 3,
+            "value_ms": 3.3201564884185792
+          }
+        ],
+        "median_ms": 3.3201564884185792
+      },
+      "pre_python_main_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 220892.286101
+          },
+          {
+            "block": 2,
+            "value_ms": 223995.660541
+          },
+          {
+            "block": 3,
+            "value_ms": 220542.719491
+          }
+        ],
+        "median_ms": 220892.286101
+      },
+      "client_wall_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 225158.700978
+          },
+          {
+            "block": 2,
+            "value_ms": 228160.801465
+          },
+          {
+            "block": 3,
+            "value_ms": 224761.692803
+          }
+        ],
+        "median_ms": 225158.700978
+      },
+      "loader_ready_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 201.156088
+          },
+          {
+            "block": 2,
+            "value_ms": 201.186768
+          },
+          {
+            "block": 3,
+            "value_ms": 100.985658
+          }
+        ],
+        "median_ms": 201.156088
+      }
+    }
+  },
+  "bpf_cuda_operator_ratios": [],
+  "scope": "Each entry is one retained fresh-process attempt under this campaign root. Only completed attempts count as measurements; failed and incomplete attempts remain listed and are never counted. Durations are null when spawn/exit stamps are missing; nothing is estimated."
+}

@@ -53,6 +53,11 @@ now completes nine cells: BPF pre-Python median 234.967 seconds, client wall
 239.166 seconds, and paired BPF/CUDA operator cost +1.5239%. Startup remains
 expensive. A local-model opt-in rewrite/compile/load timing patch is next;
 it is not applied or measured, and this completed batch must not be repeated.
+The separate [optimized host-build follow-up](../workloads/pod-attention/results-release-runtime-575-20260907.md)
+also completes three new BPF cells: pre-Python median 220.892 seconds,
+client wall 225.159 seconds, operator median 3.320156 ms. Startup is still
+expensive; the roughly 6% lower startup median is a sequential-build comparison,
+not a randomized paired effect. Both build directories and all results remain.
 
 POD path inspection found that the historical `bpftime/build-cuda-pr503`
 runtime is absent at its recorded location. The retained

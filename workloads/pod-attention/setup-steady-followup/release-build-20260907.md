@@ -1,10 +1,9 @@
 # Separate optimized runtime build for POD startup
 
-Status: configuration and agent/server build completed with exit zero. The
-first Release BPF cell completed: pre-Python 220.892286 seconds, client wall
-225.158701 seconds, operator mean 3.328349 ms. This is one observation, not a
-final comparison. Two additional Release BPF cells (blocks 2 and 3) are now
-running in order; the first is retained, not replaced. No Debug cell repeats.
+Status: configuration, agent/server build and all three Release BPF cells
+completed with exit zero. See the [full result](../results-release-runtime-575-20260907.md):
+median pre-Python 220.892286 seconds, client wall 225.158701 seconds, operator
+mean 3.320156 ms. All three observations are retained. No Debug cell repeats.
 The completed Debug-runtime campaign
 remains in `../results-current-runtime-575-20260907.md` (main `e768d559`).
 

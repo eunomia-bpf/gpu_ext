@@ -136,3 +136,22 @@ order, numerical claims, citations or the scoped policy/mechanism attribution.
 This is separate from Qwen Next's matched-policy subsection and GLM's reply
 draft. Three local sessions remain the maximum; Qwen Next's live provider
 retries are not treated as a terminal failure or grounds to restart it.
+
+## Published introduction checkpoint
+
+The introduction worker's first call ended with actual `finish=length` and
+no edits; root resumed the same session (runner 47773), without imposing a
+timeout. Paper `822f78c` publishes its subsequent bounded edits: repeated
+requirements/async explanations are shortened, while all numerical results
+and citations remain. The historical 59-policy study's zero observed kernel
+panics are deployment experience, not proof or a guarantee of safety.
+Excluding comment lines, the whitespace word count changes from 1,044 to
+1,010; no larger reduction is claimed. Two pdflatex passes succeed at
+17 pages (conclusion page 15; `/var/tmp/revision-intro-tightening-20260907.log`).
+The page-budget item remains open.
+
+GLM's unsubmitted response draft has landed. Root requested corrections to
+XSched arm labels, the Fig. 13/device-figure commit attribution, policy/whole-
+system distinctions and the separation of actual open deliverables from
+future extensions. It is still being revised and is not yet published as a
+finished response. Qwen Next's matched-policy tightening remains live.

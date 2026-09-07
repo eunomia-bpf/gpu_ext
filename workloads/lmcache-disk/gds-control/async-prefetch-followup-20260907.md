@@ -39,6 +39,14 @@ Installed LMCache 0.5.4 source under
 - GDS allocates a GPU MemoryObj before cuFile retrieval. Therefore the first
   extension must account for real staging allocations, not invent an independent
   CPU staging tier or claim UVM eviction control that is absent.
+- `v1/cache_engine.py:_async_process_tokens_internal` takes the completed
+  lookup's actual MemoryObjs; the normal `retrieve` path passes them to
+  `gpu_connector.batched_to_gpu` and subsequently unpins/releases them. Read
+  completion alone is therefore not the point to return the staging budget.
+  Avoid a per-chunk admission deadlock in which several incomplete requests
+  fill the pool while the scheduler waits for complete prefixes. Reserve enough
+  space for a request's admitted prefix, or use the existing shorter-prefix
+  result semantics; do not invent an unbounded staging allocation fallback.
 
 Keep installed third-party sources unchanged. Add opt-in project adapters at
 these existing seams and preserve all old default execution paths.

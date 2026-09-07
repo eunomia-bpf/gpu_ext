@@ -110,6 +110,21 @@ not a GPU or serving result. No further fake-request campaign is required.
 The campaign/CLI tail and async-backend integration remain pending, so the
 per-cell implementation commit does not mark the performance campaign done.
 
+Root has now installed GLM's expanded backend draft as
+`lmcache_gds_async_prefetch_adapter.py` and added its opt-in bootstrap to the
+existing `bootstrap/sitecustomize.py`. A process using the real workload venv
+and that PYTHONPATH, with policy mode `fifo` and async-prefetch enabled,
+reports both the existing admission class hook and the new async class hook
+installed (exit 0). This verifies import/bootstrap wiring, not an allocated
+GDS backend, disk transfer or serving measurement. The new module supplies
+ordered prefix lookup, asynchronous cuFile-backed retrieval and native/BPF
+submit/defer decisions. It keeps the framework's prefetch continuation distinct
+from a live demand signal; `mark_demand` is not connected to a scheduler feed.
+The driver policy object has still not replaced the old live attachment.
+The campaign/CLI tail is the remaining runner integration, and real serving
+results remain pending. Full KV-residency/reclaim control is a separate gap
+described in section 7 of `disk-uvm-source-boundary-20260907.md`.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

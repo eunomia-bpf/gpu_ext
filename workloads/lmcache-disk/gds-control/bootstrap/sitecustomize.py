@@ -4,3 +4,7 @@ from lmcache_gds_backend_adapter import bootstrap_from_env
 
 
 bootstrap_from_env()
+
+from lmcache_gds_async_prefetch_adapter import bootstrap_from_env as bootstrap_async
+
+bootstrap_async()

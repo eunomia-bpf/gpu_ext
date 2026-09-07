@@ -1,7 +1,15 @@
 # POD current-runtime cold-start comparison
 
-Status: prepared, not measured. This is a new runtime comparison, not a
-repeat or replacement of the completed shape and phase studies.
+Status: block 1 completed; blocks 2 and 3 are running. This is a new runtime
+comparison, not a repeat or replacement of the completed shape and phase studies.
+The launcher is published in `60fb1d63`; block-1 inline/CUDA raw results in
+`88657a46` and BPF in `5d8a66ff`. The [new raw directory](raw/current-runtime-575-20260907-01/)
+retains all commands, logs, timestamps and operator output. Block 1 has
+inline/CUDA/BPF operator means 3.263270/3.267595/3.306004 ms. BPF pre-Python
+time is 234.967 seconds and client wall time 239.166 seconds; cold startup
+remains expensive. This single observation is not a final campaign summary
+or an isolated optimization comparison against the historical 271.225-second
+median. No completed cell is repeated.
 
 ## Question and unchanged work
 

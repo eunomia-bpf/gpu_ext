@@ -155,3 +155,14 @@ XSched arm labels, the Fig. 13/device-figure commit attribution, policy/whole-
 system distinctions and the separation of actual open deliverables from
 future extensions. It is still being revised and is not yet published as a
 finished response. Qwen Next's matched-policy tightening remains live.
+
+Paper `2b1628a` reduces the device plot canvas from 3.4 by 3.2 inches to
+3.4 by 2.5 inches, without changing 7.5 pt labels, axes, pairs or ranges.
+Root regenerated it from the existing data in
+`/var/tmp/obs-array-compact-20260907.HRzRDO` and inspected compiled page 15.
+The corrected build is `/var/tmp/revision-compact-device-20260907-02.log`:
+17 pages, 4,538,579 bytes, conclusion still on page 15. An initial copy
+command used the wrong relative destination and changed no asset; its
+old-layout build is not the compact-figure evidence. The height reduction
+alone does not close the page-budget item. All previous renderings remain
+recoverable from ordinary Git history; no experiment or data file changed.

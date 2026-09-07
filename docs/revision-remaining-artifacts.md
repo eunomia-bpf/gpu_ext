@@ -24,8 +24,12 @@ and [in-body SASS EXIT run](../workloads/sass-kretprobe/results/sass-exit-575-20
 are complete at their reported scope. The latter is not general helper/map
 or late-attach coverage.
 
-Current work is the [targeted attribution/commitment integration](experiment/revision-claim-attribution-20260907.md)
-in `tex-revision`, followed by build and publication. Original agent-log
+The [targeted attribution/commitment integration](experiment/revision-claim-attribution-20260907.md)
+is published through paper `46220f2`, and the optimized device figure through
+`a60ffb0`. The build is 17 pages with conclusion/references beginning on
+page 15; final page-budget work remains, not a missing experiment. Current
+local-model work prepares an unsubmitted, evidence-linked shepherd response
+and finishes the figure reproduction note. Original agent-log
 recovery remains open as described in section 3. The dated preparation and
 protocol below are retained history, not permission to reinstate former
 preflight requirements or rerun completed performance cells.

@@ -41,6 +41,14 @@ In `/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt`:
 - A map-value pointer must be used directly in BPF; never create that arena
   on the BPF stack. Preserve each coordinate and timestamp, and report any
   capacity overflow without hiding it or creating a performance-admission gate.
+- Device lookup is in `attach/nv_attach_impl/trampoline/default_trampoline.cu`
+  at `_bpf_helper_ext_0001` (lines 261--303). For type 1503 it directly returns
+  `extra_buffer + key * value_size`, without the CPU RPC fallback. The
+  corresponding update helper copies the entire value, so use lookup plus
+  direct event-field stores for the single-entry arena, not a whole-arena update.
+- The HOST variants 1512/1513 also bypass that RPC, but their backing memory
+  is still host memory. Bypassing RPC does not make them GPU-local storage;
+  the selected candidate uses the 1503 `cuMemAlloc` backing instead.
 
 ## Collection boundary
 

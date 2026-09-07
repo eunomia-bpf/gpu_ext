@@ -239,3 +239,21 @@ No new performance result or automatic-offload completion is claimed here.
 The existing 20-cell campaign, including adverse results and reference-count
 warnings, remains unchanged. No paper files or installed vendor sources were
 modified for this assignment.
+
+### Completed scheduler seam, September 7, 18:47 UTC
+
+The local Qwen 27B task finished normally with the final
+`gds-control/vllm-preemption-seam.patch` and its accompanying source note.
+It adds an optional per-instance victim selector before the actual vLLM
+preemption path. Default selection remains stock; callback-selected victims
+must be current running requests and, under PRIORITY scheduling, stay in
+the original worst-priority class. The patch handles removal before the
+scheduling cursor even for previously skipped requests, and preserves the
+scheduled-work rollback and upstream `_preempt_request` transition.
+
+The patch was applied and compiled on a scratch copy by the local model;
+root's dry-run against the current installed vLLM also exits zero. It has
+not yet been installed into serving or measured. This completes an
+implementation dependency, not the disk-backed reclaim experiment: real
+LMCache state, native/BPF selection, and pressure-serving measurements still
+need integration. No old campaign cells or paper files were changed.

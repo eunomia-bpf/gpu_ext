@@ -1,0 +1,172 @@
+--- a/vllm/v1/core/sched/scheduler.py
++++ b/vllm/v1/core/sched/scheduler.py
+@@ -3,7 +3,7 @@
+ import itertools
+ import time
+ from collections import defaultdict, deque
+-from collections.abc import Iterable
++from collections.abc import Callable, Iterable
+ from dataclasses import replace
+ from typing import Any
+ 
+@@ -198,6 +198,20 @@
+         # IDs of requests preempted since the last call to schedule().
+         self.reset_preempted_req_ids: set[str] = set()
+ 
++        # Optional preemption victim-selection callback. When set, it is
++        # called as callback(self.running, default_victim) each time a
++        # running request must be preempted to free KV blocks inside
++        # schedule(). It may return a different existing member of
++        # self.running to preempt instead, or None to keep the stock
++        # victim choice; under the PRIORITY policy the override must
++        # stay in the stock victim's priority class. Default None
++        # preserves stock behavior. The callback must not mutate
++        # self.running; the scheduler performs the list removal and any
++        # same-step schedule-state rollback around the returned victim.
++        self.preempt_victim_callback: (
++            Callable[[list[Request], Request], Request | None] | None
++        ) = None
++
+         # Counter for requests waiting for streaming input. Used to calculate
+         # number of unfinished requests
+         self.num_waiting_for_streaming_input: int = 0
+@@ -588,31 +602,61 @@
+                     # The request cannot be scheduled.
+                     # Preempt the lowest-priority request.
+                     if self.policy == SchedulingPolicy.PRIORITY:
+-                        preempted_req = max(
++                        default_victim = max(
+                             self.running,
+                             key=lambda r: (r.priority, r.arrival_time),
+                         )
++                    else:
++                        default_victim = self.running[-1]
++
++                    preempted_req = self._select_preempt_victim(default_victim)
++
++                    if preempted_req is default_victim:
++                        # Stock victim choice: keep the stock removal and
++                        # cursor semantics for this policy.
++                        if self.policy == SchedulingPolicy.PRIORITY:
++                            self.running.remove(preempted_req)
++                        else:
++                            preempted_req = self.running.pop()
++                    else:
++                        # Victim chosen by preempt_victim_callback. Track the
++                        # removal position before removing: the victim may sit
++                        # before the scheduling cursor without having been
++                        # scheduled this step (skipped earlier in the loop),
++                        # in which case removing it shifts the current request
++                        # down one slot and req_index must follow.
++                        victim_index = 0
++                        for running_req in self.running:
++                            if running_req is preempted_req:
++                                break
++                            victim_index += 1
+                         self.running.remove(preempted_req)
+-                        if preempted_req in scheduled_running_reqs:
+-                            preempted_req_id = preempted_req.request_id
+-                            scheduled_running_reqs.remove(preempted_req)
+-                            token_budget += num_scheduled_tokens.pop(preempted_req_id)
+-                            req_to_new_blocks.pop(preempted_req_id)
+-                            scheduled_spec_decode_tokens.pop(preempted_req_id, None)
+-                            preempted_encoder_inputs = scheduled_encoder_inputs.pop(
+-                                preempted_req_id, None
++                        if victim_index < req_index:
++                            req_index -= 1
++
++                    if preempted_req in scheduled_running_reqs:
++                        # The victim was already scheduled in this step; roll
++                        # back its schedule state.
++                        preempted_req_id = preempted_req.request_id
++                        scheduled_running_reqs.remove(preempted_req)
++                        token_budget += num_scheduled_tokens.pop(preempted_req_id)
++                        req_to_new_blocks.pop(preempted_req_id)
++                        scheduled_spec_decode_tokens.pop(preempted_req_id, None)
++                        preempted_encoder_inputs = scheduled_encoder_inputs.pop(
++                            preempted_req_id, None
++                        )
++                        if preempted_encoder_inputs:
++                            # Restore encoder compute budget if the preempted
++                            # request had encoder inputs scheduled in this step.
++                            num_embeds_to_restore = sum(
++                                preempted_req.get_num_encoder_embeds(i)
++                                for i in preempted_encoder_inputs
+                             )
+-                            if preempted_encoder_inputs:
+-                                # Restore encoder compute budget if the preempted
+-                                # request had encoder inputs scheduled in this step.
+-                                num_embeds_to_restore = sum(
+-                                    preempted_req.get_num_encoder_embeds(i)
+-                                    for i in preempted_encoder_inputs
+-                                )
+-                                encoder_compute_budget += num_embeds_to_restore
++                            encoder_compute_budget += num_embeds_to_restore
++                        if preempted_req is default_victim:
++                            # Stock cursor adjustment. A callback-selected
++                            # victim was already adjusted at removal above.
+                             req_index -= 1
+-                    else:
+-                        preempted_req = self.running.pop()
+ 
+                     self._preempt_request(
+                         preempted_req,
+@@ -1271,6 +1315,58 @@
+ 
+         return new_block_ids_to_zero or None
+ 
++    def _select_preempt_victim(self, default_victim: Request) -> Request:
++        """Return the running request to preempt for the current step.
++
++        Returns the stock victim choice (`default_victim`) unless
++        `self.preempt_victim_callback` is set. When set, the callback is
++        called as `callback(self.running, default_victim)` and may return
++        a different existing member of `self.running` to preempt instead,
++        or None to keep `default_victim`. A return value that is not a
++        current member of `self.running` (checked by identity) is ignored
++        and `default_victim` is used. Under the PRIORITY policy, an
++        override must also share `default_victim`'s priority value, i.e.
++        stay in the stock worst-priority class (the arrival-time
++        tie-break may differ); otherwise `default_victim` is used. This
++        method only performs victim selection; the caller removes the
++        returned request from
++        `self.running`, adjusts `req_index` when a callback-selected victim
++        sat before the scheduling cursor, and rolls back any same-step
++        schedule state.
++        """
++        if self.preempt_victim_callback is None:
++            return default_victim
++        victim = self.preempt_victim_callback(self.running, default_victim)
++        if victim is None or victim is default_victim:
++            return default_victim
++        in_running = False
++        for running_req in self.running:
++            if running_req is victim:
++                in_running = True
++                break
++        if not in_running:
++            logger.warning(
++                "preempt_victim_callback returned a request that is not in "
++                "the running list; falling back to the stock victim choice.",
++            )
++            return default_victim
++        if (
++            self.policy == SchedulingPolicy.PRIORITY
++            and victim.priority != default_victim.priority
++        ):
++            # Under the PRIORITY policy, preemption stays within the stock
++            # worst-priority class; only the arrival-time tie-break may
++            # change.
++            logger.warning(
++                "preempt_victim_callback returned a request with priority "
++                "%s, outside the stock victim's priority class %s; falling "
++                "back to the stock victim choice.",
++                victim.priority,
++                default_victim.priority,
++            )
++            return default_victim
++        return victim
++
+     def _preempt_request(
+         self, request: Request, timestamp: float, drop_stale_output: bool = False
+     ) -> None:

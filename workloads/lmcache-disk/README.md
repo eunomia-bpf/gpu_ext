@@ -5,13 +5,42 @@ LMCache CPU comparison to LMCache's local-NVMe backend.  The primary experiment
 uses current stable LMCache `v0.5.4` with official vLLM `0.27.1+cu129`; the
 historical submitted LMCache build is retained only as provenance.
 
-Tracked reproducibility artifacts:
+## Current results (2026-09-07)
 
-- `plan-v2.md`: active predeclared question, gates, estimands, and stopping;
+Performance work is no longer paused. Completed results on driver 575.57.08:
+
+- [Five-arm serving comparison](results-575-lmcache-gds-five-arm-20260906.md):
+  25 cells; recompute, CPU, disk FIFO, native and BPF. These disk arms use
+  all-submit inputs and measure the mechanism floor, not adaptive-policy gain.
+- [Write-budget comparison](results-575-gds-write-budget-20260907.md):
+  25 cells; native and BPF share the same live-event-driven admission policy.
+- [Request-buffer reuse](results-575-gds-ioctl-reuse-20260907.md):
+  18,000 isolated decisions; paired median BPF call cost falls 24.200%.
+  This is not an end-to-end storage speedup.
+- [Shared I/O concurrency comparison](results-575-gds-write-workers-20260907.md):
+  30 cells; BPF four/default workers has paired median read p99 -29.541%
+  and write throughput +6.359%, with both improving in three of five blocks.
+  Native's stronger default-worker result and all adverse pairs are retained.
+
+Each report links its raw results and reproduction commands. Storage uses real
+cuFile compatibility-mode I/O; these results do not demonstrate hardware
+NVMe-to-GPU P2P. The concurrency study measures storage-request latency, not
+vLLM TTFT. Do not repeat completed cells when updating analysis scripts.
+
+## Historical setup and failed attempts
+
+The text below records the earlier 610-era preparation and failed attempts.
+Its launch restrictions, review decisions and stopping rules are historical,
+not current instructions or prerequisites for performance measurement. Keep
+the failure records; do not interpret them as a pause on the completed 575 work.
+
+Tracked historical reproducibility artifacts:
+
+- `plan-v2.md`: historical predeclared question, gates, estimands, and stopping;
 - `plan-review-v2.md`: independent revision-2 review and launch decision;
 - `plan.md` and `plan-review.md`: closed revision-1 failure provenance;
 - `run_lmcache_disk.py`: thin one-cell vLLM adapter and recomputable analysis;
-- `lmcache_primitives.py`: active low-level launch/request/validation helpers;
+- `lmcache_primitives.py`: low-level launch/request/validation helpers;
 - `test_runner.py`: CPU-only structural gate tests;
 - `prompts.json`: public exact token arrays and expected aligned hits;
 - `schedule.json`: all 15 precomputed attempts for ten valid blocks;

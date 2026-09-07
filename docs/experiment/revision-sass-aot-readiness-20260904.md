@@ -1,6 +1,38 @@
 # eBPF-to-SASS AOT readiness note
 
-Date: 2026-09-04 (updated 2026-09-05)
+Date: 2026-09-04 (updated 2026-09-07)
+
+## Recovered later branch evidence — 2026-09-07
+
+The current published `revision/sass-backend` head is `8e4e64d`, not
+`fd976ea`. The latter remains the standalone result described below.
+Subsequent commits `31b9fdc` and `4e5110f` add a same-context companion
+kernel and first-party launch interposition; `8e4e64d` publishes the
+[five-run report](https://github.com/eunomia-bpf/bpftime/blob/8e4e64d/results/sass-aot-interpose-575-01/results.md)
+and [raw log](https://github.com/eunomia-bpf/bpftime/blob/8e4e64d/results/sass-aot-interpose-575-01/raw.log).
+
+The root re-read the existing 87,811-byte raw log without rerunning the GPU:
+all ten phase summaries have return code zero, and there are 320 callback
+records (five interposed runs, 64 iterations each). Median steady per-iteration
+total time is **5.1375 us uninstrumented / 32.1015 us interposed**, approximately
+6.25x or +524.8%. Cold totals are 16.205 us / 25,007.647 us, including the
+first compilation on the interposed path. These are medians over five
+per-run summaries; steady values divide each run's 63-iteration sum by 63.
+They are not llama.cpp prefill throughput or a paired overhead estimate.
+
+The companion executes a separate BPF-derived kernel before the original
+application launch. It does **not** modify the target kernel's own SASS and
+does not close the missing in-body instrumentation path. The
+[current application-injection task](sass-existing-application-next-20260907.md)
+therefore reuses NVBit's EXIT instrumentation rather than repeating either
+the standalone or interposition study. All earlier source and results remain.
+
+For the current implementation, a source-only worktree at
+`/home/yunwei37/workspace/gpu/bpftime-sass-existing-application` (branch
+`revision/sass-existing-application`, `fd976ea`) provides the committed
+explicit-context verifier source. The existing Table1 verifier archive lacks
+`verify_gpu_program_with_context`; local GLM is compiling the required source
+against reusable build dependencies. The active Table1 worktree is unchanged.
 
 ## Status
 

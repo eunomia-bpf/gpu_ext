@@ -35,6 +35,11 @@ exporter). This is not yet a live application result. The root owns GPU
 execution and publication. Separately, paper `da7c547` adds FineMoE's faster
 demand-only baseline (5.17 versus native/BPF 4.50/4.51 token/s) alongside the
 retained all-positive improvement; no completed FineMoE cells repeat.
+The [SASS evidence index](experiment/revision-sass-aot-readiness-20260904.md)
+also now includes the previously omitted `8e4e64d` first-party interposition
+study: five runs, steady total 5.1375/32.1015 us uninstrumented/interposed.
+The root recomputed these existing raw summaries without a GPU repeat. This
+separate-kernel path is not in-body SASS injection or Table 1 evidence.
 
 **Latest execution — 2026-09-07 PDT:** the [stale-state repeated campaign](../workloads/stale-state-575/results-performance-gds-20260907.md)
 completes all 21 cells and restoration of the saved GDS module (`bc0ff88a`).

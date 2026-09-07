@@ -177,13 +177,15 @@ static inline NvU64 uvm_kv_reclaim_ceil_div_kib(NvU64 bytes)
  * rejects any non-constant variable offset on a BTF-typed ctx.
  *
  * Verifier state containment: under clang -target bpf the branchy policy
- * functions below become out-of-line subprograms; native keeps them
- * inlined. Combined with the redundant-scan removal, this version loads
- * on the target driver without increasing the verifier limit. The worst priority
- * class is computed once per decision and each candidate's cost is
- * computed once per candidate, with one 128-bit cross-product comparison
- * per candidate - the decisions, tie handling, and telemetry gating are
- * exactly the same as a naive rescan. */
+ * functions below are emitted as out-of-line subprograms; native keeps
+ * them inlined. That linkage change alone is not a general proof that
+ * each subprogram is verified only once. What it provides here is a
+ * smaller inlined body plus the factored selection - the worst priority
+ * class is computed once per decision, each candidate's cost is computed
+ * once, and there is one 128-bit cross-product comparison per candidate -
+ * and that source verified and attached on the live 575 module without
+ * raising the verifier limit. Decisions, tie handling, and telemetry
+ * gating are exactly the same as a naive per-candidate rescan. */
 
 #ifdef __BPF__
 #define UVM_KV_RECLAIM_FN static __attribute__((noinline))

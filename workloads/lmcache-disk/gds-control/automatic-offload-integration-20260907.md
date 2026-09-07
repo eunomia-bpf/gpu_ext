@@ -244,3 +244,20 @@ These are source integration results only: no server has yet run with this
 adapter and no new reclaim-policy performance number exists. The separate
 local runner session remains active; previous performance cells are not
 repeated or reclassified by this integration step.
+
+The serving-adapter session subsequently completed normally, followed by the
+selector session; both implementations were already committed. The selector
+handoff changes only the verifier-linkage explanation, not the attached
+algorithm. The runner session reached an actual `finish=length` response at
+85,276 input tokens without producing its file, and was continued in the
+same session. Its first increment now exists at `run_gds_kv_reclaim.py`, but
+is not yet a complete executable campaign.
+
+To parallelize the remaining implementation without overlapping file writes,
+a new local Qwen 27B session owns only `kv_reclaim_calibration.py`; the runner
+session retains its runner and contract note. The helper's agreed
+`run_calibration` API measures actual sequential recompute TTFT per supplied
+prompt token, retains raw requests and server exit, and returns one observed
+price shared by the campaign arms. No calibration or new serving cell has
+run yet. The previous sessions were not interrupted for silence and no
+fourth concurrent session was started.

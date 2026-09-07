@@ -6,6 +6,18 @@ define the scope. The dated plan in the paper repository is not evidence that
 these commitments have been met. Experimental completion, paper integration,
 and public artifact availability are separate checks.
 
+**Latest execution — 2026-09-07 PDT:** the [stale-state repeated campaign](../workloads/stale-state-575/results-performance-gds-20260907.md)
+completes all 21 cells and restoration of the saved GDS module (`bc0ff88a`).
+Fresh native/BPF throughput medians are 272832.196/271397.413 checked words/s;
+1000 ms delayed state reduces paired throughput by median 23.192%/22.684%.
+Phase-aligned age and migration analysis is still in progress, not another
+GPU run. The [LMCache admission diagnostic](../workloads/lmcache-disk/results-575-gds-admission-timing-20260907.md)
+also completes 15 cells (`37299d27`): native/BPF demand-read admission medians
+are 11.973/30.140 us, versus hundreds of milliseconds end-to-end. The next
+LMCache optimization tests a longer live write-protection budget on both
+native and BPF. Historical pending statements below are superseded; all
+earlier numbers remain.
+
 **Latest event-driven result — 2026-09-07 UTC:** the new LMCache executor
 and [five-block measurement](../workloads/lmcache-disk/results-575-gds-live-event-driven-20260907.md)
 are complete: 15 cells, 960 reads and 1,440 writes, source `c2ecedcb`.
@@ -15,9 +27,9 @@ has median -9.135%, range -86.876% to +123.960%. Native/BPF decisions fall
 to 306--350 per cell, but performance still varies substantially; this is
 not stable superiority or a tight overhead bound. All old polling/GIL data
 remain. Statements below that event-driven implementation is pending are
-historical. The separate GDS-compatible stale-state driver builds and is
-pushed (`a2b40efd`); its direct performance entry is pushed (`e88e1265`),
-but no new stale-state GPU cell or module swap has taken place.
+historical. The separate GDS-compatible stale-state driver (`a2b40efd`) and
+direct performance entry (`e88e1265`) have now completed the 21-cell campaign
+and saved-module restoration linked above.
 
 **Latest LMCache update — 2026-09-07 UTC:** the live-feedback provider,
 executor, runner and [five-block campaign](../workloads/lmcache-disk/results-575-gds-mixed-live-feedback-20260907.md)

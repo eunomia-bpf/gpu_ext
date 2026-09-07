@@ -1,5 +1,11 @@
 # Current GDS compatibility — driver-bridge forward-port (20260907)
 
+**Runtime follow-up:** the [21-cell performance campaign](results-performance-gds-20260907.md)
+has now completed, including restoration of the saved original GDS module.
+Main `bc0ff88a` preserves all raw records and lifecycle logs. The source/build
+history below describes the earlier preparation stage, not current pending
+execution.
+
 ## Result
 
 Bounded forward-port of `driver-bridge-v1.patch` onto the GDS target tree
@@ -84,7 +90,7 @@ Before building, the existing GDS module (61,945,872 bytes) was preserved at
 `/var/tmp/gds-restore-before-stale-20260907.AWgdmi/nvidia-uvm.ko`.
 No module was unloaded or loaded; LMCache's active GDS path is unchanged.
 
-## Pending
+## Pending at the earlier build stage (now superseded)
 
 - Formal 21-cells campaign and the lifecycle exact-GDS restore remain pending.
 - No new live GPU cells were executed. The historical runner still requires

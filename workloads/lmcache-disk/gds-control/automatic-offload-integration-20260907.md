@@ -381,3 +381,32 @@ confirmed its CLI handle had exited and resumed the same OpenCode session
 using GLM. This is recovery from a terminal provider error, not termination
 for silence or a new short timeout. The allocator's Qwen 27B session and the
 separate GLM diagnosis remain live; the resumed writer is the third session.
+
+## Scheduling-overlap discriminator
+
+The current BPF cell also exhibits repeated prefix restores. Before expanding
+the same troubled path to more blocks, root will measure one stock control
+with the source-native `--no-async-scheduling` option. This changes only vLLM
+schedule/compute overlap: 384 MiB KV, two running sequences, four HTTP
+workers, the same eight 1536/1024 prompts, 1024 output tokens, arrival order,
+GDS transport and calibration remain fixed. This is a separate diagnostic
+performance ablation, not a replacement baseline or a claimed fix.
+
+The source motivates this discriminator: `config/vllm.py` normally enables
+async scheduling and gives it two concurrent batches; scheduler initialization
+enables deferred KV block freeing for overlapping batches with a consumer
+connector. `_free_request_blocks()` may queue a future free while the running
+allocation-failure loop immediately tries another victim. These conditions
+suggest a possible repeated-admission interaction but do not prove the live
+cause. Disabling overlap also changes other scheduling behavior, so even a
+positive control cannot alone identify a specific faulty line.
+
+The control is queued behind the existing GPU and struct-ops locks and writes
+only to `../raw/gds-kv-reclaim-scheduling-ablation-575-20260907-01/stock-sync/`.
+Root uses the existing `run_cell` with `arm="stock", block=0, position=0`;
+the process-local `ops.server_argv` wrapper appends `--no-async-scheduling`
+to its existing argument list, which the normal result record retains.
+No project source, driver or running server is changed by that invocation.
+If it removes the repeated-restore behavior, investigate the overlap path
+before attributing gains to a BPF policy; if not, continue the admission and
+capacity investigation. All failed original cells remain published.

@@ -2,9 +2,9 @@
   "schema": "matched_port_panels_v1",
   "note": "Values transcribed from the cited result documents and the revision paper text (tex/revision_comparisons.tex); not new measurements.",
   "panels": [
-    {"id": "moe-infinity", "title": "(a) MoE-Infinity", "metric": "token/s",
-     "source": "tex/revision_comparisons.tex MoE-Infinity paragraph",
-     "groups": [{"label": "GPT-OSS-120B", "baseline": 11.90, "original": 11.22, "port": 11.19}]},
+    {"id": "moe-infinity", "title": "(a) MoE-Infinity", "metric": "TTFT, ms",
+     "source": "workloads/moe-infinity/results-paper-v3-protected-575.md",
+     "groups": [{"label": "GPT-OSS-120B", "baseline": 1975.94, "original": 1513.44, "port": 1535.96}]},
     {"id": "xsched", "title": "(b) XSched", "metric": "LC p99, s",
      "source": "workloads/xsched/performance-full-575-20260903.md",
      "groups": [{"label": "2LC+4BE", "baseline": 76.9, "original": 27.0, "port": 27.3}]},

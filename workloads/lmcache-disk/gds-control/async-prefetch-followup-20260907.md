@@ -86,6 +86,16 @@ sequence count 1 with no explicit KV limit, and opt-in sequence count 2 with
 No subprocess or GPU benchmark was launched by this check. The unfinished
 runner is not included in the helper-fix commit.
 
+At 16:34:58 UTC the independent Qwen Next backend-candidate call ended with
+HTTP 524, still without a candidate patch. After confirming that terminal
+state and its absence from the live endpoint, root reassigned the free slot
+to Qwen 27B for a bounded temporary campaign/CLI tail at
+`/tmp/opencode/lmcache-async-campaign-tail.py`. The original runner session
+continues the per-cell implementation, and GLM retains the backend draft.
+This splits the remaining runner work without overlapping live file owners;
+root will integrate the tail after handoff. No live session was stopped, no
+fourth session was started, and no serving measurements have run yet.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

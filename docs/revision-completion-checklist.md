@@ -2,19 +2,20 @@
 
 ## Current manuscript snapshot — 2026-09-07 PDT
 
-The current paper is `3ad7c84`, compiled from `docs/paper/main.tex` with
-flat section files under `docs/paper/tex-revision/`. The build has 15 pages.
+The current paper is `e49543b`, compiled from `docs/paper/main.tex` with
+flat section files under `docs/paper/tex-revision/`. The build has 16 pages.
 Several entries below describe earlier 16/17-page drafts that were later
 restored or simplified; their statements that material is “integrated” must
 not be read as the current manuscript status. Their experiment records remain.
 
 - Present: seven published-policy comparisons with workload/native/gpubpf
-  controls; transition-validation pseudocode, SIMT dataflow, rejection rules,
+  controls; a seven-row policy table describing each original policy, its
+  user-space/driver/device execution requirements and corresponding gpubpf
+  implementation; transition-validation pseudocode, SIMT dataflow, rejection rules,
   fallback and TCB; RTX 5090 observability results including 5.57% kernel-return
   logging overhead; storage/CXL and state-freshness design paragraphs; an
   explicit unpartitioned GPU sharing setting.
-- Still absent: the promised user-space/driver/gpubpf capability table;
-  LMCache local-disk evaluation; the additional Fig. 13 composition comparison;
+- Still absent: LMCache local-disk evaluation; the additional Fig. 13 composition comparison;
   the SASS-only application discussion; architectural details of tenant
   isolation; explicit trampoline-scaling and startup-versus-runtime attachment
   explanations. Portability and future-accelerator discussion need review.

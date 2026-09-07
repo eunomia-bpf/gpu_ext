@@ -24,8 +24,17 @@ tool object and the device wrapper's PTX. The initial device-object command
 `--compile-only` and `--compile-as-tools-patch`. Qwen is therefore changing
 the build glue to merge the wrapper and compiler-generated BPF functions in
 one PTX translation unit, then assemble and embed it without separable
-tool-patch compilation. GLM still owns the BPF exporter. These are build
-steps only; no completed in-body SASS execution or performance result is
+tool-patch compilation. The exporter is now built and published in main
+`08e1692e`: the actual four-instruction ELF section produces a 316-byte
+two-parameter `.visible .func bpf_exit`, and the integrated Makefile export
+command succeeds. The function remains device-callable, not a host-launched
+`.entry`. PREVAIL rejection is enforced, while its internal `strict` option
+remains false; the exporter does not change verifier options. Qwen's merged
+PTX now assembles with `ptxas -arch=sm_120 -astoolspatch`, and the cubin
+contains both `bpf_exit` and `sk_bpf_trampoline`. Tool embedding and the
+existing application's live EXIT execution remain unfinished. GLM's next
+bounded task assists with CPU-only embedding, without editing Qwen's files.
+These are build steps only; no completed in-body SASS execution or performance result is
 claimed, and no old GPU experiment is being repeated.
 
 ## Established facts (evidence)

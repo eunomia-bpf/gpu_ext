@@ -31,7 +31,11 @@ conclusion on page 14. The GPU matrix must not repeat. All historical data remai
 **Current implementation:** the [PTX-free application follow-up](experiment/sass-existing-application-next-20260907.md)
 has finished source investigation and is now split between local OpenCode
 Qwen 27B (NVBit EXIT tool/build embedding) and GLM (BPF device-function
-exporter). This is not yet a live application result. The root owns GPU
+exporter). The exporter is now built and published in main `08e1692e`;
+the real input produces a 316-byte two-parameter device function. The merged
+wrapper/BPF PTX also assembles into tools-patch SASS. Embedding and execution
+inside the existing target remain unfinished; GLM now assists that CPU-only
+build step. This is not yet a live application result. The root owns GPU
 execution and publication. Separately, paper `da7c547` adds FineMoE's faster
 demand-only baseline (5.17 versus native/BPF 4.50/4.51 token/s) alongside the
 retained all-positive improvement; no completed FineMoE cells repeat.

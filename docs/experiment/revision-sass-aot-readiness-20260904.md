@@ -31,8 +31,12 @@ For the current implementation, a source-only worktree at
 `/home/yunwei37/workspace/gpu/bpftime-sass-existing-application` (branch
 `revision/sass-existing-application`, `fd976ea`) provides the committed
 explicit-context verifier source. The existing Table1 verifier archive lacks
-`verify_gpu_program_with_context`; local GLM is compiling the required source
-against reusable build dependencies. The active Table1 worktree is unchanged.
+`verify_gpu_program_with_context`; local GLM compiled the required source
+against reusable build dependencies. Main `08e1692e` publishes the working
+exporter, build file and ABI notes. The real four-instruction BPF input now
+exports a 316-byte device function, without promotion to a kernel entry.
+The active Table1 worktree is unchanged. Application-injection execution
+remains the next step, not a consequence of successful code generation.
 
 ## Status
 

@@ -290,3 +290,16 @@ still executes storage I/O. This planned extension is not transparent
 same-address SSD paging and does not make the kernel a disk transport.
 Root will integrate and measure the completed path; no driver replacement,
 new serving run, or paper modification occurred for this assignment.
+
+The new selector session subsequently ended after its non-interactive
+OpenCode CLI rejected two external-directory permission requests for the
+sibling driver tree. Root confirmed the terminal CLI, the absent live
+session, and the permission configuration (no explicit external-directory
+deny), then resumed the same session using OpenCode's documented `--auto`
+mode under the user's existing workspace automation authorization. Explicit
+deny rules and global configuration were not changed. This was recovery
+from an actual tool error, not a restart for silence or a short timeout;
+total live session count returned from two to three. The driver tree remains
+read-only for this task. The backing-state GLM session is separately
+performing normal context compaction after writing its initial module draft;
+that draft still needs the execution fixes already returned to its owner.

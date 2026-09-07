@@ -9,6 +9,11 @@ is `../results-575-gds-mixed-scheduled-20260907.md`. These completed measurement
 must not be repeated. Remaining source work for this task is limited to
 concrete defects, if any, discovered while finishing the scoped changes.
 The separate pending-demand-feedback idea is not part of this runner task.
+The root closed the implementation session after these fixes, the 33 scoped
+tests and all 15 real measurements were complete. This was task completion,
+not cancellation for silence or a short timeout. Additional subprocess smoke
+attempts are not experiment evidence. A separate local-model session now owns
+the opt-in feedback variant described in `next-policy-experiment.md`.
 
 ## Assigned scope
 

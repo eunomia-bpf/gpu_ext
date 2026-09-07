@@ -7,8 +7,10 @@ read/write contention. Demand reads in that path always submit immediately.
 
 ## Selected implementation
 
-`../run_gds_mixed_backend.py` is being developed through local OpenCode/Qwen
-27B. It drives the installed LMCache 0.5.4 GdsBackend and the committed
+`../run_gds_mixed_backend.py` was implemented through local OpenCode/Qwen
+27B. Its scheduled-arrival five-block comparison is complete; see
+`../results-575-gds-mixed-scheduled-20260907.md`. It drives the installed
+LMCache 0.5.4 GdsBackend and the committed
 admission adapter, with real cuFile/O_DIRECT operations on 24 MiB objects.
 Already-stored demand-read objects and fresh background-write objects are
 distinct. Requests overlap and preserve their offered arrival times.
@@ -45,3 +47,22 @@ Prior executor decision medians (native 0.063 us, BPF 1.005 us) motivate
 the comparison, but do not predetermine its application-level result.
 Collect every attempted cell without correctness, clock, preflight or retry
 gates, and retain the preceding campaigns separately.
+
+## Active follow-up: live pending-demand feedback
+
+The completed fixed-delay experiment lowers BPF/FIFO paired read p99 by
+12.440% at the median, but worsens read p50 and reduces paired write throughput
+by 1.673%. The next implementation responds to actually outstanding demand
+reads instead of deferring every write based on a constant pressure input.
+Local OpenCode/Qwen Next session `ses_f866bda8dffeljd81GZlstX8rx` owns this
+opt-in variant. No result is claimed for it yet.
+
+Native and BPF will consume the same live pending-read count, explicitly
+identified by a caller-hint flag in the existing 136-byte command-82 ABI.
+Only safe background writes with pending demand and remaining deferral budget
+are deferred, in increments of at most 1 ms, with a fresh decision after each
+wait. Otherwise they submit immediately. Demand reads always submit. The
+default cumulative write-deferral budget is 10 ms, not a process timeout.
+The executor and buffer/Future ownership must be shared by native and BPF.
+The existing fixed-delay mode remains the default and old records are untouched.
+This is demand feedback, not HBM telemetry, recomputation, coalescing or P2P.

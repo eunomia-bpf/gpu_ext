@@ -268,7 +268,9 @@ class LiveDemandRequestProvider(EnvironmentRequestProvider):
         self.event_driven = bool(event_driven)
         self._pending_lock = threading.Lock()
         self._pending_demand_reads = 0
-        self._drain_waiters: list[tuple[asyncio.AbstractEventLoop, asyncio.Future]] = []
+        self._drain_waiters: list[
+            tuple[asyncio.AbstractEventLoop, asyncio.Future]
+        ] = []
 
     @classmethod
     def from_environ(

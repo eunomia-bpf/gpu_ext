@@ -1,0 +1,95 @@
+{
+  "arm": "pod_cuda",
+  "block": 3,
+  "bpftime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt/build-table1-575-warp",
+  "client_wall_ns": 2601929543,
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "LD_PRELOAD=/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_launch_bridge.so",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/bin/python",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py",
+    "--arm",
+    "pod_cuda",
+    "--block",
+    "3",
+    "--phase-study",
+    "--output",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/current-runtime-575-20260907-01/block-03-pod_cuda/operator.json"
+  ],
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64:/usr/lib/x86_64-linux-gnu",
+    "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/libpod_launch_bridge.so",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "POD_LAUNCH_BRIDGE": "cuda",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "SPDLOG_LEVEL": "warn"
+  },
+  "launch_environment": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64:/usr/lib/x86_64-linux-gnu",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "POD_LAUNCH_BRIDGE": "cuda",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "SPDLOG_LEVEL": "warn"
+  },
+  "lease_paths": [
+    "/tmp/gpubpf-revision-gpu0.lock",
+    "/tmp/gpubpf-revision-struct-ops.lock"
+  ],
+  "loader_command": null,
+  "loader_environment": null,
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "operator_cells": [
+    {
+      "decode_batch": 32,
+      "mean_cuda_ms": 3.26201247215271,
+      "mean_host_wall_ms": 3.26916108,
+      "model": "llama-3-8b",
+      "timed_samples": 100,
+      "warmups": 10
+    }
+  ],
+  "operator_complete_flag": true,
+  "operator_output": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/current-runtime-575-20260907-01/block-03-pod_cuda/operator.json",
+  "operator_timestamps": {
+    "post_first_sync_ns": 53778944411320,
+    "pre_first_diagnostic_ns": 53778910913505,
+    "process_main_ns": 53777632070220,
+    "runtime_imports_done_ns": 53778365448273,
+    "runtime_imports_start_ns": 53777638332186,
+    "stdlib_imports_done_ns": 53777636182416,
+    "steady_complete_ns": 53779674133575,
+    "warmup_done_ns": 53778990321621
+  },
+  "phase_study": true,
+  "phase_timestamps": {
+    "cell_start_ns": 53777604108379,
+    "cleanup_complete_ns": 53780264254854,
+    "client_exit_ns": 53780212912133,
+    "client_spawn_ns": 53777610982590,
+    "loader_ready_marker": null,
+    "loader_ready_ns": null,
+    "loader_spawn_ns": null
+  },
+  "pre_python_main_ns": 21087630,
+  "private_segment": null,
+  "process_wall_seconds": 2.601933377001842,
+  "ptx": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01",
+  "returncode": 0,
+  "status": "passed",
+  "timeout_seconds": null
+}

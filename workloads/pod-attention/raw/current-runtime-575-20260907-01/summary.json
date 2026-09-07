@@ -1,0 +1,593 @@
+{
+  "campaign": "workloads/pod-attention/raw/current-runtime-575-20260907-01",
+  "cell_count": 9,
+  "completed_count": 9,
+  "cells": [
+    {
+      "cell": "block-01-pod_bpf",
+      "arm": "pod_bpf",
+      "block": 1,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.306003532409668
+        }
+      ],
+      "mean_cuda_ms": 3.306003532409668,
+      "pre_python_main_ns": 234967226772,
+      "client_wall_ns": 239166102839,
+      "loader_ready_ns": 201184095,
+      "cleanup_ns": 185455602,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 52973587017469,
+          "cleanup_complete_ns": 53213155015855,
+          "client_exit_ns": 53212969560253,
+          "client_spawn_ns": 52973803457414,
+          "loader_ready_marker": "POD_LOADER_READY kernels=6",
+          "loader_ready_ns": 52973803403617,
+          "loader_spawn_ns": 52973602219522
+        },
+        "operator": {
+          "process_main_ns": 53208770684186,
+          "stdlib_imports_done_ns": 53208774829675,
+          "runtime_imports_start_ns": 53208777022344,
+          "runtime_imports_done_ns": 53209539496913,
+          "pre_first_diagnostic_ns": 53210484551286,
+          "post_first_sync_ns": 53210525067847,
+          "warmup_done_ns": 53210591059563,
+          "steady_complete_ns": 53212234930925
+        }
+      }
+    },
+    {
+      "cell": "block-01-pod_cuda",
+      "arm": "pod_cuda",
+      "block": 1,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.267594885826111
+        }
+      ],
+      "mean_cuda_ms": 3.267594885826111,
+      "pre_python_main_ns": 21987541,
+      "client_wall_ns": 2602236435,
+      "loader_ready_ns": null,
+      "cleanup_ns": 50582712,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 52939882637847,
+          "cleanup_complete_ns": 52942550929840,
+          "client_exit_ns": 52942500347128,
+          "client_spawn_ns": 52939898110693,
+          "loader_ready_marker": null,
+          "loader_ready_ns": null,
+          "loader_spawn_ns": null
+        },
+        "operator": {
+          "process_main_ns": 52939920098234,
+          "stdlib_imports_done_ns": 52939924205686,
+          "runtime_imports_start_ns": 52939926393870,
+          "runtime_imports_done_ns": 52940658350465,
+          "pre_first_diagnostic_ns": 52941286012417,
+          "post_first_sync_ns": 52941317334344,
+          "warmup_done_ns": 52941363375855,
+          "steady_complete_ns": 52942047776617
+        }
+      }
+    },
+    {
+      "cell": "block-01-pod_inline",
+      "arm": "pod_inline",
+      "block": 1,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.263270080089569
+        }
+      ],
+      "mean_cuda_ms": 3.263270080089569,
+      "pre_python_main_ns": 21351661,
+      "client_wall_ns": 3403236244,
+      "loader_ready_ns": null,
+      "cleanup_ns": 61228177,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 52926239013455,
+          "cleanup_complete_ns": 52929708965206,
+          "client_exit_ns": 52929647737029,
+          "client_spawn_ns": 52926244500785,
+          "loader_ready_marker": null,
+          "loader_ready_ns": null,
+          "loader_spawn_ns": null
+        },
+        "operator": {
+          "process_main_ns": 52926265852446,
+          "stdlib_imports_done_ns": 52926269875212,
+          "runtime_imports_start_ns": 52926272060712,
+          "runtime_imports_done_ns": 52927349746748,
+          "pre_first_diagnostic_ns": 52928083496401,
+          "post_first_sync_ns": 52928120007027,
+          "warmup_done_ns": 52928165895233,
+          "steady_complete_ns": 52928847893641
+        }
+      }
+    },
+    {
+      "cell": "block-02-pod_bpf",
+      "arm": "pod_bpf",
+      "block": 2,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.3477920055389405
+        }
+      ],
+      "mean_cuda_ms": 3.3477920055389405,
+      "pre_python_main_ns": 241117315493,
+      "client_wall_ns": 245557054980,
+      "loader_ready_ns": 100690621,
+      "cleanup_ns": 172742170,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 53287499938663,
+          "cleanup_complete_ns": 53533336340494,
+          "client_exit_ns": 53533163598324,
+          "client_spawn_ns": 53287606543344,
+          "loader_ready_marker": "POD_LOADER_READY kernels=6",
+          "loader_ready_ns": 53287606484687,
+          "loader_spawn_ns": 53287505794066
+        },
+        "operator": {
+          "process_main_ns": 53528723858837,
+          "stdlib_imports_done_ns": 53528728205751,
+          "runtime_imports_start_ns": 53528730475591,
+          "runtime_imports_done_ns": 53529521315109,
+          "pre_first_diagnostic_ns": 53530482650345,
+          "post_first_sync_ns": 53530515926770,
+          "warmup_done_ns": 53530582119928,
+          "steady_complete_ns": 53532240967361
+        }
+      }
+    },
+    {
+      "cell": "block-02-pod_cuda",
+      "arm": "pod_cuda",
+      "block": 2,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.2629039907455444
+        }
+      ],
+      "mean_cuda_ms": 3.2629039907455444,
+      "pre_python_main_ns": 21566995,
+      "client_wall_ns": 2802289782,
+      "loader_ready_ns": null,
+      "cleanup_ns": 53739381,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 53284554830059,
+          "cleanup_complete_ns": 53287425876032,
+          "client_exit_ns": 53287372136651,
+          "client_spawn_ns": 53284569846869,
+          "loader_ready_marker": null,
+          "loader_ready_ns": null,
+          "loader_spawn_ns": null
+        },
+        "operator": {
+          "process_main_ns": 53284591413864,
+          "stdlib_imports_done_ns": 53284595612801,
+          "runtime_imports_start_ns": 53284597839196,
+          "runtime_imports_done_ns": 53285358675782,
+          "pre_first_diagnostic_ns": 53286016972596,
+          "post_first_sync_ns": 53286049299649,
+          "warmup_done_ns": 53286095392161,
+          "steady_complete_ns": 53286779964006
+        }
+      }
+    },
+    {
+      "cell": "block-02-pod_inline",
+      "arm": "pod_inline",
+      "block": 2,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.249527359008789
+        }
+      ],
+      "mean_cuda_ms": 3.249527359008789,
+      "pre_python_main_ns": 19134702,
+      "client_wall_ns": 2601822428,
+      "loader_ready_ns": null,
+      "cleanup_ns": 53242179,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 53533406901126,
+          "cleanup_complete_ns": 53536067844552,
+          "client_exit_ns": 53536014602373,
+          "client_spawn_ns": 53533412779945,
+          "loader_ready_marker": null,
+          "loader_ready_ns": null,
+          "loader_spawn_ns": null
+        },
+        "operator": {
+          "process_main_ns": 53533431914647,
+          "stdlib_imports_done_ns": 53533436103065,
+          "runtime_imports_start_ns": 53533438364399,
+          "runtime_imports_done_ns": 53534192635249,
+          "pre_first_diagnostic_ns": 53534748965770,
+          "post_first_sync_ns": 53534781911153,
+          "warmup_done_ns": 53534827719298,
+          "steady_complete_ns": 53535508856323
+        }
+      }
+    },
+    {
+      "cell": "block-03-pod_bpf",
+      "arm": "pod_bpf",
+      "block": 3,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.311722240447998
+        }
+      ],
+      "mean_cuda_ms": 3.311722240447998,
+      "pre_python_main_ns": 234098142246,
+      "client_wall_ns": 238364397477,
+      "loader_ready_ns": 100880942,
+      "cleanup_ns": 197240005,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 53536137492693,
+          "cleanup_complete_ns": 53774806275869,
+          "client_exit_ns": 53774609035864,
+          "client_spawn_ns": 53536244638387,
+          "loader_ready_marker": "POD_LOADER_READY kernels=6",
+          "loader_ready_ns": 53536244572968,
+          "loader_spawn_ns": 53536143692026
+        },
+        "operator": {
+          "process_main_ns": 53770342780633,
+          "stdlib_imports_done_ns": 53770346917930,
+          "runtime_imports_start_ns": 53770349099960,
+          "runtime_imports_done_ns": 53771103462535,
+          "pre_first_diagnostic_ns": 53772057773048,
+          "post_first_sync_ns": 53772091369270,
+          "warmup_done_ns": 53772156842193,
+          "steady_complete_ns": 53773799922477
+        }
+      }
+    },
+    {
+      "cell": "block-03-pod_cuda",
+      "arm": "pod_cuda",
+      "block": 3,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.26201247215271
+        }
+      ],
+      "mean_cuda_ms": 3.26201247215271,
+      "pre_python_main_ns": 21087630,
+      "client_wall_ns": 2601929543,
+      "loader_ready_ns": null,
+      "cleanup_ns": 51342721,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 53777604108379,
+          "cleanup_complete_ns": 53780264254854,
+          "client_exit_ns": 53780212912133,
+          "client_spawn_ns": 53777610982590,
+          "loader_ready_marker": null,
+          "loader_ready_ns": null,
+          "loader_spawn_ns": null
+        },
+        "operator": {
+          "process_main_ns": 53777632070220,
+          "stdlib_imports_done_ns": 53777636182416,
+          "runtime_imports_start_ns": 53777638332186,
+          "runtime_imports_done_ns": 53778365448273,
+          "pre_first_diagnostic_ns": 53778910913505,
+          "post_first_sync_ns": 53778944411320,
+          "warmup_done_ns": 53778990321621,
+          "steady_complete_ns": 53779674133575
+        }
+      }
+    },
+    {
+      "cell": "block-03-pod_inline",
+      "arm": "pod_inline",
+      "block": 3,
+      "state": "completed",
+      "child_exit": 0,
+      "errors": [],
+      "cuda_event_means_ms": [
+        {
+          "model": "llama-3-8b",
+          "decode_batch": 32,
+          "warmups": 10,
+          "timed_samples": 100,
+          "mean_cuda_ms": 3.2480547189712525
+        }
+      ],
+      "mean_cuda_ms": 3.2480547189712525,
+      "pre_python_main_ns": 19688258,
+      "client_wall_ns": 2602717737,
+      "loader_ready_ns": null,
+      "cleanup_ns": 49564762,
+      "raw_timestamps": {
+        "execution": {
+          "cell_start_ns": 53774877794048,
+          "cleanup_complete_ns": 53777536310042,
+          "client_exit_ns": 53777486745280,
+          "client_spawn_ns": 53774884027543,
+          "loader_ready_marker": null,
+          "loader_ready_ns": null,
+          "loader_spawn_ns": null
+        },
+        "operator": {
+          "process_main_ns": 53774903715801,
+          "stdlib_imports_done_ns": 53774907821338,
+          "runtime_imports_start_ns": 53774910062385,
+          "runtime_imports_done_ns": 53775646093143,
+          "pre_first_diagnostic_ns": 53776201517437,
+          "post_first_sync_ns": 53776235019529,
+          "warmup_done_ns": 53776280680887,
+          "steady_complete_ns": 53776960877246
+        }
+      }
+    }
+  ],
+  "completed_observations_ms": {
+    "pod_bpf": {
+      "mean_cuda_ms": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 3.306003532409668
+          },
+          {
+            "block": 2,
+            "value_ms": 3.3477920055389405
+          },
+          {
+            "block": 3,
+            "value_ms": 3.311722240447998
+          }
+        ],
+        "median_ms": 3.311722240447998
+      },
+      "pre_python_main_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 234967.226772
+          },
+          {
+            "block": 2,
+            "value_ms": 241117.315493
+          },
+          {
+            "block": 3,
+            "value_ms": 234098.142246
+          }
+        ],
+        "median_ms": 234967.226772
+      },
+      "client_wall_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 239166.102839
+          },
+          {
+            "block": 2,
+            "value_ms": 245557.05498
+          },
+          {
+            "block": 3,
+            "value_ms": 238364.397477
+          }
+        ],
+        "median_ms": 239166.102839
+      },
+      "loader_ready_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 201.184095
+          },
+          {
+            "block": 2,
+            "value_ms": 100.690621
+          },
+          {
+            "block": 3,
+            "value_ms": 100.880942
+          }
+        ],
+        "median_ms": 100.880942
+      }
+    },
+    "pod_cuda": {
+      "mean_cuda_ms": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 3.267594885826111
+          },
+          {
+            "block": 2,
+            "value_ms": 3.2629039907455444
+          },
+          {
+            "block": 3,
+            "value_ms": 3.26201247215271
+          }
+        ],
+        "median_ms": 3.2629039907455444
+      },
+      "pre_python_main_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 21.987541
+          },
+          {
+            "block": 2,
+            "value_ms": 21.566995
+          },
+          {
+            "block": 3,
+            "value_ms": 21.08763
+          }
+        ],
+        "median_ms": 21.566995
+      },
+      "client_wall_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 2602.236435
+          },
+          {
+            "block": 2,
+            "value_ms": 2802.289782
+          },
+          {
+            "block": 3,
+            "value_ms": 2601.929543
+          }
+        ],
+        "median_ms": 2602.236435
+      }
+    },
+    "pod_inline": {
+      "mean_cuda_ms": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 3.263270080089569
+          },
+          {
+            "block": 2,
+            "value_ms": 3.249527359008789
+          },
+          {
+            "block": 3,
+            "value_ms": 3.2480547189712525
+          }
+        ],
+        "median_ms": 3.249527359008789
+      },
+      "pre_python_main_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 21.351661
+          },
+          {
+            "block": 2,
+            "value_ms": 19.134702
+          },
+          {
+            "block": 3,
+            "value_ms": 19.688258
+          }
+        ],
+        "median_ms": 19.688258
+      },
+      "client_wall_ns": {
+        "values": [
+          {
+            "block": 1,
+            "value_ms": 3403.236244
+          },
+          {
+            "block": 2,
+            "value_ms": 2601.822428
+          },
+          {
+            "block": 3,
+            "value_ms": 2602.717737
+          }
+        ],
+        "median_ms": 2602.717737
+      }
+    }
+  },
+  "bpf_cuda_operator_ratios": [
+    {
+      "block": 1,
+      "pod_bpf_mean_cuda_ms": 3.306003532409668,
+      "pod_cuda_mean_cuda_ms": 3.267594885826111,
+      "bpf_over_cuda": 1.0117544089538646
+    },
+    {
+      "block": 2,
+      "pod_bpf_mean_cuda_ms": 3.3477920055389405,
+      "pod_cuda_mean_cuda_ms": 3.2629039907455444,
+      "bpf_over_cuda": 1.0260160933432798
+    },
+    {
+      "block": 3,
+      "pod_bpf_mean_cuda_ms": 3.311722240447998,
+      "pod_cuda_mean_cuda_ms": 3.26201247215271,
+      "bpf_over_cuda": 1.0152389878087997
+    }
+  ],
+  "scope": "Each entry is one retained fresh-process attempt under this campaign root. Only completed attempts count as measurements; failed and incomplete attempts remain listed and are never counted. Durations are null when spawn/exit stamps are missing; nothing is estimated."
+}

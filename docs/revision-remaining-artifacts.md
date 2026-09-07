@@ -41,8 +41,12 @@ occurs after dispatch. The recorded read submission timestamp equals dispatch,
 so this interval includes admission, scheduling, backend work and completion
 bookkeeping; it is not measured SSD service time or a causal explanation.
 The POD target is the existing 271.225-second median pre-Python interval,
-not another repeat of the completed operator-throughput comparison. The
-current-runtime cold-start measurement remains unfinished.
+not another repeat of the completed shape comparison. The
+[current-runtime cold-start measurement](../workloads/pod-attention/results-current-runtime-575-20260907.md)
+now completes nine cells: BPF pre-Python median 234.967 seconds, client wall
+239.166 seconds, and paired BPF/CUDA operator cost +1.5239%. Startup remains
+expensive. A local-model opt-in rewrite/compile/load timing patch is next;
+it is not applied or measured, and this completed batch must not be repeated.
 
 POD path inspection found that the historical `bpftime/build-cuda-pr503`
 runtime is absent at its recorded location. The retained
@@ -54,8 +58,9 @@ runtime comparison can explicitly select the retained build with
 `POD_BPFTIME_BUILD`; `run_study.py` honors that override and prepends its
 PTX-pass directory only for the BPF target environment. The CPU-only
 environment check passed and CUDA-only search paths remain unchanged.
-This is preparation only: no new cold-start timing or isolated
-causal attribution to ingest-once is established by inspecting paths/source.
+The completed current-runtime comparison above uses this path selection.
+It does not establish isolated causal attribution to ingest-once; the
+historical build is not an interleaved control.
 
 The [GPU-local kernel-return record study](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)
 is also complete: five paired blocks, mean prefill overhead 5.5726%, all

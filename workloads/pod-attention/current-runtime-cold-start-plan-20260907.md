@@ -1,6 +1,7 @@
 # POD current-runtime cold-start comparison
 
-Status: block 1 completed; blocks 2 and 3 are running. This is a new runtime
+Status: all three blocks / nine cells completed; see the
+[full result](results-current-runtime-575-20260907.md). This is a new runtime
 comparison, not a repeat or replacement of the completed shape and phase studies.
 The launcher is published in `60fb1d63`; block-1 inline/CUDA raw results in
 `88657a46` and BPF in `5d8a66ff`. The [new raw directory](raw/current-runtime-575-20260907-01/)

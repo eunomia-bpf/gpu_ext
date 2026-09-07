@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Render the seven matched policy ports as a 2x4 panel figure.
+"""Render the five matched policy ports as a 1x5 panel figure.
 
 Each panel is one independent replication: bars for baseline (no policy),
 the original implementation, and the gpubpf port of the same policy, from
 port-panels.json (transcribed published values with per-panel sources).
-The eighth panel summarizes measured mechanism cost. No GPU execution and
-no paper edits.
+XSched and GPREEMPT are in the separate scheduling figure; mechanism cost
+is reported in text. No GPU execution and no paper edits.
 """
 from __future__ import annotations
 
@@ -28,8 +28,8 @@ def load_panels(path: Path) -> list[dict]:
     if data.get("schema") != "matched_port_panels_v1":
         raise ValueError("panel file is not the matched-port panel data")
     panels = data["panels"]
-    if len(panels) != 8 or len({p["id"] for p in panels}) != 8:
-        raise ValueError("expected eight distinct panels")
+    if len(panels) != 5 or len({p["id"] for p in panels}) != 5:
+        raise ValueError("expected five distinct panels")
     for panel in panels:
         for group in panel["groups"]:
             for key, value in group.items():
@@ -48,7 +48,7 @@ def _draw(panels: list[dict], paths: list[Path]) -> None:
     from matplotlib.ticker import MaxNLocator
 
     with plt.rc_context(STYLE):
-        figure, axes = plt.subplots(2, 4, figsize=(7.2, 3.0))
+        figure, axes = plt.subplots(1, 5, figsize=(7.2, 1.6))
         for panel, axis in zip(panels, axes.flat):
             width = .8 / max(len(LEGEND) - 1, 1)
             positions = {}

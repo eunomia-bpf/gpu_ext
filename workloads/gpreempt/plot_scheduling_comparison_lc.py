@@ -36,32 +36,37 @@ def _draw(data: dict, paths: list[Path]) -> None:
     from matplotlib.ticker import MaxNLocator
 
     xs, gp = data["xsched"], data["gpreempt"]
+    # Only use 100 and 200 req/s scenarios (drop cont.)
+    gp_scenarios = ["be100", "be200"]
+    gp_scenario_ticks = ["100", "200"]
     with plt.rc_context(STYLE):
-        figure, axes = plt.subplots(2, 1, figsize=(3.4, 2.6))
+        figure, axes = plt.subplots(1, 2, figsize=(6.8, 1.8))
+        # (a) XSched
         panel = axes[0]
         values = [statistics.median(p["queue_p99_s"] for p in xs if p["arm"] == arm)
                   for arm in XS_ARMS]
         _labels(panel, panel.bar(range(3), values, color=COLORS, width=.62),
                 values, fontsize=6.5)
-        panel.set_ylim(0, max(values) * 1.3)
+        panel.set_ylim(0, max(values) * 1.35)
         panel.set_xticks(range(3), XS_TICKS)
-        panel.set_ylabel("LC queue-entry\np99 (s)")
-        panel.set_title("(a) XSched workload", loc="left", fontsize=7.5, pad=7)
+        panel.set_ylabel("LC queue-entry p99 (s)")
+        panel.set_title("(a) XSched workload", loc="left", fontsize=7.5, pad=4)
+        # (b) GPreempt (only 100 and 200, no cont.)
         panel = axes[1]
         tops = []
         for arm_index, (arm, color) in enumerate(zip(gp_plot.ARMS, COLORS)):
             values = [statistics.median(p["response_p99_ms"] for p in gp
                                         if p["scenario"] == scenario and p["arm"] == arm)
-                      for scenario in gp_plot.SCENARIOS]
-            offset = (arm_index - 1) * .26
-            _labels(panel, panel.bar([i + offset for i in range(3)], values,
-                                     color=color, width=.24), values)
+                      for scenario in gp_scenarios]
+            offset = (arm_index - 1) * .28
+            _labels(panel, panel.bar([i + offset for i in range(len(gp_scenarios))], values,
+                                     color=color, width=.26), values)
             tops.append(max(values))
-        panel.set_ylim(0, max(tops) * 1.3)
-        panel.set_xticks(range(3), SCENARIO_TICKS)
+        panel.set_ylim(0, max(tops) * 1.35)
+        panel.set_xticks(range(len(gp_scenarios)), gp_scenario_ticks)
         panel.set_xlabel("BE supply (req/s)")
-        panel.set_ylabel("LC response\np99 (ms)")
-        panel.set_title("(b) GPreempt workload", loc="left", fontsize=7.5, pad=7)
+        panel.set_ylabel("LC response p99 (ms)")
+        panel.set_title("(b) GPreempt workload", loc="left", fontsize=7.5, pad=4)
         for panel in axes:
             panel.yaxis.set_major_locator(MaxNLocator(nbins=4))
             panel.ticklabel_format(axis="y", style="plain", useOffset=False)
@@ -69,10 +74,10 @@ def _draw(data: dict, paths: list[Path]) -> None:
         handles = [Line2D([0], [0], color=color, marker="s", markersize=5,
                           linewidth=0, label=label)
                    for color, label in zip(COLORS, ("Native", "Original", "BPF port"))]
-        figure.legend(handles=handles, loc="upper center", bbox_to_anchor=(.5, 1.0),
+        figure.legend(handles=handles, loc="upper center", bbox_to_anchor=(.5, 1.02),
                       ncol=3, frameon=False, handlelength=1.1,
                       handletextpad=.4, columnspacing=.7)
-        figure.tight_layout(rect=(0, 0, 1, .92), h_pad=1.2)
+        figure.tight_layout(rect=(0, 0, 1, .88))
         try:
             for path in paths:
                 figure.savefig(path, dpi=300)

@@ -3,7 +3,12 @@
 
 `execute-preflight` runs the excluded seven-cell preflight. `execute-full`
 revalidates that excluded preflight first, then runs the 21-cell formal
-performance matrix and returns its paired analysis. The destructive module
+performance matrix and returns its paired analysis. `execute-performance`
+runs the same 21-cell matrix on the already loaded bridge with no historical
+preflight or admission gate: it records every attempted cell, writes every
+raw file and the campaign completion after each cell, retains measured timing
+when post-run audit predicates reject a cell, and continues ordinary
+per-cell failures without historical validation. The destructive module
 swap is deliberately outside this child. A lifecycle wrapper must load the
 reviewed candidate, invoke this runner with both lease descriptors inherited,
 and restore the admitted module even if this child fails.
@@ -51,6 +56,7 @@ KERNEL_ABNORMAL = re.compile(
 STAGE_NAMESPACES = {
     "preflight": "stale-state-575-preflight-",
     "full": "stale-state-575-full-",
+    "performance": "stale-state-575-performance-",
 }
 
 
@@ -449,7 +455,17 @@ def dry_run(output: Path, lease_fds: Sequence[int], stage: str = "preflight",
     return result
 
 
-def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
+def read_workload_result(cell_dir: Path) -> tuple[Any, str | None]:
+    try:
+        value = json.loads((cell_dir / "workload-result.json").read_text(
+            encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return None, f"{type(exc).__name__}: {exc}"
+    return value, None
+
+
+def run_cell(cell: protocol.MatrixCell, cell_dir: Path,
+             performance_only: bool = False) -> dict[str, Any]:
     cell_dir.mkdir()
     execution: dict[str, Any] = {
         "protocol": protocol.PROTOCOL, "timeline": protocol.TIMELINE,
@@ -461,7 +477,14 @@ def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
     }
     atomic_json(cell_dir / "execution.json", execution)
     before = safety_snapshot()
-    validate_idle(before)
+    if performance_only:
+        gpu = before["gpu"]
+        demand(not gpu["compute_apps"], "GPU has foreign compute applications")
+        demand(before["uvm_refcount"] == 0, "UVM reference count is not zero")
+        demand(before["struct_ops"] == {"maps": [], "links": []},
+               "struct_ops state is not empty")
+    else:
+        validate_idle(before)
     atomic_json(cell_dir / "safety-before.json", before)
 
     owned: list[tuple[subprocess.Popen[Any], Any, Any | None]] = []
@@ -609,6 +632,73 @@ def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
                 cleanup_errors.append(str(exc))
         execution["cleanup_errors"] = cleanup_errors
 
+    if performance_only:
+        if primary is not None and not isinstance(primary, Exception):
+            execution.update(status="failed", complete=False,
+                             performance_only=True,
+                             failure=f"{type(primary).__name__}: {primary}")
+            atomic_json(cell_dir / "execution.json", execution)
+            raise primary
+        if execution["cleanup_errors"]:
+            execution.update(status="failed", complete=False,
+                             performance_only=True, cleanup_failure=True,
+                             failure=None if primary is None else
+                             f"{type(primary).__name__}: {primary}")
+            atomic_json(cell_dir / "execution.json", execution)
+            if primary is not None:
+                raise primary
+            raise LiveError(f"cell cleanup failed: {execution['cleanup_errors']}")
+        attempt: dict[str, Any] = {"performance_only": True,
+                                   "block": cell.block, "arm": cell.arm,
+                                   "implementation": cell.implementation,
+                                   "delay_ms": cell.delay_ms}
+        if primary is not None:
+            execution.update(status="failed", complete=False,
+                             performance_only=True,
+                             failure=f"{type(primary).__name__}: {primary}")
+            atomic_json(cell_dir / "execution.json", execution)
+            attempt["failure"] = execution["failure"]
+        else:
+            after_error: str | None = None
+            try:
+                after = safety_snapshot()
+                atomic_json(cell_dir / "safety-after.json", after)
+            except Exception as exc:
+                after_error = f"{type(exc).__name__}: {exc}"
+            telemetry_valid = (cell_dir / "gpu-telemetry.csv").stat().st_size > 0
+            monitor_coverage = {"uvm": True, "gpu_telemetry": True,
+                                "compute_apps": True, "kernel_log": True,
+                                "phase_truth": True}
+            if cell.role == "context_control":
+                monitor_coverage["policy_artifact_absence"] = True
+            else:
+                monitor_coverage["policy_diagnostics"] = True
+            cleanup = {"workload_reaped": workload is not None
+                       and workload.poll() is not None,
+                       "monitors_reaped": all(item[0].poll() is not None
+                                              for item in owned),
+                       "policy_detached": struct_ops_inventory() ==
+                       {"maps": [], "links": []},
+                       "leases_retained": True}
+            execution.update(
+                status="measured", complete=True, performance_only=True,
+                monitor_coverage=monitor_coverage, cleanup=cleanup,
+                safety={"pre_exclusivity_checked": True,
+                        "gpu_telemetry_valid": telemetry_valid},
+                validation_skipped=(
+                    "performance-only mode: historical idle audit, "
+                    "protocol.validate_cell, and campaign validators were "
+                    "not run; no passed or validity claim"
+                ),
+            )
+            if after_error is not None:
+                execution["safety_after_capture_error"] = after_error
+            atomic_json(cell_dir / "execution.json", execution)
+        workload_result, result_error = read_workload_result(cell_dir)
+        attempt["workload_result"] = workload_result
+        if result_error is not None:
+            attempt["result_error"] = result_error
+        return attempt
     if primary is not None or execution["cleanup_errors"]:
         execution.update(status="failed", complete=False,
                          failure=None if primary is None else f"{type(primary).__name__}: {primary}")
@@ -628,13 +718,13 @@ def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
         monitor_coverage["policy_artifact_absence"] = True
     else:
         monitor_coverage["policy_diagnostics"] = True
+    cleanup = {"workload_reaped": workload is not None and workload.poll() is not None,
+               "monitors_reaped": all(item[0].poll() is not None for item in owned),
+               "policy_detached": struct_ops_inventory() == {"maps": [], "links": []},
+               "leases_retained": True}
     execution.update(
         status="passed", complete=True,
-        monitor_coverage=monitor_coverage,
-        cleanup={"workload_reaped": workload is not None and workload.poll() is not None,
-                 "monitors_reaped": all(item[0].poll() is not None for item in owned),
-                 "policy_detached": struct_ops_inventory() == {"maps": [], "links": []},
-                 "leases_retained": True},
+        monitor_coverage=monitor_coverage, cleanup=cleanup,
         safety={"pre_valid": True, "post_valid": True,
                 "gpu_telemetry_valid": telemetry_valid,
                 "foreign_compute_pids": [], "new_kernel_anomalies": []},
@@ -646,6 +736,7 @@ def run_cell(cell: protocol.MatrixCell, cell_dir: Path) -> dict[str, Any]:
 def campaign_manifest(
     stage: str, cells: list[protocol.MatrixCell], leases: list[dict[str, Any]],
     bridge: dict[str, Any], excluded: Path | None,
+    performance_only: bool = False,
 ) -> dict[str, Any]:
     manifest = {
         "protocol": protocol.PROTOCOL, "timeline": protocol.TIMELINE,
@@ -656,7 +747,10 @@ def campaign_manifest(
         "order": [asdict(cell) for cell in cells], "completed": [],
         "leases": leases, "loaded_bridge": bridge,
     }
-    if stage == "full":
+    if performance_only:
+        manifest["performance_only"] = True
+        manifest["failed"] = []
+    elif stage == "full":
         manifest["preflight"] = str(protocol.lexical_absolute(excluded))
     return manifest
 
@@ -693,6 +787,45 @@ def execute(output: Path, lease_fds: Sequence[int], stage: str = "preflight",
     return multi_stage_validation(output, stage)
 
 
+def execute_performance(output: Path, lease_fds: Sequence[int]) -> dict[str, Any]:
+    output = validate_paths(output, "performance")
+    leases = InheritedLeases(lease_fds).validate()
+    bridge = validate_loaded_bridge()
+    output.mkdir(parents=False, exist_ok=False)
+    cells = protocol.matrix("full")
+    manifest = campaign_manifest("full", cells, leases, bridge, None,
+                                 performance_only=True)
+    atomic_json(output / "campaign.json", manifest)
+    results: list[dict[str, Any]] = []
+    for cell in cells:
+        result = run_cell(cell, output / f"block-{cell.block:02d}-{cell.arm}",
+                          performance_only=True)
+        results.append(result)
+        if result.get("failure") is None:
+            manifest["completed"].append(asdict(cell))
+        else:
+            manifest["failed"].append({**asdict(cell),
+                                       "failure": result["failure"]})
+        atomic_json(output / "campaign.json", manifest)
+    manifest["complete"] = True
+    atomic_json(output / "campaign.json", manifest)
+    return {
+        "run_status": "performance_only",
+        "protocol": protocol.PROTOCOL,
+        "stage": "full",
+        "performance_only": True,
+        "output": str(output),
+        "validated": False,
+        "note": (
+            "performance-only run: raw files and measured workload results "
+            "only; historical idle, cell, and campaign validators were not "
+            "run; ordinary per-cell audit failures are recorded in each cell "
+            "and the campaign continues"
+        ),
+        "cells": results,
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
@@ -705,6 +838,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     command.add_argument("--output", required=True, type=Path)
     command.add_argument("--inherited-lease-fds", nargs="*", type=int, default=[])
     command.add_argument("--preflight", required=True, type=Path)
+    command = commands.add_parser("execute-performance")
+    command.add_argument("--output", required=True, type=Path)
+    command.add_argument("--inherited-lease-fds", nargs="*", type=int, default=[])
     args = parser.parse_args(argv)
     try:
         if args.command == "dry-run":
@@ -714,9 +850,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "execute-preflight":
             demand(args.preflight is None, "execute-preflight does not accept --preflight")
             result = execute(args.output, args.inherited_lease_fds, stage="preflight")
+        elif args.command == "execute-performance":
+            result = execute_performance(args.output, args.inherited_lease_fds)
         else:
             result = execute(args.output, args.inherited_lease_fds, stage="full",
-                             excluded=args.preflight)
+                              excluded=args.preflight)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0
     except (LiveError, protocol.ValidationError, OSError, subprocess.SubprocessError) as exc:

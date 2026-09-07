@@ -1,0 +1,132 @@
+{
+  "adapter_diagnostics": {
+    "arrived": false,
+    "error": null,
+    "expected": false,
+    "path": null,
+    "payload": null,
+    "waited_s": 0.0
+  },
+  "adapter_diagnostics_path": null,
+  "arm": "stock",
+  "barriers": [],
+  "block": 0,
+  "cache_footprint": {
+    "bytes": 0,
+    "files": 0
+  },
+  "cleanup_errors": [],
+  "cold_output_tokens": 16,
+  "environment": {
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "HF_HOME": "/home/yunwei37/.cache/huggingface",
+    "HF_HUB_OFFLINE": "1",
+    "HOME": "/home/yunwei37",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "LMCACHE_CHUNK_SIZE": "256",
+    "LMCACHE_EXTRA_CONFIG": "{\"use_direct_io\":true}",
+    "LMCACHE_GDS_BACKEND": "cufile",
+    "LMCACHE_GDS_BUFFER_SIZE": "256",
+    "LMCACHE_GDS_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-kv-reclaim-575-20260907-01/block-00/position-0-stock/cache",
+    "LMCACHE_GDS_POLICY_MODE": "fifo",
+    "LMCACHE_LOCAL_CPU": "False",
+    "LMCACHE_MAX_LOCAL_CPU_SIZE": "2.0",
+    "LMCACHE_SAVE_UNFULL_CHUNK": "False",
+    "LMCACHE_USE_GDS": "True",
+    "LMCACHE_USE_GPU_CONNECTOR_V3": "True",
+    "LMCACHE_USE_LAYERWISE": "False",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONPATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/bootstrap:/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TRITON_PTXAS_BLACKWELL_PATH": "/usr/local/cuda-12.9/bin/ptxas",
+    "TZ": "UTC",
+    "VLLM_USE_DEEP_GEMM": "0",
+    "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
+    "XDG_CACHE_HOME": "/home/yunwei37/.cache"
+  },
+  "error": "RecursionError: maximum recursion depth exceeded",
+  "expected_driver_parameter": "575.57.08",
+  "finished_ns": 1788820922495487147,
+  "gds_buffer_size_mib": 256,
+  "gds_policy_mode": "fifo",
+  "kind": "gds-kv-reclaim-575",
+  "kv_cache_memory_bytes": 402653184,
+  "kv_pool_log": {
+    "available_kv_cache_memory_gib": {
+      "found": false,
+      "value": null,
+      "values": []
+    },
+    "gpu_blocks": {
+      "found": false,
+      "value": null,
+      "values": []
+    },
+    "gpu_kv_cache_size_tokens": {
+      "found": false,
+      "value": null,
+      "values": []
+    },
+    "max_concurrency_for_model_len": {
+      "found": false,
+      "value": null,
+      "values": []
+    }
+  },
+  "max_num_seqs": 2,
+  "per_io_admission_identical_arms": true,
+  "port": 18080,
+  "position": 0,
+  "preemption_log": {
+    "count": 0,
+    "sample_cap": 32,
+    "samples": []
+  },
+  "prompt_count": 8,
+  "ready": false,
+  "ready_error": null,
+  "reclaim_enabled": false,
+  "reclaim_mode": null,
+  "recompute_ns_per_token": 62502,
+  "recompute_price_semantics": "measured end-to-end recompute proxy (positive median TTFT per prompt token from the one calibration phase), not pure GPU compute; identical for every arm",
+  "requests": [],
+  "schema": 1,
+  "server_log_identity": {
+    "bytes": 0,
+    "ctime_ns": 1788820922494435616,
+    "device": 66305,
+    "inode": 94767625,
+    "mtime_ns": 1788820922494435616,
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-kv-reclaim-575-20260907-01/block-00/position-0-stock/server.log"
+  },
+  "server_returncode": null,
+  "started_ns": 1788820922494564860,
+  "warm_concurrency": 4,
+  "warm_order": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "warm_output_tokens_bound": 1024,
+  "warm_phase": null,
+  "warm_prefix_tokens": {
+    "0": 1536,
+    "1": 1024,
+    "2": 1536,
+    "3": 1024,
+    "4": 1536,
+    "5": 1024,
+    "6": 1536,
+    "7": 1024
+  },
+  "warm_stagger_ms": 250.0
+}

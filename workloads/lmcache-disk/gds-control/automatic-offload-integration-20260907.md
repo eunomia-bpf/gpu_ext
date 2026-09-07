@@ -261,3 +261,33 @@ prompt token, retains raw requests and server exit, and returns one observed
 price shared by the campaign arms. No calibration or new serving cell has
 run yet. The previous sessions were not interrupted for silence and no
 fourth concurrent session was started.
+
+## First real recompute calibration
+
+`kv_reclaim_calibration.py` is implemented and its local session completed
+normally. Root ran it once on the RTX 5090 / 575 driver with the actual
+1536/1024-token warm arrays, the same model, two sequences and 384 MiB KV
+allocation. All eight requests returned HTTP 200 and 16 output tokens each;
+the server returned 0, with no helper cleanup errors. Its startup log reports
+an actual 4,096-token GPU KV pool. The retained raw directory is
+`../raw/kv-reclaim-recompute-calibration-575-20260907-01/`.
+
+The rounded median observed TTFT per input token is 62,502 ns/token. This is
+the shared native/BPF recovery-price proxy, not a pure GPU compute cost.
+The first request's 535.475 ms TTFT is retained alongside the seven roughly
+64--67 ms requests; no sample was dropped. Across this sequential short-output
+phase, 128 generated tokens take 4.360114 s (29.357033 token/s), excluding
+server startup and teardown. This calibration is not the concurrent long-output
+stock/native/BPF performance comparison. The startup/teardown log also retains
+vLLM's forced EngineCore termination and semaphore warning despite the top-level
+exit code 0; no clean lifecycle or output-equivalence claim is made.
+
+The first direct stock `run_cell` invocation in campaign `gds-kv-reclaim-575-20260907-01`
+fails before starting a server with `RecursionError`: its environment wrapper
+calls the same overridden environment function recursively. Root changed that
+one call to the existing captured `campaign_base._BASE_SERVER_ENVIRONMENT`.
+The failed result remains retained, with no performance sample. A fresh first
+stock attempt in campaign `gds-kv-reclaim-575-20260907-02` is now running,
+reusing the completed calibration. The separate runner session continues its
+CLI and campaign orchestration; no completed calibration or prior workload
+cell was repeated.

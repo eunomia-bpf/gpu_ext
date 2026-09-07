@@ -2,7 +2,7 @@
 
 ## Current manuscript snapshot — 2026-09-07 PDT
 
-The current paper is `85a9f80`, compiled from `docs/paper/main.tex` with
+The current paper is `9376184`, compiled from `docs/paper/main.tex` with
 flat section files under `docs/paper/tex-revision/`. The build has 16 pages.
 Several entries below describe earlier 16/17-page drafts that were later
 restored or simplified; their statements that material is “integrated” must
@@ -14,8 +14,11 @@ not be read as the current manuscript status. Their experiment records remain.
   implementation; transition-validation pseudocode, SIMT dataflow, rejection rules,
   fallback and TCB; RTX 5090 observability results including 5.57% kernel-return
   logging overhead; storage/CXL and state-freshness design paragraphs; an
-  explicit unpartitioned GPU sharing setting.
-- Still absent: LMCache local-disk evaluation; the additional Fig. 13 composition comparison;
+  explicit unpartitioned GPU sharing setting; a short LMCache cuFile disk-policy
+  paragraph in the KV-cache case, reporting FIFO/native/gpubpf read p99 and
+  the 61.9% paired reduction.
+- Still absent: the original LMCache LocalDiskBackend serving comparison
+  (distinct from the cuFile policy paragraph); the additional Fig. 13 composition comparison;
   the SASS-only application discussion; architectural details of tenant
   isolation; explicit trampoline-scaling and startup-versus-runtime attachment
   explanations. Portability and future-accelerator discussion need review.

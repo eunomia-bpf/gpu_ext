@@ -89,6 +89,19 @@ adapter ownership fix outside the live source; no vendored code or policy rule
 has been changed, and the completed measurements are retained. There is no
 additional correctness campaign or threshold required to collect performance.
 
+Source inspection narrows the reference-count issue: installed
+`lmcache/v1/cache_engine.py:1667` obtains the completed prefetch future through
+`get_event_future`, leaving it registered. Normal retrieval releases each used
+object at line 937. Then
+`lmcache/integration/vllm/vllm_v1_adapter.py:1149` calls `lookup_unpin` during
+`wait_for_save`; its async fallback at `cache_engine.py:1555` invokes
+`cleanup_memory_objs`, which pops that same event and releases its objects
+again at line 1410. This source-supported duplicate-cleanup route is the
+repair target. Adding a reference unconditionally would need a corresponding
+owner on aborted requests and is not an adequate explanation or fix by itself.
+The local-model patch should transfer the consumed event's ownership while
+retaining cleanup of unconsumed requests, without changing disk policy rules.
+
 ## Active follow-up assignments
 
 The root confirmed all previous OpenCode tasks absent from the live endpoint

@@ -1,7 +1,10 @@
 # Separate optimized runtime build for POD startup
 
-Status: configuration and agent/server build completed with exit zero; the
-first Release BPF cell is running. No Release performance result exists yet.
+Status: configuration and agent/server build completed with exit zero. The
+first Release BPF cell completed: pre-Python 220.892286 seconds, client wall
+225.158701 seconds, operator mean 3.328349 ms. This is one observation, not a
+final comparison. Two additional Release BPF cells (blocks 2 and 3) are now
+running in order; the first is retained, not replaced. No Debug cell repeats.
 The completed Debug-runtime campaign
 remains in `../results-current-runtime-575-20260907.md` (main `e768d559`).
 
@@ -56,3 +59,9 @@ Keep workload, selector, adapter, PTX inputs and measurement
 boundaries unchanged. Record Release results separately, including unfavorable
 ones; do not relabel or overwrite the completed Debug cells. The GLM stage
 timing patch remains a separate implementation task, not a prerequisite gate.
+
+The three Release observations are a sequential follow-up to the completed
+Debug campaign, not a freshly interleaved Debug/Release comparison. Do not
+report their block-number alignment as randomized pairing or pool the two
+builds into one runtime result. The first observation leaves startup expensive;
+it does not establish that Debug compilation was its principal cause.

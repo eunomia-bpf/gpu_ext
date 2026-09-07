@@ -1,5 +1,17 @@
 # Narrow local-model implementation task
 
+## Execution update — completed implementation and real measurement
+
+The two fixes below were committed as `3c278471`. Root immediately ran the
+updated runner for five rotations of the 64-read/96-write workload; all 15
+children returned zero, with 960 reads and 1440 writes completed. The report
+is `../results-575-gds-mixed-scheduled-20260907.md`. These completed measurements
+must not be repeated. Remaining source work for this task is limited to
+concrete defects, if any, discovered while finishing the scoped changes.
+The separate pending-demand-feedback idea is not part of this runner task.
+
+## Assigned scope
+
 Read workspace AGENTS.md and edit only `../run_gds_mixed_backend.py`, plus
 minimal updates to its existing test file if those changes require them.
 Do not use nested agents, inspect unrelated papers, expand tests, run GPU

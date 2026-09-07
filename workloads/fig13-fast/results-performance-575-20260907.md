@@ -107,6 +107,22 @@ are used to reject performance cells.
 20 `meta.json` files, 40 tenant logs and native benchmark CSVs, every policy
 log, run configuration, event log, full terminal/module-restoration log,
 and [paired analysis](results/fig13_fast_20260907_005958/paired-analysis.json).
-The root computed the arithmetic directly from `fig13_fast.csv`; the local
-GLM reusable analyzer is still being developed and is not claimed executed.
+The root computed the arithmetic directly from `fig13_fast.csv`. The local
+OpenCode/GLM [reusable analyzer](analyze_results.py) has now also run on these
+same 20 completed cells. Its [JSON](results/fig13_fast_20260907_005958/reanalysis/fig13_fast_analysis.json)
+and [readable report](results/fig13_fast_20260907_005958/reanalysis/fig13_fast_analysis.md)
+match every published per-arm and block-paired median, minimum and maximum.
+All rows are retained; all 40 tenant return codes are zero. The analyzer
+keeps the CSV's early memory metadata separately from the last aggregate
+summary in each policy log. These callback counters are not migration-byte
+measurements. No new GPU measurements were needed for this reanalysis.
+
+Reproduce from the repository root:
+
+```bash
+python3 workloads/fig13-fast/analyze_results.py \
+  workloads/fig13-fast/results/fig13_fast_20260907_005958 \
+  --output-dir workloads/fig13-fast/results/fig13_fast_20260907_005958/reanalysis
+```
+
 No new correctness, clock, admission, or review experiment was added.

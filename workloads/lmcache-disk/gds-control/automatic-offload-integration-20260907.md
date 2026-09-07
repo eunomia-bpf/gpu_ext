@@ -222,3 +222,25 @@ eight-entry candidate capacity; this does not change valid-input selection.
 This step establishes build and attachment, not a serving performance result.
 The LMCache adapter and stock/native/BPF performance runner remain in their
 existing local OpenCode sessions. No paper or historical measurements change.
+
+## Serving adapter and startup integration
+
+The serving adapter now connects the existing scheduler victim callback to
+the matched native/BPF selector and enables the real backing registry after
+LMCache cache registration. A pending full-recompute choice bypasses cache
+lookup with zero external tokens; a disk-prefix choice retains the original
+LMCache lookup and restore path. The earlier draft that suppressed both
+routes is fixed. Recovery records distinguish admission from completed I/O.
+The adapter uses the installed connector implementation and derives block
+bytes from its actual single-group cache allocation rather than a scheduler
+spec type that vLLM replaces during initialization.
+
+Root applied the six-line opt-in bootstrap addition to the existing
+`bootstrap/sitecustomize.py`; its corrected patch artifact records an
+already-applied change. Empty enabled frontend processes now skip writing
+shutdown diagnostics, preserving the EngineCore process's populated record.
+Ordinary Python compilation of the adapter and startup module passes.
+These are source integration results only: no server has yet run with this
+adapter and no new reclaim-policy performance number exists. The separate
+local runner session remains active; previous performance cells are not
+repeated or reclassified by this integration step.

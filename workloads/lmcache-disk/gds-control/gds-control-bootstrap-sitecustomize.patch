@@ -1,0 +1,29 @@
+Disk-aware KV reclaim bootstrap addition (ALREADY APPLIED to
+gds-control/bootstrap/sitecustomize.py by the root integration step;
+kept as the artifact of record for the six-line addition).
+
+Adds the serving-adapter bootstrap to the loader sitecustomize so the
+LMCache disk backing + native/BPF victim-policy binding activates when
+LMCACHE_KV_RECLAIM is set (see lmcache_kv_reclaim_adapter.py).
+
+Verify ownership on a copy (must succeed with -R, must report
+"previously applied" forward):
+
+    patch -p1 -R --dry-run < gds-control-bootstrap-sitecustomize.patch
+
+Sitecustomize import path: same requirement as the existing bootstrap
+modules - gds-control/ must be on sys.path when the import runs; the
+kv_reclaim adapter adds no new path requirement.
+
+--- a/bootstrap/sitecustomize.py
++++ b/bootstrap/sitecustomize.py
+@@ -8,3 +8,9 @@
+ from lmcache_gds_async_prefetch_adapter import bootstrap_from_env as bootstrap_async
+ 
+ bootstrap_async()
++
++from lmcache_kv_reclaim_adapter import (
++    bootstrap_from_env as bootstrap_kv_reclaim,
++)
++
++bootstrap_kv_reclaim()

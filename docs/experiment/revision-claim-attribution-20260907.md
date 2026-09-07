@@ -115,3 +115,15 @@ Each measurement uses its own campaign baseline, including the two separate
 campaigns in the RTX 5090 panel. Regeneration writes to a fresh temporary
 directory, so the documented command does not require deleting tracked
 figures. Root made only a small wording correction after local Qwen's edits.
+
+## Current prose task
+
+Local Qwen Next session `ses_f84a453d1ffe8uXt0OcXXxqYUb` (runner 66942)
+owns only the matched-policy subsection in `tex-revision/tex/eval.tex`,
+excluding its figures/captions and the following RQ2 subsection. Its task is
+to remove repeated explanation while preserving every number, comparison,
+citation and necessary scope qualifier. Root will inspect and build actual
+edits before publication; assigning the task is not evidence of page reduction.
+GLM's unsubmitted response draft remains a separate live task. Qwen 27B's
+already-published figure task is retrying a provider response; no session was
+stopped for silence and no fourth local session was opened.

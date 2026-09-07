@@ -111,3 +111,28 @@ accounting are still being integrated with the serving consumer. All three
 local OpenCode sessions remain live; no extra session or execution timeout
 was introduced. The driver patch and real reclaim runner are not yet ready
 for a new performance campaign. No paper files were changed.
+
+## Driver implementation and build
+
+The local-model driver patch is now applied and committed as `ff68a1d4` on
+`revision/gpu-storage-decision-575`. It adds command 83 and
+`gpu_kv_reclaim_ops`, preserving the existing storage and memory interfaces.
+The first module build failed because the candidate-vector ioctl exceeds
+the driver's existing 288-byte stack-parameter limit. Root changed this one
+route to the existing `UVM_ROUTE_CMD_ALLOC_NO_INIT_CHECK`, made its local
+handler static, and aligned the estimate-cap literal with the shared ABI.
+The patch artifact includes these small integration fixes.
+
+The following ordinary build then completed with exit 0:
+
+```sh
+make -C kernel-open modules -j8 KERNEL_UNAME=6.15.11-061511-generic CC=/usr/bin/gcc-14 NV_KERNEL_MODULES='nvidia nvidia-uvm'
+```
+
+Output `kernel-open/nvidia-uvm.ko` is 62,413,352 bytes; its vermagic is
+`6.15.11-061511-generic SMP preempt mod_unload modversions`. Build warnings
+report the differing GCC package revisions and missing module descriptions.
+The module has not been loaded. This is a compiled selection interface,
+not a completed serving or automatic-offload result. The first serving
+adapter draft still needs its import, backing-field mapping, bootstrap and
+actual recovery-route integration fixes; its local owner is continuing.

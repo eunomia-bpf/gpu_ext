@@ -43,10 +43,55 @@ native/BPF differences must not be presented as a novel policy gain.
 All workload result files record zero mismatches; no new correctness gate
 was used to admit these performance measurements.
 
-Phase-aligned snapshot age, wrong-phase decisions and UVM-event interpretation
-are still being computed by a separate local-model offline analyzer; this
-report does not yet attribute the slowdown to a specific migration/thrashing
-counter. The measured end-to-end performance itself is complete.
+## Phase-aligned decisions and UVM events
+
+The offline analysis is now complete: 15,747,386 recorded policy decisions
+from all 18 native/BPF cells align to measured workload phase intervals;
+the three UVM-default controls have no policy decisions and are labelled
+not-applicable, not failures or zero-age observations. The pass records no
+parse errors, missing ages, invalid decision timestamps or outside-phase
+records. It streams the existing logs, with no new GPU experiment.
+
+| Publication delay | Native wrong-phase decisions | BPF wrong-phase decisions | Native mean age, s | BPF mean age, s |
+| --- | ---: | ---: | ---: | ---: |
+| Fresh | 0.009084% | 0.000350% | 1.268 | 1.274 |
+| 100 ms | 18.667% | 18.552% | 1.429 | 1.426 |
+| 1000 ms | 88.708% | 88.854% | 2.236 | 2.235 |
+
+Each entry is the median of three per-cell observations. A wrong-phase
+decision uses a snapshot whose dense/sparse label differs from the workload
+phase containing its `decision_mono_ns` (`start <= decision < end`). The
+fraction is **decision-weighted**, not the fraction of wall time with stale
+state: fault-triggered decisions are more frequent in some phases. The near
+89% value must not be interpreted as 89% of execution time.
+
+Fresh means no inserted publication delay, not continuous resampling:
+snapshots describe phases that persist for about two seconds. Their age can
+therefore exceed one second while the phase label remains correct. Age is
+measured from the recorded snapshot source time, not just publication delay.
+The common timestamped snapshot interfaces allow the two implementations to
+be compared without treating nominal delay as actual decision age.
+
+The UVM event counters also change: median GPU faults rise from 711,411 to
+1,978,957 for native fresh/1000 ms, and from 698,972 to 1,992,981 for BPF.
+These are whole observer-window totals, including bootstrap, not phase-only
+rates or counts normalized by completed work. Migration counts rise, but
+total migrated bytes do not; the workload completes less work when delayed.
+This supports a loss of useful prefetch behavior, not a claim of a measured
+increase in aggregate migration bandwidth.
+
+All 21 final event records report zero `thrashing_events`, `eviction_events`
+and event drops. Thus this campaign demonstrates performance degradation
+under delayed state, **not observed driver-classified thrashing** and not
+proof that pathological policies are impossible. Neither automatic
+freshness adaptation nor a universal performance guarantee was tested.
+
+Reproduce this analysis with `python3 workloads/stale-state-575/analyze_performance.py
+--input workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01
+--output /tmp/stale-phase-age-analysis.json` (one command). The raw directory
+retains `phase-age-analysis.json` and `phase-age-analysis.log`. Local GLM
+OpenCode implemented the analyzer; root reviewed it and ran the real logs.
+The completed performance, restoration and offline analysis need no repeat.
 
 ## Execution, restoration and raw records
 

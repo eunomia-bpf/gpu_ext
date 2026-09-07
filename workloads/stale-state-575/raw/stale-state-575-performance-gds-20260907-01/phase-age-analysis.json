@@ -1,0 +1,2317 @@
+{
+  "schema": "stale-state-575-analyze-performance-v1",
+  "generated_at_utc": "2026-09-07T07:36:51Z",
+  "elapsed_s": 35.2,
+  "rawpath": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01",
+  "errors": [],
+  "cells_ok": 21,
+  "cells_with_data": 18,
+  "cells_not_applicable": 3,
+  "total_measured_count": 15747386,
+  "arms": {
+    "bpf_delay_1000ms": {
+      "cells": 3,
+      "usable_cells": 3,
+      "median_wrong_phase_fraction": 0.8885403880040215,
+      "median_mean_age_ns": 2234813776.430146,
+      "total_outside_phase_count": 0
+    },
+    "bpf_delay_100ms": {
+      "cells": 3,
+      "usable_cells": 3,
+      "median_wrong_phase_fraction": 0.1855178588655219,
+      "median_mean_age_ns": 1425789997.8449183,
+      "total_outside_phase_count": 0
+    },
+    "bpf_fresh": {
+      "cells": 3,
+      "usable_cells": 3,
+      "median_wrong_phase_fraction": 3.4985035151214067e-06,
+      "median_mean_age_ns": 1274039080.7939787,
+      "total_outside_phase_count": 0
+    },
+    "native_delay_1000ms": {
+      "cells": 3,
+      "usable_cells": 3,
+      "median_wrong_phase_fraction": 0.8870827098349027,
+      "median_mean_age_ns": 2235547566.1624584,
+      "total_outside_phase_count": 0
+    },
+    "native_delay_100ms": {
+      "cells": 3,
+      "usable_cells": 3,
+      "median_wrong_phase_fraction": 0.18667114496274528,
+      "median_mean_age_ns": 1428752303.4410734,
+      "total_outside_phase_count": 0
+    },
+    "native_fresh": {
+      "cells": 3,
+      "usable_cells": 3,
+      "median_wrong_phase_fraction": 9.083768374593235e-05,
+      "median_mean_age_ns": 1268492159.2182236,
+      "total_outside_phase_count": 0
+    },
+    "uvm_default": {
+      "cells": 3,
+      "usable_cells": 0,
+      "median_wrong_phase_fraction": null,
+      "median_mean_age_ns": null,
+      "total_outside_phase_count": 0
+    }
+  },
+  "cells": [
+    {
+      "cell": "block-01-bpf_delay_1000ms",
+      "block": 1,
+      "arm": "bpf_delay_1000ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_delay_1000ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_delay_1000ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29773715208187,
+          "end_mono_ns": 29775725115649
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29775725133539,
+          "end_mono_ns": 29777804668847
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29777804681092,
+          "end_mono_ns": 29779716425599
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29779716437433,
+          "end_mono_ns": 29781781086991
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29781781098772,
+          "end_mono_ns": 29783720343934
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29783720355554,
+          "end_mono_ns": 29785753333992
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_delay_1000ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 1395025,
+      "policy_decision_events": 1395025,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 1395025,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 1240780,
+      "wrong_phase_fraction": 0.8894320890306625,
+      "age_missing_count": 0,
+      "mean_age_ns": 2236669219.537444,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 1242994,
+          "wrong_phase_count": 1180304,
+          "mean_age_ns": 2279766370.6732163
+        },
+        "sparse": {
+          "measured_count": 152031,
+          "wrong_phase_count": 60476,
+          "mean_age_ns": 1884310159.3532832
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 1271859,
+        "dense": 123166
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 1395025,
+        "callback_invocations": 1395025,
+        "decision_record_drops": 0,
+        "decision_records": 1395025,
+        "decision_requests": 1395025,
+        "decisions": 1395025,
+        "dense_prefetch_decisions": 123166,
+        "discarded_prefetch_decisions": 1271859,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 1395025,
+        "effect_requests": 1395025,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 1395025,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 1395025,
+        "snapshot_read_attempts": 1395025,
+        "snapshot_read_successes": 1395025,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 935892,
+        "gpu_faults": 1992981,
+        "migrations": 2721896,
+        "migrated_bytes": 277336776704,
+        "prefetch_migrations": 167154,
+        "prefetch_bytes": 134049312768,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-01-bpf_delay_100ms",
+      "block": 1,
+      "arm": "bpf_delay_100ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_delay_100ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_delay_100ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29662860939871,
+          "end_mono_ns": 29664870722591
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29664870741208,
+          "end_mono_ns": 29666884257653
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29666884268668,
+          "end_mono_ns": 29668867979262
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29668867989156,
+          "end_mono_ns": 29670863442092
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29670863453644,
+          "end_mono_ns": 29672867121439
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29672867134761,
+          "end_mono_ns": 29674884940882
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_delay_100ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 652442,
+      "policy_decision_events": 652442,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 652442,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 122251,
+      "wrong_phase_fraction": 0.187374509918123,
+      "age_missing_count": 0,
+      "mean_age_ns": 1419925472.598182,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 223960,
+          "wrong_phase_count": 116601,
+          "mean_age_ns": 1458987018.8568048
+        },
+        "sparse": {
+          "measured_count": 428482,
+          "wrong_phase_count": 5650,
+          "mean_age_ns": 1399508689.8626616
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 539433,
+        "dense": 113009
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 652442,
+        "callback_invocations": 652442,
+        "decision_record_drops": 0,
+        "decision_records": 652442,
+        "decision_requests": 652442,
+        "decisions": 652442,
+        "dense_prefetch_decisions": 113009,
+        "discarded_prefetch_decisions": 539433,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 652442,
+        "effect_requests": 652442,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 652442,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 652442,
+        "snapshot_read_attempts": 652442,
+        "snapshot_read_successes": 652442,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 933900,
+        "gpu_faults": 851573,
+        "migrations": 1296873,
+        "migrated_bytes": 306368892928,
+        "prefetch_migrations": 312908,
+        "prefetch_bytes": 150690385920,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-01-bpf_fresh",
+      "block": 1,
+      "arm": "bpf_fresh",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_fresh",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_fresh/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29719325363516,
+          "end_mono_ns": 29721329985577
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29721330012323,
+          "end_mono_ns": 29723355534710
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29723355553327,
+          "end_mono_ns": 29725325891756
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29725325902152,
+          "end_mono_ns": 29727376989195
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29727377004884,
+          "end_mono_ns": 29729325320600
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29729325333277,
+          "end_mono_ns": 29731389740423
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-bpf_fresh/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 617640,
+      "policy_decision_events": 617640,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 617640,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 1,
+      "wrong_phase_fraction": 1.6190661226604494e-06,
+      "age_missing_count": 0,
+      "mean_age_ns": 1274039080.7939787,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 126704,
+          "wrong_phase_count": 0,
+          "mean_age_ns": 885185825.6253078
+        },
+        "sparse": {
+          "measured_count": 490936,
+          "wrong_phase_count": 1,
+          "mean_age_ns": 1374396892.8975751
+        }
+      },
+      "snapshot_phase_counts": {
+        "dense": 126705,
+        "sparse": 490935
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 617640,
+        "callback_invocations": 617640,
+        "decision_record_drops": 0,
+        "decision_records": 617640,
+        "decision_requests": 617640,
+        "decisions": 617640,
+        "dense_prefetch_decisions": 126705,
+        "discarded_prefetch_decisions": 490935,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 617640,
+        "effect_requests": 617640,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 617640,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 617640,
+        "snapshot_read_attempts": 617640,
+        "snapshot_read_successes": 617640,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 935016,
+        "gpu_faults": 668598,
+        "migrations": 1109420,
+        "migrated_bytes": 300982505472,
+        "prefetch_migrations": 285946,
+        "prefetch_bytes": 148383035392,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-01-native_delay_1000ms",
+      "block": 1,
+      "arm": "native_delay_1000ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_delay_1000ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_delay_1000ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29603925379769,
+          "end_mono_ns": 29605930369852
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29605930393380,
+          "end_mono_ns": 29608050531990
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29608050546053,
+          "end_mono_ns": 29609930710283
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29609930724186,
+          "end_mono_ns": 29612012332412
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29612012344979,
+          "end_mono_ns": 29613929167092
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29613929176926,
+          "end_mono_ns": 29616006615305
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_delay_1000ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 1355327,
+      "policy_decision_events": 1355327,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 1355327,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 1202036,
+      "wrong_phase_fraction": 0.8868974055707589,
+      "age_missing_count": 0,
+      "mean_age_ns": 2262823935.5838776,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 1203008,
+          "wrong_phase_count": 1141924,
+          "mean_age_ns": 2310658166.0001903
+        },
+        "sparse": {
+          "measured_count": 152319,
+          "wrong_phase_count": 60112,
+          "mean_age_ns": 1885031527.1209304
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 1234131,
+        "dense": 121196
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 1355327,
+        "decision_record_drops": 0,
+        "decision_records": 1355327,
+        "decision_requests": 1355327,
+        "decisions": 1355327,
+        "dense_prefetch_decisions": 121196,
+        "discarded_prefetch_decisions": 1234131,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 1355327,
+        "effect_requests": 1355327,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 1355327,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 1355327,
+        "request_errors": 0,
+        "selected_diagnostics": 1355327,
+        "snapshot_read_attempts": 1355327,
+        "snapshot_read_successes": 1355327,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 932955,
+        "gpu_faults": 1941511,
+        "migrations": 2644074,
+        "migrated_bytes": 274808934400,
+        "prefetch_migrations": 164958,
+        "prefetch_bytes": 132879855616,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-01-native_delay_100ms",
+      "block": 1,
+      "arm": "native_delay_100ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_delay_100ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_delay_100ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29746111996713,
+          "end_mono_ns": 29748116838657
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29748116872386,
+          "end_mono_ns": 29750159174094
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29750159194197,
+          "end_mono_ns": 29752116172214
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29752116186199,
+          "end_mono_ns": 29754135182622
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29754135195923,
+          "end_mono_ns": 29756116737135
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29756116747831,
+          "end_mono_ns": 29758187298056
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_delay_100ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 663943,
+      "policy_decision_events": 663943,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 663943,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 123939,
+      "wrong_phase_fraction": 0.18667114496274528,
+      "age_missing_count": 0,
+      "mean_age_ns": 1428066947.100135,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 224017,
+          "wrong_phase_count": 118337,
+          "mean_age_ns": 1468378552.666128
+        },
+        "sparse": {
+          "measured_count": 439926,
+          "wrong_phase_count": 5602,
+          "mean_age_ns": 1407539665.3662138
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 552661,
+        "dense": 111282
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 663943,
+        "decision_record_drops": 0,
+        "decision_records": 663943,
+        "decision_requests": 663943,
+        "decisions": 663943,
+        "dense_prefetch_decisions": 111282,
+        "discarded_prefetch_decisions": 552661,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 663943,
+        "effect_requests": 663943,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 663943,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 663943,
+        "request_errors": 0,
+        "selected_diagnostics": 663943,
+        "snapshot_read_attempts": 663943,
+        "snapshot_read_successes": 663943,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 935417,
+        "gpu_faults": 861948,
+        "migrations": 1308108,
+        "migrated_bytes": 303989796864,
+        "prefetch_migrations": 312104,
+        "prefetch_bytes": 149475950592,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-01-native_fresh",
+      "block": 1,
+      "arm": "native_fresh",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_fresh",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_fresh/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29691856465936,
+          "end_mono_ns": 29693869611809
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29693869631252,
+          "end_mono_ns": 29695877881771
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29695877899363,
+          "end_mono_ns": 29697857103264
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29697857134992,
+          "end_mono_ns": 29699895312429
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29699895333986,
+          "end_mono_ns": 29701863552720
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29701863566464,
+          "end_mono_ns": 29703875869805
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-native_fresh/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 595385,
+      "policy_decision_events": 595385,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 595385,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 260,
+      "wrong_phase_fraction": 0.0004366922243590282,
+      "age_missing_count": 0,
+      "mean_age_ns": 1268492159.2182236,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 114761,
+          "wrong_phase_count": 241,
+          "mean_age_ns": 933692976.9969414
+        },
+        "sparse": {
+          "measured_count": 480624,
+          "wrong_phase_count": 19,
+          "mean_age_ns": 1348433837.0181181
+        }
+      },
+      "snapshot_phase_counts": {
+        "dense": 114539,
+        "sparse": 480846
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 595385,
+        "decision_record_drops": 0,
+        "decision_records": 595385,
+        "decision_requests": 595385,
+        "decisions": 595385,
+        "dense_prefetch_decisions": 114539,
+        "discarded_prefetch_decisions": 480846,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 595385,
+        "effect_requests": 595385,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 595385,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 595385,
+        "request_errors": 0,
+        "selected_diagnostics": 595385,
+        "snapshot_read_attempts": 595385,
+        "snapshot_read_successes": 595385,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 934676,
+        "gpu_faults": 711411,
+        "migrations": 1138906,
+        "migrated_bytes": 306756497408,
+        "prefetch_migrations": 319332,
+        "prefetch_bytes": 151209234432,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-01-uvm_default",
+      "block": 1,
+      "arm": "uvm_default",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-uvm_default",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-01-uvm_default/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29640020852836,
+          "end_mono_ns": 29642022706908
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29642022734572,
+          "end_mono_ns": 29644063319923
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29644063338962,
+          "end_mono_ns": 29646024486643
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29646024500896,
+          "end_mono_ns": 29648081991743
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29648082013382,
+          "end_mono_ns": 29650022506179
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29650022517786,
+          "end_mono_ns": 29652083011509
+        }
+      ],
+      "status": "not_applicable",
+      "error": null,
+      "decisions_path": null,
+      "decision_lines": null,
+      "policy_decision_events": null,
+      "non_event_lines": null,
+      "parse_error_count": null,
+      "invalid_timestamp_count": null,
+      "measured_count": null,
+      "outside_phase_count": null,
+      "wrong_phase_count": null,
+      "wrong_phase_fraction": null,
+      "age_missing_count": null,
+      "mean_age_ns": null,
+      "phase_stats": null,
+      "snapshot_phase_counts": null,
+      "policy_final": null,
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 933531,
+        "gpu_faults": 1287827,
+        "migrations": 2335318,
+        "migrated_bytes": 244708474880,
+        "prefetch_migrations": 1086337,
+        "prefetch_bytes": 118479409152,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-02-bpf_delay_1000ms",
+      "block": 2,
+      "arm": "bpf_delay_1000ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_delay_1000ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_delay_1000ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29887854685357,
+          "end_mono_ns": 29889863964405
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29889863986237,
+          "end_mono_ns": 29891949802998
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29891949945367,
+          "end_mono_ns": 29893860462132
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29893860480312,
+          "end_mono_ns": 29895903383358
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29895903395025,
+          "end_mono_ns": 29897863788758
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29897863800625,
+          "end_mono_ns": 29899937756614
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_delay_1000ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 1395501,
+      "policy_decision_events": 1395501,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 1395501,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 1239959,
+      "wrong_phase_fraction": 0.8885403880040215,
+      "age_missing_count": 0,
+      "mean_age_ns": 2232375634.866975,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 1242483,
+          "wrong_phase_count": 1179498,
+          "mean_age_ns": 2274879134.7109513
+        },
+        "sparse": {
+          "measured_count": 153018,
+          "wrong_phase_count": 60461,
+          "mean_age_ns": 1887253649.2401612
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 1272055,
+        "dense": 123446
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 1395501,
+        "callback_invocations": 1395501,
+        "decision_record_drops": 0,
+        "decision_records": 1395501,
+        "decision_requests": 1395501,
+        "decisions": 1395501,
+        "dense_prefetch_decisions": 123446,
+        "discarded_prefetch_decisions": 1272055,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 1395501,
+        "effect_requests": 1395501,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 1395501,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 1395501,
+        "snapshot_read_attempts": 1395501,
+        "snapshot_read_successes": 1395501,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 937538,
+        "gpu_faults": 2002712,
+        "migrations": 2723171,
+        "migrated_bytes": 278916173824,
+        "prefetch_migrations": 167480,
+        "prefetch_bytes": 134333407232,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-02-bpf_delay_100ms",
+      "block": 2,
+      "arm": "bpf_delay_100ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_delay_100ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_delay_100ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29860654136250,
+          "end_mono_ns": 29862654881147
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29862654900445,
+          "end_mono_ns": 29864717031082
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29864717045093,
+          "end_mono_ns": 29866656333980
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29866656346432,
+          "end_mono_ns": 29868662450946
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29868662487048,
+          "end_mono_ns": 29870655798186
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29870655820973,
+          "end_mono_ns": 29872661556590
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_delay_100ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 666003,
+      "policy_decision_events": 666003,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 666003,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 120427,
+      "wrong_phase_fraction": 0.18082050681453388,
+      "age_missing_count": 0,
+      "mean_age_ns": 1430029526.2670393,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 217155,
+          "wrong_phase_count": 114799,
+          "mean_age_ns": 1478283611.4594598
+        },
+        "sparse": {
+          "measured_count": 448848,
+          "wrong_phase_count": 5628,
+          "mean_age_ns": 1406683948.543712
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 558019,
+        "dense": 107984
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 666003,
+        "callback_invocations": 666003,
+        "decision_record_drops": 0,
+        "decision_records": 666003,
+        "decision_requests": 666003,
+        "decisions": 666003,
+        "dense_prefetch_decisions": 107984,
+        "discarded_prefetch_decisions": 558019,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 666003,
+        "effect_requests": 666003,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 666003,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 666003,
+        "snapshot_read_attempts": 666003,
+        "snapshot_read_successes": 666003,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 937195,
+        "gpu_faults": 877222,
+        "migrations": 1323347,
+        "migrated_bytes": 306620338176,
+        "prefetch_migrations": 322707,
+        "prefetch_bytes": 150760505344,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-02-bpf_fresh",
+      "block": 2,
+      "arm": "bpf_fresh",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_fresh",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_fresh/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29946783198535,
+          "end_mono_ns": 29948787708125
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29948787727762,
+          "end_mono_ns": 29950851783331
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29950851797431,
+          "end_mono_ns": 29952788175980
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29952788186083,
+          "end_mono_ns": 29954793934720
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29954794109053,
+          "end_mono_ns": 29956798178318
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29956798198113,
+          "end_mono_ns": 29958811728795
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-bpf_fresh/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 583849,
+      "policy_decision_events": 583849,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 583849,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 50,
+      "wrong_phase_fraction": 8.563858120849741e-05,
+      "age_missing_count": 0,
+      "mean_age_ns": 1270009129.4304075,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 114443,
+          "wrong_phase_count": 36,
+          "mean_age_ns": 930229457.8608215
+        },
+        "sparse": {
+          "measured_count": 469406,
+          "wrong_phase_count": 14,
+          "mean_age_ns": 1352848728.7398286
+        }
+      },
+      "snapshot_phase_counts": {
+        "dense": 114421,
+        "sparse": 469428
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 583849,
+        "callback_invocations": 583849,
+        "decision_record_drops": 0,
+        "decision_records": 583849,
+        "decision_requests": 583849,
+        "decisions": 583849,
+        "dense_prefetch_decisions": 114421,
+        "discarded_prefetch_decisions": 469428,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 583849,
+        "effect_requests": 583849,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 583849,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 583849,
+        "snapshot_read_attempts": 583849,
+        "snapshot_read_successes": 583849,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 938567,
+        "gpu_faults": 698972,
+        "migrations": 1128021,
+        "migrated_bytes": 306170646528,
+        "prefetch_migrations": 319531,
+        "prefetch_bytes": 150938787840,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-02-native_delay_1000ms",
+      "block": 2,
+      "arm": "native_delay_1000ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_delay_1000ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_delay_1000ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29806284294350,
+          "end_mono_ns": 29808285857424
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29808285876186,
+          "end_mono_ns": 29810349053798
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29810349067694,
+          "end_mono_ns": 29812295405866
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29812295439125,
+          "end_mono_ns": 29814336777100
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29814336796885,
+          "end_mono_ns": 29816290456125
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29816290468735,
+          "end_mono_ns": 29818349890983
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_delay_1000ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 1377309,
+      "policy_decision_events": 1377309,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 1377309,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 1221787,
+      "wrong_phase_fraction": 0.8870827098349027,
+      "age_missing_count": 0,
+      "mean_age_ns": 2229625358.231205,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 1224988,
+          "wrong_phase_count": 1161261,
+          "mean_age_ns": 2272005728.674091
+        },
+        "sparse": {
+          "measured_count": 152321,
+          "wrong_phase_count": 60526,
+          "mean_age_ns": 1888796153.931802
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 1253056,
+        "dense": 124253
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 1377309,
+        "decision_record_drops": 0,
+        "decision_records": 1377309,
+        "decision_requests": 1377309,
+        "decisions": 1377309,
+        "dense_prefetch_decisions": 124253,
+        "discarded_prefetch_decisions": 1253056,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 1377309,
+        "effect_requests": 1377309,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 1377309,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 1377309,
+        "request_errors": 0,
+        "selected_diagnostics": 1377309,
+        "snapshot_read_attempts": 1377309,
+        "snapshot_read_successes": 1377309,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 936369,
+        "gpu_faults": 1981041,
+        "migrations": 2690105,
+        "migrated_bytes": 281188720640,
+        "prefetch_migrations": 170011,
+        "prefetch_bytes": 135621509120,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-02-native_delay_100ms",
+      "block": 2,
+      "arm": "native_delay_100ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_delay_100ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_delay_100ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29973420249594,
+          "end_mono_ns": 29975435107191
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29975435125816,
+          "end_mono_ns": 29977476243148
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29977476259422,
+          "end_mono_ns": 29979428464521
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29979428478642,
+          "end_mono_ns": 29981457174875
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29981457186904,
+          "end_mono_ns": 29983428022510
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29983428034411,
+          "end_mono_ns": 29985484633399
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_delay_100ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 658308,
+      "policy_decision_events": 658308,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 658308,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 123110,
+      "wrong_phase_fraction": 0.1870097279692788,
+      "age_missing_count": 0,
+      "mean_age_ns": 1438535352.2203012,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 219422,
+          "wrong_phase_count": 117409,
+          "mean_age_ns": 1487262132.1375706
+        },
+        "sparse": {
+          "measured_count": 438886,
+          "wrong_phase_count": 5701,
+          "mean_age_ns": 1414174293.760913
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 550594,
+        "dense": 107714
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 658308,
+        "decision_record_drops": 0,
+        "decision_records": 658308,
+        "decision_requests": 658308,
+        "decisions": 658308,
+        "dense_prefetch_decisions": 107714,
+        "discarded_prefetch_decisions": 550594,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 658308,
+        "effect_requests": 658308,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 658308,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 658308,
+        "request_errors": 0,
+        "selected_diagnostics": 658308,
+        "snapshot_read_attempts": 658308,
+        "snapshot_read_successes": 658308,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 938911,
+        "gpu_faults": 871724,
+        "migrations": 1315659,
+        "migrated_bytes": 305843417088,
+        "prefetch_migrations": 321150,
+        "prefetch_bytes": 150387539968,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-02-native_fresh",
+      "block": 2,
+      "arm": "native_fresh",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_fresh",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_fresh/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29920215629906,
+          "end_mono_ns": 29922216488079
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29922216505342,
+          "end_mono_ns": 29924253460832
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29924253475788,
+          "end_mono_ns": 29926226838206
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29926226850698,
+          "end_mono_ns": 29928229345542
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29928229358347,
+          "end_mono_ns": 29930223821037
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29930223832456,
+          "end_mono_ns": 29932255968421
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-native_fresh/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 561441,
+      "policy_decision_events": 561441,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 561441,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 51,
+      "wrong_phase_fraction": 9.083768374593235e-05,
+      "age_missing_count": 0,
+      "mean_age_ns": 1279221347.7114727,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 101585,
+          "wrong_phase_count": 49,
+          "mean_age_ns": 984228542.324605
+        },
+        "sparse": {
+          "measured_count": 459856,
+          "wrong_phase_count": 2,
+          "mean_age_ns": 1344387060.7503915
+        }
+      },
+      "snapshot_phase_counts": {
+        "dense": 101538,
+        "sparse": 459903
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 561441,
+        "decision_record_drops": 0,
+        "decision_records": 561441,
+        "decision_requests": 561441,
+        "decisions": 561441,
+        "dense_prefetch_decisions": 101538,
+        "discarded_prefetch_decisions": 459903,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 561441,
+        "effect_requests": 561441,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 561441,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 561441,
+        "request_errors": 0,
+        "selected_diagnostics": 561441,
+        "snapshot_read_attempts": 561441,
+        "snapshot_read_successes": 561441,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 938166,
+        "gpu_faults": 738017,
+        "migrations": 1159773,
+        "migrated_bytes": 311348686848,
+        "prefetch_migrations": 353978,
+        "prefetch_bytes": 153461313536,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-02-uvm_default",
+      "block": 2,
+      "arm": "uvm_default",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-uvm_default",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-02-uvm_default/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 29838433736404,
+          "end_mono_ns": 29840450423418
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29840450445981,
+          "end_mono_ns": 29842498069839
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29842498084733,
+          "end_mono_ns": 29844442916757
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29844442930765,
+          "end_mono_ns": 29846477390023
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 29846477404518,
+          "end_mono_ns": 29848452746360
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 29848452758139,
+          "end_mono_ns": 29850487144745
+        }
+      ],
+      "status": "not_applicable",
+      "error": null,
+      "decisions_path": null,
+      "decision_lines": null,
+      "policy_decision_events": null,
+      "non_event_lines": null,
+      "parse_error_count": null,
+      "invalid_timestamp_count": null,
+      "measured_count": null,
+      "outside_phase_count": null,
+      "wrong_phase_count": null,
+      "wrong_phase_fraction": null,
+      "age_missing_count": null,
+      "mean_age_ns": null,
+      "phase_stats": null,
+      "snapshot_phase_counts": null,
+      "policy_final": null,
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 936899,
+        "gpu_faults": 1289958,
+        "migrations": 2350335,
+        "migrated_bytes": 246276358144,
+        "prefetch_migrations": 1093870,
+        "prefetch_bytes": 119232933888,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-03-bpf_delay_1000ms",
+      "block": 3,
+      "arm": "bpf_delay_1000ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_delay_1000ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_delay_1000ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 30103226991136,
+          "end_mono_ns": 30105237564498
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30105237583778,
+          "end_mono_ns": 30107303057411
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30107303072674,
+          "end_mono_ns": 30109237501300
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30109237513579,
+          "end_mono_ns": 30111296521126
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30111296534255,
+          "end_mono_ns": 30113237895742
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30113237905515,
+          "end_mono_ns": 30115283088330
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_delay_1000ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 1366093,
+      "policy_decision_events": 1366093,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 1366093,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 1210832,
+      "wrong_phase_fraction": 0.8863466835713235,
+      "age_missing_count": 0,
+      "mean_age_ns": 2234813776.430146,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 1213782,
+          "wrong_phase_count": 1150183,
+          "mean_age_ns": 2278147017.5558915
+        },
+        "sparse": {
+          "measured_count": 152311,
+          "wrong_phase_count": 60649,
+          "mean_age_ns": 1889486727.9563723
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 1241845,
+        "dense": 124248
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 1366093,
+        "callback_invocations": 1366093,
+        "decision_record_drops": 0,
+        "decision_records": 1366093,
+        "decision_requests": 1366093,
+        "decisions": 1366093,
+        "dense_prefetch_decisions": 124248,
+        "discarded_prefetch_decisions": 1241845,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 1366093,
+        "effect_requests": 1366093,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 1366093,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 1366093,
+        "snapshot_read_attempts": 1366093,
+        "snapshot_read_successes": 1366093,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 940859,
+        "gpu_faults": 1956121,
+        "migrations": 2670657,
+        "migrated_bytes": 280952737792,
+        "prefetch_migrations": 170008,
+        "prefetch_bytes": 135839830016,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-03-bpf_delay_100ms",
+      "block": 3,
+      "arm": "bpf_delay_100ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_delay_100ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_delay_100ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 30168890603328,
+          "end_mono_ns": 30170892212573
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30170892231612,
+          "end_mono_ns": 30172909431172
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30172909447906,
+          "end_mono_ns": 30174896300203
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30174896311645,
+          "end_mono_ns": 30176912582903
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30176912592939,
+          "end_mono_ns": 30178897051344
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30178897060618,
+          "end_mono_ns": 30180951883965
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_delay_100ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 663424,
+      "policy_decision_events": 663424,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 663424,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 123077,
+      "wrong_phase_fraction": 0.1855178588655219,
+      "age_missing_count": 0,
+      "mean_age_ns": 1425789997.8449183,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 224770,
+          "wrong_phase_count": 117395,
+          "mean_age_ns": 1465923950.6299596
+        },
+        "sparse": {
+          "measured_count": 438654,
+          "wrong_phase_count": 5682,
+          "mean_age_ns": 1405225022.7905617
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 550367,
+        "dense": 113057
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 663424,
+        "callback_invocations": 663424,
+        "decision_record_drops": 0,
+        "decision_records": 663424,
+        "decision_requests": 663424,
+        "decisions": 663424,
+        "dense_prefetch_decisions": 113057,
+        "discarded_prefetch_decisions": 550367,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 663424,
+        "effect_requests": 663424,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 663424,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 663424,
+        "snapshot_read_attempts": 663424,
+        "snapshot_read_successes": 663424,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 941966,
+        "gpu_faults": 863474,
+        "migrations": 1308552,
+        "migrated_bytes": 306407034880,
+        "prefetch_migrations": 312999,
+        "prefetch_bytes": 150685249536,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-03-bpf_fresh",
+      "block": 3,
+      "arm": "bpf_fresh",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_fresh",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_fresh/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 30054785825550,
+          "end_mono_ns": 30056786003105
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30056786020627,
+          "end_mono_ns": 30058811685385
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30058811699326,
+          "end_mono_ns": 30060790586085
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30060790596833,
+          "end_mono_ns": 30062799760069
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30062799769588,
+          "end_mono_ns": 30064797713247
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30064797725438,
+          "end_mono_ns": 30066858326484
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-bpf_fresh/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 571673,
+      "policy_decision_events": 571673,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 571673,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 2,
+      "wrong_phase_fraction": 3.4985035151214067e-06,
+      "age_missing_count": 0,
+      "mean_age_ns": 1286544865.7977252,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 101763,
+          "wrong_phase_count": 0,
+          "mean_age_ns": 986686938.1189626
+        },
+        "sparse": {
+          "measured_count": 469910,
+          "wrong_phase_count": 2,
+          "mean_age_ns": 1351481645.8074589
+        }
+      },
+      "snapshot_phase_counts": {
+        "dense": 101765,
+        "sparse": 469908
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 571673,
+        "callback_invocations": 571673,
+        "decision_record_drops": 0,
+        "decision_records": 571673,
+        "decision_requests": 571673,
+        "decisions": 571673,
+        "dense_prefetch_decisions": 101765,
+        "discarded_prefetch_decisions": 469908,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 571673,
+        "effect_requests": 571673,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 571673,
+        "implementation": "bpf",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 0,
+        "request_errors": 0,
+        "selected_diagnostics": 571673,
+        "snapshot_read_attempts": 571673,
+        "snapshot_read_successes": 571673,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 940173,
+        "gpu_faults": 752343,
+        "migrations": 1172595,
+        "migrated_bytes": 311922315264,
+        "prefetch_migrations": 355338,
+        "prefetch_bytes": 153722175488,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-03-native_delay_1000ms",
+      "block": 3,
+      "arm": "native_delay_1000ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_delay_1000ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_delay_1000ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 30135874944561,
+          "end_mono_ns": 30137875535937
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30137875555342,
+          "end_mono_ns": 30139948044258
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30139948055855,
+          "end_mono_ns": 30141882303450
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30141882313780,
+          "end_mono_ns": 30143937719160
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30143937729464,
+          "end_mono_ns": 30145883271142
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30145883279872,
+          "end_mono_ns": 30147972492316
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_delay_1000ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 1375849,
+      "policy_decision_events": 1375849,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 1375849,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 1220627,
+      "wrong_phase_fraction": 0.8871809333727756,
+      "age_missing_count": 0,
+      "mean_age_ns": 2235547566.1624584,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 1223539,
+          "wrong_phase_count": 1160274,
+          "mean_age_ns": 2278809255.7409873
+        },
+        "sparse": {
+          "measured_count": 152310,
+          "wrong_phase_count": 60353,
+          "mean_age_ns": 1888017105.882608
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 1252231,
+        "dense": 123618
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 1375849,
+        "decision_record_drops": 0,
+        "decision_records": 1375849,
+        "decision_requests": 1375849,
+        "decisions": 1375849,
+        "dense_prefetch_decisions": 123618,
+        "discarded_prefetch_decisions": 1252231,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 1375849,
+        "effect_requests": 1375849,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 1375849,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 1375849,
+        "request_errors": 0,
+        "selected_diagnostics": 1375849,
+        "snapshot_read_attempts": 1375849,
+        "snapshot_read_successes": 1375849,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 941318,
+        "gpu_faults": 1978957,
+        "migrations": 2687988,
+        "migrated_bytes": 279157211136,
+        "prefetch_migrations": 168888,
+        "prefetch_bytes": 134891765760,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-03-native_delay_100ms",
+      "block": 3,
+      "arm": "native_delay_100ms",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_delay_100ms",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_delay_100ms/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 30027299829781,
+          "end_mono_ns": 30029301741227
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30029301759517,
+          "end_mono_ns": 30031301342684
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30031301354790,
+          "end_mono_ns": 30033311361996
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30033311374698,
+          "end_mono_ns": 30035364386096
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30035364398036,
+          "end_mono_ns": 30037308495698
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30037308508917,
+          "end_mono_ns": 30039355299897
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_delay_100ms/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 663767,
+      "policy_decision_events": 663767,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 663767,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 123165,
+      "wrong_phase_fraction": 0.18555456960047728,
+      "age_missing_count": 0,
+      "mean_age_ns": 1428752303.4410734,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 224353,
+          "wrong_phase_count": 117503,
+          "mean_age_ns": 1467319520.8678555
+        },
+        "sparse": {
+          "measured_count": 439414,
+          "wrong_phase_count": 5662,
+          "mean_age_ns": 1409060916.8868196
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 551255,
+        "dense": 112512
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 663767,
+        "decision_record_drops": 0,
+        "decision_records": 663767,
+        "decision_requests": 663767,
+        "decisions": 663767,
+        "dense_prefetch_decisions": 112512,
+        "discarded_prefetch_decisions": 551255,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 663767,
+        "effect_requests": 663767,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 663767,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 663767,
+        "request_errors": 0,
+        "selected_diagnostics": 663767,
+        "snapshot_read_attempts": 663767,
+        "snapshot_read_successes": 663767,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 939799,
+        "gpu_faults": 861123,
+        "migrations": 1309326,
+        "migrated_bytes": 305837060096,
+        "prefetch_migrations": 313363,
+        "prefetch_bytes": 150398251008,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-03-native_fresh",
+      "block": 3,
+      "arm": "native_fresh",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_fresh",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_fresh/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 30000620070601,
+          "end_mono_ns": 30002633107760
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30002633128467,
+          "end_mono_ns": 30004668872908
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30004668887214,
+          "end_mono_ns": 30006634855280
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30006634865518,
+          "end_mono_ns": 30008633072793
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30008633085784,
+          "end_mono_ns": 30010630706636
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30010630717592,
+          "end_mono_ns": 30012667925246
+        }
+      ],
+      "decisions_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-native_fresh/policy-decisions.jsonl",
+      "decisions_format": "plain",
+      "error": null,
+      "status": "measured",
+      "decision_lines": 584407,
+      "policy_decision_events": 584407,
+      "non_event_lines": 0,
+      "parse_error_count": 0,
+      "invalid_timestamp_count": 0,
+      "measured_count": 584407,
+      "outside_phase_count": 0,
+      "wrong_phase_count": 34,
+      "wrong_phase_fraction": 5.817863235724418e-05,
+      "age_missing_count": 0,
+      "mean_age_ns": 1266793413.9017088,
+      "phase_stats": {
+        "dense": {
+          "measured_count": 114949,
+          "wrong_phase_count": 33,
+          "mean_age_ns": 935627746.6706104
+        },
+        "sparse": {
+          "measured_count": 469458,
+          "wrong_phase_count": 1,
+          "mean_age_ns": 1347880885.587243
+        }
+      },
+      "snapshot_phase_counts": {
+        "sparse": 469490,
+        "dense": 114917
+      },
+      "policy_final": {
+        "bpf_callback_invocations": 0,
+        "callback_invocations": 584407,
+        "decision_record_drops": 0,
+        "decision_records": 584407,
+        "decision_requests": 584407,
+        "decisions": 584407,
+        "dense_prefetch_decisions": 114917,
+        "discarded_prefetch_decisions": 469490,
+        "effect_errors": 0,
+        "effect_record_drops": 0,
+        "effect_records": 584407,
+        "effect_requests": 584407,
+        "event": "final_policy_stats",
+        "finished_diagnostics": 584407,
+        "implementation": "native",
+        "invalid_snapshot_decisions": 0,
+        "missing_snapshot_decisions": 0,
+        "native_callback_invocations": 584407,
+        "request_errors": 0,
+        "selected_diagnostics": 584407,
+        "snapshot_read_attempts": 584407,
+        "snapshot_read_successes": 584407,
+        "snapshot_rejections": 0,
+        "snapshot_updates": 7
+      },
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 939323,
+        "gpu_faults": 696583,
+        "migrations": 1129729,
+        "migrated_bytes": 307750023168,
+        "prefetch_migrations": 320281,
+        "prefetch_bytes": 151725158400,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    },
+    {
+      "cell": "block-03-uvm_default",
+      "block": 3,
+      "arm": "uvm_default",
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-uvm_default",
+      "workload_result_path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/stale-state-575/raw/stale-state-575-performance-gds-20260907-01/block-03-uvm_default/workload-result.json",
+      "phases": [
+        {
+          "phase": "dense",
+          "start_mono_ns": 30080855689721,
+          "end_mono_ns": 30082868798645
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30082868818427,
+          "end_mono_ns": 30084915775373
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30084915792682,
+          "end_mono_ns": 30086856027081
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30086856039889,
+          "end_mono_ns": 30088890144938
+        },
+        {
+          "phase": "dense",
+          "start_mono_ns": 30088890159706,
+          "end_mono_ns": 30090858762397
+        },
+        {
+          "phase": "sparse",
+          "start_mono_ns": 30090858777498,
+          "end_mono_ns": 30092895014188
+        }
+      ],
+      "status": "not_applicable",
+      "error": null,
+      "decisions_path": null,
+      "decision_lines": null,
+      "policy_decision_events": null,
+      "non_event_lines": null,
+      "parse_error_count": null,
+      "invalid_timestamp_count": null,
+      "measured_count": null,
+      "outside_phase_count": null,
+      "wrong_phase_count": null,
+      "wrong_phase_fraction": null,
+      "age_missing_count": null,
+      "mean_age_ns": null,
+      "phase_stats": null,
+      "snapshot_phase_counts": null,
+      "policy_final": null,
+      "final_uvm_stats": {
+        "event": "final_uvm_stats",
+        "pid": 940563,
+        "gpu_faults": 1293475,
+        "migrations": 2348416,
+        "migrated_bytes": 246271377408,
+        "prefetch_migrations": 1092919,
+        "prefetch_bytes": 119234252800,
+        "thrashing_events": 0,
+        "eviction_events": 0,
+        "fault_buffer_overflows": 0,
+        "dropped_gpu_faults": 0,
+        "dropped_migrations": 0,
+        "dropped_thrashing": 0,
+        "dropped_evictions": 0
+      },
+      "issues": []
+    }
+  ]
+}

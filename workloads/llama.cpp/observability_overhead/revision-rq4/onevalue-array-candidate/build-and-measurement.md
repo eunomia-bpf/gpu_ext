@@ -49,24 +49,28 @@ Its CUDA context still exists before map allocation and outlives collection.
 The diagnostic process and its temporary shared-memory segment were removed;
 all experiment logs and numeric records are retained.
 
-## First completed pair; remaining pairs running
+## Completed five-pair comparison
 
 [Raw campaign](../results-onevalue-array-bootstrap-575-20260907/cells.json):
 RTX 5090, driver 575.57.08, TinyLlama-1.1B Q4_K_M, pp512, one repetition
 with the existing warmup, CUDA graphs disabled, CPU affinity 8–15. Five
-alternating-order baseline/candidate pairs are planned; block 1 is complete
-and blocks 2–5 continue without rerunning block 1. No process timeout is set.
+alternating-order baseline/candidate pairs are complete. Blocks 2–5 resumed
+the same campaign without rerunning block 1. No process timeout was set.
 
 The first baseline is 38032.055080 token/s and the candidate is
-35945.547270 token/s: **5.486182% overhead for this one pair**, not yet a
-five-block aggregate. Both benchmark and collector exit zero. Collection
+35945.547270 token/s: 5.486182% overhead for this one pair. Across all five
+pairs, baseline/candidate means are 37979.256081/35861.535104 token/s and
+mean paired overhead is **5.572554%**, range 4.017536%–6.704966%.
+All ten benchmarks and all five collectors exit zero. Every collection
 reports 720896 stored 32-byte records, 16384 active warp coordinates and no
 reported overflow, out-of-range coordinates or coordinate mismatches.
-The single 23199768-byte host lookup takes 10157582 ns (10.158 ms).
+The single 23199768-byte host lookup takes 10.379 ms on average,
+range 10.158–10.960 ms. See the [complete report](../results-onevalue-array-bootstrap-575-20260907/README.md).
 
 Prefill token/s excludes startup/JIT and final collection, as does the
 original Table 1 measurement. Final collection is reported separately;
 deferring it does not make its cost disappear. The arena is sized for this
 finite pp512 run and is not an unbounded streaming collector. Existing P40
 and RTX 5090 measurements, including 90.705% gpubpf and 99.621% NVBit overhead,
-remain unchanged. No five-block optimized claim is made before those runs finish.
+remain unchanged. This completed five-pair comparison is additional evidence,
+not a replacement for the original three-tool campaign. Do not rerun it.

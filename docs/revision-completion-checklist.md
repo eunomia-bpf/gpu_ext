@@ -1,6 +1,6 @@
 # Revision completion checklist
 
-Updated 2026-09-06 UTC. The user requests completion of the remaining items,
+Updated 2026-09-07 UTC. The user requests completion of the remaining items,
 not only a status audit. The [complete review archive](paper/asplos-27-rebuttal/README.md)
 define the scope. The dated plan in the paper repository is not evidence that
 these commitments have been met. Experimental completion, paper integration,
@@ -12,8 +12,13 @@ The complete RTX 5090 campaign contains 10 rotated blocks and 70 successful
 numeric cells. Baseline is 37,586.3225 token/s; gpubpf/NVBit overhead is
 90.7051%/99.6210% for `kernelretsnoop`, 2.9653%/10.3501% for `threadhist`, and
 0.2208%/8.7959% for `launchlate`. The submitted P40 values remain retained.
-`kernelretsnoop` optimization is active work because its current gpubpf cost is
-still much higher than the submitted 8% value.
+The separate [GPU-local array follow-up](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)
+now completes five paired blocks: mean baseline/tool throughput is
+37979.2561/35861.5351 token/s and mean paired overhead is **5.5726%**
+(range 4.0175%–6.7050%). All ten benchmarks and five collectors exit zero;
+every tool run retains 720896 full records. Final bulk lookup averages
+10.379 ms, separately reported and excluded from prefill timing. This is a
+finite pp512 buffer, not an unbounded streaming result; old numbers are retained.
 
 **2026-09-06 GDS end-to-end update:** the [five-block raw summary](../workloads/lmcache-disk/raw/gds-five-arm-575-20260906-five-block-formal/summary.json)
 now completes 25/25 LMCache cells. Recompute / CPU / GDS FIFO / native / BPF
@@ -52,7 +57,10 @@ medians worsen. BPF/native paired p99 has median **+0.538%**, range
 **-15.884% to +6.322%**; this is not a tight mechanism-overhead bound.
 This closes the runner's process/timing implementation follow-up and measures
 the fixed-delay storage-policy tradeoff. Live pending-demand feedback remains
-distinct unfinished policy work. Prior dispatch-only and burst data remain.
+distinct unfinished policy work. Its matching native/BPF flagged-write branch
+is implemented and built in main commit `f105c6fd`; live counter/executor and
+runner wiring remain unfinished, and the new object is not yet loaded.
+Prior dispatch-only and burst data remain.
 Paper commit `277c77f` now integrates this policy-behavior comparison into
 `tex-revision/tex/eval.tex`, including the adverse p50/write-throughput results,
 the BPF/native range, and the storage-request versus application-TTFT distinction.
@@ -62,8 +70,9 @@ or figure was introduced for this integration.
 The separate [final-only collector comparison](../workloads/llama.cpp/observability_overhead/revision-rq4/results-final-only-575-20260907/README.md)
 completes five baseline/tool pairs with **3493.318 token/s / 90.812% overhead**
 and all 720896 events per tool run retained. It does not resolve kernelretsnoop's
-high overhead. The GPU-local producer-array candidates remain unmeasured;
-the existing three-tool Table 1 and every earlier result are unchanged.
+high overhead. The GPU-local producer-array follow-up above is now measured
+and lowers prefill overhead to 5.573%; its collection cost remains explicit.
+The existing three-tool Table 1 and every earlier result are unchanged.
 
 The [end-to-end report](../workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md)
 and raw records are pushed. Paper commit `c254a98` adds the measured storage

@@ -1,8 +1,11 @@
 # Runtime facts for the two kernelretsnoop candidates
 
-These are implementation pointers, not new experiment gates. No optimized
-performance is claimed here. Both local-model tasks preserve existing sources
-and results and produce separately selectable candidates.
+These are implementation pointers, not new experiment gates. The
+[GPU-local array comparison](results-onevalue-array-bootstrap-575-20260907/README.md)
+is now complete: five paired blocks, 35861.535 token/s and mean paired
+overhead 5.573%, with all 720896 records per run. Final bulk lookup averages
+10.379 ms and is outside prefill timing. Existing sources and all old numbers
+are retained. The implementation is a separately selectable finite pp512 buffer.
 
 The separate [final-only collector experiment](results-final-only-575-20260907/README.md)
 is now measured: five baseline/tool pairs, mean throughput 3493.318 token/s

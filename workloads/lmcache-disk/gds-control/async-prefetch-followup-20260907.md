@@ -75,6 +75,17 @@ written at continuation. Small incremental model writes are requested to
 preserve partial progress, not as an execution timeout. No new serving cells
 have run, and no additional performance result is claimed.
 
+The continued Qwen 27B task has now written the initial runner and completed
+a small shared-launcher compatibility fix. Main `lmcache_primitives.py` had
+no `kv_cache_memory_bytes` parameter even though `run_gds_five_arm.py` passes
+it; the old campaign worktree had that option. The main helper now accepts
+optional KV-cache bytes and `max_num_seqs`, retaining `uvm_weights` and the
+old defaults. Root's CPU-only import/argument construction confirms default
+sequence count 1 with no explicit KV limit, and opt-in sequence count 2 with
+805306368 KV bytes; binding the full `start_server` signature succeeds.
+No subprocess or GPU benchmark was launched by this check. The unfinished
+runner is not included in the helper-fix commit.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

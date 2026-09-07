@@ -572,21 +572,29 @@ def server_environment(config: str, cache_dir: Path,
     return env
 
 
-def server_argv(config: str, model_path: Path, port: int | str) -> list[str]:
+def server_argv(config: str, model_path: Path, port: int | str,
+                max_num_seqs: int | None = None,
+                kv_cache_memory_bytes: int | None = None) -> list[str]:
     argv = [str(VLLM), "serve", str(model_path), "--served-model-name", MODEL_ID,
             "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.98",
-            "--max-num-seqs", "1", "--no-enable-prefix-caching", "--port", str(port)]
+            "--max-num-seqs", str("1" if max_num_seqs is None else max_num_seqs),
+            "--no-enable-prefix-caching", "--port", str(port)]
     if config != "recompute":
         argv.extend(["--kv-transfer-config", canonical(
             {"kv_connector": "LMCacheConnectorV1", "kv_role": "kv_both"}
         )])
+    if kv_cache_memory_bytes is not None:
+        argv.extend(["--kv-cache-memory-bytes", str(kv_cache_memory_bytes)])
     return argv
 
 
 def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_path: Path,
                  trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER,
-                 uvm_weights: dict[str, str] | None = None):
-    argv = server_argv(config, model_path, port)
+                 uvm_weights: dict[str, str] | None = None,
+                 max_num_seqs: int | None = None,
+                 kv_cache_memory_bytes: int | None = None):
+    argv = server_argv(config, model_path, port, max_num_seqs=max_num_seqs,
+                       kv_cache_memory_bytes=kv_cache_memory_bytes)
     launch = list(argv)
     if trace_dir is not None:
         trace_dir = trace_dir.resolve()

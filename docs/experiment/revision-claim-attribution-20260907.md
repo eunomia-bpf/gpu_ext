@@ -88,3 +88,24 @@ Its new figure/source/data files are now present. Root's visual inspection
 found a clipped axis label and requested a short label plus caption; this
 local session remains active. The existing figure and every original result
 remain intact. Figure integration is not yet marked complete.
+
+## Published device figure
+
+Paper `a60ffb0` integrates the local Qwen 27B plot, source and full plotted
+data. The old P40 points and all ten original RTX 5090 pairs remain alongside
+the independent five-pair GPU-array result. The axis preserves negative
+launchlate samples. Root inspected the compiled page 15: labels are visible,
+and the caption separates each campaign's baseline, min--max range and the
+final 10.38 ms readback outside prefill. The old PDF remains unchanged.
+Two pdflatex passes succeed (17 pages, 4,538,515 bytes;
+`/var/tmp/revision-device-array-figure-20260907.log`). The conclusion and
+references now begin on page 15, so this build is not a final page-budget
+approval. A 1.848 pt final-page vertical overflow also remains recorded in
+the build log, not treated as a missing-performance-data gate.
+
+Qwen's caption/reproduction note is finishing separately. Local OpenCode GLM
+session `ses_f84aa39ecffeeFydNz5D0teAMc` (runner handle 37822) is preparing
+one unsubmitted revision-response draft from the existing commitments and
+results. It owns only `asplos-27-rebuttal/revision-response-draft-20260907.md`.
+No external conference action or new GPU measurement is authorized by this
+draft task. Original historical agent transcripts remain missing.

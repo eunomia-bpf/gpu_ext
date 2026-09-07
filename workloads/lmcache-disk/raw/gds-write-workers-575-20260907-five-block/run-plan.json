@@ -1,0 +1,279 @@
+{
+  "source": "a78c9d0f",
+  "orchestration": "Root invokes existing single-cell runner directly; no completed cells repeated",
+  "cells": [
+    {
+      "block": 0,
+      "position": 0,
+      "arm": "fifo_default",
+      "config": "gds_fifo",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-0-fifo_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 0 --position 0 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-0-fifo_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 0,
+      "position": 1,
+      "arm": "native_default",
+      "config": "gds_native",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-1-native_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 0 --position 1 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-1-native_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 0,
+      "position": 2,
+      "arm": "bpf_default",
+      "config": "gds_bpf",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-2-bpf_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 0 --position 2 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-2-bpf_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 0,
+      "position": 3,
+      "arm": "fifo4",
+      "config": "gds_fifo",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-3-fifo4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 0 --position 3 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-3-fifo4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 0,
+      "position": 4,
+      "arm": "native4",
+      "config": "gds_native",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-4-native4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 0 --position 4 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-4-native4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 0,
+      "position": 5,
+      "arm": "bpf4",
+      "config": "gds_bpf",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-5-bpf4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 0 --position 5 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-00/position-5-bpf4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 1,
+      "position": 0,
+      "arm": "native_default",
+      "config": "gds_native",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-0-native_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 1 --position 0 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-0-native_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 1,
+      "position": 1,
+      "arm": "bpf_default",
+      "config": "gds_bpf",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-1-bpf_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 1 --position 1 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-1-bpf_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 1,
+      "position": 2,
+      "arm": "fifo4",
+      "config": "gds_fifo",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-2-fifo4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 1 --position 2 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-2-fifo4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 1,
+      "position": 3,
+      "arm": "native4",
+      "config": "gds_native",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-3-native4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 1 --position 3 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-3-native4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 1,
+      "position": 4,
+      "arm": "bpf4",
+      "config": "gds_bpf",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-4-bpf4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 1 --position 4 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-4-bpf4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 1,
+      "position": 5,
+      "arm": "fifo_default",
+      "config": "gds_fifo",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-5-fifo_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 1 --position 5 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-01/position-5-fifo_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 2,
+      "position": 0,
+      "arm": "bpf_default",
+      "config": "gds_bpf",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-0-bpf_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 2 --position 0 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-0-bpf_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 2,
+      "position": 1,
+      "arm": "fifo4",
+      "config": "gds_fifo",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-1-fifo4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 2 --position 1 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-1-fifo4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 2,
+      "position": 2,
+      "arm": "native4",
+      "config": "gds_native",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-2-native4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 2 --position 2 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-2-native4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 2,
+      "position": 3,
+      "arm": "bpf4",
+      "config": "gds_bpf",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-3-bpf4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 2 --position 3 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-3-bpf4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 2,
+      "position": 4,
+      "arm": "fifo_default",
+      "config": "gds_fifo",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-4-fifo_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 2 --position 4 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-4-fifo_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 2,
+      "position": 5,
+      "arm": "native_default",
+      "config": "gds_native",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-5-native_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 2 --position 5 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-02/position-5-native_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 3,
+      "position": 0,
+      "arm": "fifo4",
+      "config": "gds_fifo",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-0-fifo4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 3 --position 0 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-0-fifo4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 3,
+      "position": 1,
+      "arm": "native4",
+      "config": "gds_native",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-1-native4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 3 --position 1 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-1-native4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 3,
+      "position": 2,
+      "arm": "bpf4",
+      "config": "gds_bpf",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-2-bpf4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 3 --position 2 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-2-bpf4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 3,
+      "position": 3,
+      "arm": "fifo_default",
+      "config": "gds_fifo",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-3-fifo_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 3 --position 3 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-3-fifo_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 3,
+      "position": 4,
+      "arm": "native_default",
+      "config": "gds_native",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-4-native_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 3 --position 4 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-4-native_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 3,
+      "position": 5,
+      "arm": "bpf_default",
+      "config": "gds_bpf",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-5-bpf_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 3 --position 5 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-03/position-5-bpf_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 4,
+      "position": 0,
+      "arm": "native4",
+      "config": "gds_native",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-0-native4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 4 --position 0 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-0-native4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 4,
+      "position": 1,
+      "arm": "bpf4",
+      "config": "gds_bpf",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-1-bpf4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 4 --position 1 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-1-bpf4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    },
+    {
+      "block": 4,
+      "position": 2,
+      "arm": "fifo_default",
+      "config": "gds_fifo",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-2-fifo_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 4 --position 2 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-2-fifo_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 4,
+      "position": 3,
+      "arm": "native_default",
+      "config": "gds_native",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-3-native_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_native --block 4 --position 3 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-3-native_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 4,
+      "position": 4,
+      "arm": "bpf_default",
+      "config": "gds_bpf",
+      "workers": 0,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-4-bpf_default",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_bpf --block 4 --position 4 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-4-bpf_default --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 0"
+    },
+    {
+      "block": 4,
+      "position": 5,
+      "arm": "fifo4",
+      "config": "gds_fifo",
+      "workers": 4,
+      "dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-5-fifo4",
+      "command": "env LMCACHE_GDS_IOCTL_KEEP_GIL=0 LMCACHE_GDS_DECISION_TIMING=0 LMCACHE_GDS_IOCTL_REUSE=1 /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/python /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/run_gds_mixed_backend.py --single-cell --config gds_fifo --block 4 --position 5 --cell-dir /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block/block-04/position-5-fifo4 --reads 64 --writes 96 --gds-buffer-size-mib 4096 --policy-variant live-event-driven --write-delay-budget-ms 200 --write-io-workers 4"
+    }
+  ],
+  "cleanup": "Only successful completed cell's own cache is removed after exact-path checks; keep all results and logs",
+  "retry": false,
+  "extra_timeout": false
+}

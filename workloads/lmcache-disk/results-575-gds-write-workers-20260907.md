@@ -80,6 +80,21 @@ Root invoked the existing single-cell runner directly while the local model
 continued preparing a reusable launcher. No completed cell is rerun when
 that launcher becomes available.
 
+The completed [offline analyzer](gds-control/analyze_write_workers.py) reads
+the supplied campaign directory, including a relocated copy, and prints JSON
+without running or modifying any cell:
+
+```sh
+python3 -B workloads/lmcache-disk/gds-control/analyze_write_workers.py \
+  workloads/lmcache-disk/raw/gds-write-workers-575-20260907-five-block
+```
+
+Root ran it on both the retained campaign and a temporary copy: all 30 cells
+were read and every per-arm median and paired value matched the published
+`paired-analysis.json`. Block IDs accompany paired values; unavailable cell
+metrics remain null with their errors rather than triggering a rerun. This
+adds a reusable analysis entry point, not new performance measurements.
+
 Traffic remains 24 MiB objects, 64 reads/96 writes, 2/4 ms scheduled arrivals,
 4096 MiB GPU staging pool, and live-event-driven admission with a 200 ms
 cumulative budget. GIL retention and decision-stage instrumentation are off.

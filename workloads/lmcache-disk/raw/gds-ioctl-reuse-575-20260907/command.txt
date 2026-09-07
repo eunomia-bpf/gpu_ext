@@ -1,0 +1,30 @@
+LMCACHE_GDS_IOCTL_KEEP_GIL=0 python3 - <<'PY'
+import os, sys, time, json, statistics
+sys.path.insert(0, "workloads/lmcache-disk/gds-control")
+from lmcache_gds_policy_adapter import *
+requests = [
+ PolicyRequest(op=OP_READ, flags=FLAG_DEMAND, nbytes=25165824),
+ PolicyRequest(op=OP_WRITE, flags=FLAG_SAFE_TO_DEFER, caller_hint=HINT_LIVE_DEMAND, queue_depth=8, slack_ns=10000000, nbytes=25165824),
+ PolicyRequest(op=OP_WRITE, flags=FLAG_SAFE_TO_DEFER, caller_hint=HINT_LIVE_DEMAND, queue_depth=0, slack_ns=10000000, nbytes=25165824),
+ PolicyRequest(op=OP_READ, flags=FLAG_SPECULATIVE|FLAG_SAFE_TO_DEFER, hbm_pressure_permille=900, slack_ns=5000000, nbytes=25165824)]
+arms = ["native", "legacy_bpf", "reuse_bpf"]
+cells = []
+for block in range(6):
+ for position in range(3):
+  arm = arms[(block+position)%3]
+  os.environ["LMCACHE_GDS_IOCTL_REUSE"] = "1" if arm=="reuse_bpf" else "0"
+  decider = NativeDecider() if arm=="native" else BpfDecider()
+  for i in range(100): decider.decide(requests[i%4], i)
+  records = []
+  loop_start = time.perf_counter_ns()
+  for i in range(1000):
+   request = requests[i%4]
+   start = time.perf_counter_ns()
+   decision = decider.decide(request, i)
+   elapsed = time.perf_counter_ns()-start
+   records.append([i, elapsed, decision.action, decision.defer_ns, decision.priority, decision.batch_target])
+  loop_ns = time.perf_counter_ns()-loop_start
+  decider.close()
+  cells.append(dict(block=block, position=position, arm=arm, loop_ns=loop_ns, records=records, errors=[]))
+print(json.dumps(dict(scope="real command82 decision calls, no storage I/O", implementation="b0eeb67c", warmups=100, iterations=1000, fields=["request_id","elapsed_ns","action","defer_ns","priority","batch_target"], requests=[r.__dict__ for r in requests], cells=cells), separators=(",",":")))
+PY

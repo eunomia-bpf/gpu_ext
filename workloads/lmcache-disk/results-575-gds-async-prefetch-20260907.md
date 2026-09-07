@@ -80,6 +80,32 @@ fixed arrival schedule also limits interpretation of throughput as saturated
 serving capacity. Differences between arm medians are not paired estimates;
 paired analysis is being prepared from these same raw records.
 
+### Paired estimates from the completed raw observations
+
+Root recomputed each percentage within the same block as
+`100 * (candidate / reference - 1)`, then took the median across all five
+blocks. No cells were discarded. The pending local-model CLI will supply the
+reusable analysis entry point; these are already computed raw-data estimates.
+
+| Candidate / reference | Metric | Median change | Range | Improving pairs |
+| --- | --- | ---: | ---: | ---: |
+| BPF / native deadline | Output token/s | -0.8465% | -1.9014% to +1.3311% | 2/5 |
+| BPF / native deadline | TTFT | +3.5566% | -13.3148% to +20.4513% | 1/5 |
+| Native deadline / demand FIFO | Output token/s | -0.4010% | -1.5809% to +0.1271% | 1/5 |
+| Native deadline / demand FIFO | TTFT | +35.6417% | +24.3657% to +48.3889% | 0/5 |
+| BPF deadline / demand FIFO | Output token/s | -0.9018% | -2.0106% to -0.2708% | 0/5 |
+| BPF deadline / demand FIFO | TTFT | +35.6436% | +28.6312% to +50.7155% | 0/5 |
+| Eager async / demand FIFO | Output token/s | -0.0963% | -1.2498% to +1.0448% | 2/5 |
+| Eager async / demand FIFO | TTFT | +14.8007% | +7.0299% to +18.9952% | 0/5 |
+
+The broadly adverse TTFT change already occurs in native deadline policy;
+it is not attributable entirely to BPF execution. Eager async also has higher
+TTFT in every pair, so removing the deadline delay alone is not yet established
+as sufficient to match the synchronous demand path. The source-described
+deadline is an application hint, not measured GPU-use slack, and no precise
+causal decomposition of scheduling, framework overhead, and read service is
+claimed. The reference-count issue below remains a limitation of this version.
+
 There is an actual integration warning, preserved rather than hidden: each of
 the 15 async server logs reports 48 negative MemoryObj reference counts. None
 of the five demand-FIFO logs contains that warning. The HTTP requests and cache

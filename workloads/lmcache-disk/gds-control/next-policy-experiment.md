@@ -82,9 +82,17 @@ decision step or experiment is repeated. Those parts remain unfinished.
 Both earlier API-failed
 sessions exited themselves; neither was stopped for silence.
 The earlier runner task remains complete and is not rerun. No feedback-policy
-result is claimed yet. There are still at most three active root model sessions;
-the measured device-array implementation is complete and its workers are
-finishing their handoff, without a duplicate implementation request.
+result is claimed yet. The live-feedback runner session
+`ses_f860b1ef2ffeKrPO1Jhf06vsPb` subsequently exited with status 1 and
+`APIError` (`<none>` message), without changing the runner. No HTTP status
+was reported for this failure. A fresh local GLM Next session titled
+`gds-live-feedback-runner-glm` now owns that same single file; the failed
+Qwen Next process is gone, not a duplicate active worker. Qwen 27B continues
+the adapter integration, whose provider definitions are already committed in
+`5f2a4ef0` (main `3e09b9e9`). Its live read accounting and deferred-write
+executor edits are not yet a measured result. Two root implementation
+sessions remain active. The measured device-array implementation and its
+workers are complete.
 
 Native and BPF will consume the same live pending-read count, explicitly
 identified by a caller-hint flag in the existing 136-byte command-82 ABI.

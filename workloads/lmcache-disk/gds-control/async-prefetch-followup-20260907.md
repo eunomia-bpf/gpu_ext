@@ -39,6 +39,15 @@ unfinished runner, preserving all completed policy work. GLM's backend task
 remained live. No session was stopped for silence or an artificial timeout;
 the total live OpenCode concurrency remains at most three.
 
+The resumed Qwen Next call also ended with APIError HTTP 524 at
+15:20:31 UTC, with no runner file. After its session disappeared from the
+live endpoint, root assigned the same unfinished runner to a fresh local
+Qwen 27B context. GLM still owns the backend, and a separate Qwen 27B
+source-only task owns `disk-uvm-source-boundary-20260907.md`. This temporary
+duplicate-model assignment follows terminal failures of both prior runner
+calls; there are no duplicate live owners for the runner and no fourth
+OpenCode session.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

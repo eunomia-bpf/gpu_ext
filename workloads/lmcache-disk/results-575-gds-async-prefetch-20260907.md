@@ -203,3 +203,39 @@ state to change native/BPF selection and then compares real serving behavior.
 A callback without that input/action integration is not automatic offload or
 a new performance result. No installed scheduler, driver, or paper is changed
 by this assignment, and total live OpenCode concurrency remains three.
+
+### Disk-backed reclaim implementation, September 7, 18:16 UTC
+
+The original GLM route session is now also assigned the new opt-in project
+module `gds-control/lmcache_kv_backing_state.py`. Its real inputs are the
+`req_id` passed into `CacheEngine.store`, the corresponding stored token
+extents and existing LMCache key objects, and successful GDS completion
+callbacks or already-present backend entries. Unknown coverage must remain
+unknown. The registry is an input to actual scheduler victim selection, not
+a standalone experiment or an implementation of transparent UVM paging.
+The scheduler seam and async ownership repair retain their separate owners;
+no fourth OpenCode session was started.
+
+Two source/configuration findings determine the next integrated run:
+
+- The selected `VLLMPagedMemGPUConnectorV3.from_gpu` only synchronizes its
+  store stream for a non-CUDA destination (`gpu_connectors.py:647-649`).
+  Our GDS staging is CUDA memory. Python `store()` return alone therefore
+  must not be used as a copy-completion event or permission to reuse source
+  blocks. The registry does not free blocks; vLLM's actual preemption/finish
+  path remains responsible for their lifetime. Reuse inside the fixed KV
+  pool is distinct from returning physical HBM to the device allocator.
+- The completed demand-FIFO server log reports an 8,192-token GPU KV pool.
+  With at most two running requests, 1,536 cached prefix tokens and only
+  16 output tokens each, this campaign is not a KV-capacity-pressure
+  comparison. Repeating its unchanged cells would not evaluate the new
+  victim policy. The follow-up must use identical capacity and arrival/
+  generation settings across stock, native and BPF that actually exercise
+  the existing allocator's preemption path. Prompt coverage and unsaved
+  decode tails must be represented separately: the connector can omit
+  decode-cache saves, so a stored prompt is not a fully backed live request.
+
+No new performance result or automatic-offload completion is claimed here.
+The existing 20-cell campaign, including adverse results and reference-count
+warnings, remains unchanged. No paper files or installed vendor sources were
+modified for this assignment.

@@ -300,3 +300,46 @@ possible future driver or runtime design.
   3660968-class work), not as a configuration or BPF policy option. Until
   such a driver exists, any "transparent same-address SSD paging" claim
   would be unsupported by this 575 implementation.
+
+## 7. Reuse existing LMCache write ownership; distinguish staging from KV residency
+
+Additional read-only inspection on September 7 uses the installed LMCache
+source under `gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/lmcache/`.
+These are implementation findings, not new performance measurements.
+
+- `v1/cache_engine.py:488-568`: `store()` allocates separate MemoryObjs,
+  copies the selected GPU KV ranges with `batched_from_gpu`, then calls
+  `StorageManager.batched_put`. Thus the disk writer's buffer is an offload
+  copy; releasing it does not itself select or reclaim vLLM's original KV
+  blocks.
+- `v1/storage_backend/storage_manager.py:386-435`: `batched_put()` submits
+  objects to the selected storage backends, copying between allocators where
+  needed, then drops its references.
+- `v1/storage_backend/gds_backend.py:591-612`: `submit_put_task()` takes an
+  additional MemoryObj reference before scheduling the asynchronous save.
+  On the normal save path, `_async_save_bytes_to_disk()` awaits `_save_gds`,
+  registers the key, schedules the separate metadata-file write and releases
+  that reference in `finally` (636-710). The existing writer therefore already
+  provides ordinary asynchronous I/O buffer ownership; a new placement policy
+  should reuse it rather than introduce a second writer/lifetime subsystem.
+- The completion callback at 713-718 follows data-write completion but does
+  not await the separately scheduled metadata-file task (684-695). Treat this
+  as a runtime data-availability event, not proof of restart recovery or
+  crash-durable persistence. No new durability test or measurement gate is
+  proposed here.
+- `gds_backend.py:1104-1115`: `pin` and `unpin` return false because GDS has no
+  eviction implementation; `remove` raises `NotImplementedError`.
+  `allocate` (1128-1178) allocates from the staging pool and explicitly warns
+  that GDS eviction is unsupported. These methods are not an existing
+  disk-aware KV-residency policy.
+
+Implication for the next implementation: completing the async read adapter
+closes a retrieval opportunity, not the full automatic-offload lifecycle.
+To unify placement, associate existing LMCache keys and I/O-completion events
+with the serving engine's actual KV block ownership/reuse decisions. BPF can
+then influence which backed KV is retained or reclaimed and which missing KV
+is prefetched, while LMCache continues to transport the bytes. Reclaiming only
+temporary GDS staging buffers is not equivalent to evicting the engine's KV.
+The inspected call chain does not yet establish that association or a working
+end-to-end reclaim policy. This is the remaining integration question, not a
+claim that arbitrary GPU pointers already support transparent SSD paging.

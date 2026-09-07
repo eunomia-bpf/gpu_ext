@@ -4,6 +4,14 @@ These are implementation pointers, not new experiment gates. No optimized
 performance is claimed here. Both local-model tasks preserve existing sources
 and results and produce separately selectable candidates.
 
+The separate [final-only collector experiment](results-final-only-575-20260907/README.md)
+is now measured: five baseline/tool pairs, mean throughput 3493.318 token/s
+and paired overhead 90.812%. All 720896 events per tool run are collected at
+the end. The earlier continuous collector measured 3493.665 token/s and
+90.705% overhead against its own baseline. Changing collector timing alone
+does not resolve the high overhead; this does not yet test GPU-local producer
+storage. Do not repeat the completed final-only comparison.
+
 ## Existing measurement geometry
 
 The first gpubpf kernelretsnoop record in

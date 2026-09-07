@@ -13,6 +13,17 @@ gpubpf/NVBit overhead is 90.7051%/99.6210% for `kernelretsnoop`,
 2.9653%/10.3501% for `threadhist`, and 0.2208%/8.7959% for `launchlate`.
 Earlier attempts and the submitted P40 values remain retained separately.
 
+**2026-09-07 update:** the separate five-pair GPU-local-array
+[kernelretsnoop result](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)
+reduces mean prefill overhead to 5.5726%, retaining every record for finite
+pp512 buffering; final readback averages 10.379 ms outside prefill. Paper
+`a60ffb0` plots both campaigns without replacing the old values. The
+[LMCache write-budget study](../workloads/lmcache-disk/results-575-gds-write-budget-20260907.md),
+[stale-state study](../workloads/stale-state-575/results-performance-gds-20260907.md),
+[fresh Fig. 13](../workloads/fig13-fast/results-performance-575-20260907.md), and
+[target-EXIT SASS injection](../workloads/sass-kretprobe/results/sass-exit-575-20260907-01/results.md)
+are complete at their stated scope. These are not queued for repetition.
+
 The user confirmed that **correctly implementing the existing policies in BPF
 and recording their measured performance is sufficient**; outperforming the
 original policy is not a completion requirement. Each comparison must still
@@ -51,9 +62,13 @@ map-type result and is not pooled with the per-lane run. The CPU-only
 accepted 200/200 programs through 4,096 instructions but contradicted the
 near-linear hypothesis for straight-line programs; it is a program-shape
 admission boundary, not device execution or verifier soundness evidence.
-Original agent transcripts also remain unavailable. LMCache local disk is
-active: its first five-block performance-only campaign completed 15/15 cells,
-and native/BPF recoverability and GDS-aware policy arms are in implementation.
+Original agent transcripts remain unavailable. LMCache local disk and
+native/BPF storage-policy arms have completed their campaigns, including
+the 25-cell matched write-budget improvement above. Raising the shared
+budget from 10 to 200 ms reduces paired BPF read p99 by 51.011% and improves
+write throughput by 15.315%; native also benefits, and native/BPF latency
+remains variable. Current work is paper presentation and an unsubmitted
+revision response, not implementation of these already measured arms.
 
 ### Current baseline -> native policy -> BPF ledger
 

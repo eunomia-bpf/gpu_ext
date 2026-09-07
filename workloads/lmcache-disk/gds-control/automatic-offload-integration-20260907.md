@@ -185,3 +185,22 @@ attempts. The owner is changing the snapshot to explicit fixed-width field
 reads; neither compiled snapshot version is counted as attached. Existing
 storage-policy loader PID 1744933 remains live, with no driver reload in
 this follow-up.
+
+The fixed-width snapshot follow-up builds with the same three Makefile
+targets and advances beyond both prior BTF access errors. Actual loading
+on the already-loaded module now fails with E2BIG: the verifier processes
+1,000,001 instructions against its 1,000,000 limit, with 21,322 total states.
+The complete 229,733-byte `kv-reclaim-fieldwidth-load-20260907.log` is
+retained in the same raw directory. No KV reclaim policy was attached.
+The shared selector repeatedly scans the worst priority class within its
+candidate loop and repeats recovery-cost comparisons; the implementation
+owner is removing redundant computation without changing the algorithm or
+the kernel limit. This is an actual loading failure, not a newly imposed
+experiment prerequisite. No performance sample is claimed from this attempt.
+
+The runner's Qwen Next session returned an actual API 524 error. It was
+resumed with local GLM; its subsequent empty terminal response was not
+treated as task completion and the same session was continued. The selector
+and serving-adapter owners remain active, with at most three OpenCode
+sessions. No session was stopped because of silence, and no paper files were
+modified.

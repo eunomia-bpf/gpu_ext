@@ -93,3 +93,21 @@ the repository root (outputs stay in the existing temporary task directory):
 cc -O2 -g -Wall -Wextra -fPIC -shared workloads/lmcache-disk/gds-control/kv_reclaim_native.c -o /tmp/opencode/kv_reclaim_native-build-check.so
 clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -Ivmlinux/x86 -Ilibbpf/src -c workloads/lmcache-disk/gds-control/kv_reclaim_policy.bpf.c -o /tmp/opencode/kv_reclaim_policy-build-check.bpf.o
 ```
+
+## Selector build follow-up, September 7
+
+The local implementation replaced the overflow helper with explicit 32-bit
+limb multiplication and updated its comparison call sites. Root rebuilt the
+actual `kv_reclaim_policy.bpf.c` above successfully, with no compiler output.
+The native shared library also builds with
+`-Werror=implicit-function-declaration -Wl,-z,defs`, so the previously missing
+helper is no longer left as an unresolved symbol. These are compilation and
+link results, not a loaded-driver or serving-performance result.
+
+The backing registry now captures the installed GDS read path separately from
+write completion; ordinary Python compilation of the registry and selector
+binding passes. Complete backing coverage and actual object-transfer byte
+accounting are still being integrated with the serving consumer. All three
+local OpenCode sessions remain live; no extra session or execution timeout
+was introduced. The driver patch and real reclaim runner are not yet ready
+for a new performance campaign. No paper files were changed.

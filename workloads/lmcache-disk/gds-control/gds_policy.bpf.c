@@ -19,13 +19,20 @@
  * LIVE_DEMAND_FEEDBACK_STEP_NS, unbatched) only when safe-to-defer with
  * queue_depth > 0 and slack_ns > 0, otherwise SUBMIT_NOW.
  *
+ * Opt-in JIT-prefetch override: a speculative safe-to-defer read whose
+ * caller_hint carries HINT_PREFETCH_JIT is decided before rules 2 and 3
+ * (DEMAND still wins). With estimated_transfer_ns > 0 and
+ * slack_ns > estimated_transfer_ns it defers unbatched for
+ * min(slack_ns - estimated_transfer_ns, MAX_DEFER_NS); otherwise it
+ * submits now. A repeated decision re-evaluates the executor's fresh slack.
+ *
  * Every decision is recorded with bpf_gpu_storage_record(), which clamps
  * defer_ns to the 10 ms maximum, priority to <= 7, and batch_target to
  * 1..64 exactly like the policy contract (MIN/MAX_DEFER_NS,
  * MIN/MAX_BATCH_SIZE). Flags/ops/actions mirror the live ABI:
  * DEMAND=1 SPECULATIVE=2 RECOMPUTABLE=4 SAFE_TO_DEFER=8,
  * READ=0 WRITE=1, SUBMIT_NOW=0 DEFER=1 RECOMPUTE=2,
- * HINT_LIVE_DEMAND=1ULL<<63 (caller_hint bit).
+ * HINT_LIVE_DEMAND=1ULL<<63, HINT_PREFETCH_JIT=1ULL<<62 (caller_hint bits).
  */
 
 #include <vmlinux.h>
@@ -109,6 +116,7 @@ extern int bpf_gpu_storage_record(uvm_bpf_storage_decision_ctx_t *decision_ctx,
 #define FLAG_SAFE_TO_DEFER		8
 
 #define HINT_LIVE_DEMAND		(1ULL << 63)
+#define HINT_PREFETCH_JIT		(1ULL << 62)
 
 #define ACTION_SUBMIT_NOW		0
 #define ACTION_DEFER			1
@@ -183,6 +191,24 @@ int BPF_PROG(gds_gpu_storage_decide,
 
 	if (flags & FLAG_DEMAND) {
 		gds_submit(decision_ctx, priority);
+		return 0;
+	}
+
+	/* Opt-in JIT prefetch lead (HINT_PREFETCH_JIT caller_hint bit):
+	 * speculative safe-to-defer read with a positive transfer estimate
+	 * that the deadline slack leads: defer unbatched for the remaining
+	 * slack, capped; otherwise submit now. DEMAND was already handled
+	 * above; the recompute and pressure rules are bypassed by design. */
+	if (op == OP_READ && (flags & FLAG_SPECULATIVE) && (flags & FLAG_SAFE_TO_DEFER) &&
+	    (decision_ctx->request.caller_hint & HINT_PREFETCH_JIT)) {
+		if (transfer_ns > 0 && slack_ns > transfer_ns) {
+			defer_ns = slack_ns - transfer_ns;
+			if (defer_ns > MAX_DEFER_NS)
+				defer_ns = MAX_DEFER_NS;
+			gds_defer(decision_ctx, priority, defer_ns, 0, 0);
+		} else {
+			gds_submit(decision_ctx, priority);
+		}
 		return 0;
 	}
 

@@ -21,6 +21,7 @@ __all__ = [
     "ABI_VERSION", "IOCTL_CMD", "PARAMS_SIZE", "PARAM_FIELD_OFFSETS",
     "OP_READ", "OP_WRITE", "FLAG_DEMAND", "FLAG_SPECULATIVE",
     "FLAG_RECOMPUTABLE", "FLAG_SAFE_TO_DEFER", "HINT_LIVE_DEMAND",
+    "HINT_PREFETCH_JIT",
     "LIVE_DEMAND_FEEDBACK_STEP_NS", "ACTION_SUBMIT_NOW",
     "ACTION_DEFER", "ACTION_RECOMPUTE", "MAX_PRIORITY", "MAX_DEFER_NS",
     "MIN_BATCH", "MAX_BATCH", "READ_DEFER_PRESSURE_PERMILLE",
@@ -40,6 +41,7 @@ FLAG_SPECULATIVE = 0x2
 FLAG_RECOMPUTABLE = 0x4
 FLAG_SAFE_TO_DEFER = 0x8
 HINT_LIVE_DEMAND = 1 << 63
+HINT_PREFETCH_JIT = 1 << 62
 LIVE_DEMAND_FEEDBACK_STEP_NS = 1_000_000
 ACTION_SUBMIT_NOW = 0
 ACTION_DEFER = 1
@@ -176,6 +178,19 @@ def native_decide(request: PolicyRequest) -> Decision:
     """Mirror ``gds_policy.bpf.c`` precedence and clamps exactly."""
     priority = _clamp(request.priority, 0, MAX_PRIORITY)
     if request.op == OP_READ and request.flags & FLAG_DEMAND:
+        return Decision(ACTION_SUBMIT_NOW, 0, priority, MIN_BATCH)
+    if (
+        request.op == OP_READ
+        and request.flags & FLAG_SPECULATIVE
+        and request.flags & FLAG_SAFE_TO_DEFER
+        and request.caller_hint & HINT_PREFETCH_JIT
+    ):
+        if request.estimated_transfer_ns > 0 and request.slack_ns > request.estimated_transfer_ns:
+            return Decision(
+                ACTION_DEFER,
+                min(request.slack_ns - request.estimated_transfer_ns, MAX_DEFER_NS),
+                priority, MIN_BATCH,
+            )
         return Decision(ACTION_SUBMIT_NOW, 0, priority, MIN_BATCH)
     if (
         request.op == OP_READ

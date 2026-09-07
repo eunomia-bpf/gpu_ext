@@ -11,6 +11,16 @@ staging ``MemoryObj`` are consumed and released by the normal LMCache consumer
 (``_async_process_tokens_internal`` -> ``batched_to_gpu`` ->
 ``ref_count_down``).
 
+Reference ownership stays single-release: the bootstrap wraps
+``LMCacheEngine.retrieve`` and ``LMCacheEngine._async_process_tokens_internal``
+with a per-call consumption flag.  When token processing actually consumes a
+lookup's completed ``EventManager`` LOADING event and the outer ``retrieve``
+then returns without exception, the event is popped (without touching
+refcounts), transferring it out of LMCache's abort-only
+``cleanup_memory_objs``.  Early returns and failures leave the event
+registered for that cleanup release path; the handoff adds no extra
+reference and unconsumed lookups keep the original cleanup ownership.
+
 Staging accounting uses the live allocator, not a second lifecycle framework:
 ``GPUMemoryAllocator.allocator.total_allocated_size`` counts every
 allocated-but-unreleased buffer (in-flight reads plus completed-but-unconsumed
@@ -39,6 +49,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import inspect
+import logging
 import os
 import threading
 import time
@@ -81,6 +92,10 @@ _ASYNC_CLASS_HOOK_ATTR = "_gds_async_prefetch_class_hook"
 DEADLINE_CONFIG_KEY = "lmcache.prefetch_deadline_ns"
 _EMBEDDED_HINT_KEY = "lmcache.embedded_hint"
 _NO_DEBUG_KEY = object()
+_ENGINE_EVENT_TRANSFER_ATTR = "_gds_async_prefetch_engine_event_transfer"
+_CONSUMED_EVENT_ATTR = "_gds_async_prefetch_event_consumed"
+
+logger = logging.getLogger(__name__)
 
 
 def _env_bool(environ: Mapping[str, str], name: str) -> bool:
@@ -799,6 +814,105 @@ def _assert_signature(cls: Any, name: str, parameters: tuple[str, ...]) -> None:
         )
 
 
+def _install_engine_event_transfer() -> None:
+    """Transfer the completed LOADING event out of abort cleanup on success.
+
+    LMCache 0.5.4 leaves a lookup's completed prefetch future registered in
+    the ``EventManager`` after the engine consumed it: ``retrieve`` releases
+    every staging ``MemoryObj`` exactly once (used objects after
+    ``batched_to_gpu``, others through the "free the memory objects that are
+    not hit" loop), while ``_async_process_tokens_internal`` only peeks the
+    event via ``EventManager.get_event_future``.  The later ``lookup_unpin``
+    (vLLM ``wait_for_save``) still finds status DONE, treats the lookup as
+    aborted, and ``cleanup_memory_objs`` pops that future and releases the
+    same objects a second time, driving ``ref_count`` negative once per
+    staged object ("Double free occurred somewhere").
+
+    The seam is minimal and consumption-gated: a wrapper on
+    ``_async_process_tokens_internal`` records a per-call flag when the
+    engine actually consumed the lookup's completed future (the wrapper
+    re-peeks the same future and its result exactly as the engine does),
+    and a wrapper on ``retrieve`` pops the DONE event -- without touching
+    refcounts -- only when that flag is set AND the outer ``retrieve``
+    returned without exception.  Early returns (e.g. the ``is_healthy``
+    guard) do not set the flag. If the outer call raises, no pop occurs,
+    even when inner processing already set the flag. This preserves the
+    existing cleanup path; partial-failure ownership is not newly repaired.
+    The handoff adds no extra reference to the events it transfers.
+    """
+    from lmcache.v1.cache_engine import LMCacheEngine
+    from lmcache.v1.event_manager import EventStatus, EventType
+
+    if getattr(LMCacheEngine, _ENGINE_EVENT_TRANSFER_ATTR, None) is not None:
+        return
+    _assert_signature(
+        LMCacheEngine,
+        "retrieve",
+        ("self", "tokens", "mask", "kwargs"),
+    )
+    _assert_signature(
+        LMCacheEngine,
+        "_async_process_tokens_internal",
+        ("self", "tokens", "mask", "ret_mask", "kwargs"),
+    )
+    original_retrieve = LMCacheEngine.retrieve
+    original_process_tokens = LMCacheEngine._async_process_tokens_internal
+
+    @functools.wraps(original_process_tokens)
+    def hooked_process_tokens(
+        instance: Any,
+        tokens: Any,
+        mask: Any = None,
+        ret_mask: Any = None,
+        **kwargs: Any,
+    ) -> Any:
+        chunks, tot_kv_size = original_process_tokens(
+            instance, tokens, mask, ret_mask, **kwargs
+        )
+        try:
+            req_id = kwargs.get("req_id")
+            if req_id is not None:
+                # Idempotent re-peek of the same future the engine checks:
+                # it completes only when token processing consumed a
+                # successfully finished prefetch result.
+                instance.event_manager.get_event_future(
+                    EventType.LOADING, req_id
+                ).result()
+                setattr(instance, _CONSUMED_EVENT_ATTR, True)
+        except Exception as error:
+            logger.debug(
+                "async-prefetch consumption check failed: %s", error
+            )
+        return chunks, tot_kv_size
+
+    @functools.wraps(original_retrieve)
+    def hooked_retrieve(
+        instance: Any,
+        tokens: Any,
+        mask: Any = None,
+        **kwargs: Any,
+    ) -> Any:
+        setattr(instance, _CONSUMED_EVENT_ATTR, False)
+        result = original_retrieve(instance, tokens, mask, **kwargs)
+        if not getattr(instance, _CONSUMED_EVENT_ATTR, False):
+            return result
+        req_id = kwargs.get("req_id")
+        try:
+            if instance.event_manager.get_event_status(
+                EventType.LOADING, req_id
+            ) == EventStatus.DONE:
+                instance.event_manager.pop_event(EventType.LOADING, req_id)
+        except Exception as error:
+            logger.debug(
+                "async-prefetch event transfer after retrieve failed: %s", error
+            )
+        return result
+
+    LMCacheEngine._async_process_tokens_internal = hooked_process_tokens
+    LMCacheEngine.retrieve = hooked_retrieve
+    setattr(LMCacheEngine, _ENGINE_EVENT_TRANSFER_ATTR, hooked_retrieve)
+
+
 _bootstrap_lock = threading.Lock()
 
 
@@ -856,6 +970,7 @@ def bootstrap_from_env(
 
         GdsBackend.__init__ = hooked_init
         setattr(GdsBackend, _ASYNC_CLASS_HOOK_ATTR, hooked_init)
+        _install_engine_event_transfer()
         return hooked_init
 
 

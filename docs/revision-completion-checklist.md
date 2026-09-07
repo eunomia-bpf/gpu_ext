@@ -6,6 +6,19 @@ define the scope. The dated plan in the paper repository is not evidence that
 these commitments have been met. Experimental completion, paper integration,
 and public artifact availability are separate checks.
 
+**Latest event-driven result — 2026-09-07 UTC:** the new LMCache executor
+and [five-block measurement](../workloads/lmcache-disk/results-575-gds-live-event-driven-20260907.md)
+are complete: 15 cells, 960 reads and 1,440 writes, source `c2ecedcb`.
+FIFO/native/BPF read-p99 medians are 279.361/431.303/255.874 ms. Paired
+BPF/FIFO p99 change has median -8.407% (four of five improve), and BPF/native
+has median -9.135%, range -86.876% to +123.960%. Native/BPF decisions fall
+to 306--350 per cell, but performance still varies substantially; this is
+not stable superiority or a tight overhead bound. All old polling/GIL data
+remain. Statements below that event-driven implementation is pending are
+historical. The separate GDS-compatible stale-state driver builds and is
+pushed (`a2b40efd`); its direct performance entry is pushed (`e88e1265`),
+but no new stale-state GPU cell or module swap has taken place.
+
 **Latest LMCache update — 2026-09-07 UTC:** the live-feedback provider,
 executor, runner and [five-block campaign](../workloads/lmcache-disk/results-575-gds-mixed-live-feedback-20260907.md)
 are complete and pushed (`674bf3d2`): 15 measurements, 960 reads and 1,440

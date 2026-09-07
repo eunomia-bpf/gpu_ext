@@ -37,7 +37,7 @@ hardware, transport, or headline performance numbers.
 The requested MoE-Infinity, XSched, GPreempt, Expert Buffering, FineMoE,
 Hummingbird and POD-Attention comparisons are complete within the boundaries
 below. Matching an existing policy is sufficient; none of the close native/BPF
-results is promoted to formal equivalence. The canonical 48-paper
+results is promoted to formal equivalence. The canonical 52-paper
 [expressibility ledger](experiment/policy/reference/RELATED_POLICY_EXPRESSIBILITY.md)
 separates whole-system feasibility from the strongest local evidence.
 

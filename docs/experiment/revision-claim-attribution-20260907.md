@@ -236,3 +236,14 @@ Qwen session `ses_f84616e1bffeOGDXTvOCnNdorr` owns the runner option; session
 `ses_f846046ceffeeycQeKyzCzPVmk` owns the launcher after the Qwen Next failure.
 GLM `ses_f8476da44ffeCcBp7Q5vXCG7U8` remains live on bottleneck analysis.
 No completed storage, Table 1, Fig. 13 or SASS matrix is rerun.
+
+Paper `66a2812` closes the original-study scope wording above. The old GLM
+prefix-patch session had actually ended with `finish=length` and no patch;
+root inspected that terminal metadata, then made the bounded wording changes
+directly. Ten-trial geometric-mean defaults and software versions now refer
+to the original experiments, and the 59-policy Opus/no-human-guidance claim
+explicitly excludes coordinated revision ports and storage studies. Existing
+historical claims and all numbers remain. The paragraph-edit skill guided
+preservation of scope, citations and bilingual comments; it did not add a gate.
+Two pdflatex passes succeed (17 pages, 4,539,225 bytes;
+`/var/tmp/revision-original-study-attribution-20260907.log`).

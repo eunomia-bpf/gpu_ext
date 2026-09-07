@@ -128,6 +128,20 @@ class PolicyRequest:
             )
         )
 
+    def pack_into(
+        self, buffer: bytearray, request_id: int = 0, object_id: int = 0
+    ) -> None:
+        """Overwrite every input and re-zero every output in a 136-byte buffer."""
+        _PARAM.pack_into(
+            buffer,
+            0,
+            ABI_VERSION, self.op, self.flags, self.priority, request_id,
+            object_id, self.nbytes, self.tenant_id, self.caller_hint,
+            self.deadline_ns, self.slack_ns, self.estimated_transfer_ns,
+            self.recompute_ns, self.queue_depth, self.hbm_pressure_permille,
+            0, 0, 0, 0, 0, 0,
+        )
+
 
 @dataclass(frozen=True)
 class Decision:
@@ -251,8 +265,22 @@ class BpfDecider(Decider):
         self._close = close_func
         self._ioctl = ioctl_func or _uvm_ioctl
         self._lock = threading.Lock()
+        # Opt-in ablation: reuse one 136-byte buffer, its ctypes view, and
+        # the bound ioctl callable across decisions. Default stays legacy.
+        if os.environ.get("LMCACHE_GDS_IOCTL_REUSE") == "1":
+            self._shared = bytearray(PARAMS_SIZE)
+            self._shared_view = (ctypes.c_char * PARAMS_SIZE).from_buffer(
+                self._shared
+            )
+            self._shared_ioctl = _libc().ioctl if ioctl_func is None else None
+        else:
+            self._shared = None
+            self._shared_view = None
+            self._shared_ioctl = None
 
     def decide(self, request: PolicyRequest, request_id: int) -> Decision:
+        if self._shared is not None:
+            return self._decide_reuse(request, request_id)
         with self._lock:
             fd = self._fd_or_open()
             buffer = request.pack(request_id=request_id, object_id=request_id)
@@ -260,6 +288,36 @@ class BpfDecider(Decider):
         action, priority, defer_ns, batch_target, _tgid, rm_status = (
             _PARAM_OUT.unpack_from(buffer, PARAM_FIELD_OFFSETS["action"])
         )
+        if rm_status != 0:
+            raise GdsDecisionError(
+                f"UVM_GPU_STORAGE_DECIDE returned rmStatus={rm_status}"
+            )
+        if action not in {ACTION_SUBMIT_NOW, ACTION_DEFER, ACTION_RECOMPUTE}:
+            raise GdsDecisionError(
+                f"UVM_GPU_STORAGE_DECIDE returned unknown action {action}"
+            )
+        return Decision(action, defer_ns, priority, batch_target)
+
+    def _decide_reuse(self, request: PolicyRequest, request_id: int) -> Decision:
+        with self._lock:
+            fd = self._fd_or_open()
+            request.pack_into(self._shared, request_id, request_id)
+            if self._shared_ioctl is None:
+                self._ioctl(fd, IOCTL_CMD, self._shared)
+            else:
+                result = self._shared_ioctl(fd, IOCTL_CMD, self._shared_view)
+                if result < 0:
+                    error = ctypes.get_errno()
+                    raise OSError(
+                        error, os.strerror(error), f"UVM ioctl {IOCTL_CMD}"
+                    )
+            # Parse while holding the lock: the shared buffer must not be
+            # repacked by another decision between the ioctl and the parse.
+            action, priority, defer_ns, batch_target, _tgid, rm_status = (
+                _PARAM_OUT.unpack_from(
+                    self._shared, PARAM_FIELD_OFFSETS["action"]
+                )
+            )
         if rm_status != 0:
             raise GdsDecisionError(
                 f"UVM_GPU_STORAGE_DECIDE returned rmStatus={rm_status}"

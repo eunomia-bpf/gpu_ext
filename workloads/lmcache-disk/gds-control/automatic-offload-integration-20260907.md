@@ -350,3 +350,27 @@ that the baseline pathology is resolved or that the new policy is faster.
 GLM continues scheduler/connector diagnosis; Qwen 27B independently examines
 allocation/reservation arithmetic, while Qwen Next implements continuation
 and request checkpointing. All three local sessions remain within the limit.
+
+## First pressured native cell completed with request failures
+
+The native cell finished through the existing lifecycle at 23:17 UTC.
+All eight cold requests succeeded; warm requests p0, p1, p6 and p7 each
+completed 1,024 output tokens, while p2 through p5 timed out. The warm phase
+lasted 681.690323 seconds, yielding 6.008593 token/s of completed-output
+goodput and a successful-request TTFT median of 7,997.847 ms. The full result
+and server log (94,825 and 15,399,783 bytes, respectively) are retained under
+`../raw/gds-kv-reclaim-575-20260907-02/block-00/position-1-native/`.
+
+Native also entered the repeated disk-prefix restoration cycle before the
+timed-out requests left. Its higher completed-output rate than this stock
+attempt is not a stable policy-effect estimate: these are single runs with
+different request failures, and neither completes the workload. The native
+adapter was requested, but its expected shutdown diagnostics did not arrive;
+the runner records that absence rather than inventing decision or recovery
+counts. Server return code zero does not establish eight successful requests
+or clean EngineCore teardown.
+
+The matching BPF cell (`block-00/position-2-bpf`) has started with unchanged
+workload and transport settings. Local source diagnosis and runner continuation
+work remain active. No completed cell or calibration is repeated, and the
+current failed stock/native records will not be overwritten by a later fix.

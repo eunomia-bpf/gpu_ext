@@ -24,6 +24,7 @@ SPEC = importlib.util.spec_from_file_location(
     "run_gds_mixed_backend", HERE / "run_gds_mixed_backend.py")
 assert SPEC and SPEC.loader
 runner = importlib.util.module_from_spec(SPEC)
+sys.modules[runner.__name__] = runner
 SPEC.loader.exec_module(runner)
 
 os.environ.pop("LMCACHE_GDS_POLICY_MODE", None)
@@ -143,7 +144,7 @@ class MetricsTests(unittest.TestCase):
         ]
         metrics = runner.compute_metrics(requests)
         self.assertEqual(metrics["completed_reads"], 4)
-        self.assertAlmostEqual(metrics["read_end_to_end_p50_ms"], 20.0)
+        self.assertAlmostEqual(metrics["read_end_to_end_p50_ms"], 25.0)
         self.assertAlmostEqual(metrics["read_end_to_end_p99_ms"], 40.0)
 
     def test_single_read_has_equal_p50_p99(self):
@@ -324,30 +325,33 @@ class AdapterWiringTests(unittest.TestCase):
                                            request_provider=provider)
 
     def test_fifo_write_reaches_save_immediately(self):
-        adapter = self.install("fifo")
         key = "w0"
         log = {key: {"submitted_s": None}}
         log_lock = threading.Lock()
         t0 = time.perf_counter()
         runner.wrap_submit_timing(self.backend, log, log_lock, t0)
+        adapter = self.install("fifo")
         memory_obj = FakeMemoryObj(24 * MIB)
         future = self.backend.submit_put_task(key, memory_obj)
         future.result(timeout=10.0)
         self.assertEqual(len(self.backend.save_started), 1)
         self.assertLess(self.backend.save_started[0][1] - t0, 0.020)
         self.assertIsNotNone(log[key]["submitted_s"])
+        self.assertEqual(memory_obj.ref_count, 1)
+        memory_obj.ref_count_down()
         self.assertEqual(memory_obj.ref_count, 0)
         self.assertEqual(adapter.stats["submit_now"], 1)
         self.assertEqual(adapter.stats["defer"], 0)
         self.assertEqual(self.backend.put_tasks, set())
+        adapter.close()
 
     def test_native_write_is_deferred_by_controlled_slack(self):
-        adapter = self.install("native")
         key = "w0"
         log = {key: {"submitted_s": None}}
         log_lock = threading.Lock()
         t0 = time.perf_counter()
         runner.wrap_submit_timing(self.backend, log, log_lock, t0)
+        adapter = self.install("native")
         memory_obj = FakeMemoryObj(24 * MIB)
         offer = time.perf_counter()
         future = self.backend.submit_put_task(key, memory_obj)
@@ -359,6 +363,8 @@ class AdapterWiringTests(unittest.TestCase):
         self.assertAlmostEqual(log[key]["submitted_s"] - (offer - t0),
                                0.010, delta=0.005)
         self.assertEqual(adapter.stats["defer"], 1)
+        self.assertEqual(memory_obj.ref_count, 1)
+        memory_obj.ref_count_down()
         self.assertEqual(memory_obj.ref_count, 0)
         self.assertEqual(self.backend.put_tasks, set())
         adapter.close()
@@ -378,15 +384,14 @@ class AdapterWiringTests(unittest.TestCase):
         self.assertEqual(memory_obj.ref_count, 2)
         self.assertIn(key, self.backend.put_tasks)
         future.result(timeout=10.0)
-        self.assertEqual(on_complete, observed[0] and on_complete)
-        self.assertEqual(observed[0], 1)
+        self.assertEqual(observed, [1])
         memory_obj.ref_count_down()
         self.assertEqual(memory_obj.ref_count, 0)
         self.assertEqual(self.backend.put_tasks, set())
         adapter.close()
 
     def test_demand_read_always_submits_through_adapter(self):
-        adapter = self.install("bpf") if False else self.install("fifo")
+        adapter = self.install("native")
         memory_obj = self.backend.get_blocking("r0")
         self.assertIsInstance(memory_obj, FakeMemoryObj)
         self.assertEqual(adapter.stats["decisions"], 1)

@@ -121,6 +121,21 @@ two small additions are with the same local model. The campaign has one record
 per block/config; the initial CLI's duplicate merge behavior must not be used
 to combine separate attempts or versions.
 
+The local model has now completed `--reference` and paired percentage output.
+Root ran both JSON references and the native-reference Markdown renderer on
+the same 20 records. `analysis-demand-paired.json` and
+`analysis-native-paired.json` retain the expanded outputs alongside the initial
+`analysis-demand.json`; no previous output was overwritten. The native-reference
+output reproduces the previously reported BPF/native paired throughput
+-0.8465% and TTFT +3.5566%. It additionally reports paired mean-E2E change
++0.1121% (range -2.8864% to +6.5723%, improving in 2/5 blocks). All are
+observations of the same implementation version with the warning described
+below, not new GPU measurements or clean final overhead estimates.
+
+```sh
+python3 workloads/lmcache-disk/analyze_gds_async_prefetch.py workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-02 --reference gds_async_native --format json
+```
+
 There is an actual integration warning, preserved rather than hidden: each of
 the 15 async server logs reports 48 negative MemoryObj reference counts. None
 of the five demand-FIFO logs contains that warning. The HTTP requests and cache

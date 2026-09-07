@@ -7,10 +7,12 @@ Reads one record per cell and reports, on stdout:
   ``warm_phase.output_tokens_per_s``) and arm TTFT median (median across
   blocks of ``warm_phase.warm_ttft_median_ms``);
 - mean E2E per cell over ``requests[phase=warm].e2e_ms``;
-- paired change by block against the demand arm, with the range of the
-  per-block deltas and the count of improving blocks.
+- paired change by block against the reference arm (``--reference``,
+  default the demand arm), as absolute deltas (candidate minus reference)
+  plus paired percentage deltas ``100*(candidate/reference - 1)``, each with
+  median/range and the count of improving blocks.
 
-Paired aggregation uses same-block demand/async pairs only: an incomplete
+Paired aggregation uses same-block candidate/reference pairs only: an incomplete
 block pair (either side missing a required value) is rejected from pairing,
 while every individual observation remains in the arm medians and the
 per-cell table.  A short-circuited or incomplete raw file is reported with a
@@ -27,10 +29,9 @@ import sys
 from pathlib import Path
 
 RAW_NAME = "raw.jsonl"
-BASE_ARM = "gds_demand_fifo"
+DEFAULT_REFERENCE = "gds_demand_fifo"
 KNOWN_ARMS = ("gds_demand_fifo", "gds_eager_async", "gds_async_native",
               "gds_async_bpf")
-METRIC_NAMES = ("tps", "ttft_median_ms", "e2e_mean_ms")
 
 
 def _num(value) -> float | None:
@@ -77,19 +78,34 @@ def load_cells(raw_path: Path) -> list[dict[str, object]]:
 
 
 def merge_cells(cells: list[dict[str, object]]) -> dict[tuple[int, str], dict[str, object]]:
-    """Collapse duplicate (block, config) records without losing observations."""
+    """Collapse duplicate (block, config) records.
+
+    Warm E2E observations are concatenated; the scalar tps/TTFT values keep
+    the first non-null record (later duplicates never replace them).
+    Duplicates are reported by the caller, not claimed retained.
+    """
     merged: dict[tuple[int, str], dict[str, object]] = {}
     for cell in cells:
         key = (cell["block"], cell["config"])
         row = merged.setdefault(key, {
             "block": cell["block"], "config": cell["config"],
             "tps": None, "ttft_median_ms": None, "warm_e2e_ms": []})
-        if cell["tps"] is not None:
+        if row["tps"] is None and cell["tps"] is not None:
             row["tps"] = cell["tps"]
-        if cell["ttft_median_ms"] is not None:
+        if row["ttft_median_ms"] is None and cell["ttft_median_ms"] is not None:
             row["ttft_median_ms"] = cell["ttft_median_ms"]
         row["warm_e2e_ms"].extend(cell["warm_e2e_ms"])
     return merged
+
+
+def duplicate_cells(cells: list[dict[str, object]]) -> list[dict[str, object]]:
+    seen: dict[tuple[int, str], int] = {}
+    for cell in cells:
+        key = (cell["block"], cell["config"])
+        seen[key] = seen.get(key, 0) + 1
+    return sorted(
+        {"block": block, "config": config, "records": count}
+        for (block, config), count in seen.items() if count > 1)
 
 
 def arm_rows(merged: dict[tuple[int, str], dict[str, object]],
@@ -111,38 +127,61 @@ def arm_rows(merged: dict[tuple[int, str], dict[str, object]],
 
 def paired_changes(base_rows: list[dict[str, object]],
                    arm_rows_: list[dict[str, object]]) -> dict[str, object]:
-    """Same-block pairs only; incomplete pairs are rejected, not pooled."""
-    per_block: dict[str, dict[str, float]] = {}
+    """Same-block candidate/reference pairs; incomplete pairs rejected, not pooled.
+
+    Emits the absolute delta (candidate - reference) and the paired
+    percentage ``100*(candidate/reference - 1)`` for every metric.  The
+    improving count is defined on the absolute-delta direction (lower TTFT /
+    mean E2E or higher throughput is better).
+    """
+    per_block: dict[str, dict[str, float | None]] = {}
     incomplete: list[int] = []
     for base, other in zip(base_rows, arm_rows_, strict=True):
-        values = {
-            "tps_delta": (other["tps"], base["tps"]),
-            "ttft_delta_ms": (other["ttft_median_ms"], base["ttft_median_ms"]),
-            "e2e_mean_delta_ms": (other["e2e_mean_ms"], base["e2e_mean_ms"]),
-        }
-        deltas = {}
-        for name, (a, b) in values.items():
-            deltas[name] = (a - b) if (a is not None and b is not None) else None
-        if any(v is None for v in deltas.values()):
+        metric_defs = (
+            ("tps_delta", "tps_pct", other["tps"], base["tps"]),
+            ("ttft_delta_ms", "ttft_pct", other["ttft_median_ms"],
+             base["ttft_median_ms"]),
+            ("e2e_mean_delta_ms", "e2e_mean_pct", other["e2e_mean_ms"],
+             base["e2e_mean_ms"]),
+        )
+        deltas: dict[str, float | None] = {}
+        for abs_name, pct_name, candidate, reference in metric_defs:
+            if candidate is not None and reference is not None:
+                deltas[abs_name] = candidate - reference
+                deltas[pct_name] = (100.0 * (candidate / reference - 1.0)
+                                    if reference != 0 else None)
+            else:
+                deltas[abs_name] = None
+                deltas[pct_name] = None
+        if any(v is None for name, v in deltas.items()
+               if name in ("tps_delta", "ttft_delta_ms", "e2e_mean_delta_ms")):
             incomplete.append(base["block"])
             continue
         per_block[str(base["block"])] = deltas
 
-    def spread(key: str) -> tuple[float | None, float | None, int]:
-        vals = [v[key] for v in per_block.values() if v[key] is not None]
-        return (min(vals), max(vals), len(vals)) if vals else (None, None, 0)
-
     summary: dict[str, object] = {}
-    for name, positive in (("ttft_delta_ms", False), ("e2e_mean_delta_ms", False),
-                           ("tps_delta", True)):
-        low, high, count = spread(name)
-        wins = sum(1 for v in per_block.values()
-                   if v[name] is not None and ((v[name] > 0) if positive else (v[name] < 0)))
-        summary[name] = {
-            "range": [low, high] if count else None,
-            "pairs": count,
-            "improving_blocks": wins,
-            "positive_is_better": positive,
+    for abs_name, pct_name, positive in (
+            ("ttft_delta_ms", "ttft_pct", False),
+            ("e2e_mean_delta_ms", "e2e_mean_pct", False),
+            ("tps_delta", "tps_pct", True)):
+        abs_vals = [v[abs_name] for v in per_block.values()
+                    if v[abs_name] is not None]
+        pct_vals = [v[pct_name] for v in per_block.values()
+                    if v[pct_name] is not None]
+        wins = sum(1 for v in abs_vals if (v > 0 if positive else v < 0))
+        summary[abs_name] = {
+            "abs": {
+                "range": [min(abs_vals), max(abs_vals)] if abs_vals else None,
+                "pairs": len(abs_vals),
+                "improving_blocks": wins,
+                "positive_is_better": positive,
+            },
+            "pct": {
+                "median": statistics.median(pct_vals) if pct_vals else None,
+                "range": [min(pct_vals), max(pct_vals)] if pct_vals else None,
+                "pairs": len(pct_vals),
+                "improving_blocks": wins,
+            },
         }
     return {
         "per_block": per_block,
@@ -151,9 +190,11 @@ def paired_changes(base_rows: list[dict[str, object]],
     }
 
 
-def analyze(raw_path: Path, blocks_expected: int) -> dict[str, object]:
+def analyze(raw_path: Path, blocks_expected: int,
+            reference: str = DEFAULT_REFERENCE) -> dict[str, object]:
     cells = load_cells(raw_path)
     merged = merge_cells(cells)
+    duplicates = duplicate_cells(cells)
     arms = list(KNOWN_ARMS)
     for config in sorted({row["config"] for row in merged.values()}):
         if config not in arms:
@@ -187,10 +228,10 @@ def analyze(raw_path: Path, blocks_expected: int) -> dict[str, object]:
     ]
 
     paired: dict[str, object] = {}
-    if BASE_ARM in rows_by_arm:
+    if reference in rows_by_arm:
         for arm in arms:
-            if arm != BASE_ARM:
-                paired[arm] = paired_changes(rows_by_arm[BASE_ARM], rows_by_arm[arm])
+            if arm != reference:
+                paired[arm] = paired_changes(rows_by_arm[reference], rows_by_arm[arm])
 
     expected_cells = blocks_expected * len(arms)
     missing = sorted(
@@ -210,12 +251,13 @@ def analyze(raw_path: Path, blocks_expected: int) -> dict[str, object]:
         "missing_cells": missing,
         "blocks": blocks,
         "arms": arms,
-        "base_arm": BASE_ARM,
+        "reference_arm": reference,
+        "duplicate_cells": duplicates,
         "pairing_rule": (
-            "paired aggregation uses same-block demand/async pairs only; an "
-            "incomplete block pair is rejected from pairing, never pooled; "
-            "all individual observations remain in arm medians and the "
-            "per-cell table"),
+            "paired aggregation uses same-block candidate/reference pairs "
+            "only; an incomplete block pair is rejected from pairing, never "
+            "pooled; all individual observations remain in arm medians and "
+            "the per-cell table"),
         "fields_used": [
             "block", "config",
             "warm_phase.output_tokens_per_s",
@@ -224,7 +266,7 @@ def analyze(raw_path: Path, blocks_expected: int) -> dict[str, object]:
         ],
         "per_arm": per_arm,
         "cell_table": cell_table,
-        "paired_vs_base": paired,
+        "paired_vs_reference": paired,
     }
 
 
@@ -244,6 +286,12 @@ def render_markdown(result: dict[str, object]) -> str:
         f"{result['cells_measured']} fully measured)")
     if result["missing_cells"]:
         lines.append(f"- missing cells: {', '.join(map(str, result['missing_cells']))}")
+    if result["duplicate_cells"]:
+        lines.append(
+            "- duplicate (block, config) records: "
+            + ", ".join(f"block {d['block']}/{d['config']} x{d['records']}"
+                        for d in result["duplicate_cells"])
+            + " (warm E2E merged; tps/TTFT keep the first non-null record)")
     lines.append(f"- pairing: {result['pairing_rule']}")
     lines.append("")
     lines.append("## Arm medians across blocks")
@@ -265,18 +313,23 @@ def render_markdown(result: dict[str, object]) -> str:
             f"| {_f(row['ttft_median_ms'])} | {_f(row['e2e_mean_ms'])} "
             f"| {row['warm_e2e_n']} |")
     lines.append("")
-    lines.append(f"## Paired change by block vs `{result['base_arm']}`")
-    for arm, paired in result["paired_vs_base"].items():
+    lines.append(f"## Paired change by block vs `{result['reference_arm']}`")
+    for arm, paired in result["paired_vs_reference"].items():
         lines.append("")
         lines.append(f"### {arm}")
         lines.append("")
-        lines.append("| block | dTTFT (ms) | dmean E2E (ms) | dtok/s |")
-        lines.append("|---|---|---|---|")
+        lines.append("| block | dTTFT (ms) | dTTFT (%) | dmean E2E (ms) | "
+                     "dmean E2E (%) | dtok/s | dtok/s (%) |")
+        lines.append("|---|---|---|---|---|---|---|")
         for block in sorted(paired["per_block"], key=int):
             d = paired["per_block"][block]
             lines.append(
-                f"| {block} | {d['ttft_delta_ms']:+.1f} "
-                f"| {d['e2e_mean_delta_ms']:+.1f} | {d['tps_delta']:+.1f} |")
+                f"| {block} | {_f(d['ttft_delta_ms'], '{:+.1f}')} "
+                f"| {_f(d['ttft_pct'], '{:+.2f}')} "
+                f"| {_f(d['e2e_mean_delta_ms'], '{:+.1f}')} "
+                f"| {_f(d['e2e_mean_pct'], '{:+.2f}')} "
+                f"| {_f(d['tps_delta'], '{:+.1f}')} "
+                f"| {_f(d['tps_pct'], '{:+.2f}')} |")
         if paired["incomplete_blocks"]:
             lines.append(
                 f"- incomplete block pairs rejected from pairing: "
@@ -284,14 +337,23 @@ def render_markdown(result: dict[str, object]) -> str:
         for name, label in (("ttft_delta_ms", "TTFT"), ("e2e_mean_delta_ms", "mean E2E"),
                             ("tps_delta", "throughput")):
             info = paired["summary"][name]
-            if info["range"] is None:
+            abs_info, pct_info = info["abs"], info["pct"]
+            if abs_info["range"] is None:
                 lines.append(f"- {label}: no complete block pairs")
                 continue
-            low, high = info["range"]
+            low, high = abs_info["range"]
+            if pct_info["range"] is None:
+                pct_part = "; pct unavailable (zero reference)"
+            else:
+                plo, phi = pct_info["range"]
+                pct_part = (
+                    f"; pct median {pct_info['median']:+.2f}%, range "
+                    f"{plo:+.2f}% to {phi:+.2f}%; improving blocks "
+                    f"{pct_info['improving_blocks']}/{pct_info['pairs']}")
             lines.append(
-                f"- {label}: range {low:+.1f} to {high:+.1f} over {info['pairs']} "
-                f"complete pairs; improving blocks "
-                f"{info['improving_blocks']}/{info['pairs']}")
+                f"- {label}: abs {low:+.1f} to {high:+.1f} over "
+                f"{abs_info['pairs']} complete pairs; improving blocks "
+                f"{abs_info['improving_blocks']}/{abs_info['pairs']}{pct_part}")
     lines.append("")
     return "\n".join(lines)
 
@@ -303,6 +365,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="path to raw.jsonl or to its containing directory")
     parser.add_argument("--blocks", type=int, default=5,
                         help="expected rotated blocks (default 5)")
+    parser.add_argument("--reference", default=DEFAULT_REFERENCE,
+                        help=f"reference arm for paired changes "
+                             f"(default {DEFAULT_REFERENCE})")
     parser.add_argument("--format", choices=("markdown", "json", "both"),
                         default="markdown", dest="format")
     args = parser.parse_args(argv)
@@ -313,10 +378,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"NOT FOUND: {raw_path}", file=sys.stderr)
         return 2
     try:
-        result = analyze(raw_path, args.blocks)
+        result = analyze(raw_path, args.blocks, args.reference)
     except (ValueError, OSError) as error:
         print(f"PARSE ERROR: {error}", file=sys.stderr)
         return 2
+    if result["duplicate_cells"]:
+        print(f"WARNING: duplicate (block, config) records "
+              f"{result['duplicate_cells']}; warm E2E observations are merged, "
+              "tps/TTFT keep the first non-null record", file=sys.stderr)
+    if not result["paired_vs_reference"]:
+        print(f"WARNING: reference arm {args.reference!r} absent from the raw "
+              "file; no paired comparisons", file=sys.stderr)
     if args.format in ("markdown", "both"):
         print(render_markdown(result))
     if args.format in ("json", "both"):

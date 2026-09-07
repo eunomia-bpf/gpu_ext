@@ -39,3 +39,21 @@ Only the results-to-contribution link changes: policy gains motivate the
 mechanism, while matched ports characterize its workload-dependent cost.
 The abstract and introduction must agree with that distinction. This is
 an authorized continuous-revision edit, not a new standalone reorganization.
+
+## Published opening repair
+
+Paper `2d0441d` updates the abstract, introduction and conclusion. Historical
+1.76x/4.8x/2x results remain; policy gains are separated from scoped
+mechanism-cost examples, without a uniform 0.7--3.3% bound or a claim of
+whole-system equivalence. Root tightened the local Qwen draft's attribution
+and aligned the conclusion. Two pdflatex passes succeed (17 pages;
+`/var/tmp/policy-attribution-paper-20260907.log`). Body/design edits remain
+with the other two local workers; Qwen Next is automatically retrying a
+provider error, not stopped for silence.
+
+The now-free Qwen 27B slot implements a separate result-plot update from
+existing Table 1 and five-pair GPU-array data. It writes new figure/source
+files under `tex-revision/img/results-raw/revision`, preserving the old PDF.
+The figure must retain negative launchlate overhead samples, label the
+independent campaigns, and keep final bulk readback outside the prefill
+metric. No new GPU cells or performance filtering is requested.

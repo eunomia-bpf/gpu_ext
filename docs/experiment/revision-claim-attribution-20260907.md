@@ -57,3 +57,11 @@ files under `tex-revision/img/results-raw/revision`, preserving the old PDF.
 The figure must retain negative launchlate overhead samples, label the
 independent campaigns, and keep final bulk readback outside the prefill
 metric. No new GPU cells or performance filtering is requested.
+
+Paper `3cddba8` additionally closes the missing explicit trampoline-scaling
+explanation: reducing duplicate work within a warp does not make total
+instrumentation cost independent of block count. The paragraph points to
+the already measured record-stream/buffer variants and introduces no new
+measurement claim. Two pdflatex passes succeed (17 pages,
+`/var/tmp/trampoline-scope-paper-20260907.log`). The three local body/design/
+figure tasks remain active; no quiet session was stopped or restarted.

@@ -1,5 +1,39 @@
 # Revision completion checklist
 
+## Current manuscript snapshot — 2026-09-07 PDT
+
+The current paper is `3ad7c84`, compiled from `docs/paper/main.tex` with
+flat section files under `docs/paper/tex-revision/`. The build has 15 pages.
+Several entries below describe earlier 16/17-page drafts that were later
+restored or simplified; their statements that material is “integrated” must
+not be read as the current manuscript status. Their experiment records remain.
+
+- Present: seven published-policy comparisons with workload/native/gpubpf
+  controls; transition-validation pseudocode, SIMT dataflow, rejection rules,
+  fallback and TCB; RTX 5090 observability results including 5.57% kernel-return
+  logging overhead; storage/CXL and state-freshness design paragraphs; an
+  explicit unpartitioned GPU sharing setting.
+- Still absent: the promised user-space/driver/gpubpf capability table;
+  LMCache local-disk evaluation; the additional Fig. 13 composition comparison;
+  the SASS-only application discussion; architectural details of tenant
+  isolation; explicit trampoline-scaling and startup-versus-runtime attachment
+  explanations. Portability and future-accelerator discussion need review.
+- Available outside the paper: completed original LMCache local-disk and
+  cuFile-backed serving comparisons, the five-block write-budget study,
+  the later I/O-concurrency study, bounded SASS EXIT injection, and the fresh
+  four-configuration memory/scheduling experiment. Measurement completion
+  does not imply that these results are in the current paper.
+- Still unavailable in the checked release locations: the original agent
+  study transcripts. Public harnesses and newly authored reproduction templates
+  do not complete the original-prompt release.
+
+The submitted Aug 3 commitments and Aug 14 shepherd follow-up in
+[revision-comments.md](paper/asplos-27-rebuttal/revision-comments.md), together
+with Q1–Q15 of the submitted response, define the requirements. Preserve the
+original paper files, figures and locked conclusion when adding missing text.
+The older progress entries below are retained as history.
+
+
 Updated 2026-09-07 UTC. The user requests completion of the remaining items,
 not only a status audit. The [complete review archive](paper/asplos-27-rebuttal/README.md)
 define the scope. The dated plan in the paper repository is not evidence that

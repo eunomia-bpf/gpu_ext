@@ -1,0 +1,99 @@
+{
+  "arm": "bpf_delay_100ms",
+  "block": 1,
+  "cleanup": {
+    "leases_retained": true,
+    "monitors_reaped": true,
+    "policy_detached": true,
+    "workload_reaped": true
+  },
+  "cleanup_errors": [],
+  "complete": true,
+  "delay_ms": 100,
+  "implementation": "bpf",
+  "lease_mode": "read_only_exclusive",
+  "lease_paths": [
+    "/tmp/gpubpf-revision-gpu0.lock",
+    "/tmp/gpubpf-revision-struct-ops.lock"
+  ],
+  "monitor_coverage": {
+    "compute_apps": true,
+    "gpu_telemetry": true,
+    "kernel_log": true,
+    "phase_truth": true,
+    "policy_diagnostics": true,
+    "uvm": true
+  },
+  "performance_only": true,
+  "protocol": "stale-cross-layer-575-v1",
+  "safety": {
+    "gpu_telemetry_valid": true,
+    "pre_exclusivity_checked": true
+  },
+  "status": "measured",
+  "struct_ops_at_ready": {
+    "inventory": {
+      "links": [
+        {
+          "id": 21,
+          "map_id": 253,
+          "pids": [
+            {
+              "comm": "live_loader",
+              "pid": 933904
+            }
+          ],
+          "prog_id": 0,
+          "type": "struct_ops"
+        }
+      ],
+      "maps": [
+        {
+          "btf_id": 484,
+          "bytes_key": 4,
+          "bytes_memlock": 4912,
+          "bytes_value": 128,
+          "flags": 40960,
+          "frozen": 0,
+          "id": 253,
+          "max_entries": 1,
+          "name": "stale_state_v1_",
+          "pids": [
+            {
+              "comm": "live_loader",
+              "pid": 933904
+            }
+          ],
+          "type": "struct_ops"
+        }
+      ]
+    },
+    "observer_ready": {
+      "event": "ready",
+      "implementation": "bpf",
+      "observer_link_id": 20,
+      "pid": 933904,
+      "struct_link_id": 21,
+      "struct_map_id": 253,
+      "target_pid": 933836
+    },
+    "ownership": {
+      "link_id": 21,
+      "map_id": 253,
+      "owner_pid": 933904
+    }
+  },
+  "target_pid": 933836,
+  "timeline": "alternating-dense-sparse-40g-v1",
+  "uvm_fd_candidates": [
+    {
+      "source_fd": 13,
+      "target": "/dev/nvidia-uvm"
+    },
+    {
+      "source_fd": 14,
+      "target": "/dev/nvidia-uvm"
+    }
+  ],
+  "validation_skipped": "performance-only mode: historical idle audit, protocol.validate_cell, and campaign validators were not run; no passed or validity claim"
+}

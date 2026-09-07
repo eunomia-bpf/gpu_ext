@@ -23,9 +23,11 @@ the adapter's ``LiveDemandRequestProvider`` on a live telemetry view: the
 pending-demand-read count is the actual count of pending demand reads, the
 10 ms slack acts as a cumulative background-write delay budget consumed in
 steps of at most 1 ms, the runner injects no constant 801 permille, and no
-measured HBM pressure is claimed.  In either variant the same request
+measured HBM pressure is claimed.  The opt-in ``live-event-driven`` variant
+instead waits for zero pending reads or cumulative budget expiry before
+re-evaluation, using the same provider for native and BPF.  In every variant the same request
 provider feeds every policy mode; only the decider mode differs.  A
-``live-feedback`` result additionally records the adapter's
+live-input result additionally records the adapter's
 ``feedback_records`` before the adapter is closed, on the failure path too
 wherever the adapter exists, and the campaign, cell, and summary metadata
 name the chosen variant.
@@ -102,7 +104,7 @@ CONTROLLED_POLICY_INPUTS: dict[str, Any] = {
     "label": "explicit controlled inputs, not measured live HBM pressure",
 }
 
-POLICY_VARIANTS = ("fixed-delay", "live-feedback")
+POLICY_VARIANTS = ("fixed-delay", "live-feedback", "live-event-driven")
 DEFAULT_POLICY_VARIANT = "fixed-delay"
 
 LIVE_FEEDBACK_POLICY_INPUTS: dict[str, Any] = {
@@ -125,10 +127,18 @@ LIVE_FEEDBACK_POLICY_INPUTS: dict[str, Any] = {
 
 def policy_metadata(policy_variant: str) -> dict[str, Any]:
     """Record metadata naming the variant and its policy inputs."""
-    if policy_variant == "live-feedback":
+    if policy_variant in ("live-feedback", "live-event-driven"):
+        inputs = dict(LIVE_FEEDBACK_POLICY_INPUTS)
+        if policy_variant == "live-event-driven":
+            inputs.pop("background_write_delay_step_ns_max")
+            inputs["wakeup"] = "zero pending demand reads or cumulative budget expiry"
+            inputs["label"] = (
+                "actual pending demand reads; 10 ms cumulative write budget; "
+                "event-driven wakeup, no periodic polling or measured HBM pressure"
+            )
         return {
-            "policy_variant": "live-feedback",
-            "live_policy_inputs": dict(LIVE_FEEDBACK_POLICY_INPUTS),
+            "policy_variant": policy_variant,
+            "live_policy_inputs": inputs,
         }
     return {
         "policy_variant": "fixed-delay",
@@ -454,11 +464,12 @@ def wrap_submit_timing(backend: Any, log: dict[Any, dict[str, Any]],
 def install_policy(backend: Any, mode: str, parts: BackendParts,
                    policy_variant: str) -> Any:
     """Install one policy adapter handle under the chosen input variant."""
-    if policy_variant == "live-feedback":
+    if policy_variant in ("live-feedback", "live-event-driven"):
         provider = parts.adapter.LiveDemandRequestProvider(
             parts.adapter.Telemetry(slack_ns=10_000_000,
                                     hbm_pressure_permille=0,
-                                    speculative_recomputable=False)
+                                    speculative_recomputable=False),
+            event_driven=(policy_variant == "live-event-driven"),
         )
     else:
         provider = parts.adapter.EnvironmentRequestProvider(
@@ -745,7 +756,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
         return record
     finally:
         cleanup_errors: list[str] = record["cleanup_errors"]
-        if adapter is not None and policy_variant == "live-feedback":
+        if adapter is not None and policy_variant in ("live-feedback", "live-event-driven"):
             try:
                 record["feedback_records"] = list(adapter.feedback_records)
             except Exception as error:

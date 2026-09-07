@@ -16,6 +16,10 @@ as ``queue_depth``, ``HINT_LIVE_DEMAND`` in ``caller_hint``, and the
 remaining per-write delay budget as ``slack_ns``.  Those fields are demand
 feedback, not measured HBM pressure.  After every wait, a deferred flagged
 write is re-decided from the live state until the policy says SUBMIT.
+With ``event_driven=True`` the provider replaces the fixed re-decide sleeps
+of deferred writes with a notification wait: the write wakes when the
+pending demand-read count drains to zero or the cumulative write delay
+budget expires, then re-decides.
 
 Bootstrap, including from ``sitecustomize.py``::
 
@@ -244,19 +248,27 @@ class LiveDemandRequestProvider(EnvironmentRequestProvider):
     ``HINT_LIVE_DEMAND`` in ``caller_hint``, and the remaining per-write
     delay budget as ``slack_ns``.  Those fields are demand feedback, not
     measured HBM pressure.  Reads keep the parent's fixed-telemetry requests.
+
+    With ``event_driven=True`` a deferred write waits on the drain
+    notification below instead of re-asserting fixed sleeps; the wait still
+    ends at the remaining cumulative write delay budget, and the fresh
+    re-decision keeps gating the actual submit.
     """
 
     def __init__(
         self,
         telemetry: Telemetry = Telemetry(),
         total_write_delay_budget_ns: int = 10_000_000,
+        event_driven: bool = False,
     ) -> None:
         super().__init__(telemetry)
         if total_write_delay_budget_ns < 0:
             raise ValueError("total_write_delay_budget_ns must be non-negative")
         self.total_write_delay_budget_ns = int(total_write_delay_budget_ns)
+        self.event_driven = bool(event_driven)
         self._pending_lock = threading.Lock()
         self._pending_demand_reads = 0
+        self._drain_waiters: list[tuple[asyncio.AbstractEventLoop, asyncio.Future]] = []
 
     @classmethod
     def from_environ(
@@ -273,8 +285,56 @@ class LiveDemandRequestProvider(EnvironmentRequestProvider):
             self._pending_demand_reads += 1
 
     def demand_read_finished(self) -> None:
+        waiters: list[tuple[asyncio.AbstractEventLoop, asyncio.Future]] = []
         with self._pending_lock:
             self._pending_demand_reads = max(0, self._pending_demand_reads - 1)
+            if not self._pending_demand_reads and self._drain_waiters:
+                # Swap the waiters out under the lock so a demand read that
+                # started an event-driven wait in between registers against
+                # the post-drain count instead of a stale future.
+                waiters = self._drain_waiters
+                self._drain_waiters = []
+        for loop, future in waiters:
+            try:
+                loop.call_soon_threadsafe(self._wake_waiter, future)
+            except RuntimeError:
+                pass
+
+    @staticmethod
+    def _wake_waiter(future: asyncio.Future) -> None:
+        if future.done():
+            return
+        future.set_result(None)
+
+    async def wait_for_demand_drain(self, timeout_seconds: float) -> bool:
+        """Wait for pending demand reads to drain, or for the timeout.
+
+        The drain check and waiter registration are one atomic step under
+        ``self._pending_lock``, which is never held across an await.  The
+        future resolves from a ``demand_read_finished`` notification; the
+        timeout caps the wait at the remaining cumulative write delay
+        budget.  Return whether the count is zero by the time the wait
+        ends, without polling.
+        """
+        with self._pending_lock:
+            if self._pending_demand_reads == 0:
+                return True
+            loop = asyncio.get_running_loop()
+            future: asyncio.Future = loop.create_future()
+            waiter = (loop, future)
+            self._drain_waiters.append(waiter)
+        try:
+            try:
+                await asyncio.wait_for(future, timeout_seconds)
+            except asyncio.TimeoutError:
+                pass
+            return self.pending_demand_reads == 0
+        finally:
+            with self._pending_lock:
+                try:
+                    self._drain_waiters.remove(waiter)
+                except ValueError:
+                    pass
 
     @property
     def pending_demand_reads(self) -> int:
@@ -497,6 +557,25 @@ class GdsBackendAdmissionAdapter:
                             )
                     if not current.defer_ns:
                         break
+                    live = self._live_provider
+                    if (
+                        budget is not None
+                        and live is not None
+                        and live.event_driven
+                    ):
+                        # Opt-in event-driven wait: replace the polling sleep
+                        # with a notification future.  Wake when the pending
+                        # demand-read count drains to zero or when the
+                        # remaining cumulative write delay budget expires,
+                        # then loop into the fresh decision above; a demand
+                        # read that arrived meanwhile is caught there.
+                        remaining_ns = budget.remaining_ns(
+                            int(time.monotonic() * 1_000_000_000)
+                        )
+                        await live.wait_for_demand_drain(
+                            remaining_ns / 1_000_000_000
+                        )
+                        continue
                     await self._async_wait(current.defer_ns / 1_000_000_000)
                     if budget is None:
                         break

@@ -43,6 +43,12 @@ now completes five paired blocks: mean baseline/tool throughput is
 every tool run retains 720896 full records. Final bulk lookup averages
 10.379 ms, separately reported and excluded from prefill timing. This is a
 finite pp512 buffer, not an unbounded streaming result; old numbers are retained.
+Paper `812cf4a` now includes this completed GPU-local buffering result in
+`tex-revision/tex/eval.tex`, alongside the unchanged older observability
+numbers. The text states the final readback cost, finite serial-launch scope,
+and warning-mode limitation. Two LaTeX passes complete at 16 pages with no
+undefined references or citations. This closes that paper-evidence gap
+without rerunning any device-tool measurement.
 
 **2026-09-06 GDS end-to-end update:** the [five-block raw summary](../workloads/lmcache-disk/raw/gds-five-arm-575-20260906-five-block-formal/summary.json)
 now completes 25/25 LMCache cells. Recompute / CPU / GDS FIFO / native / BPF

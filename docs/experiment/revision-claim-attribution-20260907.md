@@ -65,3 +65,26 @@ the already measured record-stream/buffer variants and introduces no new
 measurement claim. Two pdflatex passes succeed (17 pages,
 `/var/tmp/trampoline-scope-paper-20260907.log`). The three local body/design/
 figure tasks remain active; no quiet session was stopped or restarted.
+
+## Published body and design repair
+
+Paper `46220f2` integrates local OpenCode GLM's mechanism-cost and
+agent-policy paragraphs and the previously omitted Hummingbird background
+throughput cost. The LMCache variation is explicitly not a tight estimate
+of BPF overhead; five matched budget blocks retain both adverse pairs.
+The 51.011% read-p99 reduction accompanies a 15.315% **increase in write
+throughput**, not an increase in write latency. No new measurements were run.
+
+Qwen Next's design-only task ended with an actual provider HTTP 524 error
+without writing its file. Root completed the two small prose additions:
+the measured storage-admission adapter is not a complete storage-residency
+state machine or evidence of NVMe-to-GPU P2P, and proposed independent-tenant
+requirements are not implemented isolation guarantees. Two pdflatex passes
+succeed (17 pages, `/var/tmp/revision-body-scope-20260907.log`).
+
+Qwen 27B's figure session previously reached an actual model `finish=length`
+termination and was resumed in the same session, not interrupted for silence.
+Its new figure/source/data files are now present. Root's visual inspection
+found a clipped axis label and requested a short label plus caption; this
+local session remains active. The existing figure and every original result
+remain intact. Figure integration is not yet marked complete.

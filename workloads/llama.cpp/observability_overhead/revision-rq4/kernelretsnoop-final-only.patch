@@ -1,0 +1,15 @@
+--- a/kernelretsnoop.c
++++ b/kernelretsnoop.c
+@@ -460,6 +460,12 @@
+ 	}
+ 	int mapfd = bpf_map__fd(skel->maps.rb);
++	const bool final_only = getenv("BPFTIME_KERNELRETSNOOP_FINAL_ONLY") != NULL;
++	fprintf(stderr, "Final-only collection: %d\n", final_only);
+ 	while (!exiting) {
++		if (final_only) {
++			usleep(10000);
++			continue;
++		}
+ 		err = poll_fn(mapfd, &state, poll_callback);
+ 		if (err < 0) {
+ 			fprintf(stderr, "Unable to poll: %d\n", err);

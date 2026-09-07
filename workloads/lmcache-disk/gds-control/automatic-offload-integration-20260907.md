@@ -494,3 +494,36 @@ the workload, unlike the earlier overlapped cells. The matching BPF cell
 is now running at the same root's `bpf-sync/` directory. Source for the
 runner remained unchanged at both launches; the local continuation writer
 and original async-path repair tasks remain active.
+
+## First complete non-overlapped three-arm block
+
+The BPF control also completes all eight warm requests without request
+errors: 8,192 generated tokens in 117.663847 seconds, or 69.622065 token/s.
+Its all-request warm TTFT median is 26,516.196 ms. All eight cold requests
+succeed and the server returns zero. Raw result/log sizes are 171,942 and
+219,667 bytes under the same ablation root's `bpf-sync/` directory. Its
+expected adapter shutdown diagnostics are absent, as for native.
+
+| Non-overlapped block 0 | Stock | Native | BPF |
+| --- | ---: | ---: | ---: |
+| Warm requests completed / attempted | 8 / 8 | 8 / 8 | 8 / 8 |
+| Output throughput, token/s | 71.787093 | 67.224270 | 69.622065 |
+| Warm elapsed seconds | 114.115222 | 121.860751 | 117.663847 |
+| Warm TTFT median, ms | 25599.252 | 27454.104 | 26516.196 |
+
+This first block alone does not establish a stable ranking or a mechanism
+overhead bound. The same five-block rotated comparison will continue in
+this non-overlapped configuration, retaining these completed block-0 cells
+without rerunning them. New blocks use the existing runner's rotation and
+warm-arrival functions, with records under `block-01/` through `block-04/`;
+the three block-0 directories keep their original names. The price proxy
+remains the same measured 62,502 ns/token in both policy arms, held constant
+across the scheduling ablation rather than re-estimated for the new mode.
+
+Block 1 has started in native/BPF/stock order with warm arrival indices
+rotated by one. Root invokes the existing `run_cell` for each position;
+no new harness or runtime patch is introduced, and one GPU/struct-ops lock
+pair serializes the block. Further repetitions do not close or substitute
+for the original asynchronous scheduling-path repair. The missing policy
+diagnostics remain an interpretation limitation, not a reason to erase
+these measured performance records.

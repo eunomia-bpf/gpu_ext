@@ -184,3 +184,22 @@ No paper files are edited by this session. Automatic object-level offload still
 requires the KV ownership/reclaim integration described in
 `gds-control/disk-uvm-source-boundary-20260907.md`; completing this retrieval
 batch does not complete the overall revision work.
+
+The Qwen 27B analysis task has now finished normally (`finish=stop`, no model
+error); its CLI, expanded outputs and corrected interpretation note are
+published. Its freed slot is assigned to a concrete implementation dependency
+for disk-aware reclaim: a minimal optional victim-selection callback in the
+installed vLLM scheduler's existing preemption path. The new task owns only
+`gds-control/vllm-preemption-seam.patch` and its source note, and does not apply
+the patch or run a separate benchmark. Default selection must remain unchanged;
+selected victims must follow the original list, token-budget and scheduled-work
+rollback before `_preempt_request` performs the existing reclaim/recompute
+transition. This avoids treating a recorder as the offload endpoint.
+
+The GLM route task remains responsible for the actual LMCache-backed ownership
+and recovery-cost input path; the other GLM task continues the async event
+ownership repair. The intended next integrated implementation uses real disk
+state to change native/BPF selection and then compares real serving behavior.
+A callback without that input/action integration is not automatic offload or
+a new performance result. No installed scheduler, driver, or paper is changed
+by this assignment, and total live OpenCode concurrency remains three.

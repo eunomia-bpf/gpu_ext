@@ -183,3 +183,22 @@ changes. The same matched-policy session now runs Qwen 27B (runner 30037).
 Root requested the already measured XSched BE medians and GPreempt's
 continuous-load BE cost alongside their LC benefits; no new cells are needed.
 GLM's response task and Qwen 27B's introduction task both ended normally.
+
+## Published scheduling tradeoffs
+
+Paper `5673184` publishes the local Qwen matched-subsection edits. XSched's
+native/original/BPF BE medians (10.2377/10.1497/10.1616 kernels/s) and
+GPreempt's continuous-load BE medians (197.717/179.967/180.100 req/s) now
+appear beside their foreground-latency results. Root retained the definition
+of all-positive prefetch and explicit paired-statistic labels after trimming,
+and corrected one Chinese translation. No measured number, figure or raw
+result was removed. Two pdflatex passes succeed (17 pages; conclusion page
+15; `/var/tmp/revision-matched-tradeoffs-20260907.log`). The Qwen runner
+30037 ended normally.
+
+Local GLM session `ses_f848755e1ffeFuB8guQY29AsTo` (runner 10270) owns only
+`asplos-27-rebuttal/evaluation-scope-followup.patch`, not the live LaTeX.
+Its pending patch will distinguish the original 59-policy Opus study and
+original software/trial defaults from the revision's additional policy-port
+and LMCache studies. Root will apply only the intended prefix-section hunks;
+this avoids overwriting the independently completed matched subsection.

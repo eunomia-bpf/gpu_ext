@@ -125,6 +125,18 @@ precede GPU consumption, rather than only serial cold-then-warm requests.
 All arms receive the same request arrivals and available hints, storage
 transport, staging budget and I/O concurrency.
 
+Before any new performance run, source inspection corrects the initial
+max-num-seqs=1 suggestion: installed vLLM's `v1/core/sched/scheduler.py`
+breaks out of the waiting-request loop at lines 685-692 when the running
+request limit is reached, before the connector lookup at line 778. Thus a
+queued request cannot start its lookup while one request is already running
+with that limit. The new four-arm experiment uses max-num-seqs=2 identically
+in every arm, keeping the initial 768 MiB KV and 256 MiB GDS staging budgets.
+This creates a scheduling opportunity for read/compute overlap; actual overlap
+and a performance benefit are not yet measured. Old single-sequence results
+and defaults remain unchanged. Native/BPF still receive identical inputs;
+there is no BPF-only batching advantage.
+
 - Original demand-driven disk retrieval: reference serving path.
 - Eager prefetch on the same real lookup opportunity: strong simple policy.
 - Adaptive native and adaptive BPF: identical information and algorithm.

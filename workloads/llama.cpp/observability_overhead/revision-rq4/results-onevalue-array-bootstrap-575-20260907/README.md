@@ -35,6 +35,12 @@ Overhead is `100 * (baseline - tool) / baseline` within each block;
 the headline is the arithmetic mean of those five percentages. The paired
 median is 5.486182%, with range 4.017536%–6.704966%. No samples are filtered.
 
+The campaign uses the same warning-mode runtime configuration as the original
+Table 1 run. Raw logs retain verifier warnings about map-pointer bounds; the
+runtime executes the program despite those warnings. These are performance
+measurements, **not evidence of strict verifier admission**. No admission
+check was added or used to discard a measurement.
+
 ## What changed
 
 The same warp-leader callback records every coordinate and timestamp into

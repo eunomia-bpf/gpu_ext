@@ -59,7 +59,8 @@ This closes the runner's process/timing implementation follow-up and measures
 the fixed-delay storage-policy tradeoff. Live pending-demand feedback remains
 distinct unfinished policy work. Its matching native/BPF flagged-write branch
 is implemented and built in main commit `f105c6fd`; live counter/executor and
-runner wiring remain unfinished, and the new object is not yet loaded.
+runner wiring remain unfinished. The new object is now attached on the same
+575 driver; no live-feedback performance result is claimed yet.
 Prior dispatch-only and burst data remain.
 Paper commit `277c77f` now integrates this policy-behavior comparison into
 `tex-revision/tex/eval.tex`, including the adverse p50/write-throughput results,

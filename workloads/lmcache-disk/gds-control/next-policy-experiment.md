@@ -54,8 +54,14 @@ The completed fixed-delay experiment lowers BPF/FIFO paired read p99 by
 12.440% at the median, but worsens read p50 and reduces paired write throughput
 by 1.673%. The next implementation responds to actually outstanding demand
 reads instead of deferring every write based on a constant pressure input.
-Local OpenCode/Qwen Next session `ses_f866bda8dffeljd81GZlstX8rx` owns this
-opt-in variant. No result is claimed for it yet.
+Local OpenCode/Qwen Next session `ses_f866bda8dffeljd81GZlstX8rx` attempted
+this opt-in variant but exited with CLI status 1 and APIError HTTP 524 before
+producing source. It was not stopped for silence or by a root-imposed timeout.
+Qwen 27B now takes over in the existing LMCache session
+`ses_f86e7cf67ffeiTI9l4PQ5lbDWu`, reusing its implementation context with an
+explicit new task. The earlier runner task remains complete and is not rerun.
+No feedback-policy result is claimed yet. There are still at most three active
+root model sessions; the two device-array implementations continue unchanged.
 
 Native and BPF will consume the same live pending-read count, explicitly
 identified by a caller-hint flag in the existing 136-byte command-82 ABI.

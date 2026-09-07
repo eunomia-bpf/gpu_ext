@@ -106,6 +106,21 @@ deadline is an application hint, not measured GPU-use slack, and no precise
 causal decomposition of scheduling, framework overhead, and read service is
 claimed. The reference-count issue below remains a limitation of this version.
 
+The initial local-Qwen analysis CLI is now runnable:
+
+```sh
+python3 workloads/lmcache-disk/analyze_gds_async_prefetch.py workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-02 --format json
+```
+
+Root ran it over the complete file; it reports 20 numeric cells and reproduces
+the four arm medians above. Its output is retained as
+`raw/gds-async-prefetch-575-20260907-02/analysis-demand.json`. This initial
+version includes per-cell mean E2E and same-block absolute changes against
+demand FIFO, not yet the native-reference percentage estimates above. Those
+two small additions are with the same local model. The campaign has one record
+per block/config; the initial CLI's duplicate merge behavior must not be used
+to combine separate attempts or versions.
+
 There is an actual integration warning, preserved rather than hidden: each of
 the 15 async server logs reports 48 negative MemoryObj reference counts. None
 of the five demand-FIFO logs contains that warning. The HTTP requests and cache

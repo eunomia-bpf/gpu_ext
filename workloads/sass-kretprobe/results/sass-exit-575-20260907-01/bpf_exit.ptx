@@ -1,0 +1,22 @@
+.version 8.7
+.target sm_120
+.address_size 64
+
+
+	// .globl	bpf_exit
+
+.visible .func bpf_exit(
+	.param .b64 bpf_exit_param_0,
+	.param .b64 bpf_exit_param_1
+)
+{
+	.reg .b64 	%rd<4>;
+
+	ld.param.u64 	%rd1, [bpf_exit_param_0];
+	mov.u64 	%rd2, 0;
+	st.u32 	[%rd1+4], %rd2;
+	mov.u64 	%rd3, 42;
+	st.u32 	[%rd1], %rd3;
+	ret;
+
+}

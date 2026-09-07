@@ -1,0 +1,13 @@
+------------- NVBit (NVidia Binary Instrumentation Tool v1.8) Loaded --------------
+NVBit core environment variables (mostly for nvbit-devs):
+ACK_CTX_INIT_LIMITATION = 0 - if set, no warning will be printed for nvbit_at_ctx_init()
+            NVDISASM = nvdisasm - override default nvdisasm found in PATH
+            NOBANNER = 0 - if set, does not print this banner
+       NO_EAGER_LOAD = 1 - lazy module loading is now turned on by default. If you see deadlocks in your tool, set NO_EAGER_LOAD to 0
+---------------------------------------------------------------------------------
+SKRET tool loaded target=_Z6vecAddPdS_S_i
+WARNING: Do not call CUDA memory allocation in nvbit_at_ctx_init(). It will cause deadlocks. Do them in nvbit_tool_init(). If you encounter deadlocks, remove CUDA API calls to debug.
+SKRET instrumented_exits=2 target=_Z6vecAddPdS_S_i
+SKRET launch=1 threads=100352 expected_slots=100352 wrote_42=100352
+SKRET done target_launches=1
+Final sum = 100000.000000; sum/n = 1.000000 (should be ~1)

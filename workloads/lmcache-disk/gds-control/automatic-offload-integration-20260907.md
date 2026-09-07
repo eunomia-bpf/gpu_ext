@@ -476,3 +476,21 @@ compatibility patch, confined to the existing preemption-seam artifact and
 its note. Root will apply any accepted patch only after active GPU work
 finishes. The working non-overlapped comparison does not close or replace
 repair of the original overlapped path.
+
+## Matching non-overlapped native result
+
+Native with the same `--no-async-scheduling` option completes all eight
+warm requests and all eight cold requests without request errors. Its
+8,192 warm output tokens take 121.860751 seconds (67.224270 token/s);
+warm TTFT median is 27,454.104 ms across all eight requests. The raw result
+and server log (171,904 and 219,556 bytes) are retained under
+`../raw/gds-kv-reclaim-scheduling-ablation-575-20260907-01/native-sync/`.
+The expected adapter exit diagnostics are still absent and recorded as such.
+
+This native sample is slower than the stock control's 71.787093 token/s.
+Neither a policy gain nor a stable regression estimate follows from these
+single measurements; the adverse observation is preserved. Both complete
+the workload, unlike the earlier overlapped cells. The matching BPF cell
+is now running at the same root's `bpf-sync/` directory. Source for the
+runner remained unchanged at both launches; the local continuation writer
+and original async-path repair tasks remain active.

@@ -3,6 +3,19 @@
 Date: 2026-09-07. Bounded read-only source investigation. No builds, no GPU
 runs, no downloads. Only this file was written.
 
+## Completed follow-up
+
+The source-investigation scope above describes the initial step only. The
+subsequent implementation and [actual application run](../../workloads/sass-kretprobe/results/sass-exit-575-20260907-01/results.md)
+are complete in main `9d823ede`: two EXIT sites, 100,352 launched threads
+and 100,352 BPF outputs, expected vector-add result, process return zero.
+The target contains cubin and no PTX. Local Qwen's generated fatbin carrier,
+compiled using g++ rather than NVCC, solves embedding without device-link
+elimination; local GLM's exporter is published in `08e1692e`. No companion
+BPF kernel is launched. The build checkpoints below are retained history,
+not current blockers. General helper/map support and late attach remain
+outside this bounded result.
+
 Question: smallest REAL path to execute a verified BPF kernel-return
 (kretprobe-style) program when the target application ships ONLY sm_120
 cubin (SASS, no PTX), reusing existing instrumentation/injection machinery.

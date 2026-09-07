@@ -28,15 +28,15 @@ publishes the reusable analyzer and matching reanalysis. The root inspected
 compiled page 12. The build has 17 pages including references, with the
 conclusion on page 14. The GPU matrix must not repeat. All historical data remain.
 
-**Current implementation:** the [PTX-free application follow-up](experiment/sass-existing-application-next-20260907.md)
-has finished source investigation and is now split between local OpenCode
-Qwen 27B (NVBit EXIT tool/build embedding) and GLM (BPF device-function
-exporter). The exporter is now built and published in main `08e1692e`;
-the real input produces a 316-byte two-parameter device function. The merged
-wrapper/BPF PTX also assembles into tools-patch SASS. Embedding and execution
-inside the existing target remain unfinished; GLM now assists that CPU-only
-build step. This is not yet a live application result. The root owns GPU
-execution and publication. Separately, paper `da7c547` adds FineMoE's faster
+**Latest SASS implementation:** the [PTX-free application run](../workloads/sass-kretprobe/results/sass-exit-575-20260907-01/results.md)
+is complete in main `9d823ede`, with exporter `08e1692e`. Local OpenCode
+Qwen 27B implemented NVBit EXIT injection/embedding; GLM implemented the BPF
+device-function exporter. Root's actual cubin-only vector-add run records
+two EXIT sites, all 100,352 thread slots written by compiled BPF, expected
+application output and return zero. This closes the bounded in-body path,
+not general helpers/maps, late attach or performance parity. The revision's
+implementation paragraph includes the result and builds in 17 pages.
+Separately, paper `da7c547` adds FineMoE's faster
 demand-only baseline (5.17 versus native/BPF 4.50/4.51 token/s) alongside the
 retained all-positive improvement; no completed FineMoE cells repeat.
 The [SASS evidence index](experiment/revision-sass-aot-readiness-20260904.md)
@@ -224,6 +224,7 @@ then rechecked the completed comparison values and open boundaries and returned
 | RTX 5090 Table 1 | The current [three-tool result](../workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-06/README.md) completes **10 rotated blocks / 70 cells**, all with numeric throughput and return code 0. Baseline is **37,586.3225 token/s**. gpubpf/NVBit overhead is **90.7051%/99.6210%** for `kernelretsnoop`, **2.9653%/10.3501%** for `threadhist`, and **0.2208%/8.7959%** for `launchlate`. All earlier Table 1 measurements, including verifier A1/S0 studies and the submitted P40 values **8%/85%, 3%/87%, 14%/93%**, remain retained as separate historical evidence. | The requested three rows are measured. The separate GPU-local producer follow-up completes five paired blocks with **5.5726%** mean prefill overhead and **10.379 ms** mean final lookup outside prefill timing. It retains every record for the finite pp512 workload; no earlier measurement is overwritten. |
 | Agent prompts and benchmark harnesses | Public harnesses, the missing-session inventory and separately labelled newly authored reproduction templates are committed and pushed (`1e4564c`). | Recover and redact actual original transcripts before claiming the original-prompt release complete. The author has been asked for the backup. |
 | Discussion and organization | Draft groups stale-state thrashing, CXL tiers, tenant scope, trampoline scaling, portability and software co-location versus static partitioning. The [stale-state repeated campaign](../workloads/stale-state-575/results-performance-gds-20260907.md) completes 21 cells, saved-GDS-module restoration and analysis of 15,747,386 decisions (`bc0ff88a`, `1ea66808`). Paper `57e9937` reports the measured sensitivity and builds in 16 pages. The [earlier deployment audit](experiment/revision-deployment-575/RESULTS.md) covers CPU-only LD_PRELOAD/Frida lifecycle, not GPU performance. The SASS AOT pipeline at bpftime `fd976ea` loads and executes a standalone generated cubin returning 42 on RTX 5090. | Delayed-state performance sensitivity is measured, but adaptive freshness mitigation and driver-classified thrashing are not demonstrated. The earlier [owner-12 record](../workloads/stale-state-575/live-formal-campaign-20260905.md) remains separate, not repeated or rewritten. Standalone SASS execution is not injection into existing PTX-free applications, application hook/helper/map semantics, or a full NVBit comparison. Proposed CXL, tenant and portability work remains distinct from implemented guarantees. |
+| PTX-free application instrumentation | The newer [live SASS EXIT result](../workloads/sass-kretprobe/results/sass-exit-575-20260907-01/results.md), main `9d823ede`, executes compiled BPF inside the existing target: two EXIT sites, 100,352/100,352 BPF outputs and expected application output. Paper `e01549f` adds the implementation paragraph; the older standalone-only boundary in the row above is superseded for this bounded path. | One context, one target kernel and finite per-thread output slots. Helpers/maps, late attach, concurrent launches and performance parity remain unestablished. NVBit supplies the trusted binary instrumentation. |
 | Typographic fixes | Active-source double punctuation and printed bibliography braces repaired and checked in a fresh build. | Existing bibliography metadata warnings are not a completed citation audit. |
 
 ## Additional requested experiments

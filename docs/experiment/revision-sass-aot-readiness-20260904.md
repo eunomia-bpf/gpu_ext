@@ -2,6 +2,19 @@
 
 Date: 2026-09-04 (updated 2026-09-07)
 
+## Existing-application injection — completed 2026-09-07
+
+Main `9d823ede` publishes the [live EXIT-injection result](../../workloads/sass-kretprobe/results/sass-exit-575-20260907-01/results.md).
+A real BPF ELF is compiled into a device function and embedded in an NVBit
+tool. In a cubin-only vector-add application on RTX 5090, two EXIT sites
+execute the callback on all 100,352 launched threads; every per-thread
+slot contains 42, and the target's expected result is retained. Both
+baseline and instrumented processes return zero. This extends the earlier
+standalone/companion boundary to real in-body application instrumentation,
+but only for one context, one selected kernel and bounded context writes.
+The historical sections below retain their original scope; they do not
+establish general helpers/maps, late attach or a full performance comparison.
+
 ## Recovered later branch evidence — 2026-09-07
 
 The current published `revision/sass-backend` head is `8e4e64d`, not

@@ -1,0 +1,47 @@
+libbpf: prog 'kv_reclaim_gpu_kv_reclaim_choose': BPF program load failed: -EACCES
+libbpf: prog 'kv_reclaim_gpu_kv_reclaim_choose': -- BEGIN PROG LOAD LOG --
+0: R1=ctx() R10=fp0
+; int BPF_PROG(kv_reclaim_gpu_kv_reclaim_choose, @ kv_reclaim_policy.bpf.c:65
+0: (79) r3 = *(u64 *)(r1 +0)
+func 'gpu_kv_reclaim_choose' arg0 has btf_id 148471 type STRUCT 'uvm_bpf_kv_reclaim_decision_ctx'
+1: R1=ctx() R3_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+; if (!decision_ctx) @ kv_reclaim_policy.bpf.c:71
+1: (15) if r3 == 0x0 goto pc+185      ; R3_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+; n = decision_ctx->request.n_candidates; @ kv_reclaim_policy.bpf.c:74
+2: (61) r6 = *(u32 *)(r3 +4)          ; R3_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx() R6_w=scalar(smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff))
+3: (b7) r2 = 8                        ; R2_w=8
+4: (bf) r1 = r6                       ; R1_w=scalar(id=1,smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff)) R6_w=scalar(id=1,smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff))
+; if (n > UVM_KV_RECLAIM_MAX_CANDIDATES) @ kv_reclaim_policy.bpf.c:75
+5: (2d) if r2 > r6 goto pc+1          ; R2_w=8 R6_w=scalar(id=1,smin=umin=umin32=8,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff))
+6: (b7) r1 = 8                        ; R1=8
+; if (n == 0 || decision_ctx->request.stock_index >= n) @ kv_reclaim_policy.bpf.c:77
+7: (15) if r6 == 0x0 goto pc+179      ; R6=scalar(id=1,smin=umin=umin32=8,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff))
+8: (61) r2 = *(u32 *)(r3 +8)          ; R2_w=scalar(smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff)) R3=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+9: (67) r1 <<= 32                     ; R1_w=0x800000000
+10: (77) r1 >>= 32                    ; R1_w=8
+11: (3d) if r2 >= r1 goto pc+175      ; R1_w=8 R2_w=scalar(smin=smin32=0,smax=umax=smax32=umax32=7,var_off=(0x0; 0x7))
+12: (bf) r1 = r10                     ; R1_w=fp0 R10=fp0
+;  @ kv_reclaim_abi.h:0
+13: (07) r1 += -32                    ; R1_w=fp-32
+; out->index = ctx->request.stock_index; @ kv_reclaim_abi.h:292
+14: (61) r2 = *(u32 *)(r3 +8)         ; R2_w=scalar(smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff)) R3=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+15: (63) *(u32 *)(r1 +0) = r2         ; R1_w=fp-32 R2_w=scalar(id=2,smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff)) fp-32=????scalar(id=2,smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff))
+16: (b7) r7 = 0                       ; R7_w=0
+; out->route = UVM_KV_RECLAIM_ROUTE_STOCK; @ kv_reclaim_abi.h:293
+17: (63) *(u32 *)(r1 +4) = r7         ; R1_w=fp-32 R7_w=0 fp-32=0000mmmm
+18: (b7) r4 = 32                      ; R4_w=32
+19: (bf) r5 = r3                      ; R3=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx() R5_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+20: (0f) r5 += r4                     ; R4_w=32 R5_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx(off=32)
+21: (7b) *(u64 *)(r10 -48) = r3       ; R3=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx() R10=fp0 fp-48_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+; out->cookie = ctx->candidates[ctx->request.stock_index].cookie; @ kv_reclaim_abi.h:294
+22: (61) r2 = *(u32 *)(r3 +8)         ; R2_w=scalar(smin=0,smax=umax=0xffffffff,var_off=(0x0; 0xffffffff)) R3=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+23: (27) r2 *= 48                     ; R2_w=scalar(smin=0,smax=umax=0x2fffffffd0,smax32=0x7ffffff0,umax32=0xfffffff0,var_off=(0x0; 0x3ffffffff0))
+24: (bf) r3 = r5                      ; R3_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx(off=32) R5_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx(off=32)
+25: (0f) r3 += r2                     ; R2_w=scalar(smin=0,smax=umax=0x2fffffffd0,smax32=0x7ffffff0,umax32=0xfffffff0,var_off=(0x0; 0x3ffffffff0)) R3_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx(off=32,smin=0,smax=umax=0x2fffffffd0,smax32=0x7ffffff0,umax32=0xfffffff0,var_off=(0x0; 0x3ffffffff0))
+26: (79) r2 = *(u64 *)(r3 +0)
+R3 is ptr_uvm_bpf_kv_reclaim_decision_ctx invalid variable offset: off=32, var_off=(0x0; 0x3ffffffff0)
+processed 27 insns (limit 1000000) max_states_per_insn 0 total_states 1 peak_states 1 mark_read 1
+-- END PROG LOAD LOG --
+libbpf: prog 'kv_reclaim_gpu_kv_reclaim_choose': failed to load: -EACCES
+libbpf: failed to load object '/tmp/opencode/kv_reclaim_policy-build-check.bpf.o'
+bpf_object__load: Permission denied

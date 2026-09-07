@@ -321,3 +321,32 @@ the already-running Python process or add new performance admission checks.
 There are two active local sessions, below the three-session limit. The
 completed calibration is reused, and no new native/BPF reclaim performance
 result or transparent UVM-to-disk paging implementation is claimed.
+
+## First pressured stock cell completed with request failures
+
+The stock cell ended at 23:04 UTC through the existing runner lifecycle;
+root did not interrupt it. All eight cold population requests succeeded.
+Only two of eight warm requests completed, each generating 1,024 tokens;
+the other six records contain `TimeoutError: timed out` from the existing
+600-second urllib socket timeout. The warm phase lasted 1,247.540913 seconds.
+Its 2,048 completed output tokens yield 1.641630 token/s of completed-output
+goodput, not successful throughput for all eight requests. Successful-request
+TTFT median is 10,451.494 ms and excludes the failed requests, whose partial
+response fields were not retained by this runner version. No zero-latency
+or zero-generation value is inferred for those missing fields.
+
+The complete `result.json` (55,040 bytes) and `server.log` (32,519,959 bytes)
+are retained under `../raw/gds-kv-reclaim-575-20260907-02/block-00/position-0-stock/`.
+The final log shows generation resuming at about 39.6 token/s with one
+running request and none waiting after other clients timed out. The server
+returns zero, but that does not erase the six request failures. Likewise,
+the runner's zero preemption-message matches are not zero scheduler
+preemptions: the retained live metrics explicitly observed 7,295.
+
+The matching native cell (`block-00/position-1-native`) has now started with
+the same capacity, prompts, arrival order, generation limit, transport and
+62,502 ns/token calibration. It is a real performance attempt, not a claim
+that the baseline pathology is resolved or that the new policy is faster.
+GLM continues scheduler/connector diagnosis; Qwen 27B independently examines
+allocation/reservation arithmetic, while Qwen Next implements continuation
+and request checkpointing. All three local sessions remain within the limit.

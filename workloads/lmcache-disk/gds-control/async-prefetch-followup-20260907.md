@@ -48,6 +48,14 @@ duplicate-model assignment follows terminal failures of both prior runner
 calls; there are no duplicate live owners for the runner and no fourth
 OpenCode session.
 
+The completed source analysis in `disk-uvm-source-boundary-20260907.md`
+distinguishes the existing object-decision ioctl from transparent disk paging.
+In the inspected 575 HMM path, file-backed ranges stay CPU-resident and
+userfaultfd-armed VMAs are rejected. That does not prevent the current
+object-level async serving extension. Full automatic offload still needs
+backing-version/writeback/reclaim coordination beyond retrieval; no completed
+transparent UVM storage tier or corresponding performance is claimed.
+
 Existing serving data are further decomposed in
 `serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
 the post-first-token interval, while first-token latency is worse. This is

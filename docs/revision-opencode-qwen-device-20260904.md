@@ -2,6 +2,27 @@
 
 Date: 2026-09-04
 
+## Historical record; superseded operating instructions
+
+The measurements and failed attempts below are retained unchanged as a
+September 4 diagnosis, not a current model-health verdict. The short timeout,
+preflight requirement, and deny-all advisory workflow below are historical
+and MUST NOT be reused for current implementation sessions. Current workspace
+instructions take precedence: at most three local OpenCode sessions; no
+artificial short timeout; no stopping a session for silence or lack of new
+files. Observe its actual session/process status and preserve retries until
+completion or an actual terminal error. Root coordinates; local models do
+non-trivial implementation work.
+
+On September 7, Qwen 27B and GLM both completed source-reading/tool steps,
+while model calls also encountered provider errors. One Qwen 27B call ended
+with APIError HTTP 524 at 14:52 UTC; root resumed its unfinished task in the
+same session using Qwen Next. This was an actual completed error, not an
+elapsed-time cutoff. A working model catalog is still not evidence that an
+inference request will succeed. See the current
+[LMCache async follow-up](../workloads/lmcache-disk/gds-control/async-prefetch-followup-20260907.md)
+for the task handoff and measured-versus-pending boundary.
+
 ## Outcome
 
 OpenCode itself is working, but the configured
@@ -61,7 +82,7 @@ The successful control session was
 `ses_f926566c7ffecHn7LoVgtxBywf`. It was advisory and read-only; it did not run
 the verifier or a GPU workload.
 
-## Reusable non-interactive invocation
+## Historical non-interactive invocation (do not reuse its timeout)
 
 Use a primary agent, put the message immediately after `opencode run`, attach
 files only after the message, keep the explicit model, and require structured

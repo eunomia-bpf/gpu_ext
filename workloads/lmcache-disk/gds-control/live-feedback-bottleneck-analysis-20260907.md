@@ -86,6 +86,18 @@ and `run_gds_mixed_backend.py`. No new GPU runs, no source edits.
 
 ## Tested follow-up already completed (not pending)
 
+The earlier C++ cuFile executor also retained decision timing in
+[`raw/gds-policy-campaign-20260906-summary.json`](raw/gds-policy-campaign-20260906-summary.json):
+median per-run mean decision time is 0.039563 us for FIFO, 0.063484 us for
+native and 1.004594 us for BPF (five runs each, 64 requests per run).
+`gds_executor.cu` times the native function or BPF ioctl call with
+`monotonic_ns()`, separately from transfer completion. This is a different
+C++ executor with controlled policy inputs, not the current Python
+live-feedback path; it omits Python request construction, GIL handoff and
+adapter locking. It supplies an existing low-level reference without
+rerunning cells, but cannot bound current per-decision cost or explain the
+observed hundreds-of-milliseconds completion gap by itself.
+
 [The completed GIL report](../results-575-gds-gil-handoff-20260907.md): default-off
 `LMCACHE_GDS_IOCTL_KEEP_GIL=1` (PyDLL) construction (main `2d27777d`) in a
 four-arm interleaved 20-cell FIFO/native/BPF-release/BPF-keep ablation ended

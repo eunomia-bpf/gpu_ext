@@ -136,3 +136,29 @@ The module has not been loaded. This is a compiled selection interface,
 not a completed serving or automatic-offload result. The first serving
 adapter draft still needs its import, backing-field mapping, bootstrap and
 actual recovery-route integration fixes; its local owner is continuing.
+
+## Actual module and policy loading
+
+Root built the loader against the repository libbpf and attempted loading
+under both revision experiment locks, with no GPU compute process present.
+The first attempt still used the old module: terminating its root-owned
+storage loader without sudo failed, so rmmod reported in-use and insmod
+reported file-exists. Its missing `gpu_kv_reclaim_ops` BTF error is retained
+separately, not attributed to the new module.
+
+After terminating that loader with sudo, rmmod and insertion of the newly
+built `ff68a1d4` module succeeded. The new policy then reached the actual
+verifier but failed with EACCES after 27 instructions: reading
+`ctx->candidates[ctx->request.stock_index].cookie` uses a variable offset
+into the trusted BTF context. The compiler-only success above does not
+establish attachability. The implementation owner received this concrete
+diagnostic to repair BPF candidate access without moving policy into the
+kernel or relaxing the verifier.
+
+Raw loader logs are retained in
+`../raw/kv-reclaim-load-575-20260907-01/`. The existing storage policy was
+reattached successfully to the new module (`attached`); loader PID 1744933
+was live at handoff. The new module remains loaded, the experiment locks
+are released, and the saved pre-change module remains at
+`/var/tmp/gds-restore-before-stale-20260907.AWgdmi/nvidia-uvm.ko`.
+No new KV reclaim policy is attached and no serving performance was measured.

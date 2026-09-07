@@ -1,0 +1,38 @@
+{
+  "block": 1,
+  "cleanup_errors": [],
+  "config": "gds_bpf",
+  "decision_counts": {},
+  "error": "FileExistsError: [Errno 17] File exists: '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-write-budget-575-20260907-five-block/block-01/position-1-bpf10'",
+  "gds": {},
+  "kind": "lmcache_gds_mixed_backend",
+  "live_policy_inputs": {
+    "hbm_pressure_permille": 0,
+    "label": "actual pending demand reads; 10 ms cumulative write budget; event-driven wakeup, no periodic polling or measured HBM pressure",
+    "pending_demand_reads": "actual pending-demand-read count",
+    "provider": "LiveDemandRequestProvider",
+    "speculative_recomputable": false,
+    "telemetry_slack_label": "fixed telemetry slack carried on the read requests; demand reads are never deferred by any decider",
+    "telemetry_slack_ns": 10000000,
+    "total_write_delay_budget_label": "10 ms cumulative background-write delay budget passed to LiveDemandRequestProvider as total_write_delay_budget_ns",
+    "total_write_delay_budget_ns": 10000000,
+    "wakeup": "zero pending demand reads or cumulative budget expiry",
+    "write_delay_budget_ms": 10.0
+  },
+  "metrics": {},
+  "policy_mode": "bpf",
+  "policy_variant": "live-event-driven",
+  "position": 1,
+  "requests": [],
+  "schema": 1,
+  "traffic": {
+    "object_bytes": 25165824,
+    "pool_bytes": 4294967296,
+    "prestore": null,
+    "read_stagger_s": 0.002,
+    "reads": 64,
+    "total_offered_bytes": 4026531840,
+    "write_stagger_s": 0.004,
+    "writes": 96
+  }
+}

@@ -141,6 +141,15 @@ before starting three new local sessions, one per model:
   the root reviews and applies it only after this completed campaign.
 
 No local session is stopped for silence or an artificial short timeout.
+On September 7 at 17:34:06 UTC, the Qwen Next repair request ended with
+APIError HTTP 524 after its automatic retries, without writing a patch.
+The root confirmed both its completed error and absence from the live status
+endpoint, then resumed the same unfinished session with local GLM at 17:36 UTC.
+Qwen 27B analysis and the original GLM KV-reclaim investigation continue.
+This temporarily uses two GLM sessions after a terminal provider failure;
+there are still only three live sessions, no duplicate active owner for the
+repair, and no root-written replacement implementation. The repair session is
+`ses_f83256701ffek3qZigZd1Fj2qL`; its temporary patch remains pending.
 No paper files are edited by this session. Automatic object-level offload still
 requires the KV ownership/reclaim integration described in
 `gds-control/disk-uvm-source-boundary-20260907.md`; completing this retrieval

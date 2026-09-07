@@ -49,6 +49,12 @@ eviction, destination/tier/peer selection, pin/replicate/remote-map/coherence
 control, DMA/network/queue control, and automatic tensor/expert/token/operator
 semantics.  Those absences explain most `PARTIAL` and `NO` results.
 
+The later `gpu_storage_ops` extension adds submit/defer decisions for
+application-issued storage requests, with LMCache retaining ownership of
+transfers and GPU buffers. Its repeated measurements are listed below. This
+is not arbitrary driver-owned DMA, hardware NVMe-to-GPU P2P, or a reason to
+promote any surveyed whole system to `FULL`.
+
 ## Evidence ladder
 
 Evidence is attached to a **local mapping**, never silently inherited from the
@@ -72,7 +78,7 @@ level describes the strongest tested **local mapping**; it does not promote a
 previously found to contain unrelated papers are excluded as evidence;
 publication, author, and official artifact URLs are used instead.
 
-## Reviewer-facing evidence ledger — 2026-09-03
+## Reviewer-facing evidence ledger — started 2026-09-03, updated 2026-09-07 UTC
 
 This table separates baseline policy benefit from the cost of executing the
 same decision through BPF.  “Native” means the matching non-BPF policy port,
@@ -92,9 +98,13 @@ complete repeated campaign and retain adverse outcomes.
 | Device callback and trampoline | Native kernel -> BPF return-only -> BPF per-thread counter | [`performance`](../../../../microbench/trampoline-scaling/results-575-20260903.md), 270 measurements; separate [`strict engagement`](../../../../workloads/bpftime-device-smoke/results-strict-575-20260903.md) | Return-only adds 0.0012--0.0022 ms at fixed geometry; counter cost grows with active work. The performance runtime disables verification and uses per-thread calls, so it does not prove once-per-warp or arbitrary-handler constant cost. |
 | RTX 5090 observability | No probe -> matched NVBit and gpubpf kernel-return records / thread histogram / launch observation | [`performance`](../../../../workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-06/README.md), ten rotated blocks / 70 cells | Baseline is 37,586.3225 token/s. gpubpf/NVBit overhead is 90.7051%/99.6210% for `kernelretsnoop`, 2.9653%/10.3501% for `threadhist`, and 0.2208%/8.7959% for `launchlate`. All submitted P40 and earlier 5090 values remain retained. `kernelretsnoop` optimization is follow-on work, not a missing Table 1 row. |
 | Raw non-composable map state | Native control -> instrumented producer -> host probe, plus overflow-negative control | [`engagement`](../../../../workloads/cross-layer-raw-map/results-full-575-02.md), five blocks / 15 cells | All 34,560 bounded tuples and all 2,560 deliberate drops reconcile. This is raw host readback, not a latency/bandwidth, on-chip-shard, automatic-placement, or unbounded-data result. |
-| LMCache local disk | Recompute / original CPU / original disk, followed by matched native/BPF storage policy | [`performance`](../../../../workloads/lmcache-disk/results-575-perf-only-five-block-20260906.md), five blocks / 15 baseline cells | Recompute/CPU/disk output throughput is 30.6422/30.1168/28.5723 token/s and median TTFT is 67.1691/72.6468/96.3280 ms. Native/BPF recoverability and asynchronous GDS-decision arms remain active implementation work; the baseline campaign alone is not that comparison. |
+| LMCache local disk, earlier baseline campaign | Recompute / original CPU / original LocalDiskBackend | [`performance`](../../../../workloads/lmcache-disk/results-575-perf-only-five-block-20260906.md), five blocks / 15 baseline cells | Recompute/CPU/disk output throughput is 30.6422/30.1168/28.5723 token/s and median TTFT is 67.1691/72.6468/96.3280 ms. This retained baseline campaign is separate from the subsequent cuFile/GdsBackend comparisons below; its results are not pooled with them. |
+| LMCache/cuFile end-to-end | Recompute / CPU / FIFO -> matched native admission -> BPF admission | [`performance`](../../../../workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md), five blocks / 25 cells | Throughput medians are 31.01/29.76/37.41/37.47/38.37 token/s; BPF/native paired throughput change has median +0.28%, range -3.42% to +5.17%. All default-input decisions submit immediately, measuring admission cost rather than scheduling benefit. Transport is cuFile compatibility mode, not established NVMe-to-GPU P2P. |
+| LMCache mixed-storage policy | FIFO -> native 10 ms write deferral -> same BPF decision and executor | [`performance`](../../../../workloads/lmcache-disk/results-575-gds-mixed-scheduled-20260907.md), five blocks / 15 cells, 2400 I/O requests | FIFO/native/BPF scheduled-arrival read p99 medians are 298.220/265.297/247.931 ms. BPF/FIFO paired p99 improves by median 12.440%, but paired write throughput falls by median 1.673% and read p50 worsens. BPF/native p99 changes have median +0.538%, range -15.884% to +6.322%, not a tight mechanism-overhead bound. These are storage requests, not TTFT; live pending-demand feedback remains unfinished. |
+| kernelretsnoop collector timing | No probe -> same ring producer, final-only collection | [`performance`](../../../../workloads/llama.cpp/observability_overhead/revision-rq4/results-final-only-575-20260907/README.md), five baseline/tool pairs | Mean throughput is 3493.318 token/s, paired overhead 90.812%, with all 720896 events per run collected at the end. Changing collector timing alone does not resolve the high overhead. GPU-local producer arrays are still implementation work; the original Table 1 remains unchanged. |
 
-The ledger is intentionally broader than the fixed 48-paper JSON matrix: POD,
+The ledger began alongside the earlier 48-paper JSON matrix and remains
+broader than the surveyed-paper classifications: POD,
 Hummingbird, FineMoE, the UVM control, the raw-map check, trampoline scaling and
 the RTX 5090 observability comparison are local policy/mechanism studies rather
 than reclassifications of rows in that survey. The complete current Table 1

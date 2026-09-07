@@ -10,6 +10,12 @@ Main `3dd808ac` adds matched native/BPF opt-in decisions. Qwen 27B generated
 the BPF branch; root completed its mechanical Python mirror and the explicit
 read-op condition. `make gds_policy.bpf.o` and Python compilation pass. The
 new object has not replaced the live attached policy or supplied serving data.
+Root also built the loader with `make gds_policy gds_policy.bpf.o` on
+September 7 (exit 0; tree libbpf built normally). The loader is a local build
+artifact excluded from Git. The existing loader in the
+`gpu_ext-lmcache-gds-control` worktree remains attached; no process was
+stopped, policy replaced, or driver reloaded for this build. Switching to the
+new object remains a serving-integration step, not a completed experiment.
 `HINT_PREFETCH_JIT = 1 << 62` selects the new speculative-read branch: with a
 positive transfer estimate and slack exceeding that estimate, defer for the
 difference capped at the existing 10 ms scalar limit; otherwise submit now.

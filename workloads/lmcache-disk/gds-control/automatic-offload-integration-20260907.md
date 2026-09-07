@@ -172,3 +172,16 @@ directed to use constant-offset reads or a suitable bounded snapshot, while
 keeping the matched policy algorithm and the verifier unchanged. The
 in-progress index-argument edit has not been counted as a successful repair
 or retried against the live module.
+
+The subsequent per-CPU snapshot implementation builds through the new
+Makefile targets for the BPF object, native library and loader. Root fixed
+two trivial integration errors before building: copying the request struct
+without an invalid unary dereference, and specifying the snapshot map key.
+Actual loading then fails at a different instruction: the request struct
+copy becomes a 64-bit read spanning the 32-bit `stock_index` and `pad0`
+fields, which the typed-access verifier rejects after 12 instructions.
+The raw `kv-reclaim-snapshot-load-20260907.log` is retained beside the earlier
+attempts. The owner is changing the snapshot to explicit fixed-width field
+reads; neither compiled snapshot version is counted as attached. Existing
+storage-policy loader PID 1744933 remains live, with no driver reload in
+this follow-up.

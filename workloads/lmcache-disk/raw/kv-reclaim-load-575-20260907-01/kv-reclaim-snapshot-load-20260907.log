@@ -1,0 +1,28 @@
+libbpf: Error in bpf_create_map_xattr(kv_reclaim_snap): -EINVAL. Retrying without BTF.
+libbpf: prog 'kv_reclaim_gpu_kv_reclaim_choose': BPF program load failed: -EACCES
+libbpf: prog 'kv_reclaim_gpu_kv_reclaim_choose': -- BEGIN PROG LOAD LOG --
+0: R1=ctx() R10=fp0
+; int BPF_PROG(kv_reclaim_gpu_kv_reclaim_choose, @ kv_reclaim_policy.bpf.c:82
+0: (79) r6 = *(u64 *)(r1 +0)
+func 'gpu_kv_reclaim_choose' arg0 has btf_id 148471 type STRUCT 'uvm_bpf_kv_reclaim_decision_ctx'
+1: R1=ctx() R6_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+1: (b7) r1 = 0                        ; R1_w=0
+; u32 zero = 0; @ kv_reclaim_policy.bpf.c:89
+2: (63) *(u32 *)(r10 -68) = r1        ; R1_w=0 R10=fp0 fp-72=0000????
+; if (!decision_ctx) @ kv_reclaim_policy.bpf.c:92
+3: (15) if r6 == 0x0 goto pc+353      ; R6_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+4: (b7) r1 = 0                        ; R1_w=0
+5: (bf) r2 = r6                       ; R2_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx() R6_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+6: (0f) r2 += r1                      ; R1_w=0 R2_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+; req = decision_ctx->request; @ kv_reclaim_policy.bpf.c:96
+7: (79) r1 = *(u64 *)(r2 +24)         ; R1_w=scalar() R2_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+8: (7b) *(u64 *)(r10 -16) = r1        ; R1_w=scalar(id=1) R10=fp0 fp-16_w=scalar(id=1)
+9: (79) r1 = *(u64 *)(r2 +16)         ; R1_w=scalar() R2_w=trusted_ptr_uvm_bpf_kv_reclaim_decision_ctx()
+10: (7b) *(u64 *)(r10 -24) = r1       ; R1_w=scalar(id=2) R10=fp0 fp-24_w=scalar(id=2)
+11: (79) r1 = *(u64 *)(r2 +8)
+access beyond the end of member stock_index (mend:12) in struct uvm_bpf_kv_reclaim_request with off 8 size 8
+processed 12 insns (limit 1000000) max_states_per_insn 0 total_states 0 peak_states 0 mark_read 0
+-- END PROG LOAD LOG --
+libbpf: prog 'kv_reclaim_gpu_kv_reclaim_choose': failed to load: -EACCES
+libbpf: failed to load object '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/kv_reclaim_policy.bpf.o'
+bpf_object__load: Permission denied

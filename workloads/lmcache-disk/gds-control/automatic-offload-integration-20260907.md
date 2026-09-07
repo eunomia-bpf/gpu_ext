@@ -204,3 +204,21 @@ treated as task completion and the same session was continued. The selector
 and serving-adapter owners remain active, with at most three OpenCode
 sessions. No session was stopped because of silence, and no paper files were
 modified.
+
+## Factored policy attaches on the real driver
+
+The shared selector now computes the worst priority class once per decision,
+retains the current best recovery cost, and compares each candidate once.
+Its BPF build uses out-of-line policy functions; native and BPF still share
+the same cost, priority and tie rules. Root rebuilt the BPF object, native
+library and loader using their Makefile targets. Actual loading on the
+already-loaded `ff68a1d4` module succeeds: the retained
+`kv-reclaim-factored-load-20260907.log` reports `attached`, and loader PID
+1783868 was confirmed live. Neither a driver reload nor a kernel verifier
+limit change was needed. The previous failed attempts remain retained.
+
+Root also bounded the native invalid-count fallback's cookie access to the
+eight-entry candidate capacity; this does not change valid-input selection.
+This step establishes build and attachment, not a serving performance result.
+The LMCache adapter and stock/native/BPF performance runner remain in their
+existing local OpenCode sessions. No paper or historical measurements change.

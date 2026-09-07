@@ -30,8 +30,15 @@ native defer / native full inputs / BPF full inputs median throughput is
 changes are **-0.1853%** median for BPF full/native full and **-3.1112%** for
 BPF immediate/FIFO. Both favorable and adverse pairs remain published.
 The sequence separates cold writes from warm reads and does not demonstrate
-read/write contention benefits; the next runner overlaps real writes with
-urgent reads. Earlier failed attempts and the
+read/write contention benefits. The [mixed-storage comparison](../workloads/lmcache-disk/results-575-gds-mixed-fresh-process-20260906.md)
+now completes **15/15 fresh processes**, with **960 reads and 1,440 writes**.
+FIFO/native/BPF read call-to-completion p99 medians are
+**225.177 / 208.939 / 218.392 ms**. Native and BPF each defer all 96 background
+writes per measurement, but paired differences vary substantially and do not
+show a stable benefit. This is backend traffic, not output token/s; the raw
+offer field is actual dispatch. Per-process isolation avoids the preceding
+seven-measurement retained-pool OOM, whose records remain retained.
+Earlier failed attempts and the
 one-block pilot are retained separately; none is pooled into these five blocks.
 
 The [end-to-end report](../workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md)

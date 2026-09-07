@@ -79,3 +79,17 @@ then resumed the same task/session with GLM. This was not termination for
 silence or an artificial execution deadline. The selector, registry repair,
 and serving integration remain the three live local tasks; the last two now
 use GLM because the Next request failed. No new reclaim performance is claimed.
+
+Root's first ordinary selector build passed for the native shared library but
+failed for BPF. The current `kv_reclaim_abi.h` overflow check in
+`uvm_kv_reclaim_mul_hi` is optimized into unsupported `__multi3` calls by the
+BPF compiler. The BPF file also places its `preserve_access_index` pragma
+after the shared record definitions, producing an unused-attribute warning.
+Both diagnostics were returned to the selector owner; no driver load or
+performance claim follows from the native-only build. Build commands from
+the repository root (outputs stay in the existing temporary task directory):
+
+```sh
+cc -O2 -g -Wall -Wextra -fPIC -shared workloads/lmcache-disk/gds-control/kv_reclaim_native.c -o /tmp/opencode/kv_reclaim_native-build-check.so
+clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -Ivmlinux/x86 -Ilibbpf/src -c workloads/lmcache-disk/gds-control/kv_reclaim_policy.bpf.c -o /tmp/opencode/kv_reclaim_policy-build-check.bpf.o
+```

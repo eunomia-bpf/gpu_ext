@@ -42,6 +42,16 @@ The POD target is the existing 271.225-second median pre-Python interval,
 not another operator-throughput comparison. Both detailed localizations and
 the reusable offline scripts remain unfinished until their outputs are reviewed.
 
+POD path inspection found that the historical `bpftime/build-cuda-pr503`
+runtime is absent at its recorded location. The retained
+`bpftime-table1-hostfix-plt/build-table1-575-warp` agent/server and PTX-pass
+library exist; the agent contains the external-PTX ingest-once implementation.
+The POD adapter's RUNPATH still names the absent old build, so its PTX-pass
+dependency is currently unresolved under the default loader search. The next
+runtime comparison can explicitly select the retained build and its library
+directory. This is preparation only: no new cold-start timing or isolated
+causal attribution to ingest-once is established by inspecting paths/source.
+
 The [GPU-local kernel-return record study](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)
 is also complete: five paired blocks, mean prefill overhead 5.5726%, all
 720,896 records retained per run, final host readback reported separately.

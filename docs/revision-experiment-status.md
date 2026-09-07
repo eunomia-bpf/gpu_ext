@@ -24,6 +24,17 @@ pp512 buffering; final readback averages 10.379 ms outside prefill. Paper
 [target-EXIT SASS injection](../workloads/sass-kretprobe/results/sass-exit-575-20260907-01/results.md)
 are complete at their stated scope. These are not queued for repetition.
 
+**Later 2026-09-07 LMCache follow-up:** the
+[same-policy allocation-reuse result](../workloads/lmcache-disk/results-575-gds-ioctl-reuse-20260907.md)
+reduces isolated decision time by paired median 24.200%, not end-to-end
+storage latency. The [new 30-cell I/O-worker comparison](../workloads/lmcache-disk/results-575-gds-write-workers-20260907.md)
+is complete in `28219a06`, with every child exiting zero. Four/default
+workers gives BPF paired read p99 -29.541% and write throughput +6.359%,
+with three positive and two adverse pairs; native p99 instead worsens by
+14.304%. Default-worker native remains a stronger control than native/four
+for the descriptive p99 median. Keep all results and the option default-off;
+no further concurrency sweep or repeat is queued.
+
 The user confirmed that **correctly implementing the existing policies in BPF
 and recording their measured performance is sufficient**; outperforming the
 original policy is not a completion requirement. Each comparison must still

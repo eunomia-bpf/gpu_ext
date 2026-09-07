@@ -15,6 +15,16 @@ is published in `a451db6a` and integrated in the paper: BPF 200/10 ms paired
 read p99 improves 51.011% and write throughput 15.315%; native also improves,
 while BPF/native latency remains variable. No completed LMCache cell repeats.
 
+The [ioctl-reuse measurement](../workloads/lmcache-disk/results-575-gds-ioctl-reuse-20260907.md)
+is complete in `ea406758`: six blocks, 18,000 isolated decisions, paired
+median call cost -24.200%. This is not storage-request improvement. The
+subsequent [I/O-worker comparison](../workloads/lmcache-disk/results-575-gds-write-workers-20260907.md)
+is complete in `28219a06`: 30 cells and 4,800 requests. BPF four/default
+workers has paired p99 -29.541% and write throughput +6.359%, but only three
+of five pairs improve on both. Native p99 regresses by paired median 14.304%.
+Keep the option opt-in, preserve native's stronger default-worker result, and
+do not rerun this matrix when the reusable launcher becomes available.
+
 The [GPU-local kernel-return record study](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)
 is also complete: five paired blocks, mean prefill overhead 5.5726%, all
 720,896 records retained per run, final host readback reported separately.
@@ -24,13 +34,14 @@ and [in-body SASS EXIT run](../workloads/sass-kretprobe/results/sass-exit-575-20
 are complete at their reported scope. The latter is not general helper/map
 or late-attach coverage.
 
-The [targeted attribution/commitment integration](experiment/revision-claim-attribution-20260907.md)
-is published through paper `46220f2`, and the optimized device figure through
-`a60ffb0`. The build is 17 pages with conclusion/references beginning on
-page 15; final page-budget work remains, not a missing experiment. Current
-local-model work prepares an unsubmitted, evidence-linked shepherd response
-and finishes the figure reproduction note. Original agent-log
-recovery remains open as described in section 3. The dated preparation and
+The [targeted attribution/commitment history](experiment/revision-claim-attribution-20260907.md)
+records prior paper integrations. The unsubmitted response draft and figure
+reproduction note have been published; they are not pending model tasks.
+Paper `aaefd8f` subsequently restores original figures and reverts selected
+revision additions. This workload follow-up preserves that separate change:
+historical integration commits and 17-page builds must not be treated as proof
+of current LaTeX inclusion. Re-read the current paper before further editing.
+Original agent-log recovery remains open as described in section 3. The dated preparation and
 protocol below are retained history, not permission to reinstate former
 preflight requirements or rerun completed performance cells.
 

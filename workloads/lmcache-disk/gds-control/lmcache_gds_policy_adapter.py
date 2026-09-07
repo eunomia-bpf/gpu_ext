@@ -20,7 +20,8 @@ from typing import Callable, Optional
 __all__ = [
     "ABI_VERSION", "IOCTL_CMD", "PARAMS_SIZE", "PARAM_FIELD_OFFSETS",
     "OP_READ", "OP_WRITE", "FLAG_DEMAND", "FLAG_SPECULATIVE",
-    "FLAG_RECOMPUTABLE", "FLAG_SAFE_TO_DEFER", "ACTION_SUBMIT_NOW",
+    "FLAG_RECOMPUTABLE", "FLAG_SAFE_TO_DEFER", "HINT_LIVE_DEMAND",
+    "LIVE_DEMAND_FEEDBACK_STEP_NS", "ACTION_SUBMIT_NOW",
     "ACTION_DEFER", "ACTION_RECOMPUTE", "MAX_PRIORITY", "MAX_DEFER_NS",
     "MIN_BATCH", "MAX_BATCH", "READ_DEFER_PRESSURE_PERMILLE",
     "WRITE_DEFER_PRESSURE_PERMILLE", "PolicyRequest", "Decision", "Decider",
@@ -38,6 +39,8 @@ FLAG_DEMAND = 0x1
 FLAG_SPECULATIVE = 0x2
 FLAG_RECOMPUTABLE = 0x4
 FLAG_SAFE_TO_DEFER = 0x8
+HINT_LIVE_DEMAND = 1 << 63
+LIVE_DEMAND_FEEDBACK_STEP_NS = 1_000_000
 ACTION_SUBMIT_NOW = 0
 ACTION_DEFER = 1
 ACTION_RECOMPUTE = 2
@@ -177,6 +180,19 @@ def native_decide(request: PolicyRequest) -> Decision:
             ACTION_DEFER,
             _clamp(request.slack_ns, 0, MAX_DEFER_NS), priority, MIN_BATCH,
         )
+    if request.op == OP_WRITE and (request.caller_hint & HINT_LIVE_DEMAND):
+        if (
+            request.flags & FLAG_SAFE_TO_DEFER
+            and request.queue_depth > 0
+            and request.slack_ns > 0
+        ):
+            return Decision(
+                ACTION_DEFER,
+                min(request.slack_ns, LIVE_DEMAND_FEEDBACK_STEP_NS),
+                priority,
+                MIN_BATCH,
+            )
+        return Decision(ACTION_SUBMIT_NOW, 0, priority, MIN_BATCH)
     if (
         request.op == OP_WRITE
         and request.flags & FLAG_SAFE_TO_DEFER

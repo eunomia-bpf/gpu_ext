@@ -132,3 +132,20 @@ Not applied to the installed vendor copy or to repo code yet.
   KV reclaim or automatic offload complete; actual behavior is measured
   by root after integrating the real LMCache disk-backed
   ownership/cost provider.
+
+## Installed into the experiment environment, September 7, 19:55 UTC
+
+After repaired async campaign 03 completed and the GPU had no compute
+processes, root mechanically applied this committed patch to the installed
+vLLM 0.27.1 scheduler in `current-venv`. Ordinary `py_compile` passed, and
+the callback attribute and helper are present. This supersedes the earlier
+"not applied" status above; the patch artifact itself is unchanged.
+
+The original 137,118-byte scheduler is preserved at
+`/var/tmp/vllm-kv-reclaim-seam-20260907.9YpmaZ/scheduler.py`. No original source
+was discarded. The installed environment now differs from the unpatched
+environment used by async campaigns 01-03.
+
+The callback still defaults to `None`. Disk-backed registry, policy binding,
+and actual recovery-route integration remain local-model implementation work;
+installation and compilation do not establish policy execution or performance.

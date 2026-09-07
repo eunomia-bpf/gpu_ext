@@ -4,9 +4,11 @@
 No GPU work is performed: the real LMCache GdsBackend, cuFile, and CUDA pool
 are never constructed here.  The tests cover the rotation and traffic-plan
 logic, the metric computation, the controlled policy inputs against the
-committed policy adapter, and the reference-lifetime/completion wiring of the
+committed policy adapter, the reference-lifetime/completion wiring of the
 committed ``lmcache_gds_backend_adapter`` on a fake backend that mirrors the
-LMCache 0.5.4 ``submit_put_task`` / ``_async_save_bytes_to_disk`` contract.
+LMCache 0.5.4 ``submit_put_task`` / ``_async_save_bytes_to_disk`` contract,
+the scheduled-offer vs dispatch timing of ``run_mixed_traffic``, and the
+fresh-process child route (single-cell argv, CLI flags, dry-run reporting).
 """
 
 import asyncio
@@ -125,8 +127,8 @@ class PlanValidationTests(unittest.TestCase):
 class MetricsTests(unittest.TestCase):
     @staticmethod
     def request(role, offer, completed, status="completed",
-                nbytes=24 * MIB) -> dict:
-        return {
+                nbytes=24 * MIB, scheduled=None) -> dict:
+        record = {
             "role": role,
             "bytes": nbytes,
             "offer_s": offer,
@@ -134,6 +136,9 @@ class MetricsTests(unittest.TestCase):
             "completed_s": completed,
             "status": status,
         }
+        if scheduled is not None:
+            record["scheduled_offer_s"] = scheduled
+        return record
 
     def test_read_percentiles_from_offer_to_completion(self):
         requests = [
@@ -152,6 +157,33 @@ class MetricsTests(unittest.TestCase):
             [self.request("read_demand", 0.0, 0.05)])
         self.assertAlmostEqual(metrics["read_end_to_end_p50_ms"], 50.0)
         self.assertAlmostEqual(metrics["read_end_to_end_p99_ms"], 50.0)
+
+    def test_dispatch_and_scheduled_read_latencies_are_named_separately(self):
+        requests = [
+            self.request("read_demand", 0.010, 0.020, scheduled=0.0),
+            self.request("read_demand", 0.030, 0.050, scheduled=0.020),
+        ]
+        metrics = runner.compute_metrics(requests)
+        # end_to_end keeps its historical dispatch-to-completion meaning
+        self.assertAlmostEqual(metrics["read_end_to_end_p50_ms"], 15.0)
+        self.assertAlmostEqual(metrics["read_end_to_end_p99_ms"], 20.0)
+        self.assertAlmostEqual(
+            metrics["read_dispatch_to_completion_p50_ms"], 15.0)
+        self.assertAlmostEqual(
+            metrics["read_dispatch_to_completion_p99_ms"], 20.0)
+        # scheduled includes the 10 ms / 20 ms dispatch delay
+        self.assertAlmostEqual(
+            metrics["read_scheduled_offer_to_completion_p50_ms"], 25.0)
+        self.assertAlmostEqual(
+            metrics["read_scheduled_offer_to_completion_p99_ms"], 30.0)
+
+    def test_scheduled_metrics_are_absent_without_scheduled_offers(self):
+        metrics = runner.compute_metrics(
+            [self.request("read_demand", 0.0, 0.05)])
+        self.assertIsNone(metrics["read_scheduled_offer_to_completion_p50_ms"])
+        self.assertIsNone(metrics["read_scheduled_offer_to_completion_p99_ms"])
+        self.assertAlmostEqual(metrics["read_dispatch_to_completion_p50_ms"],
+                                50.0)
 
     def test_write_completion_throughput(self):
         requests = [
@@ -500,6 +532,19 @@ class ExecutorWiringTests(unittest.TestCase):
             self.assertGreaterEqual(record["submitted_s"] - record["offer_s"],
                                     0.009)
 
+        # scheduled arrivals derive from the shared start; dispatch is not
+        # earlier than the schedule (beyond timer slop)
+        for record in reads + writes:
+            self.assertIsNotNone(record["scheduled_offer_s"])
+            self.assertGreaterEqual(
+                record["offer_s"] - record["scheduled_offer_s"], -0.001)
+        self.assertAlmostEqual(
+            reads[1]["scheduled_offer_s"] - reads[0]["scheduled_offer_s"],
+            plan.read_stagger_s, delta=0.001)
+        self.assertAlmostEqual(
+            writes[1]["scheduled_offer_s"] - writes[0]["scheduled_offer_s"],
+            plan.write_stagger_s, delta=0.001)
+
         stats = adapter.stats
         self.assertEqual(stats["decisions"], 4)
         self.assertEqual(stats["submit_now"], 2)
@@ -509,8 +554,65 @@ class ExecutorWiringTests(unittest.TestCase):
         self.assertEqual(metrics["completed_reads"], 2)
         self.assertEqual(metrics["completed_writes"], 2)
         self.assertIsNotNone(metrics["read_end_to_end_p50_ms"])
+        self.assertIsNotNone(metrics["read_dispatch_to_completion_p99_ms"])
+        self.assertIsNotNone(metrics["read_scheduled_offer_to_completion_p50_ms"])
 
         self.assertEqual(backend.put_tasks, set())
+
+
+class SubprocessWiringTests(unittest.TestCase):
+    """Fresh-process child route wiring; nothing is actually launched."""
+
+    def test_single_cell_command_carries_config_repetition_position_and_workload(self):
+        args = make_args(reads=8, writes=12, object_mib=48,
+                         read_stagger_ms=3.0, write_stagger_ms=5.5,
+                         gds_buffer_size_mib=512, dst_device="cuda:1")
+        cell_dir = Path("/out/block-02") / "position-1-gds_native"
+        command = runner.single_cell_command(args, "gds_native", 2, 1, cell_dir)
+        self.assertEqual(command[0], sys.executable)
+        self.assertEqual(Path(command[1]).name, "run_gds_mixed_backend.py")
+        flat = " ".join(command)
+        for expected in (
+            "--single-cell",
+            "--config gds_native",
+            "--block 2",
+            "--position 1",
+            f"--cell-dir {cell_dir}",
+            "--reads 8",
+            "--writes 12",
+            "--object-mib 48",
+            "--read-stagger-ms 3.0",
+            "--write-stagger-ms 5.5",
+            "--gds-buffer-size-mib 512",
+            "--dst-device cuda:1",
+        ):
+            self.assertIn(expected, flat)
+
+    def test_single_cell_args_parse_and_default_off(self):
+        namespace = parse("--single-cell", "--config", "gds_bpf",
+                          "--block", "0", "--position", "2",
+                          "--cell-dir", "/tmp/opencode/gds-mixed-cell")
+        self.assertTrue(namespace.single_cell)
+        self.assertEqual(namespace.config, "gds_bpf")
+        self.assertEqual(namespace.block, 0)
+        self.assertEqual(namespace.position, 2)
+        self.assertEqual(namespace.cell_dir,
+                         Path("/tmp/opencode/gds-mixed-cell"))
+        self.assertFalse(parse().single_cell)
+        self.assertFalse(parse().inline)
+
+    def test_single_cell_requires_config_and_cell_dir(self):
+        with self.assertRaises(SystemExit):
+            parse("--single-cell", "--config", "gds_fifo")
+        with self.assertRaises(SystemExit):
+            parse("--single-cell", "--cell-dir", "/tmp/opencode/x")
+
+    def test_dry_run_reports_fresh_process_default(self):
+        plan = runner.dry_run_plan(parse("--dry-run"))
+        self.assertTrue(plan["execution"]["fresh_process_per_cell"])
+        self.assertEqual(plan["execution"]["child_route"], "--single-cell")
+        plan_inline = runner.dry_run_plan(parse("--dry-run", "--inline"))
+        self.assertFalse(plan_inline["execution"]["fresh_process_per_cell"])
 
 
 class CliTests(unittest.TestCase):

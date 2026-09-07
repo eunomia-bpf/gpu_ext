@@ -109,3 +109,9 @@ one unsubmitted revision-response draft from the existing commitments and
 results. It owns only `asplos-27-rebuttal/revision-response-draft-20260907.md`.
 No external conference action or new GPU measurement is authorized by this
 draft task. Original historical agent transcripts remain missing.
+
+Paper `d3d8fa8` publishes the finished figure caption/reproduction note.
+Each measurement uses its own campaign baseline, including the two separate
+campaigns in the RTX 5090 panel. Regeneration writes to a fresh temporary
+directory, so the documented command does not require deleting tracked
+figures. Root made only a small wording correction after local Qwen's edits.

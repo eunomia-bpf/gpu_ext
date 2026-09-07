@@ -41,6 +41,19 @@ seven-measurement retained-pool OOM, whose records remain retained.
 Earlier failed attempts and the
 one-block pilot are retained separately; none is pooled into these five blocks.
 
+**2026-09-07 UTC scheduled-arrival update:** the runner now isolates every
+measurement in a fresh subprocess and records scheduled offers separately
+from dispatch. Its [complete five-rotation comparison](../workloads/lmcache-disk/results-575-gds-mixed-scheduled-20260907.md)
+adds 15 successful measurements, 960 reads and 1,440 writes. FIFO/native/BPF
+scheduled-arrival read p99 medians are **298.220 / 265.297 / 247.931 ms**.
+BPF/FIFO paired p99 changes have median **-12.440%**, improving in all five
+pairs, while paired write throughput has median **-1.673%** and read p50
+medians worsen. BPF/native paired p99 has median **+0.538%**, range
+**-15.884% to +6.322%**; this is not a tight mechanism-overhead bound.
+This closes the runner's process/timing implementation follow-up and measures
+the fixed-delay storage-policy tradeoff. Live pending-demand feedback remains
+distinct unfinished policy work. Prior dispatch-only and burst data remain.
+
 The [end-to-end report](../workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md)
 and raw records are pushed. Paper commit `c254a98` adds the measured storage
 comparison only under `tex-revision`; its current build succeeds with no

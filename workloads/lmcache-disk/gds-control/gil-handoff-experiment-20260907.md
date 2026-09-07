@@ -37,3 +37,13 @@ cell; p99 of 64 reads is the maximum, and five-pair ranges are not confidence
 intervals. No additional preflight, clock, performance-threshold or retry
 gate. Preserve all old data. Do not conflate this with the separately pending
 event-driven executor or hardware NVMe/GPU P2P.
+
+## Invocation correction
+
+The initial 20 attempts used relative `--cell-dir` paths. LMCache returned
+`Unable to detect fstype` before any I/O request, and all attempts exited 2.
+Those raw records and logs remain in the originally named directory. The
+corrected run uses absolute `--cell-dir` paths under the separate
+`gds-mixed-gil-handoff-575-20260907-five-block-absolute` directory. No completed
+performance sample is discarded or repeated; this corrects an actual
+invocation error, not a performance/correctness threshold.

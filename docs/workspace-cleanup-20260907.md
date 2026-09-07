@@ -61,3 +61,9 @@ page-governor checkouts have now been removed after successful archival of
 their local build/untracked files. This cleanup removes duplicate checkouts,
 not experiment records; approximately 26 GiB of checkouts are replaced by
 approximately 9.4 GiB of retained local archives.
+
+Follow-up: the active LMCache GDS checkout's `current-venv` and `deps` links
+were indirect links through the removed governor checkout. They are now
+repointed directly to the retained main checkout's corresponding directories;
+the governor archive preserves their former targets. No environment payload
+was removed. The active hostfix runtime had no links to these removed paths.

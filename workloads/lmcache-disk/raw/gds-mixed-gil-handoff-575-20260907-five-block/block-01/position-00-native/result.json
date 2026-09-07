@@ -1,0 +1,36 @@
+{
+  "block": 1,
+  "cleanup_errors": [],
+  "config": "gds_native",
+  "decision_counts": {},
+  "error": "RuntimeError: Unable to detect fstype for workloads/lmcache-disk/raw/gds-mixed-gil-handoff-575-20260907-five-block/block-01/position-00-native/cache",
+  "gds": {},
+  "kind": "lmcache_gds_mixed_backend",
+  "live_policy_inputs": {
+    "background_write_delay_step_ns_max": 1000000,
+    "hbm_pressure_permille": 0,
+    "label": "live inputs: the pending-demand-read count is the actual count of pending demand reads; slack_ns is a 10 ms cumulative background-write delay budget consumed in steps of at most 1 ms; no constant 801 permille is injected and no measured HBM pressure is claimed",
+    "pending_demand_reads": "actual pending-demand-read count",
+    "provider": "LiveDemandRequestProvider",
+    "slack_label": "10 ms cumulative background-write delay budget",
+    "slack_ns": 10000000,
+    "speculative_recomputable": false
+  },
+  "metrics": {},
+  "policy_mode": "native",
+  "policy_variant": "live-feedback",
+  "position": 0,
+  "requests": [],
+  "schema": 1,
+  "traffic": {
+    "object_bytes": 25165824,
+    "pool_bytes": 4294967296,
+    "prestore": null,
+    "read_stagger_s": 0.002,
+    "reads": 64,
+    "total_offered_bytes": 4026531840,
+    "write_stagger_s": 0.004,
+    "writes": 96
+  },
+  "wall_start": "2026-09-06T22:23:49-0700"
+}

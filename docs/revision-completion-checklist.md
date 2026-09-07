@@ -19,6 +19,17 @@ statements below are superseded by this update; their earlier results remain.
 The [workspace collection record](workspace-cleanup-20260907.md) tracks raw
 data publication and recoverable cleanup separately from experimental progress.
 
+The separate [GIL handoff ablation](../workloads/lmcache-disk/results-575-gds-gil-handoff-20260907.md)
+now completes 20 measurements / 3,200 requests in five rotated four-arm blocks,
+published in `0d14fa1a`. Keeping the GIL across the same BPF ioctl has paired
+read-p99 changes versus ordinary BPF of +4.923%, -28.106%, +513.574%, -50.739%,
+and -42.630%; relative to native its median is +7.477%. This is not a reliable
+optimization, so the constructor option remains default-off. An initial
+relative-cache-path failure is retained separately; no measured cell was
+discarded. The event-driven executor remains unfinished. The matched-port
+figure's grouped-bar layout is separately corrected at final 7-inch width;
+paper `f990f04` builds in 16 pages, with no new performance measurements.
+
 **2026-09-06 user direction and current result:** LMCache local disk is active,
 and Table 1 is evaluated only as llama.cpp pp512 prefill-throughput overhead.
 The complete RTX 5090 campaign contains 10 rotated blocks and 70 successful

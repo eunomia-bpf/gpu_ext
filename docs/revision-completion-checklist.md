@@ -6,6 +6,19 @@ define the scope. The dated plan in the paper repository is not evidence that
 these commitments have been met. Experimental completion, paper integration,
 and public artifact availability are separate checks.
 
+**Latest LMCache update — 2026-09-07 UTC:** the live-feedback provider,
+executor, runner and [five-block campaign](../workloads/lmcache-disk/results-575-gds-mixed-live-feedback-20260907.md)
+are complete and pushed (`674bf3d2`): 15 measurements, 960 reads and 1,440
+writes. FIFO/native/BPF scheduled read-p99 medians are
+**1070.424 / 473.147 / 806.274 ms**. BPF/native paired p99 increases in all
+five blocks, with median **+23.601%**; this is not a low-overhead matching
+result. Each native/BPF cell releases 95/96 writes only after the 10 ms budget
+expires. Event-driven wakeup is now the active optimization, not another run
+of the completed polling implementation. Historical unfinished-live-feedback
+statements below are superseded by this update; their earlier results remain.
+The [workspace collection record](workspace-cleanup-20260907.md) tracks raw
+data publication and recoverable cleanup separately from experimental progress.
+
 **2026-09-06 user direction and current result:** LMCache local disk is active,
 and Table 1 is evaluated only as llama.cpp pp512 prefill-throughput overhead.
 The complete RTX 5090 campaign contains 10 rotated blocks and 70 successful

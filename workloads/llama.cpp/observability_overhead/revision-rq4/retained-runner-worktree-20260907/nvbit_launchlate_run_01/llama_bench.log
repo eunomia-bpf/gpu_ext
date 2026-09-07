@@ -1,0 +1,151 @@
+$ taskset -c 8-15 /usr/bin/env LD_PRELOAD=/home/yunwei37/workspace/gpu/gpu_ext-table1-runner/workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-03/nvbit_tool_build/observability.so /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench -m /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf -r 1 -o json -p 512 -n 0 -ngl 99
+# cwd: /home/yunwei37/workspace/gpu/gpu_ext-table1-runner/workloads/llama.cpp
+
+## stdout
+[
+  {
+    "build_commit": "26836b27",
+    "build_number": 7102,
+    "cpu_info": "Intel(R) Core(TM) Ultra 9 285K",
+    "gpu_info": "NVIDIA GeForce RTX 5090",
+    "backends": "CUDA",
+    "model_filename": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "model_type": "llama 1B Q4_K - Medium",
+    "model_size": 667078656,
+    "model_n_params": 1100048384,
+    "n_batch": 2048,
+    "n_ubatch": 512,
+    "n_threads": 4,
+    "cpu_mask": "0x0",
+    "cpu_strict": false,
+    "poll": 50,
+    "type_k": "f16",
+    "type_v": "f16",
+    "n_gpu_layers": 99,
+    "n_cpu_moe": 0,
+    "split_mode": "layer",
+    "main_gpu": 0,
+    "no_kv_offload": false,
+    "flash_attn": false,
+    "devices": "auto",
+    "tensor_split": "0.00",
+    "tensor_buft_overrides": "none",
+    "use_mmap": true,
+    "embeddings": false,
+    "no_op_offload": 0,
+    "no_host": false,
+    "n_prompt": 512,
+    "n_gen": 0,
+    "n_depth": 0,
+    "test_time": "2026-09-06T04:55:00Z",
+    "avg_ns": 14954565,
+    "stddev_ns": 0,
+    "avg_ts": 34237.037319,
+    "stddev_ts": 0.000000,
+    "samples_ns": [ 14954565 ],
+    "samples_ts": [ 34237 ]
+  }
+]
+
+## stderr
+NVBIT_OBS mode=3 target=_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli thread_count=524288
+ggml_cuda_init: GGML_CUDA_FORCE_MMQ:    no
+ggml_cuda_init: GGML_CUDA_FORCE_CUBLAS: no
+ggml_cuda_init: found 1 CUDA devices:
+  Device 0: NVIDIA GeForce RTX 5090, compute capability 12.0, VMM: no
+WARNING: Do not call CUDA memory allocation in nvbit_at_ctx_init(). It will cause deadlocks. Do them in nvbit_tool_init(). If you encounter deadlocks, remove CUDA API calls to debug.
+NVBIT launchlate clock_calibration_method=rm_endpoints_v1_PTIMER_against_CLOCK_MONOTONIC_RAW_with_three_anchor_held_out_affine_validation
+NVBIT launchlate start_clock_offset_lower_ns=0
+NVBIT launchlate start_clock_offset_upper_ns=0
+NVBIT launchlate start_clock_uncertainty_ns=0
+NVBIT launchlate start_clock_host_anchor_ns=0
+NVBIT launchlate start_clock_calibration_valid=0
+NVBIT launchlate start_rm_samples_requested=32
+NVBIT launchlate start_rm_samples_accepted=0
+NVBIT launchlate start_rm_samples_rejected=0
+NVBIT launchlate start_rm_outer_before_raw_ns=0
+NVBIT launchlate start_rm_cpu_before_raw_ns=0
+NVBIT launchlate start_rm_gpu_ptimer_ns=0
+NVBIT launchlate start_rm_cpu_after_raw_ns=0
+NVBIT launchlate start_rm_outer_after_raw_ns=0
+NVBIT launchlate start_rm_outer_width_ns=0
+NVBIT launchlate start_rm_selected_gap_ns=0
+NVBIT launchlate start_rm_bracket_width_ns=0
+NVBIT launchlate start_rm_status=0
+NVBIT launchlate start_rm_cleanup_complete=1
+NVBIT_OBS error: launchlate start clock calibration failed
+NVBIT launchlate measurement_end_clock_offset_lower_ns=0
+NVBIT launchlate measurement_end_clock_offset_upper_ns=0
+NVBIT launchlate measurement_end_clock_uncertainty_ns=0
+NVBIT launchlate measurement_end_clock_host_anchor_ns=0
+NVBIT launchlate measurement_end_clock_calibration_valid=0
+NVBIT launchlate measurement_end_rm_samples_requested=32
+NVBIT launchlate measurement_end_rm_samples_accepted=0
+NVBIT launchlate measurement_end_rm_samples_rejected=0
+NVBIT launchlate measurement_end_rm_outer_before_raw_ns=0
+NVBIT launchlate measurement_end_rm_cpu_before_raw_ns=0
+NVBIT launchlate measurement_end_rm_gpu_ptimer_ns=0
+NVBIT launchlate measurement_end_rm_cpu_after_raw_ns=0
+NVBIT launchlate measurement_end_rm_outer_after_raw_ns=0
+NVBIT launchlate measurement_end_rm_outer_width_ns=0
+NVBIT launchlate measurement_end_rm_selected_gap_ns=0
+NVBIT launchlate measurement_end_rm_bracket_width_ns=0
+NVBIT launchlate measurement_end_rm_status=0
+NVBIT launchlate measurement_end_rm_cleanup_complete=1
+NVBIT launchlate validation_end_clock_offset_lower_ns=0
+NVBIT launchlate validation_end_clock_offset_upper_ns=0
+NVBIT launchlate validation_end_clock_uncertainty_ns=0
+NVBIT launchlate validation_end_clock_host_anchor_ns=0
+NVBIT launchlate validation_end_clock_calibration_valid=0
+NVBIT launchlate validation_end_rm_samples_requested=32
+NVBIT launchlate validation_end_rm_samples_accepted=0
+NVBIT launchlate validation_end_rm_samples_rejected=0
+NVBIT launchlate validation_end_rm_outer_before_raw_ns=0
+NVBIT launchlate validation_end_rm_cpu_before_raw_ns=0
+NVBIT launchlate validation_end_rm_gpu_ptimer_ns=0
+NVBIT launchlate validation_end_rm_cpu_after_raw_ns=0
+NVBIT launchlate validation_end_rm_outer_after_raw_ns=0
+NVBIT launchlate validation_end_rm_outer_width_ns=0
+NVBIT launchlate validation_end_rm_selected_gap_ns=0
+NVBIT launchlate validation_end_rm_bracket_width_ns=0
+NVBIT launchlate validation_end_rm_status=0
+NVBIT launchlate validation_end_rm_cleanup_complete=1
+NVBIT launchlate clock_offset_change_lower_ns=0
+NVBIT launchlate clock_offset_change_upper_ns=0
+NVBIT launchlate clock_calibration_elapsed_ns=0
+NVBIT launchlate clock_drift_rate_bound_ppb=0
+NVBIT launchlate clock_drift_limit_ppb=10000
+NVBIT launchlate clock_drift_bounded=0
+NVBIT launchlate clock_slope_diagnostic_only=1
+NVBIT launchlate held_out_predicted_lower_ns=0
+NVBIT launchlate held_out_predicted_upper_ns=0
+NVBIT launchlate held_out_overlap_lower_ns=0
+NVBIT launchlate held_out_overlap_upper_ns=0
+NVBIT launchlate validation_span_ns=0
+NVBIT launchlate held_out_validation_passed=0
+NVBIT_OBS error: launchlate minimum clock calibration span wait failed
+NVBIT_OBS error: launchlate held-out clock validation failed
+NVBIT launchlate bin_0=0
+NVBIT launchlate bin_1=0
+NVBIT launchlate bin_2=0
+NVBIT launchlate bin_3=0
+NVBIT launchlate bin_4=0
+NVBIT launchlate bin_5=0
+NVBIT launchlate bin_6=0
+NVBIT launchlate bin_7=0
+NVBIT launchlate bin_8=0
+NVBIT launchlate bin_9=0
+NVBIT launchlate pair_capacity=65536
+NVBIT launchlate stored_pairs=44
+NVBIT launchlate device_entries=44
+NVBIT launchlate pair_overflows=0
+NVBIT launchlate capture_errors=0
+NVBIT launchlate selected_counter_overflow=0
+NVBIT launchlate uncertain_samples=0
+NVBIT launchlate samples=0 clock_errors=44
+NVBIT launchlate accounting_complete=1
+NVBIT selected_launches=44
+NVBIT kernelretsnoop events=0 nonzero_timestamps=0
+NVBIT_OBS process_selected_launches=44
+
+# exit: 0

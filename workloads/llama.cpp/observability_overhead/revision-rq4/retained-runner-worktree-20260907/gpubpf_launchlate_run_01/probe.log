@@ -1,0 +1,94 @@
+libbpf: loading object 'launchlate_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 504, link 1, flags 0, type=2
+libbpf: elf: section(3) uprobe, size 688, link 0, flags 6, type=1
+libbpf: sec 'uprobe': found program 'uprobe_cuda_launch' at insn offset 0 (0 bytes), code size 86 insns (688 bytes)
+libbpf: elf: section(4) kprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 888, link 0, flags 6, type=1
+libbpf: sec 'kprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': found program 'cuda__probe' at insn offset 0 (0 bytes), code size 111 insns (888 bytes)
+libbpf: elf: section(5) .maps, size 160, link 0, flags 3, type=1
+libbpf: elf: section(6) license, size 4, link 0, flags 3, type=1
+libbpf: license of launchlate_bpf is GPL
+libbpf: elf: section(7) .reluprobe, size 96, link 2, flags 40, type=9
+libbpf: elf: section(8) .relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 64, link 2, flags 40, type=9
+libbpf: elf: section(9) .BTF, size 4452, link 0, flags 0, type=1
+libbpf: elf: section(10) .BTF.ext, size 1588, link 0, flags 0, type=1
+libbpf: looking for externs among 21 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'queue_state': at sec_idx 5, offset 0.
+libbpf: map 'queue_state': found type = 1513.
+libbpf: map 'queue_state': found key [8], sz = 4.
+libbpf: map 'queue_state': found value [12], sz = 8.
+libbpf: map 'queue_state': found max_entries = 4.
+libbpf: map 'launch_times': at sec_idx 5, offset 32.
+libbpf: map 'launch_times': found type = 1513.
+libbpf: map 'launch_times': found key [8], sz = 4.
+libbpf: map 'launch_times': found value [12], sz = 8.
+libbpf: map 'launch_times': found max_entries = 4096.
+libbpf: map 'time_histogram': at sec_idx 5, offset 64.
+libbpf: map 'time_histogram': found type = 1503.
+libbpf: map 'time_histogram': found key [8], sz = 4.
+libbpf: map 'time_histogram': found value [12], sz = 8.
+libbpf: map 'time_histogram': found max_entries = 10.
+libbpf: map 'clock_offset': at sec_idx 5, offset 96.
+libbpf: map 'clock_offset': found type = 2.
+libbpf: map 'clock_offset': found key [8], sz = 4.
+libbpf: map 'clock_offset': found value [32], sz = 8.
+libbpf: map 'clock_offset': found max_entries = 32.
+libbpf: map 'host_target': at sec_idx 5, offset 128.
+libbpf: map 'host_target': found type = 2.
+libbpf: map 'host_target': found key [8], sz = 4.
+libbpf: map 'host_target': found value [40], sz = 24.
+libbpf: map 'host_target': found max_entries = 1.
+libbpf: sec '.reluprobe': collecting relocation for section(3) 'uprobe'
+libbpf: sec '.reluprobe': relo #0: insn #6 against 'host_target'
+libbpf: prog 'uprobe_cuda_launch': found map 4 (host_target, sec 5, off 128) for insn #6
+libbpf: sec '.reluprobe': relo #1: insn #37 against 'clock_offset'
+libbpf: prog 'uprobe_cuda_launch': found map 3 (clock_offset, sec 5, off 96) for insn #37
+libbpf: sec '.reluprobe': relo #2: insn #46 against 'queue_state'
+libbpf: prog 'uprobe_cuda_launch': found map 0 (queue_state, sec 5, off 0) for insn #46
+libbpf: sec '.reluprobe': relo #3: insn #56 against 'queue_state'
+libbpf: prog 'uprobe_cuda_launch': found map 0 (queue_state, sec 5, off 0) for insn #56
+libbpf: sec '.reluprobe': relo #4: insn #67 against 'queue_state'
+libbpf: prog 'uprobe_cuda_launch': found map 0 (queue_state, sec 5, off 0) for insn #67
+libbpf: sec '.reluprobe': relo #5: insn #80 against 'launch_times'
+libbpf: prog 'uprobe_cuda_launch': found map 1 (launch_times, sec 5, off 32) for insn #80
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': collecting relocation for section(4) 'kprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli'
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #0: insn #32 against 'queue_state'
+libbpf: prog 'cuda__probe': found map 0 (queue_state, sec 5, off 0) for insn #32
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #1: insn #38 against 'queue_state'
+libbpf: prog 'cuda__probe': found map 0 (queue_state, sec 5, off 0) for insn #38
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #2: insn #53 against 'launch_times'
+libbpf: prog 'cuda__probe': found map 1 (launch_times, sec 5, off 32) for insn #53
+libbpf: sec '.relkprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #3: insn #102 against 'time_histogram'
+libbpf: prog 'cuda__probe': found map 2 (time_histogram, sec 5, off 64) for insn #102
+libbpf: object 'launchlate_bpf': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: loaded kernel BTF from '/sys/kernel/btf/vmlinux'
+libbpf: sec 'uprobe': found 1 CO-RE relocations
+libbpf: CO-RE relocating [44] struct pt_regs: found target candidate [185] struct pt_regs in [vmlinux]
+libbpf: prog 'uprobe_cuda_launch': relo #0: <byte_off> [44] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'uprobe_cuda_launch': relo #0: matching candidate #0 <byte_off> [185] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'uprobe_cuda_launch': relo #0: patched insn #1 (LDX/ST/STX) off 112 -> 112
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+libbpf: map 'queue_state': created successfully, fd=16
+libbpf: map 'launch_times': created successfully, fd=17
+libbpf: map 'time_histogram': created successfully, fd=18
+libbpf: map 'clock_offset': created successfully, fd=19
+libbpf: map 'host_target': created successfully, fd=20
+[2026-09-05 21:53:54][warning][1901821] Calling original ioctl: 8 3223340586 127438834841200
+[2026-09-05 21:54:59][warning][1901815] Calling original ioctl: 8 3223340586 140727850463840
+Clock calibration: REALTIME - MONOTONIC = 1788604376537178171 ns
+  MONOTONIC: 66042.346885004
+  REALTIME:  1788670418.884063175
+Attaching uprobe: binary_path='/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4', target='_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli', launch='cudaLaunchKernel@plt'
+
+Monitoring CUDA kernel launch latency (uprobe: /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4:cudaLaunchKernel@plt, target: _Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli)... Hit Ctrl-C to end.
+
+21:54:59  Launch Latency Distribution:
+latency         : count    distribution
+100ms-1s        : 44       |****************************************
+Total samples: 44
+Host launches: 44
+Device entries: 44
+Queue underflows: 0
+Queue overflows: 0
+[2026-09-05 21:54:59][warning][1901815] Calling original ioctl: 9 34 140727850473760
+[2026-09-05 21:54:59][warning][1901815] Calling original ioctl: 8 3222292009 140727850473920

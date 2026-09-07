@@ -374,3 +374,10 @@ The matching BPF cell (`block-00/position-2-bpf`) has started with unchanged
 workload and transport settings. Local source diagnosis and runner continuation
 work remain active. No completed cell or calibration is repeated, and the
 current failed stock/native records will not be overwritten by a later fix.
+
+The Qwen Next continuation task subsequently ended with an actual HTTP 524
+API error after automatic retries, without writing a source change. Root
+confirmed its CLI handle had exited and resumed the same OpenCode session
+using GLM. This is recovery from a terminal provider error, not termination
+for silence or a new short timeout. The allocator's Qwen 27B session and the
+separate GLM diagnosis remain live; the resumed writer is the third session.

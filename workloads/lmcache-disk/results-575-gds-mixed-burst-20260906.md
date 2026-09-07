@@ -36,6 +36,25 @@ The native policy itself is slower than FIFO in three of five pairs. Therefore
 this run does not establish that fixed write deferral provides a stable benefit
 or that BPF intrinsically outperforms the native decision path.
 
+## Existing-record timing decomposition
+
+Reopening the 15 raw records separates dispatch-to-save-coroutine admission
+from the subsequent save work. Across measurements, median write admission
+delay ranges from 2.234--4.932 ms for FIFO, 13.818--14.709 ms for native, and
+13.560--14.782 ms for BPF. Thus the requested extra 10 ms appears in both
+policy paths. Median save-coroutine-entry-to-completion durations span
+262--1246 ms across all configurations. This latter interval includes
+LMCache's worker-queue wait, file setup, cuFile transfer and completion, not
+just physical SSD service. The roughly millisecond-scale policy delay alone
+does not explain the much larger observed storage-path variation.
+
+Although requested read spacing is zero, the first-to-last read dispatch
+spans 45--97 ms because the runner starts Python threads sequentially.
+This motivates preparing workers before the common offered schedule in the
+next runner. It is a timing decomposition of existing data, not a discarded
+experiment or a requirement to delay collection. Detailed values are in
+`raw/gds-mixed-burst-fresh-575-20260906-five-block/timing-breakdown.json`.
+
 ## Measurement scope and records
 
 Latency starts at the actual API dispatch, not scheduled arrival. With 64

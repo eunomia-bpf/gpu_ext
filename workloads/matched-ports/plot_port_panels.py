@@ -15,9 +15,9 @@ import math
 from pathlib import Path
 
 COLORS = {"baseline": "#666666", "original": "#D97706", "port": "#0072B2"}
-LEGEND = (("baseline", "Baseline"), ("original", "Original"), ("port", "BPF port"))
+LEGEND = (("baseline", "Baseline"), ("original", "Native policy"), ("port", "BPF port"))
 STYLE = {"font.family": "DejaVu Sans", "font.size": 7,
-         "axes.labelsize": 7, "xtick.labelsize": 6.5, "ytick.labelsize": 6.5,
+         "axes.labelsize": 7, "xtick.labelsize": 7, "ytick.labelsize": 7,
          "legend.fontsize": 7, "axes.spines.top": False,
          "axes.spines.right": False, "pdf.fonttype": 42, "ps.fonttype": 42}
 HERE = Path(__file__).resolve().parent
@@ -59,12 +59,12 @@ def _draw(panels: list[dict], paths: list[Path]) -> None:
                     positions.setdefault(arm, []).append(
                         axis.bar(center, group[arm], color=COLORS[arm],
                                  width=width))
-                    axis.text(center, group[arm], f"{group[arm]:.4g}",
-                              ha="center", va="bottom", rotation=90, fontsize=5)
             top = max(g[k] for g in panel["groups"] for k in g if k != "label")
             axis.set_ylim(0, top * 1.32)
             axis.set_xticks(range(len(panel["groups"])),
                             [g["label"] for g in panel["groups"]])
+            if len(panel["groups"]) > 1:
+                axis.tick_params(axis="x", labelrotation=20)
             axis.set_ylabel(panel["metric"])
             axis.set_title(panel["title"], fontsize=7, pad=2)
             axis.yaxis.set_major_locator(MaxNLocator(nbins=4))

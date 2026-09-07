@@ -1,22 +1,83 @@
 {
   "schema": "matched_port_panels_v1",
-  "note": "Values transcribed from the cited result documents and the revision paper text (tex/revision_comparisons.tex); not new measurements.",
+  "note": "Values transcribed from the cited result documents; not new measurements. Each panel uses one metric and the explicit comparison workload below.",
   "panels": [
-    {"id": "moe-infinity", "title": "(a) MoE-Infinity", "metric": "TTFT, ms",
-     "source": "workloads/moe-infinity/results-paper-v3-protected-575.md",
-     "groups": [{"label": "GPT-OSS-120B", "baseline": 1975.94, "original": 1513.44, "port": 1535.96}]},
-    {"id": "expert-buffering", "title": "(b) Expert Buffering", "metric": "token/s",
-     "source": "workloads/expert-buffering-policy/section-vi/results-performance-575-20260903.md",
-     "groups": [{"label": "same-K", "baseline": 5.508, "original": 5.663, "port": 5.621}]},
-    {"id": "finemoe", "title": "(c) FineMoE", "metric": "token/s",
-     "source": "tex/revision_comparisons.tex FineMoE paragraph",
-     "groups": [{"label": "dynamic set", "original": 4.51, "port": 4.50}]},
-    {"id": "hummingbird", "title": "(d) Hummingbird", "metric": "LC p99, ms",
-     "source": "workloads/hummingbird/results-575-20260903.md",
-     "groups": [{"label": "periodic", "original": 1.830785, "port": 1.864302},
-                {"label": "BurstGPT", "original": 4.989155, "port": 4.939697}]},
-    {"id": "pod-attention", "title": "(e) POD-Attention", "metric": "norm. latency",
-     "source": "workloads/pod-attention/results-phase-full-575-01.md",
-     "groups": [{"label": "10 shapes", "original": 1.0, "port": 1.0178}]}
+    {
+      "id": "moe-infinity",
+      "title": "(a) MoE-Infinity",
+      "metric": "TTFT, ms",
+      "source": "workloads/moe-infinity/results-paper-v3-protected-575.md",
+      "groups": [
+        {
+          "label": "GPT-OSS-120B",
+          "baseline": 1975.94,
+          "original": 1513.44,
+          "port": 1535.96
+        }
+      ]
+    },
+    {
+      "id": "expert-buffering",
+      "title": "(b) Expert Buffering",
+      "metric": "token/s",
+      "source": "workloads/expert-buffering-policy/section-vi/results-performance-575-20260903.md",
+      "groups": [
+        {
+          "label": "same-K",
+          "baseline": 5.508,
+          "original": 5.663,
+          "port": 5.621
+        }
+      ]
+    },
+    {
+      "id": "finemoe",
+      "title": "(c) FineMoE",
+      "metric": "token/s",
+      "source": "workloads/finemoe/results-performance.md",
+      "groups": [
+        {
+          "label": "dynamic set",
+          "baseline": 3.6228,
+          "original": 4.4994,
+          "port": 4.5144
+        }
+      ],
+      "baseline_description": "All-positive speculative prefetch"
+    },
+    {
+      "id": "hummingbird",
+      "title": "(d) Hummingbird",
+      "metric": "LC p99, ms",
+      "source": "workloads/hummingbird/results-575-20260903.md",
+      "groups": [
+        {
+          "label": "periodic",
+          "original": 1.830785,
+          "port": 1.864302,
+          "baseline": 1.979722
+        },
+        {
+          "label": "BurstGPT",
+          "original": 4.989155,
+          "port": 4.939697,
+          "baseline": 5.435775
+        }
+      ]
+    },
+    {
+      "id": "pod-attention",
+      "title": "(e) POD-Attention",
+      "metric": "latency, ms",
+      "source": "workloads/pod-attention/results-575-20260903.md",
+      "groups": [
+        {
+          "label": "Llama / 128",
+          "baseline": 5.36018,
+          "original": 4.322043,
+          "port": 4.344273
+        }
+      ]
+    }
   ]
 }

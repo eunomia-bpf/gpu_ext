@@ -1,0 +1,456 @@
+{
+  "block_orders": [
+    [
+      "gds_fifo",
+      "gds_native",
+      "gds_bpf"
+    ],
+    [
+      "gds_native",
+      "gds_bpf",
+      "gds_fifo"
+    ],
+    [
+      "gds_bpf",
+      "gds_fifo",
+      "gds_native"
+    ],
+    [
+      "gds_fifo",
+      "gds_native",
+      "gds_bpf"
+    ],
+    [
+      "gds_native",
+      "gds_bpf",
+      "gds_fifo"
+    ]
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "child_exit": 0,
+      "config": "gds_fifo",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 0,
+        "read_dispatch_to_completion_p50_ms": 136.5474850008468,
+        "read_dispatch_to_completion_p99_ms": 212.38474400161067,
+        "read_end_to_end_p50_ms": 136.5474850008468,
+        "read_end_to_end_p99_ms": 212.38474400161067,
+        "read_scheduled_offer_to_completion_p50_ms": 136.84186799933377,
+        "read_scheduled_offer_to_completion_p99_ms": 212.44464199981303,
+        "total_storage_bandwidth_mib_s": 8475.460104298078,
+        "write_completion_ops_s": 211.88650260745192,
+        "write_completion_throughput_mib_s": 5085.276062578846
+      },
+      "policy_variant": "live-event-driven",
+      "position": 0,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-00/position-0-gds_fifo"
+    },
+    {
+      "block": 0,
+      "child_exit": 0,
+      "config": "gds_native",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 158,
+        "read_dispatch_to_completion_p50_ms": 100.00968949861999,
+        "read_dispatch_to_completion_p99_ms": 239.4930000009481,
+        "read_end_to_end_p50_ms": 100.00968949861999,
+        "read_end_to_end_p99_ms": 239.4930000009481,
+        "read_scheduled_offer_to_completion_p50_ms": 100.12498450071143,
+        "read_scheduled_offer_to_completion_p99_ms": 240.52525700256228,
+        "total_storage_bandwidth_mib_s": 9274.281551370876,
+        "write_completion_ops_s": 231.85703878427188,
+        "write_completion_throughput_mib_s": 5564.568930822525
+      },
+      "policy_variant": "live-event-driven",
+      "position": 1,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-00/position-1-gds_native"
+    },
+    {
+      "block": 0,
+      "child_exit": 0,
+      "config": "gds_bpf",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 146,
+        "read_dispatch_to_completion_p50_ms": 41.26454000106605,
+        "read_dispatch_to_completion_p99_ms": 218.49554399886983,
+        "read_end_to_end_p50_ms": 41.26454000106605,
+        "read_end_to_end_p99_ms": 218.49554399886983,
+        "read_scheduled_offer_to_completion_p50_ms": 41.36554749854258,
+        "read_scheduled_offer_to_completion_p99_ms": 218.5535809994035,
+        "total_storage_bandwidth_mib_s": 8812.086132258106,
+        "write_completion_ops_s": 220.30215330645262,
+        "write_completion_throughput_mib_s": 5287.251679354863
+      },
+      "policy_variant": "live-event-driven",
+      "position": 2,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-00/position-2-gds_bpf"
+    },
+    {
+      "block": 1,
+      "child_exit": 0,
+      "config": "gds_native",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 162,
+        "read_dispatch_to_completion_p50_ms": 44.83969149805489,
+        "read_dispatch_to_completion_p99_ms": 256.99990700013586,
+        "read_end_to_end_p50_ms": 44.83969149805489,
+        "read_end_to_end_p99_ms": 256.99990700013586,
+        "read_scheduled_offer_to_completion_p50_ms": 44.90338849822001,
+        "read_scheduled_offer_to_completion_p99_ms": 257.058642998687,
+        "total_storage_bandwidth_mib_s": 8253.650659001514,
+        "write_completion_ops_s": 206.34126647503788,
+        "write_completion_throughput_mib_s": 4952.1903954009085
+      },
+      "policy_variant": "live-event-driven",
+      "position": 0,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-01/position-0-gds_native"
+    },
+    {
+      "block": 1,
+      "child_exit": 0,
+      "config": "gds_bpf",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 176,
+        "read_dispatch_to_completion_p50_ms": 114.05428249963734,
+        "read_dispatch_to_completion_p99_ms": 254.47883399829152,
+        "read_end_to_end_p50_ms": 114.05428249963734,
+        "read_end_to_end_p99_ms": 254.47883399829152,
+        "read_scheduled_offer_to_completion_p50_ms": 115.1118974993442,
+        "read_scheduled_offer_to_completion_p99_ms": 255.87431100066172,
+        "total_storage_bandwidth_mib_s": 8667.028429294622,
+        "write_completion_ops_s": 216.67571073236553,
+        "write_completion_throughput_mib_s": 5200.217057576772
+      },
+      "policy_variant": "live-event-driven",
+      "position": 1,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-01/position-1-gds_bpf"
+    },
+    {
+      "block": 1,
+      "child_exit": 0,
+      "config": "gds_fifo",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 0,
+        "read_dispatch_to_completion_p50_ms": 42.42545950000931,
+        "read_dispatch_to_completion_p99_ms": 279.30211200146005,
+        "read_end_to_end_p50_ms": 42.42545950000931,
+        "read_end_to_end_p99_ms": 279.30211200146005,
+        "read_scheduled_offer_to_completion_p50_ms": 42.4847144986561,
+        "read_scheduled_offer_to_completion_p99_ms": 279.36139999944135,
+        "total_storage_bandwidth_mib_s": 8879.672857288384,
+        "write_completion_ops_s": 221.9918214322096,
+        "write_completion_throughput_mib_s": 5327.803714373031
+      },
+      "policy_variant": "live-event-driven",
+      "position": 2,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-01/position-2-gds_fifo"
+    },
+    {
+      "block": 2,
+      "child_exit": 0,
+      "config": "gds_bpf",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 148,
+        "read_dispatch_to_completion_p50_ms": 157.65167700010352,
+        "read_dispatch_to_completion_p99_ms": 201.59548800074845,
+        "read_end_to_end_p50_ms": 157.65167700010352,
+        "read_end_to_end_p99_ms": 201.59548800074845,
+        "read_scheduled_offer_to_completion_p50_ms": 158.94379700098943,
+        "read_scheduled_offer_to_completion_p99_ms": 202.40239800157724,
+        "total_storage_bandwidth_mib_s": 8537.774892527137,
+        "write_completion_ops_s": 213.4443723131784,
+        "write_completion_throughput_mib_s": 5122.664935516282
+      },
+      "policy_variant": "live-event-driven",
+      "position": 0,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-02/position-0-gds_bpf"
+    },
+    {
+      "block": 2,
+      "child_exit": 0,
+      "config": "gds_fifo",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 0,
+        "read_dispatch_to_completion_p50_ms": 125.92121950001456,
+        "read_dispatch_to_completion_p99_ms": 219.6243139987928,
+        "read_end_to_end_p50_ms": 125.92121950001456,
+        "read_end_to_end_p99_ms": 219.6243139987928,
+        "read_scheduled_offer_to_completion_p50_ms": 126.34513699750823,
+        "read_scheduled_offer_to_completion_p99_ms": 222.31747999833894,
+        "total_storage_bandwidth_mib_s": 8970.18276912565,
+        "write_completion_ops_s": 224.25456922814124,
+        "write_completion_throughput_mib_s": 5382.10966147539
+      },
+      "policy_variant": "live-event-driven",
+      "position": 1,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-02/position-1-gds_fifo"
+    },
+    {
+      "block": 2,
+      "child_exit": 0,
+      "config": "gds_native",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 190,
+        "read_dispatch_to_completion_p50_ms": 1021.119445000295,
+        "read_dispatch_to_completion_p99_ms": 1542.1213699992222,
+        "read_end_to_end_p50_ms": 1021.119445000295,
+        "read_end_to_end_p99_ms": 1542.1213699992222,
+        "read_scheduled_offer_to_completion_p50_ms": 1021.180485501056,
+        "read_scheduled_offer_to_completion_p99_ms": 1542.2380660005147,
+        "total_storage_bandwidth_mib_s": 1413.5837329732205,
+        "write_completion_ops_s": 35.339593324330515,
+        "write_completion_throughput_mib_s": 848.1502397839324
+      },
+      "policy_variant": "live-event-driven",
+      "position": 2,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-02/position-2-gds_native"
+    },
+    {
+      "block": 3,
+      "child_exit": 0,
+      "config": "gds_fifo",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 0,
+        "read_dispatch_to_completion_p50_ms": 456.61913600088155,
+        "read_dispatch_to_completion_p99_ms": 594.0278130001388,
+        "read_end_to_end_p50_ms": 456.61913600088155,
+        "read_end_to_end_p99_ms": 594.0278130001388,
+        "read_scheduled_offer_to_completion_p50_ms": 457.6141544989805,
+        "read_scheduled_offer_to_completion_p99_ms": 594.1826909989468,
+        "total_storage_bandwidth_mib_s": 2448.574816496118,
+        "write_completion_ops_s": 61.21437041240294,
+        "write_completion_throughput_mib_s": 1469.1448898976705
+      },
+      "policy_variant": "live-event-driven",
+      "position": 0,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-03/position-0-gds_fifo"
+    },
+    {
+      "block": 3,
+      "child_exit": 0,
+      "config": "gds_native",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 190,
+        "read_dispatch_to_completion_p50_ms": 1038.0896580008994,
+        "read_dispatch_to_completion_p99_ms": 1391.2661410031433,
+        "read_end_to_end_p50_ms": 1038.0896580008994,
+        "read_end_to_end_p99_ms": 1391.2661410031433,
+        "read_scheduled_offer_to_completion_p50_ms": 1038.3267194991786,
+        "read_scheduled_offer_to_completion_p99_ms": 1392.4304860000266,
+        "total_storage_bandwidth_mib_s": 2077.89561174149,
+        "write_completion_ops_s": 51.947390293537254,
+        "write_completion_throughput_mib_s": 1246.7373670448942
+      },
+      "policy_variant": "live-event-driven",
+      "position": 1,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-03/position-1-gds_native"
+    },
+    {
+      "block": 3,
+      "child_exit": 0,
+      "config": "gds_bpf",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 190,
+        "read_dispatch_to_completion_p50_ms": 292.4819194977317,
+        "read_dispatch_to_completion_p99_ms": 483.9324029999261,
+        "read_end_to_end_p50_ms": 292.4819194977317,
+        "read_end_to_end_p99_ms": 483.9324029999261,
+        "read_scheduled_offer_to_completion_p50_ms": 292.5777074977814,
+        "read_scheduled_offer_to_completion_p99_ms": 485.47571499930933,
+        "total_storage_bandwidth_mib_s": 3430.9492142221793,
+        "write_completion_ops_s": 85.77373035555448,
+        "write_completion_throughput_mib_s": 2058.5695285333077
+      },
+      "policy_variant": "live-event-driven",
+      "position": 2,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-03/position-2-gds_bpf"
+    },
+    {
+      "block": 4,
+      "child_exit": 0,
+      "config": "gds_native",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 190,
+        "read_dispatch_to_completion_p50_ms": 257.26553999993484,
+        "read_dispatch_to_completion_p99_ms": 430.9160829980101,
+        "read_end_to_end_p50_ms": 257.26553999993484,
+        "read_end_to_end_p99_ms": 430.9160829980101,
+        "read_scheduled_offer_to_completion_p50_ms": 257.3536029989773,
+        "read_scheduled_offer_to_completion_p99_ms": 431.30310199814267,
+        "total_storage_bandwidth_mib_s": 2549.7208056660397,
+        "write_completion_ops_s": 63.743020141650995,
+        "write_completion_throughput_mib_s": 1529.832483399624
+      },
+      "policy_variant": "live-event-driven",
+      "position": 0,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-04/position-0-gds_native"
+    },
+    {
+      "block": 4,
+      "child_exit": 0,
+      "config": "gds_bpf",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 190,
+        "read_dispatch_to_completion_p50_ms": 613.3295460003865,
+        "read_dispatch_to_completion_p99_ms": 965.6212119989505,
+        "read_end_to_end_p50_ms": 613.3295460003865,
+        "read_end_to_end_p99_ms": 965.6212119989505,
+        "read_scheduled_offer_to_completion_p50_ms": 613.5940999996383,
+        "read_scheduled_offer_to_completion_p99_ms": 965.9475169986545,
+        "total_storage_bandwidth_mib_s": 2962.666117985155,
+        "write_completion_ops_s": 74.06665294962887,
+        "write_completion_throughput_mib_s": 1777.5996707910929
+      },
+      "policy_variant": "live-event-driven",
+      "position": 1,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-04/position-1-gds_bpf"
+    },
+    {
+      "block": 4,
+      "child_exit": 0,
+      "config": "gds_fifo",
+      "metrics": {
+        "completed_reads": 64,
+        "completed_writes": 96,
+        "defer_decisions": 0,
+        "read_dispatch_to_completion_p50_ms": 602.5412549988687,
+        "read_dispatch_to_completion_p99_ms": 1016.862233998836,
+        "read_end_to_end_p50_ms": 602.5412549988687,
+        "read_end_to_end_p99_ms": 1016.862233998836,
+        "read_scheduled_offer_to_completion_p50_ms": 602.6641719984618,
+        "read_scheduled_offer_to_completion_p99_ms": 1017.2736969976686,
+        "total_storage_bandwidth_mib_s": 2217.96461708721,
+        "write_completion_ops_s": 55.44911542718026,
+        "write_completion_throughput_mib_s": 1330.7787702523262
+      },
+      "policy_variant": "live-event-driven",
+      "position": 2,
+      "result_present": true,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-mixed-live-event-driven-575-20260907-five-block/block-04/position-2-gds_fifo"
+    }
+  ],
+  "kind": "lmcache_gds_mixed_backend",
+  "params": {
+    "attempts_per_cell": 1,
+    "blocks": 5,
+    "configs": [
+      "gds_fifo",
+      "gds_native",
+      "gds_bpf"
+    ],
+    "dst_device": "cuda:0",
+    "fresh_process_per_cell": true,
+    "gds_buffer_size_mib": 4096,
+    "live_policy_inputs": {
+      "hbm_pressure_permille": 0,
+      "label": "actual pending demand reads; 10 ms cumulative write budget; event-driven wakeup, no periodic polling or measured HBM pressure",
+      "pending_demand_reads": "actual pending-demand-read count",
+      "provider": "LiveDemandRequestProvider",
+      "slack_label": "10 ms cumulative background-write delay budget",
+      "slack_ns": 10000000,
+      "speculative_recomputable": false,
+      "wakeup": "zero pending demand reads or cumulative budget expiry"
+    },
+    "object_mib": 24,
+    "policy_variant": "live-event-driven",
+    "read_stagger_ms": 2.0,
+    "reads": 64,
+    "retry": false,
+    "write_stagger_ms": 4.0,
+    "writes": 96
+  },
+  "summary": {
+    "cells_attempted": 15,
+    "kind": "lmcache_gds_mixed_backend",
+    "per_mode": {
+      "gds_bpf": {
+        "cells_attempted": 5,
+        "cells_measured": 5,
+        "medians": {
+          "read_dispatch_to_completion_p50_ms": 157.65167700010352,
+          "read_dispatch_to_completion_p99_ms": 254.47883399829152,
+          "read_end_to_end_p50_ms": 157.65167700010352,
+          "read_end_to_end_p99_ms": 254.47883399829152,
+          "read_scheduled_offer_to_completion_p50_ms": 158.94379700098943,
+          "read_scheduled_offer_to_completion_p99_ms": 255.87431100066172,
+          "total_storage_bandwidth_mib_s": 8537.774892527137,
+          "write_completion_throughput_mib_s": 5122.664935516282
+        }
+      },
+      "gds_fifo": {
+        "cells_attempted": 5,
+        "cells_measured": 5,
+        "medians": {
+          "read_dispatch_to_completion_p50_ms": 136.5474850008468,
+          "read_dispatch_to_completion_p99_ms": 279.30211200146005,
+          "read_end_to_end_p50_ms": 136.5474850008468,
+          "read_end_to_end_p99_ms": 279.30211200146005,
+          "read_scheduled_offer_to_completion_p50_ms": 136.84186799933377,
+          "read_scheduled_offer_to_completion_p99_ms": 279.36139999944135,
+          "total_storage_bandwidth_mib_s": 8475.460104298078,
+          "write_completion_throughput_mib_s": 5085.276062578846
+        }
+      },
+      "gds_native": {
+        "cells_attempted": 5,
+        "cells_measured": 5,
+        "medians": {
+          "read_dispatch_to_completion_p50_ms": 257.26553999993484,
+          "read_dispatch_to_completion_p99_ms": 430.9160829980101,
+          "read_end_to_end_p50_ms": 257.26553999993484,
+          "read_end_to_end_p99_ms": 430.9160829980101,
+          "read_scheduled_offer_to_completion_p50_ms": 257.3536029989773,
+          "read_scheduled_offer_to_completion_p99_ms": 431.30310199814267,
+          "total_storage_bandwidth_mib_s": 2549.7208056660397,
+          "write_completion_throughput_mib_s": 1529.832483399624
+        }
+      }
+    },
+    "policy_variant": "live-event-driven"
+  },
+  "timestamp": "20260906T233838"
+}

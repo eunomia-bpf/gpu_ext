@@ -14,9 +14,11 @@ blocks.
 | `combined`   | both                                   | both                                     |
 
 Workload: `microbench/memory/uvmbench --kernel=hotspot --size_factor=0.6
---mode=uvm --iterations=1`, two concurrent tenants (`uvmbench_high`,
-`uvmbench_low`, launched via `/tmp` symlinks so the scheduler policy can key
-on comm).
+--mode=uvm --iterations=1 --output=<per-arm results CSV>`, two concurrent
+tenants (`uvmbench_high`, `uvmbench_low`, launched via `/tmp` symlinks so
+the scheduler policy can key on comm). uvmbench accepts only `--key=value`
+options (no positional arguments), so the output CSV must be passed as
+`--output=PATH`.
 
 ## Per-arm ordering
 
@@ -30,8 +32,9 @@ on comm).
    independently from its own SIGCONT to its own exit.
 
 Five interleaved blocks: each block runs all four arms back to back with the
-arm order rotated (block `b` starts at arm `b`), so every arm occupies every
-position across blocks.
+arm order rotated modulo the number of arms (block `b` starts at arm
+`b % 4`; rotation continues for more than four blocks), so every arm
+occupies every position across blocks.
 
 ## Measurements
 
@@ -46,8 +49,18 @@ position across blocks.
 
 No correctness/review/verifier/hash/checksum/digest gate, no retry, no
 filtering: failures and raw numbers are preserved (row `notes`, per-arm
-`meta.json`, tenant/tool logs). A per-tenant wall-clock timeout (default
-600 s) kills a stuck tenant and the resulting numbers/exit codes are kept.
+`meta.json`, tenant/tool logs). The per-tenant wall-clock timeout defaults
+to 0, i.e. no artificial tenant timeout; `--timeout N` caps a tenant at N
+seconds from its SIGCONT, and the resulting numbers/exit codes are kept.
+Real process errors (rc, timeout flag, tool early-exit rc) are always
+recorded.
+
+## Safety
+
+The harness runs no `pkill` and does not call `cleanup_struct_ops_tool`:
+a separate GDS policy may be attached to the driver and must stay
+untouched. It only signals/reaps its own tenant and tool Popen handles,
+each started in its own process group.
 
 ## Layout
 
@@ -77,3 +90,8 @@ and the kernel nvidia driver with the struct_ops hooks):
 ```
 cd /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast && sudo python3 run_fig13_fast.py --blocks 5
 ```
+
+Optional flags: `--timeout N` (default 0 = no artificial tenant timeout),
+`--mem-tool PATH` and `--sched-tool PATH` to point at alternate built
+policy tools (defaults: `extension/prefetch_eviction_pid` and
+`extension/gpu_sched_set_timeslices`).

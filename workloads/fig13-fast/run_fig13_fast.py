@@ -25,12 +25,20 @@ Per-arm ordering:
      independently from its own SIGCONT to its own exit.
 
 Five interleaved blocks: each block runs all four arms back to back with
-the arm order rotated, so every arm occupies every position across blocks.
+the arm order rotated modulo the number of arms (rotation continues for
+more than four blocks), so every arm occupies every position across blocks.
 
 Engagement counters are recorded as metadata only and are never a gate.
 No correctness/review/verifier/hash/checksum/digest gate, no retry, no
 filtering; failures and raw numbers are preserved in the CSV, per-arm
 meta.json, events.log, and tenant/tool logs.
+
+No pkill and no cleanup_struct_ops_tool invocation: a separate GDS policy
+may be attached to the driver and must stay untouched. The harness only
+signals/reaps its own tenant and tool Popen handles, each started in its
+own process group. The per-tenant timeout defaults to 0, meaning no
+artificial tenant timeout; real process errors are still recorded in the
+usual way (rc, timeout flag, notes).
 
 CPU dry-run: --dry-run replaces tenants with stubs/stub_tenant.py and
 policy tools with stubs/stub_policy.py so the orchestration (stop-before-
@@ -138,13 +146,14 @@ def spawn_tenant(name, role, arm_dir, args, log):
         env["FIG13_FAST_STUB_SLEEP"] = f"{DRY_RUN_SLEEP[role]:.1f}"
         target_argv = [str(link)]
     else:
+        out_csv = arm_dir / f"uvmbench_{name}_results.csv"
         target_argv = [
             str(link),
             f"--kernel={KERNEL}",
             f"--size_factor={SIZE_FACTOR}",
             "--mode=uvm",
             f"--iterations={ITERATIONS}",
-            str(arm_dir / f"uvmbench_{name}_results.csv"),
+            f"--output={out_csv}",
         ]
     cmd = [sys.executable, str(HERE / "tenant_launcher.py"), *target_argv]
     log_path = arm_dir / f"tenant_{name}.log"
@@ -155,33 +164,47 @@ def spawn_tenant(name, role, arm_dir, args, log):
         stderr=subprocess.STDOUT,
         cwd=str(arm_dir),
         env=env,
+        start_new_session=True,
     )
     log.info(f"tenant {name} spawned pid={proc.pid} via tenant_launcher (target={link}) log={log_path}")
     return proc, logf
 
 
 def tool_command(label, args, high_pid, low_pid):
-    ext = REPO_ROOT / "extension"
     if label == "sched":
         if args.dry_run:
             return [sys.executable, str(HERE / "stubs" / "stub_policy.py"), "sched"]
         return [
-            "sudo", str(ext / "gpu_sched_set_timeslices"),
+            "sudo", args.sched_tool,
             "-p", f"{HIGH_NAME}:{SCHED_HIGH_TS}",
             "-p", f"{LOW_NAME}:{SCHED_LOW_TS}",
         ]
     if args.dry_run:
         return [sys.executable, str(HERE / "stubs" / "stub_policy.py"), "mem"]
     return [
-        "sudo", str(ext / "prefetch_eviction_pid"),
+        "sudo", args.mem_tool,
         "-p", str(high_pid), "-P", MEM_HIGH_PARAM,
         "-l", str(low_pid), "-L", MEM_LOW_PARAM,
     ]
 
 
+def kill_group(proc, sig):
+    """Signal only this harness's own process group (Popen child + children)."""
+    try:
+        os.killpg(proc.pid, sig)
+    except ProcessLookupError:
+        pass
+    except PermissionError:
+        try:
+            proc.send_signal(sig)
+        except (ProcessLookupError, OSError):
+            pass
+
+
 def spawn_tool(cmd, log_path, log, label):
     logf = open(log_path, "w", buffering=1)
-    proc = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, cwd=str(HERE))
+    proc = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT,
+                            cwd=str(HERE), start_new_session=True)
     log.info(f"{label} tool started pid={proc.pid} cmd={' '.join(cmd)} log={log_path}")
     time.sleep(TOOL_SETTLE_S)
     if proc.poll() is not None:
@@ -192,11 +215,11 @@ def spawn_tool(cmd, log_path, log, label):
 def stop_tool(proc, log, label):
     if proc is None or proc.poll() is not None:
         return
-    proc.send_signal(signal.SIGINT)
+    kill_group(proc, signal.SIGINT)
     try:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
-        proc.kill()
+        kill_group(proc, signal.SIGKILL)
         try:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
@@ -205,18 +228,25 @@ def stop_tool(proc, log, label):
 
 
 def watch_tenant(proc, role, timeout_s, results, log):
-    try:
-        rc = proc.wait(timeout=timeout_s)
-        results[role] = {"rc": rc, "t_done": time.time(), "timeout": False}
-        log.info(f"tenant {role} finished rc={rc}")
-    except subprocess.TimeoutExpired:
-        proc.kill()
+    if timeout_s and timeout_s > 0:
+        try:
+            rc = proc.wait(timeout=timeout_s)
+            results[role] = {"rc": rc, "t_done": time.time(), "timeout": False}
+            log.info(f"tenant {role} finished rc={rc}")
+            return
+        except subprocess.TimeoutExpired:
+            pass
+        kill_group(proc, signal.SIGKILL)
         try:
             rc = proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             rc = None
         results[role] = {"rc": rc, "t_done": time.time(), "timeout": True}
         log.info(f"tenant {role} killed after timeout rc={rc}")
+    else:
+        rc = proc.wait()
+        results[role] = {"rc": rc, "t_done": time.time(), "timeout": False}
+        log.info(f"tenant {role} finished rc={rc}")
 
 
 def parse_tenant_metrics(path):
@@ -279,26 +309,6 @@ def format_meta(label, arm, meta, args):
     return prefix + body
 
 
-def run_cleanup(args, log, phase):
-    tool = REPO_ROOT / "extension" / "cleanup_struct_ops_tool"
-    if not tool.exists():
-        log.info(f"{phase} cleanup_struct_ops_tool missing (skipped)")
-        return
-    try:
-        r = subprocess.run(["sudo", str(tool)], capture_output=True, text=True, timeout=60)
-        log.info(f"{phase} cleanup_struct_ops_tool rc={r.returncode} (advisory)")
-    except subprocess.SubprocessError as exc:
-        log.info(f"{phase} cleanup_struct_ops_tool failed: {exc} (advisory)")
-
-
-def pre_clean(args, log):
-    for name in (HIGH_NAME, LOW_NAME):
-        subprocess.run(["pkill", "-9", "-f", f"/tmp/{name}"], capture_output=True)
-    if not args.dry_run:
-        run_cleanup(args, log, "pre")
-    time.sleep(0.5)
-
-
 def run_arm(block, arm, args, out_root, log):
     arm_dir = out_root / f"block{block:02d}_{arm}"
     arm_dir.mkdir(parents=True, exist_ok=True)
@@ -314,6 +324,7 @@ def run_arm(block, arm, args, out_root, log):
         "low_name": LOW_NAME,
         "mem_params": f"high={MEM_HIGH_PARAM}/low={MEM_LOW_PARAM}",
         "sched_params": f"high={SCHED_HIGH_TS}us/low={SCHED_LOW_TS}us",
+        "timeout_s": args.timeout,
     }
     row = {c: "" for c in CSV_COLUMNS}
     row["block"] = block
@@ -329,7 +340,7 @@ def run_arm(block, arm, args, out_root, log):
     def kill_quiet(proc, label):
         try:
             if proc is not None and proc.poll() is None:
-                proc.kill()
+                kill_group(proc, signal.SIGKILL)
                 proc.wait(timeout=5)
                 notes.append(f"{label}_killed_by_harness")
         except Exception:
@@ -343,7 +354,6 @@ def run_arm(block, arm, args, out_root, log):
                 pass
 
     try:
-        pre_clean(args, log)
         ensure_symlinks(args, log)
 
         high, high_logf = spawn_tenant(HIGH_NAME, "high", arm_dir, args, log)
@@ -399,9 +409,6 @@ def run_arm(block, arm, args, out_root, log):
             if label in tools:
                 stop_tool(tools[label], log, label)
                 meta[f"rc_{label}_tool"] = tools[label].returncode
-
-        if not args.dry_run:
-            run_cleanup(args, log, "post")
 
         for role, name in (("high", HIGH_NAME), ("low", LOW_NAME)):
             r = results.get(role)
@@ -483,9 +490,16 @@ def main():
     ap.add_argument("--dry-run", action="store_true",
                     help="CPU-only orchestration test with stub tenants/policies")
     ap.add_argument("--blocks", type=int, default=5)
-    ap.add_argument("--timeout", type=float, default=600.0,
-                    help="per-tenant wall-clock seconds from SIGCONT")
+    ap.add_argument("--timeout", type=float, default=0.0,
+                    help="per-tenant wall-clock seconds from SIGCONT; "
+                         "0 (default) means no artificial tenant timeout")
     ap.add_argument("--results-dir", default=str(HERE / "results"))
+    ap.add_argument("--mem-tool",
+                    default=str(REPO_ROOT / "extension" / "prefetch_eviction_pid"),
+                    help="path to the memory policy tool")
+    ap.add_argument("--sched-tool",
+                    default=str(REPO_ROOT / "extension" / "gpu_sched_set_timeslices"),
+                    help="path to the sched policy tool")
     args = ap.parse_args()
 
     if args.dry_run:
@@ -496,9 +510,8 @@ def main():
     else:
         required = [
             REPO_ROOT / "microbench" / "memory" / "uvmbench",
-            REPO_ROOT / "extension" / "gpu_sched_set_timeslices",
-            REPO_ROOT / "extension" / "prefetch_eviction_pid",
-            REPO_ROOT / "extension" / "cleanup_struct_ops_tool",
+            Path(args.sched_tool),
+            Path(args.mem_tool),
         ]
         missing = [str(p) for p in required if not p.exists()]
         if missing:
@@ -512,7 +525,8 @@ def main():
 
     arm_orders = {}
     for b in range(args.blocks):
-        arm_orders[b] = list(ARMS[b:] + ARMS[:b])
+        start = b % len(ARMS)
+        arm_orders[b] = list(ARMS[start:] + ARMS[:start])
 
     run_cfg = {
         "mode": "dry_run" if args.dry_run else "gpu",
@@ -524,8 +538,10 @@ def main():
         "arms": list(ARMS),
         "arm_orders": arm_orders,
         "timeout_s": args.timeout,
-        "mem_policy": "extension/prefetch_eviction_pid -p HIGH_PID -P 20 -l LOW_PID -L 80",
-        "sched_policy": "extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200",
+        "mem_policy": f"{args.mem_tool} -p HIGH_PID -P 20 -l LOW_PID -L 80",
+        "sched_policy": f"{args.sched_tool} -p uvmbench_high:1000000 -p uvmbench_low:200",
+        "mem_tool": args.mem_tool,
+        "sched_tool": args.sched_tool,
         "uvmbench": str(REPO_ROOT / "microbench" / "memory" / "uvmbench"),
         "engagement": "counters recorded as metadata only; never a gate",
     }

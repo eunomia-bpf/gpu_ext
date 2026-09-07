@@ -45,3 +45,12 @@ is needed. Existing P40 and RTX 5090 results stay intact.
 The generic candidate belongs in `device-array-candidate/`; the single-value
 candidate belongs in `onevalue-array-candidate/`. Shared runtime/runner files
 are not owned by either task. Do not launch nested agents for further searching.
+
+## Local-model execution record
+
+Qwen Next session `ses_f8698e3ebffeLAt5A6TpaHM9i5` returned CLI exit 1 before
+producing source. Its stored assistant error is `APIError`, HTTP 524. The
+root did not cancel it or impose a short timeout. A fresh Qwen 27B session,
+titled `kernelretsnoop-onevalue-implementation`, takes over this same candidate
+after that confirmed terminal error. The original GLM candidate and LMCache
+Qwen 27B session remain running; no fourth root OpenCode run is started.

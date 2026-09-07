@@ -202,3 +202,37 @@ Its pending patch will distinguish the original 59-policy Opus study and
 original software/trial defaults from the revision's additional policy-port
 and LMCache studies. Root will apply only the intended prefix-section hunks;
 this avoids overwriting the independently completed matched subsection.
+
+## Published primary-metric and legacy-case scope corrections
+
+Paper `d8f9c95` publishes the completed local Qwen case-study edits and root's
+matched-MoE corrections. MoE primary throughput 11.90/11.22/11.19 token/s and
+paired BPF/native -0.35% (95% CI -1.08% to +0.55%) appear beside the secondary
+first-visible-text latency gains. The caption and text disclose the baseline's
+extra-expert prefill shortcut; the baseline contrast is not a pure policy
+ablation. No historical number or figure was removed.
+
+The legacy cases now scope KV offloading limitations to evaluated framework
+configurations, present prefill/decode as a tradeoff, remove unmeasured
+near-native performance at the GNN scale where native OOMs, and call one-block
+lookahead best among tested settings rather than globally optimal. Two current
+pdflatex passes succeed: 17 pages, 4,538,864 bytes,
+`/var/tmp/revision-existing-case-scope-20260907.log`. Page budget is still open.
+
+## LMCache optimization follow-up
+
+Main `b0eeb67c` and `ea406758` publish default-off ioctl allocation reuse and
+18,000 actual measured decisions in six rotated blocks. Paired median call
+time falls 24.200% (all six blocks), from descriptive medians 1.5755 to
+1.1900 us. This is isolated-call performance, not storage-request improvement;
+the old negative disk results remain. Root's recorded short command completed
+the measurement while Qwen Next retried; its session
+`ses_f84762951ffeC0nouRqO3NiJOR` subsequently terminated with actual `Error`
+after five provider retries and produced no files. No live session was stopped.
+
+The new `write-workers-plan-20260907.md` tests shared I/O concurrency in the
+real LMCache workload, with the same settings for FIFO/native/BPF. Local
+Qwen session `ses_f84616e1bffeOGDXTvOCnNdorr` owns the runner option; session
+`ses_f846046ceffeeycQeKyzCzPVmk` owns the launcher after the Qwen Next failure.
+GLM `ses_f8476da44ffeCcBp7Q5vXCG7U8` remains live on bottleneck analysis.
+No completed storage, Table 1, Fig. 13 or SASS matrix is rerun.

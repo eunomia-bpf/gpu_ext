@@ -1,0 +1,90 @@
+{
+  "arm": "pod_inline",
+  "block": 1,
+  "bpftime_build": "/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt/build-table1-575-warp",
+  "client_wall_ns": 3403236244,
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/moe-infinity/.venv/bin/python",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/bench.py",
+    "--arm",
+    "pod_inline",
+    "--block",
+    "1",
+    "--phase-study",
+    "--output",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/current-runtime-575-20260907-01/block-01-pod_inline/operator.json"
+  ],
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64:/usr/lib/x86_64-linux-gnu",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "SPDLOG_LEVEL": "warn"
+  },
+  "launch_environment": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "LANG": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/cuda-12.9/lib64:/usr/lib/x86_64-linux-gnu",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "SPDLOG_LEVEL": "warn"
+  },
+  "lease_paths": [
+    "/tmp/gpubpf-revision-gpu0.lock",
+    "/tmp/gpubpf-revision-struct-ops.lock"
+  ],
+  "loader_command": null,
+  "loader_environment": null,
+  "numeric_protocol": "pod-fp16-upstream-match-v2",
+  "operator_cells": [
+    {
+      "decode_batch": 32,
+      "mean_cuda_ms": 3.263270080089569,
+      "mean_host_wall_ms": 3.27053575,
+      "model": "llama-3-8b",
+      "timed_samples": 100,
+      "warmups": 10
+    }
+  ],
+  "operator_complete_flag": true,
+  "operator_output": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/raw/current-runtime-575-20260907-01/block-01-pod_inline/operator.json",
+  "operator_timestamps": {
+    "post_first_sync_ns": 52928120007027,
+    "pre_first_diagnostic_ns": 52928083496401,
+    "process_main_ns": 52926265852446,
+    "runtime_imports_done_ns": 52927349746748,
+    "runtime_imports_start_ns": 52926272060712,
+    "stdlib_imports_done_ns": 52926269875212,
+    "steady_complete_ns": 52928847893641,
+    "warmup_done_ns": 52928165895233
+  },
+  "phase_study": true,
+  "phase_timestamps": {
+    "cell_start_ns": 52926239013455,
+    "cleanup_complete_ns": 52929708965206,
+    "client_exit_ns": 52929647737029,
+    "client_spawn_ns": 52926244500785,
+    "loader_ready_marker": null,
+    "loader_ready_ns": null,
+    "loader_spawn_ns": null
+  },
+  "pre_python_main_ns": 21351661,
+  "private_segment": null,
+  "process_wall_seconds": 3.4032404809986474,
+  "ptx": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/pod-attention/build/ptx-runtime-01",
+  "returncode": 0,
+  "status": "passed",
+  "timeout_seconds": null
+}

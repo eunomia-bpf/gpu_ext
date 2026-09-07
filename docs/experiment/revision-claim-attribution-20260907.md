@@ -166,3 +166,20 @@ command used the wrong relative destination and changed no asset; its
 old-layout build is not the compact-figure evidence. The height reduction
 alone does not close the page-budget item. All previous renderings remain
 recoverable from ordinary Git history; no experiment or data file changed.
+
+## Published response draft
+
+Paper `298b5bb` publishes GLM's evidence-linked response draft and adds it to
+the review-folder index. Root corrected arm labels, representative-load
+scope, Fig. 13 attribution, LMCache all-submit versus active-policy results,
+min--max versus confidence-interval wording, and the distinction between
+open deliverables and future extensions. The approximately 1,100-word draft
+is explicitly for author review, not submitted to the conference. Its word
+target was treated as a concision preference, not a completion gate. The
+review-folder index also supersedes its stale LMCache pause instruction.
+
+Qwen Next's runner 66942 ended with an actual provider error and no file
+changes. The same matched-policy session now runs Qwen 27B (runner 30037).
+Root requested the already measured XSched BE medians and GPreempt's
+continuous-load BE cost alongside their LC benefits; no new cells are needed.
+GLM's response task and Qwen 27B's introduction task both ended normally.

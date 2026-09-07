@@ -32,6 +32,19 @@ The two local-model assignments use this integration contract:
   slack; neither receives a preselected action. Backend/runner code and their
   end-to-end performance are still pending.
 
+On 2026-09-07 the Qwen 27B call ended with a recorded APIError HTTP 524
+(completed at 14:52 UTC), and its session was absent from the live status
+endpoint. Root resumed the same session with local Qwen Next for the
+unfinished runner, preserving all completed policy work. GLM's backend task
+remained live. No session was stopped for silence or an artificial timeout;
+the total live OpenCode concurrency remains at most three.
+
+Existing serving data are further decomposed in
+`serving-stage-analysis-20260907.md`: the GDS whole-response advantage is in
+the post-first-token interval, while first-token latency is worse. This is
+not a causal attribution to disk or BPF and does not replace the unfinished
+async-prefetch experiment.
+
 ## Question and scope
 
 RQ1 (Policy Expressibility and Benefits): Can AI agents safely express GPU

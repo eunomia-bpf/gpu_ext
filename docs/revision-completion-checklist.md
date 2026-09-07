@@ -6,6 +6,15 @@ define the scope. The dated plan in the paper repository is not evidence that
 these commitments have been met. Experimental completion, paper integration,
 and public artifact availability are separate checks.
 
+**Latest LMCache improvement:** [25-cell matched write-budget study](../workloads/lmcache-disk/results-575-gds-write-budget-20260907.md)
+is complete and pushed (`a451db6a`). BPF 200/10 ms paired read p99 improves
+51.011% and write throughput 15.315% at the median, both in all five pairs;
+native improves 53.999% and 12.698%. This establishes a shared policy-budget
+benefit on this workload, not BPF-only acceleration or tight native/BPF
+latency equivalence. A scoped storage-tier paragraph is now in the revision
+draft, with a successful 16-page build. The diagnostic and all historical
+unfavorable cells remain. No additional LMCache repeat is queued.
+
 **Latest execution — 2026-09-07 PDT:** the [stale-state repeated campaign](../workloads/stale-state-575/results-performance-gds-20260907.md)
 completes all 21 cells and restoration of the saved GDS module (`bc0ff88a`).
 Fresh native/BPF throughput medians are 272832.196/271397.413 checked words/s;

@@ -25,11 +25,13 @@ of five pairs improve on both. Native p99 regresses by paired median 14.304%.
 Keep the option opt-in, preserve native's stronger default-worker result, and
 do not rerun this matrix when the reusable launcher becomes available.
 
-Current follow-up is offline, with three local OpenCode owners: Qwen 27B
-converts the unfinished launcher into a small analyzer of the existing 30
-cells; GLM decomposes their stored request timings; Qwen Next inspects the
-completed POD phase study and startup source for a concrete cold-path fix.
-These tasks have no GPU execution authority and do not repeat completed cells.
+The LMCache offline follow-up is complete: the relocatable summary analyzer
+is published in `24ec6c3c`, the stage analyzer in `a321fd5d`, and its
+[interpretation](../workloads/lmcache-disk/gds-control/worker-stage-analysis-20260907.md)
+in `32fc810c`. No completed cell repeats. Qwen Next's POD diagnosis attempt
+ended with a provider error after retries, without a report. A local GLM
+session now implements a single-cell POD performance launcher; GPU execution
+remains with the coordinator, not the local model.
 The coordinating session and its delegated tasks do not edit paper files;
 this is session-specific and does not restrict other sessions' paper work.
 
@@ -39,8 +41,8 @@ occurs after dispatch. The recorded read submission timestamp equals dispatch,
 so this interval includes admission, scheduling, backend work and completion
 bookkeeping; it is not measured SSD service time or a causal explanation.
 The POD target is the existing 271.225-second median pre-Python interval,
-not another operator-throughput comparison. Both detailed localizations and
-the reusable offline scripts remain unfinished until their outputs are reviewed.
+not another repeat of the completed operator-throughput comparison. The
+current-runtime cold-start measurement remains unfinished.
 
 POD path inspection found that the historical `bpftime/build-cuda-pr503`
 runtime is absent at its recorded location. The retained
@@ -48,8 +50,11 @@ runtime is absent at its recorded location. The retained
 library exist; the agent contains the external-PTX ingest-once implementation.
 The POD adapter's RUNPATH still names the absent old build, so its PTX-pass
 dependency is currently unresolved under the default loader search. The next
-runtime comparison can explicitly select the retained build and its library
-directory. This is preparation only: no new cold-start timing or isolated
+runtime comparison can explicitly select the retained build with
+`POD_BPFTIME_BUILD`; `run_study.py` honors that override and prepends its
+PTX-pass directory only for the BPF target environment. The CPU-only
+environment check passed and CUDA-only search paths remain unchanged.
+This is preparation only: no new cold-start timing or isolated
 causal attribution to ingest-once is established by inspecting paths/source.
 
 The [GPU-local kernel-return record study](../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md)

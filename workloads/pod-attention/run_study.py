@@ -24,7 +24,8 @@ sys.path.insert(0, str(HERE.parent / 'gpreempt'))
 import run_three_way as shared
 
 safety = shared.safety
-BPFTIME = HERE.parents[2] / 'bpftime/build-cuda-pr503'
+BPFTIME = Path(os.environ.get('POD_BPFTIME_BUILD') or
+               HERE.parents[2] / 'bpftime/build-cuda-pr503').resolve()
 AGENT = BPFTIME / 'runtime/agent/libbpftime-agent.so'
 SERVER = BPFTIME / 'runtime/syscall-server/libbpftime-syscall-server.so'
 PYTHON = HERE.parent / 'moe-infinity/.venv/bin/python'
@@ -63,6 +64,8 @@ def environment(arm, extraction, shm=None, loader=False):
                 BPFTIME_PTXPASS_LIBRARIES=str(HERE / 'build/libpod_ptx_adapter.so'),
                 BPFTIME_CUDA_LATE_PTX_DIR=str(extraction / 'device'),
                 BPFTIME_CUDA_DEFER_PTX_EXTRACTION='1', BPFTIME_CUDA_DISABLE_CUOBJDUMP='1')
+            pass_dir = BPFTIME / 'attach/nv_attach_impl/pass/ptxpass_kprobe_entry'
+            env['LD_LIBRARY_PATH'] = f'{pass_dir}:{env["LD_LIBRARY_PATH"]}'
     elif arm == 'pod_cuda':
         env.update(LD_PRELOAD=str(BRIDGE), POD_LAUNCH_BRIDGE='cuda')
     elif arm not in bench.ARMS:

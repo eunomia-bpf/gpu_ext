@@ -157,7 +157,8 @@ def measured_streamed_completion(port: int, token_ids: list[int], request_id: st
                "return_token_ids": True,
                "stream_options": {"include_usage": True}}
     if deadline_ns is not None:
-        payload["kv_transfer_params"] = {"lmcache.prefetch_deadline_ns": deadline_ns}
+        # LMCache's async lookup RPC declares request_configs as dict[str, str].
+        payload["kv_transfer_params"] = {"lmcache.prefetch_deadline_ns": str(deadline_ns)}
     sent_ns = time.perf_counter_ns()
     entry["sent_ns"] = sent_ns
     if deadline_ns is not None:
@@ -564,3 +565,45 @@ def run_campaign(args: argparse.Namespace) -> int:
                 and len(campaign["cells"]) == expected_cells)
     print(json.dumps(campaign["summary"], ensure_ascii=False, indent=2), flush=True)
     return 0 if complete else 2
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Four-arm LMCache GDS async-prefetch campaign")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--blocks", type=int, default=DEFAULT_BLOCKS)
+    parser.add_argument("--port", type=int, default=perf.DEFAULT_PORT)
+    parser.add_argument("--expected-driver", default=DEFAULT_EXPECTED_DRIVER)
+    parser.add_argument("--store-barrier-timeout-s", type=float,
+                        default=perf.DEFAULT_STORE_BARRIER_TIMEOUT_S)
+    parser.add_argument("--gds-buffer-size-mib", type=int,
+                        default=DEFAULT_GDS_BUFFER_SIZE_MIB)
+    parser.add_argument("--kv-cache-memory-bytes", type=int,
+                        default=DEFAULT_KV_CACHE_MEMORY_BYTES)
+    parser.add_argument("--warm-concurrency", type=int, default=DEFAULT_WARM_CONCURRENCY)
+    parser.add_argument("--warm-stagger-ms", type=float, default=DEFAULT_WARM_STAGGER_MS)
+    parser.add_argument("--prefetch-lead-ms", type=float, default=DEFAULT_PREFETCH_LEAD_MS)
+    args = parser.parse_args(argv)
+    if args.blocks < 1:
+        parser.error("--blocks must be at least 1")
+    if args.gds_buffer_size_mib < 1:
+        parser.error("--gds-buffer-size-mib must be at least 1")
+    if args.kv_cache_memory_bytes < 1:
+        parser.error("--kv-cache-memory-bytes must be at least 1")
+    if args.warm_concurrency < 1:
+        parser.error("--warm-concurrency must be at least 1")
+    if args.warm_stagger_ms < 0 or args.prefetch_lead_ms < 0:
+        parser.error("--warm-stagger-ms and --prefetch-lead-ms must be non-negative")
+    return args
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    try:
+        return run_campaign(args)
+    except (ops.GateError, ValueError, OSError) as error:
+        print(f"NOT STARTED: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

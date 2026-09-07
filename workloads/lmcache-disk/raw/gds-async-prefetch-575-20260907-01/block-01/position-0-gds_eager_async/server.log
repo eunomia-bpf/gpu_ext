@@ -1,0 +1,353 @@
+[32;20m[2026-09-07 16:59:57,623] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-09-07 16:59:57,623] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+ERROR 09-07 17:00:01 [__init__.py:72] Failed to load plugin uvm_kv_plugin
+ERROR 09-07 17:00:01 [__init__.py:72] Traceback (most recent call last):
+ERROR 09-07 17:00:01 [__init__.py:72]   File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/plugins/__init__.py", line 69, in load_plugins_by_group
+ERROR 09-07 17:00:01 [__init__.py:72]     func = plugin.load()
+ERROR 09-07 17:00:01 [__init__.py:72]            ^^^^^^^^^^^^^
+ERROR 09-07 17:00:01 [__init__.py:72]   File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/importlib_metadata/__init__.py", line 221, in load
+ERROR 09-07 17:00:01 [__init__.py:72]     module = import_module(self.module)
+ERROR 09-07 17:00:01 [__init__.py:72]              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 09-07 17:00:01 [__init__.py:72]   File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+ERROR 09-07 17:00:01 [__init__.py:72]     return _bootstrap._gcd_import(name[level:], package, level)
+ERROR 09-07 17:00:01 [__init__.py:72]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 09-07 17:00:01 [__init__.py:72]   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+ERROR 09-07 17:00:01 [__init__.py:72]   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+ERROR 09-07 17:00:01 [__init__.py:72]   File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ERROR 09-07 17:00:01 [__init__.py:72] ModuleNotFoundError: No module named 'uvm_kv_plugin'
+(APIServer pid=1507842) INFO 09-07 17:00:01 [api_utils.py:345] 
+(APIServer pid=1507842) INFO 09-07 17:00:01 [api_utils.py:345]        █     █     █▄   ▄█
+(APIServer pid=1507842) INFO 09-07 17:00:01 [api_utils.py:345]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.27.1
+(APIServer pid=1507842) INFO 09-07 17:00:01 [api_utils.py:345]   █▄█▀ █     █     █     █  model   /home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782
+(APIServer pid=1507842) INFO 09-07 17:00:01 [api_utils.py:345]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=1507842) INFO 09-07 17:00:01 [api_utils.py:345] 
+(APIServer pid=1507842) INFO 09-07 17:00:01 [api_utils.py:273] non-default args: {'model_tag': '/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782', 'port': 18080, 'model': '/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782', 'max_model_len': 4096, 'enforce_eager': True, 'served_model_name': ['Qwen/Qwen3-30B-A3B-FP8'], 'gpu_memory_utilization': 0.98, 'kv_cache_memory_bytes': 805306368, 'enable_prefix_caching': False, 'max_num_seqs': 2, 'kv_transfer_config': KVTransferConfig(kv_connector='LMCacheConnectorV1', engine_id='a7fd2670-2eb9-48a2-89bb-c286fd597c7b', kv_buffer_device='cuda', kv_buffer_size=1000000000.0, kv_role='kv_both', kv_rank=None, kv_parallel_size=1, kv_ip='127.0.0.1', kv_port=14579, kv_connector_extra_config={}, kv_connector_module_path=None, enable_permute_local_kv=False, kv_load_failure_policy='fail')}
+(APIServer pid=1507842) INFO 09-07 17:00:01 [model.py:645] Resolved architecture: Qwen3MoeForCausalLM
+(APIServer pid=1507842) INFO 09-07 17:00:01 [model.py:1883] Using max model len 4096
+(APIServer pid=1507842) WARNING 09-07 17:00:02 [vllm.py:1194] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+(APIServer pid=1507842) WARNING 09-07 17:00:02 [vllm.py:1247] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(APIServer pid=1507842) INFO 09-07 17:00:02 [kernel.py:306] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native'])
+(APIServer pid=1507842) INFO 09-07 17:00:02 [vllm.py:1426] Cudagraph is disabled under eager mode
+(APIServer pid=1507842) WARNING 09-07 17:00:02 [vllm.py:1648] Turning off hybrid kv cache manager because `--kv-transfer-config` selects a KV connector that does not support it. Impact: hybrid SSM models (e.g. Jamba, Bamba) require HMA and will fail at startup without it; models with sliding window attention will run with reduced performance. To add HMA support to a KV connector, subclass `SupportsHMA` defined in kv_connector/v1/base.py (for MultiConnector, all child connectors must support HMA).
+(APIServer pid=1507842) INFO 09-07 17:00:02 [compilation.py:329] Enabled custom fusions: norm_quant, act_quant
+[32;20m[2026-09-07 17:00:05,118] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-09-07 17:00:05,118] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+[32;20m[2026-09-07 17:00:05,120] LMCache INFO:[0m torch_dev=<module 'torch.cuda' from '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/torch/cuda/__init__.py'>, torch_device_type=cuda [3m(_device_detect.py:312:lmcache.v1.platform._device_detect)[0m
+[32;20m[2026-09-07 17:00:05,120] LMCache INFO:[0m Auto-selected backend [cuda] for accelerator 'cuda' from candidate backends [cuda, rocm]. [3m(__init__.py:148:lmcache.v1.platform)[0m
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72] Failed to load plugin uvm_kv_plugin
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72] Traceback (most recent call last):
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]   File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/plugins/__init__.py", line 69, in load_plugins_by_group
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]     func = plugin.load()
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]            ^^^^^^^^^^^^^
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]   File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/importlib_metadata/__init__.py", line 221, in load
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]     module = import_module(self.module)
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]   File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]     return _bootstrap._gcd_import(name[level:], package, level)
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72]   File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+(EngineCore pid=1508035) ERROR 09-07 17:00:08 [__init__.py:72] ModuleNotFoundError: No module named 'uvm_kv_plugin'
+(EngineCore pid=1508035) INFO 09-07 17:00:08 [core.py:121] Initializing a V1 LLM engine (v0.27.1) with config: model='/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782', speculative_config=None, tokenizer='/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=4096, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=fp8, quantization_config=None, enforce_eager=True, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_mode='warn', jit_monitor_verbose=False), seed=0, served_model_name=Qwen/Qwen3-30B-A3B-FP8, enable_prefix_caching=False, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['+quant_fp8', 'all', '+quant_fp8'], 'ir_enable_torch_wrap': False, 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [2048], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': [], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'enable_qk_norm_rope_fusion': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False, 'fuse_qk_norm_rope_kvcache': False}, 'max_cudagraph_capture_size': 0, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': False, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native']), enable_flashinfer_autotune=True, enable_cutedsl_warmup=True, enable_jit_warmup=True, enable_bf16x3_router_gemm=False, moe_backend='auto', linear_backend='auto')
+(EngineCore pid=1508035) INFO 09-07 17:00:09 [parallel_state.py:1640] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://128.114.59.42:54473 backend=nccl
+(EngineCore pid=1508035) INFO 09-07 17:00:09 [parallel_state.py:1977] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank 0, EPLB rank N/A
+(EngineCore pid=1508035) INFO 09-07 17:00:09 [topk_topp_sampler.py:62] Using FlashInfer for top-p & top-k sampling.
+(EngineCore pid=1508035) INFO 09-07 17:00:10 [gpu_model_runner.py:5308] Starting to load model /home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782...
+(EngineCore pid=1508035) INFO 09-07 17:00:10 [__init__.py:634] Selected CutlassFp8BlockScaledMMKernel for Fp8LinearMethod
+(EngineCore pid=1508035) INFO 09-07 17:00:10 [cuda.py:482] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION'].
+(EngineCore pid=1508035) INFO 09-07 17:00:10 [flash_attn.py:789] Using FlashAttention version 2
+(EngineCore pid=1508035) INFO 09-07 17:00:10 [fp8.py:405] Using TRITON Fp8 MoE backend out of potential backends: ['AITER', 'FLASHINFER_TRTLLM', 'FLASHINFER_CUTLASS', 'TRITON', 'MARLIN', 'HUMMING', 'BATCHED_TRITON', 'XPU', 'CPU', 'HPC'].
+(EngineCore pid=1508035) INFO 09-07 17:00:10 [weight_utils.py:867] Filesystem type for checkpoints: EXT4. Checkpoint size: 30.22 GiB. Available RAM: 114.16 GiB.
+(EngineCore pid=1508035) INFO 09-07 17:00:10 [weight_utils.py:890] Auto-prefetch is disabled because the filesystem (EXT4) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+(EngineCore pid=1508035) Loading safetensors checkpoint shards:   0% Completed | 0/7 [00:00<?, ?it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards:  14% Completed | 1/7 [00:00<00:05,  1.17it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards:  29% Completed | 2/7 [00:01<00:04,  1.07it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards:  43% Completed | 3/7 [00:02<00:03,  1.04it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards:  57% Completed | 4/7 [00:03<00:02,  1.04it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards:  71% Completed | 5/7 [00:04<00:01,  1.06it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards:  86% Completed | 6/7 [00:05<00:00,  1.07it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards: 100% Completed | 7/7 [00:06<00:00,  1.32it/s]
+(EngineCore pid=1508035) Loading safetensors checkpoint shards: 100% Completed | 7/7 [00:06<00:00,  1.16it/s]
+(EngineCore pid=1508035) 
+(EngineCore pid=1508035) INFO 09-07 17:00:16 [default_loader.py:430] Loading weights took 6.04 seconds
+(EngineCore pid=1508035) INFO 09-07 17:00:16 [fp8.py:688] Using MoEPrepareAndFinalizeNoDPEPModular
+(EngineCore pid=1508035) INFO 09-07 17:00:17 [gpu_model_runner.py:5405] Model loading took 29.04 GiB memory and 6.263233 seconds
+(EngineCore pid=1508035) INFO 09-07 17:00:17 [utils.py:47] Connectors do not specify a kv cache layout, defaulting to NHD.
+(EngineCore pid=1508035) WARNING 09-07 17:00:17 [fused_moe.py:1161] Using default MoE config. Performance might be sub-optimal! Config file not found at /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/lib/python3.12/site-packages/vllm/model_executor/layers/fused_moe/configs/E=128,N=768,device_name=NVIDIA_GeForce_RTX_5090,dtype=fp8_w8a8,block_shape=[128,128].json
+(EngineCore pid=1508035) INFO 09-07 17:00:17 [gpu_worker.py:491] Initial free memory 30.85 GiB, reserved 0.75 GiB memory for KV Cache as specified by kv_cache_memory_bytes config and skipped memory profiling. This does not respect the gpu_memory_utilization config. Only use kv_cache_memory_bytes config when you want manual control of KV cache memory size. If OOM'ed, check the difference of initial free memory between the current run and the previous run where kv_cache_memory_bytes is suggested and update it correspondingly.
+(EngineCore pid=1508035) INFO 09-07 17:00:17 [kv_cache_utils.py:2235] GPU KV cache size: 8,192 tokens
+(EngineCore pid=1508035) INFO 09-07 17:00:17 [kv_cache_utils.py:2236] Maximum concurrency for 4,096 tokens per request: 2.00x
+(EngineCore pid=1508035) INFO 09-07 17:00:17 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: a7fd2670-2eb9-48a2-89bb-c286fd597c7b
+(EngineCore pid=1508035) WARNING 09-07 17:00:17 [base.py:202] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(EngineCore pid=1508035) INFO 09-07 17:00:17 [lmcache_connector.py:105] Initializing latest dev LMCache connector
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,891] LMCache INFO:[0m Discovered API module: env_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,905] LMCache INFO:[0m Discovered API module: loglevel_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,905] LMCache INFO:[0m Discovered API module: metrics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,906] LMCache INFO:[0m Discovered API module: periodic_thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,907] LMCache INFO:[0m Discovered API module: run_script_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,908] LMCache INFO:[0m Discovered API module: thread_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,911] LMCache INFO:[0m Discovered API module: backend_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,911] LMCache INFO:[0m Discovered API module: bypass_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,915] LMCache INFO:[0m Discovered API module: cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,918] LMCache INFO:[0m Discovered API module: chunk_statistics_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,920] LMCache INFO:[0m Discovered API module: conf_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,920] LMCache INFO:[0m Discovered API module: freeze_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,920] LMCache INFO:[0m Discovered API module: hot_cache_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,921] LMCache INFO:[0m Discovered API module: inference_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,923] LMCache INFO:[0m Discovered API module: load_fs_chunks_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,924] LMCache INFO:[0m Discovered API module: lookup_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,924] LMCache INFO:[0m Discovered API module: version_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,930] LMCache INFO:[0m Discovered API module: key_stats_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,931] LMCache INFO:[0m Discovered API module: worker_info_api [3m(router_discovery.py:53:lmcache.v1.utils.router_discovery)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:17,943] LMCache WARNING:[0m No LMCache configuration file is set. Trying to read configurations from the environment variables. [3m(utils.py:95:lmcache.integration.vllm.utils)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:17,943] LMCache WARNING:[0m You can set the configuration file through the environment variable: LMCACHE_CONFIG_FILE [3m(utils.py:99:lmcache.integration.vllm.utils)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,943] LMCache INFO:[0m num_layer: 48, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (48, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,943] LMCache INFO:[0m Creating LMCacheEngine instance vllm-instance [3m(cache_engine.py:2109:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,943] LMCache INFO:[0m NUMA mapping for instance vllm-instance: None [3m(cache_engine.py:2112:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:17,943] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:17,943] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,943] LMCache INFO:[0m Initialized NONE_HASH=1297541956826970328 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,944] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,946] LMCache INFO:[0m Creating LMCacheEngine with config: {'chunk_size': 256, 'local_cpu': False, 'max_local_cpu_size': 2.0, 'local_cpu_use_hugepages': False, 'reserve_local_cpu_size': 0.0, 'local_disk': None, 'local_disk_path_sharding': 'by_gpu', 'max_local_disk_size': 0.0, 'remote_url': None, 'remote_serde': 'naive', 'use_layerwise': False, 'save_decode_cache': False, 'pre_caching_hash_algorithm': 'builtin', 'enable_blending': False, 'blend_recompute_ratios': None, 'blend_thresholds': None, 'blend_check_layers': None, 'blend_min_tokens': 256, 'blend_special_str': ' # # ', 'retrieve_locations': None, 'store_location': None, 'enable_p2p': False, 'p2p_host': None, 'p2p_init_ports': None, 'p2p_lookup_ports': None, 'mp_host': None, 'mp_port': 5555, 'enable_controller': False, 'lmcache_instance_id': 'lmcacheengineconfig_9566c8b496684069991d549551981a7e', 'controller_pull_url': None, 'controller_reply_url': None, 'lmcache_worker_ports': None, 'lmcache_worker_ids': None, 'lmcache_worker_heartbeat_delay_time': 10, 'lmcache_worker_heartbeat_time': None, 'enable_pd': False, 'pd_role': None, 'pd_buffer_size': None, 'pd_buffer_device': None, 'pd_peer_host': None, 'pd_peer_init_port': None, 'pd_peer_alloc_port': None, 'pd_peer_query_port': None, 'pd_proxy_host': None, 'pd_proxy_port': None, 'pd_allocation_timeout_sec': inf, 'pd_shutdown_timeout_sec': 5.0, 'pd_condition_poll_interval_sec': 0.005, 'pd_max_prefill_len': 0, 'pd_backend_mode': 'async', 'pd_skip_proxy_notification': False, 'pd_bidirectional': False, 'transfer_channel': None, 'nixl_backends': None, 'nixl_buffer_size': None, 'nixl_buffer_device': None, 'gds_path': '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-01/block-01/position-0-gds_eager_async/cache', 'gds_path_sharding': 'by_gpu', 'gds_buffer_size': 256, 'maru_path': None, 'maru_pool_size': 4.0, 'use_gds': True, 'gds_backend': 'cufile', 'audit_actual_remote_url': None, 'internal_api_server_host': '0.0.0.0', 'extra_config': {'use_direct_io': True}, 'save_unfull_chunk': False, 'blocking_timeout_secs': 10, 'external_lookup_client': None, 'py_enable_gc': True, 'cache_policy': 'LRU', 'numa_mode': None, 'enable_async_loading': True, 'internal_api_server_enabled': False, 'internal_api_server_port_start': 6999, 'priority_limit': None, 'internal_api_server_include_index_list': None, 'internal_api_server_socket_path_prefix': None, 'runtime_plugin_locations': None, 'storage_plugins': None, 'remote_storage_plugins': None, 'lookup_timeout_ms': 3000, 'min_retrieve_tokens': 0, 'hit_miss_ratio': None, 'lookup_server_worker_ids': None, 'enable_scheduler_bypass_lookup': False, 'script_allowed_imports': None, 'enable_lazy_memory_allocator': False, 'lazy_memory_initial_ratio': 0.2, 'lazy_memory_expand_trigger_ratio': 0.5, 'lazy_memory_step_ratio': 0.1, 'lazy_memory_safe_size': 0.0, 'enable_chunk_statistics': False, 'chunk_statistics_auto_start_statistics': False, 'chunk_statistics_auto_exit_timeout_hours': 0.0, 'chunk_statistics_auto_exit_target_unique_chunks': 0, 'chunk_statistics_strategy': 'memory_bloom_filter', 'enable_kv_events': False, 'use_gpu_connector_v3': True, 'pin_timeout_sec': 300, 'pin_check_interval_sec': 30, 'remote_config_url': None, 'app_id': None, 'enable_hidden_state_cache': False, 'max_hidden_state_cpu_size': 2.0, 'hidden_state_layers': None, 'hidden_states_retrieve_mode': 'prefix_strict'} [3m(cache_engine.py:109:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,946] LMCache INFO:[0m LMCacheWorker is not initialized (related configs: enable_controller: False, role: worker, worker_id: 0, worker_ids: [0]). [3m(cache_engine.py:159:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,946] LMCache INFO:[0m KV events are disabled. [3m(cache_engine.py:188:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,946] LMCache INFO:[0m Initializing usage context. [3m(context.py:171:lmcache.usage_telemetry.context)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,947] LMCache INFO:[0m PeriodicThread PinMonitor-thread entering main loop (interval=30.0s) [3m(periodic_thread.py:304:lmcache.v1.periodic_thread)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,947] LMCache INFO:[0m Started PeriodicThread: PinMonitor-thread (level=critical, interval=30.0s, init_wait=0.0s) [3m(periodic_thread.py:248:lmcache.v1.periodic_thread)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:17,947] LMCache INFO:[0m PinMonitor started [3m(pin_monitor.py:223:lmcache.v1.pin_monitor)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,243] LMCache INFO:[0m lmcache lookup server start with scheduler socket path /tmp/engine_a7fd2670-2eb9-48a2-89bb-c286fd597c7b_service_lookup_scheduler_lmcache_rpc_port_0, worker socket path /tmp/engine_a7fd2670-2eb9-48a2-89bb-c286fd597c7b_service_lookup_worker_lmcache_rpc_port_0 [3m(lmcache_async_lookup_client.py:342:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,244] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=1, port=7000, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,244] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.WORKER with version 0.5.4-g3e11b8ed, vllm version 0.27.1, lmcache cache_engine metadata: LMCacheMetadata(model_name='/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782', world_size=1, local_world_size=1, worker_id=0, local_worker_id=0, kv_dtype=torch.bfloat16, kv_shape=(48, 2, 256, 4, 128), use_mla=False, role='worker', served_model_name='Qwen/Qwen3-30B-A3B-FP8', chunk_size=256, kv_layer_groups_manager=None, engine_id='a7fd2670-2eb9-48a2-89bb-c286fd597c7b', kv_connector_extra_config={}) [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,248] LMCache INFO:[0m Registering KV caches [3m(vllm_v1_adapter.py:755:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,249] LMCache INFO:[0m Engine KV Format: EngineKVFormat.NL_X_NB_BS_NH_CS NL x [NB, BS, NH, CS] [3m(detection.py:69:lmcache.v1.gpu_connector.kv_format.detection)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,249] LMCache INFO:[0m Engine KV Format: EngineKVFormat.NL_X_NB_BS_NH_CS NL x [NB, BS, NH, CS] [3m(detection.py:69:lmcache.v1.gpu_connector.kv_format.detection)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,250] LMCache INFO:[0m Group 0 first-layer tensor: layer_idx=0 shape=(512, 16, 4, 256) stride=(16384, 1024, 256, 1) is_contiguous=True dtype=torch.bfloat16 device=cuda:0 storage_offset=0 numel=8388608 storage_nbytes=16777216 padding_per_block=0 [3m(utils.py:596:lmcache.v1.gpu_connector.utils)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,250] LMCache INFO:[0m KV layer groups: ---
+(EngineCore pid=1508035) KernelGroupInfo(layers=48, indices=0-47, shape_desc=(kv=1, nl=48, nb=512, bs=16, nh=4, hs=256, element_size=2, block_stride_elems=0), dtype=torch.bfloat16, tokens_per_block=16, slots_per_block=16, engine_group_idx=0, sw_size_tokens=-1)
+(EngineCore pid=1508035) --- [3m(kv_layer_groups.py:437:lmcache.v1.kv_layer_groups)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,250] LMCache INFO:[0m Post initializing LMCacheEngine [3m(cache_engine.py:303:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,250] LMCache INFO:[0m Initialize storage manager on rank 0, use layerwise: False,save only first rank: False [3m(cache_engine.py:315:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,251] LMCache INFO:[0m Initializing LRUCachePolicy [3m(lru.py:22:lmcache.v1.storage_backend.cache_policy.lru)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,251] LMCache INFO:[0m NUMA mapping None [3m(local_cpu_backend.py:380:lmcache.v1.storage_backend.local_cpu_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:18,690] LMCache WARNING:[0m Controller message sender is not initialized [3m(local_cpu_backend.py:105:lmcache.v1.storage_backend.local_cpu_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:18,690] LMCache INFO:[0m GDS backend using fstype 'ext4' on path '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-01/block-01/position-0-gds_eager_async/cache' (1 path(s) configured) [3m(gds_backend.py:265:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:19,213] LMCache INFO:[0m Using GDS backend 'cufile' [3m(gds_backend.py:315:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:19,214] LMCache INFO:[0m Getting use_direct_io = True from extra_config [3m(gds_backend.py:182:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:19,214] LMCache INFO:[0m Created backend: LocalCPUBackend (LocalCPUBackend) [3m(storage_manager.py:1298:lmcache.v1.storage_backend.storage_manager)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:19,214] LMCache INFO:[0m Created backend: GdsBackend (GdsBackend) [3m(storage_manager.py:1298:lmcache.v1.storage_backend.storage_manager)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:19,214] LMCache INFO:[0m Read 0 cache entries from persistent storage in 0.00 seconds [3m(gds_backend.py:409:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:19,216] LMCache INFO:[0m No active health checks to monitor, skipping monitor thread [3m(base.py:501:lmcache.v1.health_monitor.base)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:19,216] LMCache INFO:[0m Health monitor initialized and started [3m(base_service_factory.py:126:lmcache.integration.base_service_factory)[0m
+(EngineCore pid=1508035) <frozen importlib._bootstrap_external>:1297: FutureWarning: The cuda.cudart module is deprecated and will be removed in a future release, please switch to use the cuda.bindings.runtime module instead.
+(EngineCore pid=1508035) <frozen importlib._bootstrap_external>:1297: FutureWarning: The cuda.nvrtc module is deprecated and will be removed in a future release, please switch to use the cuda.bindings.nvrtc module instead.
+(EngineCore pid=1508035) INFO 09-07 17:00:19 [kernel_warmup.py:256] Using FlashInfer autotune cache file: /home/yunwei37/.cache/vllm/flashinfer_autotune_cache/0.6.16.post3/120f/99c395be2b88978667d801063076536522bc2a92272d2146ec9bf33521782e80/autotune_configs.json
+(EngineCore pid=1508035) 2026-09-07 17:00:19,366 - INFO - autotuner.py:2397 - flashinfer.jit: [Autotuner]: Loaded 0 configs from /home/yunwei37/.cache/vllm/flashinfer_autotune_cache/0.6.16.post3/120f/99c395be2b88978667d801063076536522bc2a92272d2146ec9bf33521782e80/autotune_configs.json
+(EngineCore pid=1508035) 2026-09-07 17:00:19,371 - INFO - autotuner.py:829 - flashinfer.jit: [Autotuner]: Autotuning process starts ...
+(EngineCore pid=1508035) 2026-09-07 17:00:19,400 - INFO - autotuner.py:852 - flashinfer.jit: [Autotuner]: Autotuning process ends
+(EngineCore pid=1508035) 2026-09-07 17:00:19,404 - INFO - autotuner.py:2269 - flashinfer.jit: [Autotuner]: Saved 0 configs to /home/yunwei37/.cache/vllm/flashinfer_autotune_cache/0.6.16.post3/120f/99c395be2b88978667d801063076536522bc2a92272d2146ec9bf33521782e80/autotune_configs.json (0 new, 0 from previous config)
+(EngineCore pid=1508035) INFO 09-07 17:00:19 [jit_monitor.py:79] Kernel JIT monitor activated; monitored JIT compilations during inference will use mode=warn.
+(EngineCore pid=1508035) INFO 09-07 17:00:19 [core.py:355] init engine (profile, create kv cache, warmup model) took 2.80 s
+(EngineCore pid=1508035) INFO 09-07 17:00:20 [factory.py:62] Creating v1 connector with name: LMCacheConnectorV1 and engine_id: a7fd2670-2eb9-48a2-89bb-c286fd597c7b
+(EngineCore pid=1508035) WARNING 09-07 17:00:20 [base.py:202] Initializing KVConnectorBase_V1. This API is experimental and subject to change in the future as we iterate the design.
+(EngineCore pid=1508035) INFO 09-07 17:00:20 [lmcache_connector.py:105] Initializing latest dev LMCache connector
+(EngineCore pid=1508035) 
+(EngineCore pid=1508035)  _     __  __    ____           _          
+(EngineCore pid=1508035) | |   |  \/  |  / ___|__ _  ___| |__   ___      LMCache v0.5.4 (g3e11b8ed)
+(EngineCore pid=1508035) | |   | |\/| | | |   / _` |/ __| '_ \ / _ \     Website:  https://lmcache.ai/
+(EngineCore pid=1508035) | |___| |  | | | |__| (_| | (__| | | |  __/     Recipes:  https://docs.lmcache.ai/recipes
+(EngineCore pid=1508035) |_____|_|  |_|  \____\__,_|\___|_| |_|\___|     LinkedIn: https://www.linkedin.com/company/lmcache-lab
+(EngineCore pid=1508035) Set LMCACHE_DISABLE_BANNER=1 to hide this banner.
+(EngineCore pid=1508035) 
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:20,140] LMCache INFO:[0m num_layer: 48, chunk_size: 256, num_kv_head (per gpu): 4, head_size: 128, hidden_dim (D) for KV (per gpu): 512, use mla: False, kv shape: (48, 2, 256, 4, 128), num_draft_layers: 0 [3m(vllm_service_factory.py:111:lmcache.integration.vllm.vllm_service_factory)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:20,140] LMCache INFO:[0m lmcache lookup client connect to rank 0 with worker socket path /tmp/engine_a7fd2670-2eb9-48a2-89bb-c286fd597c7b_service_lookup_worker_lmcache_rpc_port_0 [3m(lmcache_async_lookup_client.py:80:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:20,140] LMCache INFO:[0m lmcache lookup client connect to scheduler with socket path /tmp/engine_a7fd2670-2eb9-48a2-89bb-c286fd597c7b_service_lookup_scheduler_lmcache_rpc_port_0 [3m(lmcache_async_lookup_client.py:106:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:20,140] LMCache WARNING:[0m Could not load 'builtin' from vLLM. Using builtin hash. This may cause inconsistencies in distributed caching. [3m(token_database.py:162:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:20,141] LMCache WARNING:[0m Using builtin hash without PYTHONHASHSEED set. For production environments (non-testing scenarios), you MUST set PYTHONHASHSEED to ensure consistent hashing across processes. Example: export PYTHONHASHSEED=0 [3m(token_database.py:170:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:20,141] LMCache INFO:[0m Initialized NONE_HASH=6560625181424712058 from vLLM (>= PR#20511) [3m(token_database.py:100:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:20,141] LMCache INFO:[0m Using hash algorithm: builtin [3m(token_database.py:110:lmcache.v1.token_database)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:20,141] LMCache INFO:[0m Internal API server disabled. internal_api_server_enabled=False, port_offset=0, port=6999, socket_path=None, include_index_list=None [3m(api_server.py:67:lmcache.v1.internal_api_server.api_server)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:20,141] LMCache INFO:[0m LMCache initialized for role KVConnectorRole.SCHEDULER with version 0.5.4-g3e11b8ed, vllm version 0.27.1, lmcache cache_engine metadata: None [3m(vllm_v1_adapter.py:492:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) WARNING 09-07 17:00:20 [vllm.py:1194] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+(EngineCore pid=1508035) WARNING 09-07 17:00:20 [vllm.py:1247] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(EngineCore pid=1508035) INFO 09-07 17:00:20 [kernel.py:306] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native'])
+(EngineCore pid=1508035) INFO 09-07 17:00:20 [vllm.py:1426] Cudagraph is disabled under eager mode
+(EngineCore pid=1508035) INFO 09-07 17:00:20 [compilation.py:329] Enabled custom fusions: norm_quant, act_quant
+(APIServer pid=1507842) INFO 09-07 17:00:20 [api_server.py:678] Supported tasks: ['generate']
+(APIServer pid=1507842) INFO 09-07 17:00:20 [hf.py:540] Detected the chat template content format to be 'string'. You can set `--chat-template-content-format` to override this.
+(APIServer pid=1507842) WARNING 09-07 17:00:20 [model.py:1637] Default vLLM sampling parameters have been overridden by the model's `generation_config.json`: `{'temperature': 0.6, 'top_k': 20, 'top_p': 0.95}`. If this is not intended, please relaunch vLLM instance with `--generation-config vllm`.
+(APIServer pid=1507842) INFO 09-07 17:00:20 [api_server.py:682] Starting vLLM server on http://0.0.0.0:18080
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:37] Available routes are:
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /openapi.json, Methods: GET, HEAD
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /docs, Methods: GET, HEAD
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /docs/oauth2-redirect, Methods: GET, HEAD
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /redoc, Methods: GET, HEAD
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /load, Methods: GET
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /version, Methods: GET
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /health, Methods: GET
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /metrics, Methods: GET
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /tokenize, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /detokenize, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/models, Methods: GET
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /ping, Methods: GET
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /ping, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /invocations, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/chat/completions, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/chat/completions/batch, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/responses, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/responses/{response_id}, Methods: GET
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/responses/{response_id}/cancel, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/completions, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/messages, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/messages/count_tokens, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /generative_scoring, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /scale_elastic_ep, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /is_scaling_elastic_ep, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/chat/completions/render, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/completions/render, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/chat/completions/derender, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /v1/completions/derender, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:46] Route: /inference/v1/generate, Methods: POST
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:99] API server: waiting for HTTP server to start
+(APIServer pid=1507842) INFO:     Started server process [1507842]
+(APIServer pid=1507842) INFO:     Waiting for application startup.
+(APIServer pid=1507842) INFO:     Application startup complete.
+(APIServer pid=1507842) INFO 09-07 17:00:20 [launcher.py:105] API server: HTTP server started
+(APIServer pid=1507842) INFO:     127.0.0.1:42980 - "GET /health HTTP/1.1" 200 OK
+(APIServer pid=1507842) INFO:     127.0.0.1:42984 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:22,656] LMCache INFO:[0m Reqid: cmpl-lmc-p0-cold-0-af53058f, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) WARNING 09-07 17:00:22 [jit_monitor.py:135] Triton kernel JIT compilation during inference: fused_moe_kernel. This causes a latency spike; consider extending warmup to cover this shape/config.
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:22,744] LMCache INFO:[0m init kv cache pointers success in VLLMPagedMemGPUConnectorV3 [3m(gpu_connectors.py:554:lmcache.v1.gpu_connector.gpu_connectors)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:22,750] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:22,750] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:22,750] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:22,750] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:22,750] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:22,751] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:22,753] LMCache INFO:[0m [req_id=cmpl-lmc-p0-cold-0-af53058f] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 9.7463 ms, throughput: 14.4285 GB/s; offload_time: 6.4008 ms, put_time: 3.3245 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:42998 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:23,398] LMCache INFO:[0m Reqid: cmpl-lmc-p1-cold-0-95bd3a99, Total tokens 1548, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,452] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,452] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,452] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,452] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,452] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,452] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:23,455] LMCache INFO:[0m [req_id=cmpl-lmc-p1-cold-0-95bd3a99] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 8.3998 ms, throughput: 16.7415 GB/s; offload_time: 5.1193 ms, put_time: 3.2612 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43006 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:23,840] LMCache INFO:[0m Reqid: cmpl-lmc-p2-cold-0-b078e9b8, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,892] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,892] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,892] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,892] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,893] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:23,893] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:23,895] LMCache INFO:[0m [req_id=cmpl-lmc-p2-cold-0-b078e9b8] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 8.3672 ms, throughput: 16.8067 GB/s; offload_time: 5.0887 ms, put_time: 3.2623 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43010 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:24,279] LMCache INFO:[0m Reqid: cmpl-lmc-p3-cold-0-af389012, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,330] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,331] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,331] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,331] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,331] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,331] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:24,334] LMCache INFO:[0m [req_id=cmpl-lmc-p3-cold-0-af389012] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 8.2550 ms, throughput: 17.0352 GB/s; offload_time: 5.0364 ms, put_time: 3.2044 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43024 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:24,720] LMCache INFO:[0m Reqid: cmpl-lmc-p4-cold-0-b13b351a, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,772] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,772] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,773] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,773] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,773] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:24,773] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:24,776] LMCache INFO:[0m [req_id=cmpl-lmc-p4-cold-0-b13b351a] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 8.3315 ms, throughput: 16.8787 GB/s; offload_time: 5.0662 ms, put_time: 3.2502 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43032 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:25,164] LMCache INFO:[0m Reqid: cmpl-lmc-p5-cold-0-a5dc2791, Total tokens 1548, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,217] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,217] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,217] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,217] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,217] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,217] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:25,220] LMCache INFO:[0m [req_id=cmpl-lmc-p5-cold-0-a5dc2791] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 8.3034 ms, throughput: 16.9359 GB/s; offload_time: 5.0520 ms, put_time: 3.2373 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43046 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:25,610] LMCache INFO:[0m Reqid: cmpl-lmc-p6-cold-0-b273fe62, Total tokens 1548, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,664] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,664] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,664] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,664] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,664] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:25,664] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:25,667] LMCache INFO:[0m [req_id=cmpl-lmc-p6-cold-0-b273fe62] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 8.4447 ms, throughput: 16.6524 GB/s; offload_time: 5.0591 ms, put_time: 3.3715 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43050 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:26,054] LMCache INFO:[0m Reqid: cmpl-lmc-p7-cold-0-abf849b3, Total tokens 1548, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:26,107] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:26,107] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:26,107] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:26,107] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:26,107] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:26,107] LMCache WARNING:[0m GDS Backend does not support eviction [3m(gds_backend.py:1140:lmcache.v1.storage_backend.gds_backend)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:26,110] LMCache INFO:[0m [req_id=cmpl-lmc-p7-cold-0-abf849b3] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 8.3101 ms, throughput: 16.9222 GB/s; offload_time: 5.0749 ms, put_time: 3.2215 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43056 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:26,484] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43058 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:26,745] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:43066 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:27,016] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:42630 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:27,280] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:29,485] LMCache WARNING:[0m Request cmpl-lmc-p0-warm-0-b948c972 is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:29,485] LMCache INFO:[0m Reqid: cmpl-lmc-p0-warm-0-b948c972, Total tokens 1550, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:29,569] LMCache INFO:[0m [req_id=cmpl-lmc-p0-warm-0-b948c972] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.3018 ms, throughput: 26.5238 GB/s; offload_time: 5.2248 ms, put_time: 0.0574 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:29,751] LMCache WARNING:[0m Request cmpl-lmc-p1-warm-0-b25888b0 is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:29,751] LMCache INFO:[0m Reqid: cmpl-lmc-p1-warm-0-b25888b0, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:29,805] LMCache INFO:[0m [req_id=cmpl-lmc-p1-warm-0-b25888b0] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.3064 ms, throughput: 26.5012 GB/s; offload_time: 5.2356 ms, put_time: 0.0530 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:42636 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:30,121] LMCache WARNING:[0m Request cmpl-lmc-p2-warm-0-82159421 is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:30,121] LMCache INFO:[0m Reqid: cmpl-lmc-p2-warm-0-82159421, Total tokens 1550, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:30,175] LMCache INFO:[0m [req_id=cmpl-lmc-p2-warm-0-82159421] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.2130 ms, throughput: 26.9757 GB/s; offload_time: 5.1465 ms, put_time: 0.0503 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:42650 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:30,262] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:30,307] LMCache WARNING:[0m Request cmpl-lmc-p3-warm-0-a12455a5 is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:30,308] LMCache INFO:[0m Reqid: cmpl-lmc-p3-warm-0-a12455a5, Total tokens 1550, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:30,360] LMCache INFO:[0m [req_id=cmpl-lmc-p3-warm-0-a12455a5] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.2970 ms, throughput: 26.5482 GB/s; offload_time: 5.2276 ms, put_time: 0.0515 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(APIServer pid=1507842) INFO:     127.0.0.1:42658 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:30,647] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:30,702] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(APIServer pid=1507842) INFO 09-07 17:00:30 [loggers.py:310] Engine 000: Avg prompt throughput: 1745.8 tokens/s, Avg generation throughput: 17.8 tokens/s, Running: 1 reqs, Waiting: 3 reqs, Deferred: 3 reqs, GPU KV cache usage: 19.2%, Prefix cache hit rate: 0.0%, External prefix cache hit rate: 0.0%
+(APIServer pid=1507842) INFO:     127.0.0.1:42674 - "POST /v1/completions HTTP/1.1" 200 OK
+(EngineCore pid=1508035) [31;20m[2026-09-07 17:00:30,942] LMCache ERROR:[0m Error processing request from scheduler: Expected `str`, got `int` - at `$.request_configs[...]` [3m(lmcache_async_lookup_client.py:385:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:33,272] LMCache WARNING:[0m Request cmpl-lmc-p4-warm-0-9f51657b is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:33,272] LMCache INFO:[0m Reqid: cmpl-lmc-p4-warm-0-9f51657b, Total tokens 1550, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:33,355] LMCache INFO:[0m [req_id=cmpl-lmc-p4-warm-0-9f51657b] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.1327 ms, throughput: 27.3978 GB/s; offload_time: 5.0719 ms, put_time: 0.0461 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:33,699] LMCache WARNING:[0m Request cmpl-lmc-p5-warm-0-8edbeca4 is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:33,700] LMCache INFO:[0m Reqid: cmpl-lmc-p5-warm-0-8edbeca4, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:33,751] LMCache INFO:[0m [req_id=cmpl-lmc-p5-warm-0-8edbeca4] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.0944 ms, throughput: 27.6037 GB/s; offload_time: 5.0328 ms, put_time: 0.0477 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:33,980] LMCache WARNING:[0m Request cmpl-lmc-p6-warm-0-baf7b17c is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:33,980] LMCache INFO:[0m Reqid: cmpl-lmc-p6-warm-0-baf7b17c, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:34,033] LMCache INFO:[0m [req_id=cmpl-lmc-p6-warm-0-baf7b17c] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.1288 ms, throughput: 27.4188 GB/s; offload_time: 5.0714 ms, put_time: 0.0431 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) [33;20m[2026-09-07 17:00:34,191] LMCache WARNING:[0m Request cmpl-lmc-p7-warm-0-b07792cb is still waiting for async lookup after 3 seconds, returning 0 lmcache cached tokens so vllm can recompute [3m(lmcache_async_lookup_client.py:177:lmcache.v1.lookup_client.lmcache_async_lookup_client)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:34,191] LMCache INFO:[0m Reqid: cmpl-lmc-p7-warm-0-b07792cb, Total tokens 1549, Inference Engine computed tokens: 0, LMCache hit tokens: 0, need to load: 0 [3m(vllm_v1_adapter.py:1476:lmcache.integration.vllm.vllm_v1_adapter)[0m
+(EngineCore pid=1508035) [32;20m[2026-09-07 17:00:34,243] LMCache INFO:[0m [req_id=cmpl-lmc-p7-warm-0-b07792cb] Stored 1536 out of total 1536 tokens. size: 0.1406 GB, cost 5.1319 ms, throughput: 27.4021 GB/s; offload_time: 5.0732 ms, put_time: 0.0454 ms [3m(cache_engine.py:577:lmcache.v1.cache_engine)[0m
+(EngineCore pid=1508035) INFO 09-07 17:00:34 [core.py:1332] [shutdown] EngineCore: trigger received signal=SIGINT
+(APIServer pid=1507842) INFO 09-07 17:00:34 [launcher.py:112] [shutdown] API server: shutdown triggered
+(APIServer pid=1507842) INFO 09-07 17:00:34 [launcher.py:128] [shutdown] API server: stopping engine client mode=abort timeout=0s
+(APIServer pid=1507842) INFO 09-07 17:00:34 [core_client.py:686] [shutdown] MPClient: start timeout=0s
+(EngineCore pid=1508035) INFO 09-07 17:00:34 [core.py:1468] [shutdown] EngineCore: start mode=abort timeout=0s
+(EngineCore pid=1508035) INFO 09-07 17:00:34 [core.py:1499] [shutdown] EngineCore: request processing complete; starting resource teardown
+(EngineCore pid=1508035) INFO 09-07 17:00:34 [core.py:1345] [shutdown] EngineCore: exiting busy loop
+(APIServer pid=1507842) INFO 09-07 17:00:34 [core_client.py:688] [shutdown] MPClient: stopping engine manager
+(APIServer pid=1507842) INFO 09-07 17:00:34 [utils.py:612] [shutdown] Process manager: send sigterm to process EngineCore
+(APIServer pid=1507842) WARNING 09-07 17:00:34 [utils.py:632] [shutdown] Process manager: force killing remaining processes count=1
+(APIServer pid=1507842) WARNING 09-07 17:00:34 [utils.py:637] [shutdown] Process manager: force killing remaining process EngineCore pid 1508035
+(APIServer pid=1507842) INFO 09-07 17:00:34 [core_client.py:690] [shutdown] MPClient: engine manager stopped
+(APIServer pid=1507842) INFO 09-07 17:00:34 [core_client.py:691] [shutdown] MPClient: cleaning up background resources
+(APIServer pid=1507842) INFO 09-07 17:00:34 [core_client.py:693] [shutdown] MPClient: complete
+(APIServer pid=1507842) INFO 09-07 17:00:34 [launcher.py:137] [shutdown] API server: engine client stopped
+(APIServer pid=1507842) INFO 09-07 17:00:34 [launcher.py:140] [shutdown] API server: signalling HTTP server shutdown
+(APIServer pid=1507842) INFO 09-07 17:00:34 [launcher.py:161] [shutdown] API server: shutting down FastAPI HTTP server
+(APIServer pid=1507842) INFO:     Shutting down
+(APIServer pid=1507842) INFO:     Waiting for application shutdown.
+(APIServer pid=1507842) INFO:     Application shutdown complete.
+/usr/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

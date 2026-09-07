@@ -54,6 +54,18 @@ and OOMed after seven cells (gds-control/mixed-runner-followup.md).
 startup stays outside request timing: all request times are relative to the
 child's own t0.
 
+Opt-in ``--write-io-workers N`` (default 0) bounds the I/O worker threads of
+the private loop's default executor: with ``N > 0`` the runner installs a
+``ThreadPoolExecutor(max_workers=N)`` as that loop's default executor before
+the backend is constructed, so every job the loop dispatches without an
+explicit executor -- in particular LMCache's ``asyncio.to_thread`` calls,
+including ``GdsBackend._async_save_bytes_to_disk`` -- runs on at most N
+worker threads.  This limits loop-default-executor I/O work only; it is not
+GPU driver scheduling, not a deferral policy, and not a new BPF algorithm.
+``0`` keeps the loop's default executor exactly as before.  The value is
+recorded in the campaign, cell, and dry-run metadata and propagated to every
+fresh single-cell child command.
+
 Per request the record captures the scheduled arrival
 (``scheduled_offer_s``, derived from one shared monotonic start and the
 configured stagger intervals), the actual dispatch time (``offer_s``, whose
@@ -72,8 +84,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import inspect
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 import signal
@@ -98,6 +112,7 @@ DEFAULT_WRITES = 6
 DEFAULT_READ_STAGGER_S = 0.002
 DEFAULT_WRITE_STAGGER_S = 0.004
 DEFAULT_WRITE_DELAY_BUDGET_MS = 10.0
+DEFAULT_WRITE_IO_WORKERS = 0
 DEFAULT_DST_DEVICE = "cuda:0"
 WAIT_TIMEOUT_S = 120.0
 EXPECTED_LMCACHE_VERSION = "0.5.4"
@@ -445,16 +460,45 @@ def make_metadata(parts: BackendParts, object_bytes: int):
     )
 
 
-def start_event_loop() -> tuple[asyncio.AbstractEventLoop, threading.Thread]:
+def start_event_loop(write_io_workers: int = DEFAULT_WRITE_IO_WORKERS
+                     ) -> tuple[asyncio.AbstractEventLoop, threading.Thread,
+                                Optional[ThreadPoolExecutor]]:
+    """Start the private backend loop; optionally bound its default executor.
+
+    With ``write_io_workers > 0`` the loop's default executor is replaced by
+    a ``ThreadPoolExecutor(max_workers=write_io_workers)`` before any backend
+    is constructed on the loop.  That bounds the I/O worker threads of the
+    loop's default executor, i.e. every job dispatched without an explicit
+    executor (LMCache's ``asyncio.to_thread`` calls, including
+    ``GdsBackend._async_save_bytes_to_disk``).  It is not GPU driver
+    scheduling, a deferral policy, or a new BPF algorithm.  ``0`` keeps the
+    loop's default executor exactly as before.
+    """
     loop = asyncio.new_event_loop()
+    executor: Optional[ThreadPoolExecutor] = None
+    if write_io_workers > 0:
+        executor = ThreadPoolExecutor(max_workers=write_io_workers,
+                                      thread_name_prefix="gds-mixed-write-io")
+        loop.set_default_executor(executor)
     thread = threading.Thread(target=loop.run_forever, name="gds-mixed-loop",
                               daemon=True)
     thread.start()
-    return loop, thread
+    return loop, thread, executor
 
 
-def stop_event_loop(loop: asyncio.AbstractEventLoop,
-                    thread: threading.Thread) -> None:
+def stop_event_loop(loop: asyncio.AbstractEventLoop, thread: threading.Thread,
+                    default_executor: Optional[ThreadPoolExecutor] = None
+                    ) -> None:
+    """Stop the loop; first shut down a custom default executor it installed.
+
+    The caller has already waited for every pending operation, so the
+    ordinary supported loop shutdown of the default executor finishes
+    without any new arbitrary timeout.
+    """
+    if default_executor is not None:
+        shutdown = loop.shutdown_default_executor()
+        if inspect.iscoroutine(shutdown):
+            asyncio.run_coroutine_threadsafe(shutdown, loop).result()
     loop.call_soon_threadsafe(loop.stop)
     thread.join(timeout=10.0)
 
@@ -718,7 +762,8 @@ def gds_effective_backend_facts(backend: Any) -> dict[str, Any]:
 def run_cell(config: str, block: int, position: int, run_dir: Path,
              plan: TrafficPlan, dst_device: str,
              policy_variant: str = DEFAULT_POLICY_VARIANT,
-             write_delay_budget_ms: float = DEFAULT_WRITE_DELAY_BUDGET_MS
+             write_delay_budget_ms: float = DEFAULT_WRITE_DELAY_BUDGET_MS,
+             write_io_workers: int = DEFAULT_WRITE_IO_WORKERS
              ) -> dict[str, Any]:
     """One rotated cell: fresh cache, prestore, one policy mode, mixed traffic."""
     parts = load_backend_parts()
@@ -732,6 +777,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
         "position": position,
         "policy_mode": POLICY_MODES[config],
         **policy_metadata(policy_variant, write_delay_budget_ms),
+        "write_io_workers": write_io_workers,
         "gds": {},
         "traffic": dict(plan.to_dict(), prestore=None),
         "requests": [],
@@ -743,7 +789,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
     run_dir.mkdir(parents=True, exist_ok=False)
     cache_dir.mkdir(parents=True, exist_ok=False)
 
-    loop, loop_thread = start_event_loop()
+    loop, loop_thread, write_io_executor = start_event_loop(write_io_workers)
     backend: Any = None
     adapter: Any = None
     try:
@@ -817,7 +863,7 @@ def run_cell(config: str, block: int, position: int, run_dir: Path,
             except Exception as error:
                 cleanup_errors.append(f"backend.close: {error}")
         try:
-            stop_event_loop(loop, loop_thread)
+            stop_event_loop(loop, loop_thread, write_io_executor)
         except Exception as error:
             cleanup_errors.append(f"loop stop: {error}")
         record["cleanup_errors"] = cleanup_errors
@@ -857,6 +903,7 @@ def single_cell_command(args: argparse.Namespace, config: str, block: int,
         "--dst-device", args.dst_device,
         "--policy-variant", args.policy_variant,
         "--write-delay-budget-ms", str(args.write_delay_budget_ms),
+        "--write-io-workers", str(args.write_io_workers),
     ]
 
 
@@ -879,7 +926,8 @@ def run_single_cell(args: argparse.Namespace) -> int:
     try:
         record = run_cell(args.config, args.block, args.position,
                           args.cell_dir, plan, args.dst_device,
-                          args.policy_variant, args.write_delay_budget_ms)
+                          args.policy_variant, args.write_delay_budget_ms,
+                          args.write_io_workers)
     except Exception as error:
         record = {
             "schema": 1,
@@ -889,6 +937,7 @@ def run_single_cell(args: argparse.Namespace) -> int:
             "position": args.position,
             "policy_mode": POLICY_MODES[args.config],
             **policy_metadata(args.policy_variant, args.write_delay_budget_ms),
+            "write_io_workers": args.write_io_workers,
             "gds": {},
             "traffic": dict(plan.to_dict(), prestore=None),
             "requests": [],
@@ -925,6 +974,7 @@ def run_campaign(args: argparse.Namespace) -> int:
             "read_stagger_ms": args.read_stagger_ms,
             "write_stagger_ms": args.write_stagger_ms,
             "write_delay_budget_ms": args.write_delay_budget_ms,
+            "write_io_workers": args.write_io_workers,
             "attempts_per_cell": 1,
             "retry": False,
             "fresh_process_per_cell": not args.inline,
@@ -947,7 +997,8 @@ def run_campaign(args: argparse.Namespace) -> int:
                         record = run_cell(config, block, position, run_dir,
                                           plan, args.dst_device,
                                           args.policy_variant,
-                                          args.write_delay_budget_ms)
+                                          args.write_delay_budget_ms,
+                                          args.write_io_workers)
                         atomic_write_json(run_dir / "result.json", record)
                         child_exit = 0
                     else:
@@ -971,6 +1022,7 @@ def run_campaign(args: argparse.Namespace) -> int:
                             "policy_mode": POLICY_MODES[config],
                             **policy_metadata(args.policy_variant,
                                               args.write_delay_budget_ms),
+                            "write_io_workers": args.write_io_workers,
                             "gds": {},
                             "traffic": dict(plan.to_dict(), prestore=None),
                             "requests": [],
@@ -1040,6 +1092,11 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
             "expected_lmcache_version": EXPECTED_LMCACHE_VERSION,
         },
         **policy_metadata(args.policy_variant, args.write_delay_budget_ms),
+        "write_io_workers": args.write_io_workers,
+        "write_io_workers_scope": ("loop-default-executor I/O worker threads "
+                                   "(LMCache asyncio.to_thread jobs, "
+                                   "including GdsBackend saves); not GPU "
+                                   "driver scheduling, not a BPF algorithm"),
         "outputs": [RAW_NAME, SUMMARY_NAME, "campaign.json", "per-cell result.json"],
         "reused": ["installed LMCache 0.5.4 GdsBackend",
                    "committed lmcache_gds_backend_adapter",
@@ -1083,6 +1140,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                              "budget in ms, passed to "
                              "LiveDemandRequestProvider as "
                              "total_write_delay_budget_ns (default 10)")
+    parser.add_argument("--write-io-workers", type=int,
+                        default=DEFAULT_WRITE_IO_WORKERS,
+                        help="I/O worker threads on the private loop's "
+                             "default executor for LMCache asyncio.to_thread "
+                             "jobs (including GdsBackend saves); 0 keeps the "
+                             "loop's default executor; limits loop-executor "
+                             "I/O work only, not GPU driver scheduling")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--single-cell", action="store_true",
@@ -1102,6 +1166,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--object-mib must be at least 1")
     if args.write_delay_budget_ms < 0:
         parser.error("--write-delay-budget-ms must be non-negative")
+    if args.write_io_workers < 0:
+        parser.error("--write-io-workers must be non-negative")
     if args.dst_device and not args.dst_device.startswith("cuda"):
         parser.error("--dst-device must start with 'cuda'")
     if args.block < 0 or args.position < 0:

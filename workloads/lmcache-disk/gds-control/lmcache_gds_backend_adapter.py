@@ -10,6 +10,13 @@ The cmd82 ABI and fifo/native/BPF deciders are imported from
 ``lmcache_gds_policy_adapter`` so this integration and the standalone executor
 use the same 136-byte request and the same native policy implementation.
 
+``LiveDemandRequestProvider`` extends the fixed-telemetry provider with live
+demand feedback: a flagged write carries the live pending demand-read count
+as ``queue_depth``, ``HINT_LIVE_DEMAND`` in ``caller_hint``, and the
+remaining per-write delay budget as ``slack_ns``.  Those fields are demand
+feedback, not measured HBM pressure.  After every wait, a deferred flagged
+write is re-decided from the live state until the policy says SUBMIT.
+
 Bootstrap, including from ``sitecustomize.py``::
 
     from lmcache_gds_backend_adapter import bootstrap_from_env
@@ -29,6 +36,7 @@ import functools
 import inspect
 import os
 import threading
+import time
 from concurrent.futures import Future
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
@@ -43,6 +51,7 @@ from lmcache_gds_policy_adapter import (
     FLAG_RECOMPUTABLE,
     FLAG_SAFE_TO_DEFER,
     FLAG_SPECULATIVE,
+    HINT_LIVE_DEMAND,
     OP_READ,
     OP_WRITE,
     Decider,
@@ -57,6 +66,8 @@ __all__ = [
     "AdmissionError",
     "Telemetry",
     "EnvironmentRequestProvider",
+    "LiveDemandRequestProvider",
+    "WriteFeedback",
     "GdsBackendAdmissionAdapter",
     "install_backend",
     "install_storage_manager",
@@ -191,6 +202,121 @@ class EnvironmentRequestProvider:
             estimated_transfer_ns=t.estimated_transfer_ns,
             recompute_ns=t.recompute_ns,
             queue_depth=t.queue_depth,
+            hbm_pressure_permille=t.hbm_pressure_permille,
+        )
+
+
+@dataclass(frozen=True)
+class WriteFeedback:
+    """Per-write admission record for later runner integration.
+
+    ``pending_demand_reads`` and ``remaining_budget_ns`` are demand feedback,
+    not measured HBM pressure.  No key digest or raw key string is kept.
+    """
+
+    request_id: int
+    pending_demand_reads: int
+    remaining_budget_ns: int
+    decision: int
+    requested_wait_ns: int
+
+
+class _WriteDelayBudget:
+    """Monotonic delay budget for one deferred write, started at admission."""
+
+    __slots__ = ("_start_ns", "_total_ns")
+
+    def __init__(self, start_ns: int, total_ns: int) -> None:
+        self._start_ns = start_ns
+        self._total_ns = total_ns
+
+    def remaining_ns(self, now_ns: int) -> int:
+        return max(0, self._total_ns - (now_ns - self._start_ns))
+
+
+class LiveDemandRequestProvider(EnvironmentRequestProvider):
+    """EnvironmentRequestProvider with live demand feedback for writes.
+
+    Writes carry the live pending demand-read count as ``queue_depth``,
+    ``HINT_LIVE_DEMAND`` in ``caller_hint``, and the remaining per-write
+    delay budget as ``slack_ns``.  Those fields are demand feedback, not
+    measured HBM pressure.  Reads keep the parent's fixed-telemetry requests.
+    """
+
+    def __init__(
+        self,
+        telemetry: Telemetry = Telemetry(),
+        total_write_delay_budget_ns: int = 10_000_000,
+    ) -> None:
+        super().__init__(telemetry)
+        if total_write_delay_budget_ns < 0:
+            raise ValueError("total_write_delay_budget_ns must be non-negative")
+        self.total_write_delay_budget_ns = int(total_write_delay_budget_ns)
+        self._pending_lock = threading.Lock()
+        self._pending_demand_reads = 0
+
+    @classmethod
+    def from_environ(
+        cls, environ: Mapping[str, str] = os.environ
+    ) -> "LiveDemandRequestProvider":
+        provider = super().from_environ(environ)
+        provider.total_write_delay_budget_ns = _env_int(
+            environ, "WRITE_DELAY_BUDGET_NS", 10_000_000
+        )
+        return provider
+
+    def demand_read_started(self) -> None:
+        with self._pending_lock:
+            self._pending_demand_reads += 1
+
+    def demand_read_finished(self) -> None:
+        with self._pending_lock:
+            self._pending_demand_reads = max(0, self._pending_demand_reads - 1)
+
+    @property
+    def pending_demand_reads(self) -> int:
+        with self._pending_lock:
+            return self._pending_demand_reads
+
+    def begin_write_delay(self) -> _WriteDelayBudget:
+        return _WriteDelayBudget(
+            int(time.monotonic() * 1_000_000_000),
+            self.total_write_delay_budget_ns,
+        )
+
+    def __call__(
+        self,
+        kind: str,
+        key: Any,
+        memory_obj: Any,
+        backend: Any,
+        write_budget: Optional[_WriteDelayBudget] = None,
+    ) -> PolicyRequest:
+        if kind != WRITE:
+            return super().__call__(kind, key, memory_obj, backend)
+
+        t = self.telemetry
+        nbytes = 0
+        if memory_obj is not None:
+            nbytes = int(memory_obj.get_size())
+        if write_budget is not None:
+            slack_ns = write_budget.remaining_ns(
+                int(time.monotonic() * 1_000_000_000)
+            )
+        else:
+            slack_ns = self.total_write_delay_budget_ns
+        return PolicyRequest(
+            op=OP_WRITE,
+            flags=FLAG_SAFE_TO_DEFER,
+            priority=t.priority,
+            nbytes=nbytes,
+            tenant_id=t.tenant_id,
+            caller_hint=HINT_LIVE_DEMAND | t.caller_hint,
+            deadline_ns=t.deadline_ns,
+            slack_ns=slack_ns,
+            estimated_transfer_ns=t.estimated_transfer_ns,
+            recompute_ns=t.recompute_ns,
+            queue_depth=self.pending_demand_reads,
             hbm_pressure_permille=t.hbm_pressure_permille,
         )
 

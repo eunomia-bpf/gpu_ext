@@ -291,3 +291,33 @@ stock attempt in campaign `gds-kv-reclaim-575-20260907-02` is now running,
 reusing the completed calibration. The separate runner session continues its
 CLI and campaign orchestration; no completed calibration or prior workload
 cell was repeated.
+
+## Live pressured stock cell and continuation work
+
+The runner and CLI are complete and published in `fd334cd9`; the actual
+first stock cell in `gds-kv-reclaim-575-20260907-02` remains running as of
+22:58 UTC. Its earlier snapshot reported 1,648 generated tokens and zero
+counted preemptions; the later retained `live-metrics-02.txt` reports 1,888
+generated tokens and 7,295 counted preemptions, with zero running and four
+capacity-waiting requests at the instant sampled. Eight length-completed
+requests correspond to the cold population; no completed warm-cell throughput
+is available. These cumulative, periodically published metrics are not a
+complete scheduler trace and cannot establish continuous lack of progress.
+
+The bounded server-log tail now shows repeated disk-prefix restoration for
+requests p0 and p4 at total lengths 2,432 and 1,648, respectively; this differs
+from the earlier p0/p1 pair at 2,304/1,776. Thus the run has made some progress
+and changed its active request composition, despite repeated restore cycles.
+The GLM local session is diagnosing the actual scheduler/connector source
+path, rather than treating a baseline stall as a policy improvement. The
+original run is not stopped or assigned a new wall-clock timeout.
+
+A separate Qwen Next local session owns a bounded runner improvement:
+explicit continuation of existing campaign output, reuse of completed
+per-cell results (including failed attempts), and per-request result
+checkpoints. An unfinished nonempty cell must not be overwritten or repeated
+automatically. This implementation is still in progress; it does not change
+the already-running Python process or add new performance admission checks.
+There are two active local sessions, below the three-session limit. The
+completed calibration is reused, and no new native/BPF reclaim performance
+result or transparent UVM-to-disk paging implementation is claimed.

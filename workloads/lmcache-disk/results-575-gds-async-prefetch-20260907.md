@@ -303,3 +303,69 @@ total live session count returned from two to three. The driver tree remains
 read-only for this task. The backing-state GLM session is separately
 performing normal context compaction after writing its initial module draft;
 that draft still needs the execution fixes already returned to its owner.
+
+## Attempt 03: consumed-event repair measured, all 20 cells complete
+
+Source `8987a14b`, RTX 5090, driver 575.57.08, unchanged attached storage
+policy. The campaign exited zero after five rotated four-arm blocks, with
+160 warm responses, zero recorded HTTP failures, and all server exits zero.
+Each server records eight retrievals of 1536/1536 tokens. No negative-refcount
+or double-free warning appears in the 20 server logs; attempt 02 had 720.
+This supports the successful-consumption repair, not a general lifecycle or
+output-equivalence guarantee. The old optional `uvm_kv_plugin` import warning
+remains in startup logs, as it did in attempt 02; it is not newly hidden.
+
+Raw: `raw/gds-async-prefetch-575-20260907-03/`, containing 20 `result.json` /
+`server.log` pairs, `raw.jsonl`, `campaign.json`, `summary.json`, and the two
+paired-analysis JSON files. All old attempts remain separate and unchanged.
+The command in `gds-control/async-consumed-event-repair-20260907.md` was run
+under the existing GPU and struct-ops locks. No driver reload occurred.
+
+### Old and repaired versions, same configurations
+
+| Configuration | Attempt 02 token/s | Attempt 03 token/s | Attempt 02 TTFT, ms | Attempt 03 TTFT, ms |
+| --- | ---: | ---: | ---: | ---: |
+| Demand FIFO | 58.5692 | 58.6720 | 85.6518 | 87.7862 |
+| Eager async | 58.4366 | 58.4985 | 99.7516 | 104.2785 |
+| Native deadline | 58.6243 | 57.8372 | 116.1194 | 121.5323 |
+| BPF deadline | 58.1878 | 57.8156 | 116.1211 | 119.6560 |
+
+These are medians across five cells per arm. The two versions ran in separate
+campaigns, not interleaved version pairs; the differences do not isolate the
+repair's execution overhead or establish a repair-induced speedup.
+
+### Paired comparisons within attempt 03
+
+Percentages are `100 * (candidate / reference - 1)` within each block, then
+the median across all five blocks. No rows are excluded.
+
+| Candidate / reference | Metric | Median change | Range | Improving pairs |
+| --- | --- | ---: | ---: | ---: |
+| BPF / native | Output token/s | -0.0374% | -1.9011% to +2.2553% | 2/5 |
+| BPF / native | TTFT | -6.2998% | -12.1175% to +8.0305% | 4/5 |
+| BPF / native | Mean E2E | +0.8182% | -6.5913% to +3.2490% | 2/5 |
+| Native / demand FIFO | Output token/s | -2.0374% | -2.6654% to +0.0385% | 1/5 |
+| Native / demand FIFO | TTFT | +38.1165% | +29.3428% to +52.2453% | 0/5 |
+| BPF / demand FIFO | Output token/s | -1.9492% | -3.2118% to -0.2321% | 0/5 |
+| BPF / demand FIFO | TTFT | +30.3875% | +21.1945% to +49.2080% | 0/5 |
+| Eager async / demand FIFO | TTFT | +12.2756% | +9.8265% to +28.6291% | 0/5 |
+
+The paired CLI reproduced all 20 cells without missing or duplicate pairs:
+
+```sh
+python3 workloads/lmcache-disk/analyze_gds_async_prefetch.py workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-03 --reference gds_async_native --format json
+python3 workloads/lmcache-disk/analyze_gds_async_prefetch.py workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-03 --reference gds_demand_fifo --format json
+```
+
+The repair removes the observed duplicate-release warnings but does not make
+this deadline-prefetch policy advantageous: native and BPF have worse TTFT
+and mean E2E than demand FIFO in every block. BPF/native throughput is close
+at the paired median, but the mixed pairwise changes do not establish either
+a stable BPF advantage or a tight mechanism-overhead bound. The fixed arrival
+schedule still limits throughput interpretation as saturated capacity.
+
+The next implementation connects real backing metadata and the candidate
+selector to actual vLLM reclaim and recovery under KV capacity pressure.
+Three local sessions now own the selector, registry repair, and serving
+integration. This batch does not complete automatic offload or the overall
+revision task. No paper files were modified.

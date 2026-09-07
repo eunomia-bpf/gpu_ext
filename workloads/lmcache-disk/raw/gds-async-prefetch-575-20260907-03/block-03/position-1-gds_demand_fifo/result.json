@@ -1,0 +1,1017 @@
+{
+  "async_prefetch_enabled": false,
+  "barriers": [
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1549
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p0-cold-0-a8724fd9"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.00051875
+    },
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1548
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p1-cold-0-887952b7"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.000506471
+    },
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1549
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p2-cold-0-92dcafd9"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.000533705
+    },
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1549
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p3-cold-0-a9a4b216"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.000509809
+    },
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1549
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p4-cold-0-b111d379"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.000520174
+    },
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1548
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p5-cold-0-b56b8ab2"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.000536669
+    },
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1548
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p6-cold-0-89604ef2"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.000544232
+    },
+    {
+      "applicable": true,
+      "log_values": {
+        "request_totals": [
+          1548
+        ],
+        "runtime_ids": [
+          "cmpl-lmc-p7-cold-0-bd50e741"
+        ],
+        "stores": [
+          [
+            1536,
+            1536
+          ]
+        ]
+      },
+      "satisfied": true,
+      "waited_s": 0.000545131
+    }
+  ],
+  "block": 3,
+  "cached_tokens": 1536,
+  "cleanup_errors": [],
+  "command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+    "serve",
+    "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "--served-model-name",
+    "Qwen/Qwen3-30B-A3B-FP8",
+    "--enforce-eager",
+    "--max-model-len",
+    "4096",
+    "--gpu-memory-utilization",
+    "0.98",
+    "--max-num-seqs",
+    "2",
+    "--no-enable-prefix-caching",
+    "--port",
+    "18080",
+    "--kv-transfer-config",
+    "{\"kv_connector\":\"LMCacheConnectorV1\",\"kv_role\":\"kv_both\"}",
+    "--kv-cache-memory-bytes",
+    "805306368"
+  ],
+  "config": "gds_demand_fifo",
+  "environment": {
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "HF_HOME": "/home/yunwei37/.cache/huggingface",
+    "HF_HUB_OFFLINE": "1",
+    "HOME": "/home/yunwei37",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "LMCACHE_CHUNK_SIZE": "256",
+    "LMCACHE_EXTRA_CONFIG": "{\"use_direct_io\":true}",
+    "LMCACHE_GDS_BACKEND": "cufile",
+    "LMCACHE_GDS_BUFFER_SIZE": "256",
+    "LMCACHE_GDS_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-03/block-03/position-1-gds_demand_fifo/cache",
+    "LMCACHE_GDS_POLICY_MODE": "fifo",
+    "LMCACHE_LOCAL_CPU": "False",
+    "LMCACHE_MAX_LOCAL_CPU_SIZE": "2.0",
+    "LMCACHE_SAVE_UNFULL_CHUNK": "False",
+    "LMCACHE_USE_GDS": "True",
+    "LMCACHE_USE_GPU_CONNECTOR_V3": "True",
+    "LMCACHE_USE_LAYERWISE": "False",
+    "PATH": "/usr/local/cuda-12.9/bin:/usr/bin:/bin",
+    "PYTHONNOUSERSITE": "1",
+    "PYTHONPATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/bootstrap:/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TRITON_PTXAS_BLACKWELL_PATH": "/usr/local/cuda-12.9/bin/ptxas",
+    "TZ": "UTC",
+    "VLLM_USE_DEEP_GEMM": "0",
+    "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
+    "XDG_CACHE_HOME": "/home/yunwei37/.cache"
+  },
+  "error": null,
+  "expected_driver_parameter": "575.57.08",
+  "finished_ns": 1788810411741303483,
+  "gds_buffer_size_mib": 256,
+  "kind": "gds-async-prefetch-575",
+  "kv_cache_memory_bytes": 805306368,
+  "launch_command": [
+    "/usr/bin/taskset",
+    "-c",
+    "8-15",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+    "serve",
+    "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "--served-model-name",
+    "Qwen/Qwen3-30B-A3B-FP8",
+    "--enforce-eager",
+    "--max-model-len",
+    "4096",
+    "--gpu-memory-utilization",
+    "0.98",
+    "--max-num-seqs",
+    "2",
+    "--no-enable-prefix-caching",
+    "--port",
+    "18080",
+    "--kv-transfer-config",
+    "{\"kv_connector\":\"LMCacheConnectorV1\",\"kv_role\":\"kv_both\"}",
+    "--kv-cache-memory-bytes",
+    "805306368"
+  ],
+  "max_num_seqs": 2,
+  "output_tokens": 16,
+  "policy_mode": "fifo",
+  "port": 18080,
+  "position": 1,
+  "prefetch_deadline_semantics": "top-level kv_transfer_params.lmcache.prefetch_deadline_ns is host monotonic nanoseconds (time.monotonic_ns) at the actual HTTP send plus the prefetch lead; an explicit application deadline, not a predicted scheduler use time; the same field and lead are supplied in every arm",
+  "prefetch_lead_ms": 50.0,
+  "prompt_count": 8,
+  "ready": true,
+  "ready_error": null,
+  "requests": [
+    {
+      "attempted": true,
+      "e2e_ms": 725.535354,
+      "engine_request_ids": [
+        "cmpl-lmc-p0-cold"
+      ],
+      "generated_token_ids": [
+        2303,
+        76418,
+        20525,
+        220,
+        16,
+        25,
+        62079,
+        279,
+        3684,
+        304,
+        825,
+        14311,
+        13,
+        2303,
+        76418,
+        20525
+      ],
+      "input_tokens": 1549,
+      "phase": "cold",
+      "prefix_index": 0,
+      "request_header": "lmc-p0-cold",
+      "request_id": "lmc-p0-cold",
+      "sent_ns": 76270862482598,
+      "status": 200,
+      "text": "  \nCold suffix 1: summarize the material in one paragraph.  \nCold suffix",
+      "ttft_ms": 509.379333,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 419.678912,
+      "engine_request_ids": [
+        "cmpl-lmc-p1-cold"
+      ],
+      "generated_token_ids": [
+        715,
+        32512,
+        417,
+        60,
+        151667,
+        198,
+        32313,
+        11,
+        279,
+        1196,
+        4588,
+        1246,
+        311,
+        1281,
+        458,
+        10130
+      ],
+      "input_tokens": 1548,
+      "phase": "cold",
+      "prefix_index": 1,
+      "request_header": "lmc-p1-cold",
+      "request_id": "lmc-p1-cold",
+      "sent_ns": 76271588654890,
+      "status": 200,
+      "text": " \n[gpt]<think>\nOkay, the user asked how to make an HTTP",
+      "ttft_ms": 90.406718,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1548,
+        "total_tokens": 1564
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 420.622748,
+      "engine_request_ids": [
+        "cmpl-lmc-p2-cold"
+      ],
+      "generated_token_ids": [
+        4710,
+        32313,
+        11,
+        279,
+        1196,
+        6801,
+        264,
+        825,
+        1331,
+        18380,
+        12126,
+        315,
+        279,
+        3684,
+        3897,
+        13
+      ],
+      "input_tokens": 1549,
+      "phase": "cold",
+      "prefix_index": 2,
+      "request_header": "lmc-p2-cold",
+      "request_id": "lmc-p2-cold",
+      "sent_ns": 76272008963379,
+      "status": 200,
+      "text": " \n\nOkay, the user wants a one-sentence summary of the material provided.",
+      "ttft_ms": 89.386879,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 420.087793,
+      "engine_request_ids": [
+        "cmpl-lmc-p3-cold"
+      ],
+      "generated_token_ids": [
+        4710,
+        76418,
+        20525,
+        220,
+        19,
+        25,
+        3270,
+        264,
+        220,
+        16,
+        15,
+        15,
+        37328,
+        12126,
+        315,
+        279
+      ],
+      "input_tokens": 1549,
+      "phase": "cold",
+      "prefix_index": 3,
+      "request_header": "lmc-p3-cold",
+      "request_id": "lmc-p3-cold",
+      "sent_ns": 76272430256395,
+      "status": 200,
+      "text": " \n\nCold suffix 4: write a 100-word summary of the",
+      "ttft_ms": 88.455653,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 421.14481,
+      "engine_request_ids": [
+        "cmpl-lmc-p4-cold"
+      ],
+      "generated_token_ids": [
+        4710,
+        76418,
+        20525,
+        220,
+        20,
+        25,
+        3270,
+        264,
+        220,
+        16,
+        15,
+        15,
+        37328,
+        12126,
+        315,
+        279
+      ],
+      "input_tokens": 1549,
+      "phase": "cold",
+      "prefix_index": 4,
+      "request_header": "lmc-p4-cold",
+      "request_id": "lmc-p4-cold",
+      "sent_ns": 76272850981489,
+      "status": 200,
+      "text": " \n\nCold suffix 5: write a 100-word summary of the",
+      "ttft_ms": 89.780142,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 417.479342,
+      "engine_request_ids": [
+        "cmpl-lmc-p5-cold"
+      ],
+      "generated_token_ids": [
+        320,
+        1986,
+        374,
+        264,
+        3364,
+        911,
+        264,
+        8171,
+        6941,
+        26859,
+        879,
+        374,
+        17006,
+        553,
+        467,
+        3101
+      ],
+      "input_tokens": 1548,
+      "phase": "cold",
+      "prefix_index": 5,
+      "request_header": "lmc-p5-cold",
+      "request_id": "lmc-p5-cold",
+      "sent_ns": 76273272780529,
+      "status": 200,
+      "text": " (This is a story about a boy named MK who is captured by Wuk",
+      "ttft_ms": 89.421607,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1548,
+        "total_tokens": 1564
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 421.577064,
+      "engine_request_ids": [
+        "cmpl-lmc-p6-cold"
+      ],
+      "generated_token_ids": [
+        4710,
+        76418,
+        20525,
+        220,
+        22,
+        25,
+        3270,
+        264,
+        2038,
+        304,
+        356,
+        2,
+        311,
+        1855,
+        264,
+        536
+      ],
+      "input_tokens": 1548,
+      "phase": "cold",
+      "prefix_index": 6,
+      "request_header": "lmc-p6-cold",
+      "request_id": "lmc-p6-cold",
+      "sent_ns": 76273690921192,
+      "status": 200,
+      "text": " \n\nCold suffix 7: write a code in C# to create a class",
+      "ttft_ms": 92.199093,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1548,
+        "total_tokens": 1564
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 423.992039,
+      "engine_request_ids": [
+        "cmpl-lmc-p7-cold"
+      ],
+      "generated_token_ids": [
+        576,
+        3684,
+        374,
+        911,
+        279,
+        990,
+        315,
+        8544,
+        4119,
+        311,
+        23643,
+        279,
+        2213,
+        315,
+        264,
+        3460
+      ],
+      "input_tokens": 1548,
+      "phase": "cold",
+      "prefix_index": 7,
+      "request_header": "lmc-p7-cold",
+      "request_id": "lmc-p7-cold",
+      "sent_ns": 76274113175717,
+      "status": 200,
+      "text": " The material is about the use of topic models to analyze the content of a large",
+      "ttft_ms": 92.491995,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1548,
+        "total_tokens": 1564
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 462.221234,
+      "engine_request_ids": [
+        "cmpl-lmc-p0-warm"
+      ],
+      "generated_token_ids": [
+        2303,
+        95275,
+        20525,
+        220,
+        16,
+        25,
+        10339,
+        279,
+        8544,
+        304,
+        220,
+        16,
+        12,
+        17,
+        22870,
+        13
+      ],
+      "input_tokens": 1550,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76274588110478,
+      "prefix_index": 0,
+      "request_header": "lmc-p0-warm",
+      "request_id": "lmc-p0-warm",
+      "scheduled_send_ns": 76274537831877,
+      "sent_ns": 76274538113050,
+      "status": 200,
+      "text": "  \nWarm suffix 1: explain the topic in 1-2 sentences.",
+      "ttft_ms": 82.905228,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1550,
+        "total_tokens": 1566
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 478.643568,
+      "engine_request_ids": [
+        "cmpl-lmc-p1-warm"
+      ],
+      "generated_token_ids": [
+        45763,
+        20525,
+        220,
+        17,
+        25,
+        3410,
+        264,
+        11682,
+        16148,
+        13,
+        45763,
+        20525,
+        220,
+        18,
+        25,
+        3410
+      ],
+      "input_tokens": 1549,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76274837980894,
+      "prefix_index": 1,
+      "request_header": "lmc-p1-warm",
+      "request_id": "lmc-p1-warm",
+      "scheduled_send_ns": 76274787831877,
+      "sent_ns": 76274787986431,
+      "status": 200,
+      "text": " Warm suffix 2: provide a detailed explanation. Warm suffix 3: provide",
+      "ttft_ms": 93.450198,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 467.666426,
+      "engine_request_ids": [
+        "cmpl-lmc-p2-warm"
+      ],
+      "generated_token_ids": [
+        4710,
+        785,
+        8622,
+        8544,
+        315,
+        419,
+        4549,
+        374,
+        279,
+        1882,
+        315,
+        6825,
+        264,
+        12610,
+        1849,
+        304
+      ],
+      "input_tokens": 1550,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76275088048557,
+      "prefix_index": 2,
+      "request_header": "lmc-p2-warm",
+      "request_id": "lmc-p2-warm",
+      "scheduled_send_ns": 76275037831877,
+      "sent_ns": 76275038063456,
+      "status": 200,
+      "text": " \n\nThe central topic of this article is the process of creating a combat system in",
+      "ttft_ms": 85.047247,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1550,
+        "total_tokens": 1566
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 484.453707,
+      "engine_request_ids": [
+        "cmpl-lmc-p3-warm"
+      ],
+      "generated_token_ids": [
+        4710,
+        95275,
+        20525,
+        220,
+        19,
+        25,
+        1584,
+        279,
+        8622,
+        8544,
+        304,
+        825,
+        11652,
+        13,
+        4710,
+        95275
+      ],
+      "input_tokens": 1550,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76275337908124,
+      "prefix_index": 3,
+      "request_header": "lmc-p3-warm",
+      "request_id": "lmc-p3-warm",
+      "scheduled_send_ns": 76275287831877,
+      "sent_ns": 76275287918339,
+      "status": 200,
+      "text": " \n\nWarm suffix 4: state the central topic in one sentence. \n\nWarm",
+      "ttft_ms": 98.307429,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1550,
+        "total_tokens": 1566
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 476.379133,
+      "engine_request_ids": [
+        "cmpl-lmc-p4-warm"
+      ],
+      "generated_token_ids": [
+        4710,
+        95275,
+        20525,
+        220,
+        20,
+        25,
+        1584,
+        279,
+        8622,
+        8544,
+        304,
+        825,
+        11652,
+        13,
+        4710,
+        95275
+      ],
+      "input_tokens": 1550,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76275587892810,
+      "prefix_index": 4,
+      "request_header": "lmc-p4-warm",
+      "request_id": "lmc-p4-warm",
+      "scheduled_send_ns": 76275537831877,
+      "sent_ns": 76275537897409,
+      "status": 200,
+      "text": " \n\nWarm suffix 5: state the central topic in one sentence. \n\nWarm",
+      "ttft_ms": 88.439492,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1550,
+        "total_tokens": 1566
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 464.758624,
+      "engine_request_ids": [
+        "cmpl-lmc-p5-warm"
+      ],
+      "generated_token_ids": [
+        5005,
+        11,
+        3270,
+        264,
+        14311,
+        315,
+        220,
+        20,
+        12,
+        22,
+        22870,
+        11,
+        1667,
+        279,
+        3565,
+        504
+      ],
+      "input_tokens": 1549,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76275837891766,
+      "prefix_index": 5,
+      "request_header": "lmc-p5-warm",
+      "request_id": "lmc-p5-warm",
+      "scheduled_send_ns": 76275787831877,
+      "sent_ns": 76275787896235,
+      "status": 200,
+      "text": " Then, write a paragraph of 5-7 sentences, using the details from",
+      "ttft_ms": 81.294656,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 477.713764,
+      "engine_request_ids": [
+        "cmpl-lmc-p6-warm"
+      ],
+      "generated_token_ids": [
+        4710,
+        95275,
+        20525,
+        220,
+        22,
+        25,
+        1584,
+        279,
+        8622,
+        8544,
+        304,
+        825,
+        11652,
+        13,
+        4710,
+        95275
+      ],
+      "input_tokens": 1549,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76276087890633,
+      "prefix_index": 6,
+      "request_header": "lmc-p6-warm",
+      "request_id": "lmc-p6-warm",
+      "scheduled_send_ns": 76276037831877,
+      "sent_ns": 76276037894104,
+      "status": 200,
+      "text": " \n\nWarm suffix 7: state the central topic in one sentence. \n\nWarm",
+      "ttft_ms": 95.22513,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "attempted": true,
+      "e2e_ms": 416.857996,
+      "engine_request_ids": [
+        "cmpl-lmc-p7-warm"
+      ],
+      "generated_token_ids": [
+        320,
+        68,
+        1302,
+        2572,
+        330,
+        785,
+        8622,
+        8544,
+        374,
+        279,
+        990,
+        315,
+        5662,
+        6832,
+        304,
+        18478
+      ],
+      "input_tokens": 1549,
+      "phase": "warm",
+      "prefetch_deadline_ns": 76276337974768,
+      "prefix_index": 7,
+      "request_header": "lmc-p7-warm",
+      "request_id": "lmc-p7-warm",
+      "scheduled_send_ns": 76276287831877,
+      "sent_ns": 76276287979163,
+      "status": 200,
+      "text": " (e.g., \"The central topic is the use of machine learning in healthcare",
+      "ttft_ms": 85.088895,
+      "usage": {
+        "completion_tokens": 16,
+        "prompt_tokens": 1549,
+        "total_tokens": 1565
+      }
+    }
+  ],
+  "schema": 1,
+  "server_log_identity": {
+    "bytes": 66388,
+    "ctime_ns": 1788810411171644708,
+    "device": 66305,
+    "inode": 94766378,
+    "mtime_ns": 1788810411171644708,
+    "path": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-async-prefetch-575-20260907-03/block-03/position-1-gds_demand_fifo/server.log"
+  },
+  "server_returncode": 0,
+  "started_ns": 1788810378858933409,
+  "warm_concurrency": 4,
+  "warm_phase": {
+    "arrivals": [
+      {
+        "prefix_index": 0,
+        "scheduled_send_ns": 76274537831877,
+        "send_lag_ns": 281173,
+        "sent_ns": 76274538113050
+      },
+      {
+        "prefix_index": 1,
+        "scheduled_send_ns": 76274787831877,
+        "send_lag_ns": 154554,
+        "sent_ns": 76274787986431
+      },
+      {
+        "prefix_index": 2,
+        "scheduled_send_ns": 76275037831877,
+        "send_lag_ns": 231579,
+        "sent_ns": 76275038063456
+      },
+      {
+        "prefix_index": 3,
+        "scheduled_send_ns": 76275287831877,
+        "send_lag_ns": 86462,
+        "sent_ns": 76275287918339
+      },
+      {
+        "prefix_index": 4,
+        "scheduled_send_ns": 76275537831877,
+        "send_lag_ns": 65532,
+        "sent_ns": 76275537897409
+      },
+      {
+        "prefix_index": 5,
+        "scheduled_send_ns": 76275787831877,
+        "send_lag_ns": 64358,
+        "sent_ns": 76275787896235
+      },
+      {
+        "prefix_index": 6,
+        "scheduled_send_ns": 76276037831877,
+        "send_lag_ns": 62227,
+        "sent_ns": 76276037894104
+      },
+      {
+        "prefix_index": 7,
+        "scheduled_send_ns": 76276287831877,
+        "send_lag_ns": 147286,
+        "sent_ns": 76276287979163
+      }
+    ],
+    "attempts": 8,
+    "concurrency": 4,
+    "elapsed_s": 2.167774427,
+    "excludes": [
+      "server startup",
+      "cold population",
+      "cold-store barriers",
+      "shutdown"
+    ],
+    "failures": 0,
+    "output_tokens": 128,
+    "output_tokens_per_s": 59.046734017035256,
+    "prefetch_lead_ms": 50.0,
+    "requests": 8,
+    "requests_per_s": 3.6904208760647035,
+    "sequential": false,
+    "stagger_ms": 250.0,
+    "warm_ttft_max_ms": 98.307429,
+    "warm_ttft_median_ms": 86.7641935,
+    "warm_ttft_p95_ms": 100.00269345000001,
+    "warm_ttft_samples": 8,
+    "warm_ttft_values_ms": [
+      82.905228,
+      93.450198,
+      85.047247,
+      98.307429,
+      88.439492,
+      81.294656,
+      95.22513,
+      85.088895
+    ]
+  },
+  "warm_stagger_ms": 250.0,
+  "worker_cpu_affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ]
+}

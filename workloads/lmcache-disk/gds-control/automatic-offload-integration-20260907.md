@@ -410,3 +410,34 @@ No project source, driver or running server is changed by that invocation.
 If it removes the repeated-restore behavior, investigate the overlap path
 before attributing gains to a BPF policy; if not, continue the admission and
 capacity investigation. All failed original cells remain published.
+
+## Initial three-arm pressure block finished
+
+The BPF cell finished through the existing runner at 23:30 UTC. Like native,
+it completed warm requests p0, p1, p6 and p7 (1,024 output tokens each),
+while p2 through p5 timed out. Its 680.836021-second warm phase yields
+6.016133 token/s of completed-output goodput. Successful-request TTFT median
+is 7,885.633 ms. The BPF result and server log (94,737 and 15,445,893 bytes)
+are retained at `../raw/gds-kv-reclaim-575-20260907-02/block-00/position-2-bpf/`.
+Its expected adapter exit diagnostics are absent, as for native.
+
+| First block only | Stock | Native | BPF |
+| --- | ---: | ---: | ---: |
+| Completed warm requests / attempted | 2 / 8 | 4 / 8 | 4 / 8 |
+| Warm request timeouts | 6 | 4 | 4 |
+| Warm elapsed seconds | 1247.541 | 681.690 | 680.836 |
+| Completed-output goodput, token/s | 1.641630 | 6.008593 | 6.016133 |
+| Successful-request TTFT median, ms | 10451.494 | 7997.847 | 7885.633 |
+
+All eight cold requests succeeded in each arm. This is one pressure block
+with request failures, not the planned five-block successful performance
+comparison. Native and BPF have the same failed request indices in this
+block, but their similar goodput does not bound general mechanism overhead
+or establish decision equivalence. The successful-request latency medians
+must not be interpreted as all-request latency. Historical LMCache results
+remain separate and unchanged.
+
+The queued stock scheduling-overlap ablation acquired the GPU locks and
+started automatically after BPF exited. Its server receives
+`--no-async-scheduling`; the runner source was still unchanged at launch.
+It has begun real cold population and warm serving, with no final result yet.

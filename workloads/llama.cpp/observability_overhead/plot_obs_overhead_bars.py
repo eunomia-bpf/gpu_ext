@@ -72,7 +72,7 @@ def _draw(p40: dict[str, list[float]], rtx: dict[str, list[float]],
     from matplotlib.lines import Line2D
 
     with plt.rc_context(STYLE):
-        figure, axes = plt.subplots(1, 2, figsize=(7.2, 1.9))
+        figure, axes = plt.subplots(1, 2, figsize=(3.4, 1.6))
         for column, (panel, values, title) in enumerate(
                 zip(axes, (p40, rtx), ("(a) P40, Llama 1B prefill", "(b) RTX 5090, TinyLlama-1.1B prefill"))):
             for system_index, (system, color) in enumerate(zip(SYSTEMS, COLORS)):

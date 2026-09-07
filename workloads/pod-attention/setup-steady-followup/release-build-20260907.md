@@ -1,7 +1,8 @@
 # Separate optimized runtime build for POD startup
 
-Status: configured successfully; agent/server build is running. No Release
-performance measurement exists yet. The completed Debug-runtime campaign
+Status: configuration and agent/server build completed with exit zero; the
+first Release BPF cell is running. No Release performance result exists yet.
+The completed Debug-runtime campaign
 remains in `../results-current-runtime-575-20260907.md` (main `e768d559`).
 
 ## Reason and preserved control
@@ -42,10 +43,16 @@ for `ptxpass_core` and `ptxpass_kprobe_entry` contain `-O3 -DNDEBUG`. The
 attach target appends `-O2 -flto=auto -ffat-lto-objects`, so its effective
 optimization is not simply the global `-O3`. These existing target-specific
 flags remain unchanged; do not describe this as a one-flag isolated ablation.
+The build emitted existing cross-translation-unit ODR warnings for BPF types;
+it is not reported as warning-free. Built agent/server sizes are
+175,374,144 / 172,865,000 bytes, and the PTX entry-pass library is 111,733,560
+bytes. Source status remains unchanged apart from the pre-existing submodule.
 
-Once the build completes, use the existing current-runtime single-cell
-launcher with `--bpftime-build` pointing to `build-pod-release-575` and a new
-output directory. Keep workload, selector, adapter, PTX inputs and measurement
+The first invocation uses the existing current-runtime single-cell launcher
+with `--arm pod_bpf --block 1 --bpftime-build` pointing to
+`build-pod-release-575` and output
+`workloads/pod-attention/raw/release-runtime-575-20260907-01/block-01-pod_bpf`.
+Keep workload, selector, adapter, PTX inputs and measurement
 boundaries unchanged. Record Release results separately, including unfavorable
 ones; do not relabel or overwrite the completed Debug cells. The GLM stage
 timing patch remains a separate implementation task, not a prerequisite gate.

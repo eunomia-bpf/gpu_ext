@@ -9,6 +9,12 @@ fill this checklist. GPU work is exclusive and coordinated by the main thread.
 
 ## Current execution queue
 
+User scope update, 2026-09-07: no new paper searches, downloads, or
+paper-reproduction tasks. Continue only existing experiments, implementation
+improvements and artifact collection. This supersedes the older open-ended
+literature/reproduction queue; it does not cancel the live POD Release cells.
+This coordinating session and its delegates still do not edit paper files.
+
 The LMCache five-arm, mixed-storage, event-driven and write-budget studies
 are complete, including adverse data. The latest [25-cell budget result](../workloads/lmcache-disk/results-575-gds-write-budget-20260907.md)
 is published in `a451db6a` and integrated in the paper: BPF 200/10 ms paired

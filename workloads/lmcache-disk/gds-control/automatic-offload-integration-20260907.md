@@ -108,6 +108,31 @@ alone has not eliminated the cycle; final request outcomes remain pending.
 The proposed common-runtime fix and completion-aware policy analysis remain
 separate work, with no claimed performance result yet.
 
+### Repaired native async attempt completed, September 8 UTC
+
+`native-async/result.json` now records the complete attempt: all eight cold
+requests finished; only warm prefix 5 completed (1024 output tokens), while
+prefixes 0, 1, 2, 3, 4, 6 and 7 ended with `TimeoutError: timed out`.
+The warm phase lasted 1245.515086 s. Its 0.822150 token/s is
+completed-output goodput including the failed attempts, not normal successful
+serving throughput or all GPU-generated tokens. The only successful warm
+request had TTFT 18676.715481 ms; this is not an all-request latency median.
+The server exited zero, which does not negate the seven request failures.
+No manual interruption or additional timeout was imposed. Existing failed
+request records lack partial token/timing payloads; that runner limitation
+is retained rather than filled with estimates. The BPF async cell is now
+running, without applying the proposed scheduler repair.
+
+The local-model completion-aware policy analysis identifies a separate
+interface limit: a victim callback returning only a request or `None` cannot
+request a real wait instead of preemption. Marking candidates whose blocks
+are still in use can change victim preference, but leaves the all-deferred
+case unchanged. A true completion-aware wait needs an explicit action and
+scheduler enforcement tied to already-submitted GPU work. This is unfinished
+design/implementation, not an implemented automatic-offload result. The
+common runtime repair must preserve existing lifetime fences; it does not
+make in-flight blocks immediately reusable.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

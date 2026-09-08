@@ -1,0 +1,8 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling'
+/usr/local/cuda-12.9/bin/nvcc -std=c++17 -O2 -lineinfo -cudart shared \
+	-gencode arch=compute_120,code=sm_120 \
+	-gencode arch=compute_120,code=compute_120 \
+	-Xcompiler=-Wall,-Wextra -Xlinker --build-id=none warp_map_bench.cu -o .output/warp-map-bench
+/usr/local/cuda-12.9/bin/nvcc -std=c++17 -O2 -lineinfo --ptx \
+	-gencode arch=compute_120,code=compute_120 warp_map_bench.cu -o .output/warp-map-bench.ptx
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling'

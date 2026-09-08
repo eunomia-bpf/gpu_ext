@@ -1,0 +1,32 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds'
+make -C src/nvidia
+make -C src/nvidia-modeset
+make[1]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia'
+make[1]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia-modeset'
+make[1]: Nothing to be done for 'default'.
+make[1]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia-modeset'
+cd kernel-open/nvidia-modeset/ && ln -sf ../../src/nvidia-modeset/_out/Linux_x86_64/nv-modeset-kernel.o nv-modeset-kernel.o_binary
+make[1]: Nothing to be done for 'default'.
+make[1]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia'
+cd kernel-open/nvidia/ && ln -sf ../../src/nvidia/_out/Linux_x86_64/nv-kernel.o nv-kernel.o_binary
+make -C kernel-open modules
+make[1]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+make[2]: Entering directory '/usr/src/linux-headers-6.15.11-061511-generic'
+make[3]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-14 (Ubuntu 14.2.0-23ubuntu1) 14.2.0
+  You are using:           x86_64-linux-gnu-gcc-14 (Ubuntu 14.2.0-4ubuntu2~24.04.1) 14.2.0
+  CC [M]  nvidia-uvm/uvm_disk_backing.o
+  LD [M]  nvidia-uvm.o
+  MODPOST Module.symvers
+WARNING: modpost: missing MODULE_DESCRIPTION() in nvidia.o
+WARNING: modpost: missing MODULE_DESCRIPTION() in nvidia-uvm.o
+WARNING: modpost: missing MODULE_DESCRIPTION() in nvidia-modeset.o
+WARNING: modpost: missing MODULE_DESCRIPTION() in nvidia-drm.o
+  CC [M]  nvidia-uvm.mod.o
+  LD [M]  nvidia-uvm.ko
+  BTF [M] nvidia-uvm.ko
+make[3]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+make[2]: Leaving directory '/usr/src/linux-headers-6.15.11-061511-generic'
+make[1]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds'

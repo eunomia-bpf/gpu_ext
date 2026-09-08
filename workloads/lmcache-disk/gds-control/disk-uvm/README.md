@@ -1,9 +1,9 @@
 # disk_uvm_perf
 
-Driver c8e2831d and this sm_120 client are built. The first live attempt
-stopped at the old multiple-FD rejection before performance timing; the
-range-query selection repair below is now built for a fresh five-repeat run.
-No completed disk-UVM performance result is claimed yet.
+Driver c8e2831d and client df45d70a completed five full-read restore runs.
+The [results report](../../results-disk-uvm-restore-20260908.md) retains all
+raw runs and earlier attempts. This is a disk-UVM primitive measurement,
+not yet end-to-end LMCache integration or a new BPF policy comparison.
 
 Small real-performance client for the disk-backed managed-UVM mechanism in
 the nvidia-uvm driver built from `gpu_ext-kernel-575-gds` (branch
@@ -60,7 +60,8 @@ preserved on disk after the run.
   copies restored above.
 - gpu_restore: first-touch GPU read; the GPU fault restores via CPU-first
   hydration from the file, then a CPU->GPU copy.
-- steady_gpu: GPU read with the data resident again.
+- steady_gpu: repeated GPU read after restore; this label does not establish
+  that residency and caching match the initial GPU-resident baseline.
 
 Every read arm traverses the full buffer and prints a few individually
 sampled words next to the value the deterministic pattern defines at that

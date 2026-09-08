@@ -1,0 +1,9 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/disk-uvm'
+/usr/local/cuda-12.9/bin/nvcc -std=c++14 -O2 -arch=sm_120 -o disk_uvm_perf disk_uvm_perf.cu -lcudart
+disk_uvm_perf.cu(580): error: argument of type "int" is incompatible with parameter of type "cudaError_t" (aka "cudaError")
+                  size, cudaGetErrorString(st));
+                                           ^
+
+1 error detected in the compilation of "disk_uvm_perf.cu".
+make: *** [Makefile:6: disk_uvm_perf] Error 2
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/disk-uvm'

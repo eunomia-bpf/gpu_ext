@@ -27,9 +27,10 @@ from pathlib import Path
 from datetime import datetime
 
 # Paths
-BASE_DIR = Path("/home/yunwei37/workspace/gpu/co-processor-demo/gpu_ext_policy")
-SRC = BASE_DIR / "src"
-UVM = BASE_DIR / "microbench" / "memory" / "uvmbench"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SRC = REPO_ROOT / "extension"
+UVM = REPO_ROOT / "microbench" / "memory" / "uvmbench"
+TENANT_LAUNCHER = REPO_ROOT / "workloads" / "fig13-fast" / "tenant_launcher.py"
 DEFAULT_OUTPUT_DIR = Path(__file__).parent / "results"
 
 # Benchmark parameters (defaults, can be overridden via command line)

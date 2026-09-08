@@ -55,3 +55,14 @@ logs are retained here; binaries and build caches are not committed.
 Next: run the native cuXtra path with this HAL and the existing service-only
 workload. The separate NVBit tool-route replay failure remains unresolved;
 neither component build establishes that it is fixed.
+
+## Next-run failure localization
+
+Main `16a9aece` adds only a first-mismatch index/actual/expected print to
+the worker's existing output-error branch. It changes neither computation,
+timing, nor the existing comparison. CUDA 12.9 compilation returned 0 with
+the same flags as `../service-output-20260908.66ppYl/README.md`, changing
+only the output to `.output/service-mismatch-20260908.sHSYtE/priority_workload`
+(1,058,280 bytes). The compiler produced no diagnostics. The previous
+measured worker remains untouched. No GPU cell was rerun for this change;
+the new binary is available for the next unfinished native/tool attempt.

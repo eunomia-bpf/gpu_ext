@@ -112,3 +112,22 @@ implementation record and separate raw directories; they are not counted
 as instrumented performance. The initialization-order workaround fixes this
 without a runtime or driver rebuild. This five-pair campaign is complete;
 do not repeat these cells.
+
+## Requested extension, September 8 UTC: queued, not yet measured
+
+The experiment owner has queued only blocks 6–10 behind the active LMCache
+jobs under the existing GPU and struct-ops locks, using the same staged
+collector and bpftime build above. Existing blocks 1–5 and their raw files
+are retained; the full ten-pair result is not available yet. This continues
+the baseline/GPU-array comparison, not a new NVBit comparison.
+
+The historical NVBit block-1 record in
+`../results-table1-warp-plt-575-06/cells.json` reports 23068672 32-byte events,
+whereas this GPU-array implementation records 720896 per-warp events.
+The current NVBit `observe_exit` implementation emits a record for every
+predicated thread, without a warp-leader filter, and uses a channel receiver;
+the array uses warp-leader records and final bulk collection. Those are
+different observation/collection configurations. Extending the repetition
+count does not resolve this difference, and the old 99.621030% remains a
+historical reference, not a newly matched NVBit baseline. A matched-granularity
+comparison remains separate, unfinished implementation/measurement work.

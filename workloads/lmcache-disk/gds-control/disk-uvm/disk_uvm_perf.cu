@@ -17,10 +17,11 @@
  *      block size) and initialize it with a sealed deterministic KV-like
  *      per-word pattern through one host->managed H2D copy; the host pattern
  *      buffer is discarded afterwards.
- *   3. Locate the CUDA context's own UVM file descriptor (the single foreign
- *      /dev/nvidia-uvm fd libcuda opened in this process; the UVM va space of
- *      the process lives on that fd and the managed range is in it) and issue
- *      the disk-backing ioctls on it:
+ *   3. Locate the /dev/nvidia-uvm fd whose UVM va space owns the managed
+ *      range (libcuda may open several /dev/nvidia-uvm fds in this process;
+ *      only one carries the process UVM va space, and that owner is selected
+ *      by probing the managed range with a read-only QUERY, not by counting
+ *      fds) and issue the disk-backing ioctls on it:
  *          84 UVM_DISK_BACKING_REGISTER  (attach + seal the whole range)
  *          85 UVM_DISK_BACKING_OFFLOAD   (async disk offload)
  *          86 UVM_DISK_BACKING_QUERY     (completion / state counters)
@@ -160,6 +161,7 @@ static const char *nv_status_str(int32_t s)
     switch (s) {
     case 0x00000000: return "NV_OK";
     case 0x00000003: return "NV_ERR_BUSY_RETRY";
+    case 0x00000016: return "NV_ERR_ILLEGAL_ACTION";
     case 0x0000001E: return "NV_ERR_INVALID_ADDRESS";
     case 0x0000001F: return "NV_ERR_INVALID_ARGUMENT";
     case 0x00000038: return "NV_ERR_INVALID_OPERATION";
@@ -202,20 +204,48 @@ static void read_fdinfo_flags(int fd, char *out, size_t out_len)
     fclose(f);
 }
 
-/* Find the UVM fd owned by the CUDA context. The CUDA driver opens
- * /dev/nvidia-uvm once per process and creates the process UVM va space on
- * that fd; the managed range lives in that va space, so all three
- * disk-backing ioctls must run on exactly that fd. The client itself never
- * opens /dev/nvidia-uvm.
- * Returns: the fd, -1 if none found, -2 if ambiguous. */
-static int find_cuda_uvm_fd(void)
+/* NV status values for the read-only fd probe, with values from
+ * src/common/sdk/nvidia/inc/nvstatuscodes.h. */
+#define NV_OK                   0x00000000
+#define NV_ERR_ILLEGAL_ACTION   0x00000016
+#define NV_ERR_INVALID_ARGUMENT 0x0000001F
+#define NV_ERR_INVALID_STATE    0x00000040
+
+static int uvm_query(int uvm_fd, uint64_t start, uint64_t end,
+                     uint32_t *total, uint32_t *on_disk, uint32_t *pending,
+                     uint32_t *err_pages);
+
+/* Find the /dev/nvidia-uvm fd whose UVM va space owns the managed range. The
+ * CUDA driver opens more than one /dev/nvidia-uvm fd in this process; each
+ * open is a distinct UVM file, and only the fd CUDA actually initialized
+ * carries the process UVM va space with the managed range in it, so the fd
+ * count alone does not identify the owner (multiple fds are normal, not an
+ * error). The client itself never opens /dev/nvidia-uvm.
+ * The owner is selected by a read-only probe: for every candidate fd, issue
+ * UVM_DISK_BACKING_QUERY on the managed range. Per the driver
+ * (uvm_api_disk_backing_query in uvm.c), the answers are:
+ *   NV_OK / NV_ERR_INVALID_STATE : this fd's va space contains the range;
+ *     NV_ERR_INVALID_STATE is the pre-REGISTER state, where the range is
+ *     owned but has no disk backing attached yet
+ *   NV_ERR_INVALID_ARGUMENT      : the range is absent from this fd's va
+ *     space, so this fd does not own the range
+ *   NV_ERR_ILLEGAL_ACTION        : this fd was never initialized to a va
+ *     space (the routing init check in uvm_api.h rejects it before the
+ *     handler runs), so it does not own the range
+ * Returns: the owning fd, -1 if no /dev/nvidia-uvm fd exists, -2 if no
+ * candidate owns the range, -3 if more than one candidate does. */
+static int find_cuda_uvm_fd(uint64_t mstart, uint64_t mend)
 {
     DIR *directory;
     struct dirent *d;
     char link[64];
     char target[512];
-    int found = -1;
-    int count = 0;
+    int candidates[4096];
+    int probe[4096];
+    int n_candidates = 0;
+    int n_owners = 0;
+    int owner = -1;
+    int i;
 
     directory = opendir("/proc/self/fd");
     if (!directory) {
@@ -228,23 +258,49 @@ static int find_cuda_uvm_fd(void)
 
         if (d->d_name[0] == '.')
             continue;
+        if (n_candidates >= 4096)
+            break;
         snprintf(link, sizeof(link), "/proc/self/fd/%s", d->d_name);
         n = readlink(link, target, sizeof(target) - 1);
         if (n <= 0)
             continue;
         target[n] = '\0';
-        if (strcmp(target, "/dev/nvidia-uvm") == 0) {
-            found = atoi(d->d_name);
-            ++count;
-        }
+        if (strcmp(target, "/dev/nvidia-uvm") == 0)
+            candidates[n_candidates++] = atoi(d->d_name);
     }
     closedir(directory);
 
-    if (count == 0)
+    if (n_candidates == 0)
         return -1;
-    if (count > 1)
+
+    for (i = 0; i < n_candidates; ++i) {
+        uint32_t total, od, pend, er;
+
+        probe[i] = uvm_query(candidates[i], mstart, mend, &total, &od, &pend,
+                             &er);
+        if (probe[i] == NV_OK || probe[i] == NV_ERR_INVALID_STATE) {
+            owner = candidates[i];
+            ++n_owners;
+        }
+    }
+
+    for (i = 0; i < n_candidates; ++i) {
+        if (probe[i] < 0)
+            fprintf(stderr, "uvm_fd candidate %d: QUERY probe ioctl errno=%d "
+                    "(%s)\n",
+                    candidates[i], -probe[i], strerror(-probe[i]));
+        else
+            fprintf(stderr, "uvm_fd candidate %d: QUERY probe "
+                    "rmStatus=0x%" PRIX32 " (%s)\n",
+                    candidates[i], (uint32_t)probe[i],
+                    nv_status_str(probe[i]));
+    }
+
+    if (n_owners == 0)
         return -2;
-    return found;
+    if (n_owners > 1)
+        return -3;
+    return owner;
 }
 
 /* ------------------------------------------------- disk-backing ioctls -- */
@@ -610,20 +666,31 @@ int main(int argc, char **argv)
     CUDA_CHECK(cudaStreamSynchronize(g_stream));
     free(init_buf); /* the pattern buffer is never a read path afterwards */
 
-    /* 3. The CUDA context's UVM fd. */
-    uvm_fd = find_cuda_uvm_fd();
+    /* 3. The /dev/nvidia-uvm fd whose va space owns the managed range,
+     *     selected by the read-only range probe. */
+    uvm_fd = find_cuda_uvm_fd(mstart, mend);
     if (uvm_fd == -1) {
         fprintf(stderr,
-                "BLOCKER: no /dev/nvidia-uvm fd owned by the CUDA context in "
-                "this process. UVA/UVM may be disabled, or the CUDA runtime "
-                "was not initialized before this point.\n");
+                "BLOCKER: no /dev/nvidia-uvm fd in this process. UVA/UVM may "
+                "be disabled, or the CUDA runtime was not initialized before "
+                "this point.\n");
         return 3;
     }
     if (uvm_fd == -2) {
         fprintf(stderr,
-                "BLOCKER: multiple /dev/nvidia-uvm fds in this process; the "
-                "CUDA-context UVM fd is ambiguous. Run with a single CUDA "
-                "context in a dedicated process.\n");
+                "BLOCKER: /dev/nvidia-uvm fds exist, but no candidate's va "
+                "space owns the managed range 0x%" PRIx64 "-0x%" PRIx64
+                " (per-fd QUERY probes above). UVA/UVM may be disabled, or "
+                "the CUDA runtime was not initialized before this point.\n",
+                mstart, mend);
+        return 3;
+    }
+    if (uvm_fd == -3) {
+        fprintf(stderr,
+                "BLOCKER: more than one /dev/nvidia-uvm fd's va space owns "
+                "the managed range (per-fd QUERY probes above); a managed "
+                "range lives in exactly one va space, so this should not "
+                "happen.\n");
         return 3;
     }
 

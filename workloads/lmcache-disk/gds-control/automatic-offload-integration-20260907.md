@@ -306,6 +306,31 @@ not establish policy superiority, universal robustness, or transparent
 same-address disk-UVM paging. The failed relative-path attempt stays in its
 original directory and is not included as a throughput sample.
 
+### First grace-patched three-arm comparison complete
+
+The stock victim-policy control with the same common grace patch also
+completes all eight cold and eight warm requests. Its 8192 warm output
+tokens take 115.183305 s: **71.121418 token/s**, with median TTFT
+25717.127992 ms and server exit zero. It records 15 restore batches,
+1632 MiB read payload, 68 I/O operations, seven rollback warning lines,
+and 0.227 s summed rounded backend blocking time.
+
+Thus this first comparison is stock/native/BPF **71.121418 / 67.048495 /
+66.099993 token/s**, with all three finishing the original async workload.
+The common-runtime repair benefits serving stability in this comparison;
+the disk-cost victim policy is not yet better than the stock victim policy.
+Its native and BPF implementations both restore more batches/payload than
+stock (42/5856 MiB versus 15/1632 MiB), so the whole stock-to-BPF gap cannot
+be attributed to the BPF mechanism. These logged volumes are not physical
+SSD traffic and do not by themselves establish a complete causal timing
+breakdown. Repeated paired measurement and policy improvement remain open.
+
+The successful native cell was followed by the corrected BPF and stock
+cells in that execution order. The intervening BPF startup error is kept
+separately and is not a serving sample. With this comparison complete,
+the queued five-block matched NVBit/gpubpf warp-array campaign now owns
+the GPU; no completed LMCache cell is repeated during that campaign.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

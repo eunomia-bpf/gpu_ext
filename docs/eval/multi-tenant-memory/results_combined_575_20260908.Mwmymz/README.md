@@ -68,7 +68,7 @@ improves high-priority completion versus scheduling alone but increases
 low-priority completion time. This is a tradeoff, not an across-the-board
 win. The first baseline block takes 80.798918/81.041481 seconds and remains
 in the five-block results; it has not been dropped or rerun. No historical
-HotSpot results are overwritten. GEMM/K-Means evidence is still outstanding.
+HotSpot results are overwritten. GEMM is reported below; K-Means is still running.
 
 Within each of the five blocks, combined versus scheduling-only changes
 high-priority completion time by a mean **-10.5294%** (95% interval

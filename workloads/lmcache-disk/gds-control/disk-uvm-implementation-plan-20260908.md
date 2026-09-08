@@ -7,7 +7,17 @@ decisions do not implement that target.
 
 ## Current implementation assignment
 
-Update at 06:17 UTC: GLM through local OpenCode owns driver development in
+Update at 08:07 UTC: the GLM request ended with an actual HTTP 524 after
+automatic retries; its CLI exited naturally. Root resumed the same saved
+session through cluster-direct Qwen 27B on coordinator port 40081, preserving
+all partial source. The new request is busy and has executed source-inspection
+tools. This was not a cancellation for silence or elapsed time. Its private
+provider configuration disables the separate overall, response-header and
+stream-chunk timeouts; it does not change global credentials or claim to
+remove upstream errors. There remain three inference sessions, not four.
+Heavy builds remain deferred while the original Fig.13 GPU campaign runs.
+
+Historical update at 06:17 UTC: GLM through local OpenCode owns driver development in
 the existing `gpu_ext-kernel-575-gds` checkout, branch
 `revision/gpu-storage-decision-575`, session `ses_f80ce8d77ffexXOG7cehG0hvgg`.
 Its previous turn ended naturally with `finish=stop` and CLI exit zero after

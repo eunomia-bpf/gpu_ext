@@ -29,3 +29,34 @@ read-only child `ses_f86dba1b8ffeG3lEjod1UqGxV1`. The third root model task
 remains `ses_f866bda8dffeljd81GZlstX8rx` (Qwen Next storage feedback).
 No new nested agent was created. No process was stopped for silence,
 and no short model timeout was introduced.
+
+## Cluster-direct continuation preparation — 2026-09-08
+
+XSched's terminal generation error is HTTP 524 with a Cloudflare HTML
+timeout response, not an OpenCode session timeout imposed by root.
+Authenticated gateway `/v1/models` and `/health/readiness` return HTTP 200;
+that proves gateway reachability, not successful model generation. Both
+Qwen tasks and later a GLM request have encountered generation retries.
+Current live sessions are allowed to continue; none was aborted for silence.
+
+The gateway's read-only model information identifies the existing cluster
+backends. Using the node's configured cluster DNS, root resolved the Qwen
+27B service and obtained HTTP 200 from its direct `/v1/models` and `/health`
+endpoints. It advertises `qwen3.8-27b-nvfp4`. The Qwen Next and GLM backends
+require different direct credentials; their HTTP 401 responses are not
+evidence that those backends are offline. No credentials or infrastructure
+configuration were changed.
+
+A private, temporary `OPENCODE_CONFIG` override adds only the direct Qwen
+27B provider, preserving its 200K context and 16384 output-token settings
+and disabling the client's request timeout. The existing global config
+and server remain unchanged. A separate loopback coordinator accepts the
+override and can see the same saved Fig.13 session. Starting that coordinator
+does not start an inference task or create a fourth active model session.
+The direct path is prepared for continuation only after an existing task
+actually ends; a successful generation and implementation are still unproven.
+
+OpenCode documents the scoped override mechanism in its
+[custom configuration path instructions](https://dev.opencode.ai/docs/config/#custom-path).
+The private service address is resolved at use time rather than treated as
+a portable artifact address. Do not restart running sessions just to adopt it.

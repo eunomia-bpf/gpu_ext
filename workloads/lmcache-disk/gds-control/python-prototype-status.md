@@ -1,6 +1,6 @@
 # Preserved historical Python prototype
 
-`policy.py` (6269 bytes) and `test_policy.py` were found untracked during the
+`policy.py` (6248 bytes) and `test_policy.py` (10266 bytes) were found untracked during the
 2026-09-08 workspace cleanup. They are preserved on this historical branch,
 not integrated into the active native/BPF LMCache storage implementation.
 

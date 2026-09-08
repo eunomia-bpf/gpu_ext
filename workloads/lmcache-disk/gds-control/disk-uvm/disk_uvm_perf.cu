@@ -577,7 +577,7 @@ int main(int argc, char **argv)
     if (st != cudaSuccess) {
         fprintf(stderr, "cudaMallocManaged(%zu): %s (managed memory / UVA "
                         "unsupported on this device?)\n",
-                size, cudaGetErrorString(st));
+                size, cudaGetErrorString((cudaError_t)st));
         return 1;
     }
     mstart = (uint64_t)managed;

@@ -1,5 +1,10 @@
 # Rebuilt full-record buffer: 32 banks, record-major stores
 
+The continuation is now complete: all 15 clients and 10 collectors exit
+zero. See the [five-block report](../../results-full-record-device-buffer-20260908.md)
+and `analysis.json`. The initial-run narrative below is retained as history;
+it no longer means the paired comparison is unfinished.
+
 `build.sh` completes with exit zero under both shared experiment leases.
 BPF compilation, skeleton generation and host collector linking succeed
 without warnings. `build.log` records the actual BTF value size 335675408,

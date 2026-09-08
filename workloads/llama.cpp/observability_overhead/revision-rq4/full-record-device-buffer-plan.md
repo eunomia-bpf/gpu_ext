@@ -2,6 +2,15 @@
 
 ## Current implementation update
 
+The repaired 32-bank, record-major implementation now completes
+[all five three-arm blocks](results-full-record-device-buffer-20260908.md).
+Baseline/ring/GPU-local throughput medians are 38240.044/345.221/23267.229
+token/s. Paired GPU-local/ring gain is 67.472x, while baseline-relative loss
+remains 39.099%. Post-client bulk copy takes median 1490.922 ms, separately
+reported. The first successful GPU-local cell was retained, not repeated.
+The historical failure and proposal below remain; they do not describe the
+current completion status. No old Table 1 value or manuscript was changed.
+
 The first writer/collector builds at `743ef571`, but its first real prefill
 aborts before throughput. The object BTF truncates the planned 1342701584-byte
 bank to 268959760 bytes. The [actual run record](raw/full-record-device-buffer-first-20260908.BytFAr/README.md)

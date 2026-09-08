@@ -1,0 +1,125 @@
+{
+  "count": 15,
+  "all_returncodes_zero": true,
+  "per_block": [
+    {
+      "block": 1,
+      "baseline": 38077.038178,
+      "ring": 343.207598,
+      "gpu": 23229.857626,
+      "gpu_loss_pct": 38.99247752042423,
+      "ring_loss_pct": 99.0986494369767,
+      "gpu_over_ring": 67.68456689586458
+    },
+    {
+      "block": 2,
+      "baseline": 38240.043809,
+      "ring": 346.865609,
+      "gpu": 23219.474463,
+      "gpu_loss_pct": 39.279686553248226,
+      "ring_loss_pct": 99.092925701831,
+      "gpu_over_ring": 66.94083777847229
+    },
+    {
+      "block": 3,
+      "baseline": 38391.218968,
+      "ring": 345.2211,
+      "gpu": 23267.228804,
+      "gpu_loss_pct": 39.3943994761047,
+      "ring_loss_pct": 99.1007810919269,
+      "gpu_over_ring": 67.39804955143241
+    },
+    {
+      "block": 4,
+      "baseline": 38173.234762,
+      "ring": 339.318254,
+      "gpu": 23286.941834,
+      "gpu_loss_pct": 38.996676652665386,
+      "ring_loss_pct": 99.11110950875512,
+      "gpu_over_ring": 68.62861505234552
+    },
+    {
+      "block": 5,
+      "baseline": 38333.441645,
+      "ring": 345.998917,
+      "gpu": 23345.385541,
+      "gpu_loss_pct": 39.09916631749907,
+      "ring_loss_pct": 99.09739667989051,
+      "gpu_over_ring": 67.47242373882922
+    }
+  ],
+  "stats": {
+    "baseline": {
+      "median": 38240.043809,
+      "min": 38077.038178,
+      "max": 38391.218968,
+      "median_ci95": [
+        38077.038178,
+        38391.218968
+      ]
+    },
+    "ring": {
+      "median": 345.2211,
+      "min": 339.318254,
+      "max": 346.865609,
+      "median_ci95": [
+        339.318254,
+        346.865609
+      ]
+    },
+    "gpu": {
+      "median": 23267.228804,
+      "min": 23219.474463,
+      "max": 23345.385541,
+      "median_ci95": [
+        23219.474463,
+        23345.385541
+      ]
+    },
+    "gpu_loss_pct": {
+      "median": 39.09916631749907,
+      "min": 38.99247752042423,
+      "max": 39.3943994761047,
+      "median_ci95": [
+        38.99247752042423,
+        39.3943994761047
+      ]
+    },
+    "ring_loss_pct": {
+      "median": 99.0986494369767,
+      "min": 99.092925701831,
+      "max": 99.11110950875512,
+      "median_ci95": [
+        99.092925701831,
+        99.11110950875512
+      ]
+    },
+    "gpu_over_ring": {
+      "median": 67.47242373882922,
+      "min": 66.94083777847229,
+      "max": 68.62861505234552,
+      "median_ci95": [
+        66.94083777847229,
+        68.62861505234552
+      ]
+    }
+  },
+  "bootstrap": {
+    "samples": 10000,
+    "seed": 1797,
+    "method": "paired-block resampling, median, percentile interval",
+    "generator": "32-bit LCG, state=(1664525*state+1013904223) mod 2^32; one stream in stats-key insertion order"
+  },
+  "collector": {
+    "gpu_records_each": 23068672,
+    "gpu_drain_bytes_each": 10741613056,
+    "gpu_drain_ns": [
+      1457517662,
+      1515503690,
+      1490922220,
+      1497598632,
+      1472224062
+    ],
+    "median_gpu_drain_ns": 1490922220
+  }
+}

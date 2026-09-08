@@ -1,0 +1,2 @@
+mkdir -p .output/native-exit-retention-20260908.NAeniq/native/
+/usr/local/cuda-12.9/bin/nvcc -ccbin /usr/bin/g++-13 -cubin -O3 -gencode arch=compute_120,code=sm_120 ../level2/native/check_preempt_port.cu -o .output/native-exit-retention-20260908.NAeniq/native/check_preempt_port.cubin

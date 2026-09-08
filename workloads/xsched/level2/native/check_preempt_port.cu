@@ -20,6 +20,10 @@
  */
 #include <stdint.h>
 
+// Build-only retention marker proposed by the local GLM implementation.
+// The prefix extractor must exclude this store and the final kernel EXIT.
+__device__ uint32_t xg_check_exit_marker;
+
 /* Passed by value without array decay; reserves 0x1500 bytes at the start
  * of the parameter block so the real arguments land in the upstream
  * debugger-parameter window (see native/probe.cu for the device of proof). */
@@ -75,4 +79,5 @@ fence:
 sync:
     __syncthreads();
     if (*block_exit_flag != 0) xg_thread_exit();
+    xg_check_exit_marker = 0x1badb002u;
 }

@@ -24,11 +24,28 @@ local sessions run concurrently, without stopping them for silence.
 
 ## Current GPU campaign
 
+Completed follow-up: [all ten transport pairs](../../workloads/llama.cpp/observability_overhead/revision-rq4/results-original-ring-encoded-20260908.md)
+now have numeric throughput and benchmark exit zero. Mean legacy/optimized
+throughput is 34.514/194.059 token/s; the paired ratio median is 5.7702x.
+Collector shutdown remains adverse (-9 in all twenty cells), and absolute
+overhead is still about 99.5% for the optimized arm. The historical in-progress
+checkpoint below is superseded for measurement completion, not for those
+limitations. No completed cell was repeated.
+
 The existing Table 1 runner compares original kernelretsnoop with legacy
 transport versus aligned-word copy plus encoded-tail publication (mode 2).
 The BPF object, record payload and 256-entry per-thread capacity are unchanged.
 This is a transport optimization, not a new NVBit comparison or permission
 to collapse distinct per-thread events into one observation.
+
+The older 90.7051% kernelretsnoop result is a different probe configuration:
+its retained cell records report 720,896 events, 16,384 coordinates and
+44 entries per thread; its source patch selects one warp leader and emits
+three coordinates plus a timestamp. The new original object emits all
+thread coordinates/block dimensions and timestamp (80 bytes), with 256
+entries per thread. The transport on/off pair preserves that original object;
+its speedup must not be applied arithmetically to the older warp-level result.
+Neither historical configuration or measurement is removed.
 
 The first attempt completed ten baselines but failed all twenty loader starts
 at the runtime's 10 GiB segment ceiling. Runtime `241872b` allows explicitly

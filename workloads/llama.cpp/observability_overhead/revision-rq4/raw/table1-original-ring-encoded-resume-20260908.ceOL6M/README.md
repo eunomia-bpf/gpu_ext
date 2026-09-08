@@ -20,5 +20,11 @@ leases. Diagnostic counting is disabled. Every completed/failed attempt is
 retained. Do not treat the presence of 30 rows as proof that all 30 timed
 measurements completed; inspect actual throughput/exit fields.
 
-Current status: runtime rebuilt and original map now creates successfully;
-the first repaired attached cell is running. No final performance claim yet.
+Completed: all twenty attached benchmarks return zero and numeric throughput;
+the ten retained baseline measurements also return zero. Mean off/on throughput
+is 34.514/194.059 token/s, with paired ratio median 5.7702x. Every loader
+teardown records -9; final collector reports are unavailable and the failure
+is retained, not hidden. See the complete scope and comparison discussion in
+`../../results-original-ring-encoded-20260908.md`. `analyze_pairs.py` derives
+`paired-analysis.json` without executing a benchmark. Existing baseline
+records remain in their original directory and are not rerun.

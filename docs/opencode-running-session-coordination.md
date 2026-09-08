@@ -93,3 +93,13 @@ has changed. Root did not call instance disposal, restart a coordinator,
 abort an inference or create another model session. The current request
 continues normally; these local settings do not remove upstream gateway
 limits such as Cloudflare HTTP 524. No global credentials/config were changed.
+
+At 2026-09-08 08:11:53 UTC the Fig.13 request did reach a terminal
+`ProviderHeaderTimeoutError` after retries; `/session/status` became empty,
+the CLI exited and its process was absent. Root then resumed the same saved
+session on coordinator 40081, whose provider includes all three disabled
+timeouts. Its new request reports busy. The previous coordinator was not
+disposed or restarted during a live request. Disk-UVM had independently
+resumed on this coordinator after its terminal gateway 524; automatic warp
+development remains with GLM on the original coordinator. There are still
+only three inference sessions. No incomplete implementation is called done.

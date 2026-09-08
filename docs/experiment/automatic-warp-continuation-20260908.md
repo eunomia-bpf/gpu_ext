@@ -37,6 +37,18 @@ measurement using the existing prefill runner, followed by the queued
 original device microbenchmark sweeps. Unsupported relevant probes or
 silent fallback alone would not complete that requested experiment.
 
+## Existing-runner integration gap
+
+Source inspection at 08:42 UTC confirms `run_table1_perf.py` currently fixes
+seven arms and builds all three observability tools. Its existing CLI does
+not express the requested same-object baseline/optimization-off/optimization-on
+comparison. The current original-runner OpenCode owner has this queued after
+its scheduler/plot changes: add an opt-in three-arm mode to the existing
+runner/helpers, retain the seven-arm default, record actual per-cell mode
+settings and use ten rotated blocks. No second benchmark framework or
+rerun of the completed Table 1 cells is intended. This runner extension is
+not yet implemented; no new automatic-warp measurements exist.
+
 The original Qwen Next session `ses_f80dc8da2ffev9TpuxcuajuRMa` ended with
 HTTP 524 on its first assistant request, with no implementation patch. Root
 confirmed the checkout is clean. The same session is now resumed using GLM;

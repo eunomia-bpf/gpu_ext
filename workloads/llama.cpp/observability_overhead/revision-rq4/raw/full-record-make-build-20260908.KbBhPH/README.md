@@ -22,3 +22,10 @@ warning about an unused linker argument. No GPU workload or completed
 performance cell was repeated. The prior five-block results remain tied
 to their original built executable; this verifies the reusable build entry.
 Compiled binaries and the dependency build cache are not added to Git.
+
+After source/log publication in `3ead1c87`, the root-created 22 MiB staged
+build directory above was removed. The build had exited and lsof reported
+no open files there. It held only the copied source, generated binary and
+dependency/object cache; all are regenerable from the committed sources.
+The bpftime worktree is clean again. Measured campaign binaries and all
+original measurement logs were not removed.

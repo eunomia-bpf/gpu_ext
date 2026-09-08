@@ -371,6 +371,28 @@ Missing exit-time adapter diagnostics remain a recorded limitation. No
 claim of physical cross-process HBM release or transparent disk-UVM paging
 is implied by these serving measurements.
 
+### Grace-patched block 2 complete
+
+Block 2 completed in stock/native/BPF order, again with eight successful
+cold and eight successful warm requests per arm, 8192 warm tokens per arm,
+and server exits zero. Its records are under the same raw root's
+`block-02/position-0-stock`, `position-1-native`, and `position-2-bpf`.
+
+| Arm | Warm elapsed, s | Output token/s | TTFT median, ms |
+| --- | ---: | ---: | ---: |
+| Stock | 121.488907 | 67.430024 | 27557.781464 |
+| Native | 127.852985 | 64.073592 | 31539.552823 |
+| BPF | 125.848289 | 65.094250 | 31034.096707 |
+
+The remaining blocks 3--4 are still running. The completed nine cells are
+not a substitute for the five-block aggregate. Separately, counting the
+already retained block-1 logs gives the same 15 restore batches, 1968 MiB
+logged payload, 82 I/O operations and seven `rolled back from` warnings in
+all three arms. Thus the excess restoration observed in block 0 is not
+present in every arrival rotation; policy analysis must retain that
+workload dependence rather than attribute every timing difference to I/O
+volume or BPF decision overhead.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

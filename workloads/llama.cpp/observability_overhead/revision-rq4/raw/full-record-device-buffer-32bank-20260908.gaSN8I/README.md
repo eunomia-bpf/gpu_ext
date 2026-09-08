@@ -27,3 +27,16 @@ automatic-warp experiment. Logical record fields/capacity remain unchanged.
 Keep this successful cell as the first GPU-local observation when filling
 the paired comparison; do not rerun it. Old Table 1 and failed eight-bank
 records remain unchanged.
+
+## Paired continuation
+
+`paired.py` fills five rotating three-arm blocks: GPU-local full records,
+uninstrumented baseline, and the original per-thread ring using transport 3.
+Block 1 retains the completed GPU-local cell above and adds only its two
+controls; blocks 2–5 rotate the starting arm. Thus this continuation runs
+14 new cells, not 15 and not a replay of the successful initial measurement.
+The first position was fixed by bring-up rather than randomized; report
+that ordering and the gap before its controls. These controls belong to
+this new GPU-local comparison, not a repeat of the completed transport2/3
+campaign. Existing source/binaries are fixed throughout the batch. Copy
+costs and all adverse data remain separate from the prefill metric.

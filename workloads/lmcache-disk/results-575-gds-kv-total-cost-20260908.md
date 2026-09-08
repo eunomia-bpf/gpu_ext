@@ -119,6 +119,69 @@ implementations and stock. Together with block 0 this supports a
 ranking-related repeated-restoration effect on these two arrival orders;
 the block-1 result still prevents a general stock-superiority conclusion.
 
+## Follow-up: logged restore time and tracker rollback volume
+
+Reanalysis of the same twenty planned cells, with no new GPU runs, sums the
+durations in `Time taken for batched_get_blocking: ...s` and the token
+differences in warm-request `rolled back from A to B tokens` log messages.
+The latter is **tracker rollback volume**, not a measured count of GPU tokens
+recomputed or a direct measure of discarded decode compute. Repeated rollback
+of the same token positions is counted repeatedly. Every cell below has four
+distinct warm request IDs with rollback messages.
+
+| Block | Policy | Warm elapsed, s | Sum of logged restore durations, s | Tracker rollback tokens |
+| --- | --- | ---: | ---: | ---: |
+| 0 | stock | 115.536248 | 0.240 | 4710 |
+| 0 | native cost/byte | 131.159391 | 0.685 | 20313 |
+| 0 | native total | 118.785405 | 0.233 | 4710 |
+| 0 | BPF total | 117.646428 | 0.250 | 4710 |
+| 1 | stock | 109.161745 | 0.270 | 4710 |
+| 1 (late control) | native cost/byte | 116.495558 | 0.270 | 4710 |
+| 1 | native total | 120.924011 | 0.208 | 3326 |
+| 1 | BPF total | 121.830572 | 0.197 | 3326 |
+| 2 | stock | 113.909910 | 0.251 | 4710 |
+| 2 | native cost/byte | 128.925430 | 0.649 | 19497 |
+| 2 | native total | 111.354137 | 0.249 | 4710 |
+| 2 | BPF total | 113.952033 | 0.248 | 4710 |
+| 3 | stock | 116.115467 | 0.270 | 4710 |
+| 3 | native cost/byte | 117.862841 | 0.273 | 4710 |
+| 3 | native total | 121.489208 | 0.214 | 3326 |
+| 3 | BPF total | 125.274126 | 0.191 | 3326 |
+| 4 | stock | 113.842186 | 0.240 | 4710 |
+| 4 | native cost/byte | 126.529213 | 0.649 | 19497 |
+| 4 | native total | 117.877711 | 0.251 | 4710 |
+| 4 | BPF total | 119.009743 | 0.240 | 4710 |
+
+The summed logged restore durations are 0.153%--0.522% of warm wall time.
+This is a scale comparison, **not** a time decomposition: the log covers a
+specific backend operation, its durations are rounded to milliseconds, and
+it does not account for every transfer, allocation stall, queue wait or
+downstream scheduling effect. Do not conclude that all storage-related costs
+are below this percentage or subtract these sums to predict a faster system.
+
+In block 0, replacing the ratio with native total cost saves 12.374 s of warm
+elapsed time while the logged restore-duration sum falls by only 0.452 s.
+Tracker rollback volume falls from 20313 to 4710 tokens. This motivates
+examining repeated preemption/re-admission and useful request progress, rather
+than treating raw disk-read latency as the entire explanation. It is not a
+causal isolation of either effect.
+
+Blocks 1 and 3 remain important counterexamples: native total has both less
+logged restore time and fewer rolled-back tracker tokens than stock, yet is
+slower. A next policy should account for the allocation shortfall and which
+requests can make progress after a victim choice; minimizing either scalar
+counter alone is not supported by these results. This analysis does not
+change the earlier performance ranking or claim a new implemented policy.
+
+Reproduction uses each planned cell's `result` path from `paired-summary.json`,
+the adjacent `server.log`, and `result.json`'s `warm_phase.elapsed_s`. Exclude
+only the already documented `native_net_unplanned` label from this planned
+matrix; retain the late block-1 control. Sum numeric durations from
+`Time taken for batched_get_blocking: ([0-9.]+)s`; sum `A-B` from
+`Request (\\S+) rolled back from (\\d+) to (\\d+) tokens` when the request
+ID contains `-warm-`. No file content identifiers or additional validation
+campaign are needed.
+
 ## Disk-full interruption and continuation
 
 The first block finished before an actual ENOSPC failure during block 1's

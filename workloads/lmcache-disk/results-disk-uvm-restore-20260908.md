@@ -32,7 +32,11 @@ sealed managed allocation, offload it, and service later CPU/GPU reads at
 the **same virtual address**. Fault recovery uses CPU staging. No cuFile or
 NVMe-to-GPU P2P claim follows. The repeated GPU read is much slower than the
 initial GPU read; do not assume restored data has the same residency/cache
-state or label this a measured HBM-resident bandwidth result.
+state or label this a measured HBM-resident bandwidth result. Source explains
+why: `uvm_va_block_select_residency` explicitly selects CPU residency when
+a sealed on-disk page has no resident copy, so disk hydration happens before
+any possible promotion. GPU access succeeding does not itself prove HBM
+promotion. The current primitive has no explicit post-hydration GPU promotion.
 
 This closes the first live five-repeat test of the new disk/UVM restore
 primitive. It is not yet an end-to-end LMCache KV integration, an automatic
@@ -67,3 +71,6 @@ also retained, without mixing campaigns or selecting favorable samples.
 Final lifecycle: all five exits zero, `DISK_RUN_EXIT=0 RESTORATION_OK=1`.
 The saved original UVM was restored; GDS/KV loaders 3146830/3146831 both report
 `attached`. Large backing data, executables and modules are excluded from Git.
+After collection, the unused 268,435,456-byte temporary backing file and its
+empty temporary directory were removed. The file is reproducible from the
+client; original logs, small outputs and all performance measurements remain.

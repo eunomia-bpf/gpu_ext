@@ -59,7 +59,8 @@ preserved on disk after the run.
 - offload2_release: no file writes (spans already on disk); releases the CPU
   copies restored above.
 - gpu_restore: first-touch GPU read; the GPU fault restores via CPU-first
-  hydration from the file, then a CPU->GPU copy.
+  hydration from the file. The current residency selector chooses the CPU
+  for on-disk pages with no resident copy; GPU access does not prove HBM promotion.
 - steady_gpu: repeated GPU read after restore; this label does not establish
   that residency and caching match the initial GPU-resident baseline.
 

@@ -249,6 +249,36 @@ single comparison would warrant repeated paired measurement, not by itself
 establish policy superiority or transparent disk-UVM paging. The native
 cell is running; no result for this patch is claimed yet.
 
+### First grace-patched serving result and follow-up call correction
+
+The native default-async cell completes all eight warm requests, producing
+8192 output tokens in 122.180221 s: **67.048495 token/s**, with median
+TTFT 30055.501847 ms. All eight cold requests also complete and the server
+exits zero. Its log records 42 restore batches, 5856 MiB of read payload,
+244 I/O operations, and 34 rollback warning lines; summed rounded backend
+blocking time is 0.663 s. The same unpatched native pressure attempt
+completed only 1/8 warm requests and recorded 26465 restore batches.
+This single result supports the repair's usefulness under the unchanged
+pressure workload, but is not a repeated effect estimate or a native/BPF
+comparison. Exit diagnostics remain absent.
+
+The first follow-up BPF invocation accidentally passed a relative output
+path. LMCache's `get_fstype` raised `Unable to detect fstype for
+raw/gds-kv-reclaim-grace-575-20260908-01/bpf-async/cache`, and the reclaim
+adapter then found no initialized storage manager. This is a root invocation
+error before serving, not an adverse BPF throughput measurement. After the
+explicit initialization failure, root interrupted the batch runner (exit
+130) to prevent its queued stock call from using the same bad path;
+the existing cleanup/finally path retained `bpf-async/result.json` and
+`server.log`. This was not a silence timeout or an OpenCode interruption.
+
+The corrected calls resolve the output root to an absolute path before
+passing it to `run_cell`, as the successful native call did. BPF and stock
+now run sequentially under `bpf-async-absolute/` and
+`stock-async-absolute/` in the same grace root. Their prior directories and
+the successful native result are not overwritten or rerun. Both corrected
+calls import the same runner once in their shared parent process.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

@@ -28,6 +28,15 @@ runner's before-Popen origin and the earlier fig13-fast per-SIGCONT times;
 the fresh controls are required for that reason. Raw command lines, process
 timestamps, return codes, logs and distinct per-tenant result CSVs are kept.
 
+The headline completion metric includes process/CUDA initialization, the
+benchmark's two built-in warmup runs, its one measured iteration, output
+and teardown. It is not just the CUDA-event duration in `high_median_ms` or
+`low_median_ms`. The two warmups are present in the original HotSpot,
+GEMM and sparse K-Means implementations and were not changed for these
+arms. For example, first-block K-Means memory-only high-priority completion
+is 243.363910 s while its one measured kernel iteration is 78950.5 ms;
+these describe different intervals, not competing estimates of one metric.
+
 ## Actual runtime and restoration
 
 RTX 5090, NVIDIA 575.57.08, Linux 6.15.11-061511-generic. Root holds both

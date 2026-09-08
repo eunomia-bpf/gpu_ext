@@ -1,0 +1,103 @@
+{
+  "scope": "Original-object transport 3 versus transport 2; not a new NVBit H2H",
+  "baseline_order": "No baseline replay; both transport arms measured fresh in five rotating pairs",
+  "arms": {
+    "baseline": {
+      "recorded_cells": 0,
+      "throughput_tok_s": null,
+      "benchmark_zero_exits": 0,
+      "probe_teardown_errors": 0
+    },
+    "transport2": {
+      "recorded_cells": 5,
+      "throughput_tok_s": {
+        "n": 5,
+        "mean": 209.208025,
+        "median": 208.756714,
+        "min": 207.627857,
+        "max": 212.193525
+      },
+      "benchmark_zero_exits": 5,
+      "probe_teardown_errors": 0
+    },
+    "transport3": {
+      "recorded_cells": 5,
+      "throughput_tok_s": {
+        "n": 5,
+        "mean": 345.7163438,
+        "median": 346.808416,
+        "min": 339.938612,
+        "max": 348.869005
+      },
+      "benchmark_zero_exits": 5,
+      "probe_teardown_errors": 0
+    }
+  },
+  "pairs": [
+    {
+      "block": 1,
+      "transport2_tok_s": 212.193525,
+      "transport3_tok_s": 346.808416,
+      "transport3_over_transport2": 1.6343967894402058,
+      "throughput_change_pct": 63.439678944020585,
+      "prefill_time_change_pct": -38.815347260776974,
+      "off_loss_vs_earlier_baseline_pct": null,
+      "on_loss_vs_earlier_baseline_pct": null
+    },
+    {
+      "block": 2,
+      "transport2_tok_s": 209.256654,
+      "transport3_tok_s": 345.360558,
+      "transport3_over_transport2": 1.6504161344374741,
+      "throughput_change_pct": 65.04161344374741,
+      "prefill_time_change_pct": -39.40922055146784,
+      "off_loss_vs_earlier_baseline_pct": null,
+      "on_loss_vs_earlier_baseline_pct": null
+    },
+    {
+      "block": 3,
+      "transport2_tok_s": 208.756714,
+      "transport3_tok_s": 347.605128,
+      "transport3_over_transport2": 1.6651207108002284,
+      "throughput_change_pct": 66.51207108002284,
+      "prefill_time_change_pct": -39.94429391732104,
+      "off_loss_vs_earlier_baseline_pct": null,
+      "on_loss_vs_earlier_baseline_pct": null
+    },
+    {
+      "block": 4,
+      "transport2_tok_s": 208.205375,
+      "transport3_tok_s": 339.938612,
+      "transport3_over_transport2": 1.6327081469438527,
+      "throughput_change_pct": 63.270814694385265,
+      "prefill_time_change_pct": -38.75206650546657,
+      "off_loss_vs_earlier_baseline_pct": null,
+      "on_loss_vs_earlier_baseline_pct": null
+    },
+    {
+      "block": 5,
+      "transport2_tok_s": 207.627857,
+      "transport3_tok_s": 348.869005,
+      "transport3_over_transport2": 1.6802610692071056,
+      "throughput_change_pct": 68.02610692071056,
+      "prefill_time_change_pct": -40.48543894003998,
+      "off_loss_vs_earlier_baseline_pct": null,
+      "on_loss_vs_earlier_baseline_pct": null
+    }
+  ],
+  "paired_ratio": {
+    "n": 5,
+    "mean": 1.6525805701657734,
+    "median": 1.6504161344374741,
+    "min": 1.6327081469438527,
+    "max": 1.6802610692071056
+  },
+  "paired_ratio_median_bootstrap_95pct": [
+    1.6327081469438527,
+    1.6802610692071056
+  ],
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 1797,
+  "all_ten_attached_throughputs_recorded": true,
+  "measurement_errors_retained": true
+}

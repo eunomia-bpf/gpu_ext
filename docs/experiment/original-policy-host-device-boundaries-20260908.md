@@ -35,3 +35,19 @@ BPF performance. New algorithms, if later selected, retain separate labels and
 all original numbers. SASS is a possible injection backend, not a prerequisite
 for every PTX-capable case. This note selects implementation candidates; it does
 not claim new completed host/device ports or performance gains.
+
+## Active implementation assignments
+
+After Qwen Next ended with a terminal HTTP 524 error without a source patch,
+root assigned two independent local sessions: Qwen 27B implements the original
+XSched Level-2 guardian under workloads/xsched; GLM implements Hummingbird's
+original device block-coordinate mapping under workloads/hummingbird. A third
+GLM session continues disk UVM in the existing kernel worktree. Qwen Next's
+actual service failures explain the temporary use of two GLM sessions.
+
+All three are source/build tasks; GPU runs remain root-coordinated. Preserve
+old native/BPF results and frozen builds. No fourth session, new paper, new
+adaptive algorithm, or paper edit is part of these assignments. XSched must
+preserve the real command-start/abort/replay protocol, not independently abort
+arbitrary threads; Hummingbird's BPF coordinates must actually be consumed by
+the original kernel. Native controls share their interfaces and actuators.

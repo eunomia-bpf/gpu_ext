@@ -1,6 +1,11 @@
 # Existing FineMoE: device-feedback extension
 
-Status: assignment corrected by the user; no new performance measurements yet.
+Status: assignment corrected by the user; the subsequent Qwen Next session
+ended with a terminal provider HTTP 524 error without a source patch. No new
+performance measurements exist. The task was not stopped for silence. The
+currently selected faithful host/device implementations are XSched's guardian
+and Hummingbird's block mapping, whose original device roles are explicit in
+their PDFs; this FineMoE proposal remains unimplemented, not completed.
 
 ## User correction: preserve the original algorithm first
 

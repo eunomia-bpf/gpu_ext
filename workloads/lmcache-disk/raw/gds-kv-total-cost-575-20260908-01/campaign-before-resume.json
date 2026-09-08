@@ -1,0 +1,462 @@
+{
+  "cells": [
+    {
+      "block": 0,
+      "error": null,
+      "policy_label": "stock",
+      "position": 0,
+      "result": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-kv-total-cost-575-20260908-01/block-00/position-0-stock/result.json",
+      "warm_phase": {
+        "arrivals": [
+          {
+            "prefix_index": 0,
+            "scheduled_send_ns": 102235466146966,
+            "send_lag_ns": 392732,
+            "sent_ns": 102235466539698
+          },
+          {
+            "prefix_index": 1,
+            "scheduled_send_ns": 102235716146966,
+            "send_lag_ns": 165686,
+            "sent_ns": 102235716312652
+          },
+          {
+            "prefix_index": 2,
+            "scheduled_send_ns": 102235966146966,
+            "send_lag_ns": 188987,
+            "sent_ns": 102235966335953
+          },
+          {
+            "prefix_index": 3,
+            "scheduled_send_ns": 102236216146966,
+            "send_lag_ns": 279888,
+            "sent_ns": 102236216426854
+          },
+          {
+            "prefix_index": 4,
+            "scheduled_send_ns": 102236466146966,
+            "send_lag_ns": 24445048284,
+            "sent_ns": 102260911195250
+          },
+          {
+            "prefix_index": 5,
+            "scheduled_send_ns": 102236716146966,
+            "send_lag_ns": 31120046968,
+            "sent_ns": 102267836193934
+          },
+          {
+            "prefix_index": 6,
+            "scheduled_send_ns": 102236966146966,
+            "send_lag_ns": 49660414858,
+            "sent_ns": 102286626561824
+          },
+          {
+            "prefix_index": 7,
+            "scheduled_send_ns": 102237216146966,
+            "send_lag_ns": 59447322511,
+            "sent_ns": 102296663469477
+          }
+        ],
+        "attempts": 8,
+        "concurrency": 4,
+        "elapsed_s": 115.536248017,
+        "excludes": [
+          "server startup",
+          "cold population",
+          "cold-store barriers",
+          "shutdown"
+        ],
+        "failures": 0,
+        "generated_tokens_observed_sum": 8192,
+        "generated_tokens_observed_values": [
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024
+        ],
+        "output_tokens": 8192,
+        "output_tokens_bound": 1024,
+        "output_tokens_per_s": 70.90415467528969,
+        "output_tokens_per_s_values": [
+          40.3711768499712,
+          31.975091863080607,
+          39.9559138604923,
+          35.61076397767172,
+          40.17940280234791,
+          37.5549197333236,
+          39.33007398549943,
+          38.05500937042451
+        ],
+        "requests": 8,
+        "requests_per_s": 0.06924233855008759,
+        "stagger_ms": 250.0,
+        "warm_ttft_max_ms": 31691.544516,
+        "warm_ttft_median_ms": 25745.204467,
+        "warm_ttft_p95_ms": 33227.50302525,
+        "warm_ttft_samples": 8,
+        "warm_ttft_values_ms": [
+          79.838113,
+          94.813123,
+          25031.818058,
+          31691.544516,
+          25808.156848,
+          28898.892681,
+          25682.252086,
+          27412.90547
+        ]
+      }
+    },
+    {
+      "block": 0,
+      "error": null,
+      "policy_label": "native_ratio",
+      "position": 1,
+      "result": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-kv-total-cost-575-20260908-01/block-00/position-1-native_ratio/result.json",
+      "warm_phase": {
+        "arrivals": [
+          {
+            "prefix_index": 0,
+            "scheduled_send_ns": 102382112019153,
+            "send_lag_ns": 283847,
+            "sent_ns": 102382112303000
+          },
+          {
+            "prefix_index": 1,
+            "scheduled_send_ns": 102382362019153,
+            "send_lag_ns": 169120,
+            "sent_ns": 102382362188273
+          },
+          {
+            "prefix_index": 2,
+            "scheduled_send_ns": 102382612019153,
+            "send_lag_ns": 253557,
+            "sent_ns": 102382612272710
+          },
+          {
+            "prefix_index": 3,
+            "scheduled_send_ns": 102382862019153,
+            "send_lag_ns": 160016,
+            "sent_ns": 102382862179169
+          },
+          {
+            "prefix_index": 4,
+            "scheduled_send_ns": 102383112019153,
+            "send_lag_ns": 25874207817,
+            "sent_ns": 102408986226970
+          },
+          {
+            "prefix_index": 5,
+            "scheduled_send_ns": 102383362019153,
+            "send_lag_ns": 32549634599,
+            "sent_ns": 102415911653752
+          },
+          {
+            "prefix_index": 6,
+            "scheduled_send_ns": 102383612019153,
+            "send_lag_ns": 59497424769,
+            "sent_ns": 102443109443922
+          },
+          {
+            "prefix_index": 7,
+            "scheduled_send_ns": 102383862019153,
+            "send_lag_ns": 64820973609,
+            "sent_ns": 102448682992762
+          }
+        ],
+        "attempts": 8,
+        "concurrency": 4,
+        "elapsed_s": 131.159391394,
+        "excludes": [
+          "server startup",
+          "cold population",
+          "cold-store barriers",
+          "shutdown"
+        ],
+        "failures": 0,
+        "generated_tokens_observed_sum": 8192,
+        "generated_tokens_observed_values": [
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024
+        ],
+        "output_tokens": 8192,
+        "output_tokens_bound": 1024,
+        "output_tokens_per_s": 62.458356301695595,
+        "output_tokens_per_s_values": [
+          30.369745564657936,
+          38.59353363607973,
+          25.856345818877486,
+          37.781361475116526,
+          27.010267104247312,
+          38.80448793478011,
+          26.947082477759988,
+          39.1647769420837
+        ],
+        "requests": 8,
+        "requests_per_s": 0.060994488575874604,
+        "stagger_ms": 250.0,
+        "warm_ttft_max_ms": 34217.184009,
+        "warm_ttft_median_ms": 32331.098169,
+        "warm_ttft_p95_ms": 34807.555360349994,
+        "warm_ttft_samples": 8,
+        "warm_ttft_values_ms": [
+          81.4335,
+          90.93523,
+          26467.138827,
+          33143.781552,
+          34217.184009,
+          32860.690144,
+          32143.116929,
+          32519.079409
+        ]
+      }
+    },
+    {
+      "block": 0,
+      "error": null,
+      "policy_label": "native_total",
+      "position": 2,
+      "result": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-kv-total-cost-575-20260908-01/block-00/position-2-native_total/result.json",
+      "warm_phase": {
+        "arrivals": [
+          {
+            "prefix_index": 0,
+            "scheduled_send_ns": 102555136551228,
+            "send_lag_ns": 323943,
+            "sent_ns": 102555136875171
+          },
+          {
+            "prefix_index": 1,
+            "scheduled_send_ns": 102555386551228,
+            "send_lag_ns": 233923,
+            "sent_ns": 102555386785151
+          },
+          {
+            "prefix_index": 2,
+            "scheduled_send_ns": 102555636551228,
+            "send_lag_ns": 184463,
+            "sent_ns": 102555636735691
+          },
+          {
+            "prefix_index": 3,
+            "scheduled_send_ns": 102555886551228,
+            "send_lag_ns": 157149,
+            "sent_ns": 102555886708377
+          },
+          {
+            "prefix_index": 4,
+            "scheduled_send_ns": 102556136551228,
+            "send_lag_ns": 24869137921,
+            "sent_ns": 102581005689149
+          },
+          {
+            "prefix_index": 5,
+            "scheduled_send_ns": 102556386551228,
+            "send_lag_ns": 31539409202,
+            "sent_ns": 102587925960430
+          },
+          {
+            "prefix_index": 6,
+            "scheduled_send_ns": 102556636551228,
+            "send_lag_ns": 50323617278,
+            "sent_ns": 102606960168506
+          },
+          {
+            "prefix_index": 7,
+            "scheduled_send_ns": 102556886551228,
+            "send_lag_ns": 60357752684,
+            "sent_ns": 102617244303912
+          }
+        ],
+        "attempts": 8,
+        "concurrency": 4,
+        "elapsed_s": 118.78540493,
+        "excludes": [
+          "server startup",
+          "cold population",
+          "cold-store barriers",
+          "shutdown"
+        ],
+        "failures": 0,
+        "generated_tokens_observed_sum": 8192,
+        "generated_tokens_observed_values": [
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024
+        ],
+        "output_tokens": 8192,
+        "output_tokens_bound": 1024,
+        "output_tokens_per_s": 68.96470155426526,
+        "output_tokens_per_s_values": [
+          39.70597540332887,
+          31.545666936901696,
+          39.58644119877391,
+          35.01462927111145,
+          38.408238729482285,
+          35.596773474857784,
+          37.922509607825575,
+          36.900515105018165
+        ],
+        "requests": 8,
+        "requests_per_s": 0.06734834136158717,
+        "stagger_ms": 250.0,
+        "warm_ttft_max_ms": 32112.533871,
+        "warm_ttft_median_ms": 26453.8161885,
+        "warm_ttft_p95_ms": 33608.23139135,
+        "warm_ttft_samples": 8,
+        "warm_ttft_values_ms": [
+          79.074515,
+          78.15744,
+          25455.817569,
+          32112.533871,
+          26048.437581,
+          29393.083834,
+          26859.194796,
+          28907.897861
+        ]
+      }
+    },
+    {
+      "block": 0,
+      "error": null,
+      "policy_label": "bpf_total",
+      "position": 3,
+      "result": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/gds-kv-total-cost-575-20260908-01/block-00/position-3-bpf_total/result.json",
+      "warm_phase": {
+        "arrivals": [
+          {
+            "prefix_index": 0,
+            "scheduled_send_ns": 102715631431844,
+            "send_lag_ns": 227037,
+            "sent_ns": 102715631658881
+          },
+          {
+            "prefix_index": 1,
+            "scheduled_send_ns": 102715881431844,
+            "send_lag_ns": 156846,
+            "sent_ns": 102715881588690
+          },
+          {
+            "prefix_index": 2,
+            "scheduled_send_ns": 102716131431844,
+            "send_lag_ns": 256310,
+            "sent_ns": 102716131688154
+          },
+          {
+            "prefix_index": 3,
+            "scheduled_send_ns": 102716381431844,
+            "send_lag_ns": 291741,
+            "sent_ns": 102716381723585
+          },
+          {
+            "prefix_index": 4,
+            "scheduled_send_ns": 102716631431844,
+            "send_lag_ns": 24731928650,
+            "sent_ns": 102741363360494
+          },
+          {
+            "prefix_index": 5,
+            "scheduled_send_ns": 102716881431844,
+            "send_lag_ns": 31464446495,
+            "sent_ns": 102748345878339
+          },
+          {
+            "prefix_index": 6,
+            "scheduled_send_ns": 102717131431844,
+            "send_lag_ns": 50644804916,
+            "sent_ns": 102767776236760
+          },
+          {
+            "prefix_index": 7,
+            "scheduled_send_ns": 102717381431844,
+            "send_lag_ns": 60917859759,
+            "sent_ns": 102778299291603
+          }
+        ],
+        "attempts": 8,
+        "concurrency": 4,
+        "elapsed_s": 117.646427711,
+        "excludes": [
+          "server startup",
+          "cold population",
+          "cold-store barriers",
+          "shutdown"
+        ],
+        "failures": 0,
+        "generated_tokens_observed_sum": 8192,
+        "generated_tokens_observed_values": [
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024,
+          1024
+        ],
+        "output_tokens": 8192,
+        "output_tokens_bound": 1024,
+        "output_tokens_per_s": 69.63237353983885,
+        "output_tokens_per_s_values": [
+          39.9167655433373,
+          31.635424610693995,
+          38.89869368555758,
+          34.2695772489469,
+          38.955586677385945,
+          36.73095538720788,
+          38.97039021873377,
+          38.0185686347757
+        ],
+        "requests": 8,
+        "requests_per_s": 0.06800036478499888,
+        "stagger_ms": 250.0,
+        "warm_ttft_max_ms": 32036.69542,
+        "warm_ttft_median_ms": 26499.364056500002,
+        "warm_ttft_p95_ms": 33142.17134485,
+        "warm_ttft_samples": 8,
+        "warm_ttft_values_ms": [
+          78.146876,
+          95.371162,
+          25319.592274,
+          32036.69542,
+          26510.180719,
+          30026.739193,
+          26488.547394,
+          28026.911142
+        ]
+      }
+    }
+  ],
+  "loader_process_group": 2045865,
+  "new_loader_command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/kv_reclaim_loader",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/kv_reclaim_total_cost.bpf.o"
+  ],
+  "old_loader_command": [
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/kv_reclaim_loader",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/kv_reclaim_policy.bpf.o"
+  ],
+  "policy_labels": [
+    "stock",
+    "native_ratio",
+    "native_total",
+    "bpf_total"
+  ],
+  "source_commit": "4381f660",
+  "started_ns": 1788836339276341449,
+  "status": "running"
+}

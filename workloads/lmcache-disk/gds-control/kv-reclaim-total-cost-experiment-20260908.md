@@ -140,3 +140,11 @@ locks, records native library/BPF object choices in each cell, and restores
 the original cost-per-byte loader in its finalization path. It does not
 recalibrate, impose a campaign timeout, or change the live driver.
 Each completed cell is retained independently while later cells continue.
+
+After block 0 completed, block 1's first cold population failed with actual
+ENOSPC, including a failed result serialization. Root retained that attempt,
+moved completed-run cache payloads to a recoverable archive on the other
+filesystem, and resumed only blocks 1–4 with `resume-run.py`. The failed
+attempt receives a distinct `-after-enospc` replacement directory; no
+completed cell is repeated. See the [result report](../results-575-gds-kv-total-cost-20260908.md)
+for the interruption, archive location, and free-space deviation.

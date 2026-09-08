@@ -144,6 +144,11 @@ arm. Its closed `block02_*` records are retained. K-Means is 12/20 cells
 complete (overall 52/60), with block 3 running. No completed block was
 repeated or omitted; five-block analysis and restoration are still pending.
 
+At 08:45 UTC block 3 completed with both tenant exit codes zero in all four
+arms. The closed `block03_*` records are collected. K-Means is 16/20 cells
+complete (overall 56/60), and the final block 4 is running. No five-block
+K-Means effect estimate or completed runtime restoration is claimed yet.
+
 ## Memory-policy activity in the completed HotSpot/GEMM runs
 
 The existing final `=== Summary ===` sections of each `mem_tool.log` give

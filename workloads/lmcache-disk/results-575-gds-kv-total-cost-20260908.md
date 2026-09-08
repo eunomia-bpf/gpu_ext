@@ -184,6 +184,12 @@ campaign are needed.
 
 ## Disk-full interruption and continuation
 
+Subsequent storage cleanup on 2026-09-08 permanently removed the regenerable
+payloads from the temporary archive discussed below. All measured results,
+logs and metadata remain. The [deletion inventory](raw/retired-cache-payload-cleanup-20260908.md)
+supersedes the historical statement that those archived payloads can still be
+moved back; it does not change the experiment history or measurements.
+
 The first block finished before an actual ENOSPC failure during block 1's
 native-ratio cold population. Its retained `server.log` records six cold
 store messages followed by `No space left on device` and EngineCore failure.

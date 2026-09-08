@@ -1,5 +1,14 @@
 # Completed cache payload archive
 
+Current status, 2026-09-08: the separate user-authorized cleanup task has
+permanently deleted the archived KV payloads, retaining their metadata and all
+experiment results/logs. Across the grace and total-cost archives, 1728 payload
+files totaling 43493621760 logical bytes (40.51 GiB) were removed. See the
+[collected deletion inventory](../retired-cache-payload-cleanup-20260908.md).
+The historical move record below remains intact, but moving the directories
+back no longer restores payload contents. Cache population must regenerate
+them if needed; completed performance cells need not be rerun.
+
 After both the main campaign and the missing-control process exited zero,
 root moved the seventeen remaining completed-cell cache directories to the
 existing recoverable archive below. The first four completed block-0 cache

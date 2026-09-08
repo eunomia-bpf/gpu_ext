@@ -1,0 +1,57 @@
+{
+  "name": "be2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/usr/bin/env",
+    "LD_PRELOAD=/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "be",
+    "2",
+    "4",
+    "50",
+    "9511106",
+    "340",
+    "256",
+    "1",
+    "0"
+  ],
+  "returncode": 2,
+  "stdout": [
+    "------------- NVBit (NVidia Binary Instrumentation Tool v1.8) Loaded --------------",
+    "NVBit core environment variables (mostly for nvbit-devs):",
+    "ACK_CTX_INIT_LIMITATION = 0 - if set, no warning will be printed for nvbit_at_ctx_init()",
+    "            NVDISASM = nvdisasm - override default nvdisasm found in PATH",
+    "            NOBANNER = 0 - if set, does not print this banner",
+    "       NO_EAGER_LOAD = 1 - lazy module loading is now turned on by default. If you see deadlocks in your tool, set NO_EAGER_LOAD to 0",
+    "---------------------------------------------------------------------------------",
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":2,\"streams\":4,\"tasks\":50}",
+    "{\"event\":\"running\",\"role\":\"be\",\"process_id\":2,\"host_ns\":174956022591522,\"stream0_task0_active\":true}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 3684952 @ 16:11:32.518668] using global scheduler",
+    "XG tool loaded decision=native target=_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+    "WARNING: Do not call CUDA memory allocation in nvbit_at_ctx_init(). It will cause deadlocks. Do them in nvbit_tool_init(). If you encounter deadlocks, remove CUDA API calls to debug.",
+    "XG instrumented_entry function_idx=0 entry_offset=0 decision_mode=0",
+    "sink mismatch index=87040 value=0x0p+0 expected=0x1.45ef1cp+4",
+    "fatal: correctness: output differs from the per-lane recurrence",
+    "XG done functions=1 launches=200"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "XSCHED_SCHEDULER": "GLB",
+    "XSCHED_AUTO_XQUEUE": "ON",
+    "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+    "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+    "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+    "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+    "XSCHED_CUDA_LV2_PORT_120": "1",
+    "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+    "XG_DECISION": "native",
+    "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+    "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+    "XG_SERVICE_ONLY": "1"
+  }
+}

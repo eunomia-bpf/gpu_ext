@@ -1,0 +1,10 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'
+mkdir -p .output/
+/usr/local/cuda-12.9/bin/nvcc -c -arch=sm_120 -O3 -std=c++14 -Xcompiler -fPIC -I../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core \
+	../level2/tool/xsched_guard_tool.cu -o .output/xsched_guard_tool.o
+/usr/local/cuda-12.9/bin/nvcc -arch=sm_120 -O3 \
+	.output/xsched_guard_tool.o .output/xg_guardian_carrier.o \
+	-L../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -lnvbit -L/usr/local/cuda-12.9/targets/x86_64-linux/lib -lcuda -lcudart_static \
+	-shared -o .output/xsched_guard_tool.so
+XG tool built: .output/xsched_guard_tool.so
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'

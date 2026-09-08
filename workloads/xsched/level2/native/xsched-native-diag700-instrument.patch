@@ -1,0 +1,71 @@
+--- a/platforms/cuda/hal/src/level2/instrument.cpp
++++ b/platforms/cuda/hal/src/level2/instrument.cpp
+@@ -88,6 +88,17 @@
+     guardian_->GetResumeInstructions(&resume_host, &resume_size);
+     entry_point_resume_ = instr_mem_->Alloc(resume_size);
+     cuXtraInstrMemcpyHtoD(entry_point_resume_, resume_host, resume_size, op_stream_);
++    // native-700 probe 1 (instr-memory hypothesis): this copy is the
++    // ctor's only never-synchronized device operation; sync it here so an
++    // instruction-memory fault (bad BlockAlloc VA on sm_120, or invalid
++    // HtoD write) surfaces at queue creation instead of being deferred to
++    // the first launch's EventSynchronize, where it becomes
++    // indistinguishable from launch-side corruption.
++    XINFO("native-700 probe 1: resume blob VA 0x%llx size %llu, syncing",
++          (unsigned long long)entry_point_resume_,
++          (unsigned long long)resume_size);
++    CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
++    XINFO("native-700 probe 1: resume blob copy synced clean");
+ }
+ 
+ std::shared_ptr<InstrumentContext> InstrumentContext::Instance(CUcontext ctx)
+@@ -174,8 +185,30 @@
+     
+     launch_mtx_.lock();
+     cuXtraSetDebuggerParams(kernel->kFuncHandle, args_buf, sizeof(args_buf));
++    // native-700 probe 2 (debugger-window + launch-shape hypothesis): the
++    // failing native cell launched the GUARDIAN through this common
++    // branch. Log the launch shape, then read the 28-byte block back
++    // through the offset-explicit getter to test whether the implicit
++    // setter window (0x1880 on sm_70/86) round-trips on driver 575 for
++    // compute_task whose declared c[0x0] extent is only 0x3a0 bytes.
++    // Logging only: launch behavior is unchanged.
++    XINFO("native-700 probe 2: type=%d preempt_buf=0x%llx guardian=0x%llx"
++          " entry=0x%llu idx=%lld killable=%u",
++          (int)type, *(unsigned long long *)preempt_buf,
++          *(unsigned long long *)guardian, (unsigned long long)entry_point,
++          (long long)*kernel_idx, *killable);
++    char dbg_readback[28];
++    memset(dbg_readback, 0, sizeof(dbg_readback));
++    cuXtraGetDebuggerParams(kernel->kFuncHandle, dbg_readback, 0,
++                            sizeof(args_buf));
++    XINFO("native-700 probe 2: readback equal=%d byte0=0x%02x"
++          " byte8=0x%02x byte16=0x%02x",
++          memcmp(args_buf, dbg_readback, sizeof(args_buf)) == 0 ? 1 : 0,
++          (unsigned)dbg_readback[0], (unsigned)dbg_readback[8],
++          (unsigned)dbg_readback[16]);
+     cuXtraSetEntryPoint(kernel->kFuncHandle, entry_point);
+     CUresult ret = kernel->LaunchWrapper(stream);
++    XINFO("native-700 probe 2: launch ret=%d", (int)ret);
+     cuXtraSetEntryPoint(kernel->kFuncHandle, kernel->entry_point_original);
+     launch_mtx_.unlock();
+ 
+@@ -245,6 +278,19 @@
+     size_t barrier_cnt = cuXtraGetBarrierCnt(func);
+     if (barrier_cnt < 1) cuXtraSetBarrierCnt(func, 1);
+ 
++    // native-700 probe 3 (surgery hypothesis): record exactly what the
++    // binary surgery produced on sm_120 before the first guardian launch:
++    // the kernel byte size returned by cuXtraGetBinary (raw vs loaded
++    // layout), the guardian size, the instrumented entry VA, and whether
++    // the register/barrier bumps round-trip on driver 575.
++    size_t reg_after = cuXtraGetLocalRegsPerThread(func);
++    size_t bar_after = cuXtraGetBarrierCnt(func);
++    XINFO("native-700 probe 3: binary kernel=%llu B guardian=%llu B ep_inst=0x%llx"
++          " regs=%llu->%llu barriers=%llu->%llu",
++          (unsigned long long)kernel_size, (unsigned long long)check_size,
++          (unsigned long long)ep_inst, (unsigned long long)reg_cnt,
++          (unsigned long long)reg_after, (unsigned long long)barrier_cnt,
++          (unsigned long long)bar_after);
+     // flush instruction cache to take effect
+     cuXtraInvalInstrCache(kCtx);
+     

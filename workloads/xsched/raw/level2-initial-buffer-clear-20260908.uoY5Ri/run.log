@@ -1,0 +1,122 @@
+{
+  "phase": "level2-tool-actuator-pair",
+  "scope": "sm_120 Level-2 tool-actuator port bring-up: native-C vs device-BPF decisions on the same trusted NVBit actuator; not an upstream cuXtra reproduction; service-only metrics, no queue or cross-clock metric",
+  "initial_run": false,
+  "pair_blocks": 1,
+  "config_order": [
+    "native_port"
+  ],
+  "streams": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "tasks_per_stream": 50,
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "fixed_delay_ns": 5000000,
+  "tool_ctx_slots": 8192,
+  "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+  "clock_offset_ns": 0,
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "worker_environments": {
+    "baseline": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XG_SERVICE_ONLY": "1"
+      }
+    },
+    "native_port": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "native",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "native",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      }
+    },
+    "bpf_port": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "bpf",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "bpf",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      }
+    }
+  },
+  "paths": {
+    "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "xserver_native": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "xserver_bpftime": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/xserver-bpftime",
+    "bpftime_hpf_code": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bpftime_hpf.bin",
+    "guard_tool": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+    "hal_lib_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib"
+  }
+}
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 600, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 586, in main
+    record = run_cell(config, block, block_type, cell_dir, args.workload,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 342, in run_cell
+    event = worker.wait_service_result()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 212, in wait_service_result
+    raise RuntimeError(
+RuntimeError: be1 exited 2 before the service result: [XSCHED INFO @ T 3684949 @ 16:11:32.517137] using global scheduler; XG tool loaded decision=native target=_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy; WARNING: Do not call CUDA memory allocation in nvbit_at_ctx_init(). It will cause deadlocks. Do them in nvbit_tool_init(). If you encounter deadlocks, remove CUDA API calls to debug.; XG instrumented_entry function_idx=0 entry_offset=0 decision_mode=0; sink mismatch index=87040 value=0x0p+0 expected=0x1.45ef1cp+4; fatal: correctness: output differs from the per-lane recurrence; XG done functions=1 launches=200

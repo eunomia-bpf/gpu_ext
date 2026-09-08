@@ -1,5 +1,4 @@
 diff --git a/kernel-open/nvidia-uvm/uvm.c b/kernel-open/nvidia-uvm/uvm.c
-index 6f1b8359..2f906b1a 100644
 --- a/kernel-open/nvidia-uvm/uvm.c
 +++ b/kernel-open/nvidia-uvm/uvm.c
 @@ -1321,6 +1321,49 @@ out:
@@ -61,7 +60,6 @@ index 6f1b8359..2f906b1a 100644
          UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_PAGEABLE_MEM_ACCESS,            uvm_api_pageable_mem_access);
          UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_PAGEABLE_MEM_ACCESS_ON_GPU,     uvm_api_pageable_mem_access_on_gpu);
 diff --git a/kernel-open/nvidia-uvm/uvm_disk_backing.c b/kernel-open/nvidia-uvm/uvm_disk_backing.c
-index a49d78ce..b05e496c 100644
 --- a/kernel-open/nvidia-uvm/uvm_disk_backing.c
 +++ b/kernel-open/nvidia-uvm/uvm_disk_backing.c
 @@ -57,6 +57,11 @@ struct uvm_disk_backing_shared_struct
@@ -104,7 +102,6 @@ index a49d78ce..b05e496c 100644
  {
      uvm_disk_backing_t *backing = uvm_disk_backing_from_block(block);
 diff --git a/kernel-open/nvidia-uvm/uvm_disk_backing.h b/kernel-open/nvidia-uvm/uvm_disk_backing.h
-index ff894af6..7fee3f38 100644
 --- a/kernel-open/nvidia-uvm/uvm_disk_backing.h
 +++ b/kernel-open/nvidia-uvm/uvm_disk_backing.h
 @@ -81,6 +81,22 @@ void uvm_disk_backing_release(uvm_disk_backing_t *backing);
@@ -131,7 +128,6 @@ index ff894af6..7fee3f38 100644
  // uvm_fault_access_type_t; anything above READ is rejected.
  bool uvm_disk_backing_reject_write(uvm_va_block_t *block,
 diff --git a/kernel-open/nvidia-uvm/uvm_ioctl.h b/kernel-open/nvidia-uvm/uvm_ioctl.h
-index 31e2563e..575c7a54 100644
 --- a/kernel-open/nvidia-uvm/uvm_ioctl.h
 +++ b/kernel-open/nvidia-uvm/uvm_ioctl.h
 @@ -1304,6 +1304,28 @@ typedef struct
@@ -164,7 +160,6 @@ index 31e2563e..575c7a54 100644
  // Temporary ioctls which should be removed before UVM 8 release
  // Number backwards from 2047 - highest custom ioctl function number
 diff --git a/kernel-open/nvidia-uvm/uvm_va_block.c b/kernel-open/nvidia-uvm/uvm_va_block.c
-index 35ce7864..4dbc5010 100644
 --- a/kernel-open/nvidia-uvm/uvm_va_block.c
 +++ b/kernel-open/nvidia-uvm/uvm_va_block.c
 @@ -3262,12 +3262,52 @@ static NV_STATUS block_populate_pages(uvm_va_block_t *block,

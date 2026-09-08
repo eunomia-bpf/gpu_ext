@@ -21,5 +21,19 @@ of whole-program leader admission. The ordinary tool/runtime builds and
 same-object performance campaign remain pending. The GPU is assigned to
 the other task's Fig14 scan; no completed historical experiment is rerun.
 
+Source inspection identified another required integration fix: the reused
+`private_probe` supplies the legacy 1000 MiB shared-memory allocation and
+44-entry environment setting, but the unpatched kernelretsnoop object has
+80-byte records and 256 entries. Its loader does not consume that entry-count
+environment setting. The runtime allocates `slots * (24 + 88 * 256) + 32`
+bytes. Even retaining the inherited pp512 slot count of 524288 requires
+11823743008 bytes (about 11.012 GiB), not the legacy 935329824 bytes.
+This is allocation arithmetic from current source, not a measured failure
+or throughput result. The original thread-index geometry and the loader/agent
+environment must agree in the new mode; off/on must use the same object and
+buffer layout. This fix must not reintroduce the manual-warp capacity patch
+or change the historical seven-arm configuration. The same local runner
+implementation session has received the source locations and required fix.
+
 Do not call this checkpoint a complete runnable campaign or a performance
 improvement. Existing adverse results and source contracts are unchanged.

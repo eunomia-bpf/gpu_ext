@@ -152,10 +152,14 @@ class ManagedProcess:
         self.stderr_lines: list = []
         self.events = queue.Queue()
         cpu_mask = str(cpus) if isinstance(cpus, int) else ",".join(map(str, cpus))
-        full = ["taskset", "-c", cpu_mask] + list(command)
+        # Load instrumentation in the workload, not in taskset before exec.
+        launcher_env = env.copy()
+        preload = launcher_env.pop("LD_PRELOAD", None)
+        delayed_preload = ["/usr/bin/env", f"LD_PRELOAD={preload}"] if preload else []
+        full = ["taskset", "-c", cpu_mask] + delayed_preload + list(command)
         self.proc = subprocess.Popen(
             full, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, bufsize=1, env=env, start_new_session=True,
+            text=True, bufsize=1, env=launcher_env, start_new_session=True,
         )
         self.threads = [
             threading.Thread(target=self._reader, args=(self.proc.stdout, self.stdout_lines, True),

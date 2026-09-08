@@ -349,6 +349,28 @@ the three already-completed block-0 cells retain their original names.
 The failed relative-path startup attempt remains separate. No old cell or
 calibration is repeated, and five-block results are not available yet.
 
+### Grace-patched block 1 complete
+
+The matched Table 1 campaign has finished and released the GPU. The next
+LMCache block completed in BPF/stock/native order, with the same rotated
+warm arrivals and unchanged runtime. Each cell completed all eight cold
+and eight warm requests, generated 8192 warm tokens, and returned server
+exit zero. Raw records and server logs are under
+`raw/gds-kv-reclaim-grace-575-20260908-01/block-01/`.
+
+| Arm | Warm elapsed, s | Output token/s | TTFT median, ms |
+| --- | ---: | ---: | ---: |
+| BPF | 118.812304 | 68.949088 | 26490.894979 |
+| Stock | 119.427348 | 68.594004 | 26913.715925 |
+| Native | 121.329350 | 67.518700 | 27220.162457 |
+
+The ranking differs from block 0. Two completed blocks do not establish
+a stable policy advantage or a tight mechanism-overhead estimate; blocks
+2--4 continue in the already-running parent without repeating these cells.
+Missing exit-time adapter diagnostics remain a recorded limitation. No
+claim of physical cross-process HBM release or transparent disk-UVM paging
+is implied by these serving measurements.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

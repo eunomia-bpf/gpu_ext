@@ -159,6 +159,31 @@ prefixes after rollback. Its final outcomes are not yet available. No
 scheduler repair has been applied to this cell, and neither this observation
 nor the proposed wait constitutes transparent same-address disk-UVM paging.
 
+### Repaired BPF async attempt completed, September 8 UTC
+
+The BPF default-async cell subsequently finished with all eight cold
+requests successful and all eight warm requests ending in
+`TimeoutError: timed out`. Its warm interval is 1238.817758 s, with no
+successfully completed warm output tokens. Its completed-output goodput is
+therefore 0 token/s and its successful-request TTFT is unavailable. This
+does not mean the GPU generated no partial output: the existing exception
+path does not preserve partial stream tokens or first-token timing.
+Server exit status is zero; it does not change the failed request outcomes.
+The exit diagnostics file is absent, as in the other repaired cells.
+
+Together, the repaired default-async attempts complete 1/8 warm requests
+for native (0.822150 completed-output token/s) and 0/8 for BPF. These are
+adverse serving outcomes under the original pressure workload, not a useful
+estimate of BPF decision overhead. The logs retain the repeated
+rollback/restore behavior; neither cell includes the proposed deferred-free
+scheduler repair. Both raw result files and full server logs are preserved,
+and neither cell will be repeated with the unchanged implementation.
+
+The existing kernelretsnoop extension takes the GPU next, appending only
+paired blocks 6--10 to its five completed blocks. Scheduler development and
+the matched NVBit variant continue in local OpenCode sessions without
+modifying the runtime used by the active performance run.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

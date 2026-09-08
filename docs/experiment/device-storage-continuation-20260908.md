@@ -66,26 +66,40 @@ exits and loader teardown errors are recorded separately. The runner's
 An absent message does not by itself show whether optimization was disabled.
 No added clock or logging gate blocks performance collection.
 
-## Local implementation queue
+## Local implementation queue — updated 11:26 PDT
 
-1. Qwen 27B, session `ses_f7e9d6af4ffeyntfT0hZqhYC5c`: read-only source/log
-   analysis of remaining transport overhead and loader teardown. No edits
-   to the runtime currently used for measurement; no repeated GPU cells.
+1. Qwen 27B, session `ses_f80dc8da2ffev9TpuxcuajuRMa`: the missing mode-3
+   device writer, matching the already prepared host transpose patch.
+   The read-only analysis session completed; its incorrect whole-program
+   warp-leader interpretation was corrected in `0320ea1d`. Helper 25 is
+   explicitly ineligible for that transformation. Mode 3 preserves every
+   event and changes storage layout, not the BPF policy or sampling rate.
 2. GLM, session `ses_f80c49c7cffebjDrdYLKy8X0ZC`: finish the XSched Level-2
    sm_120 native LDC adapter against actual NVCC-produced instructions.
    The equivalent branchless BPF guardian now builds: 49 BPF instructions,
    accepted by the existing exporter, assembled to sm_120 cubin and linked
    into the tool library (`01c4d4ba`). The first width/metadata parser piece
    also compiles (`866f5489`); native encoding integration is still unfinished.
+   The isolated tool-actuator HAL now builds and installs (`4617565a`).
+   The native prefix has a concrete compiler issue: its unconditional EXIT
+   prevents fallthrough into the original kernel. GLM is repairing that
+   source/extraction path; the matched native-C/BPF NVBit route is separate.
    Existing Level-1 results do not count as Level-2 results.
 3. Qwen 27B, session `ses_f7e5a4134ffeup2HgHIRqLaiho`: prepare an isolated
    opt-in disk-restoration/GPU-promotion patch. CPU fault behavior and the
    measured CPU-first mode stay unchanged. No driver reload or performance
-   claim before root integration and a new scoped run.
+   claim before root integration and a new scoped run. The first candidate
+   landed, but root found an existing early return bypasses its disk hydration
+   when no resident source exists. The same session is fixing that path and
+   adding the opt-in switch to the existing full-read client.
 
 Qwen Next's earlier provider calls ended with actual HTTP 524 errors; the
 current fallback therefore uses two Qwen 27B sessions and one GLM session,
-not a fourth session. GLM's LDC generation was resumed after a terminal
-length limit, not interrupted for lack of output. Heavy builds and GPU runs
-wait for the active performance campaign. Hummingbird host/device work is
+not a fourth session. The mode-3 session's latest Next call also ended with
+terminal HTTP 524; root resumed that same session on direct Qwen 27B
+(`c60193d0`). GLM's LDC generation was resumed after a terminal
+length limit, not interrupted for lack of output. No GPU timing is active
+at this checkpoint; subsequent builds/runs use the shared experiment locks.
+The saved original UVM is still loaded, not the promotion candidate.
+Hummingbird host/device work is
 still queued, without new implementation or measurement claims.

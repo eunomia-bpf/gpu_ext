@@ -62,7 +62,16 @@ Reuse real BPF->PTX/SASS support read-only from workloads/sass-kretprobe, /home/
 Deliver a runnable matched native/BPF Level2 port on the existing real priority workload and build/runner glue, retaining original HPF semantics. If a hook/interface genuinely cannot supply required control, report exact boundary and implement the smallest necessary in-scope adapter. No general SASS backend rewrite, no fabricated success or latency. Root will coordinate performance run after build.
 ```
 
-## Hummingbird — GLM
+## Hummingbird — GLM, then Qwen Next in the same session
+
+The user prefers one active session per local model. Root queued a model
+selection message without interrupting the pending GLM request. The request
+finished naturally at 1788843284841 ms Unix time, and the next assistant
+request at 1788843284846 uses
+`spark-gateway/qwen3.8-flash-next-nvfp4-220k`. This is a continuation with the
+same session and source context, not a restarted task or a fourth session.
+XSched remains on Qwen 27B and disk UVM on GLM. No implementation completion
+or performance result is implied by the model change.
 
 Session: `ses_f80c496aeffeBh330rKhrRwPgX`.
 

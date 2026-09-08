@@ -133,6 +133,32 @@ design/implementation, not an implemented automatic-offload result. The
 common runtime repair must preserve existing lifetime fences; it does not
 make in-flight blocks immediately reusable.
 
+### Completion-aware wait: submitted work versus future work
+
+Inspection of the installed vLLM scheduler identifies a concrete constraint
+on the pending repair. `_free_cow_retained_blocks` can retain blocks behind
+`sched_step_seq + 1`, before that next token-carrying step is submitted.
+`_drain_deferred_frees` stops at the first unsatisfied fence. Therefore,
+merely finding `fence > processed_step_seq` does not establish that an
+already-running GPU operation can release the blocks: waiting on an
+unsubmitted step can prevent the work needed to satisfy the wait.
+
+The proposed grace before another preemption must distinguish actual
+outstanding work (`processed_step_seq < fence <= sched_step_seq`) from
+future work, and retry ordinary allocation/preemption when submitted work
+has drained. It must preserve the existing free ordering and must not
+remove the LMCache consumer role or make in-flight blocks reusable early.
+Breaking the current allocation retry with `new_blocks` unset also exits
+the remaining running-request loop for that scheduling call; it is not a
+request-local skip. These are source-derived implementation constraints,
+not a demonstrated fix or proof of the cause of the serving cycle.
+
+At 00:53 UTC on September 8 the repaired BPF default-async cell remains
+live and likewise repeatedly restores warm requests 4/5 from their disk
+prefixes after rollback. Its final outcomes are not yet available. No
+scheduler repair has been applied to this cell, and neither this observation
+nor the proposed wait constitutes transparent same-address disk-UVM paging.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

@@ -51,3 +51,19 @@ adaptive algorithm, or paper edit is part of these assignments. XSched must
 preserve the real command-start/abort/replay protocol, not independently abort
 arbitrary threads; Hummingbird's BPF coordinates must actually be consumed by
 the original kernel. Native controls share their interfaces and actuators.
+
+### XSched source refinement: replay is per CTA in the first command
+
+The original `platforms/cuda/hal/inject/inject.cu` is more precise than Fig. 7:
+`check_preempt` lets the CTA leader set a block exit flag and, for the first
+preempted command, a block restore flag. A trusted block fence/barrier makes
+the CTA exit uniformly. `restore_exec` skips already-completed blocks and
+clears flags for blocks being resumed. `InstrumentManager::Reactivate` clears
+the header, while `Launch` selects the resume entry for the first preempted
+command and the ordinary guardian for subsequent commands in the replay log.
+
+Thus the first command may have partially completed CTAs. A faithful port
+must retain its per-CTA restore mask; blindly restarting that whole command
+would change semantics. The bounded BPF decision can remain separate from
+the trusted barrier/exit glue. Root forwarded this source refinement to the
+implementation session; it is not a claim that the new port has run.

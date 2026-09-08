@@ -1,0 +1,161 @@
+make -C src/nvidia
+make -C src/nvidia-modeset
+make[1]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia'
+make[1]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia-modeset'
+make[1]: Nothing to be done for 'default'.
+make[1]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia-modeset'
+cd kernel-open/nvidia-modeset/ && ln -sf ../../src/nvidia-modeset/_out/Linux_x86_64/nv-modeset-kernel.o nv-modeset-kernel.o_binary
+make[1]: Nothing to be done for 'default'.
+make[1]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/src/nvidia'
+cd kernel-open/nvidia/ && ln -sf ../../src/nvidia/_out/Linux_x86_64/nv-kernel.o nv-kernel.o_binary
+make -C kernel-open modules
+make[1]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+make[2]: Entering directory '/usr/src/linux-headers-6.15.11-061511-generic'
+make[3]: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-14 (Ubuntu 14.2.0-23ubuntu1) 14.2.0
+  You are using:           x86_64-linux-gnu-gcc-14 (Ubuntu 14.2.0-4ubuntu2~24.04.1) 14.2.0
+  CC [M]  nvidia-uvm/uvm.o
+  CC [M]  nvidia-uvm/uvm_bpf_struct_ops.o
+  CC [M]  nvidia-uvm/uvm_stale_state_v1.o
+  CC [M]  nvidia-uvm/uvm_tools.o
+  CC [M]  nvidia-uvm/uvm_global.o
+  CC [M]  nvidia-uvm/uvm_gpu.o
+  CC [M]  nvidia-uvm/uvm_gpu_isr.o
+  CC [M]  nvidia-uvm/uvm_procfs.o
+  CC [M]  nvidia-uvm/uvm_va_space.o
+  CC [M]  nvidia-uvm/uvm_va_space_mm.o
+  CC [M]  nvidia-uvm/uvm_gpu_semaphore.o
+  CC [M]  nvidia-uvm/uvm_mem.o
+  CC [M]  nvidia-uvm/uvm_rm_mem.o
+  CC [M]  nvidia-uvm/uvm_channel.o
+  CC [M]  nvidia-uvm/uvm_lock.o
+  CC [M]  nvidia-uvm/uvm_hal.o
+  CC [M]  nvidia-uvm/uvm_fd_type.o
+  CC [M]  nvidia-uvm/uvm_processors.o
+  CC [M]  nvidia-uvm/uvm_range_allocator.o
+  CC [M]  nvidia-uvm/uvm_va_range.o
+  CC [M]  nvidia-uvm/uvm_va_range_device_p2p.o
+  CC [M]  nvidia-uvm/uvm_va_policy.o
+  CC [M]  nvidia-uvm/uvm_va_block.o
+  CC [M]  nvidia-uvm/uvm_disk_backing.o
+  CC [M]  nvidia-uvm/uvm_range_group.o
+  CC [M]  nvidia-uvm/uvm_gpu_replayable_faults.o
+  CC [M]  nvidia-uvm/uvm_gpu_non_replayable_faults.o
+  CC [M]  nvidia-uvm/uvm_gpu_access_counters.o
+  CC [M]  nvidia-uvm/uvm_perf_events.o
+  CC [M]  nvidia-uvm/uvm_perf_module.o
+  CC [M]  nvidia-uvm/uvm_mmu.o
+  CC [M]  nvidia-uvm/uvm_pte_batch.o
+  CC [M]  nvidia-uvm/uvm_tlb_batch.o
+  CC [M]  nvidia-uvm/uvm_push.o
+  CC [M]  nvidia-uvm/uvm_pushbuffer.o
+  CC [M]  nvidia-uvm/uvm_tracker.o
+  CC [M]  nvidia-uvm/uvm_maxwell.o
+  CC [M]  nvidia-uvm/uvm_maxwell_host.o
+  CC [M]  nvidia-uvm/uvm_maxwell_ce.o
+  CC [M]  nvidia-uvm/uvm_maxwell_sec2.o
+  CC [M]  nvidia-uvm/uvm_maxwell_mmu.o
+  CC [M]  nvidia-uvm/uvm_maxwell_fault_buffer.o
+  CC [M]  nvidia-uvm/uvm_maxwell_access_counter_buffer.o
+  CC [M]  nvidia-uvm/uvm_pascal.o
+  CC [M]  nvidia-uvm/uvm_pascal_ce.o
+  CC [M]  nvidia-uvm/uvm_pascal_host.o
+  CC [M]  nvidia-uvm/uvm_pascal_mmu.o
+  CC [M]  nvidia-uvm/uvm_pascal_fault_buffer.o
+  CC [M]  nvidia-uvm/uvm_volta_ce.o
+  CC [M]  nvidia-uvm/uvm_volta_host.o
+  CC [M]  nvidia-uvm/uvm_volta_mmu.o
+  CC [M]  nvidia-uvm/uvm_volta.o
+  CC [M]  nvidia-uvm/uvm_volta_fault_buffer.o
+  CC [M]  nvidia-uvm/uvm_turing.o
+  CC [M]  nvidia-uvm/uvm_turing_access_counter_buffer.o
+  CC [M]  nvidia-uvm/uvm_turing_fault_buffer.o
+  CC [M]  nvidia-uvm/uvm_turing_mmu.o
+  CC [M]  nvidia-uvm/uvm_turing_host.o
+  CC [M]  nvidia-uvm/uvm_ampere.o
+  CC [M]  nvidia-uvm/uvm_ampere_ce.o
+  CC [M]  nvidia-uvm/uvm_ampere_host.o
+  CC [M]  nvidia-uvm/uvm_ampere_fault_buffer.o
+  CC [M]  nvidia-uvm/uvm_ampere_mmu.o
+  CC [M]  nvidia-uvm/uvm_hopper.o
+  CC [M]  nvidia-uvm/uvm_hopper_fault_buffer.o
+  CC [M]  nvidia-uvm/uvm_hopper_ce.o
+  CC [M]  nvidia-uvm/uvm_hopper_host.o
+  CC [M]  nvidia-uvm/uvm_hopper_sec2.o
+  CC [M]  nvidia-uvm/uvm_hopper_mmu.o
+  CC [M]  nvidia-uvm/uvm_ada.o
+  CC [M]  nvidia-uvm/uvm_blackwell.o
+  CC [M]  nvidia-uvm/uvm_blackwell_fault_buffer.o
+  CC [M]  nvidia-uvm/uvm_blackwell_mmu.o
+  CC [M]  nvidia-uvm/uvm_blackwell_host.o
+  CC [M]  nvidia-uvm/uvm_policy.o
+  CC [M]  nvidia-uvm/uvm_perf_utils.o
+  CC [M]  nvidia-uvm/uvm_kvmalloc.o
+  CC [M]  nvidia-uvm/uvm_pmm_sysmem.o
+  CC [M]  nvidia-uvm/uvm_pmm_gpu.o
+  CC [M]  nvidia-uvm/uvm_migrate.o
+  CC [M]  nvidia-uvm/uvm_populate_pageable.o
+  CC [M]  nvidia-uvm/uvm_migrate_pageable.o
+  CC [M]  nvidia-uvm/uvm_map_external.o
+  CC [M]  nvidia-uvm/uvm_user_channel.o
+  CC [M]  nvidia-uvm/uvm_hmm.o
+  CC [M]  nvidia-uvm/uvm_perf_heuristics.o
+  CC [M]  nvidia-uvm/uvm_perf_thrashing.o
+  CC [M]  nvidia-uvm/uvm_perf_prefetch.o
+  CC [M]  nvidia-uvm/uvm_ats.o
+  CC [M]  nvidia-uvm/uvm_ats_faults.o
+  CC [M]  nvidia-uvm/uvm_ats_sva.o
+  CC [M]  nvidia-uvm/uvm_conf_computing.o
+  CC [M]  nvidia-uvm/uvm_test.o
+  CC [M]  nvidia-uvm/uvm_test_rng.o
+  CC [M]  nvidia-uvm/uvm_range_tree_test.o
+  CC [M]  nvidia-uvm/uvm_range_allocator_test.o
+  CC [M]  nvidia-uvm/uvm_gpu_semaphore_test.o
+  CC [M]  nvidia-uvm/uvm_mem_test.o
+  CC [M]  nvidia-uvm/uvm_rm_mem_test.o
+  CC [M]  nvidia-uvm/uvm_page_tree_test.o
+  CC [M]  nvidia-uvm/uvm_tracker_test.o
+  CC [M]  nvidia-uvm/uvm_push_test.o
+  CC [M]  nvidia-uvm/uvm_channel_test.o
+  CC [M]  nvidia-uvm/uvm_ce_test.o
+  CC [M]  nvidia-uvm/uvm_host_test.o
+  CC [M]  nvidia-uvm/uvm_lock_test.o
+  CC [M]  nvidia-uvm/uvm_perf_utils_test.o
+  CC [M]  nvidia-uvm/uvm_kvmalloc_test.o
+  CC [M]  nvidia-uvm/uvm_pmm_test.o
+  CC [M]  nvidia-uvm/uvm_pmm_sysmem_test.o
+  CC [M]  nvidia-uvm/uvm_perf_events_test.o
+  CC [M]  nvidia-uvm/uvm_perf_module_test.o
+  CC [M]  nvidia-uvm/uvm_get_rm_ptes_test.o
+  CC [M]  nvidia-uvm/uvm_fault_buffer_flush_test.o
+  CC [M]  nvidia-uvm/uvm_peer_identity_mappings_test.o
+  CC [M]  nvidia-uvm/uvm_va_block_test.o
+  CC [M]  nvidia-uvm/uvm_range_group_tree_test.o
+  CC [M]  nvidia-uvm/uvm_thread_context_test.o
+  CC [M]  nvidia-uvm/uvm_rb_tree_test.o
+  CC [M]  nvidia-uvm/uvm_sec2_test.o
+  CC [M]  nvidia-uvm/uvm_test_file.o
+  LD [M]  nvidia-uvm.o
+  MODPOST Module.symvers
+WARNING: modpost: missing MODULE_DESCRIPTION() in nvidia-uvm.o
+ERROR: modpost: "nvUvmInterfaceDisableAccessCntr" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceChannelDestroy" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceQueryCaps" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceUnsetPageDirectory" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceInitAccessCntrInfo" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceTsgDestroy" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceReleaseChannel" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceMemoryAllocSys" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfaceMemoryCpuMap" [nvidia-uvm.ko] undefined!
+ERROR: modpost: "nvUvmInterfacePagingChannelAllocate" [nvidia-uvm.ko] undefined!
+WARNING: modpost: suppressed 66 unresolved symbol warnings because there were too many)
+make[5]: *** [/usr/src/linux-headers-6.15.11-061511-generic/scripts/Makefile.modpost:147: Module.symvers] Error 1
+make[4]: *** [/usr/src/linux-headers-6.15.11-061511-generic/Makefile:1960: modpost] Error 2
+make[3]: *** [/usr/src/linux-headers-6.15.11-061511-generic/Makefile:248: __sub-make] Error 2
+make[3]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+make[2]: *** [Makefile:248: __sub-make] Error 2
+make[2]: Leaving directory '/usr/src/linux-headers-6.15.11-061511-generic'
+make[1]: *** [Makefile:140: modules] Error 2
+make[1]: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/kernel-open'
+make: *** [Makefile:59: modules] Error 2

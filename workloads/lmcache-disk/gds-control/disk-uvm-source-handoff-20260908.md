@@ -1,6 +1,7 @@
 # Same-address disk-backed UVM: source checkpoint
 
-Driver source: `revision/gpu-storage-decision-575`, commit `db156f27`.
+Driver source: `revision/gpu-storage-decision-575`, commit `c8e2831d`
+(initial implementation checkpoint `db156f27`).
 Status: source committed and pushed; **not loaded or performance-measured**.
 Existing LMCache/cuFile results are unchanged. This prototype uses CPU staging,
 not NVMe-to-GPU P2P, and does not yet establish automatic LMCache offload.
@@ -54,3 +55,14 @@ same-address client is present at `disk-uvm/disk_uvm_perf.cu`, with build/run
 instructions still being completed. Neither change has produced new disk
 performance numbers. The GPU scan owned by another task remains live, so no
 module reload or overlapping GPU measurement was started here.
+
+## Published source handoff — 2026-09-08 07:03 PDT
+
+Driver correction `c8e2831d` is now committed and pushed. It changes only
+`uvm_disk_backing.c` (91 insertions, 24 deletions); the staged diff check
+passes, and the corrected source has not been rebuilt or loaded.
+The client, Makefile and run instructions are committed and pushed in main
+`d1bc712d`. Root repaired the client's directory traversal to use
+`opendir`/`readdir`/`closedir` with `DIR *`; the build command selects CUDA
+12.9 and `sm_120`. Client compilation and same-address disk measurements are
+still pending. No cache payload or compiled binary was included.

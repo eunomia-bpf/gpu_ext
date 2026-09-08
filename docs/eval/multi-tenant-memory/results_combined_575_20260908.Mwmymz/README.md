@@ -138,3 +138,8 @@ block 0. K-Means is now 8/20 cells complete and running block 2; the overall
 campaign is 48/60 cells complete. Aggregate five-block analysis and runtime
 restoration remain pending; the first-block table is not promoted to a final
 effect estimate.
+
+At 08:33 UTC block 2 completed with both tenant exit codes zero in every
+arm. Its closed `block02_*` records are retained. K-Means is 12/20 cells
+complete (overall 52/60), with block 3 running. No completed block was
+repeated or omitted; five-block analysis and restoration are still pending.

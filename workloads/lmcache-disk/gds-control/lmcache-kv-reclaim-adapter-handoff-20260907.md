@@ -42,11 +42,20 @@ nothing and never writes diagnostics.
 1. `Scheduler.__init__` (class hook, post-original): requires the seam
    (`_select_preempt_victim`) and installs
    `scheduler.preempt_victim_callback = KvReclaimVictimPolicy.pick_victim`.
-2. Scheduler connector impl: accepts either
-   `lmcache.integration.vllm.vllm_v1_adapter.LMCacheConnectorV1Impl` or
-   the `vllm.distributed.kv_transfer.kv_connector.v1.lmcache_integration.vllm_v1_adapter.LMCacheConnectorV1Impl`
-   (`use_native=True` variant), resolved via
-   `connector._lmcache_engine`; anything else fails fast.
+2. Scheduler connector impl: the actual binding for this installed
+   target is `lmcache.integration.vllm.vllm_v1_adapter.LMCacheConnectorV1Impl`
+   - `LMCacheConnectorV1.__init__` (installed vllm,
+   `distributed/kv_transfer/kv_connector/v1/lmcache_connector.py:93-112`)
+   reads `extra_config` `use_native` with default `False`, and the target's
+   `kv_transfer_config` does not set it, so `connector._lmcache_engine` is
+   that class. The `use_native=True` in-vllm variant
+   (`vllm.distributed.kv_transfer.kv_connector.v1.lmcache_integration.vllm_v1_adapter`)
+   is unused and not importable against installed LMCache 0.5.4 (its
+   `multi_process_adapter` imports `CudaIPCWrapper` from
+   `lmcache.v1.multiprocess.custom_types`, which has no such symbol); it is
+   not imported or hooked. The runtime impl check accepts only the
+   lmcache-side module, resolved via `connector._lmcache_engine`; anything
+   else fails fast.
 3. Lookup client wraps (instance-level, call-site signatures):
    `lookup_cache(lookup_id)` and `lookup(token_ids, lookup_id,
    request_configs)` force a 0-hit only for pending FULL_RECOMPUTE
@@ -56,10 +65,34 @@ nothing and never writes diagnostics.
    consumes the pending route after the original impl update.
 5. `impl.request_finished(request, block_ids)` - drops cookie/pending
    route and calls `_backing.finish_request`.
-6. `register_kv_caches` (both impl classes) - after the real register +
+6. `register_kv_caches` (class hook on the lmcache-side
+   `LMCacheConnectorV1Impl` only) - after the real register +
    engine post-init, resolves the single GdsBackend from
    `engine.storage_manager.storage_backends` and calls
    `_backing.enable(engine, gds_backend)` once.
+
+## Bootstrap import fix (applied 2026-09-07, post-handoff)
+
+Every native/BPF arm failed at interpreter start:
+`Error in sitecustomize; ImportError: cannot import name
+'CudaIPCWrapper' from 'lmcache.v1.multiprocess.custom_types'`. Cause:
+`bootstrap_from_env` eagerly imported the `use_native=True` in-vllm impl
+module (`vllm.distributed.kv_transfer.kv_connector.v1.lmcache_integration.vllm_v1_adapter`)
+before installing hooks; that package's `__init__` imports
+`multi_process_adapter`, which imports `CudaIPCWrapper` from
+`lmcache.v1.multiprocess.custom_types` - absent in installed LMCache 0.5.4.
+The runtime impl is never that module (`use_native` unset -> default False
+-> lmcache-side impl), so the import was pure failure surface. Fix:
+removed the eager import and class-hooked only
+`lmcache.integration.vllm.vllm_v1_adapter.LMCacheConnectorV1Impl`; the
+runtime impl check now accepts only that module. No stubs, shims,
+vendored-library edits, error suppression, or new gates; the Scheduler
+hook, backing activation, native/BPF selector, env contract, and all
+policy logic are unchanged. All prior performance arms that used this
+bootstrap are failed-bootstraps, not valid policy comparisons (all raw
+retained, committed/pushed as correction `ae1d7e2f`). Post-fix check:
+env-enabled import of the adapter reports `enabled=True` with no
+`CudaIPCWrapper`/`NameError` (bootstrap only, not policy execution).
 
 ## Route semantics
 
@@ -178,3 +211,9 @@ blocks with `ref_cnt == 1` over the victim request's block groups.
 - Patch artifact reverse-applies cleanly against the live sitecustomize
   (`patch -p1 -R --dry-run` rc=0), proving it matches the actual applied
   delta.
+- After the bootstrap import fix: `py_compile` OK; the old in-vllm module
+  import reproduces the `CudaIPCWrapper` ImportError against installed
+  LMCache 0.5.4 while
+  `lmcache.integration.vllm.vllm_v1_adapter.LMCacheConnectorV1Impl`
+  imports cleanly; env-enabled adapter import reports `enabled=True`
+  (bootstrap only, not policy execution).

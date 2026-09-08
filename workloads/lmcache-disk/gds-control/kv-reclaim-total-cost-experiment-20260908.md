@@ -1,8 +1,10 @@
 # Total-recovery-cost reclaim ablation
 
-Status: implementation built and source-checked; no new performance cells
-launched yet. The local implementation session is completing its handoff;
-root has requested no further source changes before measurement.
+Status: implementation committed and pushed as `4381f660`; the new BPF
+object attached successfully and the twenty-cell campaign is running.
+Qwen 27B completed its handoff without further source changes. The first
+stock cell completed at 70.9041546753 output token/s; this is a partial
+result, not a policy comparison. No completed historical cell was rerun.
 
 This follows the completed [five-block grace comparison](../results-575-gds-kv-reclaim-grace-20260908.md).
 It addresses Q1/storage offload and the shepherd's policy-versus-mechanism
@@ -128,3 +130,13 @@ Build command from the repository root:
 ```sh
 make -C workloads/lmcache-disk/gds-control kv_reclaim_total_cost.bpf.o kv_reclaim_total_cost_native.so
 ```
+
+## Execution started
+
+The exact invocation is `python3 -u /tmp/lmcache-total-cost-20260908.py`;
+the script is preserved as `raw/gds-kv-total-cost-575-20260908-01/run.py`.
+It invokes the existing runner directly, holds the GPU then struct-ops
+locks, records native library/BPF object choices in each cell, and restores
+the original cost-per-byte loader in its finalization path. It does not
+recalibrate, impose a campaign timeout, or change the live driver.
+Each completed cell is retained independently while later cells continue.

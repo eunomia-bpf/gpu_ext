@@ -4,6 +4,37 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## Full-build progress at 09:20 UTC
+
+The original three-workload Fig.13 campaign has finished all 60 cells and
+restored the prior driver, services, and two storage-policy loaders. Its
+complete raw records, paired analyses and lifecycle log are in main
+`a7fa156c`; no completed cell is repeated for this runtime work.
+
+Root configured the isolated `build-auto-warp-575` directory with CUDA 12.9,
+LLVM 15, `ENABLE_EBPF_VERIFIER=ON`, unit-test targets enabled, and
+`RelWithDebInfo`. The second full-build attempt successfully built both
+`bpftime-agent` and `bpftime-syscall-server`. Its final exit was 2 because
+the pinned Catch2 dependency failed to compile integer types without
+`<cstdint>`. This was not a runtime or GPU measurement failure.
+
+Root retained both failed build logs and initialized missing nested source
+dependencies at their pinned revisions, without changing third-party code.
+The same build directory was then configured with the build-only compatibility
+option `-DCMAKE_CXX_FLAGS='-include cstdint'`. A third build is running with
+two jobs and targets `bpftime-agent`, `bpftime-syscall-server`,
+`bpftime_verifier_tests`, and `bpftime_nv_attach_tests`. Its local log is
+`/tmp/opencode/automatic-warp-full-build-20260908-attempt3.log`; the preceding
+log is `automatic-warp-full-build-20260908-attempt2.log` in the same directory.
+No build binaries or dependency cache are added to Git.
+
+GLM continues the connected kernel-entry/stub transformation and scoped
+tests in the existing OpenCode session. Root owns build execution; no
+duplicate build or fourth local inference session was started. The same
+probe/object off/on measurements and original device hook-count/work sweeps
+remain unfinished. Build success alone is not a claim that these probes
+have been automatically optimized or that any throughput improved.
+
 ## Source checkpoint at 08:30 UTC
 
 Local GLM implementation is committed on the same branch as `e801d28`.

@@ -33,6 +33,14 @@ overlapping generation push the pool past its actual capacity (1536+1024
 prompt tokens plus generated tails).  Arrival order rotates by block while
 remaining identical across the three arms within a block.
 
+With ``--resume`` on an existing ``--output`` root, complete compatible
+per-cell ``result.json`` records (failed cells included) are reused
+verbatim instead of rerunning those cells, nonempty directories without
+``result.json`` are left untouched and reported unfinished (no age or
+timeout assumption), and only missing cells run in the same planned
+rotated order; existing ``raw.jsonl`` lines and per-cell files are never
+rewritten.
+
 The runner imports its helpers (``run_gds_async_prefetch`` ->
 ``run_perf_only`` -> ``lmcache_primitives``) and adds no lifecycle code, no
 correctness gates, no retries, no admission, no wall-clock timeout.  Every
@@ -763,8 +771,184 @@ def median_summary(cells: list[dict[str, Any]]) -> dict[str, Any]:
     return {"kind": KIND, "cells_attempted": len(cells), "per_arm": per_arm}
 
 
+def resume_scan(
+    root: Path, args: argparse.Namespace, prefixes: list[dict[str, Any]],
+    price: int, orders: list[list[str]],
+) -> tuple[dict[tuple[int, int, str], tuple[Path, dict[str, Any]]],
+           dict[tuple[int, int, str], tuple[Path, dict[str, Any]]],
+           list[dict[str, Any]]]:
+    """Classify every planned cell directory under an existing --resume root.
+
+    A nonempty directory whose ``result.json`` parses to a record matching
+    ``kind``/``schema``, the planned ``arm``/``block``/``position``, and the
+    ordinary settings fields (expected driver, capacity, warm burst knobs,
+    prompt plan, measured recompute price; JSON ``warm_prefix_tokens`` keys
+    are strings) via plain value equality, never hashes, is adopted
+    verbatim; failed full records are adopted the same way and never
+    rerun, and no adopted field is rewritten.  Only a recognizable record
+    carrying the matching campaign identity and an actual ``error`` marker
+    whose full knob fields are merely absent (top-level exception results)
+    is a completed failed attempt: preserved verbatim, never rerun, and
+    never described as a compatible measured cell.  Any other sparse or
+    wrong-valued record is incompatible, left untouched, and reported
+    unfinished, as is a nonempty directory without a usable
+    ``result.json``; no age or timeout assumption is made.  Absent or
+    empty directories remain candidates for a fresh run.
+    """
+    prefix_plan = {str(spec["index"]): spec["warm_prefix_tokens"]
+                   for spec in warm_specs(prefixes)}
+    adopted: dict[tuple[int, int, str], tuple[Path, dict[str, Any]]] = {}
+    completed: dict[tuple[int, int, str], tuple[Path, dict[str, Any]]] = {}
+    unfinished: list[dict[str, Any]] = []
+    for block, order in enumerate(orders):
+        for position, arm in enumerate(order):
+            planned = {"arm": arm, "block": block, "position": position}
+            run_dir = root / f"block-{block:02d}" / f"position-{position}-{arm}"
+            if not run_dir.is_dir() or not any(run_dir.iterdir()):
+                continue
+            result_path = run_dir / "result.json"
+            if not result_path.is_file():
+                unfinished.append({
+                    **planned, "run_dir": str(run_dir),
+                    "reason": ("nonempty cell directory without result.json; "
+                               "left untouched and not rerun"),
+                    "contents": sorted(child.name
+                                       for child in run_dir.iterdir())[:16],
+                })
+                continue
+            try:
+                loaded = json.loads(result_path.read_text())
+                if not isinstance(loaded, dict):
+                    raise ValueError("result.json is not a JSON object")
+            except Exception as error:  # noqa: BLE001 - real failure, kept
+                unfinished.append({
+                    **planned, "run_dir": str(run_dir),
+                    "result_json": str(result_path),
+                    "reason": (f"result.json unreadable: "
+                               f"{type(error).__name__}: {error}"),
+                })
+                continue
+            expected: dict[str, Any] = {
+                **planned, "kind": KIND, "schema": 1,
+                "expected_driver_parameter": args.expected_driver,
+                "max_num_seqs": MAX_NUM_SEQS,
+                "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
+                "gds_buffer_size_mib": args.gds_buffer_size_mib,
+                "warm_output_tokens_bound": args.warm_output_tokens,
+                "warm_stagger_ms": args.warm_stagger_ms,
+                "warm_concurrency": args.warm_concurrency,
+                "gds_policy_mode": GDS_POLICY_MODE,
+                "prompt_count": len(prefixes),
+                "warm_prefix_tokens": prefix_plan,
+                "warm_order": list(warm_arrival_order(block, len(prefixes))),
+                "recompute_ns_per_token": int(price),
+            }
+            observed = dict(loaded)
+            observed.setdefault("schema", 1)
+            mismatches = [name for name, value in expected.items()
+                          if observed.get(name) != value]
+            if mismatches:
+                present_wrong = [name for name in mismatches
+                                 if name in loaded]
+                identity_ok = all(
+                    loaded.get(name) == value
+                    for name, value in (("kind", KIND),
+                                        ("arm", planned["arm"]),
+                                        ("block", planned["block"]),
+                                        ("position", planned["position"])))
+                sparse_failure = (identity_ok and not present_wrong
+                                  and bool(loaded.get("error")))
+                if sparse_failure:
+                    completed[(block, position, arm)] = (run_dir, loaded)
+                    continue
+                missing = [name for name in ("kind", "arm", "block",
+                                             "position")
+                           if name not in loaded]
+                if not loaded.get("error"):
+                    missing.append("error")
+                unfinished.append({
+                    **planned, "run_dir": str(run_dir),
+                    "result_json": str(result_path),
+                    "reason": "incompatible record not adopted",
+                    "incompatible_fields": present_wrong or missing,
+                })
+                continue
+            adopted[(block, position, arm)] = (run_dir, loaded)
+    return adopted, completed, unfinished
+
+
+def resume_import_raw(
+    root: Path,
+    reused: dict[tuple[int, int, str], tuple[Path, dict[str, Any]]],
+    failed: dict[tuple[int, int, str], tuple[Path, dict[str, Any]]],
+) -> int:
+    """Append reused and preserved records to raw.jsonl once each.
+
+    Existing lines stay verbatim; one line per record, in planned
+    (block, position, arm) order; a (block, position, arm) already present
+    in raw.jsonl is not appended again.  Same JSONL writer shape as the
+    per-cell append in run_campaign.
+    """
+    records = {**reused, **failed}
+    raw_path = root / RAW_NAME
+    seen: set[tuple[Any, Any, Any]] = set()
+    if raw_path.is_file():
+        for line in raw_path.read_text(errors="replace").splitlines():
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(obj, dict):
+                seen.add((obj.get("block"), obj.get("position"),
+                          obj.get("arm")))
+    imported = 0
+    with raw_path.open("a", encoding="utf-8") as raw_file:
+        for key, (_run_dir, record) in sorted(records.items()):
+            if key in seen:
+                continue
+            raw_file.write(json.dumps(record, ensure_ascii=False,
+                                      separators=(",", ":")) + "\n")
+            imported += 1
+        raw_file.flush()
+        os.fsync(raw_file.fileno())
+    return imported
+
+
+def resume_calibration_source(
+    root: Path, previous_campaign: dict[str, Any] | None,
+) -> Path | dict[str, Any] | None:
+    """Pick an already-measured calibration for --resume without rerunning.
+
+    Preference: ``<root>/calibration/calibration.json``; then the source
+    path recorded as ``reused_from`` by a previous campaign; then the
+    embedded calibration record of a previous campaign when it carries a
+    positive measured price.  Returns a source path, a reusable record, or
+    None when nothing has been measured yet.  An explicit
+    ``--calibration-result`` always wins and bypasses this helper.
+    """
+    candidates = [root / "calibration" / "calibration.json"]
+    previous = (previous_campaign or {}).get("calibration")
+    if isinstance(previous, dict) and isinstance(previous.get("reused_from"),
+                                                str):
+        candidates.append(Path(previous["reused_from"]))
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    if isinstance(previous, dict) and previous.get("recompute_ns_per_token") \
+            is not None:
+        try:
+            price = int(previous["recompute_ns_per_token"])
+        except (TypeError, ValueError):
+            return None
+        if price > 0:
+            return dict(previous)
+    return None
+
+
 def calibration_phase(campaign: dict[str, Any], root: Path, args: Any,
-                      model_path: Path, prefixes: list[dict[str, Any]]) -> int | None:
+                      model_path: Path, prefixes: list[dict[str, Any]],
+                      reused_record: dict[str, Any] | None = None
+                      ) -> int | None:
     """The one real recompute calibration, owned by kv_reclaim_calibration.
 
     This runner does not implement any calibration lifecycle: it imports the
@@ -775,11 +959,17 @@ def calibration_phase(campaign: dict[str, Any], root: Path, args: Any,
     the campaign.  A missing helper, a failed run, or a non-positive price
     aborts the campaign before any cell with the real failure retained; no
     invented or dummy price is ever served to a cell, and nothing changes
-    the environment of an already-launched cell server.
+    the environment of an already-launched cell server.  ``reused_record``
+    embeds an already-measured calibration record verbatim (``rerun``
+    marked false) without any new run.
     """
     source = getattr(args, "calibration_result", None)
     result: dict[str, Any] | None = None
-    if source:
+    if reused_record is not None:
+        result = dict(reused_record)
+        result["rerun"] = False
+        campaign["calibration"] = result
+    elif source:
         # The one real calibration already ran; reuse its exact raw result
         # (this file) instead of calling the helper again.  The source path
         # travels with the campaign record.
@@ -881,15 +1071,49 @@ def run_campaign(args: argparse.Namespace) -> int:
     previous = {sig: signal.signal(sig, stop.request)
                 for sig in (signal.SIGINT, signal.SIGTERM)}
     try:
-        root.mkdir(parents=True, exist_ok=False)
+        if args.resume:
+            if not root.is_dir():
+                raise ops.GateError(
+                    f"--resume requires an existing output directory: {root}")
+        else:
+            root.mkdir(parents=True, exist_ok=False)
         model_path = Path(ops.resolve_model(local_only=True))
         campaign["params"]["model_path"] = str(model_path)
         campaign["warm_orders"] = {
             str(block): warm_arrival_order(block, len(prefixes))
             for block in range(args.blocks)}
-        ops.atomic_write_json(root / "campaign.json", campaign)
-        price = calibration_phase(campaign, root, args, model_path, prefixes)
-        ops.atomic_write_json(root / "campaign.json", campaign)
+        previous_campaign: dict[str, Any] | None = None
+        if args.resume:
+            campaign_path = root / "campaign.json"
+            if campaign_path.is_file():
+                try:
+                    loaded_campaign = json.loads(campaign_path.read_text())
+                except Exception as error:  # real failure, file untouched
+                    raise ops.GateError(
+                        "existing campaign.json is unreadable; resume "
+                        f"leaves it untouched: {type(error).__name__}: "
+                        f"{error}") from error
+                if (not isinstance(loaded_campaign, dict)
+                        or loaded_campaign.get("kind") != KIND):
+                    raise ops.GateError(
+                        "existing campaign.json is not a matching campaign "
+                        "record; resume leaves it untouched")
+                previous_campaign = loaded_campaign
+                campaign["timestamp"] = (previous_campaign.get("timestamp")
+                                         or campaign["timestamp"])
+        if not args.resume:
+            ops.atomic_write_json(root / "campaign.json", campaign)
+        reused = None
+        if args.resume and not args.calibration_result:
+            auto = resume_calibration_source(root, previous_campaign)
+            if isinstance(auto, Path):
+                args.calibration_result = auto
+            else:
+                reused = auto
+        price = calibration_phase(campaign, root, args, model_path, prefixes,
+                                  reused_record=reused)
+        if not args.resume:
+            ops.atomic_write_json(root / "campaign.json", campaign)
         if price is None:
             print("NOT STARTED: recompute calibration did not yield a "
                   "positive measured price; no cells ran, raw retained at "
@@ -899,43 +1123,97 @@ def run_campaign(args: argparse.Namespace) -> int:
             campaign["stopped_early"] = (
                 f"deferred {stop.signum_name()} request; stopping after "
                 "calibration")
-            ops.atomic_write_json(root / "campaign.json", campaign)
+            if not args.resume:
+                ops.atomic_write_json(root / "campaign.json", campaign)
             return 3
+        resumed: dict[tuple[int, int, str], tuple[Path, dict[str, Any]]] = {}
+        completed: dict[tuple[int, int, str], tuple[Path, dict[str, Any]]] = {}
+        unfinished: list[dict[str, Any]] = []
+        unfinished_keys: set[tuple[int, int, str]] = set()
+        imports = 0
+        if args.resume:
+            resumed, completed, unfinished = resume_scan(
+                root, args, prefixes, price, orders)
+            unfinished_keys = {(entry["block"], entry["position"],
+                                entry["arm"]) for entry in unfinished}
+            imports = resume_import_raw(root, resumed, completed)
+            campaign["resume"] = {
+                "adopted": [{"block": block, "position": position,
+                             "arm": arm, "run_dir": str(run_dir),
+                             "result_json": str(run_dir / "result.json")}
+                            for (block, position, arm), (run_dir, _record)
+                            in sorted(resumed.items())],
+                "completed_failures": [
+                    {"block": block, "position": position, "arm": arm,
+                     "run_dir": str(run_dir),
+                     "result_json": str(run_dir / "result.json"),
+                     "error": record.get("error")}
+                    for (block, position, arm), (run_dir, record)
+                    in sorted(completed.items())],
+                "unfinished": unfinished,
+                "raw_imported_records": imports,
+            }
+            if previous_campaign is not None:
+                campaign["resume"]["previous_params"] = (
+                    previous_campaign.get("params"))
+            ops.atomic_write_json(root / "campaign.json", campaign)
         for block, order in enumerate(orders):
             warm_order = warm_arrival_order(block, len(prefixes))
             for position, arm in enumerate(order):
                 run_dir = root / f"block-{block:02d}" / f"position-{position}-{arm}"
+                if (block, position, arm) in unfinished_keys:
+                    print(f"block={block} position={position} arm={arm} "
+                          "resume=unfinished; cell left untouched",
+                          flush=True)
+                    continue
                 run_dir.parent.mkdir(parents=True, exist_ok=True)
-                print(f"block={block} position={position} arm={arm}", flush=True)
-                try:
-                    record = run_cell(
-                        arm=arm, block=block, position=position,
-                        run_dir=run_dir, port=args.port, model_path=model_path,
-                        prefixes=prefixes, warm_order=warm_order,
-                        expected_driver=args.expected_driver,
-                        store_barrier_timeout_s=args.store_barrier_timeout_s,
-                        gds_buffer_size_mib=args.gds_buffer_size_mib,
-                        kv_cache_memory_bytes=args.kv_cache_memory_bytes,
-                        warm_output_tokens=args.warm_output_tokens,
-                        warm_stagger_ms=args.warm_stagger_ms,
-                        warm_concurrency=args.warm_concurrency,
-                        recompute_ns_per_token=price)
-                except Exception as error:  # noqa: BLE001 - preserved
-                    record = {
-                        "schema": 1, "kind": KIND, "arm": arm,
-                        "block": block, "position": position, "port": args.port,
-                        "ready": False, "requests": [], "barriers": [],
-                        "warm_phase": None, "cleanup_errors": [],
-                        "server_returncode": None,
-                        "error": f"{type(error).__name__}: {error}",
-                    }
-                    run_dir.mkdir(parents=True, exist_ok=True)
-                    ops.atomic_write_json(run_dir / "result.json", record)
-                with (root / RAW_NAME).open("a", encoding="utf-8") as raw_file:
-                    raw_file.write(json.dumps(record, ensure_ascii=False,
-                                              separators=(",", ":")) + "\n")
-                    raw_file.flush()
-                    os.fsync(raw_file.fileno())
+                adoption = resumed.get((block, position, arm))
+                failed_attempt = completed.get((block, position, arm))
+                if adoption is not None:
+                    print(f"block={block} position={position} arm={arm} "
+                          "resume=reused complete result.json", flush=True)
+                    record = adoption[1]
+                elif failed_attempt is not None:
+                    print(f"block={block} position={position} arm={arm} "
+                          "resume=preserved completed failed attempt; "
+                          "not rerun", flush=True)
+                    record = failed_attempt[1]
+                else:
+                    print(f"block={block} position={position} arm={arm}",
+                          flush=True)
+                    try:
+                        record = run_cell(
+                            arm=arm, block=block, position=position,
+                            run_dir=run_dir, port=args.port,
+                            model_path=model_path, prefixes=prefixes,
+                            warm_order=warm_order,
+                            expected_driver=args.expected_driver,
+                            store_barrier_timeout_s=args.store_barrier_timeout_s,
+                            gds_buffer_size_mib=args.gds_buffer_size_mib,
+                            kv_cache_memory_bytes=args.kv_cache_memory_bytes,
+                            warm_output_tokens=args.warm_output_tokens,
+                            warm_stagger_ms=args.warm_stagger_ms,
+                            warm_concurrency=args.warm_concurrency,
+                            recompute_ns_per_token=price)
+                    except Exception as error:  # noqa: BLE001 - preserved
+                        record = {
+                            "schema": 1, "kind": KIND, "arm": arm,
+                            "block": block, "position": position,
+                            "port": args.port,
+                            "ready": False, "requests": [], "barriers": [],
+                            "warm_phase": None, "cleanup_errors": [],
+                            "server_returncode": None,
+                            "error": f"{type(error).__name__}: {error}",
+                        }
+                        run_dir.mkdir(parents=True, exist_ok=True)
+                        ops.atomic_write_json(run_dir / "result.json", record)
+                    with (root / RAW_NAME).open("a",
+                                                encoding="utf-8") as raw_file:
+                        raw_file.write(json.dumps(record, ensure_ascii=False,
+                                                  separators=(",", ":"))
+                                      + "\n")
+                        raw_file.flush()
+                        os.fsync(raw_file.fileno())
                 campaign["cells"].append({
                     "block": block, "position": position, "arm": arm,
                     "run_dir": str(run_dir),
@@ -1037,6 +1315,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Three-arm LMCache disk-aware KV reclaim campaign")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--resume", action="store_true",
+                        help=("resume an existing --output directory: reuse "
+                              "complete compatible per-cell result.json "
+                              "records (failed cells included, never rerun), "
+                              "leave nonempty cells without result.json "
+                              "untouched as unfinished, and run only missing "
+                              "cells in the planned rotated order"))
     parser.add_argument("--blocks", type=int, default=DEFAULT_BLOCKS)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--expected-driver", default=DEFAULT_EXPECTED_DRIVER)
@@ -1053,8 +1338,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--warm-stagger-ms", type=float,
                         default=DEFAULT_WARM_STAGGER_MS)
     parser.add_argument("--calibration-result", type=Path, default=None,
-                        help=("reuse an existing calibration.json (the one "
-                              "real calibration is not rerun); omitted means "
+                        help=("reuse an existing calibration.json (an "
+                              "explicit path always wins); omitted means an "
+                              "existing measured calibration is reused when "
+                              "available (resume), otherwise "
                               "kv_reclaim_calibration.run_calibration runs "
                               "into <root>/calibration"))
     parser.add_argument("--dry-run", action="store_true",
@@ -1072,6 +1359,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--warm-concurrency must be at least 1")
     if args.warm_stagger_ms < 0:
         parser.error("--warm-stagger-ms must be non-negative")
+    if args.resume and args.output is None:
+        parser.error("--resume requires an existing --output directory")
     return args
 
 

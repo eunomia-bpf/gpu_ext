@@ -20,6 +20,7 @@
 
 static constexpr unsigned kWarpSize = 32;
 static constexpr unsigned kMaximumThreads = 1024;
+static constexpr unsigned kMaximumBlocks = 64;
 static constexpr uint64_t kSeedBase = UINT64_C(0x1797575000000000);
 
 extern "C" __device__ __noinline__ __attribute__((used)) void
@@ -36,12 +37,25 @@ __host__ __device__ static uint64_t expected_value(unsigned thread,
 	return value ^ ((uint64_t)thread << 17);
 }
 
-extern "C" __global__ void fig15_warp_map_kernel(uint64_t *output,
-						 uint64_t seed)
+__host__ __device__ static uint64_t work_value(unsigned thread, uint64_t seed,
+					       unsigned work)
 {
-	const unsigned thread = threadIdx.x;
+	uint64_t value = expected_value(thread, seed);
+	if (work == 0)
+		return value;
+	uint64_t acc = seed ^ ((uint64_t)thread * UINT64_C(0x9e3779b97f4a7c15));
+	for (unsigned index = 0; index < work; ++index)
+		acc = (acc ^ (acc >> 29)) * UINT64_C(0x94d049bb133111eb);
+	return value ^ (acc ^ ((uint64_t)thread << 17));
+}
+
+extern "C" __global__ void fig15_warp_map_kernel(uint64_t *output,
+						 uint64_t seed,
+						 unsigned work)
+{
+	const unsigned thread = blockIdx.x * blockDim.x + threadIdx.x;
 	asm volatile("call.uni __bpftime_cuda__kernel_trace, ();" ::: "memory");
-	output[thread] = expected_value(thread, seed);
+	output[thread] = work_value(thread, seed, work);
 }
 
 static bool parse_unsigned(const char *text, unsigned minimum,
@@ -59,13 +73,15 @@ static bool parse_unsigned(const char *text, unsigned minimum,
 static void usage(const char *program)
 {
 	std::fprintf(stderr,
-		     "usage: %s --threads N --warmup N --launches N --run-id N\n",
+		     "usage: %s --threads N [--blocks N] [--work N] "
+		     "--warmup N --launches N --run-id N\n",
 		     program);
 }
 
 int main(int argc, char **argv)
 {
 	unsigned threads = 0, warmup = 0, launches = 0, run_id = 0;
+	unsigned blocks = 1, work = 0;
 	bool have_threads = false, have_warmup = false;
 	bool have_launches = false, have_run_id = false;
 	for (int index = 1; index < argc; index += 2) {
@@ -83,7 +99,20 @@ int main(int argc, char **argv)
 						       &launches);
 		else if (std::strcmp(argv[index], "--run-id") == 0)
 			have_run_id = parse_unsigned(argv[index + 1], 0, 1000000,
-						     &run_id);
+			     &run_id);
+		else if (std::strcmp(argv[index], "--blocks") == 0) {
+			if (!parse_unsigned(argv[index + 1], 1, kMaximumBlocks,
+					    &blocks)) {
+				usage(argv[0]);
+				return 1;
+			}
+		}
+		else if (std::strcmp(argv[index], "--work") == 0) {
+			if (!parse_unsigned(argv[index + 1], 0, 1000000, &work)) {
+				usage(argv[0]);
+				return 1;
+			}
+		}
 		else {
 			usage(argv[0]);
 			return 1;
@@ -108,13 +137,16 @@ int main(int argc, char **argv)
 		    properties.major, properties.minor, properties.warpSize);
 	std::printf("FIG15_WARP_SHAPE\t%u\t%u\n", threads,
 		    threads / kWarpSize);
+	const unsigned total_threads = threads * blocks;
+	std::printf("FIG15_WARP_GRID\t%u\t%u\t%u\n", blocks, total_threads, work);
 
 	uint64_t *device_output = nullptr;
-	CUDA_CHECK(cudaMalloc(&device_output, threads * sizeof(uint64_t)));
+	CUDA_CHECK(cudaMalloc(&device_output, total_threads * sizeof(uint64_t)));
 	const uint64_t seed = kSeedBase ^ ((uint64_t)run_id << 16) ^ threads;
 
 	for (unsigned index = 0; index < warmup; ++index)
-		fig15_warp_map_kernel<<<1, threads>>>(device_output, seed);
+		fig15_warp_map_kernel<<<blocks, threads>>>(device_output, seed,
+							    work);
 	CUDA_CHECK(cudaGetLastError());
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -123,19 +155,20 @@ int main(int argc, char **argv)
 	CUDA_CHECK(cudaEventCreate(&stop));
 	CUDA_CHECK(cudaEventRecord(start));
 	for (unsigned index = 0; index < launches; ++index)
-		fig15_warp_map_kernel<<<1, threads>>>(device_output, seed);
+		fig15_warp_map_kernel<<<blocks, threads>>>(device_output, seed,
+							    work);
 	CUDA_CHECK(cudaEventRecord(stop));
 	CUDA_CHECK(cudaEventSynchronize(stop));
 	float elapsed_ms = 0.0F;
 	CUDA_CHECK(cudaEventElapsedTime(&elapsed_ms, start, stop));
 
-	std::vector<uint64_t> host_output(threads);
+	std::vector<uint64_t> host_output(total_threads);
 	CUDA_CHECK(cudaMemcpy(host_output.data(), device_output,
 			      host_output.size() * sizeof(uint64_t),
 			      cudaMemcpyDeviceToHost));
 	unsigned mismatches = 0;
-	for (unsigned thread = 0; thread < threads; ++thread) {
-		const uint64_t expected = expected_value(thread, seed);
+	for (unsigned thread = 0; thread < total_threads; ++thread) {
+		const uint64_t expected = work_value(thread, seed, work);
 		if (host_output[thread] != expected) {
 			if (mismatches < 4)
 				std::fprintf(stderr,
@@ -147,7 +180,7 @@ int main(int argc, char **argv)
 	}
 	std::printf("FIG15_MEASUREMENT\t%u\t%u\t%.9g\n", warmup, launches,
 		    elapsed_ms);
-	std::printf("FIG15_CORRECT\t%u\t%u\n", threads, mismatches);
+	std::printf("FIG15_CORRECT\t%u\t%u\n", total_threads, mismatches);
 
 	cudaEventDestroy(stop);
 	cudaEventDestroy(start);

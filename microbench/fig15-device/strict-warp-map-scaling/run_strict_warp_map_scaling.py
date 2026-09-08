@@ -45,6 +45,17 @@ LEASES = (
 WARP_MAGIC = 0x57504d4150000000
 
 
+SWEEP_ARMS = ("native", "off", "on")
+SWEEP_LOADER_MODES = {"off": "shared_update", "on": "shared_update"}
+SWEEP_SHAPE = 128
+SWEEP_CTA_BLOCKS = (2, 4, 8)
+SWEEP_WORK_ITERATIONS = (8, 32, 128)
+SWEEP_ROTATION_BLOCKS = 10
+SWEEP_WARMUP = 8
+SWEEP_LAUNCHES = 128
+SWEEP_RUN_ID_BASE = 91000
+
+
 class ReadOnlyLeases:
     def __init__(self) -> None:
         self.streams: list[IO[str]] = []
@@ -104,6 +115,37 @@ def frozen_schedule(phase: str) -> list[dict[str, int | str]]:
                     "order": position + 1,
                     "arm": arm,
                     "run_id": run_id,
+                })
+    return schedule
+
+
+def sweep_settings(kind: str) -> list[dict[str, int]]:
+    if kind == "blocks":
+        return [{"blocks": value, "work": 0} for value in SWEEP_CTA_BLOCKS]
+    if kind == "work":
+        return [{"blocks": 1, "work": value}
+                for value in SWEEP_WORK_ITERATIONS]
+    raise ValueError(kind)
+
+
+def sweep_schedule(kind: str) -> list[dict[str, int | str]]:
+    schedule: list[dict[str, int | str]] = []
+    for setting_index, setting in enumerate(sweep_settings(kind)):
+        base = SWEEP_RUN_ID_BASE + (700 if kind == "work" else 0) \
+            + setting_index * 100
+        for block in range(1, SWEEP_ROTATION_BLOCKS + 1):
+            offset = (block - 1) % len(SWEEP_ARMS)
+            order = SWEEP_ARMS[offset:] + SWEEP_ARMS[:offset]
+            for position, arm in enumerate(order):
+                schedule.append({
+                    "shape": SWEEP_SHAPE,
+                    "setting_index": setting_index,
+                    "blocks": setting["blocks"],
+                    "work": setting["work"],
+                    "block": block,
+                    "order": position + 1,
+                    "arm": arm,
+                    "run_id": base + block,
                 })
     return schedule
 
@@ -237,10 +279,15 @@ def validate_built_inputs() -> None:
 
 
 def write_schedule(path: Path, schedule: list[dict[str, int | str]]) -> None:
+    base_fields = ("shape", "block", "order", "arm", "run_id")
+    sweep_fields = base_fields + ("setting_index", "blocks", "work")
+    fields = sweep_fields if any("setting_index" in item
+                                 for item in schedule) else base_fields
     with path.open("x", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(
-            stream, fieldnames=("shape", "block", "order", "arm", "run_id"),
+            stream, fieldnames=fields,
             delimiter="\t",
+            extrasaction="ignore",
         )
         writer.writeheader()
         writer.writerows(schedule)
@@ -305,25 +352,34 @@ def wait_for_ready(path: Path, process: subprocess.Popen[str], segment_path: Pat
     raise RuntimeError("loader did not become ready")
 
 
-def application_command(warmup: int, launches: int, run_id: int, threads: int) -> list[str]:
+def application_command(warmup: int, launches: int, run_id: int, threads: int,
+                        blocks: int = 1, work: int = 0) -> list[str]:
     return [
         str(APPLICATION),
         "--threads", str(threads),
+        "--blocks", str(blocks),
         "--warmup", str(warmup),
         "--launches", str(launches),
         "--run-id", str(run_id),
+        "--work", str(work),
     ]
 
 
-def validate_application_log(path: Path, threads: int, warmup: int, launches: int) -> float:
+def validate_application_log(path: Path, threads: int, warmup: int, launches: int,
+                             blocks: int = 1, work: int = 0) -> float:
     text = path.read_text(encoding="utf-8", errors="replace")
+    total_threads = threads * blocks
     device = re.findall(rf"^FIG15_DEVICE\t(.+)\t12\t0\t32$", text, re.MULTILINE)
     measurement = re.findall(
         r"^FIG15_MEASUREMENT\t(\d+)\t(\d+)\t([0-9.eE+-]+)$", text,
         re.MULTILINE,
     )
-    correct = re.findall(rf"^FIG15_CORRECT\t{threads}\t0$", text, re.MULTILINE)
-    if device != [GPU_NAME] or len(measurement) != 1 or len(correct) != 1:
+    grid = re.findall(rf"^FIG15_WARP_GRID\t{blocks}\t{total_threads}\t{work}$",
+                      text, re.MULTILINE)
+    correct = re.findall(rf"^FIG15_CORRECT\t{total_threads}\t0$",
+                         text, re.MULTILINE)
+    if (device != [GPU_NAME] or len(measurement) != 1 or len(correct) != 1
+            or len(grid) != 1):
         raise RuntimeError("application output/correctness record is incomplete")
     if (int(measurement[0][0]), int(measurement[0][1])) != (warmup, launches):
         raise RuntimeError("application timing parameters changed")
@@ -457,7 +513,8 @@ def read_execution(path: Path) -> int:
 
 
 def attached_environment(build: Path, segment: str, agent_log: Path,
-                        threads: int) -> tuple[dict[str, str], dict[str, str]]:
+                        threads: int,
+                        auto_warp: str | None = None) -> tuple[dict[str, str], dict[str, str]]:
     common = {
         **base_environment(),
         "BPFTIME_GLOBAL_SHM_NAME": segment,
@@ -471,6 +528,10 @@ def attached_environment(build: Path, segment: str, agent_log: Path,
         "CUDA_HOME": "/usr/local/cuda-12.9",
         "BPFTIME_CUDA_ROOT": "/usr/local/cuda-12.9",
     }
+    if auto_warp in ("off", "on"):
+        common["BPFTIME_GPU_AUTO_WARP_EXECUTION"] = (
+            "0" if auto_warp == "off" else "1")
+        common["BPFTIME_GPU_RINGBUF_TRANSPORT"] = "1"
     loader = {
         **common,
         "LD_PRELOAD": str(build / "runtime/syscall-server/libbpftime-syscall-server.so"),
@@ -485,22 +546,25 @@ def attached_environment(build: Path, segment: str, agent_log: Path,
     return loader, agent
 
 
-def run_native(directory: Path, shape: int, warmup: int, launches: int, run_id: int) -> float:
+def run_native(directory: Path, shape: int, warmup: int, launches: int,
+               run_id: int, blocks: int = 1, work: int = 0) -> float:
     directory.mkdir(parents=True)
     path = directory / "application.log"
     with path.open("x", encoding="utf-8") as stream:
         result = subprocess.run(
-            application_command(warmup, launches, run_id, shape), cwd=HERE,
+            application_command(warmup, launches, run_id, shape, blocks, work),
+            cwd=HERE,
             env=base_environment(), stdout=stream, stderr=subprocess.STDOUT,
             text=True, timeout=120, check=False,
         )
     if result.returncode != 0:
         raise RuntimeError(f"native application exited {result.returncode}")
-    return validate_application_log(path, shape, warmup, launches)
+    return validate_application_log(path, shape, warmup, launches, blocks, work)
 
 
 def run_attached(arm: str, directory: Path, build: Path, shape: int,
-                 warmup: int, launches: int, run_id: int) -> None:
+                 warmup: int, launches: int, run_id: int, blocks: int = 1,
+                 work: int = 0, auto_warp: str | None = None) -> float:
     if arm not in ATTACHED_ARMS:
         raise ValueError(arm)
     directory.mkdir(parents=True)
@@ -512,7 +576,8 @@ def run_attached(arm: str, directory: Path, build: Path, shape: int,
     segment_path = Path("/dev/shm") / segment
     if os.path.lexists(segment_path):
         raise RuntimeError("private shared-memory name already exists")
-    loader_env, agent_env = attached_environment(build, segment, agent_log, shape)
+    loader_env, agent_env = attached_environment(build, segment, agent_log,
+                                                 shape * blocks, auto_warp)
     loader_process = application_process = None
     loader_stream = application_stream = None
     identity: list[tuple[int, int, int]] = []
@@ -526,7 +591,8 @@ def run_attached(arm: str, directory: Path, build: Path, shape: int,
         wait_for_ready(loader_log, loader_process, segment_path, identity, 45.0)
         application_stream = application_log.open("x", encoding="utf-8")
         application_process = subprocess.Popen(
-            application_command(warmup, launches, run_id, shape), cwd=HERE,
+            application_command(warmup, launches, run_id, shape, blocks, work),
+            cwd=HERE,
             env=agent_env, stdout=application_stream, stderr=subprocess.STDOUT,
             text=True, start_new_session=True,
         )
@@ -550,7 +616,8 @@ def run_attached(arm: str, directory: Path, build: Path, shape: int,
             raise RuntimeError("loader exited before completing its detach log")
         loader_stream.close()
         loader_stream = None
-        validate_application_log(application_log, shape, warmup, launches)
+        elapsed_ms = validate_application_log(application_log, shape, warmup,
+                                              launches, blocks, work)
         validate_loader_log(loader_log, shape, arm)
         read_execution(execution)
         if not agent_log.is_file() or not agent_log.read_text(
@@ -573,11 +640,35 @@ def run_attached(arm: str, directory: Path, build: Path, shape: int,
             segment_path.unlink()
         if os.path.lexists(segment_path):
             raise RuntimeError("private shared-memory segment survived cleanup")
+    return elapsed_ms
+
+
+def sweep_observed_fields(arm: str, directory: Path) -> dict[str, str]:
+    application = (directory / "application.log").read_text(
+        encoding="utf-8", errors="replace")
+    fields = {
+        "automatic_admitted": "GPU automatic warp execution admitted for"
+        in application,
+        "module_loaded": "Loaded module: patched.warp_map_bench.sm_120.ptx"
+        in application,
+    }
+    map_value = False
+    if arm != "native":
+        loader = (directory / "loader.log").read_text(encoding="utf-8",
+                                                      errors="replace")
+        key0 = re.findall(r"^FIG15_WARP_MAP\t0\t(\d+)$", loader, re.MULTILINE)
+        map_value = bool(key0) and int(key0[0]) == WARP_MAGIC
+    fields["map_key0"] = map_value
+    return {key: "true" if value else "false"
+            for key, value in fields.items()}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("preflight", "full"), required=True)
+    parser.add_argument("--phase", choices=("preflight", "full"), default=None)
+    parser.add_argument("--sweep", choices=("blocks", "work"), default=None,
+                        help="opt-in same-object native/off/on sweep over "
+                             "CTA block count or non-hook arithmetic work")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--bpftime-root", type=Path, default=DEFAULT_BPFTIME_ROOT)
     parser.add_argument("--bpftime-build", type=Path, default=DEFAULT_BPFTIME_BUILD)
@@ -586,10 +677,16 @@ def main() -> int:
 
     reject_ambient_injection()
     validate_built_inputs()
-    blocks, warmup, launches = phase_parameters(args.phase)
-    schedule = frozen_schedule(args.phase)
-    if len(schedule) != len(SHAPES) * blocks * len(ARMS):
-        raise RuntimeError("frozen schedule size changed")
+    if (args.phase is None) == (args.sweep is None):
+        parser.error("provide exactly one of --phase or --sweep")
+    if args.sweep:
+        warmup, launches = SWEEP_WARMUP, SWEEP_LAUNCHES
+        schedule = sweep_schedule(args.sweep)
+    else:
+        rotation_blocks, warmup, launches = phase_parameters(args.phase)
+        schedule = frozen_schedule(args.phase)
+        if len(schedule) != len(SHAPES) * rotation_blocks * len(ARMS):
+            raise RuntimeError("frozen schedule size changed")
 
     args.output.mkdir(parents=True, exist_ok=False)
     write_schedule(args.output / "schedule.tsv", schedule)
@@ -598,6 +695,7 @@ def main() -> int:
     )
 
     deadline = time.monotonic() + args.deadline
+    sweep_rows: list[dict[str, str]] = []
     with ReadOnlyLeases():
         for item in schedule:
             if time.monotonic() >= deadline:
@@ -607,17 +705,68 @@ def main() -> int:
             order = int(item["order"])
             arm = str(item["arm"])
             run_id = int(item["run_id"])
-            directory = args.output / (
-                f"shape-{shape}-block-{block:02d}-order-{order:02d}-{arm}"
-            )
-            print(f"shape={shape} block={block} order={order} arm={arm}", flush=True)
-            if arm == "native":
-                run_native(directory, shape, warmup, launches, run_id)
+            cta_blocks = int(item["blocks"]) if args.sweep else 1
+            work = int(item["work"]) if args.sweep else 0
+            if args.sweep:
+                directory = args.output / (
+                    f"sweep-{args.sweep}-b{cta_blocks}-w{work}-"
+                    f"block-{block:02d}-order-{order:02d}-{arm}"
+                )
             else:
-                run_attached(arm, directory, args.bpftime_build, shape,
-                            warmup, launches, run_id)
+                directory = args.output / (
+                    f"shape-{shape}-block-{block:02d}-order-{order:02d}-{arm}"
+                )
+            print(f"shape={shape} cta_blocks={cta_blocks} work={work} "
+                  f"block={block} order={order} arm={arm}", flush=True)
+            if arm == "native":
+                elapsed = run_native(directory, shape, warmup, launches,
+                                     run_id, cta_blocks, work)
+            else:
+                loader_mode = SWEEP_LOADER_MODES.get(arm, arm)
+                elapsed = run_attached(
+                    loader_mode, directory, args.bpftime_build, shape,
+                    warmup, launches, run_id, cta_blocks, work,
+                    auto_warp=arm if arm in SWEEP_LOADER_MODES else None,
+                )
+            if args.sweep:
+                sweep_rows.append({
+                    "setting": f"{args.sweep}-b{cta_blocks}-w{work}",
+                    "shape": shape,
+                    "cta_blocks": cta_blocks,
+                    "work": work,
+                    "total_threads": cta_blocks * shape,
+                    "block": block,
+                    "order": order,
+                    "arm": arm,
+                    "run_id": run_id,
+                    "application_exit": "0",
+                    "loader_exit": "" if arm == "native" else "0",
+                    "elapsed_ms": f"{elapsed:.9f}",
+                    "warmup": warmup,
+                    "launches": launches,
+                   "logical_lane_encounters": launches * cta_blocks * shape,
+                    **sweep_observed_fields(arm, directory),
+                    "source": directory.name,
+                })
 
-    print(f"completed {len(schedule)} frozen arm processes", flush=True)
+    if args.sweep:
+        columns = ("setting", "shape", "cta_blocks", "work", "total_threads",
+                   "block", "order", "arm", "run_id", "application_exit",
+                   "loader_exit", "elapsed_ms", "warmup", "launches",
+                   "logical_lane_encounters", "automatic_admitted",
+                   "module_loaded", "map_key0", "source")
+        with (args.output / "cells.csv").open("w", newline="",
+                                              encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=columns)
+            writer.writeheader()
+            writer.writerows(sweep_rows)
+        print(f"completed {len(sweep_rows)} {args.sweep} sweep cells under "
+              f"{args.output}", flush=True)
+        print("logical_lane_encounters are derived from launch shape (hook "
+              "call site executed per thread); scalar BPF handler "
+              "invocations are not measured in the timed arms", flush=True)
+    else:
+        print(f"completed {len(schedule)} frozen arm processes", flush=True)
     return 0
 
 

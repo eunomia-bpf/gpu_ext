@@ -68,3 +68,27 @@ bootstrap seeds are now a deterministic function of frozen seed 1797 and the
 fixed shape/comparison indices rather than of `PYTHONHASHSEED`. The 18 tests in
 `test_strict_warp_map_scaling.py` pass, and both accepted campaigns replay
 byte-identically.
+
+## Automatic-execution geometry/work extension — 2026-09-08
+
+The opt-in `--sweep blocks` and `--sweep work` runners compare native,
+automatic execution off, and automatic execution on. Both attached arms use
+the same `shared_update` BPF object. The first varies CTA count over 2/4/8;
+the second varies arithmetic iterations over 8/32/128 at one CTA. Each uses
+128 threads per CTA, 8 warmup launches, 128 timed launches, and ten rotating
+three-arm blocks per setting (90 cells per sweep). The completed one-CTA,
+zero-added-work measurements are not repeated by these schedules.
+
+Pass `--bpftime-root /home/yunwei37/workspace/gpu/bpftime-auto-warp` and
+`--bpftime-build /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575`
+explicitly; the historical runner defaults still name the older runtime.
+Use a fresh `--output` directory for each sweep. The application must first
+be rebuilt from the extended CUDA source, which adds `--blocks` and `--work`
+while retaining defaults of one CTA and zero added work.
+
+The reported `logical_lane_encounters` is timed launches times CTA count
+times threads per CTA. It is a launch-shape calculation, not a measurement
+of scalar BPF handler calls. CUDA event time covers all timed launches;
+do not relabel it as per-handler latency. The 18 existing offline tests pass
+after the extension. The CUDA build and both GPU sweeps remain pending;
+this section contains no new performance result.

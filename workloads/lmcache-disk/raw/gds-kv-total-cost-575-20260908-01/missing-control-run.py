@@ -40,4 +40,3 @@ campaign['cells'].append({'block': 1, 'position': 4, 'policy_label': 'native_rat
 campaign['missing_control_completed_ns'] = time.time_ns()
 r.ops.atomic_write_json(root / 'campaign.json', campaign)
 print(json.dumps({'DONE': 'native_ratio_restored', 'warm_phase': result.get('warm_phase'), 'error': result.get('error')}), flush=True)
-

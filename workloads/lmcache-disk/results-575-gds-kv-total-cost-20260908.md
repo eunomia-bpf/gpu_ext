@@ -1,8 +1,10 @@
 # LMCache total-recovery-cost policy comparison
 
-Status: running; blocks 0 and 2 and block 1's stock/total-cost arms are
-reported below. Block 1 still needs the restored original-ratio control. This is not the completed
-five-block result. Implementation `4381f660`; raw outputs and the exact
+Status: complete, five blocks and twenty planned-policy cells. The missing
+block-1 original-ratio control completed after the main batch; that timing
+deviation and its sensitivity analysis are retained below. One additional
+unplanned-policy warm result and one disk-full cold failure are also preserved.
+Implementation `4381f660`; raw outputs and the exact
 invocation are under `raw/gds-kv-total-cost-575-20260908-01/`.
 See the [unchanged experiment plan](gds-control/kv-reclaim-total-cost-experiment-20260908.md).
 
@@ -18,7 +20,50 @@ all arms use the same real LMCache disk backend. Thus the comparisons
 separate a custom policy change, its native/BPF implementation cost, and
 its benefit or loss relative to the runtime's stock behavior.
 
-## Completed cells
+## Final paired result
+
+| Arm | Median output token/s | Median of cell TTFT medians, ms |
+| --- | ---: | ---: |
+| Stock victim selector | 71.916482 | 25745.204 |
+| Native original cost/byte | 64.743942 | 30933.185 |
+| Native total cost | 68.964702 | 26453.816 |
+| BPF total cost | 68.834700 | 26779.272 |
+
+These medians are not paired effects. Within each block, the percentage is
+`100 * (tested throughput / reference throughput - 1)`:
+
+| Comparison | Paired mean % | Paired median % | 95% bootstrap interval for paired mean % |
+| --- | ---: | ---: | ---: |
+| BPF total / native total | -1.205663 | -0.951210 | -2.417572 to -0.023905 |
+| Native total / native original ratio | +5.377805 | +7.339387 | -1.190965 to +11.946575 |
+| BPF total / native original ratio | +4.129887 | +6.318364 | -2.854366 to +11.114140 |
+| Native total / stock | -3.602768 | -3.423484 | -7.205587 to -0.109257 |
+| BPF total / stock | -4.776475 | -4.342130 | -8.060147 to -1.600677 |
+
+Total cost removes the repeated-restoration pattern in even blocks, but
+does not beat stock overall. Its benefit against the original ratio is
+arrival-order dependent (three positive and two negative native pairs);
+the five-block interval includes zero. The matched BPF path is slower in
+four of five pairs, with a mean -1.21% throughput difference; its interval
+only narrowly excludes zero. This is a measured implementation-path cost
+on this workload, not an isolated BPF instruction-cost measurement.
+
+For comparisons involving the late original-ratio control, excluding block 1
+gives native-total/ratio mean +7.637800% [0.365576%, 13.669584%] and
+BPF-total/ratio mean +6.257120% [-1.565521%, 12.313084%]. This sensitivity
+does not justify dropping block 1 from the primary report. The complete
+five-block stock/native-total/BPF-total comparisons require no replacement.
+
+Intervals enumerate all equally weighted ordered whole-block bootstrap
+samples (`5^5` for five blocks, `4^4` for sensitivity), using linear
+percentile interpolation. They are pointwise intervals over five blocks,
+not evidence of universal benefit. The [paired summary](raw/gds-kv-total-cost-575-20260908-01/paired-summary.json)
+records every raw source, unrounded metric, paired effect, and method.
+All 20 planned cells finish eight warm requests and 8192 output tokens,
+with zero warm failures and zero server exit codes. The extra unplanned
+warm result also completes, but is not included under the original-policy label.
+
+## Completed cells and retained interim interpretation
 
 | Block | Policy | Output token/s | Median TTFT, ms | Restore batches | Logged restore MiB | Restore ops | Rollback warnings |
 |---|---|---:|---:|---:|---:|---:|---:|
@@ -35,10 +80,18 @@ its benefit or loss relative to the runtime's stock behavior.
 | 2 | native cost/byte | 63.5406061794 | 31571.3766265 | 42 | 5856 | 244 | 34 |
 | 3 | BPF total cost | 65.3925934133 | 29939.2793140 | 12 | 1344 | 56 | 4 |
 | 3 | stock | 70.5504635577 | 25880.3336575 | 15 | 1968 | 82 | 7 |
+| 3 | native cost/byte | 69.5045186867 | 26289.0616350 | 15 | 1968 | 82 | 7 |
+| 3 | native total cost | 67.4298578540 | 29127.0380250 | 12 | 1344 | 56 | 4 |
+| 4 | stock | 71.9592647512 | 25556.1341070 | 15 | 1632 | 68 | 7 |
+| 4 | native cost/byte | 64.7439418971 | 30933.1854310 | 42 | 5856 | 244 | 34 |
+| 4 | native total cost | 69.4957506535 | 26404.6924315 | 15 | 1632 | 68 | 7 |
+| 4 | BPF total cost | 68.8347001303 | 26779.2715430 | 15 | 1632 | 68 | 7 |
+| 1 (late control) | native cost/byte | 70.3202776192 | 25859.5119110 | 15 | 1968 | 82 | 7 |
 
-All thirteen planned-policy cells above finish eight warm requests, with 8192 completed
-output tokens each and zero warm failures. The remaining blocks are still
-running. In this one block BPF total/native total throughput differs by
+At the earlier thirteen-cell checkpoint, all completed cells had eight warm
+requests, 8192 output tokens and zero warm failures. The following paragraphs
+retain that interim interpretation, now bounded by the full comparison above.
+In the first block BPF total/native total throughput differs by
 +0.9681%; BPF total/old native differs by +11.4861%, and BPF total/stock by
 -1.7937%. One block does not establish a stable mechanism or policy gain.
 
@@ -128,9 +181,9 @@ remains necessary and will use a new output directory; no completed
 planned-policy cell is to be repeated. Its later measurement time must
 be disclosed in any paired analysis.
 
-The missing-control command is now queued behind the current GPU/struct-ops
-locks: `python3 -u /tmp/lmcache-total-cost-missing-control-20260908.py`.
-It runs one original-ratio cell at
+The missing-control command subsequently acquired the GPU/struct-ops locks
+after the main batch: `python3 -u /tmp/lmcache-total-cost-missing-control-20260908.py`.
+It completed one original-ratio cell at
 `block-01/position-4-native_ratio-restored/` only after the current campaign
 finishes. It preserves the unplanned result under its actual policy label
 and records the later measurement time. It does not repeat any completed

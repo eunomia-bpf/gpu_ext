@@ -1,0 +1,655 @@
+{
+  "status": "complete",
+  "planned_cells": 20,
+  "unplanned_warm_cells": 1,
+  "failed_cold_attempts": 1,
+  "method": "100*(tested/reference-1) within block; arithmetic mean and median; percentile 95% interval over all n^n equally weighted ordered whole-block bootstrap samples, linear quantiles; sensitivity excludes late replacement block 1 for original-ratio comparisons.",
+  "medians": {
+    "stock": {
+      "throughput": 71.91648187331454,
+      "ttft_ms": 25745.204467
+    },
+    "native_ratio": {
+      "throughput": 64.74394189713027,
+      "ttft_ms": 30933.185430999998
+    },
+    "native_total": {
+      "throughput": 68.96470155426526,
+      "ttft_ms": 26453.8161885
+    },
+    "bpf_total": {
+      "throughput": 68.83470013025973,
+      "ttft_ms": 26779.271543
+    }
+  },
+  "comparisons": [
+    {
+      "tested": "bpf_total",
+      "reference": "native_total",
+      "excluded_blocks": [],
+      "pairs": [
+        {
+          "block": 0,
+          "percent": 0.9681358296725673
+        },
+        {
+          "block": 1,
+          "percent": -0.7441161396207985
+        },
+        {
+          "block": 2,
+          "percent": -2.279815336168034
+        },
+        {
+          "block": 3,
+          "percent": -3.0213091136367165
+        },
+        {
+          "block": 4,
+          "percent": -0.9512099905371385
+        }
+      ],
+      "mean_percent": -1.205662950058024,
+      "median_percent": -0.9512099905371385,
+      "ci95_mean_percent": [
+        -2.4175717633397964,
+        -0.023904797354226126
+      ]
+    },
+    {
+      "tested": "native_total",
+      "reference": "native_ratio",
+      "excluded_blocks": [],
+      "pairs": [
+        {
+          "block": 0,
+          "percent": 10.417093304764148
+        },
+        {
+          "block": 1,
+          "percent": -3.6621778506747527
+        },
+        {
+          "block": 2,
+          "percent": 15.779649957570886
+        },
+        {
+          "block": 3,
+          "percent": -2.9849294289673645
+        },
+        {
+          "block": 4,
+          "percent": 7.33938746561662
+        }
+      ],
+      "mean_percent": 5.377804689661907,
+      "median_percent": 7.33938746561662,
+      "ci95_mean_percent": [
+        -1.1909654187335228,
+        11.946574798057338
+      ]
+    },
+    {
+      "tested": "native_total",
+      "reference": "native_ratio",
+      "excluded_blocks": [
+        1
+      ],
+      "pairs": [
+        {
+          "block": 0,
+          "percent": 10.417093304764148
+        },
+        {
+          "block": 2,
+          "percent": 15.779649957570886
+        },
+        {
+          "block": 3,
+          "percent": -2.9849294289673645
+        },
+        {
+          "block": 4,
+          "percent": 7.33938746561662
+        }
+      ],
+      "mean_percent": 7.637800324746072,
+      "median_percent": 8.878240385190384,
+      "ci95_mean_percent": [
+        0.3655762544655137,
+        13.669584334582318
+      ]
+    },
+    {
+      "tested": "bpf_total",
+      "reference": "native_ratio",
+      "excluded_blocks": [],
+      "pairs": [
+        {
+          "block": 0,
+          "percent": 11.486080747130556
+        },
+        {
+          "block": 1,
+          "percent": -4.379043133847061
+        },
+        {
+          "block": 2,
+          "percent": 13.14008774167652
+        },
+        {
+          "block": 3,
+          "percent": -5.916054597731069
+        },
+        {
+          "block": 4,
+          "percent": 6.318364488262307
+        }
+      ],
+      "mean_percent": 4.129887049098251,
+      "median_percent": 6.318364488262307,
+      "ci95_mean_percent": [
+        -2.85436619497879,
+        11.114140293175291
+      ]
+    },
+    {
+      "tested": "bpf_total",
+      "reference": "native_ratio",
+      "excluded_blocks": [
+        1
+      ],
+      "pairs": [
+        {
+          "block": 0,
+          "percent": 11.486080747130556
+        },
+        {
+          "block": 2,
+          "percent": 13.14008774167652
+        },
+        {
+          "block": 3,
+          "percent": -5.916054597731069
+        },
+        {
+          "block": 4,
+          "percent": 6.318364488262307
+        }
+      ],
+      "mean_percent": 6.257119594834578,
+      "median_percent": 8.902222617696431,
+      "ci95_mean_percent": [
+        -1.5655207615156628,
+        12.313084244403537
+      ]
+    },
+    {
+      "tested": "native_total",
+      "reference": "stock",
+      "excluded_blocks": [],
+      "pairs": [
+        {
+          "block": 0,
+          "percent": -2.735316611426064
+        },
+        {
+          "block": 1,
+          "percent": -9.726989093305127
+        },
+        {
+          "block": 2,
+          "percent": 2.2951755969009335
+        },
+        {
+          "block": 3,
+          "percent": -4.423224946207849
+        },
+        {
+          "block": 4,
+          "percent": -3.423484253563458
+        }
+      ],
+      "mean_percent": -3.602767861520313,
+      "median_percent": -3.423484253563458,
+      "ci95_mean_percent": [
+        -7.205587157408459,
+        -0.10925734114027855
+      ]
+    },
+    {
+      "tested": "bpf_total",
+      "reference": "stock",
+      "excluded_blocks": [],
+      "pairs": [
+        {
+          "block": 0,
+          "percent": -1.793662361923698
+        },
+        {
+          "block": 1,
+          "percent": -10.398725137183495
+        },
+        {
+          "block": 2,
+          "percent": -0.03696550451722791
+        },
+        {
+          "block": 3,
+          "percent": -7.310894761428132
+        },
+        {
+          "block": 4,
+          "percent": -4.342129719856236
+        }
+      ],
+      "mean_percent": -4.776475496981758,
+      "median_percent": -4.342129719856236,
+      "ci95_mean_percent": [
+        -8.060146506980463,
+        -1.6006770905476173
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "block": 0,
+      "position": 0,
+      "policy_label": "stock",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-00/position-0-stock/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 70.90415467528969,
+      "ttft_ms": 25745.204467,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 0,
+      "position": 1,
+      "policy_label": "native_ratio",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-00/position-1-native_ratio/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 62.458356301695595,
+      "ttft_ms": 32331.098169,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 43,
+      "restore_mib": 6000,
+      "restore_ops": 250,
+      "rollback_warnings": 35,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 0,
+      "position": 2,
+      "policy_label": "native_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-00/position-2-native_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 68.96470155426526,
+      "ttft_ms": 26453.8161885,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 0,
+      "position": 3,
+      "policy_label": "bpf_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-00/position-3-bpf_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 69.63237353983885,
+      "ttft_ms": 26499.364056500002,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 1,
+      "position": 0,
+      "policy_label": "native_net_unplanned",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-01/position-0-native_ratio-after-enospc/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 66.92416995941201,
+      "ttft_ms": 29015.3862045,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 12,
+      "restore_mib": 1344,
+      "restore_ops": 56,
+      "rollback_warnings": 4,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 1,
+      "position": 1,
+      "policy_label": "native_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-01/position-1-native_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 67.74502398765618,
+      "ttft_ms": 28889.172136,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 12,
+      "restore_mib": 1344,
+      "restore_ops": 56,
+      "rollback_warnings": 4,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 1,
+      "position": 2,
+      "policy_label": "bpf_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-01/position-2-bpf_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 67.24092233037405,
+      "ttft_ms": 28920.8070945,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 12,
+      "restore_mib": 1344,
+      "restore_ops": 56,
+      "rollback_warnings": 4,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 1,
+      "position": 3,
+      "policy_label": "stock",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-01/position-3-stock/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 75.04460448059791,
+      "ttft_ms": 24276.9762065,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1968,
+      "restore_ops": 82,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 2,
+      "position": 0,
+      "policy_label": "native_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-02/position-0-native_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 73.56709141542053,
+      "ttft_ms": 24731.92387,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 2,
+      "position": 1,
+      "policy_label": "bpf_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-02/position-1-bpf_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 71.88989758295902,
+      "ttft_ms": 25733.601484,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 2,
+      "position": 2,
+      "policy_label": "stock",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-02/position-2-stock/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 71.91648187331454,
+      "ttft_ms": 25843.3867345,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 2,
+      "position": 3,
+      "policy_label": "native_ratio",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-02/position-3-native_ratio/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 63.54060617939358,
+      "ttft_ms": 31571.3766265,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 42,
+      "restore_mib": 5856,
+      "restore_ops": 244,
+      "rollback_warnings": 34,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 3,
+      "position": 0,
+      "policy_label": "bpf_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-03/position-0-bpf_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 65.3925934133063,
+      "ttft_ms": 29939.279314,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 12,
+      "restore_mib": 1344,
+      "restore_ops": 56,
+      "rollback_warnings": 4,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 3,
+      "position": 1,
+      "policy_label": "stock",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-03/position-1-stock/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 70.5504635577102,
+      "ttft_ms": 25880.3336575,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1968,
+      "restore_ops": 82,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 3,
+      "position": 2,
+      "policy_label": "native_ratio",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-03/position-2-native_ratio/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 69.50451868670177,
+      "ttft_ms": 26289.061635,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1968,
+      "restore_ops": 82,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 3,
+      "position": 3,
+      "policy_label": "native_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-03/position-3-native_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 67.42985785396029,
+      "ttft_ms": 29127.038025,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 12,
+      "restore_mib": 1344,
+      "restore_ops": 56,
+      "rollback_warnings": 4,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 4,
+      "position": 0,
+      "policy_label": "stock",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-04/position-0-stock/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 71.95926475121215,
+      "ttft_ms": 25556.134106999998,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 4,
+      "position": 1,
+      "policy_label": "native_ratio",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-04/position-1-native_ratio/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 64.74394189713027,
+      "ttft_ms": 30933.185430999998,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 42,
+      "restore_mib": 5856,
+      "restore_ops": 244,
+      "rollback_warnings": 34,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 4,
+      "position": 2,
+      "policy_label": "native_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-04/position-2-native_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 69.49575065347436,
+      "ttft_ms": 26404.6924315,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 4,
+      "position": 3,
+      "policy_label": "bpf_total",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-04/position-3-bpf_total/result.json",
+      "late_replacement": null,
+      "error": null,
+      "throughput": 68.83470013025973,
+      "ttft_ms": 26779.271543,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1632,
+      "restore_ops": 68,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    },
+    {
+      "block": 1,
+      "position": 4,
+      "policy_label": "native_ratio",
+      "result": "raw/gds-kv-total-cost-575-20260908-01/block-01/position-4-native_ratio-restored/result.json",
+      "late_replacement": true,
+      "error": null,
+      "throughput": 70.32027761915798,
+      "ttft_ms": 25859.511911,
+      "requests": 8,
+      "failures": 0,
+      "tokens": 8192,
+      "restore_batches": 15,
+      "restore_mib": 1968,
+      "restore_ops": 82,
+      "rollback_warnings": 7,
+      "server_returncode": 0,
+      "cold_requests": null
+    }
+  ]
+}

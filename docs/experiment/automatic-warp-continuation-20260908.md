@@ -29,6 +29,22 @@ new performance run. No extra verifier/correctness/clock campaign is planned.
 The full record-preserving batching objective and Table1 comparison remain
 unfinished; this candidate is an incremental optimization, not completion.
 
+The subsequent uncommitted candidate encodes the published tail in the
+unlocked state word to eliminate a separate tail publication operation.
+Device-side code has landed, but the host drain and map-owned mode selection
+are still being connected. It is not yet a runnable or measured variant.
+The shared map must own its protocol choice so independently attaching
+processes cannot select incompatible host/device layouts through environment
+settings. The runner owner is coordinating loader and client configuration.
+
+For perspective, reducing a 90.71% throughput loss to 8% at an unchanged
+baseline would reduce added instrumentation time by about 112.29 times:
+`(1 / (1 - 0.9071) - 1) / (1 / (1 - 0.08) - 1)`.
+This is arithmetic, not a performance prediction or a cross-GPU comparison.
+The small publication optimization must be measured; it cannot be assumed
+to recover the historical P40 percentage. Full-record aggregation remains
+unfinished, and no old result is removed or relabelled.
+
 ## PTX lowering tests closed
 
 The scoped PTX/JSON test update is pushed in bpftime `d6db11e`.

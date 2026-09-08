@@ -1,7 +1,7 @@
 # LMCache total-recovery-cost policy comparison
 
-Status: running; block 0 and block 1's stock/total-cost arms are reported
-below. Block 1 still needs the restored original-ratio control. This is not the completed
+Status: running; blocks 0 and 2 and block 1's stock/total-cost arms are
+reported below. Block 1 still needs the restored original-ratio control. This is not the completed
 five-block result. Implementation `4381f660`; raw outputs and the exact
 invocation are under `raw/gds-kv-total-cost-575-20260908-01/`.
 See the [unchanged experiment plan](gds-control/kv-reclaim-total-cost-experiment-20260908.md).
@@ -22,8 +22,12 @@ those historical measurements. No policy advantage or novelty is presumed.
 | 1 | native total cost | 67.7450239877 | 28889.1721360 | 12 | 1344 | 56 | 4 |
 | 1 | BPF total cost | 67.2409223304 | 28920.8070945 | 12 | 1344 | 56 | 4 |
 | 1 | stock | 75.0446044806 | 24276.9762065 | 15 | 1968 | 82 | 7 |
+| 2 | native total cost | 73.5670914154 | 24731.9238700 | 15 | 1632 | 68 | 7 |
+| 2 | BPF total cost | 71.8898975830 | 25733.6014840 | 15 | 1632 | 68 | 7 |
+| 2 | stock | 71.9164818733 | 25843.3867345 | 15 | 1632 | 68 | 7 |
+| 2 | native cost/byte | 63.5406061794 | 31571.3766265 | 42 | 5856 | 244 | 34 |
 
-All seven planned-policy cells above finish eight warm requests, with 8192 completed
+All eleven planned-policy cells above finish eight warm requests, with 8192 completed
 output tokens each and zero warm failures. The remaining blocks are still
 running. In this one block BPF total/native total throughput differs by
 +0.9681%; BPF total/old native differs by +11.4861%, and BPF total/stock by
@@ -42,6 +46,16 @@ alone is therefore not sufficient to improve this serving workload. It
 can change which request makes progress and how much decode work is lost;
 these counts alone do not establish the cause. The native/BPF total-cost
 implementations remain close in this block (BPF/native -0.7441%).
+
+Block 2 supplies another complete original-ratio comparison after source
+restoration: native total/ratio throughput improves by 15.7796%, and BPF
+total/ratio by 13.1401%. BPF total is effectively at the observed stock
+throughput in this block (71.8899 versus 71.9165 token/s), while native
+total is higher. Restore counts fall from the ratio rule's 42 batches /
+5856 MiB / 34 rollback warnings to 15 / 1632 / 7 for both total-cost
+implementations and stock. Together with block 0 this supports a
+ranking-related repeated-restoration effect on these two arrival orders;
+the block-1 result still prevents a general stock-superiority conclusion.
 
 ## Disk-full interruption and continuation
 

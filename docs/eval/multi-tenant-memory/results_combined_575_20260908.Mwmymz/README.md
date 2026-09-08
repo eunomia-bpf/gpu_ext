@@ -131,3 +131,10 @@ These are individual observations, not medians. Combined is slightly faster
 for the high-priority tenant and slower for the low-priority tenant in this
 block. A progress message mistakenly quoted 32.40/58.40 seconds; the source
 CSV values above correct that transcription, without altering any measurement.
+
+At 08:21 UTC block 1 also finished all four arms, with both tenant exit codes
+zero in every cell. Its closed `block01_*` files are collected alongside
+block 0. K-Means is now 8/20 cells complete and running block 2; the overall
+campaign is 48/60 cells complete. Aggregate five-block analysis and runtime
+restoration remain pending; the first-block table is not promoted to a final
+effect estimate.

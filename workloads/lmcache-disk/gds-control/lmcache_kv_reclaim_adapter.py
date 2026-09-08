@@ -328,8 +328,6 @@ class KvReclaimVictimPolicy:
         impl_type = type(impl)
         impl_modules = (
             "lmcache.integration.vllm.vllm_v1_adapter",
-            "vllm.distributed.kv_transfer.kv_connector.v1.lmcache_integration"
-            ".vllm_v1_adapter",
         )
         if (
             impl_type.__name__ != "LMCacheConnectorV1Impl"
@@ -876,12 +874,21 @@ def bootstrap_from_env(
 
     _require_lmcache_version()
 
+    # Actual connector binding for this installed target:
+    # LMCacheConnectorV1.__init__ (vllm
+    # distributed/kv_transfer/kv_connector/v1/lmcache_connector.py:93-112)
+    # reads extra_config "use_native" with default False, which the target
+    # does not set, so connector._lmcache_engine is
+    # lmcache.integration.vllm.vllm_v1_adapter.LMCacheConnectorV1Impl.
+    # The use_native=True in-vllm module
+    # (vllm.distributed.kv_transfer.kv_connector.v1.lmcache_integration)
+    # is unused and not importable against installed LMCache 0.5.4 (its
+    # multi_process_adapter imports CudaIPCWrapper from
+    # lmcache.v1.multiprocess.custom_types, absent there); it is not
+    # imported or hooked here.
     from vllm.v1.core.sched.scheduler import Scheduler
     from lmcache.integration.vllm.vllm_v1_adapter import (
         LMCacheConnectorV1Impl as LatestDevImpl,
-    )
-    from vllm.distributed.kv_transfer.kv_connector.v1.lmcache_integration.vllm_v1_adapter import (
-        LMCacheConnectorV1Impl as NativeImpl,
     )
 
     already_installed = False
@@ -933,7 +940,7 @@ def bootstrap_from_env(
         Scheduler.__init__ = hooked_scheduler_init
         setattr(Scheduler, _SCHEDULER_HOOK_ATTR, hooked_scheduler_init)
 
-        for impl_cls in (LatestDevImpl, NativeImpl):
+        for impl_cls in (LatestDevImpl,):
             _assert_signature(
                 impl_cls,
                 "register_kv_caches",

@@ -37,6 +37,22 @@ measurements in a distinct output directory. Remaining blocks of the broken
 configuration will not be launched. No completed record is overwritten, and
 no new clock-accuracy, audit or preflight campaign is introduced.
 
+### Bootstrap repair and fresh serving run, September 8 UTC
+
+The adapter now imports and hooks only the installed LMCache implementation
+used by the configured default connector. An explicit import with
+`LMCACHE_KV_RECLAIM=1`, native mode, and the retained 62502 ns/token price
+exited zero and returned `enabled=True`. This establishes bootstrap, not
+runtime policy decisions. No dependency or installed scheduler was changed.
+
+A fresh native serving cell is running under
+`raw/gds-kv-reclaim-bootstrap-repaired-575-20260908-01/native-sync/`, using
+the existing `run_gds_kv_reclaim.run_cell` entrypoint and the same
+`--no-async-scheduling` control, 384 MiB KV pool, 256 MiB GDS buffer,
+eight warm requests, 1024 output-token bound and 62502 ns/token price.
+The complete original workload is retained. Its result is pending; this
+repair is not a new performance claim or transparent disk-UVM implementation.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

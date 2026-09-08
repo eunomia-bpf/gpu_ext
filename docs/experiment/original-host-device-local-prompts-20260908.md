@@ -27,6 +27,15 @@ The original XSched scope below is unchanged, except heavy CPU builds also
 wait for the current GPU experiment owner's timing window. This resumption
 is not a completed Level2 implementation or a new performance result.
 
+The resumed XSched request subsequently ended with terminal HTTP 524 at
+1788869659115 ms Unix time after its provider retries; the CLI also exited.
+Root resumed the same session with GLM, without aborting the failed request
+or discarding context. Table1's existing session also now uses GLM after a
+natural Qwen request boundary; disk UVM remains on direct Qwen 27B. These
+are still three sessions. Qwen Next was attempted but did not produce a
+source patch, so the preferred three-distinct-model arrangement is not
+currently available through that route. No model was stopped for silence.
+
 ## Additional user-authorized queue — 04:42 UTC
 
 The existing three sessions (disk UVM, XSched, Hummingbird) were confirmed busy

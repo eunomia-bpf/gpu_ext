@@ -58,6 +58,14 @@ encoding solver/main flow; a compiled parser is not a generated native
 guardian or a successful end-to-end run. Root added the standard `<cctype>`
 include required by the new character-classification calls.
 
+The next padded probe also builds (exit zero,
+`native-padded-probe-build.log`). Its actual disassembly is retained as
+`native-padded-probe.sass`: parameter-window metadata is `0x380/0x1520`,
+and a real `LDC.64` consumes `c[0x0][0x1898]`. This exposes a high-offset
+instruction for the pending encoding adaptation. It is a compiler specimen,
+not a GPU performance or successful guardian-injection result; main/solver
+integration remains to be done.
+
 Earlier rejected compilations remain in `components.log`,
 `branchless-components.log` and `branchless-fullmask-components.log`.
 The first arithmetic draft used a one-bit select mask; root corrected it to

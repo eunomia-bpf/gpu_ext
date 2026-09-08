@@ -69,3 +69,14 @@ low-priority completion time. This is a tradeoff, not an across-the-board
 win. The first baseline block takes 80.798918/81.041481 seconds and remains
 in the five-block results; it has not been dropped or rerun. No historical
 HotSpot results are overwritten. GEMM/K-Means evidence is still outstanding.
+
+Within each of the five blocks, combined versus scheduling-only changes
+high-priority completion time by a mean **-10.5294%** (95% interval
+[-11.4830%, -9.5759%]) and low-priority completion time by **+5.8852%**
+([+5.1906%, +6.5798%]). Every pair has the same tradeoff direction.
+Negative percentages mean faster completion. These pointwise intervals
+enumerate all 3125 ordered whole-block bootstrap samples of the five paired
+percent changes, with linearly interpolated 2.5/97.5 percentiles. The
+[paired summary](hotspot/paired-summary.json) retains the source, all pairs,
+method and comparisons with the memory-only and baseline arms. This is a
+policy-composition result, not a BPF-versus-native mechanism-overhead result.

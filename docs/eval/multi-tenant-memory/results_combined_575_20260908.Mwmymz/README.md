@@ -1,8 +1,11 @@
 # Original Fig.13 four-arm follow-up
 
-Status: running, not a completed three-workload result. HotSpot and GEMM each
-finished all 20 cells with runner exit zero and both tenant exit codes zero
-in every cell. K-Means started at 2026-09-08 07:57 UTC. Runner commit `a5d66a13` adds the
+Status: the three-workload measurement campaign is complete. All 60 cells
+finished, all 120 tenant exit codes are zero, and all three runners exited
+zero. K-Means finished at 2026-09-08 08:57 UTC. Runtime restoration is also
+complete. The historical checkpoints below retain the collection timeline;
+the final K-Means and unified summaries give the completed result.
+Runner commit `a5d66a13` adds the
 opt-in comparison to the original `run_policy_comparison.py`.
 
 The planned campaign is five rotated blocks of baseline, memory-only,
@@ -52,9 +55,17 @@ The immutable-for-this-run copies are in
 publication artifacts and will not be committed. Root stopped only the two
 known idle GDS/reclaim loaders (1744933 and 2106071), the GDM greeter and
 persistence service after confirming no GPU compute process. The original
-core, current UVM, services and both loaders must be restored after the run.
+core, current UVM, services and both loaders were restored after the run.
 `driver-lifecycle.log` records the actual commands and outcomes; restoration
-is not yet claimed complete.
+completed with exit zero. The saved 62413352-byte current UVM was used, not
+the older pre-KV-reclaim module. `uvm_enable_builtin_tests` is still zero.
+GDM and nvidia-persistenced are active. The restored GDS loader (PID 2474310)
+and KV-reclaim loader (PID 2474311) both reported `attached` and were alive
+with their original binary/object arguments. Their startup logs are
+`/tmp/fig13-restored-gds-policy-20260908.log` and
+`/tmp/fig13-restored-kv-reclaim-20260908.log`. GPU/struct-ops locks were
+released and the lifecycle shell closed; the background loaders do not
+inherit those lock descriptors. No unfinished disk-backing module was loaded.
 
 The system `bpftool struct_ops show` returned process exit 139 during
 preparation. No global struct-ops cleanup was used. Experiment tools retain
@@ -174,3 +185,40 @@ separately establish a reduction in page faults, DMA traffic or thrashing,
 nor attribute all completion-time gains to one cause. The paired latency
 tradeoffs above remain the performance results; these counters neither
 replace them nor serve as a measurement-admission condition.
+
+## Final K-Means result and three-workload comparison
+
+All five blocks and 20 cells are retained under
+`kmeans/combined_20260908_005722/`, including the final aggregate CSV, events,
+metadata and per-tenant/tool logs. No cell was retried, removed or replaced.
+Completion-time medians in seconds:
+
+| Arm | High-priority tenant | Low-priority tenant |
+| --- | ---: | ---: |
+| Baseline | 332.056461 | 332.299329 |
+| Memory only | 246.060516 | 260.657138 |
+| Scheduling only | 31.597359 | 57.789015 |
+| Combined | 31.125356 | 58.339609 |
+
+Combined versus scheduling-only changes high-priority completion by a paired
+mean **-1.3916%** (95% interval [-1.4890%, -1.2941%]) and low-priority
+completion by **+0.9596%** ([+0.8663%, +1.0530%]). Paired medians are
+-1.3573% and +0.9628%. Every pair has the same high-faster/low-slower direction.
+The [K-Means paired summary](kmeans/paired-summary.json) uses the same
+whole-block enumeration method and retains all individual pairs and
+baseline/memory comparisons.
+
+Across the three workloads, the marginal effect of adding memory policy to
+scheduling is:
+
+| Workload | High: paired mean change | High: 95% interval | Low: paired mean change | Low: 95% interval |
+| --- | ---: | ---: | ---: | ---: |
+| HotSpot | -10.5294% | [-11.4830%, -9.5759%] | +5.8852% | [+5.1906%, +6.5798%] |
+| GEMM | -2.5290% | [-2.8204%, -2.2840%] | +14.0469% | [+13.8065%, +14.2789%] |
+| K-Means | -1.3916% | [-1.4890%, -1.2941%] | +0.9596% | [+0.8663%, +1.0530%] |
+
+This demonstrates a policy-composition tradeoff under these oversubscribed
+two-tenant workloads: modest-to-larger high-priority gains, with low-priority
+costs. It is not an all-tenant latency improvement, not a BPF-versus-native
+mechanism-overhead comparison, and not evidence that old/new timing regimes
+can share a paired baseline. Existing historical data remain unchanged.

@@ -1,0 +1,273 @@
+Script started on 2026-09-08 00:27:55-07:00 [COMMAND="sudo -n bash --noprofile --norc" TERM="dumb" TTY="/dev/pts/2" COLUMNS="80" LINES="24"]
+bash-5.2# <n-gpu0.lock 12</tmp/gpubpf-revision-struct-ops.lock
+bash-5.2# flock -n 11 && flock -n 12
+bash-5.2# printf 'lock_rc=%s\n' "$?"
+lock_rc=0
+bash-5.2# <-d /var/tmp/fig13-original-modules-20260908.XXXXXX)
+bash-5.2# <ds/kernel-open/nvidia.ko "$fig13_modules/nvidia.ko"
+bash-5.2# <l-open/nvidia-uvm.ko "$fig13_modules/nvidia-uvm.ko"
+bash-5.2# printf 'module_snapshot=%s\n' "$fig13_modules"
+module_snapshot=/var/tmp/fig13-original-modules-20260908.TkarSf
+bash-5.2# <3_modules/nvidia.ko" "$fig13_modules/nvidia-uvm.ko"
+/var/tmp/fig13-original-modules-20260908.TkarSf/nvidia.ko 30216144 bytes
+/var/tmp/fig13-original-modules-20260908.TkarSf/nvidia-uvm.ko 62413352 bytes
+bash-5.2# date -u
+Tue Sep  8 07:28:27 UTC 2026
+bash-5.2# <=pid,process_name,used_memory --format=csv,noheader
+bash-5.2# systemctl is-active gdm nvidia-persistenced
+active
+active
+bash-5.2# kill -INT 1744933 2106071
+bash-5.2# systemctl stop gdm nvidia-persistenced
+bash-5.2# < /dev/nvidiactl /dev/nvidia-modeset /dev/nvidia-uvm
+bash-5.2# ps -p 1744933,2106071 -o pid,comm
+    PID COMMAND
+bash-5.2# lsmod | rg '^nvidia'
+nvidia_uvm           2199552  0
+nvidia_drm            135168  0
+nvidia_modeset       1736704  1 nvidia_drm
+nvidia              11534336  2 nvidia_uvm,nvidia_modeset
+bash-5.2# < nvidia_modeset && rmmod nvidia_uvm && rmmod nvidia
+bash-5.2# printf 'unload_rc=%s\n' "$?"
+unload_rc=0
+bash-5.2# <nvidia.ko" && insmod "$fig13_modules/nvidia-uvm.ko"
+bash-5.2# printf 'candidate_load_rc=%s\n' "$?"
+candidate_load_rc=0
+bash-5.2# nvidia-smi --query-gpu=name,driver_version,memory.used --format=csv
+name, driver_version, memory.used [MiB]
+NVIDIA GeForce RTX 5090, 575.57.08, 0 MiB
+bash-5.2# cd /home/yunwei37/workspace/gpu/gpu_ext
+bash-5.2# <memory/results_combined_575_20260908.Mwmymz/hotspot
+============================================================
+Combined Four-Arm Comparison (ORIGINAL Fig.13 follow-up)
+============================================================
+Kernel: hotspot, Size Factor: 0.6, Iterations: 1
+Arms: baseline, memory_only, sched_only, combined, Blocks: 5
+Memory policy: prefetch_eviction_pid high=20/low=80
+Sched policy:  gpu_sched_set_timeslices high=1000000us/low=200us
+Output: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/hotspot
+
+2026-09-08T00:29:05.269242 combined start kernel=hotspot size_factor=0.6 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/hotspot/combined_20260908_002905
+2026-09-08T00:29:05.269312 block 0 arm order: baseline,memory_only,sched_only,combined
+2026-09-08T00:29:05.269319 --- block 0 arm baseline ---
+2026-09-08T00:29:05.320610 block00_baseline release t=1788852545.320586 cont_high=1788852545.320598 cont_low=1788852545.320599
+2026-09-08T00:30:26.410558 --- block 0 arm memory_only ---
+2026-09-08T00:30:27.473755 block00_memory_only release t=1788852627.473402 cont_high=1788852627.473741 cont_low=1788852627.473744
+2026-09-08T00:30:56.885607 --- block 0 arm sched_only ---
+2026-09-08T00:30:57.958964 block00_sched_only release t=1788852657.958944 cont_high=1788852657.958952 cont_low=1788852657.958953
+2026-09-08T00:31:04.165253 --- block 0 arm combined ---
+2026-09-08T00:31:06.221054 block00_combined release t=1788852666.221037 cont_high=1788852666.221044 cont_low=1788852666.221045
+2026-09-08T00:31:12.840514 block 1 arm order: memory_only,sched_only,combined,baseline
+2026-09-08T00:31:12.840540 --- block 1 arm memory_only ---
+2026-09-08T00:31:13.892611 block01_memory_only release t=1788852673.892587 cont_high=1788852673.892599 cont_low=1788852673.892601
+2026-09-08T00:31:40.576395 --- block 1 arm sched_only ---
+2026-09-08T00:31:41.628599 block01_sched_only release t=1788852701.628567 cont_high=1788852701.628576 cont_low=1788852701.628580
+2026-09-08T00:31:47.788251 --- block 1 arm combined ---
+2026-09-08T00:31:49.849506 block01_combined release t=1788852709.849488 cont_high=1788852709.849494 cont_low=1788852709.849497
+2026-09-08T00:31:56.447042 --- block 1 arm baseline ---
+2026-09-08T00:31:56.498097 block01_baseline release t=1788852716.498086 cont_high=1788852716.498089 cont_low=1788852716.498090
+2026-09-08T00:32:53.133407 block 2 arm order: sched_only,combined,baseline,memory_only
+2026-09-08T00:32:53.133431 --- block 2 arm sched_only ---
+2026-09-08T00:32:54.185687 block02_sched_only release t=1788852774.185668 cont_high=1788852774.185675 cont_low=1788852774.185677
+2026-09-08T00:33:00.299255 --- block 2 arm combined ---
+2026-09-08T00:33:02.352199 block02_combined release t=1788852782.352181 cont_high=1788852782.352187 cont_low=1788852782.352189
+2026-09-08T00:33:09.000500 --- block 2 arm baseline ---
+2026-09-08T00:33:09.051616 block02_baseline release t=1788852789.051603 cont_high=1788852789.051606 cont_low=1788852789.051606
+2026-09-08T00:34:05.588619 --- block 2 arm memory_only ---
+2026-09-08T00:34:06.640754 block02_memory_only release t=1788852846.640735 cont_high=1788852846.640741 cont_low=1788852846.640744
+2026-09-08T00:34:34.638799 block 3 arm order: combined,baseline,memory_only,sched_only
+2026-09-08T00:34:34.638820 --- block 3 arm combined ---
+2026-09-08T00:34:36.691726 block03_combined release t=1788852876.691704 cont_high=1788852876.691711 cont_low=1788852876.691714
+2026-09-08T00:34:43.339794 --- block 3 arm baseline ---
+2026-09-08T00:34:43.391931 block03_baseline release t=1788852883.391920 cont_high=1788852883.391923 cont_low=1788852883.391924
+2026-09-08T00:35:39.947353 --- block 3 arm memory_only ---
+2026-09-08T00:35:41.000448 block03_memory_only release t=1788852941.000429 cont_high=1788852941.000436 cont_low=1788852941.000438
+2026-09-08T00:36:07.402366 --- block 3 arm sched_only ---
+2026-09-08T00:36:08.454252 block03_sched_only release t=1788852968.454235 cont_high=1788852968.454240 cont_low=1788852968.454242
+2026-09-08T00:36:14.583309 block 4 arm order: baseline,memory_only,sched_only,combined
+2026-09-08T00:36:14.583331 --- block 4 arm baseline ---
+2026-09-08T00:36:14.638383 block04_baseline release t=1788852974.638368 cont_high=1788852974.638372 cont_low=1788852974.638373
+2026-09-08T00:37:11.140292 --- block 4 arm memory_only ---
+2026-09-08T00:37:12.196123 block04_memory_only release t=1788853032.196107 cont_high=1788853032.196112 cont_low=1788853032.196114
+2026-09-08T00:37:40.289283 --- block 4 arm sched_only ---
+2026-09-08T00:37:41.341195 block04_sched_only release t=1788853061.341178 cont_high=1788853061.341183 cont_low=1788853061.341186
+2026-09-08T00:37:47.506038 --- block 4 arm combined ---
+2026-09-08T00:37:49.561906 block04_combined release t=1788853069.561888 cont_high=1788853069.561893 cont_low=1788853069.561895
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/hotspot/combined_20260908_002905
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/hotspot/combined_20260908_002905/combined_comparison.csv
+bash-5.2# printf 'hotspot_runner_rc=%s\n' "$?"
+hotspot_runner_rc=0
+bash-5.2# <nt-memory/results_combined_575_20260908.Mwmymz/gemm
+============================================================
+Combined Four-Arm Comparison (ORIGINAL Fig.13 follow-up)
+============================================================
+Kernel: gemm, Size Factor: 0.6, Iterations: 1
+Arms: baseline, memory_only, sched_only, combined, Blocks: 5
+Memory policy: prefetch_eviction_pid high=20/low=80
+Sched policy:  gpu_sched_set_timeslices high=1000000us/low=200us
+Output: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm
+
+2026-09-08T00:38:30.554481 combined start kernel=gemm size_factor=0.6 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm/combined_20260908_003830
+2026-09-08T00:38:30.554546 block 0 arm order: baseline,memory_only,sched_only,combined
+2026-09-08T00:38:30.554554 --- block 0 arm baseline ---
+2026-09-08T00:38:30.605520 block00_baseline release t=1788853110.605494 cont_high=1788853110.605505 cont_low=1788853110.605506
+2026-09-08T00:40:49.644362 --- block 0 arm memory_only ---
+2026-09-08T00:40:50.704791 block00_memory_only release t=1788853250.704771 cont_high=1788853250.704778 cont_low=1788853250.704781
+2026-09-08T00:41:18.934454 --- block 0 arm sched_only ---
+2026-09-08T00:41:19.986309 block00_sched_only release t=1788853279.986292 cont_high=1788853279.986298 cont_low=1788853279.986300
+2026-09-08T00:41:39.273161 --- block 0 arm combined ---
+2026-09-08T00:41:41.326070 block00_combined release t=1788853301.326053 cont_high=1788853301.326059 cont_low=1788853301.326061
+2026-09-08T00:42:03.481625 block 1 arm order: memory_only,sched_only,combined,baseline
+2026-09-08T00:42:03.481645 --- block 1 arm memory_only ---
+2026-09-08T00:42:04.533800 block01_memory_only release t=1788853324.533783 cont_high=1788853324.533789 cont_low=1788853324.533791
+2026-09-08T00:42:32.689264 --- block 1 arm sched_only ---
+2026-09-08T00:42:33.740765 block01_sched_only release t=1788853353.740748 cont_high=1788853353.740754 cont_low=1788853353.740756
+2026-09-08T00:42:53.025173 --- block 1 arm combined ---
+2026-09-08T00:42:55.078104 block01_combined release t=1788853375.078087 cont_high=1788853375.078093 cont_low=1788853375.078095
+2026-09-08T00:43:17.152349 --- block 1 arm baseline ---
+2026-09-08T00:43:17.203515 block01_baseline release t=1788853397.203499 cont_high=1788853397.203503 cont_low=1788853397.203504
+2026-09-08T00:45:35.992690 block 2 arm order: sched_only,combined,baseline,memory_only
+2026-09-08T00:45:35.992715 --- block 2 arm sched_only ---
+2026-09-08T00:45:37.044524 block02_sched_only release t=1788853537.044508 cont_high=1788853537.044513 cont_low=1788853537.044515
+2026-09-08T00:45:56.359529 --- block 2 arm combined ---
+2026-09-08T00:45:58.412286 block02_combined release t=1788853558.412268 cont_high=1788853558.412275 cont_low=1788853558.412277
+2026-09-08T00:46:20.471559 --- block 2 arm baseline ---
+2026-09-08T00:46:20.523060 block02_baseline release t=1788853580.523041 cont_high=1788853580.523045 cont_low=1788853580.523046
+2026-09-08T00:48:39.318984 --- block 2 arm memory_only ---
+2026-09-08T00:48:40.371284 block02_memory_only release t=1788853720.371268 cont_high=1788853720.371273 cont_low=1788853720.371276
+2026-09-08T00:49:08.578384 block 3 arm order: combined,baseline,memory_only,sched_only
+2026-09-08T00:49:08.578406 --- block 3 arm combined ---
+2026-09-08T00:49:10.630980 block03_combined release t=1788853750.630962 cont_high=1788853750.630968 cont_low=1788853750.630971
+2026-09-08T00:49:32.811191 --- block 3 arm baseline ---
+2026-09-08T00:49:32.862319 block03_baseline release t=1788853772.862308 cont_high=1788853772.862311 cont_low=1788853772.862311
+2026-09-08T00:51:51.706558 --- block 3 arm memory_only ---
+2026-09-08T00:51:52.759010 block03_memory_only release t=1788853912.758994 cont_high=1788853912.759000 cont_low=1788853912.759002
+2026-09-08T00:52:21.116550 --- block 3 arm sched_only ---
+2026-09-08T00:52:22.168425 block03_sched_only release t=1788853942.168406 cont_high=1788853942.168412 cont_low=1788853942.168415
+2026-09-08T00:52:41.462126 block 4 arm order: baseline,memory_only,sched_only,combined
+2026-09-08T00:52:41.462148 --- block 4 arm baseline ---
+2026-09-08T00:52:41.513402 block04_baseline release t=1788853961.513388 cont_high=1788853961.513391 cont_low=1788853961.513392
+2026-09-08T00:55:00.392347 --- block 4 arm memory_only ---
+2026-09-08T00:55:01.444505 block04_memory_only release t=1788854101.444489 cont_high=1788854101.444494 cont_low=1788854101.444496
+2026-09-08T00:55:33.306611 --- block 4 arm sched_only ---
+2026-09-08T00:55:34.358544 block04_sched_only release t=1788854134.358527 cont_high=1788854134.358533 cont_low=1788854134.358535
+2026-09-08T00:55:53.644000 --- block 4 arm combined ---
+2026-09-08T00:55:55.697045 block04_combined release t=1788854155.697026 cont_high=1788854155.697033 cont_low=1788854155.697036
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm/combined_20260908_003830
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm/combined_20260908_003830/combined_comparison.csv
+bash-5.2# printf 'gemm_runner_rc=%s\n' "$?"
+gemm_runner_rc=0
+bash-5.2# <-memory/results_combined_575_20260908.Mwmymz/kmeans
+============================================================
+Combined Four-Arm Comparison (ORIGINAL Fig.13 follow-up)
+============================================================
+Kernel: kmeans_sparse, Size Factor: 0.9, Iterations: 1
+Arms: baseline, memory_only, sched_only, combined, Blocks: 5
+Memory policy: prefetch_eviction_pid high=20/low=80
+Sched policy:  gpu_sched_set_timeslices high=1000000us/low=200us
+Output: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/kmeans
+
+2026-09-08T00:57:22.565218 combined start kernel=kmeans_sparse size_factor=0.9 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/kmeans/combined_20260908_005722
+2026-09-08T00:57:22.565286 block 0 arm order: baseline,memory_only,sched_only,combined
+2026-09-08T00:57:22.565293 --- block 0 arm baseline ---
+2026-09-08T00:57:22.616321 block00_baseline release t=1788854242.616295 cont_high=1788854242.616305 cont_low=1788854242.616306
+2026-09-08T01:02:58.020123 --- block 0 arm memory_only ---
+2026-09-08T01:02:59.088050 block00_memory_only release t=1788854579.083869 cont_high=1788854579.088034 cont_low=1788854579.088036
+2026-09-08T01:07:17.781934 --- block 0 arm sched_only ---
+2026-09-08T01:07:18.835226 block00_sched_only release t=1788854838.835209 cont_high=1788854838.835214 cont_low=1788854838.835216
+2026-09-08T01:08:16.630975 --- block 0 arm combined ---
+2026-09-08T01:08:18.683409 block00_combined release t=1788854898.683392 cont_high=1788854898.683398 cont_low=1788854898.683400
+2026-09-08T01:09:17.092376 block 1 arm order: memory_only,sched_only,combined,baseline
+2026-09-08T01:09:17.092398 --- block 1 arm memory_only ---
+2026-09-08T01:09:18.143962 block01_memory_only release t=1788854958.143945 cont_high=1788854958.143951 cont_low=1788854958.143953
+2026-09-08T01:13:47.649264 --- block 1 arm sched_only ---
+2026-09-08T01:13:48.700972 block01_sched_only release t=1788855228.700955 cont_high=1788855228.700960 cont_low=1788855228.700962
+2026-09-08T01:14:46.570289 --- block 1 arm combined ---
+2026-09-08T01:14:48.623510 block01_combined release t=1788855288.623493 cont_high=1788855288.623499 cont_low=1788855288.623501
+2026-09-08T01:15:47.110502 --- block 1 arm baseline ---
+2026-09-08T01:15:47.162080 block01_baseline release t=1788855347.162058 cont_high=1788855347.162063 cont_low=1788855347.162064
+2026-09-08T01:21:20.769633 block 2 arm order: sched_only,combined,baseline,memory_only
+2026-09-08T01:21:20.769656 --- block 2 arm sched_only ---
+2026-09-08T01:21:21.824683 block02_sched_only release t=1788855681.824665 cont_high=1788855681.824671 cont_low=1788855681.824674
+2026-09-08T01:22:19.571685 --- block 2 arm combined ---
+2026-09-08T01:22:21.624056 block02_combined release t=1788855741.624040 cont_high=1788855741.624046 cont_low=1788855741.624048
+2026-09-08T01:23:20.084637 --- block 2 arm baseline ---
+2026-09-08T01:23:20.136549 block02_baseline release t=1788855800.136530 cont_high=1788855800.136536 cont_low=1788855800.136537
+2026-09-08T01:28:52.436266 --- block 2 arm memory_only ---
+2026-09-08T01:28:53.497880 block02_memory_only release t=1788856133.497857 cont_high=1788856133.497865 cont_low=1788856133.497868
+2026-09-08T01:33:12.280042 block 3 arm order: combined,baseline,memory_only,sched_only
+2026-09-08T01:33:12.280229 --- block 3 arm combined ---
+2026-09-08T01:33:14.341177 block03_combined release t=1788856394.341160 cont_high=1788856394.341165 cont_low=1788856394.341167
+2026-09-08T01:34:12.869194 --- block 3 arm baseline ---
+2026-09-08T01:34:12.920477 block03_baseline release t=1788856452.920454 cont_high=1788856452.920460 cont_low=1788856452.920461
+2026-09-08T01:39:44.085042 --- block 3 arm memory_only ---
+2026-09-08T01:39:45.137993 block03_memory_only release t=1788856785.137974 cont_high=1788856785.137981 cont_low=1788856785.137984
+2026-09-08T01:44:05.912966 --- block 3 arm sched_only ---
+2026-09-08T01:44:06.964483 block03_sched_only release t=1788857046.964462 cont_high=1788857046.964472 cont_low=1788857046.964474
+2026-09-08T01:45:04.821470 block 4 arm order: baseline,memory_only,sched_only,combined
+2026-09-08T01:45:04.821491 --- block 4 arm baseline ---
+2026-09-08T01:45:04.872710 block04_baseline release t=1788857104.872695 cont_high=1788857104.872698 cont_low=1788857104.872699
+2026-09-08T01:50:36.584358 --- block 4 arm memory_only ---
+2026-09-08T01:50:37.636763 block04_memory_only release t=1788857437.636745 cont_high=1788857437.636751 cont_low=1788857437.636753
+2026-09-08T01:55:05.656694 --- block 4 arm sched_only ---
+2026-09-08T01:55:06.708949 block04_sched_only release t=1788857706.708933 cont_high=1788857706.708938 cont_low=1788857706.708940
+2026-09-08T01:56:04.482388 --- block 4 arm combined ---
+2026-09-08T01:56:06.538084 block04_combined release t=1788857766.538067 cont_high=1788857766.538073 cont_low=1788857766.538075
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/kmeans/combined_20260908_005722
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/kmeans/combined_20260908_005722/combined_comparison.csv
+bash-5.2# printf 'KMEANS_RUNNER_EXIT=%s\n' "$?"
+KMEANS_RUNNER_EXIT=0
+bash-5.2# <=pid,process_name,used_memory --format=csv,noheader
+bash-5.2# lsmod | rg '^nvidia'
+nvidia_uvm           2199552  0
+nvidia              11579392  1 nvidia_uvm
+bash-5.2# fuser -v /dev/nvidia0 /dev/nvidiactl /dev/nvidia-uvm
+bash-5.2# <ig13-original-modules-20260908.TkarSf/nvidia-uvm.ko
+bash-5.2# printf 'DRIVER_RESTORE_EXIT=%s\n' "$?"
+DRIVER_RESTORE_EXIT=0
+bash-5.2# systemctl start nvidia-persistenced gdm
+bash-5.2# printf 'SERVICE_START_EXIT=%s\n' "$?"
+SERVICE_START_EXIT=0
+bash-5.2# <restored-gds-policy-20260908.log 2>&1 11<&- 12<&- &
+[1] 2474310
+bash-5.2# fig13_restored_gds_pid=$!
+bash-5.2# <restored-kv-reclaim-20260908.log 2>&1 11<&- 12<&- &
+[2] 2474311
+bash-5.2# fig13_restored_reclaim_pid=$!
+bash-5.2# <g13_restored_gds_pid" "$fig13_restored_reclaim_pid"
+RESTORED_LOADER_PIDS=2474310,2474311
+bash-5.2# systemctl is-active nvidia-persistenced gdm
+active
+active
+bash-5.2# <s_pid,$fig13_restored_reclaim_pid" -o pid,stat,args
+    PID STAT COMMAND
+2474310 R    /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-con
+2474311 R    /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-con
+bash-5.2# tail -12 /tmp/fig13-restored-gds-policy-20260908.log
+attached
+bash-5.2# tail -12 /tmp/fig13-restored-kv-reclaim-20260908.log
+attached
+bash-5.2# ps -p 2474310,2474311 -o pid,stat,args
+    PID STAT COMMAND
+2474310 S    /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-con
+2474311 S    /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-con
+bash-5.2# <me,driver_version,memory.used --format=csv,noheader
+NVIDIA GeForce RTX 5090, 575.57.08, 1 MiB
+bash-5.2# cat /sys/module/nvidia_uvm/parameters/uvm_enable_builtin_tests
+0
+bash-5.2# ps -ww -p 2474310,2474311 -o pid,stat,args
+    PID STAT COMMAND
+2474310 S    /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/gds_policy /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/gds_policy.bpf.o
+2474311 S    /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/kv_reclaim_loader /home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/gds-control/kv_reclaim_policy.bpf.o
+bash-5.2# <e persistence=active gds=2474310 reclaim=2474311\n'
+RESTORATION_COMPLETE current_ff68a1d4_uvm builtin_tests=0 gdm=active persistence=active gds=2474310 reclaim=2474311
+bash-5.2# exec 11<&- 12<&-
+bash-5.2# printf 'GPU_AND_STRUCT_OPS_LOCKS_RELEASED\n'
+GPU_AND_STRUCT_OPS_LOCKS_RELEASED
+bash-5.2# exit
+exit
+
+Script done on 2026-09-08 02:02:24-07:00 [COMMAND_EXIT_CODE="0"]

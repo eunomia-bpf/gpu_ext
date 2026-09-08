@@ -1,0 +1,42 @@
+diff --git a/bpf_to_ptx.cpp b/bpf_to_ptx.cpp
+--- a/bpf_to_ptx.cpp
++++ b/bpf_to_ptx.cpp
+@@ -1,6 +1,6 @@
+ // bpf_to_ptx: bounded compiler exporter for the SASS application-injection
+ // task. Loads a real clang-built BPF ELF section, runs the existing strict
+-// GPU verifier (8-byte PREVAIL context + uniformity + SIMT checks), and then
++// GPU verifier (48-byte PREVAIL context + uniformity + SIMT checks), and then
+ // emits a standalone, device-callable PTX file through the existing
+ // ptxpass eBPF-to-PTX compiler.
+ //
+@@ -10,7 +10,7 @@
+ // Output ABI (untouched compiler output, with_arguments=true):
+ //   .visible .func SYMBOL(.param .b64 context_ptr,
+ //                         .param .b64 context_length)
+-// Parameter 0 is the verify-time 8-byte read/write context pointer (R1),
++// Parameter 0 is the verify-time 48-byte read/write context pointer (R1),
+ // parameter 1 is its length in bytes. This exporter never promotes the
+ // function to .entry and never edits the generated body.
+ //
+@@ -50,7 +50,11 @@ constexpr const char *LLVM_PTX_CODEGEN_TARGET = "sm_86";
+ constexpr const char *PTX_ISA_VERSION = "8.7";
+ // Exact read/write context proven by PREVAIL and handed to the generated
+ // function as its two ABI parameters (pointer, length).
+-constexpr size_t PREVAIL_GPU_CONTEXT_SIZE = sizeof(uint64_t);
++// Level-2 context adapter: the bounded snapshot decision context carries
++// six u64 scalar slots (48 bytes; level2/xsched_guardian_abi.h). The
++// snapshot is materialized by the trusted trampoline, so the program
++// dereferences no device pointer.
++constexpr size_t PREVAIL_GPU_CONTEXT_SIZE = 6 * sizeof(uint64_t);
+ 
+ // Semantically identical to the fd976ea sass_aot reference loader: extract
+ // the eBPF instruction words of the named section from a real BPF ELF
+@@ -168,7 +172,7 @@ int main(int argc, char **argv)
+ 		return 3;
+ 	}
+ 	std::cerr << "[bpf_to_ptx] GPU verifier accepted program"
+-		  << " (8-byte PREVAIL context, uniformity + SIMT checks)"
++		  << " (48-byte PREVAIL context, uniformity + SIMT checks)"
+ 		  << std::endl;
+ 
+ 	// Stage 3: existing ptxpass compiler. The function body and ABI come

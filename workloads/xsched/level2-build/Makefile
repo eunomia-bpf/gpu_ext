@@ -78,17 +78,25 @@ RESTORE_CUBIN := $(BUILD)/native/restore_exec_port.cubin
 PATCHER := $(BUILD)/native/xg_ldc_patcher
 PATCHED_HEADER := $(BUILD)/xg_sm120_guardian_arrays.h
 
-# GLM-owned exporter (workloads/sass-kretprobe/compiler.mk contract).
-# Reuse their verified build read-only when present; otherwise build it
-# from their read-only source into our .output/compiler/.
-SASS_EXPORTER := $(SASS_DIR)/build/bpf_to_ptx
-ifeq ($(wildcard $(SASS_EXPORTER)),)
+# GLM-owned exporter (workloads/sass-kretprobe/compiler.mk contract),
+# rebuilt here through the Level-2 context adapter. The reused un-adapted
+# 8-byte exporter cannot justify the Level-2 snapshot decision context
+# (6 x u64 = 48 bytes, level2/xsched_guardian_abi.h); the adapter patch
+# level2/bpf/bpf_to_ptx_ctx48.patch widens the strict PREVAIL verify-time
+# context descriptor to 48 bytes on a COPY of the exporter source. The
+# frozen workloads/sass-kretprobe source/build is never edited.
+ADAPTER_DIR := $(BUILD)/adapter
+ADAPTER_SRC := $(ADAPTER_DIR)/bpf_to_ptx.cpp
 EXPORTER := $(BUILD)/compiler/bpf_to_ptx
-$(EXPORTER):
-	$(MAKE) -f $(SASS_DIR)/compiler.mk BUILD=$(BUILD)/compiler
-else
-EXPORTER := $(SASS_EXPORTER)
-endif
+
+$(ADAPTER_SRC): $(SASS_DIR)/bpf_to_ptx.cpp $(SRC)/bpf/bpf_to_ptx_ctx48.patch
+	mkdir -p $(ADAPTER_DIR)
+	cp $< $(ADAPTER_DIR)/bpf_to_ptx.cpp
+	patch -d $(ADAPTER_DIR) -p1 --forward < $(SRC)/bpf/bpf_to_ptx_ctx48.patch
+
+$(EXPORTER): $(ADAPTER_SRC)
+	$(MAKE) -f $(SASS_DIR)/compiler.mk BUILD=$(abspath $(BUILD)/compiler) \
+		PTX_EXPORTER_SRC=$(abspath $(ADAPTER_SRC)) BIN=$(abspath $(EXPORTER))
 
 NVCC_DEVFLAGS := -arch=$(SM) -O3 -std=c++14 -Xcompiler -fPIC
 NVCC_CUBINFLAGS := -cubin -O3 -gencode arch=compute_$(SM_NUM),code=$(SM)

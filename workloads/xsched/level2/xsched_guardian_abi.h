@@ -59,13 +59,26 @@
 #define XG_BPF_SYMBOL xsched_guardian
 #define XG_BPF_SECTION "cuda__/xsched_guardian"
 
-/* Context block handed to the device BPF program (device address; the
- * trampoline materializes it in per-thread local memory). */
-struct XgGuardianCallCtx {
-    unsigned long long preempt_buffer; /* arg block offset 0 */
-    unsigned long long kernel_idx;     /* arg block offset 16 */
-    unsigned long long block_and_type; /* low u32 block_idx, high u32 launch type */
-    unsigned long long decision;       /* written back by the BPF program */
+/* Bounded snapshot decision context consumed by BOTH decisions (the
+ * native-C decision and the compiled eBPF program). The trusted
+ * trampoline materializes the slots from the real device words of the
+ * preempt buffer; neither decision dereferences a device pointer, and the
+ * BPF program touches only these six slots.
+ *
+ * Context-size contract (explicit): the exported device-BPF ABI passes
+ * (context_ptr, context_length) with context_length == 48 bytes, and the
+ * strict PREVAIL verify-time context descriptor in the adapted exporter
+ * (level2/bpf/bpf_to_ptx_ctx48.patch) grants exactly 48 read/write bytes
+ * at context_ptr. Granted size == used size == 6 x u64. */
+#define XG_SNAPSHOT_BYTES 48
+#define XG_SNAPSHOT_SLOTS 6
+struct XgSnapshotCtx {
+    unsigned long long kernel_idx;         /* slot 0 */
+    unsigned long long block_and_type;     /* slot 1: low u32 block, high u32 type */
+    unsigned long long global_exit_flag;   /* slot 2: u32 snapshot, zero-extended */
+    unsigned long long preempt_idx;        /* slot 3: recorded preempt_idx */
+    unsigned long long block_restore_flag; /* slot 4: u32 snapshot, zero-extended */
+    unsigned long long decision;           /* slot 5: write-back (BPF) */
 };
 
 #endif /* XSCHED_GUARDIAN_ABI_H */

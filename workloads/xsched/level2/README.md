@@ -10,11 +10,17 @@ patcher, and an opt-in HAL patch. Component build commands are in
 `../level2-build/`. The HAL patch passed a non-mutating `git apply --check`
 against the local XSched source; it has not been applied to that checkout.
 
-Known integration work remains: the shared scalar device-state context and
-its local exporter must agree (the reused SASS exporter declares only eight
-context bytes); the native sm_120 artifact path and end-to-end replay must
-still be built and exercised. Both matched decision arms must keep the same
-trusted actuator. No host decision fallback or performance gain is claimed.
+Integration status: the shared decision context is now a bounded 6 x u64
+scalar snapshot (48 bytes, xsched_guardian_abi.h) materialized by the
+trusted trampoline from the real device words; both the native-C decision
+and the compiled eBPF program consume that same snapshot, and the BPF
+program dereferences no device pointer. The reused SASS exporter is
+adapted only through level2/bpf/bpf_to_ptx_ctx48.patch applied to a copy
+under ../level2-build (.output/adapter), widening the strict PREVAIL
+verify-time context from 8 to 48 bytes; granted size equals used size.
+Still to build and exercise: the native sm_120 artifact path and
+end-to-end replay. Both decision arms keep the same trusted actuator. No
+host decision fallback or performance gain is claimed.
 
 The current HAL patch uses an 8192-slot mapped context pool, reserves slot
 zero, and does not retire assigned slots. This is a bring-up limitation,

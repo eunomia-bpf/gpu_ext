@@ -202,6 +202,18 @@ silent fallback alone would not complete that requested experiment.
 
 ## Existing-runner integration gap
 
+Additional source finding, 10:42 UTC: the reused
+`run_revision_rq4.prepare_tool_source()` applies
+`kernelretsnoop-phase-capacity.patch`, which introduces a manual nonleader
+early return and changes the original 80-byte per-thread record into a
+32-byte per-warp record. The new automatic-optimization mode must not inherit
+this preparation silently. Root instructed the runner owner to preserve the
+legacy seven-arm path but prepare the unchanged original full-event probe
+once for the new off/on arms, using the base source/target/build helpers
+without that capacity patch. The result must identify its record contract;
+legacy per-warp throughput is not a matched control for per-thread output.
+This is a pending implementation requirement, not a new performance result.
+
 Source inspection at 08:42 UTC confirms `run_table1_perf.py` currently fixes
 seven arms and builds all three observability tools. Its existing CLI does
 not express the requested same-object baseline/optimization-off/optimization-on

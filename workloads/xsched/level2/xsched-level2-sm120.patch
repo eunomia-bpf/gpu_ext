@@ -183,11 +183,12 @@ diff --git a/platforms/cuda/hal/src/common/options.cpp b/platforms/cuda/hal/src/
 diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/src/level2/instrument.cpp
 --- a/platforms/cuda/hal/src/level2/instrument.cpp
 +++ b/platforms/cuda/hal/src/level2/instrument.cpp
-@@ -1,6 +1,7 @@
+@@ -1,6 +1,8 @@
  #include <mutex>
  #include <cstring>
  #include <unordered_map>
 +#include <dlfcn.h>
++#include "xsched/cuda/hal/common/options.h"
  #include <cuxtra/cuxtra.h>
  
  #include "xsched/utils/common.h"
@@ -323,8 +324,8 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +        std::lock_guard<std::mutex> lock(instrument_mtx_);
 +        uint64_t slot = ++tool_ctx_count_;
 +        XASSERT(slot < XG_TOOL_CTX_SLOTS,
-+                "tool actuator context pool exhausted (%" FMT_64U " slots)",
-+                (unsigned long long)XG_TOOL_CTX_SLOTS);
++                "tool actuator context pool exhausted (%u slots)",
++                (unsigned int)XG_TOOL_CTX_SLOTS);
 +        kernel->tool_ctx = slot;
 +        memset((char *)tool_ctx_pool_host_ + slot * XG_TOOL_CTX_STRIDE, 0,
 +               XG_TOOL_CTX_BYTES);

@@ -3,6 +3,51 @@
 Latest: the branchless-barrier device components build successfully. Details
 and artifact inventory follow the preserved first failure below.
 
+## HAL/tool-actuator integration build completed
+
+The opt-in HAL patch was applied to an isolated source copy under
+`.output/hal-tool-source-20260908.f492JH`, not to frozen `deps/xsched`.
+The copy retains upstream `f49289f` plus the existing 14-line passive
+engagement changes in the two async_xqueue files (`xsched-engagement.patch`).
+Git metadata, prior build directories and installation output were not copied.
+This is a build directory, not a new Git worktree.
+
+Configuration succeeded, followed by a real build failure: `instrument.cpp`
+needed the options declaration header, and its log format added an extra `%`
+before a macro which already includes one. Root fixed the include and used
+the matching unsigned format in both the isolated copy and the saved patch.
+The revised patch still applies to the frozen dependency source.
+
+The retry `cmake --build .output/hal-tool-build-20260908 --target install -j2`
+exits zero. Installed artifacts in `.output/hal-tool-install-20260908/lib/`:
+
+| Library | Bytes |
+|---|---:|
+| `libhalcuda.so` | 550176 |
+| `libshimcuda.so` | 822960 |
+| `libpreempt.so` | 786704 |
+
+The configure/build/retry logs are `hal-tool-configure.log`,
+`hal-tool-build.log` and `hal-tool-build-retry.log`. Configuration uses
+`PLATFORM_CUDA=ON`, `BUILD_SERVICE=OFF`, `BUILD_TEST=OFF`, `SHIM_SOFTLINK=ON`,
+Release, `/usr/bin/gcc` and `/usr/bin/g++`. Both build attempts hold the
+shared GPU/struct-ops locks. No GPU execution is implied by this build.
+
+The shared NVBit actuator route uses `XSCHED_CUDA_LV2_PORT_120=1` and
+`XSCHED_LEVEL2_TOOL_ACTUATOR=1`; it does not need the still-unfinished native
+blob arrays. Native-C/device-BPF decisions share that actuator. It is a
+policy port, not evidence that the original cuXtra injector already works.
+
+The separate raw native guardian has another concrete integration defect:
+`native-check-prefix-current.sass` ends with unconditional EXIT at 0x250;
+the compiler removed the final conditional abort because the global kernel
+returns either way. The existing blob emitter would prefix the whole body to
+the original workload, so normal work could not fall through. Merely deleting
+the terminal EXIT would not restore the eliminated conditional check.
+GLM has this repair queued after its current metadata-window checkpoint.
+No native blob with this defect was launched, and component build success is
+not represented as end-to-end Level-2 completion.
+
 ## First real component build
 
 Command: `make -j2 all`, under the two shared experiment leases. It ended

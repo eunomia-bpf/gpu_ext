@@ -47,8 +47,9 @@ The stored HAL patch now includes `GuardianSM120`, its factory case and the
 generated-array consumer, enabled with `XG_SM120_GENERATED_HEADER` (the exact
 value is printed by `make hal-arrays` in `../level2-build`). The matched
 NVBit actuator path returns before cuXtra-only Guardian/InstrMemAllocator
-initialization. Patch application checking and a Makefile dry run pass;
-the actual HAL build and execution remain unfinished. The native cuXtra
+initialization. The real HAL/tool-actuator build now succeeds in an isolated
+source/build/install directory after two small compile fixes; frozen Level-1
+dependencies are unchanged. End-to-end execution remains unfinished. The native cuXtra
 reference remains separate from the native-C/BPF pair, which uses the same
 NVBit actuator. Existing Level-1 dependencies and measurements are unchanged.
 

@@ -1,0 +1,51 @@
+{
+  "name": "lc2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-output-20260908.66ppYl/priority_workload",
+    "lc",
+    "2",
+    "4",
+    "50",
+    "9511106",
+    "340",
+    "256",
+    "0",
+    "0"
+  ],
+  "returncode": -2,
+  "stdout": [
+    "------------- NVBit (NVidia Binary Instrumentation Tool v1.8) Loaded --------------",
+    "NVBit core environment variables (mostly for nvbit-devs):",
+    "ACK_CTX_INIT_LIMITATION = 0 - if set, no warning will be printed for nvbit_at_ctx_init()",
+    "            NVDISASM = nvdisasm - override default nvdisasm found in PATH",
+    "            NOBANNER = 0 - if set, does not print this banner",
+    "       NO_EAGER_LOAD = 1 - lazy module loading is now turned on by default. If you see deadlocks in your tool, set NO_EAGER_LOAD to 0",
+    "---------------------------------------------------------------------------------",
+    "{\"event\":\"ready\",\"role\":\"lc\",\"process_id\":2,\"streams\":4,\"tasks\":50}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 3502522 @ 13:32:46.301872] using global scheduler",
+    "XG tool loaded decision=native target=_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+    "[XSCHED INFO @ T 3502522 @ 13:32:46.306141] using global scheduler",
+    "[IPC WARN @ T 3502522 @ 13:32:46.306157] MessageQueue CPPIPC-3502522 (key: 0x3571ba) already exists, deleting @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/3rdparty/ipc/src/msgq/msgq.cpp:152"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "XSCHED_SCHEDULER": "GLB",
+    "XSCHED_AUTO_XQUEUE": "ON",
+    "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+    "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+    "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+    "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+    "XSCHED_CUDA_LV2_PORT_120": "1",
+    "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+    "XG_DECISION": "native",
+    "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+    "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+    "XG_SERVICE_ONLY": "1"
+  }
+}

@@ -4,6 +4,29 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## First real GPU execution, 09:31 UTC
+
+The enabled automatic-warp path now runs the existing original Fig.15
+`cuda__shared` object on RTX 5090. Runtime source is pushed as `49d71e5`.
+The [initial attempt](../../microbench/fig15-device/strict-warp-map-scaling/results-automatic-warp-initial-20260908.lyHajw/README.md)
+retains baseline/off measurements and an enabled-arm PTX assembly failure.
+After GLM fixed `activemask.b32`, root rebuilt and reran only that failed
+arm. The [retry](../../microbench/fig15-device/strict-warp-map-scaling/results-automatic-warp-on-retry-20260908.TJ94Fl/README.md)
+accepted the same probe, compiled/loaded the patched module, and produced
+the expected populated map key. Its 128-launch elapsed time is
+0.517823994 ms, higher than the earlier off/native samples. This is one
+sample, not a paired campaign, and does not establish a speedup or measured
+scalar execution-count reduction. The earlier compilation failure remains
+in the raw record. Runtime-internal cache-key text is omitted from the
+published logs; no timing or output number was changed.
+
+The two runtime source files are committed; scoped test fixtures remain
+in GLM's work in progress. Requested original device sweeps and same-object
+Table 1 batching remain unfinished. Root released the GPU lock and removed
+only the three completed runs' private transport segments (768 MiB total),
+retaining their small readbacks. No driver reload or old experiment rerun
+was needed.
+
 ## Full-build progress at 09:20 UTC
 
 Update at 09:25 UTC: the third full build exited zero for all four targets.

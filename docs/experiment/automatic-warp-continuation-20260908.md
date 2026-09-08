@@ -4,6 +4,39 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## Source checkpoint at 08:30 UTC
+
+Local GLM implementation is committed on the same branch as `e801d28`.
+This is an incremental source checkpoint, not a completed runtime or a
+performance result. It adds the opt-in `BPFTIME_GPU_AUTO_WARP_EXECUTION`
+switch, verifier-informed transformation eligibility, per-entry mode storage,
+JSON propagation to the existing PTX pass, and elected-leader kretprobe
+calls at supported hook sites. Ineligible programs retain the per-thread
+execution path. Per-lane append/atomic effects are not silently deduplicated.
+
+Root reviewed and the local model corrected duplicate PTX predicates,
+shifted kernel-body bounds, duplicated labels, a missing JSON flag field,
+and a missing C++ include. Root ran `g++ -std=c++20 -fsyntax-only` on
+`ptxpass_core/src/core.cpp`, `ptxpass_kretprobe/main.cpp`, and
+`bpftime-verifier/src/gpu/warp_execution_eligibility.cpp`; each exited zero.
+These checks do not establish full runtime compilation/linking, generated
+PTX execution, matching output, or an observed speedup. Full builds and GPU
+measurements remain pending while the original Fig.13 campaign runs.
+
+The model's local dependency symlinks made Git reject tracked submodule
+paths. Root removed only those three links and initialized real checkouts of
+`vm/llvm-jit`, `third_party/spdlog`, and `bpftime-verifier/ebpf-verifier`
+at their existing gitlink revisions, using the frozen tree as a read-only
+clone reference with `--dissociate`. Git status works again. Frozen source
+was not changed, submodule revisions were not updated, and no dependency
+cache or build binary is part of this commit. Syntax checks were repeated
+successfully against the resulting real dependency checkouts.
+
+Next remains the full isolated build and same-object optimization-off/on
+measurement using the existing prefill runner, followed by the queued
+original device microbenchmark sweeps. Unsupported relevant probes or
+silent fallback alone would not complete that requested experiment.
+
 The original Qwen Next session `ses_f80dc8da2ffev9TpuxcuajuRMa` ended with
 HTTP 524 on its first assistant request, with no implementation patch. Root
 confirmed the checkout is clean. The same session is now resumed using GLM;

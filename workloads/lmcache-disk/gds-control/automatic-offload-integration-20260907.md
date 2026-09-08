@@ -279,6 +279,33 @@ now run sequentially under `bpf-async-absolute/` and
 the successful native result are not overwritten or rerun. Both corrected
 calls import the same runner once in their shared parent process.
 
+### First grace-patched native/BPF pair completed
+
+The corrected BPF call completes all eight cold and all eight warm requests,
+with 8192 warm output tokens and server exit zero:
+
+| Default-async configuration, common grace patch | Warm elapsed, s | Output token/s | TTFT median, ms |
+| --- | ---: | ---: | ---: |
+| Native reclaim | 122.180221 | 67.048495 | 30055.501847 |
+| BPF reclaim | 123.933448 | 66.099993 | 30818.840486 |
+
+The single BPF/native paired throughput difference is -1.414652%; this is
+not a repeated mechanism-overhead estimate. Both logs record the same
+42 restore batches, 5856 MiB read payload, 244 I/O operations, and 34 rollback
+warning lines. Summed rounded blocking time is 0.663/0.668 s for native/BPF.
+These remain logged backend counts and payloads, not physical SSD traffic.
+The BPF exit diagnostics file remains absent, so no complete per-decision
+count or recovery-route breakdown is claimed.
+
+Unlike the repaired-bootstrap but unpatched async attempts (1/8 and 0/8
+warm completions), both patched configurations finish the full original
+pressure workload without disabling async scheduling. That supports the
+common-runtime repair under this configuration. The stock control is still
+running, and repeated paired comparisons remain unfinished; the data do
+not establish policy superiority, universal robustness, or transparent
+same-address disk-UVM paging. The failed relative-path attempt stays in its
+original directory and is not included as a throughput sample.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

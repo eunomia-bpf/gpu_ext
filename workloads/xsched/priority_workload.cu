@@ -245,6 +245,7 @@ int main(int argc, char **argv)
               << ",\"streams\":" << stream_count
               << ",\"tasks\":" << tasks_per_stream << "}" << std::endl;
     if (read_command() != "GO") fail("command", "expected GO");
+    const uint64_t start_host_ns = monotonic_raw_ns();
 
     std::vector<uint64_t> submit_ns(total_tasks, 0);
     auto launch_one = [&](int stream_idx, int task_idx) {
@@ -293,6 +294,27 @@ int main(int argc, char **argv)
         }
     }
 
+    const char *service_env = std::getenv("XG_SERVICE_ONLY");
+    if (service_env && std::strcmp(service_env, "1") == 0) {
+        // The two durations each stay within one clock domain. No arrival
+        // queue latency or host/device timestamp conversion is inferred.
+        std::cout << "{\"event\":\"result\",\"role\":\"" << role
+                  << "\",\"process_id\":" << process_id
+                  << ",\"service_only\":true,\"metric_scope\":\"gpu_service_and_host_elapsed\""
+                  << ",\"start_host_ns\":" << start_host_ns
+                  << ",\"completion_host_ns\":" << completion_host_ns
+                  << ",\"host_elapsed_ns\":" << (completion_host_ns - start_host_ns)
+                  << ",\"outputs_validated\":" << host_sink.size() << ",\"samples\":[";
+        for (int i = 0; i < total_tasks; ++i) {
+            const auto &stamp = host_stamps[i];
+            if (i) std::cout << ',';
+            std::cout << "{\"entry_ns\":" << stamp.entry_ns
+                      << ",\"exit_ns\":" << stamp.exit_ns
+                      << ",\"service_ns\":" << (stamp.exit_ns - stamp.entry_ns)
+                      << ",\"blocks_done\":" << stamp.blocks_done << '}';
+        }
+        std::cout << "]}" << std::endl;
+    } else {
     uint64_t min_queue_ns = std::numeric_limits<uint64_t>::max();
     uint64_t max_queue_ns = 0;
     std::vector<uint64_t> submit_gpu_ns(total_tasks);
@@ -330,6 +352,7 @@ int main(int argc, char **argv)
     std::cout << "],\"min_queue_ns\":" << min_queue_ns
               << ",\"max_queue_ns\":" << max_queue_ns
               << ",\"clock_offset_ns\":" << clock_offset_ns << "}" << std::endl;
+    }
 
     for (auto stream : streams) check_cuda(cudaStreamDestroy(stream), "cudaStreamDestroy");
     check_cuda(cudaFree(device_sink), "cudaFree");

@@ -4,6 +4,31 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## Aligned-word transport source checkpoint, not yet built
+
+Local GLM's current candidate is committed in bpftime `5a90e03`. It keeps
+the 24-byte per-thread ring header, per-event CAS collision/full handling,
+publication fences, record multiplicity and payload layout. The opt-in
+payload copy uses aligned 8-byte words with byte copying for unaligned
+addresses or trailing bytes. This is not cross-lane coalescing or burst
+publication, and no hardware transaction reduction has been measured.
+
+The existing `BPFTIME_GPU_AUTO_WARP_EXECUTION` switch now also selects this
+copy path for GPU ring maps through mirrored host/device MapBasicInfo fields.
+The setup log `GPU ring-buffer aligned-word output enabled` distinguishes
+transport selection from whole-program leader admission: a per-thread event
+probe can reject leader transformation while still using the copy path.
+Root only corrected the undefined environment lookup, restored the original
+post-head-read fence, and added this setup log and accurate comments.
+
+This is an **unbuilt source checkpoint**. The old runtime libraries and all
+previous GPU measurements remain unchanged; none measures `5a90e03`.
+The Fig14 owner currently holds GPU/struct-ops locks. Root requested a
+boundary window for the ordinary incremental runtime build before any
+new performance run. No extra verifier/correctness/clock campaign is planned.
+The full record-preserving batching objective and Table1 comparison remain
+unfinished; this candidate is an incremental optimization, not completion.
+
 ## PTX lowering tests closed
 
 The scoped PTX/JSON test update is pushed in bpftime `d6db11e`.

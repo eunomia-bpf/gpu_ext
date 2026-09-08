@@ -1,0 +1,10 @@
+mkdir -p .output/native/
+mkdir -p .output/native/
+/usr/local/cuda-12.9/bin/nvcc -cubin -O3 -gencode arch=compute_120,code=sm_120 ../level2/native/probe.cu -o .output/native/xg_ldc_probe.cubin
+/usr/local/cuda-12.9/bin/nvcc -cubin -O3 -gencode arch=compute_120,code=sm_120 ../level2/native/check_preempt_port.cu -o .output/native/check_preempt_port.cubin
+mkdir -p .output/native/
+/usr/local/cuda-12.9/bin/nvcc -cubin -O3 -gencode arch=compute_120,code=sm_120 ../level2/native/restore_exec_port.cu -o .output/native/restore_exec_port.cubin
+mkdir -p .output/
+.output/native/xg_ldc_patcher .output/native/xg_ldc_probe.cubin .output/native/check_preempt_port.cubin .output/native/restore_exec_port.cubin /usr/local/cuda-12.9/bin/nvdisasm .output/xg_sm120_guardian_arrays.h
+ldc_patcher: probe exposes 5 LDC samples (need 6)
+make: *** [Makefile:185: .output/xg_sm120_guardian_arrays.h] Error 1

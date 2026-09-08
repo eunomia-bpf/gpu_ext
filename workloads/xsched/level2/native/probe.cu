@@ -9,7 +9,7 @@
 
 __device__ uint64_t xg_probe_sink;
 
-__global__ void xg_ldc_probe(uint64_t a, uint64_t b, uint64_t c)
+extern "C" __global__ void xg_ldc_probe(uint64_t a, uint64_t b, uint64_t c)
 {
     /* Three consumed 64-bit parameters force constant-bank consumers at
      * the parameter base offsets used by the guardian stubs (base+0,

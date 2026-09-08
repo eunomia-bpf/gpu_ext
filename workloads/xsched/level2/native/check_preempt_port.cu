@@ -27,7 +27,7 @@ static __device__ __forceinline__ void xg_thread_exit()
     asm volatile("exit;");
 }
 
-__global__ void check_preempt_port(uint64_t preempt_buffer,
+extern "C" __global__ void check_preempt_port(uint64_t preempt_buffer,
                                    uint64_t entry_point_reserved,
                                    uint64_t kernel_idx)
 {

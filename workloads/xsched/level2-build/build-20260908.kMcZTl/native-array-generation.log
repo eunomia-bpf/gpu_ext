@@ -1,0 +1,4 @@
+mkdir -p .output/
+.output/native/xg_ldc_patcher .output/native/xg_ldc_probe.cubin .output/native/check_preempt_port.cubin .output/native/restore_exec_port.cubin /usr/local/cuda-12.9/bin/nvdisasm .output/xg_sm120_guardian_arrays.h
+ldc_patcher: probe cubin misses .text.xg_ldc_probe
+make: *** [Makefile:185: .output/xg_sm120_guardian_arrays.h] Error 1

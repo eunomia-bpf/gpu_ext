@@ -26,7 +26,7 @@ static __device__ __forceinline__ void xg_thread_exit()
 
 typedef void (*xg_target_fn)();
 
-__global__ void restore_exec_port(uint64_t preempt_buffer, uint64_t entry_point)
+extern "C" __global__ void restore_exec_port(uint64_t preempt_buffer, uint64_t entry_point)
 {
     uint32_t block_idx = xg_blockid();
     uint32_t *block_restore_flag =

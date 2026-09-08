@@ -10,3 +10,11 @@ Level-2 build or execution result. The next local-Qwen edit preserves the
 same decision rule as straight-line unsigned arithmetic, without weakening
 the verifier or asserting that arbitrary snapshot values are uniform.
 Frozen Level-1 artifacts, dependencies and results are unchanged.
+
+The independent native cubins and LDC patcher built. First array generation
+failed because the three kernel symbols were C++-mangled while the patcher
+expects C names. Root added `extern "C"` to the three declarations; rebuilding
+then reaches the next actual issue: the probe has five collected LDC samples,
+not the assumed six. Both generation logs are retained. Local GLM owns that
+native parser/probe repair separately from Qwen's branchless BPF decision.
+No Level-2 execution or performance is claimed from these component builds.

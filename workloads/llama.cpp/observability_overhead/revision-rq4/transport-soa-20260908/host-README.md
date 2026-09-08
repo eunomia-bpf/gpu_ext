@@ -63,3 +63,12 @@ the device map-info upload through the existing `get_output_transport()`.
     git apply /home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/transport-soa-20260908/transport-soa.patch
 
 The last command is the companion device patch; then build and measure.
+
+## Runner exposure (source-only)
+
+`run_table1_perf.py` now accepts `--auto-warp-transport 3`
+(`AUTO_WARP_TRANSPORT_TRANSPOSED`); the default stays 1, the original
+seven-arm mode and modes 0/1/2 are untouched. The runner only propagates
+the chosen integer through the existing `BPFTIME_GPU_RINGBUF_TRANSPORT`
+environment key, so mode 3 remains inert until the host and device patches
+are applied, built, and measured.

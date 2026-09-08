@@ -58,6 +58,7 @@ AUTO_WARP_ENV_KEY = "BPFTIME_GPU_AUTO_WARP_EXECUTION"
 AUTO_WARP_TRANSPORT_ENV_KEY = "BPFTIME_GPU_RINGBUF_TRANSPORT"
 AUTO_WARP_TRANSPORT_ALIGNED = 1
 AUTO_WARP_TRANSPORT_ENCODED = 2
+AUTO_WARP_TRANSPORT_TRANSPOSED = 3
 AUTO_WARP_ARMS = ("baseline", "auto_warp_off", "auto_warp_on")
 AUTO_WARP_TRANSPORT_MARKER = "GPU ring-buffer aligned-word output enabled"
 # rope_norm launch geometry for the default target/model at pp512, from
@@ -516,8 +517,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--auto-warp-transport",
         type=int,
         default=AUTO_WARP_TRANSPORT_ALIGNED,
-        choices=(AUTO_WARP_TRANSPORT_ALIGNED, AUTO_WARP_TRANSPORT_ENCODED),
-        help="loader/agent ring transport for the three-arm mode: 1 aligned-word, 2 encoded-tail",
+        choices=(
+            AUTO_WARP_TRANSPORT_ALIGNED,
+            AUTO_WARP_TRANSPORT_ENCODED,
+            AUTO_WARP_TRANSPORT_TRANSPOSED,
+        ),
+        help="loader/agent ring transport for the three-arm mode: 1 aligned-word, 2 encoded-tail, 3 transposed-record",
     )
     parser.add_argument(
         "--dry-run",

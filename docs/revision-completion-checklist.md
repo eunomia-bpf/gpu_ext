@@ -2,7 +2,7 @@
 
 ## Current manuscript snapshot — 2026-09-07 PDT
 
-The current paper is `cd2c2f4`, compiled from `docs/paper/main.tex` with
+The current paper is `ccb5cf5`, compiled from `docs/paper/main.tex` with
 flat section files under `docs/paper/tex-revision/`. The build has 15 pages.
 Several entries below describe earlier 16/17-page drafts that were later
 restored or simplified; their statements that material is “integrated” must

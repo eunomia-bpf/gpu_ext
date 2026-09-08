@@ -1,10 +1,12 @@
 # Total-recovery-cost reclaim ablation
 
-Status: implementation committed and pushed as `4381f660`; the new BPF
-object attached successfully and the twenty-cell campaign is running.
-Qwen 27B completed its handoff without further source changes. The first
-stock cell completed at 70.9041546753 output token/s; this is a partial
-result, not a policy comparison. No completed historical cell was rerun.
+Status: implementation `4381f660`; the twenty planned cells and final paired
+analysis are complete in `f9cbb18b`. See the
+[final report](../results-575-gds-kv-total-cost-20260908.md).
+The unplanned net-freeable result and the disk-full interruption are retained,
+and block 1's missing original control was measured after the main batch.
+No completed historical cell was rerun. Total cost reduces repeated restores
+in even arrival orders but does not improve overall throughput over stock.
 
 This follows the completed [five-block grace comparison](../results-575-gds-kv-reclaim-grace-20260908.md).
 It addresses Q1/storage offload and the shepherd's policy-versus-mechanism

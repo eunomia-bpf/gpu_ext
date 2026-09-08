@@ -107,12 +107,14 @@ int main(void)
 	}
 
 	const uint64_t value_bytes = bpf_map__value_size(skel->maps.arena);
-	printf("Full-record bank count: %" PRIu64 "\n", FRDB_NUM_BANKS);
+	printf("Full-record bank count: %" PRIu64 "\n",
+	       (uint64_t)FRDB_NUM_BANKS);
 	printf("Full-record slots per bank: %" PRIu64 "\n",
-	       FRDB_SLOTS_PER_BANK);
-	printf("Full-record total slots: %" PRIu64 "\n", FRDB_TOTAL_SLOTS);
+	       (uint64_t)FRDB_SLOTS_PER_BANK);
+	printf("Full-record total slots: %" PRIu64 "\n",
+	       (uint64_t)FRDB_TOTAL_SLOTS);
 	printf("Full-record records per slot: %" PRIu64 "\n",
-	       FRDB_RECORDS_PER_SLOT);
+	       (uint64_t)FRDB_RECORDS_PER_SLOT);
 	printf("Full-record record bytes: %" PRIu64 "\n",
 	       (uint64_t)sizeof(struct frdb_record));
 	printf("Full-record value bytes (per bank): %" PRIu64 "\n", value_bytes);
@@ -156,8 +158,8 @@ int main(void)
 			committed += count;
 			for (uint64_t k = 0; k < count; k++) {
 				const struct frdb_record *record =
-					&v->records[slot *
-						    FRDB_RECORDS_PER_SLOT + k];
+					&v->records[k *
+						    FRDB_SLOTS_PER_BANK + slot];
 				nonzero_timestamps += record->timestamp != 0;
 			}
 		}

@@ -78,7 +78,7 @@ int cuda__retprobe(void)
 		value->total_overflow += 1;
 		return 0;
 	}
-	value->records[slot * FRDB_RECORDS_PER_SLOT + counter] = record;
+	value->records[counter * FRDB_SLOTS_PER_BANK + slot] = record;
 	value->slot_counters[slot] = counter + 1;
 	return 0;
 }

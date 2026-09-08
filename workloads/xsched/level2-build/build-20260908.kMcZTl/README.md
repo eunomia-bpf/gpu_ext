@@ -1,4 +1,9 @@
-# First real Level-2 component build, 2026-09-08
+# Level-2 component builds, 2026-09-08
+
+Latest: the branchless-barrier device components build successfully. Details
+and artifact inventory follow the preserved first failure below.
+
+## First real component build
 
 Command: `make -j2 all`, under the two shared experiment leases. It ended
 with exit 2 at BPF-to-PTX export: the existing GPU verifier classifies five
@@ -18,3 +23,36 @@ then reaches the next actual issue: the probe has five collected LDC samples,
 not the assumed six. Both generation logs are retained. Local GLM owns that
 native parser/probe repair separately from Qwen's branchless BPF decision.
 No Level-2 execution or performance is claimed from these component builds.
+## Completed device component build
+
+`make -j2 bpf-ptx guardian-cubin guard-tool` now exits zero. It ran under both
+shared resource locks after the Table 1 campaign ended, without overlapping
+performance measurement. The complete log is
+`branchless-barrier-components.log`.
+
+Local Qwen's equivalent branchless decision uses full-word select masks and
+empty register compiler barriers to prevent clang from reconstructing
+conditional branches. The real compiler pipeline reports 49 BPF instruction
+words, accepted by the unchanged 48-byte-context GPU verifier. PTX assembly
+and library linking complete for sm_120.
+
+Local outputs (not committed):
+
+| File under `.output/` | Bytes |
+|---|---:|
+| `xsched_guardian.bpf.o` | 6864 |
+| `ptx/xsched_guardian.ptx` | 1293 |
+| `xg_guardian.cubin` | 20192 |
+| `xsched_guard_tool.so` | 3153080 |
+
+The exact current sizes are an artifact inventory, not performance results.
+The shared NVBit library also links successfully. No native/BPF Level-2 GPU
+comparison has run. The separate native LDC generator and HAL integration
+remain unfinished; frozen Level-1 measurements are unchanged.
+
+Earlier rejected compilations remain in `components.log`,
+`branchless-components.log` and `branchless-fullmask-components.log`.
+The first arithmetic draft used a one-bit select mask; root corrected it to
+an all-bits mask. The ordinary full-mask expression still let clang emit
+lane-varying branches; Qwen then added compiler barriers. These failures are
+not deleted or presented as successful builds.

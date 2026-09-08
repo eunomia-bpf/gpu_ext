@@ -1,0 +1,18 @@
+mkdir -p .output/
+clang -g -O2 -target bpf -I../level2/tramp -c ../level2/bpf/xsched_guardian.bpf.c -o .output/xsched_guardian.bpf.o
+mkdir -p .output/ptx/
+.output/compiler/bpf_to_ptx .output/xsched_guardian.bpf.o cuda__/xsched_guardian .output/ptx/xsched_guardian.ptx xsched_guardian sm_120
+[bpf_to_ptx] loaded 49 eBPF instruction words from section cuda__/xsched_guardian of .output/xsched_guardian.bpf.o
+[bpf_to_ptx] GPU verifier accepted program (48-byte PREVAIL context, uniformity + SIMT checks)
+[bpf_to_ptx] wrote standalone PTX: .output/ptx/xsched_guardian.ptx (.visible .func xsched_guardian(context_ptr, context_length); ptxas .target sm_120; LLVM codegen target sm_86)
+mkdir -p .output/merged/
+bash ../level2/tool/merge_ptx.sh .output/ptx/xsched_guardian.ptx .output/tramp/xsched_guard_tramp.ptx .output/merged/xg_guardian.ptx
+/usr/local/cuda-12.9/bin/ptxas -arch=sm_120 -astoolspatch .output/merged/xg_guardian.ptx -o .output/xg_guardian.cubin
+/usr/local/cuda-12.9/bin/fatbinary -64 --embedded-fatbin .output/xg_guardian.fatbin.c \
+	--image3=kind=elf,sm=120,file=.output/xg_guardian.cubin
+g++ -x c++ -fPIC -O2 -I/usr/local/cuda-12.9/targets/x86_64-linux/include -c .output/xg_guardian.fatbin.c -o .output/xg_guardian_carrier.o
+/usr/local/cuda-12.9/bin/nvcc -arch=sm_120 -O3 \
+	.output/xsched_guard_tool.o .output/xg_guardian_carrier.o \
+	-L../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -lnvbit -L/usr/local/cuda-12.9/targets/x86_64-linux/lib -lcuda -lcudart_static \
+	-shared -o .output/xsched_guard_tool.so
+XG tool built: .output/xsched_guard_tool.so

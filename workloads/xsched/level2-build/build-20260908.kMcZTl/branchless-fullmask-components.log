@@ -1,0 +1,12 @@
+mkdir -p .output/
+clang -g -O2 -target bpf -I../level2/tramp -c ../level2/bpf/xsched_guardian.bpf.c -o .output/xsched_guardian.bpf.o
+mkdir -p .output/ptx/
+.output/compiler/bpf_to_ptx .output/xsched_guardian.bpf.o cuda__/xsched_guardian .output/ptx/xsched_guardian.ptx xsched_guardian sm_120
+[bpf_to_ptx] loaded 31 eBPF instruction words from section cuda__/xsched_guardian of .output/xsched_guardian.bpf.o
+[bpf_to_ptx] GPU verifier rejected program: Warp-Uniform Branch Conditions at instruction 3: branch predicate is lane-varying
+Warp-Uniform Branch Conditions at instruction 6: branch predicate is lane-varying
+Warp-Uniform Branch Conditions at instruction 10: branch predicate is lane-varying
+Warp-Uniform Branch Conditions at instruction 15: branch predicate is lane-varying
+Warp-Uniform Branch Conditions at instruction 26: branch predicate is lane-varying
+
+make: *** [Makefile:117: .output/ptx/xsched_guardian.ptx] Error 3

@@ -1,8 +1,16 @@
 # XSched Level-2 sm_120 source checkpoint
 
-Status: development snapshot, **not built or measured**. The existing
+Status: the device BPF guardian, sm_120 cubin and NVBit tool library are
+**built**, but end-to-end Level-2 execution is **not measured**. The existing
 Level-1 measurements and dependency checkout are unchanged. This is not a
 completed reproduction of the original Level-2 system.
+
+The 2026-09-08 component build compiled 49 eBPF instruction words; the
+48-byte-context exporter accepted them with its existing GPU checks, emitted
+device-callable PTX, and ptxas generated the sm_120 cubin. The tool library
+linked successfully. See `../level2-build/build-20260908.kMcZTl/README.md`
+and `branchless-barrier-components.log`. No verifier rule was disabled.
+The native LDC adapter and HAL/end-to-end replay still require completion.
 
 The source includes a device BPF guardian, shared native-C/BPF trampoline,
 NVBit launch-context adapter, native probe/guardian/restore stubs, LDC
@@ -21,6 +29,19 @@ verify-time context from 8 to 48 bytes; granted size equals used size.
 Still to build and exercise: the native sm_120 artifact path and
 end-to-end replay. Both decision arms keep the same trusted actuator. No
 host decision fallback or performance gain is claimed.
+
+The compiled eBPF guardian is expressed branchless (straight-line u64
+arithmetic, no conditional jumps): the strict PREVAIL GPU warp-uniform
+branch verifier rejects branch predicates that vary per lane, so the same
+policy as the native-C decision is computed with a nonzero mask via
+`(x | -x) >> 63`, full-u64 equality via XOR, and decision selection via a
+`(0 - c)` all-bits/zero mask. Each computed mask passes an empty volatile
+asm compiler barrier so the BPF backend cannot re-fold the idiom back into
+a lane-varying comparison; the emitted instructions stay plain
+straight-line ALU ops. Decision semantics are unchanged, including the
+`recorded==0` precedence over `recorded==kernel_idx` in the else-if chain;
+no snapshot value is marked uniform and no verifier check is weakened or
+disabled.
 
 The stored HAL patch now includes `GuardianSM120`, its factory case and the
 generated-array consumer, enabled with `XG_SM120_GENERATED_HEADER` (the exact

@@ -853,6 +853,14 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
         finally:
             try:
                 if not preserve_loader:
+                    if getattr(args, "wait_for_probe_exit", False) and process is not None:
+                        record["shutdown_wait"] = "normal_exit_no_deadline"
+                        if process.poll() is None:
+                            try:
+                                os.killpg(process.pid, signal.SIGINT)
+                            except ProcessLookupError:
+                                pass
+                        process.wait()
                     stop_owned(process, "private loader", record.get("loader_identity"))
                     record["loader_returncode"] = process.returncode if process is not None else None
                     if segment.exists() or segment.is_symlink():

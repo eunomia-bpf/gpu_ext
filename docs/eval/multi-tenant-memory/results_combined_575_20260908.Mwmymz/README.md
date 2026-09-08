@@ -1,0 +1,51 @@
+# Original Fig.13 four-arm follow-up
+
+Status: running, not a completed result. HotSpot started at 2026-09-08
+07:29 UTC; GEMM and K-Means are next. Runner commit `a5d66a13` adds the
+opt-in comparison to the original `run_policy_comparison.py`.
+
+The planned campaign is five rotated blocks of baseline, memory-only,
+scheduling-only and combined policy for each of the original three kernels
+(60 two-tenant cells). HotSpot/GEMM use size factor 0.6; `kmeans_sparse`
+uses 0.9. All use one iteration, managed UVM, memory parameters 20/80 and
+scheduler timeslices 1000000/200 microseconds. No completed historical cell
+is replaced or pooled with these fresh controls.
+
+Commands, from the repository root, use this directory's absolute path as
+`RESULT_ROOT` (notation only; the lifecycle log retains actual commands):
+
+```sh
+python3 docs/eval/multi-tenant-memory/run_policy_comparison.py --combined --blocks 5 --kernel hotspot --size-factor 0.6 --output RESULT_ROOT/hotspot
+python3 docs/eval/multi-tenant-memory/run_policy_comparison.py --combined --blocks 5 --kernel gemm --size-factor 0.6 --output RESULT_ROOT/gemm
+python3 docs/eval/multi-tenant-memory/run_policy_comparison.py --combined --blocks 5 --kernel kmeans_sparse --size-factor 0.9 --output RESULT_ROOT/kmeans
+```
+
+Both tenants stop before CUDA initialization, policies attach, then elapsed
+completion uses one common release origin and independently observed exits.
+Policy setup is outside the measured interval. This differs from the old
+runner's before-Popen origin and the earlier fig13-fast per-SIGCONT times;
+the fresh controls are required for that reason. Raw command lines, process
+timestamps, return codes, logs and distinct per-tenant result CSVs are kept.
+
+## Actual runtime and restoration
+
+RTX 5090, NVIDIA 575.57.08, Linux 6.15.11-061511-generic. Root holds both
+revision GPU/struct-ops locks. The current installed core lacks the scheduling
+interface, so root temporarily loaded the already-built candidate core
+(30216144 bytes) with the **current** `ff68a1d4` UVM (62413352 bytes).
+The earlier 61945872-byte pre-KV-reclaim UVM was not substituted. All fresh
+arms use the same current UVM, with `uvm_enable_builtin_tests=0`. The disk
+backing implementation in progress was not built or loaded.
+
+The immutable-for-this-run copies are in
+`/var/tmp/fig13-original-modules-20260908.TkarSf/`; module binaries are not
+publication artifacts and will not be committed. Root stopped only the two
+known idle GDS/reclaim loaders (1744933 and 2106071), the GDM greeter and
+persistence service after confirming no GPU compute process. The original
+core, current UVM, services and both loaders must be restored after the run.
+`driver-lifecycle.log` records the actual commands and outcomes; restoration
+is not yet claimed complete.
+
+The system `bpftool struct_ops show` returned process exit 139 during
+preparation. No global struct-ops cleanup was used. Experiment tools retain
+their own loader output; this utility failure is not performance evidence.

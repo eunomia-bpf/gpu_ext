@@ -8,8 +8,13 @@ Later execution update: Hummingbird ended with terminal HTTP 524 at
 1788844635421 ms Unix time, without a source patch. Root confirmed its CLI
 exit and resumed the original automatic-warp session in the freed slot using
 GLM; see the [exact continuation prompt](automatic-warp-continuation-20260908.md).
-Disk UVM and XSched remain running. Hummingbird is still unfinished and
-retains its session context; Fig.13 remains queued. Earlier running/model
+Subsequently XSched also ended with terminal HTTP 524 at 1788845412755 ms
+Unix time, and its CLI exited without an implementation patch. Its freed
+slot now runs the original Fig.13 runner task with Qwen Next, session
+`ses_f8079f034ffexM3YIHNS6mzN8I`; the exact prompt is appended to the linked
+Fig.13 follow-up plan. Disk UVM and automatic warp execution remain live.
+XSched and Hummingbird are still unfinished and retain their session contexts.
+Earlier running/model
 descriptions below are historical snapshots, not a claim of current execution.
 
 ## Additional user-authorized queue — 04:42 UTC

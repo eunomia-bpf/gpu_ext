@@ -1,8 +1,12 @@
 # Original Fig.13 runner follow-up
 
-Status: accepted implementation handoff, not measured. The three existing local
-OpenCode sessions remain running; this task takes the next free slot. Do not
-interrupt a session for silence or create a fourth session.
+Status: implementation dispatched, not measured. XSched's Qwen 27B session
+ended with terminal HTTP 524 at 1788845412755 ms Unix time and its CLI exited;
+it produced no source implementation. Its context is retained for continuation.
+The freed slot now runs Qwen Next session `ses_f8079f034ffexM3YIHNS6mzN8I`
+on this original-runner task. Disk UVM and automatic warp execution remain
+live in the other two slots. No session was stopped for silence and no fourth
+session was launched.
 
 The user asks for the combined memory/scheduling result inside the original
 HotSpot, GEMM and K-Means panels, using the original scripts. No paper file,
@@ -87,3 +91,13 @@ correctness campaign, or new review/preflight workflow is requested.
 
 The executable invocation and actual module/source revisions will be recorded
 after the local implementation lands. There are no new performance numbers yet.
+
+## Implementation dispatch prompt
+
+```text
+Implement the accepted ORIGINAL Fig.13 runner follow-up in /home/yunwei37/workspace/gpu/gpu_ext, current master. Read workspace AGENTS.md, docs/eval/multi-tenant-memory/README.md, and docs/eval/multi-tenant-memory/combined-followup-plan-20260908.md. This plan is the concrete task, not a request for another plan. Reuse the existing run_policy_comparison.py, run_scheduler_comparison.py, plot_all_kernels_stacked.py; do not create a replacement runner/framework. Scope ONLY those three scripts and a short usage addition to that directory's README if needed. No docs/paper, tex or tex-revision changes, new papers, hashes/checksums, subagents, Git commits/worktrees, module loads, GPU runs or BPF attachment. Root runs measurements and commits/pushes. Two other OpenCode sessions own disk-driver and bpftime-auto-warp; do not touch their sources.
+
+Minimal implementation: add opt-in four-arm comparison (no policy, memory prefetch_eviction_pid 20/80, scheduling 1000000/200us, combined), five interleaved blocks, original HotSpot/GEMM size-factor0.6 and KMeans sparse0.9, iterations1. Preserve older modes/results and output columns. Fix obsolete base paths. Use stopped-before-exec children to know PIDs and attach initialization-time policies before CUDA starts; reuse mechanism from workloads/fig13-fast. Independently observe each child's completion, one common release origin; retain spawn/attach/release/exit timestamps and stdout, policy logs, statuses, settings and argv in fresh output directories. Do not sequentially wait high then low, do not use global pkill or remove others' structops. Only own processes/attachments cleanup. Root coordinates locks /tmp/gpubpf-revision-gpu0.lock and /tmp/gpubpf-revision-struct-ops.lock. Extend existing plotting to aggregate repeats, use explicit new input/output paths, keep three panels and show four arms with both tenants' overlap and remaining execution from common timestamps. Do not change any stored historical CSV or figure.
+
+Implement small incremental apply_patch calls, one connected file portion at a time, not a huge monolithic tool argument; upstream model calls have sometimes ended in HTTP524. Do not spend the entire session on a broad source survey. This is no session timeout; preserve the full task and continue through real source edits. Ordinary Python syntax/--help checks permitted (must not launch GPU). No new gates or correctness campaigns. Leave source uncommitted with concise handoff: actual files, exact commands, checks and remaining limitations. Keep same settings across all four fresh arms. Existing completed fast HotSpot cells must not be rerun or substituted for the matched controls.
+```

@@ -1,5 +1,18 @@
 # Failed native-port loader diagnostic
 
+## Subsequent localization
+
+The trace contains two successive executable images under the same PID:
+tool initialization and its loaded message precede transfer to taskset;
+after exec into priority_workload there is no tool initialization/loaded
+message, but the workload later loads HAL and fails to find the publication
+function. Thus the duplicated HAL messages span exec, not demonstrated
+duplicate instances within the workload. Main `42049461` delays LD_PRELOAD
+until the real command via taskset followed by `/usr/bin/env`. No HAL
+namespace bridge or driver modification is required by this launcher fix.
+The actual failed/unstarted policy cells are being retried separately;
+this trace itself remains a failed diagnostic, not performance evidence.
+
 One diagnostic invocation retried only the failed native-port configuration
 from `../level2-tool-native-bpf-20260908.sjyzim/`, with `LD_DEBUG=files`.
 The completed baseline was not repeated. The runner and worker remain at

@@ -1,0 +1,27 @@
+libbpf: loading object 'kernelretsnoop_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 144, link 1, flags 0, type=2
+libbpf: elf: section(3) kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 344, link 0, flags 6, type=1
+libbpf: sec 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': found program 'cuda__retprobe' at insn offset 0 (0 bytes), code size 43 insns (344 bytes)
+libbpf: elf: section(4) .maps, size 32, link 0, flags 3, type=1
+libbpf: elf: section(5) license, size 4, link 0, flags 3, type=1
+libbpf: license of kernelretsnoop_bpf is GPL
+libbpf: elf: section(6) .relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli, size 16, link 2, flags 40, type=9
+libbpf: elf: section(7) .BTF, size 1429, link 0, flags 0, type=1
+libbpf: elf: section(8) .BTF.ext, size 240, link 0, flags 0, type=1
+libbpf: looking for externs among 6 symbols...
+libbpf: collected 0 externs total
+[2026-09-08 09:44:09][warning][3211083] BPFTIME_SHM_MEMORY_MB value 12301 exceeds maximum 10240, using maximum
+[2026-09-08 09:44:09][warning][3211083] BPFTIME_SHM_MEMORY_MB value 12301 exceeds maximum 10240, using maximum
+[2026-09-08 09:44:09][warning][3211083] BPFTIME_SHM_MEMORY_MB value 12301 exceeds maximum 10240, using maximum
+libbpf: map 'rb': at sec_idx 4, offset 0.
+libbpf: map 'rb': found type = 1527.
+libbpf: map 'rb': found key [8], sz = 4.
+libbpf: map 'rb': found value [12], sz = 80.
+libbpf: map 'rb': found max_entries = 256.
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': collecting relocation for section(3) 'kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli'
+libbpf: sec '.relkretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli': relo #0: insn #36 against 'rb'
+libbpf: prog 'cuda__retprobe': found map 0 (rb, sec 4, off 0) for insn #36
+libbpf: object 'kernelretsnoop_': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+terminate called after throwing an instance of 'boost::container::length_error'
+  what():  get_next_capacity, allocator's max size reached

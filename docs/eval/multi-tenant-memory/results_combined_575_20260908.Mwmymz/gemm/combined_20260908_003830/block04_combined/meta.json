@@ -1,0 +1,43 @@
+{
+  "block": 4,
+  "arm": "combined",
+  "kernel": "gemm",
+  "size_factor": 0.6,
+  "iterations": 1,
+  "high_name": "uvmbench_high",
+  "low_name": "uvmbench_low",
+  "mem_params": "high=20/low=80",
+  "sched_params": "high=1000000us/low=200us",
+  "mem_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid",
+  "sched_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices",
+  "tenant_launcher": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py",
+  "uvmbench": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench",
+  "common_release_origin": true,
+  "independent_exit_observation": true,
+  "command_high": "/usr/bin/python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm/combined_20260908_003830/tenant_links/uvmbench_high --size_factor=0.6 --mode=uvm --iterations=1 --kernel=gemm --output=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm/combined_20260908_003830/block04_combined/uvmbench_uvmbench_high_results.csv",
+  "command_low": "/usr/bin/python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm/combined_20260908_003830/tenant_links/uvmbench_low --size_factor=0.6 --mode=uvm --iterations=1 --kernel=gemm --output=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_combined_575_20260908.Mwmymz/gemm/combined_20260908_003830/block04_combined/uvmbench_uvmbench_low_results.csv",
+  "t_spawn_high": 1788854153.644751,
+  "t_spawn_low": 1788854153.6450982,
+  "states_after_spawn": {
+    "high": "T",
+    "low": "T"
+  },
+  "t_sched_start": 1788854154.6960866,
+  "command_sched": "sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200",
+  "t_mem_start": 1788854155.6970105,
+  "command_mem": "sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid -p 2399948 -P 20 -l 2399949 -L 80",
+  "t_release": 1788854155.6970258,
+  "t_cont_high": 1788854155.697033,
+  "t_cont_low": 1788854155.6970356,
+  "rc_sched_tool": 0,
+  "rc_mem_tool": 0,
+  "t_done_high": 1788854168.7387116,
+  "rc_high": 0,
+  "t_done_low": 1788854177.6912322,
+  "rc_low": 0,
+  "notes": [
+    "sched_tool_stopped rc=0",
+    "mem_tool_stopped rc=0"
+  ],
+  "status": "ok"
+}

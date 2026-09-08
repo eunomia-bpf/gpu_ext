@@ -1,8 +1,8 @@
 # Original Fig.13 four-arm follow-up
 
-Status: running, not a completed three-workload result. HotSpot finished all
-20 cells with runner exit zero and both tenant exit codes zero in every cell.
-GEMM started at 2026-09-08 07:38 UTC; K-Means is next. Runner commit `a5d66a13` adds the
+Status: running, not a completed three-workload result. HotSpot and GEMM each
+finished all 20 cells with runner exit zero and both tenant exit codes zero
+in every cell. K-Means started at 2026-09-08 07:57 UTC. Runner commit `a5d66a13` adds the
 opt-in comparison to the original `run_policy_comparison.py`.
 
 The planned campaign is five rotated blocks of baseline, memory-only,
@@ -80,3 +80,25 @@ percent changes, with linearly interpolated 2.5/97.5 percentiles. The
 [paired summary](hotspot/paired-summary.json) retains the source, all pairs,
 method and comparisons with the memory-only and baseline arms. This is a
 policy-composition result, not a BPF-versus-native mechanism-overhead result.
+
+## Completed GEMM checkpoint
+
+All five blocks and 20 cells are retained under `gemm/combined_20260908_003830/`.
+Completion-time medians in seconds:
+
+| Arm | High-priority tenant | Low-priority tenant |
+| --- | ---: | ---: |
+| Baseline | 138.788579 | 138.622167 |
+| Memory only | 22.200545 | 28.115147 |
+| Scheduling only | 13.370843 | 19.282938 |
+| Combined | 13.041686 | 21.994206 |
+
+Combined versus scheduling-only changes high-priority completion by a paired
+mean **-2.5290%** (95% interval [-2.8204%, -2.2840%]) and low-priority
+completion by **+14.0469%** ([+13.8065%, +14.2789%]). The corresponding
+paired medians are -2.3130% and +14.0685%; do not confuse them with the mean
+effects or ratios of arm medians. Every pair has the same tradeoff direction.
+The [GEMM paired summary](gemm/paired-summary.json) uses the same method as
+HotSpot and retains all source pairs and baseline/memory comparisons.
+The small high-priority improvement comes with a larger low-priority cost;
+it is not an overall latency win. K-Means remains outstanding.

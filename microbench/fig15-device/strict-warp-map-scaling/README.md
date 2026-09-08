@@ -93,6 +93,8 @@ do not relabel it as per-handler latency. The 18 existing offline tests pass
 after the extension. The CUDA build and both GPU sweeps are now complete:
 180 measurements, reported in [the geometry/work results](results-geometry-work-20260908.md).
 Automatic execution is slower by about 57–58% for the zero-work CTA sweep;
-the relative difference approaches zero with more arithmetic. Actual scalar
-callback counting remains separate, unfinished diagnostic work. See the
-report for the original CSV unit correction and retained failed build/run prefix.
+the relative difference approaches zero with more arithmetic. [Separate actual
+callback counting](results-observed-counts-20260908.md) is also complete:
+twelve diagnostic processes observe 32x fewer callbacks with automatic
+execution, without establishing a speedup. See the reports for scope, the
+original CSV unit correction and retained failed build/run prefixes.

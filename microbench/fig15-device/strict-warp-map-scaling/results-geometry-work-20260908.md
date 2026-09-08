@@ -26,17 +26,18 @@ sorted bootstrap medians at indices 249 and 9749. All ten pairs are slower
 with automatic execution for each CTA setting and for work=8; seven of ten
 are slower at work=32, four of ten at work=128.
 
-## Interpretation and remaining observation
+## Interpretation and separate invocation-count observation
 
 Automatic execution is substantially slower in the low-work cases. Its
 relative time difference becomes small as arithmetic increases; work=32 and
 128 intervals include zero. These data do not establish a performance gain.
 Nearly flat elapsed time across 2–8 CTAs does **not** establish that total
 overhead is independent of block count: GPU parallelism and occupancy can
-hide additional work. Actual scalar callback counts are still being added
-in a separate diagnostic run. `logical_lane_encounters` is calculated from
-launch geometry and must not be presented as an observed invocation count.
-The timing cells are complete and will not be rerun for that observation.
+hide additional work. [Actual scalar callback counts](results-observed-counts-20260908.md)
+are now measured in twelve separate diagnostic processes. They show 32x
+fewer scalar calls with automatic execution, but calls still grow with CTA
+count. `logical_lane_encounters` in the timing CSV is calculated from launch
+geometry and is not that observation. The timing cells were not rerun.
 
 ## Raw records, units and failed prefix
 

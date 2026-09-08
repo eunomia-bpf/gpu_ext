@@ -16,18 +16,20 @@ effects are +15.409%/+0.180%/-0.151%; the latter two intervals include zero.
 These are microbenchmark elapsed times, not Table 1 throughput. All old
 results and the failed stale-template prefix remain.
 
-Actual scalar callback counting is unfinished, in a separate opt-in local
-Qwen diagnostic patch. Geometry-derived lane encounters are not observed
-calls. No claim of block-count-independent total overhead is supported.
-The 180 timing cells will not be repeated for the counting observation.
+Actual scalar callback counting is now complete in twelve separate opt-in
+diagnostic processes, runtime `e61bdb3`; [the report](../../microbench/fig15-device/strict-warp-map-scaling/results-observed-counts-20260908.md)
+records actual off/on counts 512/16, 1024/32 and 2048/64 for 2/4/8 CTAs,
+two launches and zero warmup. Geometry-derived timing CSV lane encounters
+are not these observed calls. No claim of block-count-independent total
+overhead is supported. The 180 timing cells were not repeated.
 The runner's CSV serialization unit is corrected; original mislabelled CSVs
 remain alongside millisecond CSVs derived from the raw CUDA-event logs.
 The existing 18 offline runner tests pass after this correction.
 
 The GPU scan referenced in historical entries below has completed and
-handed resources back. Root's immediate next measurement is the disk-UVM
-same-address restore client after its range-owning-FD selection repair,
-followed by the separate hook-count observation. Table 1 transport mode2/3
+handed resources back. The [disk-UVM same-address restore](../../workloads/lmcache-disk/results-disk-uvm-restore-20260908.md)
+also completes five full-read processes (main `cde80eeb`); this is a primitive,
+not a new end-to-end LMCache policy comparison. Table 1 transport mode2/3
 measurements remain unfinished and are lower priority than these two user
 requests. No manuscript file was changed by this session.
 

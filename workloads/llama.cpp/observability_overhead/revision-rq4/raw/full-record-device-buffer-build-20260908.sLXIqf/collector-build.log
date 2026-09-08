@@ -1,0 +1,22 @@
+../../full-record-device-buffer/full-record-device-buffer.c: In function ‘main’:
+../../full-record-device-buffer/full-record-device-buffer.c:110:16: warning: format ‘%lu’ expects argument of type ‘long unsigned int’, but argument 2 has type ‘long long unsigned int’ [-Wformat=]
+  110 |         printf("Full-record bank count: %" PRIu64 "\n", FRDB_NUM_BANKS);
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from ../../full-record-device-buffer/full-record-device-buffer.c:18:
+/usr/include/inttypes.h:105:41: note: format string is defined here
+  105 | # define PRIu64         __PRI64_PREFIX "u"
+../../full-record-device-buffer/full-record-device-buffer.c:111:16: warning: format ‘%lu’ expects argument of type ‘long unsigned int’, but argument 2 has type ‘long long unsigned int’ [-Wformat=]
+  111 |         printf("Full-record slots per bank: %" PRIu64 "\n",
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/inttypes.h:105:41: note: format string is defined here
+  105 | # define PRIu64         __PRI64_PREFIX "u"
+../../full-record-device-buffer/full-record-device-buffer.c:113:16: warning: format ‘%lu’ expects argument of type ‘long unsigned int’, but argument 2 has type ‘long long unsigned int’ [-Wformat=]
+  113 |         printf("Full-record total slots: %" PRIu64 "\n", FRDB_TOTAL_SLOTS);
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/inttypes.h:105:41: note: format string is defined here
+  105 | # define PRIu64         __PRI64_PREFIX "u"
+../../full-record-device-buffer/full-record-device-buffer.c:114:16: warning: format ‘%lu’ expects argument of type ‘long unsigned int’, but argument 2 has type ‘long long unsigned int’ [-Wformat=]
+  114 |         printf("Full-record records per slot: %" PRIu64 "\n",
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/inttypes.h:105:41: note: format string is defined here
+  105 | # define PRIu64         __PRI64_PREFIX "u"

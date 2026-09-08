@@ -6,6 +6,24 @@ branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
 ## Full-build progress at 09:20 UTC
 
+Update at 09:25 UTC: the third full build exited zero for all four targets.
+The `<cstdint>` compatibility option resolves the observed Catch2 build
+failure. Root then ran only the relevant CPU test filters: `[warp-execution]`
+returned 6 (five cases, one passed), and `[ptxpass_core],[kprobe_entry]`
+returned 1 (25 cases, 24 passed). Their original outputs are retained in
+[eligibility-attempt1.log](automatic-warp-build-20260908/eligibility-attempt1.log)
+and [ptxpass-attempt1.log](automatic-warp-build-20260908/ptxpass-attempt1.log).
+The new eligibility fixtures include malformed instruction shapes; the
+PTX test expects a function label instead of checking the emitted function
+declaration. The model must correct these concrete issues before claiming
+the tests pass. Root did not replace failed numbers with syntax-check results.
+
+The GLM CLI exited naturally after its source handoff, confirmed by its
+terminal assistant `finish=stop` and CLI exit zero. Root resumed the same
+session with the observed failures. No silent session was terminated and
+the other two live local sessions were not duplicated. Full compilation is
+now established; actual automatic-warp GPU/performance execution is not.
+
 The original three-workload Fig.13 campaign has finished all 60 cells and
 restored the prior driver, services, and two storage-policy loaders. Its
 complete raw records, paired analyses and lifecycle log are in main

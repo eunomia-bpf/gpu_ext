@@ -1,0 +1,87 @@
+Filters: [warp-execution]
+Randomness seeded to: 3481636489
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bpftime_verifier_tests is a Catch2 v3.2.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+warp eligibility admits warp-uniform shared map update
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:95
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:101: FAILED:
+  REQUIRE( result.eligible )
+with expansion:
+  false
+with message:
+  Map Helper Key Uniformity at instruction 4: map key bytes are lane-varying
+  Map Helper Key Uniformity at instruction 4: map update flags are lane-varying
+
+-------------------------------------------------------------------------------
+warp eligibility rejects per-lane side effects
+  atomic add on a uniform address
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:107
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:118: FAILED:
+  REQUIRE_FALSE( result.eligible )
+with expansion:
+  !true
+
+-------------------------------------------------------------------------------
+warp eligibility rejects per-lane side effects
+  per-lane perf_event_output
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:132
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:141: FAILED:
+  REQUIRE_FALSE( result.eligible )
+with expansion:
+  !true
+
+-------------------------------------------------------------------------------
+warp eligibility rejects per-thread map writes
+  map update on a per-thread array map
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:173
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:185: FAILED:
+  REQUIRE_FALSE( result.eligible )
+with expansion:
+  !true
+
+-------------------------------------------------------------------------------
+warp eligibility rejects per-thread map writes
+  map update value bytes not proven warp-uniform
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:188
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:206: FAILED:
+  REQUIRE( result.reason.find("not proven warp-uniform") != std::string::npos )
+with expansion:
+  18446744073709551615 (0xffffffffffffffff)
+  !=
+  18446744073709551615 (0xffffffffffffffff)
+
+-------------------------------------------------------------------------------
+warp eligibility rejects unsafe stores
+  store through an untracked pointer
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:213
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/bpftime-verifier/test/warp_execution_eligibility_test.cpp:221: FAILED:
+  REQUIRE_FALSE( result.eligible )
+with expansion:
+  !true
+
+===============================================================================
+test cases:  5 | 1 passed | 4 failed
+assertions: 15 | 9 passed | 6 failed
+

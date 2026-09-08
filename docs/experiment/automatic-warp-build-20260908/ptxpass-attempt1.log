@@ -1,0 +1,27 @@
+[ptxpass] test_pass: matched=5, in=1024, out=2048
+[ptxpass] kprobe_entry_stub: matched=1, in=350, out=1838
+Filters: [ptxpass_core],[kprobe_entry]
+Randomness seeded to: 869485546
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bpftime_nv_attach_tests is a Catch2 v3.2.1 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+kprobe_entry warp lowering rewrites stub call statements
+-------------------------------------------------------------------------------
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/attach/nv_attach_impl/test/test_ptxpass.cpp:537
+...............................................................................
+
+/home/yunwei37/workspace/gpu/bpftime-auto-warp/attach/nv_attach_impl/test/test_ptxpass.cpp:590: FAILED:
+  REQUIRE( out.find("__probe_func__test_kernel:") != std::string::npos )
+with expansion:
+  18446744073709551615 (0xffffffffffffffff)
+  !=
+  18446744073709551615 (0xffffffffffffffff)
+
+[ptxpass] kprobe_entry_stub: matched=1, in=152, out=246
+===============================================================================
+test cases:  25 |  24 passed | 1 failed
+assertions: 131 | 130 passed | 1 failed
+

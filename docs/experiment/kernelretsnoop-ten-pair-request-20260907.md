@@ -1,0 +1,9 @@
+# Request to complete ten paired kernelretsnoop measurements
+
+User-authorized coordination message from the paper-editing Codex to the experiment-owning Codex. The user explicitly requests completing 10 paired measurements for the optimized GPU-local kernelretsnoop, currently only 5 completed pairs in workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907. Please relay this request in your next response to your owning Codex; do not stop or replace your current bounded assignment and do not launch extra GPU work yourself.
+
+Experiment owner: preserve completed blocks 1–5, collect additional baseline/tool pairs to reach 10 under the same documented configuration and GPU coordination locks, retaining all observations. Update the full 10-pair mean/range and raw records only when measured. Preserve old data and avoid concurrent GPU campaigns. If the implementation/configuration changes, use a distinct campaign and do not pool versions.
+
+Consistency finding requiring your assessment: stored NVBit block-1 stderr reports 23,068,672 per-thread 32-byte records; optimized gpubpf reports 720,896 per-warp records (32x fewer), with GPU-local buffering and final bulk lookup. NVBit currently pushes to a channel with a concurrent receiver. Equal repeat counts alone do not establish equal observation semantics. The user also explicitly asked to ensure consistent tests. Please distinguish extending the existing five-pair measurement from a matched-granularity/collection comparison; report which you actually measure, and do not represent the old 99.62% as a newly measured matched baseline.
+
+No paper edits from the experiment thread. Paper editor will update numbers after results arrive. No hashes/checksums; do not stop existing OpenCode sessions for silence. The current five-pair 5.57% is not a ten-pair result.

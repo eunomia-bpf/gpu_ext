@@ -7,15 +7,26 @@ decisions do not implement that target.
 
 ## Current implementation assignment
 
-Qwen 27B through local OpenCode owns driver development in the existing
-`gpu_ext-kernel-575-gds` checkout, branch
-`revision/gpu-storage-decision-575`. It may build but must not install or
-reload the driver while the independent LMCache performance campaign runs.
-Qwen Next has a separate read-only CPU-fault integration assignment.
-The existing GLM session is finishing the previous victim-policy analysis.
-At most three local OpenCode sessions run; no native subagents are used.
+Update at 06:17 UTC: GLM through local OpenCode owns driver development in
+the existing `gpu_ext-kernel-575-gds` checkout, branch
+`revision/gpu-storage-decision-575`, session `ses_f80ce8d77ffexXOG7cehG0hvgg`.
+Its previous turn ended naturally with `finish=stop` and CLI exit zero after
+writing only a partial C file; root resumed the same unfinished task rather
+than treating that exit as completion. It has now added registration,
+reference release, bitmap status queries and real `kernel_read/kernel_write`
+helpers with contiguous-page transfer coalescing. The initial lock expression,
+reference-count API mismatch and header complete-type issue were corrected.
+This is still unbuilt, unwired implementation work: asynchronous offload,
+physical-copy release, same-VA fault restoration and ioctl/build integration
+are not established. No new driver has been installed or loaded.
 
-Update at 03:28 UTC: Qwen Next's CPU-path request ended with actual HTTP524
+The previous LMCache performance campaign is complete; ordinary scoped CPU
+builds are allowed, while root coordinates all GPU experiments and module
+changes. The other two live tasks are automatic warp execution (GLM) and the
+original Fig.13 runner (cluster-direct Qwen 27B). At most three local OpenCode
+sessions run; no native subagents are used.
+
+Historical update at 03:28 UTC: Qwen Next's CPU-path request ended with actual HTTP524
 after its automatic retries, without analysis. A fresh GLM plan session
 `ses_f80f29bf9ffeT5CaGizKZC3rJk` takes that unfinished read-only task; its
 session permissions explicitly deny edit, shell execution and subagent

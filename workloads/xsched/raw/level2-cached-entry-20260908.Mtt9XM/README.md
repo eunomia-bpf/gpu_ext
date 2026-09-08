@@ -30,3 +30,14 @@ not claimed idle from this observation. The shared leases are released.
 Local Qwen now owns the remaining actual guardian/abort/replay defect;
 do not disable the output comparison to turn dropped work into a claimed
 performance gain. Keep the original baseline and all failed attempts.
+
+## Uninstrumented device check after the utilization anomaly
+
+One diagnostic invocation of the existing worker, without LD_PRELOAD or
+LD_LIBRARY_PATH, completes a single one-block/32-thread/one-iteration CUDA
+task and returns zero with all 32 outputs. `uninstrumented-health.log`
+retains its output. Invocation arguments were `be 1 1 1 1 1 32 0 0`,
+`XG_SERVICE_ONLY=1`, with GO on stdin, under both shared leases.
+This is an anomaly check, not a performance cell or repetition of a
+completed baseline. Utilization falls first to 37%, then to 0% / P8 with
+1 MiB used. No reset, module reload, reboot or local-model stop was needed.

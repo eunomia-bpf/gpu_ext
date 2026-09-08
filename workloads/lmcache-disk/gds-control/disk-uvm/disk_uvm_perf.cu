@@ -391,10 +391,10 @@ static cudaStream_t g_stream = NULL;
 #define GPU_THREADS 256
 
 /* Full-buffer traversal: every CTA reads all words of its strided region
- * (the volatile sink keeps the loads real) and additionally stores one plain
+ * (volatile source loads cannot be eliminated) and additionally stores one plain
  * sampled element - the first word of the CTA's region - with no reduction.
  */
-__global__ void kv_read_traverse(const uint32_t *p, size_t n_words,
+__global__ void kv_read_traverse(const volatile uint32_t *p, size_t n_words,
                                  uint32_t *sample_out)
 {
     volatile uint32_t sink = 0u;

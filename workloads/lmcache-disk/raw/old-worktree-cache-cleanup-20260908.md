@@ -1,6 +1,6 @@
 # Old LMCache worktree cache deletion
 
-Status: completed. The 149 listed cache directories and the three obsolete
+Status: completed, including retirement of the old worktree. The 149 listed cache directories and the three obsolete
 build executables were deleted after preservation push `fdbd1c12` on
 `revision/lmcache-gds-control` and collection push `294bda3e` on master.
 All 890 pre-existing non-cache raw files remain; the cleanup record adds one
@@ -13,16 +13,34 @@ Removed build products (not published as binary artifacts):
 - `workloads/lmcache-disk/gds-control/gds_executor`: 1057656 bytes.
 - `workloads/lmcache-disk/gds-control/ioctl_probe`: 25272 bytes.
 
-The source Makefile remains for rebuilding. Cache deletion is permanent,
-not a move to another archive. The old worktree itself is not yet removed:
-the active 575 driver's Git common directory still lives in its worktree
-metadata. That linkage was left intact, and driver git status still works.
-Removing the whole worktree requires relocating that repository metadata;
-this cleanup does not make such a live structural change.
+The source Makefile remains in Git for rebuilding. Cache deletion is permanent,
+not a move to another archive. After the cache cleanup, the remaining 4.3 GiB
+worktree was also removed with `git worktree remove --force`. Its source and
+historical results remain recoverable from the pushed branch
+`revision/lmcache-gds-control` at `4c469d2f`; the collected results and this
+record are also on master. No large build product or cache payload was committed.
+
+Before removing the worktree, the active 575 driver's 122 MiB Git repository
+metadata was relocated from the old worktree's administration directory to
+`/home/yunwei37/workspace/gpu/gpu_ext/.git/driver-repositories/nvidia-575.git`.
+The active `/home/yunwei37/workspace/gpu/gpu_ext-kernel-575-gds/.git` pointer
+now uses that independent location. The common repository is bare, with the
+active driver checkout registered as its linked worktree. No driver source,
+build product, loaded module, or running OpenCode session was removed or stopped.
+
+Post-removal checks: the old worktree path is absent; the main repository's
+worktree list contains only its main checkout; the driver remains on
+`revision/gpu-storage-decision-575` at `ff68a1d4`. Its two modified headers
+(`uvm_forward_decl.h`, `uvm_va_range.h`) and untracked `uvm_disk_backing.h`
+remain present. Before removal, the old checkout and all initialized submodules
+had no uncommitted source changes; their revisions were present in remote
+branches. Its only remaining untracked entries were `current-venv` and `deps`
+symlinks, whose targets in the main workspace were not deleted.
 
 User explicitly requested deletion, not archival, of regenerable cache and large
 build products. Scope is the inactive gpu_ext-lmcache-gds-control worktree only.
-The active 575 driver worktree and its Git common directory remain untouched.
+The active 575 driver source worktree remains untouched; only its Git metadata
+location was changed to remove the dependency on the retired worktree.
 The SASS exporter and Table1 still have live source/build dependencies, so those
 worktrees are not cleanup targets.
 

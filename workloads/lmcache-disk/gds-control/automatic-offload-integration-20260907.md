@@ -331,6 +331,24 @@ separately and is not a serving sample. With this comparison complete,
 the queued five-block matched NVBit/gpubpf warp-array campaign now owns
 the GPU; no completed LMCache cell is repeated during that campaign.
 
+### Remaining paired repetitions queued
+
+The completed native/BPF/stock cells above form block 0. Only blocks 1--4
+are queued behind the matched NVBit campaign, for twelve additional full
+serving cells and five paired blocks overall. Their arm orders are
+`bpf, stock, native`; `stock, native, bpf`; `native, bpf, stock`; and
+`bpf, stock, native`. The existing per-block warm arrival rotation is
+identical across the three arms of each block. All capacity, generation,
+disk-buffer, recompute-price and scheduler settings remain unchanged.
+
+The queued parent imported the committed `eeb61bbb` runner before acquiring
+the GPU locks, so subsequent partial-stream logging development cannot
+change functions halfway through this comparison. New raw cells use
+`block-01` through `block-04` with `position-<i>-<arm>` subdirectories;
+the three already-completed block-0 cells retain their original names.
+The failed relative-path startup attempt remains separate. No old cell or
+calibration is repeated, and five-block results are not available yet.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

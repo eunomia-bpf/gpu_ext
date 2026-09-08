@@ -50,6 +50,14 @@ The shared NVBit library also links successfully. No native/BPF Level-2 GPU
 comparison has run. The separate native LDC generator and HAL integration
 remain unfinished; frozen Level-1 measurements are unchanged.
 
+The subsequent native parser checkpoint also builds with `make -j2 native`
+(exit zero, `native-width-parser-components.log`). It retains LDC/LDCU
+instruction form and 4/8-byte consumer width, and adds parameter-window
+metadata parsing. Those metadata helpers are not yet wired into the old
+encoding solver/main flow; a compiled parser is not a generated native
+guardian or a successful end-to-end run. Root added the standard `<cctype>`
+include required by the new character-classification calls.
+
 Earlier rejected compilations remain in `components.log`,
 `branchless-components.log` and `branchless-fullmask-components.log`.
 The first arithmetic draft used a one-bit select mask; root corrected it to

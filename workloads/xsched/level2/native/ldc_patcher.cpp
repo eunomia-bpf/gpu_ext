@@ -15,6 +15,7 @@
 // Every step fails loudly instead of emitting a blob derived from an
 // assumption.
 #include <cerrno>
+#include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -113,20 +114,66 @@ struct Sample {
     uint64_t pc;     // byte offset inside the section
     uint64_t offset; // c[0x0][offset]
     uint64_t word[2];
+    std::string form; // opcode family: "LDC" scalar/vector, "LDCU" uniform
+    unsigned width;   // decoded bytes consumed: 4 (no/.32) or 8 (.64)
 };
 
-// Extract "/*NNNN*/ ... LDC Rx, c[0x0][0xYYYY] ;" pc/offset pairs. Param
-// loads appear as LDC (incl. ULDC variants, matched by the LDC substring)
-// or as MOV depending on the toolchain; both read the same
-// c[0x0] parameter region. Decimal and hexadecimal /*_*/ pc forms both
-// occur across nvdisasm releases; any misread pc is caught by the
-// patched-artifact round trip.
+// Extract "/*NNNN*/ ... OP ..., c[0x0][0xYYYY] ;" pc/offset pairs and keep
+// the decoded instruction form and consumed width. On nvcc 12.9 sm_120 the
+// observed parameter-consumer forms are "LDC" (scalar bank loads, also with
+// a ".64" suffix for 8-byte consumers) and "LDCU" (uniform loads, also with
+// ".64"); the legacy MOV fallback of other toolchains stays accepted and is
+// annotated with its raw token and width 4. Decimal and hexadecimal /*_*/
+// pc forms both occur across nvdisasm releases; any misread pc is caught by
+// the patched-artifact round trip.
 bool parse_ldc(const std::string &line, Sample *s)
 {
     size_t at = line.find("LDC");
     if (at == std::string::npos) {
         at = line.find("MOV");
         if (at == std::string::npos) return false;
+    }
+    // Resolve the opcode token; a predicate prefix such as "@!P0" is not
+    // alphanumeric, so the token boundaries are found by walking over
+    // alphanumeric characters around the LDC substring.
+    size_t tok = at;
+    while (tok > 0 &&
+           isalnum(static_cast<unsigned char>(line[tok - 1])) != 0)
+        --tok;
+    size_t pos = tok;
+    while (pos < line.size() &&
+           isalnum(static_cast<unsigned char>(line[pos])) != 0)
+        ++pos;
+    std::string op = line.substr(tok, pos - tok);
+    if (op == "LDC") {
+        s->form = "LDC";
+    } else if (op == "LDCU" || op == "ULDC") {
+        s->form = "LDCU";
+    } else {
+        s->form = op;
+    }
+    s->width = 4;
+    if (s->form == "LDC" || s->form == "LDCU") {
+        // Width suffix: ".64" consumes 8 bytes, ".32" or no suffix consume
+        // 4 bytes; any other suffix is not a supported parameter consumer.
+        if (pos < line.size() && line[pos] == '.') {
+            ++pos;
+            unsigned long long suffix = 0;
+            bool any = false;
+            while (pos < line.size() &&
+                   isdigit(static_cast<unsigned char>(line[pos])) != 0) {
+                suffix = suffix * 10 +
+                         (unsigned long long)(line[pos] - '0');
+                ++pos;
+                any = true;
+            }
+            if (!any) return false;
+            if (suffix == 64) {
+                s->width = 8;
+            } else if (suffix != 32) {
+                return false;
+            }
+        }
     }
     size_t bank = line.find("c[0x0][0x", at);
     if (bank == std::string::npos) return false;
@@ -161,6 +208,64 @@ std::string nvdisasm_text(const char *nvdisasm, const char *cubin)
         exit(1);
     }
     return out;
+}
+
+std::string nvdisasm_full(const char *nvdisasm, const char *cubin)
+{
+    std::string cmd = std::string("\"") + nvdisasm + "\" \"" + cubin +
+                      "\" 2>/dev/null";
+    FILE *p = popen(cmd.c_str(), "r");
+    if (!p) {
+        fprintf(stderr, "ldc_patcher: cannot run nvdisasm\n");
+        exit(1);
+    }
+    std::string out;
+    char buf[4096];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), p)) > 0) out.append(buf, n);
+    int status = pclose(p);
+    if (status != 0) {
+        fprintf(stderr, "ldc_patcher: nvdisasm failed on %s\n", cubin);
+        exit(1);
+    }
+    return out;
+}
+
+// EIATTR_PARAM_CBANK in the full nvdisasm dump records the c[0x0] window
+// holding this kernel's parameters; the textual record is:
+//             .word   index@(.nv.constant0.<kernel>)
+//             .short  0x0380                 <- parameter-region start
+//             .short  0x0018                 <- parameter-region size
+bool parse_param_cbank(const std::string &text, const std::string &kernel,
+                       uint64_t *start, uint64_t *size)
+{
+    const std::string needle = "index@(.nv.constant0." + kernel + ")";
+    size_t at = text.find(needle);
+    if (at == std::string::npos) return false;
+    size_t line_end = text.find('\n', at);
+    unsigned found = 0;
+    uint64_t values[2] = {0, 0};
+    while (found < 2 && line_end != std::string::npos) {
+        size_t begin = line_end + 1;
+        line_end = text.find('\n', begin);
+        std::string line = text.substr(
+            begin,
+            line_end == std::string::npos ? std::string::npos
+                                          : line_end - begin);
+        if (line.find("//----- nvinfo") != std::string::npos) break;
+        size_t sh = line.find(".short");
+        if (sh == std::string::npos) continue;
+        size_t hex = line.find("0x", sh);
+        if (hex == std::string::npos) continue;
+        char *end = NULL;
+        unsigned long long v = strtoull(line.c_str() + hex, &end, 16);
+        if (end == line.c_str() + hex) continue;
+        values[found++] = v;
+    }
+    if (found != 2) return false;
+    *start = values[0];
+    *size = values[1];
+    return true;
 }
 
 std::vector<Sample> collect_samples(const std::string &disasm, const Elf &elf,

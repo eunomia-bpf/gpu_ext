@@ -11,6 +11,13 @@ The old native/BPF cost-per-byte comparison remains in the
 These are fresh controls for a changed algorithm, not replacements for
 those historical measurements. No policy advantage or novelty is presumed.
 
+The two native formulas are our custom reclaim policies. They are not
+claimed to be LMCache's published default algorithm. Stock is the ordinary
+victim selector in the same installed, grace-repaired serving runtime;
+all arms use the same real LMCache disk backend. Thus the comparisons
+separate a custom policy change, its native/BPF implementation cost, and
+its benefit or loss relative to the runtime's stock behavior.
+
 ## Completed cells
 
 | Block | Policy | Output token/s | Median TTFT, ms | Restore batches | Logged restore MiB | Restore ops | Rollback warnings |
@@ -26,8 +33,10 @@ those historical measurements. No policy advantage or novelty is presumed.
 | 2 | BPF total cost | 71.8898975830 | 25733.6014840 | 15 | 1632 | 68 | 7 |
 | 2 | stock | 71.9164818733 | 25843.3867345 | 15 | 1632 | 68 | 7 |
 | 2 | native cost/byte | 63.5406061794 | 31571.3766265 | 42 | 5856 | 244 | 34 |
+| 3 | BPF total cost | 65.3925934133 | 29939.2793140 | 12 | 1344 | 56 | 4 |
+| 3 | stock | 70.5504635577 | 25880.3336575 | 15 | 1968 | 82 | 7 |
 
-All eleven planned-policy cells above finish eight warm requests, with 8192 completed
+All thirteen planned-policy cells above finish eight warm requests, with 8192 completed
 output tokens each and zero warm failures. The remaining blocks are still
 running. In this one block BPF total/native total throughput differs by
 +0.9681%; BPF total/old native differs by +11.4861%, and BPF total/stock by

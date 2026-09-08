@@ -15,6 +15,17 @@ Qwen Next has a separate read-only CPU-fault integration assignment.
 The existing GLM session is finishing the previous victim-policy analysis.
 At most three local OpenCode sessions run; no native subagents are used.
 
+Update at 03:28 UTC: Qwen Next's CPU-path request ended with actual HTTP524
+after its automatic retries, without analysis. A fresh GLM plan session
+`ses_f80f29bf9ffeT5CaGizKZC3rJk` takes that unfinished read-only task; its
+session permissions explicitly deny edit, shell execution and subagent
+tasks. The previous LMCache analysis session was terminated for editing
+and rebuilding the frozen control despite its read-only assignment;
+its patch and the affected measurement are preserved separately in the
+total-cost result report. Qwen 27B remains the sole driver-code owner.
+There are now two live local sessions, not three; neither is stopped for
+silence or elapsed time. Module builds remain deferred during GPU timing.
+
 The smallest useful slice is an explicitly registered managed range with
 a retained backing file, real asynchronous write/read transport, removable
 physical memory copies after successful writeback, and same-address demand

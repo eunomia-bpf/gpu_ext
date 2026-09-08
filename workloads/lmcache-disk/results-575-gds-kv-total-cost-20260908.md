@@ -1,6 +1,7 @@
 # LMCache total-recovery-cost policy comparison
 
-Status: running, first four-arm block complete. This is not the completed
+Status: running; block 0 and block 1's stock/total-cost arms are reported
+below. Block 1 still needs the restored original-ratio control. This is not the completed
 five-block result. Implementation `4381f660`; raw outputs and the exact
 invocation are under `raw/gds-kv-total-cost-575-20260908-01/`.
 See the [unchanged experiment plan](gds-control/kv-reclaim-total-cost-experiment-20260908.md).
@@ -18,8 +19,11 @@ those historical measurements. No policy advantage or novelty is presumed.
 | 0 | native cost/byte | 62.4583563017 | 32331.0981690 | 43 | 6000 | 250 | 35 |
 | 0 | native total cost | 68.9647015543 | 26453.8161885 | 15 | 1632 | 68 | 7 |
 | 0 | BPF total cost | 69.6323735398 | 26499.3640565 | 15 | 1632 | 68 | 7 |
+| 1 | native total cost | 67.7450239877 | 28889.1721360 | 12 | 1344 | 56 | 4 |
+| 1 | BPF total cost | 67.2409223304 | 28920.8070945 | 12 | 1344 | 56 | 4 |
+| 1 | stock | 75.0446044806 | 24276.9762065 | 15 | 1968 | 82 | 7 |
 
-All four completed cells finish eight warm requests, with 8192 completed
+All seven planned-policy cells above finish eight warm requests, with 8192 completed
 output tokens each and zero warm failures. The remaining blocks are still
 running. In this one block BPF total/native total throughput differs by
 +0.9681%; BPF total/old native differs by +11.4861%, and BPF total/stock by
@@ -31,6 +35,13 @@ counts return to the stock counts. This is evidence consistent with the
 denominator contributing to repeated restoration on this arrival order,
 not proof that total cost wins on all orders or that every victim decision
 matches stock. The final comparison retains all five blocks.
+
+Block 1 bounds that interpretation: total-cost native/BPF perform fewer
+restores than stock but have lower throughput. Reducing disk restoration
+alone is therefore not sufficient to improve this serving workload. It
+can change which request makes progress and how much decode work is lost;
+these counts alone do not establish the cause. The native/BPF total-cost
+implementations remain close in this block (BPF/native -0.7441%).
 
 ## Disk-full interruption and continuation
 
@@ -93,6 +104,15 @@ algorithm. A replacement for block 1's missing original-ratio control
 remains necessary and will use a new output directory; no completed
 planned-policy cell is to be repeated. Its later measurement time must
 be disclosed in any paired analysis.
+
+The missing-control command is now queued behind the current GPU/struct-ops
+locks: `python3 -u /tmp/lmcache-total-cost-missing-control-20260908.py`.
+It runs one original-ratio cell at
+`block-01/position-4-native_ratio-restored/` only after the current campaign
+finishes. It preserves the unplanned result under its actual policy label
+and records the later measurement time. It does not repeat any completed
+planned-policy cell. The final paired analysis must also show how excluding
+this non-interleaved replacement affects interpretation.
 
 ## Measurement boundary
 

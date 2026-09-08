@@ -393,6 +393,30 @@ present in every arrival rotation; policy analysis must retain that
 workload dependence rather than attribute every timing difference to I/O
 volume or BPF decision overhead.
 
+### Grace-patched block 3 complete
+
+Block 3 completed in native/BPF/stock order. All three arms again completed
+eight cold and eight warm requests, 8192 warm tokens, with server exits
+zero. Raw outputs are retained under `block-03/` in the same grace root.
+
+| Arm | Warm elapsed, s | Output token/s | TTFT median, ms |
+| --- | ---: | ---: | ---: |
+| Native | 115.948452 | 70.652086 | 26002.365471 |
+| BPF | 117.097558 | 69.958760 | 26150.047796 |
+| Stock | 117.030450 | 69.998877 | 26195.968004 |
+
+Only block 4 remains. The common grace-patched scheduler and the imported
+runner are still unchanged throughout these cells; the new partial-stream
+recording patch is not loaded into this already-running comparison.
+
+The completed block-2 logs show 43 restores / 6000 MiB / 250 I/O operations
+and 35 rollback warnings in each policy arm, versus 15 / 1632 MiB / 68
+operations and seven warnings in stock. These are logged backend payloads,
+not physical SSD byte counters. Alongside the equal-volume block 1, this
+reinforces that the disk-cost policy's extra recovery is arrival-dependent
+and shared by native and BPF. Changing the BPF dispatch mechanism alone
+would not address this shared decision-path behavior.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

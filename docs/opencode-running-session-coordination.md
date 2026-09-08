@@ -72,3 +72,24 @@ OpenCode documents the scoped override mechanism in its
 [custom configuration path instructions](https://dev.opencode.ai/docs/config/#custom-path).
 The private service address is resolved at use time rather than treated as
 a portable artifact address. Do not restart running sessions just to adopt it.
+
+## Independent provider timeouts — 2026-09-08
+
+The direct Fig.13 session subsequently retried with `Provider response headers
+timed out after 300000ms`. This was a retry, not session completion, and root
+did not terminate it. Installed OpenCode reports version 1.18.29. Its
+[provider implementation](https://github.com/anomalyco/opencode/blob/v1.18.29/packages/opencode/src/provider/provider.ts)
+configures response-header and streamed-chunk limits independently from the
+overall request timeout; their defaults are 300000 ms, and each accepts false.
+Thus the earlier private override's `timeout: false` was insufficient to
+disable these independent client limits.
+
+Root added `headerTimeout: false` and `chunkTimeout: false` alongside
+`timeout: false` in `/tmp/opencode/direct-qwen27-20260908.json`. A fresh
+`opencode debug config` process with that scoped override reports all three
+as false. This is configuration preparation for a subsequent natural
+continuation, not proof the existing coordinator's cached provider instance
+has changed. Root did not call instance disposal, restart a coordinator,
+abort an inference or create another model session. The current request
+continues normally; these local settings do not remove upstream gateway
+limits such as Cloudflare HTTP 524. No global credentials/config were changed.

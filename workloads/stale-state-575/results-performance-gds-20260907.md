@@ -120,6 +120,8 @@ No completed performance cell was rerun.
 [Raw campaign](raw/stale-state-575-performance-gds-20260907-01/) includes every
 workload result, execution status, diagnostics, telemetry, campaign and all
 three lifecycle logs. Large decision and observer JSONL files are committed
-as complete `.jsonl.gz` copies, with uncompressed originals also retained
-locally. Use `gzip -dk FILE.jsonl.gz` in a fresh checkout to expand them.
+as complete `.jsonl.gz` copies. The duplicate uncompressed local files were
+removed in the [workspace cleanup](../../docs/experiment/workspace-cleanup-20260908/stale-log-duplicates-20260907.md);
+the analyzer reads the retained compressed files directly. Expansion is
+optional: use `gzip -dk FILE.jsonl.gz` only when a plain-text copy is needed.
 No traces were sampled or trimmed to reduce archive size.

@@ -1,0 +1,31 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "8-15",
+    "/usr/bin/env",
+    "LD_PRELOAD=/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt/build-table1-575-warp/runtime/agent/libbpftime-agent.so",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+    "-m",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+    "-r",
+    "1",
+    "-o",
+    "json",
+    "-p",
+    "512",
+    "-n",
+    "0",
+    "-ngl",
+    "99"
+  ],
+  "identity": {
+    "pid": 1998622,
+    "pgid": 1998622,
+    "sid": 1998622,
+    "start_ticks": 9800602
+  },
+  "cleanup_passed": true,
+  "returncode": 0,
+  "timed_out": false
+}

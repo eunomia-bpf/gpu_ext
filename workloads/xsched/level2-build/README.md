@@ -80,6 +80,14 @@ executes any experiment.
 
 ## Remaining source integration (GLM-owned; explicitly NOT provided here)
 
+Source inspection after this build-entry checkpoint found an exporter ABI
+gap: the reused SASS exporter declares an 8-byte verifier context, whereas
+the current guardian accesses four 64-bit context words and dereferences a
+device pointer carried in one word. The source owner is adapting the local
+exporter context and the shared native/BPF device-state snapshot. The frozen
+SASS example must remain unchanged. This is pending source integration, not
+an observed compiler failure or a new measurement gate; no build has run.
+
 This build does NOT invent the completed original cuXtra/HAL integration:
 
 - XSched HAL (`libhalcuda`, BPF-actuator mode): `cuXtraSetDebuggerParams`

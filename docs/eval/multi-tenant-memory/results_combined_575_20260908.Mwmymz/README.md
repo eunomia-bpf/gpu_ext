@@ -1,7 +1,8 @@
 # Original Fig.13 four-arm follow-up
 
-Status: running, not a completed result. HotSpot started at 2026-09-08
-07:29 UTC; GEMM and K-Means are next. Runner commit `a5d66a13` adds the
+Status: running, not a completed three-workload result. HotSpot finished all
+20 cells with runner exit zero and both tenant exit codes zero in every cell.
+GEMM started at 2026-09-08 07:38 UTC; K-Means is next. Runner commit `a5d66a13` adds the
 opt-in comparison to the original `run_policy_comparison.py`.
 
 The planned campaign is five rotated blocks of baseline, memory-only,
@@ -49,3 +50,22 @@ is not yet claimed complete.
 The system `bpftool struct_ops show` returned process exit 139 during
 preparation. No global struct-ops cleanup was used. Experiment tools retain
 their own loader output; this utility failure is not performance evidence.
+
+## Completed HotSpot checkpoint
+
+The full five-block CSV and per-cell records are under
+`hotspot/combined_20260908_002905/`. Completion-time medians in seconds:
+
+| Arm | High-priority tenant | Low-priority tenant |
+| --- | ---: | ---: |
+| Baseline | 56.286889 | 56.533284 |
+| Memory only | 26.199263 | 27.876546 |
+| Scheduling only | 3.963689 | 6.155824 |
+| Combined | 3.560419 | 6.515025 |
+
+These are arm medians, not paired effect estimates or intervals. Combined
+improves high-priority completion versus scheduling alone but increases
+low-priority completion time. This is a tradeoff, not an across-the-board
+win. The first baseline block takes 80.798918/81.041481 seconds and remains
+in the five-block results; it has not been dropped or rerun. No historical
+HotSpot results are overwritten. GEMM/K-Means evidence is still outstanding.

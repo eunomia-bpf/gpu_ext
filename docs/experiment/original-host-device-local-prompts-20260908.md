@@ -4,6 +4,46 @@
 Qwen Next's earlier FineMoE session ended in a terminal HTTP 524 without a
 patch. These tasks implement existing paper-described logic, not new policies.
 
+## Additional user-authorized queue — 04:42 UTC
+
+The existing three sessions (disk UVM, XSched, Hummingbird) were confirmed busy
+through the OpenCode API. Do not stop them or launch a fourth local session.
+The user has also transferred continuation of the following work from the
+paper task to this experiment task; manuscript changes remain prohibited.
+
+1. Resume automatic warp execution in
+   `/home/yunwei37/workspace/gpu/bpftime-auto-warp`, branch
+   `revision/automatic-warp-execution`, at the next free local-model slot.
+   The earlier Qwen Next session `ses_f80dc8da2ffev9TpuxcuajuRMa` has an actual
+   terminal `APIError`, HTTP 524, completed at 1788840775838 ms Unix time.
+   Its worktree is clean; there is no implementation patch to discard or
+   duplicate. Continue through Qwen Next if the provider is available.
+2. Finish reusable compiler/runtime automatic warp execution with the same
+   input BPF object, output semantics and transport on both paths. No manual
+   lane guard, probe-specific exception, or discarded per-lane observations
+   may stand in for automatic optimization. Reuse `run_table1_perf.py` and
+   the existing llama.cpp setup for ten paired repetitions of optimization
+   disabled/enabled, with uninstrumented controls. Preserve old measurements.
+3. Extend the original device microbenchmark for two complementary sweeps:
+   vary block count at fixed per-thread work; then fix launch geometry and
+   hook count while varying arithmetic work outside the hook. Record actual
+   hook encounters separately from scalar BPF handler executions, elapsed
+   time, controls and repetitions. Counting overhead must not selectively
+   penalize one timed arm. Reuse the original kernel/timing/script instead
+   of creating a replacement harness. These experiments await implementation;
+   no new numbers or completion claim exist.
+4. The [original Fig.13 runner follow-up](../eval/multi-tenant-memory/combined-followup-plan-20260908.md)
+   remains queued, not cancelled. Coordinate GPU and struct-ops ownership;
+   run performance cells serially, not alongside another GPU campaign.
+
+Source handoffs received from the paper task are
+`/tmp/warp-hook-experiments-continue-handoff.md`,
+`/tmp/opencode/automatic-warp-measurement-plan.md`, and
+`/tmp/fig13-reuse-original-scripts-handoff.md`. The old automatic-warp plan's
+"running" status is superseded by the terminal API evidence above. The
+worktree remains needed for this authorized continuation and is not a cleanup
+target. No additional paper reproduction or download is requested.
+
 ## XSched — Qwen 27B
 
 Session: `ses_f80c49c7cffebjDrdYLKy8X0ZC`.
@@ -34,4 +74,3 @@ Read split_grid.h, prepare/build scripts and pipeline/{prepare.py,Makefile,runne
 Native device mapping vs BPF device mapping must use same context and same host inputs. Provide modes sufficient to distinguish original native host+native device, BPF host+native device, and BPF host+BPF device; baseline continues to use existing unsplit native frontend. Avoid duplicating full framework or inventing new workloads; implementation plus existing runner integration is task. Preserve thread/CTA semantics: coordinates must actually drive original kernel memory accesses. A trusted wrapper may apply BPF outputs, but C fallback must never provide BPF decisions silently.
 Deliver real source patch and ordinary build command, plus minimal invocation for current frontend and honest hook limitations if any. No GPU runs yet; root serializes measurement. Do not turn this into new feedback algorithm or separate observability benchmark.
 ```
-

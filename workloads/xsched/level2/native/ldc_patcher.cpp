@@ -1,18 +1,26 @@
 // SPDX-License-Identifier: GPL-2.0
 //
-// CPU-side sm_120 guardian adapter tool. Derives the LDC constant-bank
-// offset encoding from the GENERATED probe cubin (raw .text instruction
-// words plus nvdisasm text), re-encodes the parameter-region LDC consumers
-// of the two guardian stub cubins onto the upstream debugger parameter
-// region, verifies each patched cubin by writing it out and re-running
-// nvdisasm against it, asserts the exact consumed-offset multisets and a
-// register-indirect transfer instruction in the restore artifact, and only
-// then emits the C arrays that the vendored arch/sm120.cpp includes.
+// CPU-side sm_120 guardian extractor. Consumes the actual generated stub
+// cubins of the padded-ABI specimens (native/check_preempt_port.cu,
+// native/restore_exec_port.cu), verifies the real parameter placement
+// against the upstream debugger-parameter window that
+// platforms/cuda/hal/src/level2/instrument.cpp fills at launch with
+// cuXtraSetDebuggerParams (28 bytes at c[0x0][0x1880]: preempt buffer,
+// entry point, kernel index, killable flag), verifies the conditional-exit
+// retention of the guardian and the ABI call transfer of the resume stub
+// directly on the actual instruction words, and only then emits the raw
+// SASS streams for platforms/cuda/hal/src/arch/sm120.cpp (GuardianSM120).
 //
 // usage:
-//   xg_ldc_patcher PROBE.cubin CHECK.cubin RESTORE.cubin NVDISASM OUT.h
+//   xg_ldc_patcher CHECK.cubin RESTORE.cubin NVDISASM OUT.h
 //
-// Every step fails loudly instead of emitting a blob derived from an
+// The leading unused 0x1500-byte by-value pad parameter (device of proof:
+// native/probe.cu) makes the existing compiler emit the guardian parameter
+// consumers directly on c[0x0][0x1880/0x1890] and the resume consumers on
+// c[0x0][0x1880/0x1888], so this tool performs no LDC immediate
+// re-encoding and no pad coverage solving. The probe cubin is therefore
+// no longer an input; it stays the historical device of proof only. Every
+// step fails loudly instead of emitting a stream derived from an
 // assumption.
 #include <algorithm>
 #include <cerrno>
@@ -66,7 +74,8 @@ struct Elf {
             exit(1);
         }
         if (bytes[4] != 2 || bytes[5] != 1) { // little-endian ELF64
-            fprintf(stderr, "ldc_patcher: %s is not little-endian ELF64\n", path);
+            fprintf(stderr, "ldc_patcher: %s is not little-endian ELF64\n",
+                    path);
             exit(1);
         }
         uint64_t shoff = le(&bytes[0x28], 8);
@@ -75,14 +84,16 @@ struct Elf {
         uint16_t shstrndx = (uint16_t)le(&bytes[0x3e], 2);
         if (shoff == 0 || shnum == 0 || shstrndx >= shnum ||
             shoff + (uint64_t)shnum * shentsize > bytes.size()) {
-            fprintf(stderr, "ldc_patcher: %s has a thin section table\n", path);
+            fprintf(stderr, "ldc_patcher: %s has a thin section table\n",
+                    path);
             exit(1);
         }
         const char *h = &bytes[shoff + (uint64_t)shstrndx * shentsize];
         uint64_t str_off = le(h + 0x18, 8);
         uint64_t str_size = le(h + 0x20, 8);
         if (str_off + str_size > bytes.size()) {
-            fprintf(stderr, "ldc_patcher: %s string table out of range\n", path);
+            fprintf(stderr, "ldc_patcher: %s string table out of range\n",
+                    path);
             exit(1);
         }
         const char *shstr = &bytes[str_off];
@@ -92,7 +103,8 @@ struct Elf {
             uint64_t s_off = le(hi + 0x18, 8);
             uint64_t s_size = le(hi + 0x20, 8);
             if (s_off + s_size > bytes.size()) {
-                fprintf(stderr, "ldc_patcher: %s section %u out of range\n", path, i);
+                fprintf(stderr, "ldc_patcher: %s section %u out of range\n",
+                        path, i);
                 exit(1);
             }
             Section s;
@@ -112,21 +124,20 @@ struct Elf {
 };
 
 struct Sample {
-    uint64_t pc;     // byte offset inside the section
-    uint64_t offset; // c[0x0][offset]
-    uint64_t word[2];
-    std::string form; // opcode family: "LDC" scalar/vector, "LDCU" uniform
+    uint64_t pc;      // byte offset inside the section
+    uint64_t offset;  // c[0x0][offset]
+    uint64_t word[2]; // raw instruction words at pc
+    std::string form; // opcode family: "LDC", "LDCU", or other token
     unsigned width;   // decoded bytes consumed: 4 (no/.32) or 8 (.64)
 };
 
 // Extract "/*NNNN*/ ... OP ..., c[0x0][0xYYYY] ;" pc/offset pairs and keep
-// the decoded instruction form and consumed width. On nvcc 12.9 sm_120 the
-// observed parameter-consumer forms are "LDC" (scalar bank loads, also with
-// a ".64" suffix for 8-byte consumers) and "LDCU" (uniform loads, also with
-// ".64"); the legacy MOV fallback of other toolchains stays accepted and is
-// annotated with its raw token and width 4. Decimal and hexadecimal /*_*/
-// pc forms both occur across nvdisasm releases; any misread pc is caught by
-// the patched-artifact round trip.
+// the decoded instruction form and consumed width. Observed parameter
+// consumer forms are "LDC" and "LDCU" (also with ".64"); the c[0x4] marker
+// load of the build-only exit-retention store carries no c[0x0] reference
+// and falls through this parser. Decimal and hexadecimal /*_*/ pc forms
+// both occur across nvdisasm releases; a misread pc is caught by the
+// per-artifact instruction assertions below.
 bool parse_ldc(const std::string &line, Sample *s)
 {
     size_t at = line.find("LDC");
@@ -211,64 +222,6 @@ std::string nvdisasm_text(const char *nvdisasm, const char *cubin)
     return out;
 }
 
-std::string nvdisasm_full(const char *nvdisasm, const char *cubin)
-{
-    std::string cmd = std::string("\"") + nvdisasm + "\" \"" + cubin +
-                      "\" 2>/dev/null";
-    FILE *p = popen(cmd.c_str(), "r");
-    if (!p) {
-        fprintf(stderr, "ldc_patcher: cannot run nvdisasm\n");
-        exit(1);
-    }
-    std::string out;
-    char buf[4096];
-    size_t n;
-    while ((n = fread(buf, 1, sizeof(buf), p)) > 0) out.append(buf, n);
-    int status = pclose(p);
-    if (status != 0) {
-        fprintf(stderr, "ldc_patcher: nvdisasm failed on %s\n", cubin);
-        exit(1);
-    }
-    return out;
-}
-
-// EIATTR_PARAM_CBANK in the full nvdisasm dump records the c[0x0] window
-// holding this kernel's parameters; the textual record is:
-//             .word   index@(.nv.constant0.<kernel>)
-//             .short  0x0380                 <- parameter-region start
-//             .short  0x0018                 <- parameter-region size
-bool parse_param_cbank(const std::string &text, const std::string &kernel,
-                       uint64_t *start, uint64_t *size)
-{
-    const std::string needle = "index@(.nv.constant0." + kernel + ")";
-    size_t at = text.find(needle);
-    if (at == std::string::npos) return false;
-    size_t line_end = text.find('\n', at);
-    unsigned found = 0;
-    uint64_t values[2] = {0, 0};
-    while (found < 2 && line_end != std::string::npos) {
-        size_t begin = line_end + 1;
-        line_end = text.find('\n', begin);
-        std::string line = text.substr(
-            begin,
-            line_end == std::string::npos ? std::string::npos
-                                          : line_end - begin);
-        if (line.find("//----- nvinfo") != std::string::npos) break;
-        size_t sh = line.find(".short");
-        if (sh == std::string::npos) continue;
-        size_t hex = line.find("0x", sh);
-        if (hex == std::string::npos) continue;
-        char *end = NULL;
-        unsigned long long v = strtoull(line.c_str() + hex, &end, 16);
-        if (end == line.c_str() + hex) continue;
-        values[found++] = v;
-    }
-    if (found != 2) return false;
-    *start = values[0];
-    *size = values[1];
-    return true;
-}
-
 std::vector<Sample> collect_samples(const std::string &disasm, const Elf &elf,
                                     const Section &text)
 {
@@ -295,89 +248,93 @@ std::vector<Sample> collect_samples(const std::string &disasm, const Elf &elf,
     return samples;
 }
 
-struct Encoding {
-    int half;  // which 8-byte half of the 16-byte SASS instruction
-    int shift; // bit shift of the offset field inside that half
-    int width; // field width
+// Raw EIATTR records of one kernel's .nv.info.<kernel> section, decoded
+// straight from the cubin bytes: EIATTR_PARAM_CBANK (id 0x0a) gives the
+// c[0x0] parameter window, EIATTR_EXIT_INSTR_OFFSETS (id 0x1c) the EXIT
+// offsets inside .text, EIATTR_KPARAM_INFO_V2 (id 0x45) the parameter
+// layout (ordinal, region offset, size). Record formats this tool does
+// not need (fmt 0x02 and 0x03) are skipped; unexpected formats fail
+// loudly.
+struct NvInfo {
+    struct Param { uint64_t ord, off, size; };
+    uint64_t param_start = 0;
+    uint64_t param_size = 0;
+    uint64_t exits[4];
+    unsigned exit_n = 0;
+    Param kparam[8];
+    unsigned kparam_n = 0;
 };
 
-std::vector<Encoding> solve(const std::vector<Sample> &samples)
+bool parse_nvinfo(const Elf &elf, const std::string &kernel, NvInfo *ni)
 {
-    std::vector<Encoding> candidates;
-    for (int half = 0; half < 2; ++half) {
-        for (int shift = 0; shift <= 52; shift += 2) {
-            for (int width : {12, 14, 16, 20, 24, 32}) {
-                if (shift + width > 64) continue;
-                uint64_t mask = ((1ULL << width) - 1ULL) << shift;
-                bool ok = true;
-                for (const Sample &s : samples) {
-                    if (((s.word[half] & mask) >> shift) != s.offset) {
-                        ok = false;
-                        break;
-                    }
+    const Section *s = elf.find(".nv.info." + kernel);
+    if (!s) return false;
+    const char *b = &elf.bytes[s->offset];
+    uint64_t o = 0;
+    while (o < s->size) {
+        if (o + 4 > s->size) return false;
+        unsigned fmt = (unsigned char)b[o];
+        unsigned id = (unsigned char)b[o + 1];
+        if (fmt == 0x04) {
+            uint64_t paylen = le(b + o + 2, 2);
+            if (o + 4 + paylen > s->size) return false;
+            const char *p = b + o + 4;
+            if (id == 0x1c && paylen % 4 == 0) {
+                for (uint64_t k = 0; k < paylen; k += 4) {
+                    if (ni->exit_n >= 4) return false;
+                    ni->exits[ni->exit_n++] = le(p + k, 4);
                 }
-                if (ok) candidates.push_back(Encoding{half, shift, width});
+            } else if (id == 0x0a && paylen == 8) {
+                ni->param_start = le(p + 4, 2);
+                ni->param_size = le(p + 6, 2);
+            } else if (id == 0x45 && paylen == 12) {
+                if (ni->kparam_n >= 8) return false;
+                uint64_t packed = le(p + 4, 4);
+                ni->kparam[ni->kparam_n++] =
+                    NvInfo::Param{packed & 0xffff, packed >> 16,
+                                  le(p + 8, 2)};
             }
+            o += 4 + paylen;
+        } else if (fmt == 0x03 || fmt == 0x02) {
+            o += 4;
+        } else {
+            fprintf(stderr,
+                    "ldc_patcher: unexpected nvinfo format 0x%x (id 0x%x) in "
+                    ".nv.info.%s\n", fmt, id, kernel.c_str());
+            return false;
         }
-    }
-    return candidates;
-}
-
-bool multiset_equals(const std::vector<Sample> &samples,
-                     const std::vector<uint64_t> &expected)
-{
-    if (samples.size() != expected.size()) return false;
-    std::vector<bool> hit(expected.size(), false);
-    for (const Sample &s : samples) {
-        bool found = false;
-        for (size_t i = 0; i < expected.size(); ++i) {
-            if (!hit[i] && expected[i] == s.offset) {
-                hit[i] = true;
-                found = true;
-                break;
-            }
-        }
-        if (!found) return false;
     }
     return true;
 }
 
-struct Range {
-    // Half-open consumed-byte interval relative to the parameter-region
-    // start; begin/end are c[0x0] byte offsets relative to that start.
-    uint64_t begin;
-    uint64_t end;
-    bool operator<(const Range &o) const { return begin < o.begin; }
-};
-
-static bool ranges_equal(const std::vector<Range> &a,
-                         const std::vector<Range> &b)
+const NvInfo::Param *kparam_find(const NvInfo &ni, uint64_t ord)
 {
-    if (a.size() != b.size()) return false;
-    for (size_t i = 0; i < a.size(); ++i)
-        if (a[i].begin != b[i].begin || a[i].end != b[i].end) return false;
+    for (unsigned i = 0; i < ni.kparam_n; ++i)
+        if (ni.kparam[i].ord == ord) return &ni.kparam[i];
+    return nullptr;
+}
+
+// One 16-byte SASS instruction as carried in the cubin text: the 8-byte
+// encoding word followed by the 8-byte scheduling/control word. This
+// layout is what the HAL consumers copy into instruction memory.
+struct Instr { uint64_t enc, ctl; };
+
+bool instr_at(const Elf &elf, const Section &text, uint64_t pc, Instr *in)
+{
+    if (pc % 16 != 0 || pc + 16 > text.size) return false;
+    const char *p = &elf.bytes[text.offset + pc];
+    in->enc = le(p, 8);
+    in->ctl = le(p + 8, 8);
     return true;
 }
 
-// Merge the byte intervals consumed by the parameter-window samples into a
-// sorted, non-overlapping union. Each sample consumes s.width bytes
-// (decoded from the opcode suffix) at s.offset - start, so the union is
-// width-aware: one 64-bit load covers what two scalar loads would cover.
-static std::vector<Range> covered_union(const std::vector<Sample> &win,
-                                        uint64_t start)
+// The HAL path copies the extracted bytes raw into instruction memory; a
+// load-time text relocation would silently go unresolved. The actual stub
+// cubins carry no main .rela.text entries, and this must stay true.
+bool rela_clear(const Elf &elf, const std::string &kernel)
 {
-    std::vector<Range> rs;
-    for (const Sample &s : win)
-        rs.push_back(Range{s.offset - start, s.offset - start + s.width});
-    std::sort(rs.begin(), rs.end());
-    std::vector<Range> out;
-    for (const Range &r : rs) {
-        if (!out.empty() && out.back().end >= r.begin)
-            out.back().end = std::max(out.back().end, r.end);
-        else
-            out.push_back(r);
-    }
-    return out;
+    const Section *s = elf.find(".rela.text." + kernel);
+    return !s || s->size == 0;
 }
 
 // In-window parameter-consumer samples of an artifact: skips fixed ABI
@@ -411,90 +368,89 @@ static std::vector<Sample> window_samples(const std::string &dis,
     return inwin;
 }
 
+struct Range {
+    uint64_t begin;
+    uint64_t end;
+    bool operator<(const Range &o) const { return begin < o.begin; }
+};
+
+static bool ranges_equal(const std::vector<Range> &a,
+                         const std::vector<Range> &b)
+{
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i)
+        if (a[i].begin != b[i].begin || a[i].end != b[i].end) return false;
+    return true;
+}
+
+// Width-aware consumed-byte union of the samples (each sample consumes
+// s.width bytes at s.offset). Offsets stay absolute c[0x0] positions, so
+// the union is anchored at 0 rather than at the window start.
+static std::vector<Range> covered_union(const std::vector<Sample> &win,
+                                        uint64_t start)
+{
+    std::vector<Range> rs;
+    for (const Sample &s : win)
+        rs.push_back(Range{s.offset - start, s.offset - start + s.width});
+    std::sort(rs.begin(), rs.end());
+    std::vector<Range> out;
+    for (const Range &r : rs) {
+        if (!out.empty() && out.back().end >= r.begin)
+            out.back().end = std::max(out.back().end, r.end);
+        else
+            out.push_back(r);
+    }
+    return out;
+}
+
+static void dump_ranges(const char *which, const std::vector<Range> &rs)
+{
+    fprintf(stderr, "ldc_patcher: %s consumed union:", which);
+    for (const Range &r : rs)
+        fprintf(stderr, " [0x%llx,0x%llx)", (unsigned long long)r.begin,
+                (unsigned long long)r.end);
+    fprintf(stderr, "\n");
+}
+
+// The extracted blob: every 16-byte instruction word pair of the text in
+// [0, end), exactly as the HAL consumer memcpys it into instruction
+// memory.
+static std::vector<Instr> blob_of(const Elf &elf, const Section &text,
+                                  uint64_t end)
+{
+    std::vector<Instr> blob;
+    for (uint64_t pc = 0; pc < end; pc += 16) {
+        Instr in;
+        if (!instr_at(elf, text, pc, &in)) {
+            fprintf(stderr, "ldc_patcher: text ends before prefix at 0x%llx\n",
+                    (unsigned long long)pc);
+            exit(1);
+        }
+        blob.push_back(in);
+    }
+    return blob;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
 {
-    if (argc != 6) {
-        fprintf(stderr,
-                "usage: %s PROBE.cubin CHECK.cubin RESTORE.cubin NVDISASM OUT.h\n",
+    if (argc != 5) {
+        fprintf(stderr, "usage: %s CHECK.cubin RESTORE.cubin NVDISASM OUT.h\n",
                 argv[0]);
         return 2;
     }
-    const char *probe_path = argv[1];
-    const char *check_path = argv[2];
-    const char *restore_path = argv[3];
-    const char *nvdisasm_bin = argv[4];
-    const char *out_header = argv[5];
-    const uint64_t dbg = 0x1880ULL; // upstream debugger-parameter region
+    const char *check_path = argv[1];
+    const char *restore_path = argv[2];
+    const char *nvdisasm_bin = argv[3];
+    const char *out_header = argv[4];
 
-    // ---- 1. probe: authoritative parameter window from EIATTR metadata ----
-    Elf probe(probe_path);
-    const Section *probe_text = probe.find(".text.xg_ldc_probe");
-    if (!probe_text) {
-        fprintf(stderr, "ldc_patcher: probe cubin misses .text.xg_ldc_probe\n");
-        return 1;
-    }
-    uint64_t p_start = 0, p_size = 0;
-    if (!parse_param_cbank(nvdisasm_full(nvdisasm_bin, probe_path),
-                           "xg_ldc_probe", &p_start, &p_size)) {
-        fprintf(stderr,
-                "ldc_patcher: cannot read the EIATTR_PARAM_CBANK parameter "
-                "region for xg_ldc_probe\n");
-        return 1;
-    }
-    std::vector<Sample> probe_samples =
-        collect_samples(nvdisasm_text(nvdisasm_bin, probe_path), probe,
-                        *probe_text);
-    // Consumed-byte policy of the probe specimen (level2/native/probe.cu):
-    // three consumed u64 header parameters (relative 0x0..0x18) plus one
-    // consumed u64 tail parameter behind the unused 0x1500-byte pad struct
-    // parameter (relative 0x1518..0x1520). The metadata window must bound
-    // exactly these loads; anything above the window means the generated
-    // cubin is not the pinned specimen.
-    const std::vector<Range> probe_policy = {Range{0, 24},
-                                             Range{0x1518, 0x1520}};
-    std::vector<Range> probe_covered;
-    {
-        std::vector<Sample> inwin;
-        for (const Sample &s : probe_samples) {
-            if (s.offset < p_start) continue; // ABI metadata below the region
-            if (s.offset >= p_start + p_size) {
-                fprintf(stderr,
-                        "ldc_patcher: probe constant-bank consumer at 0x%llx "
-                        "lies above the parameter window [0x%llx, 0x%llx)\n",
-                        (unsigned long long)s.offset,
-                        (unsigned long long)p_start,
-                        (unsigned long long)(p_start + p_size));
-                return 1;
-            }
-            if (s.form != "LDC" && s.form != "LDCU") {
-                fprintf(stderr,
-                        "ldc_patcher: unsupported probe consumer form '%s' "
-                        "for c[0x0][0x%llx]\n",
-                        s.form.c_str(), (unsigned long long)s.offset);
-                return 1;
-            }
-            inwin.push_back(s);
-        }
-        probe_covered = covered_union(inwin, p_start);
-        if (!ranges_equal(probe_covered, probe_policy)) {
-            fprintf(stderr,
-                    "ldc_patcher: probe parameter consumers (%zu loads) do "
-                    "not cover the probe.cu layout inside [0x%llx, 0x%llx)\n",
-                    inwin.size(), (unsigned long long)p_start,
-                    (unsigned long long)(p_start + p_size));
-            return 1;
-        }
-    }
+    // Upstream debugger-parameter ABI: InstrumentContext::Launch fills
+    // args_buf (28 bytes) which cuXtraSetDebuggerParams places at
+    // c[0x0][0x1880]: +0 preempt buffer, +8 entry point, +16 kernel index,
+    // +24 killable flag.
+    const uint64_t dbg = 0x1880ULL;
 
-    // ---- 2. stub parameter windows from their own metadata ----
-    // EIATTR_PARAM_CBANK records each kernel's c[0x0] parameter window.
-    // Loads below the window are fixed ABI metadata reads (descriptor at
-    // 0x358, launch metadata) and are skipped; anything above the window
-    // means the artifact is not the pinned source. Coverage is the
-    // width-aware consumed-byte union of the in-window loads, not a load
-    // count.
     Elf check(check_path), restore(restore_path);
     const Section *check_text = check.find(".text.check_preempt_port");
     const Section *restore_text = restore.find(".text.restore_exec_port");
@@ -502,60 +458,309 @@ int main(int argc, char **argv)
         fprintf(stderr, "ldc_patcher: stub cubins miss their .text sections\n");
         return 1;
     }
-    uint64_t c_start = 0, c_size = 0, r_start = 0, r_size = 0;
-    if (!parse_param_cbank(nvdisasm_full(nvdisasm_bin, check_path),
-                           "check_preempt_port", &c_start, &c_size)) {
+    if (check_text->size % 16 != 0 || restore_text->size % 16 != 0) {
         fprintf(stderr,
-                "ldc_patcher: cannot read the EIATTR_PARAM_CBANK parameter "
-                "region for check_preempt_port\n");
+                "ldc_patcher: stub .text sizes are not 16-byte streams\n");
         return 1;
     }
-    if (!parse_param_cbank(nvdisasm_full(nvdisasm_bin, restore_path),
-                           "restore_exec_port", &r_start, &r_size)) {
+    if (!rela_clear(check, "check_preempt_port") ||
+        !rela_clear(restore, "restore_exec_port")) {
         fprintf(stderr,
-                "ldc_patcher: cannot read the EIATTR_PARAM_CBANK parameter "
-                "region for restore_exec_port\n");
-        return 1;
-    }
-    if (dbg <= c_start || dbg <= r_start) {
-        fprintf(stderr,
-                "ldc_patcher: debugger region 0x%llx does not exceed the "
-                "stub parameter bases check=0x%llx restore=0x%llx\n",
-                (unsigned long long)dbg, (unsigned long long)c_start,
-                (unsigned long long)r_start);
-        return 1;
-    }
-    // check_preempt_port consumes param0 and param2 and never the reserved
-    // param1 (28-byte actuator slots); restore_exec_port consumes param0
-    // and param1. Policies are half-open byte ranges relative to the
-    // parameter-window start of each artifact.
-    const std::vector<Range> check_policy = {Range{0, 8}, Range{16, 24}};
-    const std::vector<Range> restore_policy = {Range{0, 16}};
-    std::vector<Sample> check_in = window_samples(
-        nvdisasm_text(nvdisasm_bin, check_path), check, *check_text, c_start,
-        c_size, "check_preempt_port");
-    std::vector<Sample> restore_in = window_samples(
-        nvdisasm_text(nvdisasm_bin, restore_path), restore, *restore_text,
-        r_start, r_size, "restore_exec_port");
-    if (!ranges_equal(covered_union(check_in, c_start), check_policy) ||
-        !ranges_equal(covered_union(restore_in, r_start), restore_policy)) {
+                "ldc_patcher: main .rela.text is not empty; the HAL copies "
+                "these bytes raw into instruction memory and would never "
+                "resolve a load-time relocation\n");
         return 1;
     }
 
-    // ---- 3. per-form re-encode + emission remain pending ----
-    // The probe evidence fixes the position of the offset immediate (the
-    // byte-4..5 region of the instruction word) but not a uniform
-    // (scale, width) scheme: scalar LDC/LDCU and vector LDC.64/LDCU.64
-    // shift the field differently. Until the per-form solve lands, no
-    // checker array is emitted.
+    NvInfo cn, rn;
+    if (!parse_nvinfo(check, "check_preempt_port", &cn) ||
+        !parse_nvinfo(restore, "restore_exec_port", &rn)) {
+        fprintf(stderr, "ldc_patcher: cannot parse the stub nvinfo records\n");
+        return 1;
+    }
+
+    // Padded ABI: the 0x1500 pad parameter sits at the parameter-region
+    // start and the consumed parameters land in the debugger window above
+    // it. The exact extents pin the compiled specimen; a rebuild that
+    // changes the layout fails here instead of emitting a wrong blob.
+    if (cn.param_start != 0x380 || cn.param_size != 0x1518 ||
+        rn.param_start != 0x380 || rn.param_size != 0x1510) {
+        fprintf(stderr,
+                "ldc_patcher: padded parameter window changed: check "
+                "0x%llx/0x%llx restore 0x%llx/0x%llx (want 0x380/0x1518, "
+                "0x380/0x1510)\n",
+                (unsigned long long)cn.param_start,
+                (unsigned long long)cn.param_size,
+                (unsigned long long)rn.param_start,
+                (unsigned long long)rn.param_size);
+        return 1;
+    }
+    const NvInfo::Param *cp0 = kparam_find(cn, 0);
+    const NvInfo::Param *rp0 = kparam_find(rn, 0);
+    if (!cp0 || !rp0 || cp0->off != 0 || cp0->size != 0x1500 ||
+        rp0->off != 0 || rp0->size != 0x1500) {
+        fprintf(stderr, "ldc_patcher: 0x1500 pad parameter is missing\n");
+        return 1;
+    }
+    struct Want { uint64_t ord, slot; };
+    // check_preempt_port keeps the reserved entry slot (dbg+8) unread;
+    // restore_exec_port consumes the entry slot at dbg+8.
+    const Want check_want[] = {{1, dbg}, {2, dbg + 8}, {3, dbg + 16}};
+    const Want restore_want[] = {{1, dbg}, {2, dbg + 8}};
+    struct WantChecker {
+        static bool one(const NvInfo &ni, const char *which,
+                        const Want *want, unsigned n)
+        {
+            for (unsigned i = 0; i < n; ++i) {
+                const NvInfo::Param *p = kparam_find(ni, want[i].ord);
+                if (!p || ni.param_start + p->off != want[i].slot ||
+                    p->size != 8) {
+                    fprintf(stderr,
+                            "ldc_patcher: %s parameter ordinal %llu does not "
+                            "land at debugger slot 0x%llx\n", which,
+                            (unsigned long long)want[i].ord,
+                            (unsigned long long)want[i].slot);
+                    return false;
+                }
+            }
+            if (ni.kparam_n != n + 1) {
+                fprintf(stderr,
+                        "ldc_patcher: %s has %u KPARAM records, want pad + %u "
+                        "window parameters\n", which, ni.kparam_n, n);
+                return false;
+            }
+            return true;
+        }
+    };
+    if (!WantChecker::one(cn, "check_preempt_port", check_want, 3) ||
+        !WantChecker::one(rn, "restore_exec_port", restore_want, 2))
+        return 1;
+
+    // Width-aware consumed unions of the debugger-window loads must match
+    // the compiled prototypes exactly.
+    std::string check_dis = nvdisasm_text(nvdisasm_bin, check_path);
+    std::string restore_dis = nvdisasm_text(nvdisasm_bin, restore_path);
+    std::vector<Sample> check_in = window_samples(
+        check_dis, check, *check_text, cn.param_start, cn.param_size,
+        "check_preempt_port");
+    std::vector<Sample> restore_in = window_samples(
+        restore_dis, restore, *restore_text, rn.param_start, rn.param_size,
+        "restore_exec_port");
+    const std::vector<Range> check_policy = {
+        Range{dbg, dbg + 8}, Range{dbg + 16, dbg + 24}};
+    const std::vector<Range> restore_policy = {Range{dbg, dbg + 16}};
+    std::vector<Range> check_covered = covered_union(check_in, 0);
+    std::vector<Range> restore_covered = covered_union(restore_in, 0);
+    if (!ranges_equal(check_covered, check_policy)) {
+        fprintf(stderr, "ldc_patcher: check_preempt_port consumer set has "
+                        "changed against the pinned prototype\n");
+        dump_ranges("check_preempt_port", check_covered);
+        return 1;
+    }
+    if (!ranges_equal(restore_covered, restore_policy)) {
+        fprintf(stderr, "ldc_patcher: restore_exec_port consumer set has "
+                        "changed against the pinned prototype\n");
+        dump_ranges("restore_exec_port", restore_covered);
+        return 1;
+    }
+
+    // ---- guardian prefix: ends at the retained conditional exit ----
+    // EIATTR_EXIT_INSTR_OFFSETS lists exactly the cooperative @P0 EXIT
+    // (exits[0]) and the final standalone-kernel EXIT (exits[1]); the
+    // build-only marker store sits between them and is excluded by cutting
+    // at exits[0]. If the retention marker were removed from
+    // check_preempt_port.cu, nvcc would merge both paths into one
+    // unconditional EXIT and this fails loudly because the retained
+    // predicated exit disappears.
+    if (cn.exit_n != 2 || cn.exits[0] > cn.exits[1]) {
+        fprintf(stderr, "ldc_patcher: check_preempt_port has %u exit offsets "
+                        "(want exactly 2, predicated one first)\n", cn.exit_n);
+        return 1;
+    }
+    Instr c_exit, c_final;
+    if (!instr_at(check, *check_text, cn.exits[0], &c_exit) ||
+        !instr_at(check, *check_text, cn.exits[1], &c_final)) {
+        fprintf(stderr,
+                "ldc_patcher: check exit offsets 0x%llx/0x%llx exceed the "
+                "text\n", (unsigned long long)cn.exits[0],
+                (unsigned long long)cn.exits[1]);
+        return 1;
+    }
+    if (cn.exits[0] == 0 || (c_exit.enc & 0xffff) != 0x094d ||
+        (c_final.enc & 0xffff) != 0x794d) {
+        fprintf(stderr,
+                "ldc_patcher: check does not end in a retained predicated "
+                "EXIT (@P0 EXIT 0x...094d at 0x%llx, final 0x...794d at "
+                "0x%llx); observed 0x%llx/0x%llx\n",
+                (unsigned long long)cn.exits[0],
+                (unsigned long long)cn.exits[1],
+                (unsigned long long)(c_exit.enc & 0xffff),
+                (unsigned long long)(c_final.enc & 0xffff));
+        return 1;
+    }
+    const uint64_t check_end = cn.exits[0] + 16;
+    const std::vector<Instr> check_blob =
+        blob_of(check, *check_text, check_end);
+
+    // ---- resume prefix: everything before the final EXIT ----
+    // restore_exec_port: @!P0 EXIT at exits[0], barrier, entry load from
+    // c[0x0][0x1888] feeding R2, the RPC return-site preload (R20 = call
+    // end offset 0x150, R21 = 0) and the preserved register-target call
+    // CALL.REL.NOINC R2 0xfffffffc, then the final EXIT at exits[1]. The
+    // blob keeps the call intact: the call target comes from the
+    // debugger-argument entry slot and lands in the instrumented image,
+    // which ends with the original kernel EXIT, so the call never returns
+    // into the copied prefix.
+    if (rn.exit_n != 2 || rn.exits[0] > rn.exits[1]) {
+        fprintf(stderr, "ldc_patcher: restore_exec_port has %u exit offsets "
+                        "(want exactly 2)\n", rn.exit_n);
+        return 1;
+    }
+    Instr r_exit, r_final;
+    if (!instr_at(restore, *restore_text, rn.exits[0], &r_exit) ||
+        !instr_at(restore, *restore_text, rn.exits[1], &r_final)) {
+        fprintf(stderr,
+                "ldc_patcher: restore exit offsets 0x%llx/0x%llx exceed the "
+                "text\n", (unsigned long long)rn.exits[0],
+                (unsigned long long)rn.exits[1]);
+        return 1;
+    }
+    if (rn.exits[0] == 0 || (r_exit.enc & 0xffff) != 0x894d ||
+        (r_final.enc & 0xffff) != 0x794d) {
+        fprintf(stderr,
+                "ldc_patcher: restore @!P0 EXIT (0x...894d) or final EXIT "
+                "(0x...794d) form changed; observed 0x%llx/0x%llx\n",
+                (unsigned long long)(r_exit.enc & 0xffff),
+                (unsigned long long)(r_final.enc & 0xffff));
+        return 1;
+    }
+    const uint64_t restore_end = rn.exits[1];
+    if (restore_end < 48) {
+        fprintf(stderr, "ldc_patcher: restore prefix 0x%llu too short for "
+                        "RPC preload + call\n",
+                (unsigned long long)restore_end);
+        return 1;
+    }
+    const uint64_t call_pc = restore_end - 16;
+    Instr r_call, r_r20, r_r21;
+    if (!instr_at(restore, *restore_text, call_pc, &r_call) ||
+        !instr_at(restore, *restore_text, call_pc - 0x10, &r_r20) ||
+        !instr_at(restore, *restore_text, call_pc - 0x20, &r_r21)) {
+        fprintf(stderr, "ldc_patcher: restore text truncated before the call "
+                        "at 0x%llx\n", (unsigned long long)call_pc);
+        return 1;
+    }
+    if ((r_call.enc & 0xffff) != 0x7344 ||
+        (r_call.enc >> 32) != 0xfffffffcULL) {
+        fprintf(stderr,
+                "ldc_patcher: expected CALL.REL.NOINC R2 0xfffffffc at "
+                "0x%llx, observed encoding 0x%llx\n",
+                (unsigned long long)call_pc, (unsigned long long)r_call.enc);
+        return 1;
+    }
+    if ((r_r20.enc & 0xffff) != 0x7802 ||
+        (r_r20.enc >> 32) != restore_end ||
+        ((r_r20.enc >> 16) & 0xff) != 0x14) {
+        fprintf(stderr,
+                "ldc_patcher: expected MOV R20, 0x%llx (call end, return "
+                "site) before the restore call; observed encoding 0x%llx\n",
+                (unsigned long long)restore_end,
+                (unsigned long long)r_r20.enc);
+        return 1;
+    }
+    if ((r_r21.enc & 0xffff) != 0x7431 || (r_r21.enc >> 32) != 0) {
+        fprintf(stderr,
+                "ldc_patcher: expected R21 return-site high half "
+                "(0x...7431 with imm 0) before the restore call; observed "
+                "encoding 0x%llx\n", (unsigned long long)r_r21.enc);
+        return 1;
+    }
+    bool entry_load = false;
+    for (const Sample &s : restore_in)
+        if (s.offset == dbg + 8 && s.pc + 16 <= restore_end) entry_load = true;
+    if (!entry_load) {
+        fprintf(stderr,
+                "ldc_patcher: restore does not load the instrumented entry "
+                "point c[0x0][0x%llx] inside the final prefix\n",
+                (unsigned long long)(dbg + 8));
+        return 1;
+    }
+    const std::vector<Instr> restore_blob =
+        blob_of(restore, *restore_text, restore_end);
+
+    // ---- emit the HAL-consumed arrays header ----
+    FILE *h = fopen(out_header, "w");
+    if (!h) {
+        fprintf(stderr, "ldc_patcher: cannot open %s: %s\n", out_header,
+                strerror(errno));
+        return 1;
+    }
+    fprintf(h,
+            "// SPDX-License-Identifier: GPL-2.0\n"
+            "//\n"
+            "// Generated by native/ldc_patcher.cpp from the pinned sm_120 "
+            "stub cubins.\n"
+            "// Do not edit by hand.\n"
+            "//\n"
+            "// Each array carries the raw 16-byte SASS instructions of the "
+            "extracted\n"
+            "// stream: two unsigned long long per instruction (the "
+            "instruction\n"
+            "// encoding followed by its scheduling/control word), "
+            "byte-identical to\n"
+            "// the cubin .text. Both arrays are consumed by memcpy into "
+            "instruction\n"
+            "// memory:\n"
+            "//  - xg_sm120_check_preempt is the leading prefix of the "
+            "instrumented\n"
+            "//    kernel (GuardianSM120::GetGuardianInstructions) and falls "
+            "through\n"
+            "//    into the original kernel text appended behind it;\n"
+            "//  - xg_sm120_restore_exec is the resume entry "
+            "(GetResumeInstructions)\n"
+            "//    and transfers through the preserved register-target ABI "
+            "call into\n"
+            "//    the instrumented entry point taken from c[0x0][0x1888].\n"
+            "#ifndef XG_SM120_GUARDIAN_ARRAYS_H\n"
+            "#define XG_SM120_GUARDIAN_ARRAYS_H\n\n");
+    fprintf(h,
+            "#define XG_SM120_CHECK_PREEMPT_BYTES 0x%llxu\n"
+            "#define XG_SM120_RESTORE_EXEC_BYTES 0x%llxu\n\n",
+            (unsigned long long)check_end,
+            (unsigned long long)restore_end);
+    fprintf(h, "static const unsigned long long xg_sm120_check_preempt[] = "
+               "{\n");
+    for (const Instr &in : check_blob)
+        fprintf(h, "    0x%016llxULL, 0x%016llxULL,\n",
+                (unsigned long long)in.enc, (unsigned long long)in.ctl);
+    fprintf(h, "};\n\n");
+    fprintf(h, "static const unsigned long long xg_sm120_restore_exec[] = "
+               "{\n");
+    for (const Instr &in : restore_blob)
+        fprintf(h, "    0x%016llxULL, 0x%016llxULL,\n",
+                (unsigned long long)in.enc, (unsigned long long)in.ctl);
+    fprintf(h, "};\n\n");
+    fprintf(h,
+            "static_assert(sizeof(xg_sm120_check_preempt) == "
+            "XG_SM120_CHECK_PREEMPT_BYTES, \"check stream size\");\n"
+            "static_assert(sizeof(xg_sm120_restore_exec) == "
+            "XG_SM120_RESTORE_EXEC_BYTES, \"restore stream size\");\n\n"
+            "#endif\n");
+    int werr = ferror(h);
+    if (fclose(h) != 0 || werr) {
+        fprintf(stderr, "ldc_patcher: writing %s failed\n", out_header);
+        return 1;
+    }
+
     fprintf(stderr,
-            "ldc_patcher: boundaries verified, native encoding remains "
-            "pending: probe window 0x%llx/0x%llx policy "
-            "{(0,24),(0x1518,0x1520)}; check window 0x%llx/0x%llx policy "
-            "{(0,8),(16,24)}; restore window 0x%llx/0x%llx policy "
-            "{(0,16)}; per-form offset-field solve ahead\n",
-            (unsigned long long)p_start, (unsigned long long)p_size,
-            (unsigned long long)c_start, (unsigned long long)c_size,
-            (unsigned long long)r_start, (unsigned long long)r_size);
-    return 1;
+            "ldc_patcher: emitted %s: guardian prefix %llu B ending at the "
+            "retained @P0 EXIT (0x%llx; marker store and final EXIT 0x%llx "
+            "excluded), resume prefix %llu B ending at the preserved "
+            "CALL.REL.NOINC R2 (0x%llx; final EXIT excluded)\n",
+            out_header, (unsigned long long)check_end,
+            (unsigned long long)cn.exits[0],
+            (unsigned long long)cn.exits[1],
+            (unsigned long long)restore_end,
+            (unsigned long long)call_pc);
+    return 0;
 }

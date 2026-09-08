@@ -174,15 +174,15 @@ $(PATCHER): $(SRC)/native/ldc_patcher.cpp
 
 native: $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN) $(PATCHER)
 
-# ------------------------------------------- host-only LDC re-encode step
+# ------------------------------------------- host-only guardian extraction
 # Feeds GLM's HAL arch/sm120.cpp integration; never part of the default.
 # The generated arrays header is consumed by a deps/xsched build that
 # applies ../level2/xsched-level2-sm120.patch, configured with
 #   -DXG_SM120_GENERATED_HEADER=$(abspath .output/xg_sm120_guardian_arrays.h)
 # which enables GuardianSM120 and the arch-120 Guardian factory case.
-$(PATCHED_HEADER): $(PATCHER) $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN)
+$(PATCHED_HEADER): $(PATCHER) $(CHECK_CUBIN) $(RESTORE_CUBIN)
 	mkdir -p $(dir $@)
-	$(PATCHER) $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN) $(NVDISASM) $@
+	$(PATCHER) $(CHECK_CUBIN) $(RESTORE_CUBIN) $(NVDISASM) $@
 
 ldc-patch: $(PATCHED_HEADER)
 

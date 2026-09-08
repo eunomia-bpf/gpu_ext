@@ -4,6 +4,39 @@ This is the September 7 implementation direction, not a completed feature or
 new performance result. It extends the existing real LMCache/cuFile storage
 path; it does not restart completed baseline campaigns or change the paper.
 
+## Correction: reclaim adapter bootstrap failed in the initial serving attempts
+
+Source and server-log inspection after the scheduling ablation found
+`Error in sitecustomize` followed by a `CudaIPCWrapper` import error in the
+requested native and BPF reclaim configurations. The adapter eagerly imported
+the unused vLLM-vendored LMCache implementation before installing its hooks.
+The configured connector instead defaults to `use_native=False` and uses the
+installed LMCache implementation. Serving continued after the Python startup
+error, without completing reclaim-policy initialization.
+
+Consequently, native/BPF labels in the initial reclaim pressure campaign
+`raw/gds-kv-reclaim-575-20260907-02/block-00/` and scheduling ablation
+`raw/gds-kv-reclaim-scheduling-ablation-575-20260907-01/` identify requested
+configurations, not demonstrated execution of those policies. All recorded
+throughputs, failures and raw logs are retained, but they do not establish
+native-versus-BPF reclaim performance. Missing adapter diagnostics cannot be
+attributed merely to process teardown. This correction supersedes that
+interpretation in the chronological updates below; it does not invalidate
+earlier, separate storage-policy campaigns by inference.
+
+The second non-overlapped block also finished all three cells, each with eight
+successful warm requests and 8192 output tokens. Requested native/BPF/stock
+throughputs were 68.529942/69.393467/71.737849 token/s, respectively. These
+records are preserved under `block-01/` in the scheduling-ablation root, with
+the same bootstrap-failure qualification for the two requested policy arms.
+Stock's completed async-versus-non-overlapped controls remain evidence of
+scheduling-dependent behavior, not proof of the exact faulty scheduler line.
+
+The next step is the minimal unused-import repair, followed by fresh serving
+measurements in a distinct output directory. Remaining blocks of the broken
+configuration will not be launched. No completed record is overwritten, and
+no new clock-accuracy, audit or preflight campaign is introduced.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

@@ -4,7 +4,14 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
-## Aligned-word transport source checkpoint, not yet built
+## Transport candidates: build completed, performance pending
+
+The GPU experiment owner built `c4c83cd` during a coordinated pre-timing
+pause: `bpftime-agent` and `bpftime-syscall-server` both completed with command
+exit 0. The [complete build log](../eval/multi-tenant-memory/oversubscription-analysis-20260908/auto-warp-build.log)
+is retained. The existing GPU scan resumed after the build; no automatic-warp
+performance experiment ran in that window. The same-object Table1 runner
+still needs its original-record buffer layout and loader environment fixes.
 
 Local GLM's current candidate is committed in bpftime `5a90e03`. It keeps
 the 24-byte per-thread ring header, per-event CAS collision/full handling,
@@ -21,11 +28,11 @@ probe can reject leader transformation while still using the copy path.
 Root only corrected the undefined environment lookup, restored the original
 post-head-read fence, and added this setup log and accurate comments.
 
-This is an **unbuilt source checkpoint**. The old runtime libraries and all
-previous GPU measurements remain unchanged; none measures `5a90e03`.
-The Fig14 owner currently holds GPU/struct-ops locks. Root requested a
-boundary window for the ordinary incremental runtime build before any
-new performance run. No extra verifier/correctness/clock campaign is planned.
+At checkpoint `5a90e03` this source was unbuilt. The later build above now
+includes it; all previous GPU measurements remain unchanged and do not
+measure either new transport candidate. The Fig14 owner still holds the
+GPU/struct-ops locks for the resumed scan. No extra verifier/correctness/clock
+campaign is planned.
 The full record-preserving batching objective and Table1 comparison remain
 unfinished; this candidate is an incremental optimization, not completion.
 
@@ -39,8 +46,8 @@ the protocol at map creation; attaching agents read that stored choice.
 retains the aligned-copy path, and auto-warp 0 retains the legacy path.
 The runner must set the loader environment before map creation.
 
-This seven-file source checkpoint passed `git diff --check` but is **not
-built or measured**. The GPU owner's scan is still active. Root directly
+The seven-file source checkpoint passed `git diff --check` and the ordinary
+build above, but is **not measured**. The GPU owner's scan is still active. Root directly
 added the missing standard header, retained prior record counts for locked
 slots, and corrected comments/indentation; local GLM authored the protocol.
 Neither this checkpoint nor its publication replaces a performance run.

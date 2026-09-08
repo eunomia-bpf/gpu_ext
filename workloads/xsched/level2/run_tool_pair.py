@@ -464,7 +464,9 @@ def summarize(out_root: Path, protocol: dict) -> dict:
     by = {(record["block"], record["config"]): record for record in records}
     summary = {
         "metric_scope": METRIC_SCOPE,
-        "complete_pair_blocks": blocks,
+        "complete_pair_blocks": [block for block in blocks
+                                 if all((block, config) in by
+                                        for config in protocol["config_order"])],
         "configs": {},
         "paired": {},
         "scope": protocol["scope"],

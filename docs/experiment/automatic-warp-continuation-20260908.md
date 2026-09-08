@@ -4,6 +4,18 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## PTX lowering tests closed
+
+The scoped PTX/JSON test update is pushed in bpftime `d6db11e`.
+Root rebuilt `bpftime_nv_attach_tests` and ran
+`[ptxpass_core],[kprobe_entry]`: all 25 cases and 131 assertions passed.
+The [second attempt log](automatic-warp-build-20260908/ptxpass-attempt2.log)
+is retained alongside the earlier failure. The assertions now match the
+emitted `.visible .func` declaration and the unconditional mask-only path.
+Separate verifier eligibility fixtures remain unfinished; this does not
+change either adverse GPU result or make the pending Table 1 batching
+implementation complete. No performance cell was repeated for this check.
+
 ## Mask-only peephole measured separately
 
 Root applied the bounded unconditional-ballot simplification in `bpftime`

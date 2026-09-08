@@ -29,6 +29,7 @@ enum class recv_state_t { INIT, WORKING, STOP, FINISHED };
 
 struct context_state_t {
     ChannelDev* channel_dev = nullptr;
+    warp_array_value_t* warp_array_dev = nullptr;
     ChannelHost channel_host;
     CUmodule tool_module = nullptr;
     CUfunction flush_channel_func = nullptr;
@@ -149,6 +150,93 @@ static exit_validation_t validate_exit_events(const context_state_t* state,
                       result.extent_x == extent_x &&
                       result.extent_y == extent_y && result.extent_z == 1;
     return result;
+}
+
+static void report_warp_array(const context_state_t* state) {
+    const size_t value_bytes = sizeof(warp_array_value_t);
+    warp_array_value_t* value =
+        static_cast<warp_array_value_t*>(malloc(value_bytes));
+    if (value == nullptr) {
+        fprintf(stderr, "NVBIT warp_array readback_bytes=%zu readback_failed=1\n",
+                value_bytes);
+        return;
+    }
+    struct timespec readback_start, readback_end;
+    clock_gettime(CLOCK_MONOTONIC, &readback_start);
+    const cudaError_t copy_result =
+        cudaMemcpy(value, state->warp_array_dev, value_bytes,
+                   cudaMemcpyDeviceToHost);
+    clock_gettime(CLOCK_MONOTONIC, &readback_end);
+    const uint64_t readback_time_ns =
+        static_cast<uint64_t>(readback_end.tv_sec - readback_start.tv_sec) *
+            1000000000ULL +
+        static_cast<uint64_t>(readback_end.tv_nsec - readback_start.tv_nsec);
+    if (copy_result != cudaSuccess) {
+        fprintf(stderr,
+                "NVBIT warp_array readback_bytes=%zu readback_time_ns=%llu "
+                "readback_failed=1\n",
+                value_bytes,
+                static_cast<unsigned long long>(readback_time_ns));
+        free(value);
+        return;
+    }
+
+    uint64_t counter_sum = 0;
+    uint64_t active_warps = 0;
+    uint64_t extent_x = 0;
+    uint64_t nonzero_timestamps = 0;
+    uint64_t mismatched_events = 0;
+    for (uint64_t w = 0; w < WARP_ARRAY_MAX_WARPS; w++) {
+        counter_sum += value->warp_counters[w];
+        if (value->warp_counters[w] != 0)
+            active_warps++;
+    }
+    for (uint64_t w = 0; w < WARP_ARRAY_MAX_WARPS; w++) {
+        const uint64_t count = value->warp_counters[w];
+        for (uint64_t k = 0; k < count; k++) {
+            const exit_record_t* e =
+                &value->events[w * WARP_ARRAY_MAX_EVENTS_PER_WARP + k];
+            nonzero_timestamps += e->timestamp != 0;
+            if (e->coordinate_x != w || e->coordinate_y != 0 ||
+                e->coordinate_z != 0)
+                mismatched_events++;
+        }
+        if (count > 0 && w + 1 > extent_x)
+            extent_x = w + 1;
+    }
+
+    const bool collection_complete =
+        value->total_committed == 0 && mismatched_events == 0 &&
+        value->total_overflow == 0 && value->total_out_of_range == 0;
+    fprintf(stderr, "NVBIT warp_array mode=kernelretsnoop_warp_array\n");
+    fprintf(stderr, "NVBIT warp_array value_bytes=%zu\n", value_bytes);
+    fprintf(stderr, "NVBIT warp_array warp_capacity=%llu events_per_warp=%llu\n",
+            static_cast<unsigned long long>(WARP_ARRAY_MAX_WARPS),
+            static_cast<unsigned long long>(WARP_ARRAY_MAX_EVENTS_PER_WARP));
+    fprintf(stderr, "NVBIT warp_array readback_bytes=%zu readback_time_ns=%llu\n",
+            value_bytes,
+            static_cast<unsigned long long>(readback_time_ns));
+    fprintf(stderr, "NVBIT warp_array warp_append_counters_total=%llu\n",
+            static_cast<unsigned long long>(counter_sum));
+    fprintf(stderr, "NVBIT warp_array stored_events=%llu\n",
+            static_cast<unsigned long long>(counter_sum));
+    fprintf(stderr, "NVBIT warp_array active_warps=%llu\n",
+            static_cast<unsigned long long>(active_warps));
+    fprintf(stderr, "NVBIT warp_array coordinate_extent_x=%llu\n",
+            static_cast<unsigned long long>(extent_x));
+    fprintf(stderr, "NVBIT warp_array event_coordinate_mismatches=%llu\n",
+            static_cast<unsigned long long>(mismatched_events));
+    fprintf(stderr, "NVBIT warp_array reserved_total_committed=%llu\n",
+            static_cast<unsigned long long>(value->total_committed));
+    fprintf(stderr, "NVBIT warp_array overflow_events=%llu\n",
+            static_cast<unsigned long long>(value->total_overflow));
+    fprintf(stderr, "NVBIT warp_array out_of_range_events=%llu\n",
+            static_cast<unsigned long long>(value->total_out_of_range));
+    fprintf(stderr, "NVBIT warp_array nonzero_timestamps=%llu\n",
+            static_cast<unsigned long long>(nonzero_timestamps));
+    fprintf(stderr, "NVBIT warp_array collection_complete=%u\n",
+            collection_complete ? 1U : 0U);
+    free(value);
 }
 
 static void print_exit_validation(const context_state_t* state,
@@ -456,8 +544,11 @@ static void instrument_selected(CUcontext ctx, CUfunction func,
         // Count actual exits, matching the predicate-preserving PTX retprobe.
         nvbit_add_call_arg_guard_pred_val(instruction);
         nvbit_add_call_arg_const_val32(instruction, mode);
-        nvbit_add_call_arg_const_val64(
-            instruction, reinterpret_cast<uint64_t>(state->channel_dev));
+        const uint64_t record_storage =
+            mode == OBS_KERNELRETSNOOP_WARP_ARRAY
+                ? reinterpret_cast<uint64_t>(state->warp_array_dev)
+                : reinterpret_cast<uint64_t>(state->channel_dev);
+        nvbit_add_call_arg_const_val64(instruction, record_storage);
         nvbit_add_call_arg_const_val64(
             instruction, reinterpret_cast<uint64_t>(thread_counters));
         nvbit_add_call_arg_const_val32(instruction, thread_count);
@@ -508,6 +599,8 @@ void nvbit_at_init() {
         mode = OBS_THREADHIST;
     } else if (strcmp(mode_env, "launchlate") == 0) {
         mode = OBS_LAUNCHLATE;
+    } else if (strcmp(mode_env, "kernelretsnoop_warp_array") == 0) {
+        mode = OBS_KERNELRETSNOOP_WARP_ARRAY;
     } else {
         fprintf(stderr, "NVBIT_OBS error: unknown OBS_MODE=%s\n", mode_env);
         abort();
@@ -525,6 +618,14 @@ void nvbit_at_init() {
     pthread_mutex_init(&callback_mutex, &attr);
     fprintf(stderr, "NVBIT_OBS mode=%u target=%s thread_count=%u\n", mode,
             target_symbol.c_str(), thread_count);
+    if (mode == OBS_KERNELRETSNOOP_WARP_ARRAY) {
+        fprintf(stderr,
+                "NVBIT_OBS mode_name=kernelretsnoop_warp_array "
+                "value_bytes=%zu warp_capacity=%llu events_per_warp=%llu\n",
+                sizeof(warp_array_value_t),
+                static_cast<unsigned long long>(WARP_ARRAY_MAX_WARPS),
+                static_cast<unsigned long long>(WARP_ARRAY_MAX_EVENTS_PER_WARP));
+    }
 }
 
 void nvbit_at_term() {
@@ -557,6 +658,11 @@ void nvbit_tool_init(CUcontext ctx) {
                                  CHANNEL_SIZE, state->channel_dev,
                                  receive_records, ctx);
         nvbit_set_tool_pthread(state->channel_host.get_thread());
+    } else if (mode == OBS_KERNELRETSNOOP_WARP_ARRAY) {
+        CUDA_SAFECALL(cudaMalloc(&state->warp_array_dev,
+                                 sizeof(warp_array_value_t)));
+        CUDA_SAFECALL(cudaMemset(state->warp_array_dev, 0,
+                                 sizeof(warp_array_value_t)));
     } else if (mode == OBS_THREADHIST && thread_counters == nullptr) {
         CUDA_SAFECALL(cudaMallocManaged(&thread_counters,
                                        thread_count * sizeof(uint64_t)));
@@ -673,6 +779,12 @@ void nvbit_at_ctx_term(CUcontext ctx) {
         print_exit_validation(state, selected_launches.load());
     }
 
+    if (mode == OBS_KERNELRETSNOOP_WARP_ARRAY &&
+        state->warp_array_dev != nullptr) {
+        report_warp_array(state);
+        CUDA_SAFECALL(cudaFree(state->warp_array_dev));
+    }
+
     if (mode == OBS_THREADHIST && thread_counters != nullptr) {
         uint64_t nonzero = 0;
         uint64_t total = 0;
@@ -761,10 +873,12 @@ void nvbit_at_ctx_term(CUcontext ctx) {
             static_cast<unsigned long long>(
                 mode == OBS_LAUNCHLATE ? state->selected_launches
                                        : selected_launches.load()));
-    fprintf(stderr,
-            "NVBIT kernelretsnoop events=%llu nonzero_timestamps=%llu\n",
-            static_cast<unsigned long long>(exit_records.load()),
-            static_cast<unsigned long long>(nonzero_timestamps.load()));
+    if (mode == OBS_KERNELRETSNOOP) {
+        fprintf(stderr,
+                "NVBIT kernelretsnoop events=%llu nonzero_timestamps=%llu\n",
+                static_cast<unsigned long long>(exit_records.load()),
+                static_cast<unsigned long long>(nonzero_timestamps.load()));
+    }
 
     if (state->start_calibration != nullptr) {
         CUDA_SAFECALL(cudaFree(state->start_calibration));

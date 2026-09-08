@@ -26,6 +26,44 @@ extern "C" __device__ __noinline__ void observe_exit(
         return;
     }
 
+    if (mode == OBS_KERNELRETSNOOP_WARP_ARRAY) {
+        const uint64_t block_threads =
+            static_cast<uint64_t>(blockDim.x) * blockDim.y * blockDim.z;
+        const uint64_t linear_thread =
+            static_cast<uint64_t>(threadIdx.x) +
+            static_cast<uint64_t>(threadIdx.y) * blockDim.x +
+            static_cast<uint64_t>(threadIdx.z) * blockDim.x * blockDim.y;
+        if ((linear_thread & 31ULL) != 0) return;
+        const uint64_t warps_per_block = (block_threads + 31) >> 5;
+        const uint64_t coordinate_x =
+            static_cast<uint64_t>(blockIdx.x) * warps_per_block +
+            (linear_thread >> 5);
+        const uint64_t coordinate_y = blockIdx.y;
+        const uint64_t coordinate_z = blockIdx.z;
+        warp_array_value_t* value =
+            reinterpret_cast<warp_array_value_t*>(channel_ptr);
+        if (coordinate_x >= WARP_ARRAY_MAX_WARPS || coordinate_y != 0 ||
+            coordinate_z != 0) {
+            value->total_out_of_range += 1;
+            return;
+        }
+        uint64_t* counter = &value->warp_counters[coordinate_x];
+        const uint64_t slot = *counter;
+        if (slot >= WARP_ARRAY_MAX_EVENTS_PER_WARP) {
+            value->total_overflow += 1;
+            return;
+        }
+        exit_record_t* event =
+            &value->events[coordinate_x * WARP_ARRAY_MAX_EVENTS_PER_WARP +
+                           slot];
+        event->coordinate_x = coordinate_x;
+        event->coordinate_y = coordinate_y;
+        event->coordinate_z = coordinate_z;
+        event->timestamp = read_globaltimer_ns();
+        *counter = slot + 1;
+        return;
+    }
+
     if (mode == OBS_THREADHIST) {
         const uint64_t block_linear =
             blockIdx.x + static_cast<uint64_t>(gridDim.x) *

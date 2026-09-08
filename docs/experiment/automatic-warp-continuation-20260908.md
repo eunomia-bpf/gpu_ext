@@ -32,6 +32,14 @@ was not changed, submodule revisions were not updated, and no dependency
 cache or build binary is part of this commit. Syntax checks were repeated
 successfully against the resulting real dependency checkouts.
 
+At 08:49 UTC root also initialized the existing pinned Catch2, argparse,
+bpftool and uBPF submodules, plus bpftool's libbpf and verifier ELFIO,
+libbtf and radix-tree dependencies. These are real source checkouts cloned
+with a read-only local reference and `--dissociate`, not links borrowing a
+retired worktree's object database. Gitlink revisions and frozen dependency
+sources are unchanged; no dependency payload or binary is published.
+This prepares the isolated full build without starting it during GPU timing.
+
 Next remains the full isolated build and same-object optimization-off/on
 measurement using the existing prefill runner, followed by the queued
 original device microbenchmark sweeps. Unsupported relevant probes or

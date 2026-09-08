@@ -4,6 +4,26 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## Ten-block shared-map result, completed
+
+Root completed a fresh fixed-shape comparison using the same original
+probe/commands and the built runtime at `49d71e5`: ten rotated
+baseline/off/on blocks, 30 applications and 20 loaders, all exiting zero.
+The complete [raw results and paired analysis](../../microbench/fig15-device/strict-warp-map-scaling/results-automatic-warp-shared-10blocks-20260908.ORjHAp/README.md)
+are pushed as main `43802974`. All ten enabled arms loaded the patched
+module and produced the expected shared-map value. Median elapsed time for
+128 launches is native/off/on = 0.236240/0.328992/0.520400 ms. On/off paired
+mean change is **+57.2860%**, with 95% bootstrap interval
+**[+56.3079%, +58.2831%]**; all ten pairs are adverse.
+
+This closes the fixed-shape repeat measurement, not Table 1 or the requested
+block/work sweeps. The local runner task must not repeat these completed
+cells. Initial single-run records remain separate. Root found a redundant
+unconditional ballot in the leader preamble and asked GLM for a narrow
+optimization, retaining the predicated path. Its benefit is not yet measured.
+Root released the GPU lock and removed each task-owned transport segment
+after its loader finished; small readbacks and all times remain published.
+
 ## Next implementation: preserve all event records
 
 The successful shared-map probe does not close the original Table 1

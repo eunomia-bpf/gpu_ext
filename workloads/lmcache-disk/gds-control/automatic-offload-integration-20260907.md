@@ -1,5 +1,15 @@
 # Automatic disk-backed KV offload: implementation target
 
+Latest measurement, September 8 UTC: the common grace-patched comparison
+has completed all five blocks / fifteen cells, with all 120 warm requests
+finished. See the [complete paired report](../results-575-gds-kv-reclaim-grace-20260908.md).
+Median stock/native/BPF throughput is 69.998877/67.048495/66.099993 token/s;
+mean paired BPF/native change is -0.332635% (95% bootstrap interval
+-1.953586% to +1.306763%). Both implementations of the current policy are
+slower than stock on average. The final block and all prior results are
+retained; pending statements below are chronological history, not current
+batch status. Policy optimization and transparent disk-UVM work remain open.
+
 This is the September 7 implementation direction, not a completed feature or
 new performance result. It extends the existing real LMCache/cuFile storage
 path; it does not restart completed baseline campaigns or change the paper.

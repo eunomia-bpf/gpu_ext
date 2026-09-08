@@ -1,0 +1,65 @@
+[2026-09-08 16:41:15][info][3734400] bpf_attach_ctx constructed
+[2026-09-08 16:41:15][info][3734400] Initializing CUDA shared memory
+[2026-09-08 16:41:15][info][3734400] CommSharedMem host 0x7da88f0297d8 mapped to device 0x7da88f0297d8
+[2026-09-08 16:41:15][info][3734400] CUDA context created
+[2026-09-08 16:41:15][info][3734400] Register attach-impl defined helper bpf_get_func_arg, index 183
+[2026-09-08 16:41:15][info][3734400] Register attach-impl defined helper bpf_get_func_ret_id, index 184
+[2026-09-08 16:41:15][info][3734400] Register attach-impl defined helper bpf_get_retval, index 186
+[2026-09-08 16:41:15][info][3734400] Starting nv_attach_impl
+[2026-09-08 16:41:15][info][3734400] Parsing bundled libraries: /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so:/home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so:/home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-08 16:41:15][info][3734400] Found path: /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so, executing..
+[2026-09-08 16:41:15][info][3734400] Retrived config of /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so
+[2026-09-08 16:41:15][info][3734400] Found path: /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so, executing..
+[2026-09-08 16:41:15][info][3734400] Retrived config of /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kretprobe/libptxpass_kretprobe.so
+[2026-09-08 16:41:15][info][3734400] Found path: /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so, executing..
+[2026-09-08 16:41:15][info][3734400] Retrived config of /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/libptxpass_kprobe_memcapture.so
+[2026-09-08 16:41:15][info][3734400] Initializing agent..
+[2026-09-08 16:41:15][info][3734400] bpftime: shm epoch_seq = 2
+[2026-09-08 16:41:15][info][3734400] Instantiating bpf link 42 and the corresponding program cuda__shared is cuda program
+[2026-09-08 16:41:15][info][3734400] Skipping nv attach handler 42 since we are not handling nv handles
+[2026-09-08 16:41:15][info][3734400] Instantiating bpf link 42 and the corresponding program cuda__shared is cuda program
+[2026-09-08 16:41:15][info][3734400] Handling link to CUDA program: 42, recording it..
+[2026-09-08 16:41:15][info][3734400] Loaded 14 instructions (original) for cuda ebpf program
+[2026-09-08 16:41:15][info][3734400] Initializing nv_gpu_shared_array_map_impl at pid 3734400
+[2026-09-08 16:41:15][info][3734400] Mapped GPU memory for shared array map: 138153847422976
+[2026-09-08 16:41:15][info][3734400] Copying map fd 17 to device, key size=4, value size=8, max ent=64, map_type = 1503, gpu_buffer = 7da673000000
+[2026-09-08 16:41:15][info][3734400] GPU eBPF verification timing: program=cuda__shared verification_elapsed_ns=1619403
+[2026-09-08 16:41:15][info][3734400] GPU eBPF verification accepted: mode=STRICT program=cuda__shared attach=kprobe/fig15_warp_map_kernel instructions=14
+[2026-09-08 16:41:15][info][3734400] GPU eBPF verified map: program=cuda__shared fd=17 type=1503 key_size=4 value_size=8 max_entries=64
+[2026-09-08 16:41:15][info][3734400] GPU automatic warp execution admitted for cuda__shared: eligible hook sites lower per-thread calls to elected warp-leader execution
+[2026-09-08 16:41:15][info][3734400] Cached shared_mem_ptr at 7da88f0297d8
+[2026-09-08 16:41:15][info][3734400] Recorded pass /home/yunwei37/workspace/gpu/bpftime-auto-warp/build-auto-warp-575/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/libptxpass_kprobe_entry.so for func fig15_warp_map_kernel
+[2026-09-08 16:41:15][info][3734400] nv_attach_impl: cached 260778 host symbols
+[2026-09-08 16:41:15][info][3734400] nv_attach_impl: late attach bootstrap scanning fatbins..
+[2026-09-08 16:41:15][info][3734400] nv_attach_impl: targeted late bootstrap selected 1 of 20 loaded module(s)
+[2026-09-08 16:41:15][info][3734400] Temporary fatbin written to /tmp/bpftime-fatbin-work.yoUlY4/temp.fatbin
+[2026-09-08 16:41:15][info][3734400] Extracting PTX in the fatbin...
+[2026-09-08 16:41:15][info][3734400] Calling cuobjdump: /usr/local/cuda-12.9/bin/cuobjdump --extract-ptx all /tmp/bpftime-fatbin-work.yoUlY4/temp.fatbin
+Extracting PTX file and ptxas options    1: warp_map_bench.sm_120.ptx -arch=sm_120  --generate-line-info 
+[2026-09-08 16:41:15][info][3734400] Remove extracted files..
+[2026-09-08 16:41:15][info][3734400] Got 1 PTX files
+[2026-09-08 16:41:15][info][3734400] Loading & patching current fatbin..
+[2026-09-08 16:41:15][info][3734433] Patching PTX: warp_map_bench.sm_120.ptx
+[2026-09-08 16:41:15][info][3734433] Patching request fae59b4f972827672faf88ec9ebe4c35adfbd4631b28071d984d68f28277fffe not found in cache, patching..
+[ptxpass] kprobe_entry_stub: matched=1, in=4059, out=5568
+[2026-09-08 16:41:15][info][3734400] Using SM arch from BPFTIME_SM_ARCH: sm_120
+[2026-09-08 16:41:15][info][3734400] Compiling PTXs with sm_arch sm_120
+[2026-09-08 16:41:15][info][3734400] Compiler version: 12.9
+[2026-09-08 16:41:15][info][3734434] Start compiling patched.warp_map_bench.sm_120.ptx, not found in cache
+[2026-09-08 16:41:15][info][3734434] Compile of patched.warp_map_bench.sm_120.ptx done
+[2026-09-08 16:41:15][info][3734400] Loading module: patched.warp_map_bench.sm_120.ptx, not found in cache
+[2026-09-08 16:41:15][info][3734400] Copying trampoline data to device
+[2026-09-08 16:41:15][info][3734400] constData symbol device_ptr=7da673200000 size=8 shared_mem_ptr=7da88f0297d8
+[2026-09-08 16:41:15][info][3734400] map_info symbol device_ptr=7da673200008 size=49152
+[2026-09-08 16:41:15][info][3734400] Trampoline data copied
+[2026-09-08 16:41:15][info][3734400] Loaded module: patched.warp_map_bench.sm_120.ptx
+[2026-09-08 16:41:15][info][3734400] nv_attach_impl: ingested fatbin from .nv_fatbin in /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling/.output/warp-map-bench
+[2026-09-08 16:41:15][info][3734400] nv_attach_impl: late attach bootstrap ingested 1 fatbin(s)
+[2026-09-08 16:41:15][info][3734400] agent ipc: listening (abstract) for pid 3734400
+[2026-09-08 16:41:15][info][3734400] Attach successfully
+[2026-09-08 16:41:15][info][3734406] Exiting CUDA watcher thread
+FIG15_DEVICE	NVIDIA GeForce RTX 5090	12	0	32
+FIG15_WARP_SHAPE	128	4
+FIG15_WARP_GRID	64	8192	128
+FIG15_MEASUREMENT	8	128	0.533728004
+FIG15_CORRECT	8192	0

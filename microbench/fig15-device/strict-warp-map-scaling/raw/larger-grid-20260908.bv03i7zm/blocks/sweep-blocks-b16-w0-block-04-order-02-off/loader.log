@@ -1,0 +1,61 @@
+[2026-09-08 16:38:59][info][3723451] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-08 16:38:59][info][3723451] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-08 16:38:59][info][3723451] Verifier mode: STRICT
+[2026-09-08 16:38:59][info][3723451] Init bpftime syscall mocking..
+[2026-09-08 16:38:59][info][3723451] The log will be written to: console
+[2026-09-08 16:38:59][info][3723451] Starting syscall server..
+[2026-09-08 16:38:59][info][3723451] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-08 16:38:59][info][3723451] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-08 16:38:59][info][3723451] Verifier mode: STRICT
+[2026-09-08 16:38:59][info][3723451] Initialize syscall server
+[2026-09-08 16:38:59][info][3723451] Setting BPFTIME_SHM_MEMORY_MB to: 256
+[2026-09-08 16:38:59][info][3723451] Setting BPFTIME_MAX_FD_COUNT to: 1024
+[2026-09-08 16:38:59][info][3723451] Verifier mode: STRICT
+[2026-09-08 16:38:59][info][3723451] Global shm constructed. shm_open_type 3 for fig15_warp_3722587_176605691054444
+[2026-09-08 16:38:59][info][3723451] Global shm initialized
+[2026-09-08 16:38:59][info][3723451] Initializing CUDA at syscall-server side
+[2026-09-08 16:38:59][info][3723451] CUDA initialized at syscall server side
+[2026-09-08 16:38:59][info][3723451] Enabling 44 helpers
+[2026-09-08 16:38:59][info][3723451] bpftime-syscall-server started
+FIG15_WARP_SERVER_PRIMED	1
+libbpf: loading object from /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling/.output/warp-map-probe.bpf.o
+libbpf: elf: section(3) kprobe/fig15_warp_map_kernel, size 312, link 0, flags 6, type=1
+libbpf: sec 'kprobe/fig15_warp_map_kernel': found program 'cuda__noop' at insn offset 0 (0 bytes), code size 2 insns (16 bytes)
+libbpf: sec 'kprobe/fig15_warp_map_kernel': found program 'cuda__shared' at insn offset 2 (16 bytes), code size 14 insns (112 bytes)
+libbpf: sec 'kprobe/fig15_warp_map_kernel': found program 'cuda__warp' at insn offset 16 (128 bytes), code size 23 insns (184 bytes)
+libbpf: elf: section(4) .relkprobe/fig15_warp_map_kernel, size 32, link 26, flags 40, type=9
+libbpf: elf: section(5) .maps, size 32, link 0, flags 3, type=1
+libbpf: elf: section(6) license, size 4, link 0, flags 3, type=1
+libbpf: license of /home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling/.output/warp-map-probe.bpf.o is GPL
+libbpf: elf: section(16) .BTF, size 1058, link 0, flags 0, type=1
+libbpf: elf: section(18) .BTF.ext, size 336, link 0, flags 0, type=1
+libbpf: elf: section(26) .symtab, size 408, link 1, flags 0, type=2
+libbpf: looking for externs among 17 symbols...
+libbpf: collected 0 externs total
+libbpf: map 'warp_values': at sec_idx 5, offset 0.
+libbpf: map 'warp_values': found type = 1503.
+libbpf: map 'warp_values': found key [8], sz = 4.
+libbpf: map 'warp_values': found value [12], sz = 8.
+libbpf: map 'warp_values': found max_entries = 64.
+libbpf: sec '.relkprobe/fig15_warp_map_kernel': collecting relocation for section(3) 'kprobe/fig15_warp_map_kernel'
+libbpf: sec '.relkprobe/fig15_warp_map_kernel': relo #0: insn #11 against 'warp_values'
+libbpf: prog 'cuda__shared': found map 0 (warp_values, sec 5, off 0) for insn #9
+libbpf: sec '.relkprobe/fig15_warp_map_kernel': relo #1: insn #32 against 'warp_values'
+libbpf: prog 'cuda__warp': found map 0 (warp_values, sec 5, off 0) for insn #16
+libbpf: object 'warp-map-probe': failed (-EACCES) to open BPF FS mount at '/sys/fs/bpf', skipping optional step...
+libbpf: Kernel doesn't support BTF, skipping uploading it.
+[2026-09-08 16:38:59][info][3723451] syscall server: Set enable_mock_after_initialized to false
+[2026-09-08 16:38:59][info][3723451] CUDA context for thread 3723451 has been set to 5be023508e40
+[2026-09-08 16:38:59][info][3723451] Map warp_values (nv_gpu_shared_array_map_impl) shared array
+[2026-09-08 16:38:59][info][3723451] Initializing map type of BPF_MAP_TYPE_GPU_ARRAY_MAP (device), total_buffer_size=512
+[2026-09-08 16:38:59][info][3723451] syscall server: Set enable_mock_after_initialized to true
+libbpf: map 'warp_values': created successfully, fd=17
+libbpf: prog 'cuda__noop': skipped loading
+libbpf: prog 'cuda__warp': skipped loading
+[2026-09-08 16:38:59][info][3723451] Created kprobe/kretprobe perf event handler, func_name fig15_warp_map_kernel, addr 0
+FIG15_WARP_READY	shared_update	1
+FIG15_WARP_MAP	0	6291613622346973184
+FIG15_WARP_MAP_COUNT	1
+FIG15_WARP_DETACHED	1
+[2026-09-08 16:39:00][warning][3723451] Calling original ioctl: 9 34 140729044494608
+[2026-09-08 16:39:00][warning][3723451] Calling original ioctl: 8 3222292009 140729044494768

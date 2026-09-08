@@ -2,8 +2,8 @@
 
 ## Current manuscript snapshot — 2026-09-07 PDT
 
-The current paper is `9376184`, compiled from `docs/paper/main.tex` with
-flat section files under `docs/paper/tex-revision/`. The build has 16 pages.
+The current paper is `cd2c2f4`, compiled from `docs/paper/main.tex` with
+flat section files under `docs/paper/tex-revision/`. The build has 15 pages.
 Several entries below describe earlier 16/17-page drafts that were later
 restored or simplified; their statements that material is “integrated” must
 not be read as the current manuscript status. Their experiment records remain.

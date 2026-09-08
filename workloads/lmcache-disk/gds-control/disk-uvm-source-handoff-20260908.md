@@ -37,3 +37,20 @@ a small userspace same-address disk-offload/restore performance client. Do not
 load this module during another task's GPU measurements. End-to-end behavior,
 LMCache integration and performance remain unfinished; no success or speedup
 is inferred from the source handoff.
+
+## Completion-order follow-up — 2026-09-08 06:48 PDT
+
+The local implementation has now separated recording the file-write outcome
+from publishing offload completion. Pending pages remain pending through
+unmapping and CPU-chunk removal. A successful write whose reclamation fails
+clears the on-disk state and sets the existing error state; the unmap tracker
+result is checked before removing a chunk. This addresses a concrete timing
+problem in the checkpoint: observing pending=0 before reclamation could time a
+resident access as if it were a disk restore.
+
+This follow-up is still an unbuilt working-tree change in
+`kernel-open/nvidia-uvm/uvm_disk_backing.c`; `git diff --check` passes. The
+same-address client is present at `disk-uvm/disk_uvm_perf.cu`, with build/run
+instructions still being completed. Neither change has produced new disk
+performance numbers. The GPU scan owned by another task remains live, so no
+module reload or overlapping GPU measurement was started here.

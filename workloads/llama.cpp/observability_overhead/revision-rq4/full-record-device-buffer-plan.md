@@ -1,5 +1,16 @@
 # Next kernelretsnoop optimization: GPU-local full records
 
+## Current implementation update
+
+The first writer/collector builds at `743ef571`, but its first real prefill
+aborts before throughput. The object BTF truncates the planned 1342701584-byte
+bank to 268959760 bytes. The [actual run record](raw/full-record-device-buffer-first-20260908.BytFAr/README.md)
+supersedes the eight-bank assumption below: local Qwen now changes banking
+to 32 values of 16384 slots, preserving the total event capacity. The new
+bank size is 335675408 bytes. Record-major indexing is also in implementation
+to group adjacent-thread stores. No GPU-local full-record performance is
+established yet; the original eight-bank proposal is preserved below.
+
 The completed transport-2/3 comparison (`a9fb0a13`) improves median paired
 throughput by 65.04%, but its 346.81 token/s remains far below the earlier
 uninstrumented workload. Both layouts still write host-mapped memory. The

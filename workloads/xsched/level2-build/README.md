@@ -19,10 +19,11 @@ executes any experiment.
   - `bpf_to_ptx .output/xsched_guardian.bpf.o cuda__/xsched_guardian .output/ptx/xsched_guardian.ptx xsched_guardian sm_120`
   - Exporter CLI derived from the local source
     (`workloads/sass-kretprobe/bpf_to_ptx.cpp`): `OBJ SECTION OUT [SYMBOL] [SM]`.
-    Resolution: reuse `../../sass-kretprobe/build/bpf_to_ptx` read-only when
-    present; otherwise build it via
-    `make -f ../../sass-kretprobe/compiler.mk BUILD=.output/compiler`
-    (their read-only source; outputs stay in `.output/compiler/`).
+    Resolution: copy the frozen exporter source into `.output/adapter/`,
+    apply `../level2/bpf/bpf_to_ptx_ctx48.patch`, then build through its
+    `compiler.mk` with local `PTX_EXPORTER_SRC`, `BUILD`, and `BIN` overrides.
+    The original 8-byte exporter binary is not reused: this guardian needs
+    the 48-byte scalar context. Outputs stay under `.output/`.
   - Exported ABI: `.visible .func xsched_guardian(.param .b64 context_ptr,
     .param .b64 context_length)`; the trampoline calls it as
     `xsched_guardian(ctx, sizeof(ctx))` and consumes the decision from the
@@ -80,13 +81,12 @@ executes any experiment.
 
 ## Remaining source integration (GLM-owned; explicitly NOT provided here)
 
-Source inspection after this build-entry checkpoint found an exporter ABI
-gap: the reused SASS exporter declares an 8-byte verifier context, whereas
-the current guardian accesses four 64-bit context words and dereferences a
-device pointer carried in one word. The source owner is adapting the local
-exporter context and the shared native/BPF device-state snapshot. The frozen
-SASS example must remain unchanged. This is pending source integration, not
-an observed compiler failure or a new measurement gate; no build has run.
+The exporter ABI source gap was addressed in `8d9e1a6c`: both native C and
+BPF now consume the same six-word scalar snapshot, and the locally adapted
+exporter declares its 48-byte context. BPF no longer receives a device
+pointer in that snapshot. The exporter patch applies to the frozen source;
+component compilation and execution remain pending. The original SASS
+example source and binary are unchanged.
 
 This build does NOT invent the completed original cuXtra/HAL integration:
 

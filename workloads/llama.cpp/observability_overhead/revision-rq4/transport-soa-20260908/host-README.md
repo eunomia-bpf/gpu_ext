@@ -1,5 +1,12 @@
 # host-transport-soa.patch — host-only mode-3 host side (record-preserving transposed ringbuf transport)
 
+Latest status, 2026-09-08: the mode-2 measurement has completed, and this
+host patch applies to runtime `241872b`. The companion device patch is
+**still missing**, not ready to apply. Qwen Next's provider request ended
+with HTTP 524; the same implementation session now continues on direct
+Qwen 27B. Neither patch has been applied alone to the live runtime. The
+historical source-frozen notes below describe preparation before that run.
+
 Status: source-only, unbuilt, unmeasured. Base: `c4c83cd` of
 `/home/yunwei37/workspace/gpu/bpftime-auto-warp`. The c4 runtime source
 remains frozen for the queued Table1 (mode 2) measurement; HEAD

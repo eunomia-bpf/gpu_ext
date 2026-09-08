@@ -90,5 +90,9 @@ The reported `logical_lane_encounters` is timed launches times CTA count
 times threads per CTA. It is a launch-shape calculation, not a measurement
 of scalar BPF handler calls. CUDA event time covers all timed launches;
 do not relabel it as per-handler latency. The 18 existing offline tests pass
-after the extension. The CUDA build and both GPU sweeps remain pending;
-this section contains no new performance result.
+after the extension. The CUDA build and both GPU sweeps are now complete:
+180 measurements, reported in [the geometry/work results](results-geometry-work-20260908.md).
+Automatic execution is slower by about 57–58% for the zero-work CTA sweep;
+the relative difference approaches zero with more arithmetic. Actual scalar
+callback counting remains separate, unfinished diagnostic work. See the
+report for the original CSV unit correction and retained failed build/run prefix.

@@ -741,7 +741,7 @@ def main() -> int:
                     "run_id": run_id,
                     "application_exit": "0",
                     "loader_exit": "" if arm == "native" else "0",
-                    "elapsed_ms": f"{elapsed:.9f}",
+                    "elapsed_ms": f"{elapsed / 1000.0:.9f}",
                     "warmup": warmup,
                     "launches": launches,
                    "logical_lane_encounters": launches * cta_blocks * shape,

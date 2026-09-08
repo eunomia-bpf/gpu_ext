@@ -1,0 +1,13 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/bpftime-auto-warp/attach/nv_attach_impl/trampoline'
+clang++-17 -S default_trampoline.cu -Wall --cuda-gpu-arch=sm_61 -O2 -U__FLOAT128__ -U__SIZEOF_FLOAT128__ -L/usr/local/cuda/lib64/ -lcudart -pthread
+clang++-17: warning: CUDA version is newer than the latest partially supported version 12.1 [-Wunknown-cuda-version]
+clang++-17: warning: -lcudart: 'linker' input unused [-Wunused-command-line-argument]
+clang++-17: warning: argument unused during compilation: '-L/usr/local/cuda/lib64/' [-Wunused-command-line-argument]
+In file included from <built-in>:1:
+In file included from /usr/lib/llvm-17/lib/clang/17/include/__clang_cuda_runtime_wrapper.h:41:
+/usr/lib/llvm-17/lib/clang/17/include/cuda_wrappers/cmath:27:15: fatal error: 'cmath' file not found
+   27 | #include_next <cmath>
+      |               ^~~~~~~
+1 error generated when compiling for host.
+make: *** [Makefile:30: default_trampoline-cuda-nvptx64-nvidia-cuda-sm_61.s] Error 1
+make: Leaving directory '/home/yunwei37/workspace/gpu/bpftime-auto-warp/attach/nv_attach_impl/trampoline'

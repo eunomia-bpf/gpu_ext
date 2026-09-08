@@ -1,0 +1,16 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/bpftime-auto-warp/attach/nv_attach_impl/trampoline'
+clang++-17 -S default_trampoline.cu -Wall --cuda-gpu-arch=sm_61 -O2 -U__FLOAT128__ -U__SIZEOF_FLOAT128__ --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/13 -L/usr/local/cuda/lib64/ -lcudart -pthread
+clang++-17: warning: CUDA version is newer than the latest partially supported version 12.1 [-Wunknown-cuda-version]
+clang++-17: warning: -lcudart: 'linker' input unused [-Wunused-command-line-argument]
+clang++-17: warning: argument unused during compilation: '-L/usr/local/cuda/lib64/' [-Wunused-command-line-argument]
+default_trampoline.cu:95:11: warning: unused variable 'BPF_MAP_TYPE_GPU_HASH_MAP' [-Wunused-const-variable]
+   95 | const int BPF_MAP_TYPE_GPU_HASH_MAP = 1501; // non-per-thread, single-copy shared hashmap
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated when compiling for host.
+default_trampoline.cu:95:11: warning: unused variable 'BPF_MAP_TYPE_GPU_HASH_MAP' [-Wunused-const-variable]
+   95 | const int BPF_MAP_TYPE_GPU_HASH_MAP = 1501; // non-per-thread, single-copy shared hashmap
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated when compiling for sm_61.
+Generating trampoline_ptx.h...
+Generated ../trampoline_ptx.h
+make: Leaving directory '/home/yunwei37/workspace/gpu/bpftime-auto-warp/attach/nv_attach_impl/trampoline'

@@ -1,0 +1,14 @@
+shape=128 cta_blocks=2 work=0 block=1 order=1 arm=native
+shape=128 cta_blocks=2 work=0 block=1 order=2 arm=off
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling/run_strict_warp_map_scaling.py", line 774, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling/run_strict_warp_map_scaling.py", line 726, in main
+    elapsed = run_attached(
+              ^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling/run_strict_warp_map_scaling.py", line 621, in run_attached
+    validate_loader_log(loader_log, shape, arm)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/microbench/fig15-device/strict-warp-map-scaling/run_strict_warp_map_scaling.py", line 418, in validate_loader_log
+    raise RuntimeError("shared-update map key/value readback mismatch")
+RuntimeError: shared-update map key/value readback mismatch

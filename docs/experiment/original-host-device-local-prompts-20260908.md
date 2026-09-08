@@ -17,6 +17,16 @@ XSched and Hummingbird are still unfinished and retain their session contexts.
 Earlier running/model
 descriptions below are historical snapshots, not a claim of current execution.
 
+Execution update after runtime checkpoint `c4c83cd`: automatic-warp GLM
+completed its source handoff naturally (`finish=stop`, CLI exit 0). Root
+resumed the existing XSched session `ses_f80c49c7cffebjDrdYLKy8X0ZC` with
+`spark-gateway/qwen3.8-flash-next-nvfp4-220k`; its API reports busy. The other
+two active sessions remain Table1 and disk UVM on direct Qwen 27B. This is
+three active sessions, not a fourth; no session was stopped for silence.
+The original XSched scope below is unchanged, except heavy CPU builds also
+wait for the current GPU experiment owner's timing window. This resumption
+is not a completed Level2 implementation or a new performance result.
+
 ## Additional user-authorized queue — 04:42 UTC
 
 The existing three sessions (disk UVM, XSched, Hummingbird) were confirmed busy

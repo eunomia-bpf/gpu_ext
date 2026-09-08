@@ -184,6 +184,37 @@ paired blocks 6--10 to its five completed blocks. Scheduler development and
 the matched NVBit variant continue in local OpenCode sessions without
 modifying the runtime used by the active performance run.
 
+### Completed-log analysis: repeated restores dominate the failed path
+
+Counting the existing `Time taken for batched_get_blocking` lines and
+`rolled back from ... to ... tokens` warnings across each repaired cell's
+full server log gives the following. No new serving measurements were run.
+
+| Repaired configuration | Logged restore batches | Logged read payload, MiB | Logged I/O operations | Rollback warning lines |
+| --- | ---: | ---: | ---: | ---: |
+| Native, default async | 26465 | 3175968 | 132332 | 26461 |
+| BPF, default async | 27393 | 3287184 | 136966 | 27389 |
+| Native, non-overlapped scheduler | 15 | 1968 | 82 | 7 |
+| BPF, non-overlapped scheduler | 15 | 1968 | 82 | 7 |
+
+In both async logs, the rollback warnings belong to warm requests 0/1
+and 4/5; individual requests repeat 6588--6864 times. The summed rounded
+backend blocking times are 339.482 s for native async and 307.399 s for
+BPF async, versus 0.261/0.252 s for the completed non-overlapped controls.
+Those sums are not an additive decomposition of elapsed serving time:
+operations can overlap. The payloads count repeated backend reads, not
+unique KV bytes or physical SSD traffic; compatibility-path buffering and
+the storage stack are not separated by these logs. Warning counts are
+likewise not a complete scheduler preemption counter.
+
+This evidence prioritizes stopping destructive rollback/recovery cycles
+before tuning disk-read thresholds or interpreting the failed runs as BPF
+mechanism overhead. It supports that failure mode, but does not establish
+that the proposed deferred-free grace alone will resolve it. Automatic
+offload must coordinate residency/reclaim with pending GPU use and restore
+completion; repeated restoration of the same prefixes does not demonstrate
+a working automatic disk-UVM implementation.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

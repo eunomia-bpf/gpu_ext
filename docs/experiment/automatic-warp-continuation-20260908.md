@@ -4,6 +4,37 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## Next implementation: preserve all event records
+
+The successful shared-map probe does not close the original Table 1
+optimization request. GLM continues in the same session after its natural
+source handoff. Whole-program leader execution deliberately does not merge
+per-lane event appends. The existing output helper in
+`attach/nv_attach_impl/trampoline/default_trampoline.cu` uses per-thread
+rings, a system-scope dirty-word CAS, multiple system fences, and tail/dirty
+system atomics. There is no single shared allocation counter that can simply
+be replaced with one warp-wide reservation. These source facts guide the
+next implementation; they are not a measured bottleneck attribution.
+
+The existing bit-63 `WARP_ONLY_OUTPUT` option drops nonleader appends and
+therefore is not a substitute for the requested same-object comparison.
+The optimization may batch/coalesce internal implementation and layout, but
+must preserve the public map/output contract, every required record and its
+fields, and documented success/drop behavior. The original default-off path
+and all old measurements remain. No manual probe lane guard or tool-name
+special case is permitted. Any work moved outside prefill must be reported
+separately rather than hidden in an apparent throughput improvement.
+
+The original plotting extension is now pushed in main `cbee6a47`:
+`plot_all_kernels_stacked.py --combined --combined-dir ...` adds separate
+old/new timing groups without changing the old default figure. Root checked
+syntax and its existing aggregation function on all twelve workload/arm
+groups; each contains five rows and yields the previously published medians.
+This is project-tool work, not a manuscript edit. The same Qwen session
+continues with the queued original performance-runner extensions; the
+scheduler follow-up remains uncommitted work in progress. No fourth local
+session or additional paper reproduction was started.
+
 ## First real GPU execution, 09:31 UTC
 
 The enabled automatic-warp path now runs the existing original Fig.15

@@ -53,6 +53,38 @@ eight warm requests, 1024 output-token bound and 62502 ns/token price.
 The complete original workload is retained. Its result is pending; this
 repair is not a new performance claim or transparent disk-UVM implementation.
 
+### First repaired pair completed, September 8 UTC
+
+Both repaired cells finished eight of eight warm requests, each generating
+8192 output tokens with no HTTP failures and server exit code zero:
+
+| Configuration | Warm elapsed, s | Output token/s | TTFT median, ms |
+| --- | ---: | ---: | ---: |
+| Native reclaim, non-overlapped scheduler | 124.472019 | 65.813988 | 30354.796006 |
+| BPF reclaim, non-overlapped scheduler | 129.011153 | 63.498386 | 31697.091301 |
+
+BPF/native throughput is 3.52% lower in this single pair; this is not a
+repeated estimate of mechanism overhead or evidence of policy superiority.
+The earlier unchanged stock scheduling control was 71.787093 token/s, but
+is a separately timed reference, not a new interleaved stock cell. All old
+failed-bootstrap measurements remain above and in their original directories.
+
+The CudaIPCWrapper startup error is absent from both repaired logs. The
+separate optional `uvm_kv_plugin` discovery error remains recorded. Neither
+cell produced the existing exit diagnostics file, so full decision counts
+and selected recovery-route counts remain unavailable.
+
+During BPF serving, two read-only dumps of the already-existing
+`kv_reclaim_snap` per-CPU candidate map (id 1114, owned by the existing
+loader) captured changing candidates: first-slot cookies on CPUs 1/2
+changed from 1/3 to 5/7, with disk-backed prefixes of 1536 tokens. The
+snapshot is populated inside `gpu_kv_reclaim_choose`, so those changes
+establish actual callback execution during the run, not just attachment.
+They do not measure total invocations or prove which recovery route won.
+The original dumps are `bpf-sync/reclaim-map-live.json` and
+`bpf-sync/reclaim-map-live-02.json`; no new instrumentation, clock check,
+or admission requirement was added to the benchmark.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

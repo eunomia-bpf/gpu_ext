@@ -2,7 +2,19 @@
 # GPU-local full-record device buffer (32-bank GPU_ARRAY map, type 1503).
 # Build from a directory three levels below the bpftime root, i.e. the
 # example/gpu/* tree layout, so the ../../../third_party paths resolve.
-OUTPUT := .output
+# LAYOUT selects the bank value layout (opt-in, default off):
+#   aos: the measured record-major AoS layout; builds the .output/ object
+#        tree and the full-record-device-buffer binary (default semantics
+#        unchanged).
+#   soa: the field-major SoA layout; builds a separate .output-soa/ object
+#        tree and the distinct full-record-device-buffer-soa binary, so
+#        toggling LAYOUT can never reuse objects from the other layout.
+LAYOUT ?= aos
+ifneq ($(LAYOUT),aos)
+LAYOUT_SUFFIX := -$(LAYOUT)
+EXTRA_LAYOUT_CFLAGS := -DFRDB_SOA_LAYOUT
+endif
+OUTPUT := .output$(LAYOUT_SUFFIX)
 CLANG ?= clang
 CUDA_HOME ?= /usr/local/cuda
 LIBBPF_SRC := $(abspath ../../../third_party/libbpf/src)
@@ -23,7 +35,8 @@ INCLUDES := -I$(OUTPUT) -I../../../runtime/include -I$(CUDA_HOME)/include \
 CFLAGS := -g -Wall
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS) -lcuda
 
-APPS = full-record-device-buffer
+APPS = full-record-device-buffer$(LAYOUT_SUFFIX)
+APP_SRC = full-record-device-buffer
 
 CLANG_BPF_SYS_INCLUDES ?= $(shell $(CLANG) -v -E - </dev/null 2>&1 \
 	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
@@ -55,7 +68,8 @@ all: $(APPS)
 .PHONY: clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)rm -rf $(OUTPUT) $(APPS)
+	$(Q)rm -rf .output .output-soa full-record-device-buffer \
+	    full-record-device-buffer-soa
 
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
@@ -75,27 +89,25 @@ $(BPFTOOL): | $(BPFTOOL_OUTPUT)
 	$(Q)$(MAKE) ARCH= CROSS_COMPILE= OUTPUT=$(BPFTOOL_OUTPUT)/ -C $(BPFTOOL_SRC) bootstrap
 
 # Build BPF code
-$(OUTPUT)/%.bpf.o: %.bpf.c $(LIBBPF_OBJ) $(wildcard *.h) $(VMLINUX) | $(OUTPUT) $(BPFTOOL)
+$(OUTPUT)/$(APP_SRC).bpf.o: $(APP_SRC).bpf.c $(LIBBPF_OBJ) $(wildcard *.h) $(VMLINUX) | $(OUTPUT) $(BPFTOOL)
 	$(call msg,BPF,$@)
 	$(Q)$(CLANG) -Xlinker --export-dynamic -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) \
-		     $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) \
+		     $(INCLUDES) $(EXTRA_LAYOUT_CFLAGS) $(CLANG_BPF_SYS_INCLUDES) \
 		     -c $(filter %.c,$^) -o $(patsubst %.bpf.o,%.tmp.bpf.o,$@)
 	$(Q)$(BPFTOOL) gen object $@ $(patsubst %.bpf.o,%.tmp.bpf.o,$@)
 
 # Generate BPF skeletons
-$(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT) $(BPFTOOL)
+$(OUTPUT)/$(APP_SRC).skel.h: $(OUTPUT)/$(APP_SRC).bpf.o | $(OUTPUT) $(BPFTOOL)
 	$(call msg,GEN-SKEL,$@)
 	$(Q)$(BPFTOOL) gen skeleton $< > $@
 
 # Build user-space code
-$(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
-
-$(OUTPUT)/%.o: %.c $(wildcard *.h) | $(OUTPUT)
+$(OUTPUT)/$(APP_SRC).o: $(APP_SRC).c $(wildcard *.h) $(OUTPUT)/$(APP_SRC).skel.h | $(OUTPUT)
 	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
+	$(Q)$(CC) $(CFLAGS) $(EXTRA_LAYOUT_CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
 # Build application binary
-$(APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(APPS): $(OUTPUT)/$(APP_SRC).o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
 

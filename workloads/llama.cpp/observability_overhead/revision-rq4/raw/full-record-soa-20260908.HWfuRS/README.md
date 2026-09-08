@@ -49,3 +49,21 @@ that is historical context, not this cell's paired control. Retain this
 successful SoA cell as block 1 when adding its fresh baseline and AoS
 controls, then finish the remaining rotating blocks. Do not rerun this
 completed cell or the older 15-cell ring/AoS campaign.
+
+## Persistent build option
+
+The local model's Makefile now supports `LAYOUT=soa` with `.output-soa/`
+objects and `full-record-device-buffer-soa`, and default `LAYOUT=aos` with
+`.output/` objects and `full-record-device-buffer`. Both variants build
+successfully in the staging directory. The SoA target links the already
+compiled SoA objects (`build-make-soa.log`).
+
+The first default invocation reported nothing to build because the earlier
+manual SoA build had used the default executable name and the Makefile's
+`.SECONDARY` behavior did not rebuild missing intermediates. It did not
+build an AoS executable. Explicitly requesting
+`.output/full-record-device-buffer.o full-record-device-buffer` subsequently
+compiled and linked the default layout successfully; both logs are retained
+(`build-make-aos.log`, `build-make-aos-explicit.log`). Fresh builds do not
+inherit that manual-build executable. The measured SoA executable copied
+into this raw directory was not overwritten or used for another run.

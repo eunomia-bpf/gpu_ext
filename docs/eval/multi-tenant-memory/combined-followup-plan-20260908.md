@@ -8,6 +8,16 @@ on this original-runner task. Disk UVM and automatic warp execution remain
 live in the other two slots. No session was stopped for silence and no fourth
 session was launched.
 
+Continuation: the Fig.13 Qwen Next request itself ended with terminal HTTP 524
+at 1788847238031 ms Unix time, before producing any source patch. Its CLI
+exited. Root resumed the **same** session using `spark-direct-qwen27` /
+`qwen3.8-27b-nvfp4`, through the existing Qwen 27B cluster service without
+the Cloudflare hop. The original prompt and context remain; this is still
+the original-runner implementation task, not a new task or a fourth session.
+See [connection preparation](../../opencode-running-session-coordination.md).
+Direct model generation and a runnable implementation are not implied by
+dispatch alone.
+
 The user asks for the combined memory/scheduling result inside the original
 HotSpot, GEMM and K-Means panels, using the original scripts. No paper file,
 paper figure or paper number may be modified by this session. Preserve every

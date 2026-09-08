@@ -53,8 +53,10 @@ and disabling the client's request timeout. The existing global config
 and server remain unchanged. A separate loopback coordinator accepts the
 override and can see the same saved Fig.13 session. Starting that coordinator
 does not start an inference task or create a fourth active model session.
-The direct path is prepared for continuation only after an existing task
-actually ends; a successful generation and implementation are still unproven.
+After Fig.13's request ended with terminal HTTP 524 at 1788847238031 ms Unix
+time and its CLI exited, root resumed that same saved session through the
+direct coordinator using Qwen 27B. A successful generation and implementation
+are still unproven at dispatch; the active inference-task count remains three.
 
 OpenCode documents the scoped override mechanism in its
 [custom configuration path instructions](https://dev.opencode.ai/docs/config/#custom-path).

@@ -28,7 +28,11 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include "full_record_device_buffer_value.h"
+#ifdef FRDB_SOA_LAYOUT
+#include "./.output-soa/full-record-device-buffer.skel.h"
+#else
 #include "./.output/full-record-device-buffer.skel.h"
+#endif
 
 #define warn(...) fprintf(stderr, __VA_ARGS__)
 
@@ -117,6 +121,7 @@ int main(void)
 	       (uint64_t)FRDB_RECORDS_PER_SLOT);
 	printf("Full-record record bytes: %" PRIu64 "\n",
 	       (uint64_t)sizeof(struct frdb_record));
+	printf("Full-record layout: %s\n", FRDB_LAYOUT_LABEL);
 	printf("Full-record value bytes (per bank): %" PRIu64 "\n", value_bytes);
 	printf("Full-record probe attached; waiting for SIGINT\n");
 	fflush(stdout);
@@ -125,7 +130,7 @@ int main(void)
 		usleep(100000);
 
 	/* One host destination allocation, reused for every bank drain. */
-	void *value = malloc(sizeof(struct frdb_value));
+	void *value = malloc(sizeof(frdb_value));
 	if (!value) {
 		warn("Failed to allocate whole-value drain buffer\n");
 		goto cleanup;
@@ -147,7 +152,7 @@ int main(void)
 			free(value);
 			goto cleanup;
 		}
-		const struct frdb_value *v = value;
+		const frdb_value *v = value;
 		overflow += v->total_overflow;
 		out_of_range += v->total_out_of_range;
 		for (uint64_t slot = 0; slot < FRDB_SLOTS_PER_BANK; slot++) {
@@ -157,10 +162,18 @@ int main(void)
 			active_slots += 1;
 			committed += count;
 			for (uint64_t k = 0; k < count; k++) {
+#ifdef FRDB_SOA_LAYOUT
+				const uint64_t plane_index =
+					k * FRDB_SLOTS_PER_BANK + slot;
+
+				nonzero_timestamps +=
+					v->timestamp[plane_index] != 0;
+#else
 				const struct frdb_record *record =
 					&v->records[k *
 						    FRDB_SLOTS_PER_BANK + slot];
 				nonzero_timestamps += record->timestamp != 0;
+#endif
 			}
 		}
 	}

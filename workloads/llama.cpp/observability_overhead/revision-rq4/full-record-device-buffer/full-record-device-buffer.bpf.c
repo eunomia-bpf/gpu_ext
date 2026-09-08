@@ -17,7 +17,7 @@ struct {
 	__uint(type, BPF_MAP_TYPE_GPU_ARRAY_MAP);
 	__uint(max_entries, FRDB_NUM_BANKS);
 	__type(key, u32);
-	__type(value, struct frdb_value);
+	__type(value, FRDB_VALUE_TYPE);
 } arena SEC(".maps");
 
 SEC("kretprobe/_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli")
@@ -30,7 +30,7 @@ int cuda__retprobe(void)
 	u64 grid_x, grid_y, grid_z;
 	u64 width, height, thread_id;
 	u64 bank, slot, counter;
-	struct frdb_value *value;
+	frdb_value *value;
 	u32 key;
 
 	bpf_get_block_idx(&block_x, &block_y, &block_z);
@@ -78,7 +78,26 @@ int cuda__retprobe(void)
 		value->total_overflow += 1;
 		return 0;
 	}
+	#ifdef FRDB_SOA_LAYOUT
+	{
+		/* Field-major SoA: one 8-byte store per field plane; for a
+		 * fixed record index, adjacent lanes are 8 bytes apart. */
+		const u64 plane_index = counter * FRDB_SLOTS_PER_BANK + slot;
+
+		value->block_x[plane_index] = record.block_x;
+		value->block_y[plane_index] = record.block_y;
+		value->block_z[plane_index] = record.block_z;
+		value->thread_x[plane_index] = record.thread_x;
+		value->thread_y[plane_index] = record.thread_y;
+		value->thread_z[plane_index] = record.thread_z;
+		value->block_dim_x[plane_index] = record.block_dim_x;
+		value->block_dim_y[plane_index] = record.block_dim_y;
+		value->block_dim_z[plane_index] = record.block_dim_z;
+		value->timestamp[plane_index] = record.timestamp;
+	}
+	#else
 	value->records[counter * FRDB_SLOTS_PER_BANK + slot] = record;
+	#endif
 	value->slot_counters[slot] = counter + 1;
 	return 0;
 }

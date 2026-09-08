@@ -20,3 +20,10 @@ python3 -u workloads/xsched/level2/run_tool_pair.py run --no-initial --repetitio
 
 `run.log` and `cells/` retain the actual outcome. No completed five-block
 comparison is claimed merely from starting this continuation.
+
+The native cell exits -11 at first launch before its running event; BPF
+is unstarted. The old publication assertion is gone, and the tool loaded
+message is present in the real workload. The subsequent
+[stack diagnostic](../level2-launch-stack-20260908.7gAYEJ/README.md) localizes
+the new crash to the tool's post-enabling instruction-index logging.
+All owned workers/server ended and no performance sample is claimed here.

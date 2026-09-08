@@ -1,0 +1,136 @@
+[XSCHED INFO @ T 3579921 @ 14:40:01.397844] using global scheduler
+------------- NVBit (NVidia Binary Instrumentation Tool v1.8) Loaded --------------
+NVBit core environment variables (mostly for nvbit-devs):
+ACK_CTX_INIT_LIMITATION = 0 - if set, no warning will be printed for nvbit_at_ctx_init()
+            NVDISASM = nvdisasm - override default nvdisasm found in PATH
+            NOBANNER = 0 - if set, does not print this banner
+       NO_EAGER_LOAD = 1 - lazy module loading is now turned on by default. If you see deadlocks in your tool, set NO_EAGER_LOAD to 0
+---------------------------------------------------------------------------------
+XG tool loaded decision=native target=_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 3579921 @ 14:40:01.492486] using global scheduler
+[IPC WARN @ T 3579921 @ 14:40:01.492534] MessageQueue CPPIPC-3579921 (key: 0x36a011) already exists, deleting @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/3rdparty/ipc/src/msgq/msgq.cpp:152
+[New Thread 0x7ffff6bff000 (LWP 3579926)]
+------------- NVBit (NVidia Binary Instrumentation Tool v1.8) Loaded --------------
+NVBit core environment variables (mostly for nvbit-devs):
+ACK_CTX_INIT_LIMITATION = 0 - if set, no warning will be printed for nvbit_at_ctx_init()
+            NVDISASM = nvdisasm - override default nvdisasm found in PATH
+            NOBANNER = 0 - if set, does not print this banner
+       NO_EAGER_LOAD = 1 - lazy module loading is now turned on by default. If you see deadlocks in your tool, set NO_EAGER_LOAD to 0
+---------------------------------------------------------------------------------
+XG tool loaded decision=native target=_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy
+[New Thread 0x7ffff63fe000 (LWP 3579927)]
+[New Thread 0x7fffea5ff000 (LWP 3579949)]
+[New Thread 0x7fffe9dfe000 (LWP 3579950)]
+WARNING: Do not call CUDA memory allocation in nvbit_at_ctx_init(). It will cause deadlocks. Do them in nvbit_tool_init(). If you encounter deadlocks, remove CUDA API calls to debug.
+[Detaching after vfork from child process 3579951]
+[Detaching after vfork from child process 3579953]
+[New Thread 0x7ffdddc21000 (LWP 3579956)]
+[New Thread 0x7ffddd420000 (LWP 3579957)]
+[New Thread 0x7ffddcc1f000 (LWP 3579958)]
+[New Thread 0x7ffd99fff000 (LWP 3579959)]
+{"event":"ready","role":"be","process_id":1,"streams":4,"tasks":50}
+[Detaching after vfork from child process 3579960]
+[Detaching after vfork from child process 3579962]
+
+Thread 9 "priority_worklo" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffd99fff000 (LWP 3579959)]
+0x00007ffff7cca083 in Instr::getIdx() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+
+Thread 9 (Thread 0x7ffd99fff000 (LWP 3579959) "priority_worklo"):
+#0  0x00007ffff7cca083 in Instr::getIdx() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#1  0x00007ffff7c77a42 in nvbit_at_cuda_event () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#2  0x00007ffff7c88acc in Nvbit::callback(CUctx_st*, int, int, char const*, void*, cudaError_enum*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#3  0x00007ffff7c8d39c in nvbitToolsCallbackFunc(void*, CUtools_cb_domain_enum, unsigned int, void const*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#4  0x00007fffea9f2582 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#5  0x00007fffea9dd1b5 in cuLaunchKernel () from /lib/x86_64-linux-gnu/libcuda.so
+#6  0x00007ffff73d7454 in xsched::cuda::CudaKernelLaunchCommand::Launch(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libcuda.so.1
+#7  0x00007ffff732209a in xsched::cuda::CudaCommand::LaunchWrapper(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#8  0x00007ffff73313c7 in xsched::cuda::InstrumentContext::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, xsched::cuda::LaunchType) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#9  0x00007ffff7332a9d in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#10 0x00007ffff732fa5f in xsched::cuda::CudaQueueLv2::Launch(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#11 0x00007ffff6fa3cf2 in xsched::preempt::LaunchWorker::LaunchHwCommand(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libpreempt.so
+
+Thread 8 (Thread 0x7ffddcc1f000 (LWP 3579958) "priority_worklo"):
+#0  futex_wait (private=0, expected=2, futex_word=0x7ffff7e821b8 <nvbit+216>) at ../sysdeps/nptl/futex-internal.h:146
+#1  __GI___lll_lock_wait (futex=futex@entry=0x7ffff7e821b8 <nvbit+216>, private=0) at ./nptl/lowlevellock.c:49
+#2  0x00007ffff6ca01e1 in lll_mutex_lock_optimized (mutex=0x7ffff7e821b8 <nvbit+216>) at ./nptl/pthread_mutex_lock.c:48
+#3  ___pthread_mutex_lock (mutex=0x7ffff7e821b8 <nvbit+216>) at ./nptl/pthread_mutex_lock.c:93
+#4  0x00007ffff7c88957 in Nvbit::callback(CUctx_st*, int, int, char const*, void*, cudaError_enum*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#5  0x00007ffff7c8d39c in nvbitToolsCallbackFunc(void*, CUtools_cb_domain_enum, unsigned int, void const*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#6  0x00007fffea9f2582 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#7  0x00007fffea9dd1b5 in cuLaunchKernel () from /lib/x86_64-linux-gnu/libcuda.so
+#8  0x00007ffff73d7454 in xsched::cuda::CudaKernelLaunchCommand::Launch(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libcuda.so.1
+#9  0x00007ffff732209a in xsched::cuda::CudaCommand::LaunchWrapper(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#10 0x00007ffff73313c7 in xsched::cuda::InstrumentContext::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, xsched::cuda::LaunchType) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#11 0x00007ffff7332a9d in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+
+Thread 7 (Thread 0x7ffddd420000 (LWP 3579957) "priority_worklo"):
+#0  futex_wait (private=0, expected=2, futex_word=0x7ffff7e821b8 <nvbit+216>) at ../sysdeps/nptl/futex-internal.h:146
+#1  __GI___lll_lock_wait (futex=futex@entry=0x7ffff7e821b8 <nvbit+216>, private=0) at ./nptl/lowlevellock.c:49
+#2  0x00007ffff6ca01e1 in lll_mutex_lock_optimized (mutex=0x7ffff7e821b8 <nvbit+216>) at ./nptl/pthread_mutex_lock.c:48
+#3  ___pthread_mutex_lock (mutex=0x7ffff7e821b8 <nvbit+216>) at ./nptl/pthread_mutex_lock.c:93
+#4  0x00007ffff7c88957 in Nvbit::callback(CUctx_st*, int, int, char const*, void*, cudaError_enum*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#5  0x00007ffff7c8d39c in nvbitToolsCallbackFunc(void*, CUtools_cb_domain_enum, unsigned int, void const*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#6  0x00007fffea9f2582 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#7  0x00007fffea9dd1b5 in cuLaunchKernel () from /lib/x86_64-linux-gnu/libcuda.so
+#8  0x00007ffff73d7454 in xsched::cuda::CudaKernelLaunchCommand::Launch(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libcuda.so.1
+#9  0x00007ffff732209a in xsched::cuda::CudaCommand::LaunchWrapper(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#10 0x00007ffff73313c7 in xsched::cuda::InstrumentContext::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, xsched::cuda::LaunchType) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#11 0x00007ffff7332a9d in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+
+Thread 6 (Thread 0x7ffdddc21000 (LWP 3579956) "priority_worklo"):
+#0  futex_wait (private=0, expected=2, futex_word=0x7ffff7e821b8 <nvbit+216>) at ../sysdeps/nptl/futex-internal.h:146
+#1  __GI___lll_lock_wait (futex=futex@entry=0x7ffff7e821b8 <nvbit+216>, private=0) at ./nptl/lowlevellock.c:49
+#2  0x00007ffff6ca01e1 in lll_mutex_lock_optimized (mutex=0x7ffff7e821b8 <nvbit+216>) at ./nptl/pthread_mutex_lock.c:48
+#3  ___pthread_mutex_lock (mutex=0x7ffff7e821b8 <nvbit+216>) at ./nptl/pthread_mutex_lock.c:93
+#4  0x00007ffff7c88957 in Nvbit::callback(CUctx_st*, int, int, char const*, void*, cudaError_enum*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#5  0x00007ffff7c8d39c in nvbitToolsCallbackFunc(void*, CUtools_cb_domain_enum, unsigned int, void const*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so
+#6  0x00007fffea9f2582 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#7  0x00007fffea9dd1b5 in cuLaunchKernel () from /lib/x86_64-linux-gnu/libcuda.so
+#8  0x00007ffff73d7454 in xsched::cuda::CudaKernelLaunchCommand::Launch(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libcuda.so.1
+#9  0x00007ffff732209a in xsched::cuda::CudaCommand::LaunchWrapper(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#10 0x00007ffff73313c7 in xsched::cuda::InstrumentContext::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, xsched::cuda::LaunchType) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+#11 0x00007ffff7332a9d in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+
+Thread 5 (Thread 0x7fffe9dfe000 (LWP 3579950) "cuda-EvtHandlr"):
+#0  0x00007ffff6d1b5fd in __GI___poll (fds=0x7ffdd8000c20, nfds=10, timeout=100) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffea95f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007fffeaa4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007ffff6c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff6d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 4 (Thread 0x7fffea5ff000 (LWP 3579949) "priority_worklo"):
+#0  0x00007ffff6c98e51 in __futex_abstimed_wait_common64 (private=32767, cancel=true, abstime=0x7fffea5fa800, op=393, expected=0, futex_word=0x5555556c9128) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=32767, abstime=0x7fffea5fa800, clockid=0, expected=0, futex_word=0x5555556c9128) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x5555556c9128, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x7fffea5fa800, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff6c9bd6e in __pthread_cond_wait_common (abstime=0x7fffea5fa800, clockid=0, mutex=0x55555566bd08, cond=0x5555556c9100) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_timedwait64 (cond=0x5555556c9100, mutex=0x55555566bd08, abstime=0x7fffea5fa800) at ./nptl/pthread_cond_wait.c:652
+#5  0x00007fffea8bb35a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#6  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#7  0x00007ffff6c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#8  0x00007ffff6d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 3 (Thread 0x7ffff63fe000 (LWP 3579927) "cuda00001400006"):
+#0  0x00007ffff6d1b5fd in __GI___poll (fds=0x55555566e690, nfds=3, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffea95f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007fffeaa4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007ffff6c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff6d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 2 (Thread 0x7ffff6bff000 (LWP 3579926) "priority_worklo"):
+#0  0x00007ffff6d2c64d in __libc_msgrcv (msgflg=0, msgtyp=<optimized out>, msgsz=16384, msgp=0x7ffff0000ea0, msqid=35) at ../sysdeps/unix/sysv/linux/msgrcv.c:26
+#1  __libc_msgrcv (msqid=35, msgp=0x7ffff0000ea0, msgsz=16384, msgtyp=0, msgflg=0) at ../sysdeps/unix/sysv/linux/msgrcv.c:22
+#2  0x00007ffff6fe7293 in msgq::MessageQueue::Receive() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libpreempt.so
+#3  0x00007ffff6fdd8df in ipc::Node::Receive() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libpreempt.so
+#4  0x00007ffff6fc8abc in xsched::sched::GlobalScheduler::Worker() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libpreempt.so
+#5  0x00007ffff70f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#6  0x00007ffff6c9cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff6d29d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 1 (Thread 0x7ffff7e91000 (LWP 3579921) "priority_worklo"):
+#0  0x000055555555d463 in main ()
+GDB_EXIT=0

@@ -1,0 +1,37 @@
+{
+  "name": "xserver",
+  "command": [
+    "taskset",
+    "-c",
+    "0",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "HPF",
+    "50000"
+  ],
+  "returncode": -6,
+  "stdout": [],
+  "stderr": [
+    "[XSCHED INFO @ T 3579902 @ 14:40:00.824877] scheduler created with policy HPF",
+    "[XSCHED INFO @ T 3579902 @ 14:40:00.824951] pidfd_open is supported, using pidfd_wait method",
+    "[XSCHED INFO @ T 3579902 @ 14:40:00.824981] events receiver started",
+    "[XSCHED INFO @ T 3579907 @ 14:40:00.824989] HTTP server listening on port 50000",
+    "[XSCHED INFO @ T 3579902 @ 14:40:01.398030] client process 3579921 connected, cmdline: /bin/bash -c exec /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-output-20260908.66ppYl/priority_workload be 1 4 50 9511106 340 256 1 0 ",
+    "[XSCHED INFO @ T 3579902 @ 14:40:01.492906] client process 3579921 closed",
+    "[XSCHED INFO @ T 3579902 @ 14:40:01.492925] client process 3579921 connected, cmdline: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-output-20260908.66ppYl/priority_workload be 1 4 50 9511106 340 256 1 0 ",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.726390] XQueue (0xa0115555562ba940) from process 3579921 created",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.726444] set priority 0 for XQueue 0xa0115555562ba940",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.726468] XQueue (0xa011555556608d10) from process 3579921 created",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.726470] set priority 0 for XQueue 0xa011555556608d10",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.726576] XQueue (0xa01155555660ae80) from process 3579921 created",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.726579] set priority 0 for XQueue 0xa01155555660ae80",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.727091] XQueue (0xa01155555660d090) from process 3579921 created",
+    "[XSCHED INFO @ T 3579905 @ 14:40:01.727096] set priority 0 for XQueue 0xa01155555660d090",
+    "[XSCHED INFO @ T 3579906 @ 14:40:02.027479] client process 3579921 closed",
+    "[XSCHED ERRO @ T 3579906 @ 14:40:02.027495] Assertion failed: pid fd not found @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/utils/src/waitpid.cpp:141",
+    "terminate called after throwing an instance of 'std::system_error'",
+    "  what():  Resource deadlock avoided"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9"
+  }
+}

@@ -28,10 +28,26 @@ the KvReclaim session; root drives GPU, locks, and commits.
   prompt paired with a 1024-token prompt needs 4608 tokens; two 1536-token
   prompts need 5120. These exceed the 4096-token pool observed in calibration,
   whereas two 1024-token prompts nominally fit. Bounded concurrent burst: 4 workers, 250 ms
-  stagger; arrival order rotates by block and is identical across arms within
-  a block.  Cold population: 8 sequential real disk writes (16 output tokens)
+   stagger; arrival order rotates by block and is identical across arms within
+   a block.  A warm request whose stream raises keeps on its own request
+   record the data actually observed before the error (send time, HTTP status
+   when a response started, first-token time when one arrived, observed text /
+   token IDs / usage, end time) plus the error: it stays labeled a failure,
+   no missing token counts are inferred, and completed-output aggregates keep
+   their existing semantics.  Each finished warm future is checkpointed to
+   the cell's `warm-progress.json` through the existing atomic writer as it
+   completes, so a slow earlier request cannot hide later completed ones; the
+   final `result.json` remains the single final per-cell record, in planned
+   request order.  Cold population: 8 sequential real disk writes (16 output tokens)
   with the existing non-gating store barrier; no async-prefetch opt-ins and
   no prefetch deadlines anywhere.
+
+  The per-completion progress writes occur inside the warm-phase wall-clock
+  interval and therefore contribute to that interval in future runs. The
+  already-running grace comparison imported the previous runner before this
+  patch, so its cells do not mix the two recording implementations. This
+  increment has passed syntax inspection; no new GPU performance or live
+  failed-stream result is claimed for it yet.
 
 ## Environment supplied to each cell server (subprocess env only)
 
@@ -114,7 +130,7 @@ bpf/native numbers separate mechanism from policy.
   - `result.json` present and matching `kind`, `schema`, `arm`, `block`, `position`, and ordinary knobs (`expected_driver_parameter`, `max_num_seqs`, `kv_cache_memory_bytes`, `gds_buffer_size_mib`, `warm_output_tokens_bound`, `warm_stagger_ms`, `warm_concurrency`, `gds_policy_mode`, `prompt_count`, `warm_prefix_tokens`, `warm_order`, `recompute_ns_per_token`): the record is reused verbatim through the existing `campaign["cells"]` + `median_summary` path and the cell is never rerun. Failed completed cells (e.g. `ready_error`, warm timeouts) are reused the same way: no retry, no filter.
   - A present but incompatible record is not adopted; its directory is left untouched and the mismatch fields are listed (`incompatible_fields` under `campaign["resume"]`).
   - A nonempty directory without `result.json` (live or interrupted cell) is left untouched and reported unfinished; no age, timeout, or liveness assumption is made.
-- Adopted records and preserved completed failed attempts are appended to `raw.jsonl` once per (block, position, arm); existing lines are retained verbatim.  `campaign.json`/`summary.json` are rebuilt from the reused plus newly run records in the same planned order; per-cell directories and their files (result.json, server.log, cache/, diagnostics) are never rewritten.  The existing `campaign.json`, if any, is loaded before anything is written and stays untouched while classification runs: an unreadable or non-matching campaign.json aborts resume with the file preserved; on success the original timestamp is kept and old params are retained under `campaign["resume"]["previous_params"]`.
+- Adopted records and preserved completed failed attempts are appended to `raw.jsonl` once per (block, position, arm); existing lines are retained verbatim.  `campaign.json`/`summary.json` are rebuilt from the reused plus newly run records in the same planned order; per-cell directories and their files (result.json, warm-progress.json, server.log, cache/, diagnostics) are never rewritten.  The existing `campaign.json`, if any, is loaded before anything is written and stays untouched while classification runs: an unreadable or non-matching campaign.json aborts resume with the file preserved; on success the original timestamp is kept and old params are retained under `campaign["resume"]["previous_params"]`.
 - Calibration on resume: an explicit `--calibration-result` always wins; without it an existing measured calibration is reused, in preference order `<root>/calibration/calibration.json`, then the previously recorded `reused_from` path, then an embedded prior calibration record with a positive measured price; if none of these exists, the one real calibration runs as in a fresh campaign.  The same measured price backs the per-record compatibility check.
 - Records carrying the matching campaign identity and an actual `error` field but lacking the full knob fields (top-level exception results) are preserved verbatim as completed failed attempts under `campaign["resume"]["completed_failures"]`, pass through the existing cells/summary path as measured-failed (not compatible measured) cells, and are never rerun; any other sparse record stays untouched as unfinished.  For records whose server never reached the reclaim hooks, arm labels remain requested configurations, not executed policy comparisons.  Exit codes are unchanged; unfinished or not-adopted cells leave the campaign incomplete (exit 2), deferred stop still exits 3 between cells.
 
@@ -136,7 +152,9 @@ bpf/native numbers separate mechanism from policy.
    before cells with the real error.
 5. Warm-burst HTTP loop is a minimal local variant only because the reused
    cold helper hardcodes the 16-token cold output setting; stop semantics
-   are identical across arms and recorded per request.
+   are identical across arms and recorded per request.  A stream error is
+   preserved per request as the raised error plus the actually observed
+   partial stream on the same request record (no retry, no re-send).
 6. The runner takes no file locks (root holds
    `/tmp/gpubpf-revision-gpu0.lock` and `/tmp/gpubpf-revision-struct-ops.lock`)
    and imposes no campaign wall-clock timeout; per-request urllib timeout
@@ -145,7 +163,8 @@ bpf/native numbers separate mechanism from policy.
 ## Output layout per campaign root
 
 `campaign.json`, `summary.json`, `raw.jsonl` (one complete record per cell,
-fsync'd after each), `block-XX/position-<i>-<arm>/{result.json, server.log,
+fsync'd after each),
+`block-XX/position-<i>-<arm>/{result.json, warm-progress.json, server.log,
 cache/, kv-reclaim-diagnostics.json}`; calibration raw under `calibration/`
 or the reused source path.  Exit codes: 0 all cells measured, 2 NOT STARTED /
 incomplete or calibration failure, 3 deferred-stop early exit.

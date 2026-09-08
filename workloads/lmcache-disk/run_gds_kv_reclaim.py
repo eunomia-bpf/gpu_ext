@@ -31,7 +31,16 @@ every arm, actual generated token counts recorded from usage, never assumed.
 With a 384 MiB KV pool and two running sequences, 1536-prompt requests
 overlapping generation push the pool past its actual capacity (1536+1024
 prompt tokens plus generated tails).  Arrival order rotates by block while
-remaining identical across the three arms within a block.
+remaining identical across the three arms within a block.  A warm request
+whose stream raises keeps on the same request record the data actually
+observed before the error (send time, HTTP status when a response started,
+first-token time when one arrived, observed text / token IDs / usage) plus
+the end time, stays labeled a failure, and infers no missing token counts or
+completed-output aggregates.  Every finished warm future is additionally
+checkpointed to the cell's ``warm-progress.json`` through the existing
+atomic writer as it completes, so one slow request cannot hide later
+completed requests; the final ``result.json`` remains the single final
+per-cell record in planned request order.
 
 With ``--resume`` on an existing ``--output`` root, complete compatible
 per-cell ``result.json`` records (failed cells included) are reused
@@ -69,7 +78,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Any
 
@@ -108,6 +117,7 @@ ADAPTER_DIAG_POLL_S = 0.25
 RAW_NAME = "raw.jsonl"
 SUMMARY_NAME = "summary.json"
 DIAG_NAME = "kv-reclaim-diagnostics.json"
+WARM_PROGRESS_NAME = "warm-progress.json"
 BOOTSTRAP = HERE / "gds-control" / "bootstrap"
 GDS_CONTROL = HERE / "gds-control"
 LOG_KV_PATTERNS: dict[str, tuple[re.Pattern[str], type]] = {
@@ -214,7 +224,9 @@ def cell_server_environment(arm: str, cache_dir: Path, expected_driver: str,
 
 
 def warm_burst_completion(port: int, token_ids: list[int], request_id: str,
-                          warm_output_tokens: int) -> dict[str, Any]:
+                          warm_output_tokens: int,
+                          record: dict[str, Any] | None = None
+                          ) -> dict[str, Any]:
     """One bounded-concurrent warm completion; raw response, no assertions.
 
     Same request payload semantics as the existing helpers (temperature 0,
@@ -223,7 +235,12 @@ def warm_burst_completion(port: int, token_ids: list[int], request_id: str,
     (``ignore_eos``) in every arm.  Observed status, usage, actual generated
     token count, text, TTFT, E2E, and engine request IDs are recorded; a
     missing first token yields ``ttft_ms: None`` while E2E is preserved.
-    HTTP errors are raised for the caller to record verbatim.
+    HTTP errors are raised for the caller to record verbatim.  When a stream
+    error is raised and ``record`` was supplied, the observations actually
+    made before the error (send time, HTTP status when a response started,
+    first-token time when one arrived, observed text / token IDs / usage,
+    end time) are preserved on that record; nothing missing is inferred and
+    the raised error is unchanged.
     """
     payload = {"model": ops.MODEL_ID, "prompt": token_ids,
                "max_tokens": warm_output_tokens, "temperature": 0, "seed": 0,
@@ -243,6 +260,25 @@ def warm_burst_completion(port: int, token_ids: list[int], request_id: str,
     engine_request_ids: set[str] = set()
     usage: dict[str, Any] = {}
     status = None
+
+    def preserve_partial(response_status: int | None) -> None:
+        """Keep the actually observed stream tail on the request record."""
+        if record is None:
+            return
+        end = time.perf_counter_ns()
+        record["sent_ns"] = start
+        record["input_tokens"] = len(token_ids)
+        record["status"] = (response_status
+                            if response_status is not None else status)
+        record["ttft_ms"] = ((first - start) / 1e6
+                             if first is not None else None)
+        record["end_ns"] = end
+        record["e2e_ms"] = (end - start) / 1e6
+        record["usage"] = usage
+        record["text"] = "".join(text_parts)
+        record["generated_token_ids"] = list(generated_ids)
+        record["engine_request_ids"] = sorted(engine_request_ids)
+
     try:
         with urllib.request.urlopen(req, timeout=600) as response:
             status = response.status
@@ -264,8 +300,12 @@ def warm_burst_completion(port: int, token_ids: list[int], request_id: str,
                     text_parts.append(piece)
                     generated_ids.extend(int(value) for value in piece_ids)
     except urllib.error.HTTPError as exc:
+        preserve_partial(exc.code)
         raise ops.GateError(
             f"HTTP {exc.code}: {exc.read().decode(errors='replace')}") from exc
+    except Exception:
+        preserve_partial(None)
+        raise
     end = time.perf_counter_ns()
     decode_s = (end - first) / 1e9 if first is not None else None
     completion_tokens = usage.get("completion_tokens")
@@ -295,7 +335,8 @@ def warm_task(port: int, spec: dict[str, Any], scheduled_send_ns: int,
               warm_output_tokens: int) -> dict[str, Any]:
     """Arrive at the scheduled time, then issue one warm request.
 
-    Failures are preserved on the entry and never abort the burst.
+    Failures are preserved on the entry together with the partial stream
+    data actually observed before the error, and never abort the burst.
     """
     index = int(spec["index"])
     entry: dict[str, Any] = {
@@ -310,7 +351,7 @@ def warm_task(port: int, spec: dict[str, Any], scheduled_send_ns: int,
     try:
         entry.update(warm_burst_completion(
             port, spec["warm_token_ids"], entry["request_id"],
-            warm_output_tokens))
+            warm_output_tokens, record=entry))
     except Exception as error:  # noqa: BLE001 - preserved, never fatal
         entry["error"] = f"{type(error).__name__}: {error}"
     return entry
@@ -603,8 +644,34 @@ def run_cell(arm: str, block: int, position: int, run_dir: Path, port: int,
                                 warm_output_tokens)
                     for offset, index in enumerate(warm_order)
                 ]
-                for future in futures:
-                    record["requests"].append(future.result())
+                future_offset = {future: offset
+                                 for offset, future in enumerate(futures)}
+                warm_results: dict[int, dict[str, Any]] = {}
+                progress = {
+                    "schema": 1, "kind": KIND, "arm": arm, "block": block,
+                    "position": position,
+                    "warm_scheduled": len(futures),
+                    "warm_completed": 0, "warm_failures": 0,
+                    "requests": [], "updated_ns": None,
+                }
+                pending = set(futures)
+                while pending:
+                    done, pending = wait(
+                        pending, return_when=FIRST_COMPLETED)
+                    for future in done:
+                        warm_results[future_offset[future]] = future.result()
+                        progress["warm_completed"] = len(warm_results)
+                        progress["warm_failures"] = sum(
+                            1 for result in warm_results.values()
+                            if "error" in result)
+                        progress["requests"] = [
+                            warm_results[offset]
+                            for offset in sorted(warm_results)]
+                        progress["updated_ns"] = time.time_ns()
+                        ops.atomic_write_json(
+                            run_dir / WARM_PROGRESS_NAME, progress)
+                record["requests"].extend(
+                    warm_results[offset] for offset in range(len(futures)))
             warm_end = time.perf_counter_ns()
             record["warm_phase"] = warm_burst_aggregates(
                 record, warm_start, warm_end, warm_concurrency,

@@ -85,6 +85,29 @@ The original dumps are `bpf-sync/reclaim-map-live.json` and
 `bpf-sync/reclaim-map-live-02.json`; no new instrumentation, clock check,
 or admission requirement was added to the benchmark.
 
+### Repaired-pair I/O analysis and async continuation
+
+Re-reading the completed sync logs finds the same 15
+`batched_get_blocking` batches and 1968 MiB of logged read payload in each
+arm, plus seven rollback warning lines in each. The rounded logged blocking
+durations sum to 0.261 s for native and 0.252 s for BPF. These are backend
+batch payloads/durations, not physical SSD counters, a complete preemption
+count, or an additive decomposition of overlapping end-to-end time.
+Thus the observed 4.539 s warm-phase gap is not explained by more logged
+read bytes or longer summed backend blocking in the BPF run. It does not
+by itself identify BPF decision cost, GPU execution cost, or run-to-run
+variation as the cause.
+
+The repaired native configuration is now also running with the original
+default async scheduler at `native-async/` in the same repaired root;
+`bpf-async/` is queued behind it under the existing GPU locks. No new
+scheduler fix has been applied. At 00:21 UTC, native repeatedly restores
+the first two requests after rollback from totals 2298/1776 to disk
+prefixes 1536/1024. This live observation shows that correcting bootstrap
+alone has not eliminated the cycle; final request outcomes remain pending.
+The proposed common-runtime fix and completion-aware policy analysis remain
+separate work, with no claimed performance result yet.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

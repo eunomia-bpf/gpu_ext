@@ -65,15 +65,46 @@ SINGLE_PROCESS_CONFIGS = [
     ("single_2x", 2),      # SIZE_FACTOR * 2
 ]
 
+# Processes this runner started. Cleanup targets only these (never a global
+# pkill or a global struct-ops sweep, which could remove another session's
+# live policy, e.g. LMCache).
+_OWN_PROCS = set()
+
+
+def _track(proc):
+    """Register a Popen handle so cleanup only ever touches our own children."""
+    if proc is not None:
+        _OWN_PROCS.add(proc)
+    return proc
+
+
+def stop_proc(proc, label="", notes=None):
+    """Stop one of our own processes: SIGINT, then SIGKILL if it lingers."""
+    if proc is None:
+        return
+    try:
+        if proc.poll() is None:
+            proc.send_signal(signal.SIGINT)
+    except (ProcessLookupError, OSError):
+        pass
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+            proc.wait(timeout=5)
+        except (ProcessLookupError, OSError, subprocess.TimeoutExpired):
+            pass
+    if notes is not None:
+        notes.append(f"{label}_stopped rc={proc.returncode}")
+    _OWN_PROCS.discard(proc)
+
 
 def cleanup_processes():
-    """Kill any existing policy processes and cleanup struct_ops."""
-    subprocess.run(["sudo", "pkill", "-f", "eviction_|prefetch_pid"],
-                   capture_output=True)
-    cleanup_tool = SRC / "cleanup_struct_ops_tool"
-    if cleanup_tool.exists():
-        subprocess.run(["sudo", str(cleanup_tool)], capture_output=True)
-    time.sleep(1)
+    """Stop only the processes this runner started. No global pkill / struct-ops."""
+    for proc in list(_OWN_PROCS):
+        stop_proc(proc)
+    _OWN_PROCS.clear()
 
 
 def run_uvmbench(output_file, size_factor, kernel):
@@ -86,7 +117,7 @@ def run_uvmbench(output_file, size_factor, kernel):
         f"--kernel={kernel}",
     ]
     with open(output_file, 'w') as f:
-        proc = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
+        proc = _track(subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT))
     return proc
 
 
@@ -148,7 +179,7 @@ def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx,
             ]
 
             with open(policy_output, 'w') as f:
-                policy_proc = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
+                policy_proc = _track(subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT))
             time.sleep(1)
 
         # Wait for uvmbench to complete, record end times

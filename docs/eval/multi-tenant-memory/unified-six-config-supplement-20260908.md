@@ -1,5 +1,16 @@
 # Unified six-configuration figure: missing-cell supplement
 
+## Ownership update: superseded before execution
+
+The user subsequently assigned the Fig14 oversubscription sweep and plotting
+to the paper task (01a07a0c-d256-7060-8401-aa2c3e8bdbff), which explicitly
+withdrew this task's supplement request. This task has not run any of the
+45 proposed cells and will not start that campaign or its runner extension.
+The classification below is retained as historical planning, not an active
+assignment. Existing measurements remain unchanged. GPU/driver execution
+is handed to that task under the shared locks; local implementation work
+continues here without GPU runs or module reloads during the handoff.
+
 Requested by the user through the paper task on 2026-09-08. This document
 records experiment ownership only; this session does not edit or commit paper.
 

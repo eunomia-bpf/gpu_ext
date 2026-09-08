@@ -1,0 +1,4 @@
+mkdir -p .output/native-padding-20260908.s03ZL6/native/
+mkdir -p .output/native-padding-20260908.s03ZL6/native/
+/usr/local/cuda-12.9/bin/nvcc -ccbin /usr/bin/g++-13 -cubin -O3 -gencode arch=compute_120,code=sm_120 ../level2/native/check_preempt_port.cu -o .output/native-padding-20260908.s03ZL6/native/check_preempt_port.cubin
+/usr/local/cuda-12.9/bin/nvcc -ccbin /usr/bin/g++-13 -cubin -O3 -gencode arch=compute_120,code=sm_120 ../level2/native/restore_exec_port.cu -o .output/native-padding-20260908.s03ZL6/native/restore_exec_port.cubin

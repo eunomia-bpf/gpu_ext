@@ -6,6 +6,12 @@
  * transfer into the instrumented entry point held in the argument word
  * pair that the original reads from c[0x0][0x1888/0x188c].
  *
+ * A leading unused 0x1500-byte pad struct (device of proof: native/probe.cu)
+ * places the real arguments directly in that upstream debugger-parameter
+ * window (preempt buffer @ c[0x0][0x1880/0x1884], entry point @
+ * c[0x0][0x1888/0x188c]), so the compiler emits the actual consumers with
+ * no binary immediate re-encoding of the generated cubin.
+ *
  * The transfer uses a device function-pointer call at the runtime address;
  * the emitted instruction is taken from the actual generated cubin (the
  * patcher asserts a register-indirect CALL exists before vendoring the
@@ -13,6 +19,13 @@
  * EXIT, so the call never returns to the stub.
  */
 #include <stdint.h>
+
+/* Passed by value without array decay; reserves 0x1500 bytes at the start
+ * of the parameter block so the real arguments land in the upstream
+ * debugger-parameter window (see native/probe.cu for the device of proof). */
+struct XgRestorePad {
+    long long bytes[672];
+};
 
 static __device__ __forceinline__ uint32_t xg_blockid()
 {
@@ -26,8 +39,11 @@ static __device__ __forceinline__ void xg_thread_exit()
 
 typedef void (*xg_target_fn)();
 
-extern "C" __global__ void restore_exec_port(uint64_t preempt_buffer, uint64_t entry_point)
+extern "C" __global__ void restore_exec_port(XgRestorePad pad,
+                                             uint64_t preempt_buffer,
+                                             uint64_t entry_point)
 {
+    (void)pad; /* parameter-region padding, never read */
     uint32_t block_idx = xg_blockid();
     uint32_t *block_restore_flag =
         &((uint32_t *)preempt_buffer)[2 * block_idx + 5];

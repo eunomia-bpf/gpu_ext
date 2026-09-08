@@ -1,0 +1,297 @@
+	.target	sm_120
+
+	.elftype	@"ET_EXEC"
+
+
+//--------------------- .debug_frame              --------------------------
+	.section	.debug_frame,"",@progbits
+.debug_frame:
+        /*0000*/ 	.byte	0xff, 0xff, 0xff, 0xff, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff
+        /*0010*/ 	.byte	0xff, 0xff, 0xff, 0xff, 0x03, 0x00, 0x04, 0x7c, 0xff, 0xff, 0xff, 0xff, 0x0f, 0x0c, 0x81, 0x80
+        /*0020*/ 	.byte	0x80, 0x28, 0x00, 0x08, 0xff, 0x81, 0x80, 0x28, 0x08, 0x81, 0x80, 0x80, 0x28, 0x00, 0x00, 0x00
+        /*0030*/ 	.byte	0xff, 0xff, 0xff, 0xff, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        /*0040*/ 	.byte	0x00, 0x00, 0x00, 0x00
+        /*0044*/ 	.dword	restore_exec_port
+        /*004c*/ 	.byte	0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x3c, 0x00, 0x00, 0x00, 0x0c, 0x81, 0x80
+        /*005c*/ 	.byte	0x80, 0x28, 0x00, 0x04, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+
+//--------------------- .note.nv.tkinfo           --------------------------
+	.section	.note.nv.tkinfo,"",@"SHT_NOTE"
+	.sectionflags	@"SHF_NOTE_NV_TKINFO"
+        /*0018*/ 	.word	0x00000081
+        /*0030*/ 	.string	""
+        /*0030*/ 	.string	"ptxas"
+        /*0030*/ 	.string	"Cuda compilation tools, release 12.9, V12.9.86"
+        /*0030*/ 	.string	"Build cuda_12.9.r12.9/compiler.36037853_0"
+        /*0030*/ 	.string	"-arch sm_120 -m 64 "
+
+
+
+//--------------------- .note.nv.cuver            --------------------------
+	.section	.note.nv.cuver,"",@"SHT_NOTE"
+	.sectionflags	@"SHF_NOTE_NV_CUVER"
+        /*0018*/ 	.short	0x0001
+        /*001a*/ 	.short	0x0078
+        /*001c*/ 	.short	0x0001
+        /*001e*/ 	.short	0x0000
+        /*0020*/ 	.short	0x0001
+        /*0022*/ 	.short	0x0000
+
+
+//--------------------- .nv.info                  --------------------------
+	.section	.nv.info,"",@"SHT_CUDA_INFO"
+	.align	4
+
+
+	//----- nvinfo : EIATTR_REGCOUNT
+	.align		4
+        /*0000*/ 	.byte	0x04, 0x2f
+        /*0002*/ 	.short	(.L_1 - .L_0)
+	.align		4
+.L_0:
+        /*0004*/ 	.word	index@(restore_exec_port)
+        /*0008*/ 	.word	0x00000018
+
+
+	//----- nvinfo : EIATTR_FRAME_SIZE
+	.align		4
+.L_1:
+        /*000c*/ 	.byte	0x04, 0x11
+        /*000e*/ 	.short	(.L_3 - .L_2)
+	.align		4
+.L_2:
+        /*0010*/ 	.word	index@(restore_exec_port)
+        /*0014*/ 	.word	0x00000000
+
+
+	//----- nvinfo : EIATTR_MIN_STACK_SIZE
+	.align		4
+.L_3:
+        /*0018*/ 	.byte	0x04, 0x12
+        /*001a*/ 	.short	(.L_5 - .L_4)
+	.align		4
+.L_4:
+        /*001c*/ 	.word	index@(restore_exec_port)
+        /*0020*/ 	.word	0x00000000
+.L_5:
+
+
+//--------------------- .nv.info.restore_exec_port --------------------------
+	.section	.nv.info.restore_exec_port,"",@"SHT_CUDA_INFO"
+	.sectionflags	@""
+	.align	4
+
+
+	//----- nvinfo : EIATTR_CUDA_API_VERSION
+	.align		4
+        /*0000*/ 	.byte	0x04, 0x37
+        /*0002*/ 	.short	(.L_7 - .L_6)
+.L_6:
+        /*0004*/ 	.word	0x00000081
+
+
+	//----- nvinfo : EIATTR_KPARAM_INFO_V2
+	.align		4
+.L_7:
+        /*0008*/ 	.byte	0x04, 0x45
+        /*000a*/ 	.short	(.L_9 - .L_8)
+.L_8:
+        /*000c*/ 	.word	0x00000000
+        /*0010*/ 	.short	0x0002
+        /*0012*/ 	.short	0x1508
+        /*0014*/ 	.short	0x0008
+	.zero		2
+
+
+	//----- nvinfo : EIATTR_KPARAM_INFO_V2
+	.align		4
+.L_9:
+        /*0018*/ 	.byte	0x04, 0x45
+        /*001a*/ 	.short	(.L_11 - .L_10)
+.L_10:
+        /*001c*/ 	.word	0x00000000
+        /*0020*/ 	.short	0x0001
+        /*0022*/ 	.short	0x1500
+        /*0024*/ 	.short	0x0008
+	.zero		2
+
+
+	//----- nvinfo : EIATTR_KPARAM_INFO_V2
+	.align		4
+.L_11:
+        /*0028*/ 	.byte	0x04, 0x45
+        /*002a*/ 	.short	(.L_13 - .L_12)
+.L_12:
+        /*002c*/ 	.word	0x00000000
+        /*0030*/ 	.short	0x0000
+        /*0032*/ 	.short	0x0000
+        /*0034*/ 	.short	0x1500
+	.zero		2
+
+
+	//----- nvinfo : EIATTR_SPARSE_MMA_MASK
+	.align		4
+.L_13:
+        /*0038*/ 	.byte	0x03, 0x50
+        /*003a*/ 	.short	0x0000
+
+
+	//----- nvinfo : EIATTR_MAXREG_COUNT
+	.align		4
+        /*003c*/ 	.byte	0x03, 0x1b
+        /*003e*/ 	.short	0x00ff
+
+
+	//----- nvinfo : EIATTR_NUM_BARRIERS
+	.align		4
+        /*0040*/ 	.byte	0x02, 0x4c
+        /*0042*/ 	.byte	0x01
+	.zero		1
+
+
+	//----- nvinfo : EIATTR_VRC_CTA_INIT_COUNT
+	.align		4
+        /*0044*/ 	.byte	0x02, 0x4a
+	.zero		1
+	.zero		1
+
+
+	//----- nvinfo : EIATTR_EXIT_INSTR_OFFSETS
+	.align		4
+        /*0048*/ 	.byte	0x04, 0x1c
+        /*004a*/ 	.short	(.L_15 - .L_14)
+
+
+	//   ....[0]....
+.L_14:
+        /*004c*/ 	.word	0x000000e0
+
+
+	//   ....[1]....
+        /*0050*/ 	.word	0x00000150
+
+
+	//----- nvinfo : EIATTR_CBANK_PARAM_SIZE
+	.align		4
+.L_15:
+        /*0054*/ 	.byte	0x03, 0x19
+        /*0056*/ 	.short	0x1510
+
+
+	//----- nvinfo : EIATTR_PARAM_CBANK
+	.align		4
+        /*0058*/ 	.byte	0x04, 0x0a
+        /*005a*/ 	.short	(.L_17 - .L_16)
+	.align		4
+.L_16:
+        /*005c*/ 	.word	index@(.nv.constant0.restore_exec_port)
+        /*0060*/ 	.short	0x0380
+        /*0062*/ 	.short	0x1510
+
+
+	//----- nvinfo : EIATTR_SW_WAR
+	.align		4
+.L_17:
+        /*0064*/ 	.byte	0x04, 0x36
+        /*0066*/ 	.short	(.L_19 - .L_18)
+.L_18:
+        /*0068*/ 	.word	0x00000000
+.L_19:
+
+
+//--------------------- .nv.compat                --------------------------
+	.section	.nv.compat,"",@""
+	.align	4
+        /*0000*/ 	.byte	0x02, 0x02, 0x01, 0x00, 0x02, 0x05, 0x05, 0x00, 0x02, 0x03, 0x00, 0x00, 0x02, 0x06, 0x01, 0x00
+
+
+//--------------------- .nv.callgraph             --------------------------
+	.section	.nv.callgraph,"",@"SHT_CUDA_CALLGRAPH"
+	.align	4
+	.sectionentsize	8
+	.align		4
+        /*0000*/ 	.word	0x00000000
+	.align		4
+        /*0004*/ 	.word	0xffffffff
+	.align		4
+        /*0008*/ 	.word	0x00000000
+	.align		4
+        /*000c*/ 	.word	0xfffffffe
+	.align		4
+        /*0010*/ 	.word	0x00000000
+	.align		4
+        /*0014*/ 	.word	0xfffffffd
+	.align		4
+        /*0018*/ 	.word	0x00000000
+	.align		4
+        /*001c*/ 	.word	0xfffffffc
+
+
+//--------------------- .text.restore_exec_port   --------------------------
+	.section	.text.restore_exec_port,"ax",@progbits
+	.align	128
+        .global         restore_exec_port
+        .type           restore_exec_port,@function
+        .size           restore_exec_port,(.L_x_1 - restore_exec_port)
+        .other          restore_exec_port,@"STO_CUDA_ENTRY STV_DEFAULT"
+restore_exec_port:
+.text.restore_exec_port:
+        /*0000*/                   LDC R1, c[0x0][0x37c] ;
+        /*0010*/                   S2R R3, SR_CTAID.Z ;
+        /*0020*/                   S2UR UR4, SR_CTAID.X ;
+        /*0030*/                   LDCU UR5, c[0x0][0x374] ;
+        /*0040*/                   S2UR UR6, SR_CTAID.Y ;
+        /*0050*/                   LDC R0, c[0x0][0x378] ;
+        /*0060*/                   LDC.64 R4, c[0x0][0x1880] ;
+        /*0070*/                   UIMAD UR4, UR4, UR5, UR6 ;
+        /*0080*/                   LDCU.64 UR6, c[0x0][0x358] ;
+        /*0090*/                   IMAD R0, R0, UR4, R3 ;
+        /*00a0*/                   IADD3 R3, PT, PT, R0, 0x5, R0 ;
+        /*00b0*/                   IMAD.WIDE.U32 R4, R3, 0x4, R4 ;
+        /*00c0*/                   LDG.E R0, desc[UR6][R4.64] ;
+        /*00d0*/                   ISETP.NE.AND P0, PT, R0, RZ, PT ;
+        /*00e0*/              @!P0 EXIT ;
+        /*00f0*/                   BAR.SYNC.DEFER_BLOCKING 0x0 ;
+        /*0100*/                   LDC.64 R2, c[0x0][0x1888] ;
+        /*0110*/                   STG.E desc[UR6][R4.64], RZ ;
+        /*0120*/                   HFMA2 R21, -RZ, RZ, 0, 0 ;
+        /*0130*/                   MOV R20, 0x150 ;
+        /*0140*/                   CALL.REL.NOINC R2 `(restore_exec_port) ;
+        /*0150*/                   EXIT ;
+.L_x_0:
+        /*0160*/                   BRA `(.L_x_0);
+        /*0170*/                   NOP;
+        /*0180*/                   NOP;
+        /*0190*/                   NOP;
+        /*01a0*/                   NOP;
+        /*01b0*/                   NOP;
+        /*01c0*/                   NOP;
+        /*01d0*/                   NOP;
+        /*01e0*/                   NOP;
+        /*01f0*/                   NOP;
+.L_x_1:
+
+
+//--------------------- .nv.shared.reserved.0     --------------------------
+	.section	.nv.shared.reserved.0,"aw",@nobits
+	.weak		__nv_reservedSMEM_offset_0_alias
+	.size		__nv_reservedSMEM_offset_0_alias, 0, 64
+	.other		__nv_reservedSMEM_offset_0_alias,@"STO_CUDA_RESERVED_SHARED STV_DEFAULT"
+__nv_reservedSMEM_offset_0_alias:
+	.zero		0
+	.zero		64
+
+
+//--------------------- .nv.constant0.restore_exec_port --------------------------
+	.section	.nv.constant0.restore_exec_port,"a",@progbits
+	.sectionflags	@""
+	.align	4
+.nv.constant0.restore_exec_port:
+	.zero		6288
+
+
+//--------------------- SYMBOLS --------------------------
+
+	.type		.nv.reservedSmem.offset0,@object
+	.size		.nv.reservedSmem.offset0,0x4

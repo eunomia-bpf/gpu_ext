@@ -6,16 +6,26 @@
  * first preempt_idx recording, trusted threadfence/barrier actuation, and
  * per-thread cooperative exit.
  *
- * Arguments occupy the first three 28-byte actuator slots (param0
- * preempt_buffer @+0, param1 entry placeholder @+8, param2 kernel_idx
- * @+16) so the patcher can re-encode this kernel's parameter LDC consumers
- * from the derived parameter base of the generated cubin onto the upstream
- * debugger region c[0x0][0x1880..] that instrument.cpp fills via
- * cuXtraSetDebuggerParams. The unused param1 keeps the signature-sized slot
- * aligned with the original 2nd argument word pair; the ported blob never
- * reads it (matching the original check_preempt prototype).
+ * A leading unused 0x1500-byte pad struct (device of proof: native/probe.cu,
+ * which shows a by-value pad moving the next consumed parameter exactly
+ * 0x1500 bytes past the 0x380 parameter-region start) places the real
+ * arguments in the upstream debugger-parameter window that instrument.cpp
+ * fills via cuXtraSetDebuggerParams. The compiler therefore emits this
+ * kernel's actual parameter LDC/LDCU consumers directly on
+ * c[0x0][0x1880..]: param0 preempt_buffer @+0, param1 entry placeholder
+ * @+8, param2 kernel_idx @+16. No binary immediate re-encoding of the
+ * generated cubin is needed. The unused param1 keeps the debugger-region
+ * slot aligned with the original 2nd argument word pair; the blob never
+ * reads the pad or param1 (matching the original check_preempt prototype).
  */
 #include <stdint.h>
+
+/* Passed by value without array decay; reserves 0x1500 bytes at the start
+ * of the parameter block so the real arguments land in the upstream
+ * debugger-parameter window (see native/probe.cu for the device of proof). */
+struct XgCheckPad {
+    long long bytes[672];
+};
 
 static __device__ __forceinline__ uint32_t xg_blockid()
 {
@@ -27,10 +37,12 @@ static __device__ __forceinline__ void xg_thread_exit()
     asm volatile("exit;");
 }
 
-extern "C" __global__ void check_preempt_port(uint64_t preempt_buffer,
-                                   uint64_t entry_point_reserved,
-                                   uint64_t kernel_idx)
+extern "C" __global__ void check_preempt_port(XgCheckPad pad,
+                                              uint64_t preempt_buffer,
+                                              uint64_t entry_point_reserved,
+                                              uint64_t kernel_idx)
 {
+    (void)pad; /* parameter-region padding, never read */
     (void)entry_point_reserved; /* slot alignment with the original args */
 
     uint32_t block_idx = xg_blockid();

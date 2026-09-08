@@ -1,5 +1,23 @@
 # CPU fault integration notes for disk UVM
 
+## Managed VMA split correction, 2026-09-08
+
+Root checked the current 575 source while the direct Qwen 27B implementation
+session was designing range lifetime handling. `uvm.c:390` explicitly states
+that `uvm_vm_open` cannot return an error. The split caller at lines 501–508
+invokes `uvm_vm_open_failure` on a non-OK result; that helper destroys/disables
+both managed VMA associations. Therefore, returning `NV_ERR_INVALID_STATE`
+from `uvm_va_range_split` does **not** reject `munmap` with a clean error while
+preserving the original mapping. The proposed description of that behavior
+was incorrect and was sent back to the implementation owner for correction.
+
+The implementation must account for split/close and backing lifetime under
+the actual callback semantics, including disk-only data belonging to addresses
+that remain mapped. A retained block/backing reference alone does not restore
+the VMA association or make the split reversible. This source correction is
+not a completed paging implementation or a new runtime test. The four-file
+disk-backing work in progress is still not wired into ioctl/fault/Kbuild paths.
+
 Local GLM completed a read-only source investigation; root checked the core
 retry/population paths against the current 575 worktree. This is implementation
 guidance, not a runnable disk-UVM result or a new validation campaign.

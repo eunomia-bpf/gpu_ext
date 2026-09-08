@@ -1,0 +1,22 @@
+/usr/local/cuda-12.9/bin/nvcc -std=c++14 -O2 -arch=sm_120 -o disk_uvm_perf disk_uvm_perf.cu -lcudart
+disk_uvm_perf.cu(429): warning #550-D: variable "unused" was set but never used
+      unsigned long long *unused = 
+                          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+disk_uvm_perf.cu: In function ‘void save_raw()’:
+disk_uvm_perf.cu:514:29: warning: format ‘%lu’ expects argument of type ‘long unsigned int’, but argument 5 has type ‘long long unsigned int’ [-Wformat=]
+  514 |     snprintf(path, sizeof(path), "raw/disk_uvm_%" PRIu32 "_%" PRIu64 ".raw",
+      |                             ^~~~~~~~~~~~~~~~~~~~~~~~~                      ~                         
+      |                                                                                       |
+      |                                                                                       long long unsigned int
+disk_uvm_perf.cu: In function ‘int find_cuda_uvm_fd(uint64_t, uint64_t)’:
+disk_uvm_perf.cu:274:29: warning: ‘%s’ directive output may be truncated writing up to 255 bytes into a region of size 50 [-Wformat-truncation=]
+  274 |         snprintf(link, sizeof(link), "/proc/self/fd/%s", d->d_name);
+      |                             ^~~~~~~~~~~~~~~~~~
+In function ‘int snprintf(char*, size_t, const char*, ...)’,
+    inlined from ‘int find_cuda_uvm_fd(uint64_t, uint64_t)’ at disk_uvm_perf.cu:274:9:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:54:32: note: ‘__builtin___snprintf_chk’ output between 15 and 270 bytes into a destination of size 64
+   54 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                                  

@@ -75,6 +75,7 @@
 #define UVM_DISK_BACKING_REGISTER    84u
 #define UVM_DISK_BACKING_OFFLOAD     85u
 #define UVM_DISK_BACKING_QUERY       86u
+#define UVM_DISK_BACKING_SET_GPU_PROMOTION 87u
 
 #define UVM_VA_BLOCK_SIZE ((size_t)1u << 21) /* 2 MiB */
 #define SYS_PAGE_SIZE     4096u
@@ -113,6 +114,16 @@ typedef struct
     uint32_t errorPages;
     int32_t  rmStatus;
 } uvm_disk_backing_query_params_t;
+
+typedef struct {
+    uint32_t abiVersion;
+    uint32_t pad0;
+    uint64_t rangeStart;
+    uint64_t rangeEnd;
+    uint32_t enable;
+    uint32_t pad1;
+    int32_t rmStatus;
+} uvm_disk_backing_gpu_promotion_params_t;
 
 static_assert(sizeof(uvm_disk_backing_register_params_t) == 48,
               "UVM_DISK_BACKING_REGISTER_PARAMS layout");
@@ -553,6 +564,7 @@ int main(int argc, char **argv)
     const char *backing_path = "disk_uvm_backing.bin";
     int device = 0;
     int durability = 0;
+    bool gpu_promotion = false;
     unsigned poll_us = 200;
     int backing_flags;
     int backing_fd;
@@ -581,6 +593,8 @@ int main(int argc, char **argv)
             device = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--durability") == 0) {
             durability = 1;
+        } else if (strcmp(argv[i], "--gpu-promotion") == 0) {
+            gpu_promotion = true;
         } else if (strcmp(argv[i], "--poll-us") == 0 && i + 1 < argc) {
             poll_us = (unsigned)atoi(argv[++i]);
             if (poll_us == 0)
@@ -588,7 +602,7 @@ int main(int argc, char **argv)
         } else {
             fprintf(stderr,
                     "usage: %s [--size N[K|MiB|GiB]] [--backing-file PATH] "
-                    "[--device N] [--durability] [--poll-us US]\n",
+                    "[--device N] [--durability] [--poll-us US] [--gpu-promotion]\n",
                     argv[0]);
             return 1;
         }
@@ -769,6 +783,25 @@ int main(int argc, char **argv)
         if (total != (uint32_t)n_pages || od != 0 || pend != 0 || er != 0)
             exit_code = 1;
     }
+
+    if (gpu_promotion) {
+        uvm_disk_backing_gpu_promotion_params_t params = {};
+        params.abiVersion = UVM_DISK_BACKING_ABI_VERSION;
+        params.rangeStart = mstart;
+        params.rangeEnd = mend;
+        params.enable = 1;
+        if (ioctl(uvm_fd, UVM_DISK_BACKING_SET_GPU_PROMOTION, &params) != 0) {
+            fprintf(stderr, "GPU promotion ioctl: %s\n", strerror(errno));
+            return 1;
+        }
+        if (params.rmStatus != 0) {
+            fprintf(stderr, "GPU promotion: rmStatus=0x%x (%s)\n",
+                    params.rmStatus, nv_status_str(params.rmStatus));
+            return 1;
+        }
+    }
+    printf("gpu_promotion=%d\n", (int)gpu_promotion);
+    raw_add("gpu_promotion=%d\n", (int)gpu_promotion);
 
     /* 4c. OFFLOAD #1: write the whole range to the backing file (direct
      *     I/O) and release the in-memory copies. */

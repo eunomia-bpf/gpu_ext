@@ -10,7 +10,10 @@ instrumented processes select `shared_update` / `cuda__shared` (14 BPF
 instructions), shared GPU map type 1503, with
 `BPFTIME_GPU_AUTO_WARP_EXECUTION` set to 0 or 1. The runtime is the isolated
 `bpftime-auto-warp/build-auto-warp-575` build, from source checkpoint
-`e801d28` plus the included `runtime-source.patch`. It uses CUDA 12.9,
+`e801d28` plus the kernel-entry/idempotent-declaration work in progress.
+The included `runtime-source.patch` was collected **after** the run: GLM had
+already added the `.b32` correction by then, so that patch is a post-run
+source checkpoint, not the exact source of the failed runtime. It uses CUDA 12.9,
 LLVM 15, verifier enabled, and the build-only `-include cstdint` compatibility
 option. No runtime binaries or shared-memory payloads are published.
 

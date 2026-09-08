@@ -102,3 +102,23 @@ The [GEMM paired summary](gemm/paired-summary.json) uses the same method as
 HotSpot and retains all source pairs and baseline/memory comparisons.
 The small high-priority improvement comes with a larger low-priority cost;
 it is not an overall latency win. K-Means remains outstanding.
+
+## In-progress K-Means checkpoint: first block only
+
+Block 0 finished all four arms with both tenant exit codes zero. Its closed
+per-cell logs, metadata and tenant CSVs are preserved under
+`kmeans/combined_20260908_005722/block00_*`. The aggregate CSV and lifecycle
+log remain live while the other four blocks run; this is not a five-block
+result and no completed cell is scheduled for rerun.
+
+| Arm | High-priority completion (s) | Low-priority completion (s) |
+| --- | ---: | ---: |
+| Baseline | 335.357313 | 335.118057 |
+| Memory only | 243.363910 | 258.582308 |
+| Scheduling only | 31.487096 | 57.789015 |
+| Combined | 31.084584 | 58.290425 |
+
+These are individual observations, not medians. Combined is slightly faster
+for the high-priority tenant and slower for the low-priority tenant in this
+block. A progress message mistakenly quoted 32.40/58.40 seconds; the source
+CSV values above correct that transcription, without altering any measurement.

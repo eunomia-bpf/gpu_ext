@@ -4,6 +4,14 @@
 Qwen Next's earlier FineMoE session ended in a terminal HTTP 524 without a
 patch. These tasks implement existing paper-described logic, not new policies.
 
+Later execution update: Hummingbird ended with terminal HTTP 524 at
+1788844635421 ms Unix time, without a source patch. Root confirmed its CLI
+exit and resumed the original automatic-warp session in the freed slot using
+GLM; see the [exact continuation prompt](automatic-warp-continuation-20260908.md).
+Disk UVM and XSched remain running. Hummingbird is still unfinished and
+retains its session context; Fig.13 remains queued. Earlier running/model
+descriptions below are historical snapshots, not a claim of current execution.
+
 ## Additional user-authorized queue — 04:42 UTC
 
 The existing three sessions (disk UVM, XSched, Hummingbird) were confirmed busy

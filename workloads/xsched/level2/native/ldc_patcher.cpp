@@ -14,6 +14,7 @@
 //
 // Every step fails loudly instead of emitting a blob derived from an
 // assumption.
+#include <algorithm>
 #include <cerrno>
 #include <cctype>
 #include <cstdint>
@@ -341,6 +342,75 @@ bool multiset_equals(const std::vector<Sample> &samples,
     return true;
 }
 
+struct Range {
+    // Half-open consumed-byte interval relative to the parameter-region
+    // start; begin/end are c[0x0] byte offsets relative to that start.
+    uint64_t begin;
+    uint64_t end;
+    bool operator<(const Range &o) const { return begin < o.begin; }
+};
+
+static bool ranges_equal(const std::vector<Range> &a,
+                         const std::vector<Range> &b)
+{
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i)
+        if (a[i].begin != b[i].begin || a[i].end != b[i].end) return false;
+    return true;
+}
+
+// Merge the byte intervals consumed by the parameter-window samples into a
+// sorted, non-overlapping union. Each sample consumes s.width bytes
+// (decoded from the opcode suffix) at s.offset - start, so the union is
+// width-aware: one 64-bit load covers what two scalar loads would cover.
+static std::vector<Range> covered_union(const std::vector<Sample> &win,
+                                        uint64_t start)
+{
+    std::vector<Range> rs;
+    for (const Sample &s : win)
+        rs.push_back(Range{s.offset - start, s.offset - start + s.width});
+    std::sort(rs.begin(), rs.end());
+    std::vector<Range> out;
+    for (const Range &r : rs) {
+        if (!out.empty() && out.back().end >= r.begin)
+            out.back().end = std::max(out.back().end, r.end);
+        else
+            out.push_back(r);
+    }
+    return out;
+}
+
+// In-window parameter-consumer samples of an artifact: skips fixed ABI
+// metadata reads below the window, fails loudly on consumers above it and
+// on unsupported opcode forms.
+static std::vector<Sample> window_samples(const std::string &dis,
+                                          const Elf &elf,
+                                          const Section &text, uint64_t start,
+                                          uint64_t size, const char *which)
+{
+    std::vector<Sample> inwin;
+    for (const Sample &s : collect_samples(dis, elf, text)) {
+        if (s.offset < start) continue;
+        if (s.offset >= start + size) {
+            fprintf(stderr,
+                    "ldc_patcher: %s consumer at 0x%llx lies above its "
+                    "parameter window [0x%llx, 0x%llx)\n", which,
+                    (unsigned long long)s.offset, (unsigned long long)start,
+                    (unsigned long long)(start + size));
+            exit(1);
+        }
+        if (s.form != "LDC" && s.form != "LDCU") {
+            fprintf(stderr,
+                    "ldc_patcher: unsupported %s consumer form '%s' at "
+                    "c[0x0][0x%llx]\n", which, s.form.c_str(),
+                    (unsigned long long)s.offset);
+            exit(1);
+        }
+        inwin.push_back(s);
+    }
+    return inwin;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -358,56 +428,73 @@ int main(int argc, char **argv)
     const char *out_header = argv[5];
     const uint64_t dbg = 0x1880ULL; // upstream debugger-parameter region
 
-    // ---- 1. probe: derive candidate encodings from the artifact ----
+    // ---- 1. probe: authoritative parameter window from EIATTR metadata ----
     Elf probe(probe_path);
     const Section *probe_text = probe.find(".text.xg_ldc_probe");
     if (!probe_text) {
         fprintf(stderr, "ldc_patcher: probe cubin misses .text.xg_ldc_probe\n");
         return 1;
     }
+    uint64_t p_start = 0, p_size = 0;
+    if (!parse_param_cbank(nvdisasm_full(nvdisasm_bin, probe_path),
+                           "xg_ldc_probe", &p_start, &p_size)) {
+        fprintf(stderr,
+                "ldc_patcher: cannot read the EIATTR_PARAM_CBANK parameter "
+                "region for xg_ldc_probe\n");
+        return 1;
+    }
     std::vector<Sample> probe_samples =
         collect_samples(nvdisasm_text(nvdisasm_bin, probe_path), probe,
                         *probe_text);
-    uint64_t param_base = ~0ULL;
-    for (const Sample &s : probe_samples)
-        if (s.offset < param_base) param_base = s.offset;
-    if (probe_samples.size() != 6 || param_base == ~0ULL) {
-        fprintf(stderr, "ldc_patcher: probe exposes %zu LDC samples (need 6)\n",
-                probe_samples.size());
-        return 1;
-    }
-    if (param_base > dbg) {
-        fprintf(stderr,
-                "ldc_patcher: parameter base 0x%llx beyond the debugger "
-                "region 0x%llx\n",
-                (unsigned long long)param_base, (unsigned long long)dbg);
-        return 1;
-    }
+    // Consumed-byte policy of the probe specimen (level2/native/probe.cu):
+    // three consumed u64 header parameters (relative 0x0..0x18) plus one
+    // consumed u64 tail parameter behind the unused 0x1500-byte pad struct
+    // parameter (relative 0x1518..0x1520). The metadata window must bound
+    // exactly these loads; anything above the window means the generated
+    // cubin is not the pinned specimen.
+    const std::vector<Range> probe_policy = {Range{0, 24},
+                                             Range{0x1518, 0x1520}};
+    std::vector<Range> probe_covered;
     {
-        // The probe must contain no LDC consumer outside one parameter set
-        // of three u64 parameters (six consecutive 32-bit halves).
-        std::vector<uint64_t> expect;
-        for (uint64_t k = 0; k < 6; ++k) expect.push_back(param_base + 4 * k);
-        if (!multiset_equals(probe_samples, expect)) {
+        std::vector<Sample> inwin;
+        for (const Sample &s : probe_samples) {
+            if (s.offset < p_start) continue; // ABI metadata below the region
+            if (s.offset >= p_start + p_size) {
+                fprintf(stderr,
+                        "ldc_patcher: probe constant-bank consumer at 0x%llx "
+                        "lies above the parameter window [0x%llx, 0x%llx)\n",
+                        (unsigned long long)s.offset,
+                        (unsigned long long)p_start,
+                        (unsigned long long)(p_start + p_size));
+                return 1;
+            }
+            if (s.form != "LDC" && s.form != "LDCU") {
+                fprintf(stderr,
+                        "ldc_patcher: unsupported probe consumer form '%s' "
+                        "for c[0x0][0x%llx]\n",
+                        s.form.c_str(), (unsigned long long)s.offset);
+                return 1;
+            }
+            inwin.push_back(s);
+        }
+        probe_covered = covered_union(inwin, p_start);
+        if (!ranges_equal(probe_covered, probe_policy)) {
             fprintf(stderr,
-                    "ldc_patcher: probe LDC offsets are not the three consecutive "
-                    "u64 parameters at base 0x%llx; artifact polluted\n",
-                    (unsigned long long)param_base);
+                    "ldc_patcher: probe parameter consumers (%zu loads) do "
+                    "not cover the probe.cu layout inside [0x%llx, 0x%llx)\n",
+                    inwin.size(), (unsigned long long)p_start,
+                    (unsigned long long)(p_start + p_size));
             return 1;
         }
     }
-    std::vector<Encoding> candidates = solve(probe_samples);
-    if (candidates.empty()) {
-        fprintf(stderr,
-                "ldc_patcher: no contiguous (half, shift, width) LDC encoding "
-                "reproduces the %zu probe samples at base 0x%llx; sm_120 encoding "
-                "not derivable from artifact\n",
-                probe_samples.size(), (unsigned long long)param_base);
-        return 1;
-    }
 
-    // ---- 2. patch + verify on the real artifacts ----
-    const uint64_t delta = dbg - param_base;
+    // ---- 2. stub parameter windows from their own metadata ----
+    // EIATTR_PARAM_CBANK records each kernel's c[0x0] parameter window.
+    // Loads below the window are fixed ABI metadata reads (descriptor at
+    // 0x358, launch metadata) and are skipped; anything above the window
+    // means the artifact is not the pinned source. Coverage is the
+    // width-aware consumed-byte union of the in-window loads, not a load
+    // count.
     Elf check(check_path), restore(restore_path);
     const Section *check_text = check.find(".text.check_preempt_port");
     const Section *restore_text = restore.find(".text.restore_exec_port");
@@ -415,183 +502,60 @@ int main(int argc, char **argv)
         fprintf(stderr, "ldc_patcher: stub cubins miss their .text sections\n");
         return 1;
     }
-    const std::vector<uint64_t> check_expect = {dbg + 0, dbg + 4, dbg + 16,
-                                                dbg + 20};
-    const std::vector<uint64_t> restore_expect = {dbg + 0, dbg + 4, dbg + 8,
-                                                  dbg + 12};
-    std::vector<Sample> check_src =
-        collect_samples(nvdisasm_text(nvdisasm_bin, check_path), check,
-                        *check_text);
-    std::vector<Sample> restore_src =
-        collect_samples(nvdisasm_text(nvdisasm_bin, restore_path), restore,
-                        *restore_text);
-    {
-        // Original consumed set must sit inside the derived parameter base.
-        bool ok = true;
-        for (const Sample &s : check_src)
-            if (s.offset < param_base ||
-                s.offset >= param_base + 28)
-                ok = false;
-        for (const Sample &s : restore_src)
-            if (s.offset < param_base ||
-                s.offset >= param_base + 28)
-                ok = false;
-        if (check_src.size() != 4 || restore_src.size() != 4 || !ok) {
-            fprintf(stderr,
-                    "ldc_patcher: unexpected stub LDC consumers (check=%zu, "
-                    "restore=%zu, expected 4 parameter loads each within the "
-                    "28-byte actuator region)\n",
-                    check_src.size(), restore_src.size());
-            return 1;
-        }
-    }
-
-    const char *tmp_check = "/tmp/opencode/xg_check_patched.cubin";
-    const char *tmp_restore = "/tmp/opencode/xg_restore_patched.cubin";
-    if (system("mkdir -p /tmp/opencode") != 0) return 1;
-
-    bool verified = false;
-    for (const Encoding &enc : candidates) {
-        const uint64_t mask = ((1ULL << enc.width) - 1ULL) << enc.shift;
-        // Patch CHECK.
-        Elf patched_check(check_path);
-        unsigned patched = 0;
-        for (const Sample &s : check_src) {
-            uint64_t new_off = s.offset + delta;
-            if (((new_off << enc.shift) >> enc.shift) != new_off) {
-                patched = 0;
-                break;
-            }
-            char *dst = &patched_check.bytes[check_text->offset + s.pc + 8 * enc.half];
-            uint64_t word = le(dst, 8);
-            word &= ~mask;
-            word |= new_off << enc.shift;
-            for (unsigned i = 0; i < 8; ++i)
-                dst[i] = (char)((word >> (8 * i)) & 0xff);
-            patched++;
-        }
-        if (patched != 4) continue;
-        FILE *t = fopen(tmp_check, "wb");
-        if (!t) { fprintf(stderr, "ldc_patcher: cannot write %s\n", tmp_check); return 1; }
-        if (fwrite(patched_check.bytes.data(), 1, patched_check.bytes.size(), t)
-            != patched_check.bytes.size()) exit(1);
-        fclose(t);
-        // Re-disassemble the patched artifact.
-        std::string dis = nvdisasm_text(nvdisasm_bin, tmp_check);
-        Elf verified_elf(tmp_check);
-        const Section *vt = verified_elf.find(".text.check_preempt_port");
-        if (!vt) continue;
-        std::vector<Sample> got =
-            collect_samples(dis, verified_elf, *vt);
-        if (!multiset_equals(got, check_expect)) continue;
-
-        // The same encoding must hold for restore.
-        Elf patched_restore(restore_path);
-        patched = 0;
-        for (const Sample &s : restore_src) {
-            uint64_t new_off = s.offset + delta;
-            if (((new_off << enc.shift) >> enc.shift) != new_off) {
-                patched = 0;
-                break;
-            }
-            char *dst = &patched_restore.bytes[restore_text->offset + s.pc + 8 * enc.half];
-            uint64_t word = le(dst, 8);
-            word &= ~mask;
-            word |= new_off << enc.shift;
-            for (unsigned i = 0; i < 8; ++i)
-                dst[i] = (char)((word >> (8 * i)) & 0xff);
-            patched++;
-        }
-        if (patched != 4) continue;
-        t = fopen(tmp_restore, "wb");
-        if (!t) { fprintf(stderr, "ldc_patcher: cannot write %s\n", tmp_restore); return 1; }
-        if (fwrite(patched_restore.bytes.data(), 1, patched_restore.bytes.size(), t)
-            != patched_restore.bytes.size()) exit(1);
-        fclose(t);
-        std::string rdis = nvdisasm_text(nvdisasm_bin, tmp_restore);
-        Elf verified_restore(tmp_restore);
-        const Section *rt = verified_restore.find(".text.restore_exec_port");
-        if (!rt) continue;
-        std::vector<Sample> rgot =
-            collect_samples(rdis, verified_restore, *rt);
-        if (!multiset_equals(rgot, restore_expect)) continue;
-
-        // ---- restore artifact must contain a register-indirect CALL ----
-        bool indirect = false;
-        {
-            size_t begin = 0;
-            while (begin < rdis.size() && !indirect) {
-                size_t eol = rdis.find('\n', begin);
-                size_t end = eol == std::string::npos ? rdis.size() : eol;
-                std::string line = rdis.substr(begin, end - begin);
-                begin = eol == std::string::npos ? rdis.size() : eol + 1;
-                size_t at = line.find("CALL");
-                if (at == std::string::npos) continue;
-                if (line.find("[R", at) != std::string::npos) indirect = true;
-            }
-        }
-        if (!indirect) {
-            fprintf(stderr,
-                    "ldc_patcher: restore artifact shows no register-indirect CALL; "
-                    "the entry-point transfer instruction differs from the ported "
-                    "assumption. Boundary: transfer encoding must be re-derived "
-                    "from the actual artifact before vendoring\n");
-            return 1;
-        }
-
-        // Encoding verified end to end on real artifacts.
+    uint64_t c_start = 0, c_size = 0, r_start = 0, r_size = 0;
+    if (!parse_param_cbank(nvdisasm_full(nvdisasm_bin, check_path),
+                           "check_preempt_port", &c_start, &c_size)) {
         fprintf(stderr,
-                "ldc_patcher: verified encoding half=%d shift=%d width=%d "
-                "param_base=0x%llx delta=0x%llx\n",
-                enc.half, enc.shift, enc.width, (unsigned long long)param_base,
-                (unsigned long long)delta);
-        // ---- 3. emit ----
-        FILE *out = fopen(out_header, "w");
-        if (!out) {
-            fprintf(stderr, "ldc_patcher: cannot write %s\n", out_header);
-            return 1;
-        }
-        fprintf(out,
-                "/* Generated by level2/native/ldc_patcher.cpp from the generated "
-                "sm_120\n * guardian stub cubins (encoding half=%d shift=%d width=%d, "
-                "parameter base\n * 0x%llx re-encoded onto the debugger region 0x1880).\n"
-                " * Do not edit by hand. */\n"
-                "#ifndef XG_SM120_GUARDIAN_ARRAYS_H\n"
-                "#define XG_SM120_GUARDIAN_ARRAYS_H\n\n",
-                enc.half, enc.shift, enc.width, (unsigned long long)param_base);
-        struct Named {
-            const char *name;
-            const Section *text;
-            const std::vector<Sample> *src;
-        };
-        Named named[2] = {
-            {"check_preempt", check_text, &check_src},
-            {"restore_exec", restore_text, &restore_src},
-        };
-        for (int b = 0; b < 2; ++b) {
-            Elf &art = b == 0 ? patched_check : patched_restore;
-            fprintf(out, "static const unsigned long long xg_sm120_%s[] = {\n",
-                    named[b].name);
-            const Section *sec = named[b].text;
-            for (uint64_t off = 0; off + 16 <= sec->size; off += 16) {
-                uint64_t w0 = le(&art.bytes[sec->offset + off], 8);
-                uint64_t w1 = le(&art.bytes[sec->offset + off + 8], 8);
-                fprintf(out, "    0x%016llxULL, 0x%016llxULL,\n",
-                        (unsigned long long)w0, (unsigned long long)w1);
-            }
-            fprintf(out, "};\n");
-        }
-        fprintf(out, "\n#endif /* XG_SM120_GUARDIAN_ARRAYS_H */\n");
-        fclose(out);
-        fprintf(stderr, "ldc_patcher: emitted %s\n", out_header);
-        verified = true;
-        break;
-    }
-    if (!verified) {
-        fprintf(stderr,
-                "ldc_patcher: no encoding candidate passed patched-artifact "
-                "verification; refusing to emit sm_120 arrays\n");
+                "ldc_patcher: cannot read the EIATTR_PARAM_CBANK parameter "
+                "region for check_preempt_port\n");
         return 1;
     }
-    return 0;
+    if (!parse_param_cbank(nvdisasm_full(nvdisasm_bin, restore_path),
+                           "restore_exec_port", &r_start, &r_size)) {
+        fprintf(stderr,
+                "ldc_patcher: cannot read the EIATTR_PARAM_CBANK parameter "
+                "region for restore_exec_port\n");
+        return 1;
+    }
+    if (dbg <= c_start || dbg <= r_start) {
+        fprintf(stderr,
+                "ldc_patcher: debugger region 0x%llx does not exceed the "
+                "stub parameter bases check=0x%llx restore=0x%llx\n",
+                (unsigned long long)dbg, (unsigned long long)c_start,
+                (unsigned long long)r_start);
+        return 1;
+    }
+    // check_preempt_port consumes param0 and param2 and never the reserved
+    // param1 (28-byte actuator slots); restore_exec_port consumes param0
+    // and param1. Policies are half-open byte ranges relative to the
+    // parameter-window start of each artifact.
+    const std::vector<Range> check_policy = {Range{0, 8}, Range{16, 24}};
+    const std::vector<Range> restore_policy = {Range{0, 16}};
+    std::vector<Sample> check_in = window_samples(
+        nvdisasm_text(nvdisasm_bin, check_path), check, *check_text, c_start,
+        c_size, "check_preempt_port");
+    std::vector<Sample> restore_in = window_samples(
+        nvdisasm_text(nvdisasm_bin, restore_path), restore, *restore_text,
+        r_start, r_size, "restore_exec_port");
+    if (!ranges_equal(covered_union(check_in, c_start), check_policy) ||
+        !ranges_equal(covered_union(restore_in, r_start), restore_policy)) {
+        return 1;
+    }
+
+    // ---- 3. per-form re-encode + emission remain pending ----
+    // The probe evidence fixes the position of the offset immediate (the
+    // byte-4..5 region of the instruction word) but not a uniform
+    // (scale, width) scheme: scalar LDC/LDCU and vector LDC.64/LDCU.64
+    // shift the field differently. Until the per-form solve lands, no
+    // checker array is emitted.
+    fprintf(stderr,
+            "ldc_patcher: boundaries verified, native encoding remains "
+            "pending: probe window 0x%llx/0x%llx policy "
+            "{(0,24),(0x1518,0x1520)}; check window 0x%llx/0x%llx policy "
+            "{(0,8),(16,24)}; restore window 0x%llx/0x%llx policy "
+            "{(0,16)}; per-form offset-field solve ahead\n",
+            (unsigned long long)p_start, (unsigned long long)p_size,
+            (unsigned long long)c_start, (unsigned long long)c_size,
+            (unsigned long long)r_start, (unsigned long long)r_size);
+    return 1;
 }

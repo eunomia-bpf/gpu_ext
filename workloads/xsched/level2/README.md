@@ -12,6 +12,16 @@ linked successfully. See `../level2-build/build-20260908.kMcZTl/README.md`
 and `branchless-barrier-components.log`. No verifier rule was disabled.
 The native LDC adapter and HAL/end-to-end replay still require completion.
 
+The metadata/main checkpoint now also compiles and runs against the three
+real sm_120 cubins. It reads parameter windows of 0x380/0x1520 for the padded
+probe, 0x380/0x18 for check, and 0x380/0x10 for restore, with width-aware
+consumed-byte coverage. The process deliberately returns 1 at
+`native encoding remains pending`; it does not emit runnable guardian arrays.
+See `../level2-build/build-20260908.kMcZTl/native-metadata-main-build.log`
+and `native-metadata-main-run.log`. Root mechanically integrated source
+blocks already authored in local GLM's terminal-length output. Per-form
+offset encoding, prefix fallthrough and restore transfer remain unfinished.
+
 The source includes a device BPF guardian, shared native-C/BPF trampoline,
 NVBit launch-context adapter, native probe/guardian/restore stubs, LDC
 patcher, and an opt-in HAL patch. Component build commands are in

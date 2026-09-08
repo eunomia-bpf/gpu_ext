@@ -1,5 +1,10 @@
 # Disk-UVM GPU promotion follow-up
 
+Completed: five full-read processes exit zero; original UVM/loaders restored.
+See [the result report](../../results-disk-uvm-gpu-promotion-20260908.md).
+The source/build checkpoint below is historical; its pending-run statements
+are superseded by these raw measurements. No completed CPU-first run repeated.
+
 Driver `dea1fefc` is built and pushed. It adds default-off per-range GPU
 promotion to the existing disk-backed UVM primitive: fault-time disk hydration
 uses CPU staging, followed by the normal copy to the faulting GPU. This is

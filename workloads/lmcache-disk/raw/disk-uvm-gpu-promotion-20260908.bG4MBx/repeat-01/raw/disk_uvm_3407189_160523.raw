@@ -1,0 +1,30 @@
+disk_uvm_perf raw
+pid=3407189
+device=0 gpu=NVIDIA GeForce RTX 5090
+size_bytes=268435456
+uvm_va_block_bytes=2097152
+managed_range=0x75fcfe000000-0x75fd0dffffff
+uvm_fd=10
+backing_file=/var/tmp/disk-uvm-gpu-promotion-20260908.njuwc4/backing.bin
+backing_requested_flags=O_RDWR|O_CREAT|O_DIRECT
+backing_kernel_flags=0140002
+    baseline_gpu word[0] value=0x7B1DCDAF match=1
+    baseline_gpu word[131072] value=0xDAE5868C match=1
+    baseline_gpu word[261888] value=0x271CE751 match=1
+arm=baseline_gpu t_ns=345489
+arm=register t_ns=156241 total=65536 on_disk=0 pending=0 error=0
+gpu_promotion=1
+arm=offload1 t_submit_ns=25255343 t_complete_ns=286335569 bytes_expected=268435456 on_disk=65536 pending=0 error=0
+arm=cpu_restore t_ns=153745077
+    cpu_restore word[0] value=0x7B1DCDAF match=1
+    cpu_restore word[33554432] value=0xD9F3FDC2 match=1
+    cpu_restore word[67107840] value=0xD8EAA3EB match=1
+arm=offload2_release t_submit_ns=137045 t_complete_ns=4495320 bytes_expected=0 on_disk=65536 pending=0 error=0
+    gpu_restore word[0] value=0x7B1DCDAF match=1
+    gpu_restore word[131072] value=0xDAE5868C match=1
+    gpu_restore word[261888] value=0x271CE751 match=1
+arm=gpu_restore t_ns=176614956
+    steady_gpu word[0] value=0x7B1DCDAF match=1
+    steady_gpu word[131072] value=0xDAE5868C match=1
+    steady_gpu word[261888] value=0x271CE751 match=1
+arm=steady_gpu t_ns=262370

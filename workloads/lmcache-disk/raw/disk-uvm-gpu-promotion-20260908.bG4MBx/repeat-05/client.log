@@ -1,0 +1,54 @@
+uvm_fd candidate 10: QUERY probe rmStatus=0x40 (NV_ERR_INVALID_STATE)
+uvm_fd candidate 11: QUERY probe rmStatus=0x16 (NV_ERR_ILLEGAL_ACTION)
+baseline_gpu: t_ns=340561
+    word[0] value=0x7B1DCDAF expected=0x7B1DCDAF match=1
+    word[131072] value=0xDAE5868C expected=0xDAE5868C match=1
+    word[261888] value=0x271CE751 expected=0x271CE751 match=1
+register: t_ns=213181 total=65536 on_disk=0 pending=0 error=0
+gpu_promotion=1
+offload1: t_submit_ns=26192081 t_complete_ns=289456037 bytes_expected=268435456 on_disk=65536 pending=0 error=0
+cpu_restore: t_ns=207280923
+    page[0] word[0] value=0x7B1DCDAF expected=0x7B1DCDAF
+    page[32768] word[33554432] value=0xD9F3FDC2 expected=0xD9F3FDC2 match=1
+    page[65535] word[67107840] value=0xD8EAA3EB expected=0xD8EAA3EB match=1
+offload2_release: t_submit_ns=72309 t_complete_ns=3114493 bytes_expected=0 (spans already on disk) on_disk=65536 pending=0 error=0
+gpu_restore: t_ns=227996746
+    word[0] value=0x7B1DCDAF expected=0x7B1DCDAF match=1
+    word[131072] value=0xDAE5868C expected=0xDAE5868C match=1
+    word[261888] value=0x271CE751 expected=0x271CE751 match=1
+steady_gpu: t_ns=250566
+    word[0] value=0x7B1DCDAF expected=0x7B1DCDAF match=1
+    word[131072] value=0xDAE5868C expected=0xDAE5868C match=1
+    word[261888] value=0x271CE751 expected=0x271CE751 match=1
+disk_uvm_perf raw
+pid=3407379
+device=0 gpu=NVIDIA GeForce RTX 5090
+size_bytes=268435456
+uvm_va_block_bytes=2097152
+managed_range=0x7d1dee000000-0x7d1dfdffffff
+uvm_fd=10
+backing_file=/var/tmp/disk-uvm-gpu-promotion-20260908.njuwc4/backing.bin
+backing_requested_flags=O_RDWR|O_CREAT|O_DIRECT
+backing_kernel_flags=0140002
+    baseline_gpu word[0] value=0x7B1DCDAF match=1
+    baseline_gpu word[131072] value=0xDAE5868C match=1
+    baseline_gpu word[261888] value=0x271CE751 match=1
+arm=baseline_gpu t_ns=340561
+arm=register t_ns=213181 total=65536 on_disk=0 pending=0 error=0
+gpu_promotion=1
+arm=offload1 t_submit_ns=26192081 t_complete_ns=289456037 bytes_expected=268435456 on_disk=65536 pending=0 error=0
+arm=cpu_restore t_ns=207280923
+    cpu_restore word[0] value=0x7B1DCDAF match=1
+    cpu_restore word[33554432] value=0xD9F3FDC2 match=1
+    cpu_restore word[67107840] value=0xD8EAA3EB match=1
+arm=offload2_release t_submit_ns=72309 t_complete_ns=3114493 bytes_expected=0 on_disk=65536 pending=0 error=0
+    gpu_restore word[0] value=0x7B1DCDAF match=1
+    gpu_restore word[131072] value=0xDAE5868C match=1
+    gpu_restore word[261888] value=0x271CE751 match=1
+arm=gpu_restore t_ns=227996746
+    steady_gpu word[0] value=0x7B1DCDAF match=1
+    steady_gpu word[131072] value=0xDAE5868C match=1
+    steady_gpu word[261888] value=0x271CE751 match=1
+arm=steady_gpu t_ns=250566
+raw output saved: raw/disk_uvm_3407379_160528.raw
+result: all arms completed, sampled words matched

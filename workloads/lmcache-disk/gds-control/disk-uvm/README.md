@@ -5,6 +5,11 @@ The [results report](../../results-disk-uvm-restore-20260908.md) retains all
 raw runs and earlier attempts. This is a disk-UVM primitive measurement,
 not yet end-to-end LMCache integration or a new BPF policy comparison.
 
+The opt-in [GPU-promotion follow-up](../../results-disk-uvm-gpu-promotion-20260908.md)
+also completes five runs (driver `dea1fefc`, client `e07b4d69`). Repeated GPU
+read median is 0.250566 ms, while first GPU restore is 210.570854 ms. Earlier
+CPU-first numbers remain unchanged; this is not an end-to-end policy gain.
+
 Small real-performance client for the disk-backed managed-UVM mechanism in
 the nvidia-uvm driver built from `gpu_ext-kernel-575-gds` (branch
 `revision/gpu-storage-decision-575`). Exercises the REGISTER/OFFLOAD/QUERY ABI
@@ -18,7 +23,7 @@ disk I/O.
 ## Run
 
     ./disk_uvm_perf [--size 256MiB] [--backing-file PATH] [--device 0]
-                    [--durability] [--poll-us 200]
+                    [--durability] [--poll-us 200] [--gpu-promotion]
 
 - `--size`: managed range, a multiple of the 2 MiB UVM VA block size
   (default 256 MiB).
@@ -30,6 +35,9 @@ disk I/O.
   /proc/self/fdinfo in the raw output.
 - `--device`: CUDA device index (default 0).
 - `--poll-us`: QUERY poll interval while waiting for offload (default 200).
+- `--gpu-promotion`: opt in to CPU-staged disk hydration followed by the
+  existing GPU copy path on GPU faults; issues ioctl 87 after registration.
+  Default off. CPU restore and timed stage order remain unchanged.
 
 The client uses the /dev/nvidia-uvm fd whose UVM va space owns the managed
 range and never opens /dev/nvidia-uvm itself. libcuda opens more than one

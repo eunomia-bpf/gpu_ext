@@ -215,6 +215,40 @@ offload must coordinate residency/reclaim with pending GPU use and restore
 completion; repeated restoration of the same prefixes does not demonstrate
 a working automatic disk-UVM implementation.
 
+### Deferred-free grace applied and measured next, September 8 UTC
+
+The local-model [incremental patch](vllm-deferred-free-grace.patch) is now
+applied to the installed seam-enabled vLLM scheduler. It adds a per-request
+grace marker, yields on allocation failure only for fences associated with
+submitted-but-unprocessed work, and clears the marker at a drain invocation.
+Existing lifetime fences, the consumer role, victim callback, and default
+async scheduling remain intact. A drain invocation does not necessarily
+release blocks if its first fence is still pending.
+
+The 142029-byte pre-change scheduler remains at
+`/var/tmp/vllm-before-reclaim-grace-20260908.8Hugyh/scheduler.py`; the patched
+file is 144342 bytes. Ordinary syntax compilation succeeds and the installed
+file matches the local model's edited source. No driver reload occurred.
+These checks establish application of the patch, not its performance.
+
+The next comparison tests whether this common-runtime change resolves the
+observed recovery cycle, while retaining the existing native-versus-BPF
+reclaim comparison. It starts with a full native default-async cell under
+`raw/gds-kv-reclaim-grace-575-20260908-01/native-async/`, then BPF and stock
+controls with the same patch. It reuses `run_gds_kv_reclaim.run_cell`, the
+same eight prompts and block-0 arrival order, 384 MiB KV pool, 256 MiB GDS
+buffer, four HTTP workers, 250 ms stagger, 1024 output tokens, and the
+already-measured 62502 ns/token recompute price. No calibration or completed
+cell is repeated, and no new timeout, preflight, or admission rule is added.
+
+Request completion, completed-output goodput and TTFT remain the primary
+serving outcomes. Recovery-cycle counts from the existing logs distinguish
+improvement from merely returning a successful process exit. Persistent
+failures would contradict the sufficiency of this repair; a successful
+single comparison would warrant repeated paired measurement, not by itself
+establish policy superiority or transparent disk-UVM paging. The native
+cell is running; no result for this patch is claimed yet.
+
 ## Target and ownership
 
 Manage KV residency, backing copies, and pending storage operations together.

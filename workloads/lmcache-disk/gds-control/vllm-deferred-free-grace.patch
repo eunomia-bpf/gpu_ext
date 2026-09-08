@@ -1,0 +1,62 @@
+--- a/vllm/v1/core/sched/scheduler.py
++++ b/vllm/v1/core/sched/scheduler.py
+@@ -343,6 +343,9 @@
+         # FIFO of (fence_seq, blocks): blocks become safe to free once
+         # processed_step_seq >= fence_seq.
+         self.deferred_frees: deque[tuple[int, list[KVCacheBlock]]] = deque()
++        # Request ids granted one preempt-grace yield since the last
++        # deferred-free drain (see the allocate_slots failure loop).
++        self._kv_grace_used: set[str] = set()
+ 
+         self.perf_metrics: ModelMetrics | None = None
+         if self.log_stats and vllm_config.observability_config.enable_mfu_metrics:
+@@ -599,6 +602,40 @@
+                         # The request can be scheduled.
+                         break
+ 
++                    # Overlapping batches: blocks freed by a prior preempt
++                    # may be fenced behind a submitted token-carrying step
++                    # that is still executing (_free_request_blocks), so
++                    # the pool reads transiently short and stock victim
++                    # chaining here would destroy KV that is about to
++                    # return. Yield once per request per drain cycle:
++                    # defer only while submitted-but-unprocessed work can
++                    # own those fences (sched_step_seq >
++                    # processed_step_seq and a pending fence lies in
++                    # (processed_step_seq, sched_step_seq]); fences for
++                    # future not-yet-submitted steps (CoW retention,
++                    # sched_step_seq + 1) never qualify. new_blocks stays
++                    # None, so the existing `if new_blocks is None: break`
++                    # below exits the running loop for this step and later
++                    # runnable requests are skipped this step - the same
++                    # outer-loop semantics as when a stock victim cascade
++                    # cannot fit - and they retry after the drain. The
++                    # per-request marker, cleared at each drain in
++                    # _drain_deferred_frees, re-arms stock preemption as
++                    # the fallback whenever a yield does not resolve.
++                    if (
++                        self.defer_block_free
++                        and self.sched_step_seq > self.processed_step_seq
++                        and any(
++                            self.processed_step_seq
++                            < fence
++                            <= self.sched_step_seq
++                            for fence, _ in self.deferred_frees
++                        )
++                        and request.request_id not in self._kv_grace_used
++                    ):
++                        self._kv_grace_used.add(request.request_id)
++                        break
++
+                     # The request cannot be scheduled.
+                     # Preempt the lowest-priority request.
+                     if self.policy == SchedulingPolicy.PRIORITY:
+@@ -2467,6 +2504,8 @@
+         can lead request-free fences by one step), so stop at the first
+         pending one; any satisfied entry behind it is merely freed later.
+         """
++        # Re-arm the preempt-grace yield at every real drain.
++        self._kv_grace_used.clear()
+         while self.deferred_frees:
+             fence, _ = self.deferred_frees[0]
+             if fence > self.processed_step_seq:

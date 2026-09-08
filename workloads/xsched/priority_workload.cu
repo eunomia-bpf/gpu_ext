@@ -290,6 +290,8 @@ int main(int argc, char **argv)
         const size_t local_index = index % (static_cast<size_t>(grid_blocks) * threads);
         if (!std::isfinite(value) || value <= 0.0f
             || value != expected_by_lane[local_index & 31U]) {
+            std::fprintf(stderr, "sink mismatch index=%zu value=%a expected=%a\n",
+                         index, value, expected_by_lane[local_index & 31U]);
             fail("correctness", "output differs from the per-lane recurrence");
         }
     }

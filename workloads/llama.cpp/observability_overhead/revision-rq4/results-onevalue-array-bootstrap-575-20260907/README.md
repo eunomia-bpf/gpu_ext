@@ -1,4 +1,40 @@
-# kernelretsnoop GPU-local array: five completed paired blocks
+# kernelretsnoop GPU-local array: ten completed paired blocks
+
+## Ten-pair extension completed, September 8 UTC
+
+Only blocks 6--10 were newly run, with the same configuration and alternating
+order as blocks 1--5. All 20 benchmark processes and all ten collectors finish
+with exit status zero. The original ten cell records remain unchanged as the
+first ten entries of `cells.json`; the five-pair report below is retained.
+
+| Configuration | Mean prefill token/s, 10 measurements |
+| --- | ---: |
+| Baseline | 38156.366833 |
+| GPU-local array and final bulk readback | 36095.211373 |
+
+Mean paired overhead is **5.400619%**, median 5.391675%, and range
+4.017536%--6.704966%. No measurements are filtered. The original five-pair
+mean of 5.572554% remains a historical subset, not a second independent
+experiment. The additional block results are:
+
+| Block | Baseline token/s | GPU-array token/s | Paired overhead | Final lookup ms |
+| --- | ---: | ---: | ---: | ---: |
+| 6 | 38426.722904 | 36390.588143 | 5.298747% | 11.080822 |
+| 7 | 38257.871053 | 36400.812762 | 4.854055% | 10.273648 |
+| 8 | 38341.778010 | 36362.308933 | 5.162695% | 10.972463 |
+| 9 | 38214.362271 | 36320.423315 | 4.956092% | 10.617448 |
+| 10 | 38426.653688 | 36170.305056 | 5.871832% | 11.137077 |
+
+Every collector reports 720896 stored full events, 16384 active warps,
+and zero reported overflow or out-of-range events. Across all ten runs,
+the final 23199768-byte host lookup averages **10.597817 ms**, range
+10.157582--11.137077 ms, outside prefill timing. This is the same bounded
+GPU-local buffer implementation, not a new compiler/runtime optimization.
+The warning-mode admission limitation and unmatched historical NVBit
+granularity described below still apply. No new NVBit performance is
+claimed; the opt-in matched warp-array variant remains implementation work.
+
+## Original five-pair report (retained)
 
 RTX 5090, NVIDIA 575.57.08, TinyLlama-1.1B Q4_K_M, llama.cpp pp512,
 one repetition with the existing warmup, CUDA graphs disabled, CPU affinity
@@ -114,6 +150,9 @@ without a runtime or driver rebuild. This five-pair campaign is complete;
 do not repeat these cells.
 
 ## Requested extension, September 8 UTC: queued, not yet measured
+
+The following queue status is historical and is superseded by the completed
+ten-pair results at the top of this report.
 
 The experiment owner has queued only blocks 6–10 behind the active LMCache
 jobs under the existing GPU and struct-ops locks, using the same staged

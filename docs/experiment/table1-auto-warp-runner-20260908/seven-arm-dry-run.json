@@ -1,0 +1,117 @@
+{
+  "dry_run": true,
+  "kind": "table1_perf",
+  "metric": "llama.cpp pp512 prefill token/s and same-block percent overhead versus the no-probe baseline",
+  "mode": "seven_arm_default",
+  "arms": [
+    "baseline",
+    "gpubpf_kernelretsnoop",
+    "nvbit_kernelretsnoop",
+    "gpubpf_threadhist",
+    "nvbit_threadhist",
+    "gpubpf_launchlate",
+    "nvbit_launchlate"
+  ],
+  "blocks": 10,
+  "auto_warp_task": null,
+  "source_contract": "legacy_runner_prepared_kernelretsnoop_capacity_patched",
+  "schedule": {
+    "1": [
+      "baseline",
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate"
+    ],
+    "2": [
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate",
+      "baseline"
+    ],
+    "3": [
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate",
+      "baseline",
+      "gpubpf_kernelretsnoop"
+    ],
+    "4": [
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate",
+      "baseline",
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop"
+    ],
+    "5": [
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate",
+      "baseline",
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist"
+    ],
+    "6": [
+      "gpubpf_launchlate",
+      "nvbit_launchlate",
+      "baseline",
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist"
+    ],
+    "7": [
+      "nvbit_launchlate",
+      "baseline",
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate"
+    ],
+    "8": [
+      "baseline",
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate"
+    ],
+    "9": [
+      "gpubpf_kernelretsnoop",
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate",
+      "baseline"
+    ],
+    "10": [
+      "nvbit_kernelretsnoop",
+      "gpubpf_threadhist",
+      "nvbit_threadhist",
+      "gpubpf_launchlate",
+      "nvbit_launchlate",
+      "baseline",
+      "gpubpf_kernelretsnoop"
+    ]
+  },
+  "cell_count": 70,
+  "attempts_per_cell": 1,
+  "pp": 512,
+  "tg": 0,
+  "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+  "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+  "output_dir": null
+}

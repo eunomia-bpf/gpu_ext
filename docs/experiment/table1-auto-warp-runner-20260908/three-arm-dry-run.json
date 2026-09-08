@@ -1,0 +1,73 @@
+{
+  "dry_run": true,
+  "kind": "table1_perf",
+  "metric": "llama.cpp pp512 prefill token/s and same-block percent overhead versus the no-probe baseline",
+  "mode": "auto_warp_three_arm",
+  "arms": [
+    "baseline",
+    "auto_warp_off",
+    "auto_warp_on"
+  ],
+  "blocks": 10,
+  "auto_warp_task": "kernelretsnoop",
+  "source_contract": "original_example_source_no_capacity_patch",
+  "schedule": {
+    "1": [
+      "baseline",
+      "auto_warp_off",
+      "auto_warp_on"
+    ],
+    "2": [
+      "auto_warp_off",
+      "auto_warp_on",
+      "baseline"
+    ],
+    "3": [
+      "auto_warp_on",
+      "baseline",
+      "auto_warp_off"
+    ],
+    "4": [
+      "baseline",
+      "auto_warp_off",
+      "auto_warp_on"
+    ],
+    "5": [
+      "auto_warp_off",
+      "auto_warp_on",
+      "baseline"
+    ],
+    "6": [
+      "auto_warp_on",
+      "baseline",
+      "auto_warp_off"
+    ],
+    "7": [
+      "baseline",
+      "auto_warp_off",
+      "auto_warp_on"
+    ],
+    "8": [
+      "auto_warp_off",
+      "auto_warp_on",
+      "baseline"
+    ],
+    "9": [
+      "auto_warp_on",
+      "baseline",
+      "auto_warp_off"
+    ],
+    "10": [
+      "baseline",
+      "auto_warp_off",
+      "auto_warp_on"
+    ]
+  },
+  "cell_count": 30,
+  "attempts_per_cell": 1,
+  "pp": 512,
+  "tg": 0,
+  "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+  "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+  "output_dir": null
+}

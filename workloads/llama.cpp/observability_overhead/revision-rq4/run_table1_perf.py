@@ -11,7 +11,10 @@ wherever both throughputs are numeric.  Build and command helpers are reused
 from run_observability_overhead.py and run_revision_rq4.py; correctness,
 verifier, safety, driver, idle, retry, filtering, clock-control, provenance,
 and manifest machinery is absent by design.  --dry-run prints the JSON
-schedule without performing builds or GPU work.
+schedule without performing builds or GPU work.  The opt-in
+--auto-warp-three-arm mode records the same-object
+baseline/auto_warp_off/auto_warp_on comparison for one selected gpubpf
+tool, switching BPFTIME_GPU_AUTO_WARP_EXECUTION per off/on cell.
 """
 
 from __future__ import annotations
@@ -51,26 +54,46 @@ ARMS = (
 )
 TASKS = ("kernelretsnoop", "threadhist", "launchlate")
 
+AUTO_WARP_ENV_KEY = "BPFTIME_GPU_AUTO_WARP_EXECUTION"
+AUTO_WARP_ARMS = ("baseline", "auto_warp_off", "auto_warp_on")
+SOURCE_CONTRACTS = {
+    "seven_arm_default": "legacy_runner_prepared_kernelretsnoop_capacity_patched",
+    "auto_warp_three_arm": "original_example_source_no_capacity_patch",
+}
 
-def block_schedule(block: int) -> list[str]:
-    offset = (block - 1) % len(ARMS)
-    return list(ARMS[offset:] + ARMS[:offset])
+
+def selected_arms(args: argparse.Namespace) -> tuple[str, ...]:
+    if args.auto_warp_three_arm:
+        return AUTO_WARP_ARMS
+    return ARMS
 
 
-def build_schedule(blocks: int) -> dict[str, list[str]]:
-    return {str(block): block_schedule(block) for block in range(1, blocks + 1)}
+def campaign_mode(args: argparse.Namespace) -> str:
+    return "auto_warp_three_arm" if args.auto_warp_three_arm else "seven_arm_default"
+
+def block_schedule(block: int, arms: tuple[str, ...] = ARMS) -> list[str]:
+    offset = (block - 1) % len(arms)
+    return list(arms[offset:] + arms[:offset])
+
+
+def build_schedule(blocks: int, arms: tuple[str, ...] = ARMS) -> dict[str, list[str]]:
+    return {str(block): block_schedule(block, arms) for block in range(1, blocks + 1)}
 
 
 def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
+    arms = selected_arms(args)
     return {
         "dry_run": True,
         "kind": KIND,
         "metric": "llama.cpp pp512 prefill token/s and same-block percent "
-                  "overhead versus the no-probe baseline",
-        "arms": list(ARMS),
+                "overhead versus the no-probe baseline",
+        "mode": campaign_mode(args),
+        "arms": list(arms),
         "blocks": args.blocks,
-        "schedule": build_schedule(args.blocks),
-        "cell_count": len(ARMS) * args.blocks,
+        "auto_warp_task": args.auto_warp_task if args.auto_warp_three_arm else None,
+        "source_contract": SOURCE_CONTRACTS[campaign_mode(args)],
+        "schedule": build_schedule(args.blocks, arms),
+        "cell_count": len(arms) * args.blocks,
         "attempts_per_cell": 1,
         "pp": PP,
         "tg": TG,
@@ -121,14 +144,30 @@ def split_bench_log(text: str) -> tuple[str, str]:
     return stdout_text, stderr_text
 
 
+def auto_warp_observed_marker(cell_dir: Path, record: dict[str, Any]) -> str:
+    texts = [record.get("stdout") or ""]
+    agent_log = cell_dir / "agent.log"
+    if agent_log.is_file():
+        texts.append(agent_log.read_text(errors="replace"))
+    combined = "\n".join(texts)
+    if "GPU automatic warp execution admitted for" in combined:
+        return "admitted"
+    if "GPU automatic warp execution not admitted for" in combined:
+        return "not_admitted"
+    return "absent"
+
+
 def build_tools(
-    args: argparse.Namespace, output_dir: Path
-) -> tuple[dict[str, Path], Path]:
+    args: argparse.Namespace, output_dir: Path,
+    *, tasks: tuple[str, ...] = TASKS, nvbit: bool = True,
+    auto_warp: bool = False
+) -> tuple[dict[str, Path], Path | None]:
     build_root = output_dir / "gpubpf_tool_build"
     build_root.mkdir(exist_ok=True)
     tool_dirs: dict[str, Path] = {}
-    for tool in TASKS:
-        tool_dir = runner.prepare_tool_source(
+    for tool in tasks:
+        prepare = core.prepare_tool_source if auto_warp else runner.prepare_tool_source
+        tool_dir = prepare(
             core.TOOLS[tool],
             bpftime_root=args.bpftime_root,
             build_root=build_root,
@@ -136,13 +175,15 @@ def build_tools(
         )
         core.build_tool(core.TOOLS[tool], tool_dir)
         tool_dirs[tool] = tool_dir
-    nvbit_build_dir = output_dir / "nvbit_tool_build"
-    shutil.copytree(
-        runner.NVBIT_SOURCE_DIR,
-        nvbit_build_dir,
-        ignore=shutil.ignore_patterns("*.o", "*.so", "*.fatbin", "flush_channel.c"),
-    )
-    nvbit_tool = runner.build_nvbit(nvbit_build_dir, output_dir)
+    nvbit_tool: Path | None = None
+    if nvbit:
+        nvbit_build_dir = output_dir / "nvbit_tool_build"
+        shutil.copytree(
+            runner.NVBIT_SOURCE_DIR,
+            nvbit_build_dir,
+            ignore=shutil.ignore_patterns("*.o", "*.so", "*.fatbin", "flush_channel.c"),
+        )
+        nvbit_tool = runner.build_nvbit(nvbit_build_dir, output_dir)
     return tool_dirs, nvbit_tool
 
 
@@ -152,13 +193,20 @@ def run_arm_cell(
     args: argparse.Namespace,
     output_dir: Path,
     tool_dirs: dict[str, Path],
-    nvbit_tool: Path,
+    nvbit_tool: Path | None,
 ) -> dict[str, Any]:
     cell_dir = output_dir / f"{arm}_run_{block:02d}"
     cell_dir.mkdir(parents=True, exist_ok=True)
-    tool = arm.partition("_")[2]
-    is_gpubpf = arm.startswith("gpubpf_")
-    is_nvbit = arm.startswith("nvbit_")
+    if arm in ("auto_warp_off", "auto_warp_on"):
+        tool = args.auto_warp_task
+        is_gpubpf = True
+        is_nvbit = False
+        auto_warp_env = {AUTO_WARP_ENV_KEY: "0" if arm.endswith("_off") else "1"}
+    else:
+        tool = arm.partition("_")[2]
+        is_gpubpf = arm.startswith("gpubpf_")
+        is_nvbit = arm.startswith("nvbit_")
+        auto_warp_env = {}
     env_extra = nvbit_env(args, tool) if is_nvbit else None
 
     started = time.monotonic()
@@ -168,8 +216,12 @@ def run_arm_cell(
         bench_env = bench_base_env(args)
         try:
             with runner.private_probe(tool, args, tool_dirs[tool], cell_dir) as probe_env:
-                result = runner.run_bench(arm, block, args, output_dir, env_extra=probe_env)
-                bench_env = {**bench_base_env(args), **probe_env}
+                merged_probe_env = {**probe_env, **auto_warp_env}
+                result = runner.run_bench(
+                    arm, block, args, output_dir,
+                    env_extra=merged_probe_env,
+                )
+                bench_env = {**bench_base_env(args), **probe_env, **auto_warp_env}
         except runner.OwnedCleanupError:
             raise
         except RuntimeError as exc:
@@ -223,6 +275,10 @@ def run_arm_cell(
             record["probe"] = runner.parse_nvbit(tool, record["stdout"] or "")
         except Exception as exc:  # noqa: BLE001
             record["probe_parse_error"] = f"{type(exc).__name__}: {exc}"
+    if auto_warp_env:
+        record["auto_warp_requested"] = "off" if arm.endswith("_off") else "on"
+        record["auto_warp_env"] = dict(auto_warp_env)
+        record["auto_warp_observed"] = auto_warp_observed_marker(cell_dir, record)
     return record
 
 
@@ -246,9 +302,10 @@ def attach_overheads(cells: list[dict[str, Any]]) -> None:
             cell["overhead_pct"] = None
 
 
-def summarize(cells: list[dict[str, Any]]) -> dict[str, Any]:
-    arms = []
-    for arm in ARMS:
+def summarize(cells: list[dict[str, Any]], arms: tuple[str, ...] = ARMS,
+            mode: str = "seven_arm_default") -> dict[str, Any]:
+    arms_summary = []
+    for arm in arms:
         arm_cells = [cell for cell in cells if cell.get("arm") == arm]
         values = [
             cell["throughput_tok_s"]
@@ -258,7 +315,7 @@ def summarize(cells: list[dict[str, Any]]) -> dict[str, Any]:
         overheads = [
             cell["overhead_pct"] for cell in arm_cells if is_number(cell.get("overhead_pct"))
         ]
-        arms.append(
+        arms_summary.append(
             {
                 "arm": arm,
                 "cells": len(arm_cells),
@@ -266,16 +323,22 @@ def summarize(cells: list[dict[str, Any]]) -> dict[str, Any]:
                 "mean_overhead_pct": sum(overheads) / len(overheads) if overheads else None,
             }
         )
-    return {"arms": arms}
+    return {
+        "mode": mode,
+        "source_contract": SOURCE_CONTRACTS[mode],
+        "arms": arms_summary,
+    }
 
 
-def write_records(output_dir: Path, cells: list[dict[str, Any]]) -> None:
+def write_records(output_dir: Path, cells: list[dict[str, Any]],
+                arms: tuple[str, ...] = ARMS,
+                mode: str = "seven_arm_default") -> None:
     attach_overheads(cells)
     (output_dir / "cells.json").write_text(
         json.dumps(cells, indent=2) + "\n", encoding="utf-8"
     )
     (output_dir / "summary.json").write_text(
-        json.dumps(summarize(cells), indent=2) + "\n", encoding="utf-8"
+        json.dumps(summarize(cells, arms, mode), indent=2) + "\n", encoding="utf-8"
     )
 
 
@@ -283,11 +346,19 @@ def run_campaign(args: argparse.Namespace) -> int:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = (args.output_dir or (HERE / "raw" / f"{KIND}-{timestamp}")).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    tool_dirs, nvbit_tool = build_tools(args, output_dir)
+    arms = selected_arms(args)
+    mode = campaign_mode(args)
+    if args.auto_warp_three_arm:
+        tool_dirs, nvbit_tool = build_tools(
+            args, output_dir, tasks=(args.auto_warp_task,),
+            nvbit=False, auto_warp=True
+        )
+    else:
+        tool_dirs, nvbit_tool = build_tools(args, output_dir)
     args.nvbit_tool = nvbit_tool
     cells: list[dict[str, Any]] = []
     for block in range(1, args.blocks + 1):
-        for arm in block_schedule(block):
+        for arm in block_schedule(block, arms):
             record: dict[str, Any] = {
                 "block": block,
                 "arm": arm,
@@ -308,12 +379,12 @@ def run_campaign(args: argparse.Namespace) -> int:
                 record["error"] = str(exc)
                 record["fatal_cleanup"] = exc.details
                 cells.append(record)
-                write_records(output_dir, cells)
+                write_records(output_dir, cells, arms, mode)
                 return 3
             except Exception as exc:  # noqa: BLE001
                 record["error"] = f"{type(exc).__name__}: {exc}"
             cells.append(record)
-            write_records(output_dir, cells)
+            write_records(output_dir, cells, arms, mode)
     print(f"wrote {len(cells)} cells under {output_dir}", flush=True)
     return 0
 
@@ -341,6 +412,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--n-gpu-layers", type=int, default=99)
     parser.add_argument("--uvm", action="store_true")
     parser.add_argument("--no-warmup", action="store_true")
+    parser.add_argument(
+        "--auto-warp-three-arm",
+        action="store_true",
+        help="opt-in same-object baseline/off/on auto-warp comparison for one gpubpf tool",
+    )
+    parser.add_argument(
+        "--auto-warp-task",
+        default="kernelretsnoop",
+        choices=list(TASKS),
+        help="gpubpf tool object shared by the auto_warp_off/auto_warp_on arms",
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",

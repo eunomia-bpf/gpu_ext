@@ -77,3 +77,6 @@ python3 gds-control/disk-uvm/analyze_results.py \
 3407414/3407415 both report `attached`. Post-run GPU is idle at 1 MiB.
 The failed UVM-only build and successful full-module retry are both retained.
 Large backing data and compiled modules/executables are excluded from Git.
+After collection, the unused 268435456-byte temporary backing file and its
+empty directory were removed. The client can regenerate this payload;
+all original logs, stage timings and adverse results remain in the repository.

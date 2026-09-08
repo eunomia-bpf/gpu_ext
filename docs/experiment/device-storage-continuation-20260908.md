@@ -5,7 +5,26 @@ results remain intact. Non-trivial development runs through local OpenCode;
 the root reviews, builds, measures, records, commits and pushes. At most three
 local sessions run concurrently, without stopping them for silence.
 
-## Latest implementation checkpoint — 11:50 PDT
+## Latest result — disk GPU promotion complete at 12:11 PDT
+
+[Five new full-read processes](../../workloads/lmcache-disk/results-disk-uvm-gpu-promotion-20260908.md)
+complete and are published in `07141996` (driver `dea1fefc`, client
+`e07b4d69`). Repeated GPU-read median is 0.250566 ms versus the earlier
+CPU-first 5.407625 ms (21.582x ratio of separate-campaign medians), but
+first GPU restoration rises from 170.601143 to 210.570854 ms (+23.429%).
+These are primitive stage timings, not end-to-end LMCache policy gains
+or randomized paired treatment effects. No earlier sample was repeated.
+The saved original UVM and loaders 3407414/3407415 are restored.
+
+The simple client flag/ioctl wiring was completed directly by root under
+the user's allowance for bounded glue edits; the driver algorithm and repair
+were authored by the local model. The model's client/packaging follow-up is
+superseded by the real completed run, not a reason to rerun it. Mode-3
+transport measurement and XSched execution remain unfinished. The native
+metadata/main checkpoint compiles and reads the real cubins (`7e28c256`),
+but still reports encoding pending and emits no runnable native array.
+
+## Earlier implementation checkpoint — 11:50 PDT
 
 Two follow-ups now build and their source commits are pushed:
 

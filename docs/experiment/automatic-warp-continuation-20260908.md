@@ -4,6 +4,33 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## Current completion — geometry/work measurements, 2026-09-08
+
+The [geometry/work campaign](../../microbench/fig15-device/strict-warp-map-scaling/results-geometry-work-20260908.md)
+is complete and pushed in main `a0c5edf6`: 180 cells, ten native/off/on
+paired blocks at each of six settings. Runtime `e5e52e5` regenerates the
+previously stale embedded PTX map-info layout and was rebuilt before the
+completed campaign. Automatic execution adds paired median 57–58% elapsed
+time in the 2/4/8-CTA zero-work sweep. With work=8/32/128 at one CTA, the
+effects are +15.409%/+0.180%/-0.151%; the latter two intervals include zero.
+These are microbenchmark elapsed times, not Table 1 throughput. All old
+results and the failed stale-template prefix remain.
+
+Actual scalar callback counting is unfinished, in a separate opt-in local
+Qwen diagnostic patch. Geometry-derived lane encounters are not observed
+calls. No claim of block-count-independent total overhead is supported.
+The 180 timing cells will not be repeated for the counting observation.
+The runner's CSV serialization unit is corrected; original mislabelled CSVs
+remain alongside millisecond CSVs derived from the raw CUDA-event logs.
+The existing 18 offline runner tests pass after this correction.
+
+The GPU scan referenced in historical entries below has completed and
+handed resources back. Root's immediate next measurement is the disk-UVM
+same-address restore client after its range-owning-FD selection repair,
+followed by the separate hook-count observation. Table 1 transport mode2/3
+measurements remain unfinished and are lower priority than these two user
+requests. No manuscript file was changed by this session.
+
 ## Transport candidates: build completed, performance pending
 
 The GPU experiment owner built `c4c83cd` during a coordinated pre-timing

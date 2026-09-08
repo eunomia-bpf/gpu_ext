@@ -23,6 +23,9 @@ import os
 import signal
 import sys
 import argparse
+import csv
+import json
+import threading
 from pathlib import Path
 from datetime import datetime
 
@@ -64,6 +67,51 @@ SINGLE_PROCESS_CONFIGS = [
     ("single_1x", 1),      # SIZE_FACTOR * 1
     ("single_2x", 2),      # SIZE_FACTOR * 2
 ]
+
+# ---------------------------------------------------------------------------
+# Opt-in four-arm combined memory/scheduling comparison (ORIGINAL Fig.13
+# follow-up). Arms: no policy (baseline), memory-only, scheduling-only, and
+# their combination. Each arm runs two concurrent uvmbench tenants; five
+# interleaved blocks rotate the arm order so every arm occupies every
+# position. All arms share the same settings for a given run.
+# ---------------------------------------------------------------------------
+COMBINED_ARMS = ("baseline", "memory_only", "sched_only", "combined")
+# Tools to start while tenants are stopped before CUDA init, in start order.
+# "sched" is comm-keyed (via /tmp symlinks), "mem" is PID-keyed.
+COMBINED_ARM_TOOLS = {
+    "baseline": (),
+    "memory_only": ("mem",),
+    "sched_only": ("sched",),
+    "combined": ("sched", "mem"),
+}
+COMBINED_BLOCKS = 5
+COMBINED_MEM_HIGH = 20
+COMBINED_MEM_LOW = 80
+COMBINED_SCHED_HIGH_TS = 1000000
+COMBINED_SCHED_LOW_TS = 200
+HIGH_NAME = "uvmbench_high"
+LOW_NAME = "uvmbench_low"
+# Seconds to let a freshly started policy tool settle before resuming tenants.
+COMBINED_TOOL_SETTLE_S = 1.0
+# uvmbench argument order shared by both tenants.
+COMBINED_UVM_ARGS = ["--mode=uvm"]
+# Combined-mode CSV schema. Latencies are measured from the single common
+# release origin; the raw spawn/attach/release/exit timestamps are kept in
+# the per-arm meta.json and events.log so setup and release skew stay explicit.
+COMBINED_CSV_COLUMNS = [
+    "block", "arm",
+    "high_pid", "low_pid",
+    "t_spawn_high", "t_spawn_low",
+    "t_attach_sched", "t_attach_mem",
+    "t_release", "t_cont_high", "t_cont_low",
+    "t_exit_high", "t_exit_low",
+    "high_median_ms", "low_median_ms",
+    "high_bw_gbps", "low_bw_gbps",
+    "high_latency_s", "low_latency_s",
+    "high_rc", "low_rc",
+    "notes",
+]
+
 
 # Processes this runner started. Cleanup targets only these (never a global
 # pkill or a global struct-ops sweep, which could remove another session's
@@ -143,6 +191,323 @@ def parse_uvmbench_output(output_file):
         print(f"  Warning: Failed to parse {output_file}: {e}")
 
     return median_ms, bw_gbps
+
+
+def proc_state(pid):
+    """Return the kernel state letter for pid from /proc/<pid>/stat."""
+    try:
+        with open(f"/proc/{pid}/stat", "rb") as f:
+            data = f.read().decode(errors="replace")
+        return data.rsplit(")", 1)[1].split()[0]
+    except (OSError, IndexError):
+        return "?"
+
+
+def wait_stopped(pid, timeout_s=5.0):
+    """Wait until a spawned tenant reaches the stopped (pre-exec) state."""
+    deadline = time.time() + timeout_s
+    state = proc_state(pid)
+    while state not in ("T", "Z", "X") and time.time() < deadline:
+        time.sleep(0.05)
+        state = proc_state(pid)
+    return state
+
+
+def ensure_symlinks(link_dir, uvm_path):
+    """Create run-owned tenant symlinks whose basenames key the scheduler comm.
+
+    The links live in this run's own directory, so we never unlink or clobber a
+    foreign /tmp file. The scheduler policy matches on the link basename only,
+    so the directory location is irrelevant to it.
+    """
+    link_dir.mkdir(parents=True, exist_ok=True)
+    for name in (HIGH_NAME, LOW_NAME):
+        link = link_dir / name
+        try:
+            if link.is_symlink():
+                link.unlink()
+            elif link.exists():
+                raise FileExistsError(f"{link} exists and is not a symlink")
+            link.symlink_to(uvm_path)
+        except OSError as exc:
+            print(f"  Warning: symlink {link} failed: {exc}")
+
+
+def spawn_stopped_tenant(name, link_dir, arm_dir, size_factor, kernel, tenant_launcher):
+    """Spawn a tenant that stops before exec; the PID is preserved across exec."""
+    link = link_dir / name
+    # Distinct per-tenant result file; both children share cwd=arm_dir, so the
+    # default results.csv would otherwise be written by both (as in fig13-fast).
+    out_csv = arm_dir / f"uvmbench_{name}_results.csv"
+    argv = [
+        str(link),
+        f"--size_factor={size_factor}",
+        *COMBINED_UVM_ARGS,
+        f"--iterations={ITERATIONS}",
+        f"--kernel={kernel}",
+        f"--output={out_csv}",
+    ]
+    cmd = [sys.executable, str(tenant_launcher)] + argv
+    log_path = arm_dir / f"tenant_{name}.log"
+    logf = open(log_path, "w", buffering=1)
+    proc = _track(subprocess.Popen(
+        cmd, stdout=logf, stderr=subprocess.STDOUT,
+        cwd=str(arm_dir), start_new_session=True,
+    ))
+    return proc, logf, cmd
+
+
+def combined_tool_command(label, high_pid, low_pid, args):
+    """Build the argv for a policy tool (comm-keyed sched, PID-keyed mem)."""
+    if label == "sched":
+        return [
+            "sudo", str(args.sched_tool),
+            "-p", f"{HIGH_NAME}:{COMBINED_SCHED_HIGH_TS}",
+            "-p", f"{LOW_NAME}:{COMBINED_SCHED_LOW_TS}",
+        ]
+    return [
+        "sudo", str(args.mem_tool),
+        "-p", str(high_pid), "-P", str(COMBINED_MEM_HIGH),
+        "-l", str(low_pid), "-L", str(COMBINED_MEM_LOW),
+    ]
+
+
+def spawn_tool(cmd, log_path, label):
+    """Start a policy tool in its own session and let it settle."""
+    logf = open(log_path, "w", buffering=1)
+    proc = _track(subprocess.Popen(
+        cmd, stdout=logf, stderr=subprocess.STDOUT, start_new_session=True,
+    ))
+    time.sleep(COMBINED_TOOL_SETTLE_S)
+    if proc.poll() is not None:
+        print(f"  Warning: {label} tool exited early rc={proc.returncode} (continuing)")
+    return proc, logf
+
+
+def watch_tenant(proc, role, results):
+    """Independently observe one tenant's completion in its own thread."""
+    rc = proc.wait()
+    results[role] = {"rc": rc, "t_done": time.time()}
+
+
+def run_combined_arm(block, arm, size_factor, kernel, run_root, link_dir, args, log):
+    """Run one arm: spawn stopped, attach policies, common release, observe exits."""
+    arm_dir = run_root / f"block{block:02d}_{arm}"
+    arm_dir.mkdir(parents=True, exist_ok=True)
+
+    row = {c: "" for c in COMBINED_CSV_COLUMNS}
+    row["block"] = block
+    row["arm"] = arm
+    meta = {
+        "block": block,
+        "arm": arm,
+        "kernel": kernel,
+        "size_factor": size_factor,
+        "iterations": ITERATIONS,
+        "high_name": HIGH_NAME,
+        "low_name": LOW_NAME,
+        "mem_params": f"high={COMBINED_MEM_HIGH}/low={COMBINED_MEM_LOW}",
+        "sched_params": f"high={COMBINED_SCHED_HIGH_TS}us/low={COMBINED_SCHED_LOW_TS}us",
+        "mem_tool": str(args.mem_tool),
+        "sched_tool": str(args.sched_tool),
+        "tenant_launcher": str(args.tenant_launcher),
+        "uvmbench": str(args.uvmbench),
+        "common_release_origin": True,
+        "independent_exit_observation": True,
+    }
+    notes = []
+    high = low = None
+    tools = {}
+    files = []
+    results = {}
+    t_release = None
+    failed = False
+
+    try:
+        ensure_symlinks(link_dir, args.uvmbench)
+
+        high, high_logf, high_cmd = spawn_stopped_tenant(HIGH_NAME, link_dir, arm_dir, size_factor, kernel, args.tenant_launcher)
+        t_spawn_high = time.time()
+        low, low_logf, low_cmd = spawn_stopped_tenant(LOW_NAME, link_dir, arm_dir, size_factor, kernel, args.tenant_launcher)
+        t_spawn_low = time.time()
+        files.extend([high_logf, low_logf])
+        meta["command_high"] = " ".join(high_cmd)
+        meta["command_low"] = " ".join(low_cmd)
+
+        row["high_pid"] = high.pid
+        row["low_pid"] = low.pid
+        row["t_spawn_high"] = f"{t_spawn_high:.6f}"
+        row["t_spawn_low"] = f"{t_spawn_low:.6f}"
+        meta["t_spawn_high"] = t_spawn_high
+        meta["t_spawn_low"] = t_spawn_low
+
+        state_high = wait_stopped(high.pid)
+        state_low = wait_stopped(low.pid)
+        meta["states_after_spawn"] = {"high": state_high, "low": state_low}
+        if state_high != "T":
+            notes.append(f"{HIGH_NAME}_not_stopped_pre_policy:{state_high}")
+        if state_low != "T":
+            notes.append(f"{LOW_NAME}_not_stopped_pre_policy:{state_low}")
+
+        # Start policy tools while tenants are still stopped (before CUDA init).
+        for label in COMBINED_ARM_TOOLS[arm]:
+            cmd = combined_tool_command(label, high.pid, low.pid, args)
+            proc, logf = spawn_tool(cmd, arm_dir / f"{label}_tool.log", label)
+            files.append(logf)
+            tools[label] = proc
+            t_attach = time.time()
+            meta[f"t_{label}_start"] = t_attach
+            meta[f"command_{label}"] = " ".join(cmd)
+            row[f"t_attach_{label}"] = f"{t_attach:.6f}"
+
+        # Single common release origin: one timestamp, then resume both tenants.
+        t_release = time.time()
+        os.kill(high.pid, signal.SIGCONT)
+        t_cont_high = time.time()
+        os.kill(low.pid, signal.SIGCONT)
+        t_cont_low = time.time()
+        row["t_release"] = f"{t_release:.6f}"
+        row["t_cont_high"] = f"{t_cont_high:.6f}"
+        row["t_cont_low"] = f"{t_cont_low:.6f}"
+        meta["t_release"] = t_release
+        meta["t_cont_high"] = t_cont_high
+        meta["t_cont_low"] = t_cont_low
+        log.info(f"block{block:02d}_{arm} release t={t_release:.6f} "
+                 f"cont_high={t_cont_high:.6f} cont_low={t_cont_low:.6f}")
+
+        # Observe each child's completion independently (no sequential wait).
+        threads = []
+        for proc, role in ((high, "high"), (low, "low")):
+            th = threading.Thread(target=watch_tenant, args=(proc, role, results))
+            th.start()
+            threads.append(th)
+        for th in threads:
+            th.join()
+
+        # Stop our own policy tools (own attachments only).
+        for label in ("sched", "mem"):
+            if label in tools:
+                stop_proc(tools[label], f"{label}_tool", notes)
+                meta[f"rc_{label}_tool"] = tools[label].returncode
+
+        for role in ("high", "low"):
+            r = results.get(role)
+            if r is None or t_release is None:
+                notes.append(f"{role}_no_result")
+                continue
+            row[f"t_exit_{role}"] = f"{r['t_done']:.6f}"
+            row[f"{role}_latency_s"] = f"{r['t_done'] - t_release:.6f}"
+            row[f"{role}_rc"] = r["rc"] if r["rc"] is not None else ""
+            meta[f"t_done_{role}"] = r["t_done"]
+            meta[f"rc_{role}"] = r["rc"]
+
+        # Parse per-tenant stdout (retained in the arm dir) for median/bandwidth.
+        for role, name in (("high", HIGH_NAME), ("low", LOW_NAME)):
+            median, bw = parse_uvmbench_output(arm_dir / f"tenant_{name}.log")
+            row[f"{role}_median_ms"] = median
+            row[f"{role}_bw_gbps"] = bw
+
+        row["notes"] = ";".join(notes)
+        meta["notes"] = notes
+    except Exception as exc:
+        failed = True
+        notes.append(f"harness_error:{type(exc).__name__}:{exc}")
+        print(f"  harness error in {arm_dir}: {exc!r}")
+    finally:
+        # Clean up only our own processes/attachments.
+        stop_proc(high, "high")
+        stop_proc(low, "low")
+        for label, p in tools.items():
+            stop_proc(p, f"{label}_tool")
+        for f in files:
+            try:
+                f.close()
+            except OSError:
+                pass
+        # Always persist the final notes and failure status, even on error.
+        meta["status"] = "error" if failed else "ok"
+        meta["notes"] = notes
+        row["notes"] = ";".join(notes)
+        try:
+            (arm_dir / "meta.json").write_text(json.dumps(meta, indent=2))
+        except OSError as exc:
+            print(f"  meta.json write failed: {exc}")
+    return row
+
+
+def run_combined_mode(args, kernel, size_factor, output_dir):
+    """Run the opt-in four-arm combined comparison for one kernel.
+
+    Writes into a fresh timestamped run subdirectory under output_dir so a
+    reused --output never overwrites earlier raw results (CSV, run.json,
+    events.log, per-arm tenant/tool logs, meta.json).
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_root = output_dir / f"combined_{ts}"
+    run_root.mkdir(parents=True, exist_ok=True)
+    link_dir = run_root / "tenant_links"
+    csv_path = run_root / "combined_comparison.csv"
+
+    # Rotate the arm order so every arm occupies every position across blocks.
+    arm_orders = {}
+    for b in range(args.blocks):
+        start = b % len(COMBINED_ARMS)
+        arm_orders[b] = list(COMBINED_ARMS[start:] + COMBINED_ARMS[:start])
+
+    run_cfg = {
+        "mode": "combined",
+        "started_utc": datetime.now().isoformat(),
+        "kernel": kernel,
+        "size_factor": size_factor,
+        "iterations": ITERATIONS,
+        "tenants": 2,
+        "blocks": args.blocks,
+        "arms": list(COMBINED_ARMS),
+        "arm_orders": arm_orders,
+        "output_dir": str(output_dir),
+        "run_root": str(run_root),
+        "link_dir": str(link_dir),
+        "mem_params": f"high={COMBINED_MEM_HIGH}/low={COMBINED_MEM_LOW}",
+        "sched_params": f"high={COMBINED_SCHED_HIGH_TS}us/low={COMBINED_SCHED_LOW_TS}us",
+        "mem_tool": str(args.mem_tool),
+        "sched_tool": str(args.sched_tool),
+        "tenant_launcher": str(args.tenant_launcher),
+        "uvmbench": str(args.uvmbench),
+        "common_release_origin": True,
+        "independent_exit_observation": True,
+        "cleanup": "own processes/attachments only; no global pkill/struct-ops",
+    }
+    (run_root / "run.json").write_text(json.dumps(run_cfg, indent=2))
+
+    events_fh = open(run_root / "events.log", "w", buffering=1)
+
+    class RunLog:
+        def info(self, msg):
+            line = f"{datetime.now().isoformat()} {msg}"
+            print(line, flush=True)
+            events_fh.write(line + "\n")
+            events_fh.flush()
+
+    log = RunLog()
+    log.info(f"combined start kernel={kernel} size_factor={size_factor} "
+             f"blocks={args.blocks} out={run_root}")
+
+    with open(csv_path, "w", newline="") as f:
+        csv.DictWriter(f, fieldnames=COMBINED_CSV_COLUMNS).writeheader()
+
+    for block, order in arm_orders.items():
+        log.info(f"block {block} arm order: {','.join(order)}")
+        for arm in order:
+            log.info(f"--- block {block} arm {arm} ---")
+            row = run_combined_arm(block, arm, size_factor, kernel, run_root, link_dir, args, log)
+            with open(csv_path, "a", newline="") as f:
+                csv.DictWriter(f, fieldnames=COMBINED_CSV_COLUMNS).writerow(row)
+
+    events_fh.close()
+    print(f"\nResults saved to: {run_root}")
+    print(f"CSV: {csv_path}")
+    return csv_path
 
 
 def run_experiment(policy_name, policy_binary, high_param, low_param, round_idx, size_factor, kernel, output_dir):
@@ -336,7 +701,55 @@ def parse_args():
                         help=f'Kernel to run (default: {DEFAULT_KERNEL})')
     parser.add_argument('--output', '-o', type=str, default=None,
                         help=f'Output directory for results (default: results)')
+    parser.add_argument('--combined', action='store_true',
+                        help='Run the opt-in four-arm combined memory/scheduling '
+                             'comparison (baseline, memory-only, sched-only, combined)')
+    parser.add_argument('--blocks', type=int, default=COMBINED_BLOCKS,
+                        help=f'Interleaved blocks for --combined (default: {COMBINED_BLOCKS})')
+    parser.add_argument('--mem-tool', type=str, default=str(SRC / "prefetch_eviction_pid"),
+                        help='Path to the memory policy tool')
+    parser.add_argument('--sched-tool', type=str, default=str(SRC / "gpu_sched_set_timeslices"),
+                        help='Path to the scheduler policy tool')
+    parser.add_argument('--uvmbench', type=str, default=str(UVM),
+                        help='Path to the uvmbench binary')
+    parser.add_argument('--tenant-launcher', type=str, default=str(TENANT_LAUNCHER),
+                        help='Path to the stop-before-exec tenant launcher')
     return parser.parse_args()
+
+
+def run_combined(args):
+    """Dispatch the opt-in four-arm combined comparison for one kernel."""
+    if args.output:
+        output_dir = Path(args.output)
+        if not output_dir.is_absolute():
+            output_dir = Path(__file__).parent / output_dir
+    else:
+        output_dir = Path(__file__).parent / "results_combined"
+
+    required = {
+        "uvmbench": Path(args.uvmbench),
+        "mem_tool": Path(args.mem_tool),
+        "sched_tool": Path(args.sched_tool),
+        "tenant_launcher": Path(args.tenant_launcher),
+    }
+    missing = [f"{name}={path}" for name, path in required.items() if not path.exists()]
+    if missing:
+        print("Error: combined mode is missing required tools:\n  " + "\n  ".join(missing))
+        sys.exit(1)
+
+    size_factor = args.size_factor
+    kernel = args.kernel
+    print("=" * 60)
+    print("Combined Four-Arm Comparison (ORIGINAL Fig.13 follow-up)")
+    print("=" * 60)
+    print(f"Kernel: {kernel}, Size Factor: {size_factor}, Iterations: {ITERATIONS}")
+    print(f"Arms: {', '.join(COMBINED_ARMS)}, Blocks: {args.blocks}")
+    print(f"Memory policy: prefetch_eviction_pid high={COMBINED_MEM_HIGH}/low={COMBINED_MEM_LOW}")
+    print(f"Sched policy:  gpu_sched_set_timeslices high={COMBINED_SCHED_HIGH_TS}us/low={COMBINED_SCHED_LOW_TS}us")
+    print(f"Output: {output_dir}")
+    print()
+
+    run_combined_mode(args, kernel, size_factor, output_dir)
 
 
 def main():
@@ -346,6 +759,10 @@ def main():
     if not UVM.exists():
         print(f"Error: {UVM} not found")
         sys.exit(1)
+
+    if args.combined:
+        run_combined(args)
+        return
 
     # Determine output directory
     if args.output:

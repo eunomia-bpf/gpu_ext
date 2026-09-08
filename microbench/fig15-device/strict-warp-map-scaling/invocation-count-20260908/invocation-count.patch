@@ -1,0 +1,337 @@
+--- a/attach/nv_attach_impl/nv_attach_fatbin_record.cpp	2026-09-08 08:43:03.144411313 -0700
++++ b/attach/nv_attach_impl/nv_attach_fatbin_record.cpp	2026-09-08 09:22:10.850500514 -0700
+@@ -53,6 +53,21 @@
+ }
+ ptx_in_module::~ptx_in_module()
+ {
++	if (this->warp_hook_call_count_ptr != 0) {
++		uint64_t count = 0;
++		if (auto err = cuMemcpyDtoH(&count,
++					     this->warp_hook_call_count_ptr,
++					     sizeof(count));
++		    err == CUDA_SUCCESS) {
++				SPDLOG_INFO(
++					"warp hook call count: {} (actual probe-call invocations across warmup and timed launches of this process; leader-predicated under auto-warp, thread-predicated otherwise)",
++				count);
++		} else {
++			SPDLOG_ERROR(
++				"Unable to read back warp hook call count: {}",
++				(int)err);
++		}
++	}
+ 	CUDA_DRIVER_CHECK_NO_EXCEPTION(cuModuleUnload(this->module_ptr),
+ 				       "Unable to unload module");
+ }
+@@ -371,6 +386,24 @@
+ 			auto ptr = std::make_shared<ptx_in_module>(module);
+ 			module_pool->insert(std::make_pair(sha256_string, ptr));
+ 			ptxs.push_back(ptr);
++			if (ptxpass::warp_hook_call_count_env_enabled()) {
++				CUdeviceptr count_ptr = 0;
++				size_t count_size = 0;
++				if (auto err = cuModuleGetGlobal(
++						&count_ptr, &count_size, module,
++						ptxpass::kWarpHookCallCountGlobal);
++				    err == CUDA_SUCCESS) {
++					ptr->warp_hook_call_count_ptr =
++						count_ptr;
++					SPDLOG_INFO(
++						"warp hook call count global present: device_ptr={:x} size={}",
++						(uintptr_t)count_ptr,
++						count_size);
++				} else {
++					SPDLOG_INFO(
++						"warp hook call count global absent: no probe call-site lowering in this module");
++				}
++			}
+ 			SPDLOG_INFO("Loaded module: {}", name);
+ 		}
+ 	}
+--- a/attach/nv_attach_impl/nv_attach_fatbin_record.hpp	2026-09-08 08:43:03.144389134 -0700
++++ b/attach/nv_attach_impl/nv_attach_fatbin_record.hpp	2026-09-08 09:04:42.240073454 -0700
+@@ -12,6 +12,9 @@
+ {
+ struct ptx_in_module {
+ 	CUmodule module_ptr;
++	// Device pointer of the opt-in warp hook call count global, or 0 when
++	// the loaded module does not carry it.
++	CUdeviceptr warp_hook_call_count_ptr = 0;
+ 	ptx_in_module(CUmodule module_ptr) : module_ptr(module_ptr)
+ 	{
+ 	}
+--- a/attach/nv_attach_impl/nv_attach_impl.cpp	2026-09-08 08:43:03.144340485 -0700
++++ b/attach/nv_attach_impl/nv_attach_impl.cpp	2026-09-08 09:22:10.846500425 -0700
+@@ -1148,9 +1148,11 @@
+ 							"map_info";
+ 						ri.ebpf_communication_data_symbol =
+ 							"constData";
+-						ri.warp_auto_execution =
+-							hook_entry
+-								.warp_auto_execution;
++							ri.warp_auto_execution =
++								hook_entry
++									.warp_auto_execution;
++							ri.warp_hook_call_count =
++								ptxpass::warp_hook_call_count_env_enabled();
+ 
+ 						req.set_ebpf_instructions(
+ 							ebpf_inst_words);
+--- a/attach/nv_attach_impl/pass/ptxpass_core/include/ptxpass/core.hpp	2026-09-08 08:43:03.141770722 -0700
++++ b/attach/nv_attach_impl/pass/ptxpass_core/include/ptxpass/core.hpp	2026-09-08 08:45:09.014731726 -0700
+@@ -80,10 +80,17 @@
+ 	// warp-policy eligibility analysis, so the flag is admission-backed
+ 	// rather than caller-provided trust.
+ 	bool warp_auto_execution = false;
++	// Opt-in diagnostic: the pass predicated-adds module global
++	// kWarpHookCallCountGlobal at each generated warp-leader call site so
++	// the runtime can read back the actual invocation count. The runtime
++	// sets it only together with warp_auto_execution; it never changes the
++	// BPF object or the warp-policy eligibility decision.
++	bool warp_hook_call_count = false;
+ };
+ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+ 	RuntimeInput, full_ptx, to_patch_kernel, global_ebpf_map_info_symbol,
+-	ebpf_communication_data_symbol, warp_auto_execution);
++	ebpf_communication_data_symbol, warp_auto_execution,
++	warp_hook_call_count);
+ } // namespace runtime_input
+ 
+ // JSON stdout payload
+@@ -184,14 +191,41 @@
+ // Insert warp_execution_register_decls() at the start of the kernel body.
+ // Returns false (without modifying ptx) if the kernel could not be located.
+ bool insert_warp_execution_register_decls(std::string &ptx,
+-					  const std::string &kernel);
++					      const std::string &kernel);
++
++// Opt-in actual-invocation counter for the automatic warp-execution
++// lowering. When the runtime enables it (environment
++// kWarpHookCallCountEnv, non-empty value other than "0") and the warp
++// leader lowering applies, each elected leader predicated-adds 1 to the
++// module global below at the generated call site. The runtime resolves the
++// global in the loaded module and reads the value back to the host.
++inline constexpr const char *kWarpHookCallCountGlobal =
++	"bpftime_warp_hook_call_count";
++inline constexpr const char *kWarpHookCallCountEnv =
++	"BPFTIME_GPU_WARP_HOOK_CALL_COUNT";
++
++// Environment predicate matching the auto-warp enablement convention:
++// non-empty value other than "0".
++inline bool warp_hook_call_count_env_enabled()
++{
++	const std::string value = get_env(kWarpHookCallCountEnv);
++	return !value.empty() && value != "0";
++}
++
++// Module-scope declaration of the counter global, emitted only when at
++// least one warp-leader call site carries the counter increment.
++std::string warp_hook_call_count_global_decl();
+ 
+ // Election preamble plus a single leader-predicated `call func_name;` for one
+ // ret/exit site. pred_text is the original site predicate with trailing
+ // space, e.g. "@%p1 " (may be empty for unconditional sites). The original
+ // control-flow line must still be emitted after the returned text.
++// When count_hook_calls is true, a predicated red-add on
++// kWarpHookCallCountGlobal is emitted under the same leader predicate,
++// immediately before the call.
+ std::string emit_warp_leader_hook_prefix(const std::string &func_name,
+-					 const std::string &pred_text);
++					 const std::string &pred_text,
++					 bool count_hook_calls = false);
+ 
+ // Emit simple stats to stderr (pass name, matched count, in/out sizes)
+ void log_transform_stats(const char *pass_name, int matched, size_t bytes_in,
+--- a/attach/nv_attach_impl/pass/ptxpass_core/src/core.cpp	2026-09-08 08:43:03.142727929 -0700
++++ b/attach/nv_attach_impl/pass/ptxpass_core/src/core.cpp	2026-09-08 08:47:48.522281845 -0700
+@@ -394,8 +394,15 @@
+ 	return true;
+ }
+ 
++std::string warp_hook_call_count_global_decl()
++{
++	return std::string(".global .u64 ") + kWarpHookCallCountGlobal +
++		";\n";
++}
++
+ std::string emit_warp_leader_hook_prefix(const std::string &func_name,
+-					 const std::string &pred_text)
++					 const std::string &pred_text,
++					 bool count_hook_calls)
+ {
+ 	using namespace detail;
+ 	const std::string pred_reg = [&]() {
+@@ -480,6 +487,18 @@
+ 			out += ";\n";
+ 		}
+ 	}
++	if (count_hook_calls) {
++		if (pred_reg.empty()) {
++			out += "\t@";
++			out += kWarpExecLeaderPred;
++		} else {
++			out += "\t@";
++			out += kWarpExecCallPred;
++		}
++		out += " red.global.add.u64 [";
++		out += kWarpHookCallCountGlobal;
++		out += "], 1;\n";
++	}
+ 	if (pred_reg.empty()) {
+ 		out += "\t@";
+ 		out += kWarpExecLeaderPred;
+--- a/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp	2026-09-08 08:43:03.143452765 -0700
++++ b/attach/nv_attach_impl/pass/ptxpass_kprobe_entry/main.cpp	2026-09-08 09:20:47.012514059 -0700
+@@ -46,7 +46,7 @@
+ patch_entry(const std::string &ptx, const std::string &kernel,
+ 	    const std::vector<uint64_t> &ebpf_words,
+ 	    const std::string &stub_name, bool add_register_guard,
+-	    bool warp_auto_execution)
++	    bool warp_auto_execution, bool warp_hook_call_count)
+ {
+ 	if (ebpf_words.empty()) {
+ 		return { ptx, false };
+@@ -58,6 +58,7 @@
+ 
+ 	bool patched_stub_calls = false;
+ 	bool warp_decls_inserted = false;
++	bool counter_lowered = false;
+ 	{
+ 		// Warp lowering is scoped to the selected kernel body: the
+ 		// leader registers are only declared there, so stub calls in
+@@ -128,8 +129,9 @@
+ 						std::string prefix =
+ 							ptxpass::
+ 								emit_warp_leader_hook_prefix(
+-									fname,
+-									pm[3].str());
++								fname, pm[3].str(),
++								warp_hook_call_count);
++						counter_lowered = warp_hook_call_count;
+ 						// The helper emits the guarded
+ 						// call with a trailing ";\n";
+ 						// splice it off so the
+@@ -163,11 +165,62 @@
+ 						replace_begin = pos;
+ 					}
+ 					replace_len = call_end - replace_begin;
++				} else if (warp_hook_call_count) {
++					// Scalar (non-warp) call site: every thread that
++					// reaches the original call reaches the rewritten
++					// one, so insert one predicated counter add
++					// immediately before it, under the same site
++					// predicate.
++					const size_t line_start =
++						out.rfind('\n', pos);
++					const size_t stmt_begin =
++						line_start == std::string::npos ?
++							0 :
++							line_start + 1;
++					const std::string head =
++						out.substr(stmt_begin,
++						       pos - stmt_begin);
++					std::smatch pm;
++					static const std::regex headpat(
++						R"(^([ \t]*)((?:[\w$\.]+:[ \t]*)?)(@[^\s]+[ \t]*)?$)");
++					if (std::regex_match(head, pm,
++						     headpat)) {
++						const std::string pred =
++							pm[3].str();
++						replacement =
++							pm[1].str() + pm[2].str();
++						if (!pm[2].str().empty())
++							replacement += "\n";
++						replacement += pred +
++							"red.global.add.u64 [" +
++							ptxpass::
++								kWarpHookCallCountGlobal +
++							"], 1;\n";
++						replacement += pm[1].str() + pred +
++							pat.substr(0,
++							       pat.find(' ')) +
++							" " + fname;
++						replace_begin = stmt_begin;
++						replace_len =
++							pos + pat.size() -
++							stmt_begin;
++						counter_lowered = true;
++					} else {
++						// Unexpected tokens precede the call
++						// on this line; rewrite only the callee
++						// and skip the counter for this site.
++						replacement = pat.substr(
++							    0,
++							    pat.find(' ')) +
++							" " + fname;
++						replace_begin = pos;
++						replace_len = pat.size();
++					}
+ 				} else {
+ 					replacement = pat.substr(
+-							      0,
+-							      pat.find(' ')) +
+-						      " " + fname;
++						      0,
++						      pat.find(' ')) +
++					      " " + fname;
+ 					replace_begin = pos;
+ 					replace_len = pat.size();
+ 				}
+@@ -182,7 +235,11 @@
+ 	}
+ 
+ 	if (patched_stub_calls) {
+-		out = func_ptx + "\n" + out;
++		const std::string counter_decl = counter_lowered ?
++							ptxpass::
++							warp_hook_call_count_global_decl() :
++							std::string();
++		out = counter_decl + func_ptx + "\n" + out;
+ 		ptxpass::log_transform_stats("kprobe_entry_stub", 1,
+ 					     ptx.size(), out.size());
+ 		return { out, true };
+@@ -210,13 +267,30 @@
+ 		// Kernel-entry hook: every launched lane of the warp is still
+ 		// active and converged here, so the ballot elects the leader
+ 		// once per active warp.
+-		out.insert(insertPos,
+-			   "\n" + ptxpass::emit_warp_leader_hook_prefix(fname, "") +
+-				   "\n");
++		out.insert(insertPos, "\n" +
++			   ptxpass::emit_warp_leader_hook_prefix(
++				   fname, "", warp_hook_call_count) +
++			   "\n");
++		counter_lowered = warp_hook_call_count;
+ 	} else {
+-		out.insert(insertPos, std::string("\n    call ") + fname + ";\n");
++		// Kernel-entry scalar hook: every thread executes the call, so
++		// the counter increment is unconditional here.
++		const std::string entry_call =
++			std::string("    call ") + fname + ";\n";
++		out.insert(insertPos,
++			   std::string("\n") +
++			   (warp_hook_call_count ?
++			    std::string("    red.global.add.u64 [") +
++			    ptxpass::kWarpHookCallCountGlobal +
++			    "], 1;\n" :
++			    std::string()) +
++			   entry_call);
++		counter_lowered = warp_hook_call_count;
+ 	}
+-	out = func_ptx + "\n" + out;
++	const std::string counter_decl = counter_lowered ?
++					ptxpass::warp_hook_call_count_global_decl() :
++					std::string();
++	out = counter_decl + func_ptx + "\n" + out;
+ 	ptxpass::log_transform_stats("kprobe_entry", 1, ptx.size(), out.size());
+ 	return { out, true };
+ }
+@@ -253,7 +327,8 @@
+ 			runtime_request.input.to_patch_kernel,
+ 			runtime_request.get_uint64_ebpf_instructions(),
+ 			stub_name, add_register_guard,
+-			runtime_request.input.warp_auto_execution);
++			runtime_request.input.warp_auto_execution,
++			runtime_request.input.warp_hook_call_count);
+ 		snprintf(
+ 			output, length, "%s",
+ 			emit_runtime_response_and_return(out, modified).c_str());

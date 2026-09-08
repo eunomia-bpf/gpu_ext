@@ -82,3 +82,25 @@ not a reduced workload or deletion of unfavorable data. Neither result
 establishes cross-process physical HBM reclamation or transparent disk-UVM
 paging. The independent UVM backing-route analysis remains a separate
 implementation question, not a substitute performance claim.
+
+## Alternative considered during implementation
+
+The local analysis suggested subtracting `disk_backed_bytes` from
+`freeable_bytes` before ranking, as an approximation to capacity remaining
+after a future restore. That is not the selected ablation. The existing ABI
+deliberately distinguishes whole-object transfer bytes from exclusive,
+actually freeable KV bytes, and a full-recompute route need not read that
+backing object at all. Future restored occupancy also differs from capacity
+released now. Unconditionally subtracting these quantities would introduce
+another unvalidated model rather than isolate the original denominator.
+The total-cost comparison stays unchanged; a later re-admission-aware policy
+would need to define the relevant allocation deficit and occupancy explicitly.
+
+Source/runtime preparation: the existing loader accepts a BPF object path
+as its first argument. Before the new build, the old loaded-policy process
+is PID 1783868, running `kv_reclaim_loader kv_reclaim_policy.bpf.o` via
+absolute paths under this directory. The original BPF object is 42544 bytes,
+native library 28568 bytes, and loader 1517248 bytes. These sizes are an
+inventory, not a content identity check. Root will recheck the exact live
+process while holding the existing locks before any policy switch; the
+new build must not overwrite these original experiment assets.

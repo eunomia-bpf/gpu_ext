@@ -1,0 +1,65 @@
+{
+  "mode": "combined",
+  "started_utc": "2026-09-08T04:09:36.008146",
+  "kernel": "kmeans_sparse",
+  "size_factor": 0.4,
+  "iterations": 1,
+  "tenants": 2,
+  "blocks": 5,
+  "arms": [
+    "baseline",
+    "sched_only",
+    "prefetch_only",
+    "memory_only",
+    "combined"
+  ],
+  "arm_orders": {
+    "0": [
+      "baseline",
+      "sched_only",
+      "prefetch_only",
+      "memory_only",
+      "combined"
+    ],
+    "1": [
+      "sched_only",
+      "prefetch_only",
+      "memory_only",
+      "combined",
+      "baseline"
+    ],
+    "2": [
+      "prefetch_only",
+      "memory_only",
+      "combined",
+      "baseline",
+      "sched_only"
+    ],
+    "3": [
+      "memory_only",
+      "combined",
+      "baseline",
+      "sched_only",
+      "prefetch_only"
+    ],
+    "4": [
+      "combined",
+      "baseline",
+      "sched_only",
+      "prefetch_only",
+      "memory_only"
+    ]
+  },
+  "output_dir": "/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8",
+  "run_root": "/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936",
+  "link_dir": "/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936/tenant_links",
+  "mem_params": "high=20/low=80",
+  "sched_params": "high=1000000us/low=200us",
+  "mem_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid",
+  "sched_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices",
+  "tenant_launcher": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py",
+  "uvmbench": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench",
+  "common_release_origin": true,
+  "independent_exit_observation": true,
+  "cleanup": "own processes/attachments only; no global pkill/struct-ops"
+}

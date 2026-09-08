@@ -1,0 +1,39 @@
+{
+  "block": 1,
+  "arm": "prefetch_only",
+  "kernel": "kmeans_sparse",
+  "size_factor": 0.4,
+  "iterations": 1,
+  "high_name": "uvmbench_high",
+  "low_name": "uvmbench_low",
+  "mem_params": "high=20/low=80",
+  "sched_params": "high=1000000us/low=200us",
+  "mem_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_pid_tree",
+  "sched_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices",
+  "tenant_launcher": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py",
+  "uvmbench": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench",
+  "common_release_origin": true,
+  "independent_exit_observation": true,
+  "command_high": "/usr/bin/python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936/tenant_links/uvmbench_high --size_factor=0.4 --mode=uvm --iterations=1 --kernel=kmeans_sparse --output=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936/block01_prefetch_only/uvmbench_uvmbench_high_results.csv",
+  "command_low": "/usr/bin/python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936/tenant_links/uvmbench_low --size_factor=0.4 --mode=uvm --iterations=1 --kernel=kmeans_sparse --output=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936/block01_prefetch_only/uvmbench_uvmbench_low_results.csv",
+  "t_spawn_high": 1788865946.421946,
+  "t_spawn_low": 1788865946.4225237,
+  "states_after_spawn": {
+    "high": "T",
+    "low": "T"
+  },
+  "t_mem_start": 1788865947.4732344,
+  "command_mem": "sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_pid_tree -p 2684283 -P 20 -l 2684284 -L 80",
+  "t_release": 1788865947.4732509,
+  "t_cont_high": 1788865947.4732578,
+  "t_cont_low": 1788865947.4732597,
+  "rc_mem_tool": 0,
+  "t_done_high": 1788865974.5621903,
+  "rc_high": 0,
+  "t_done_low": 1788865975.4862454,
+  "rc_low": 0,
+  "notes": [
+    "mem_tool_stopped rc=0"
+  ],
+  "status": "ok"
+}

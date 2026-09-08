@@ -1,0 +1,39 @@
+{
+  "block": 4,
+  "arm": "sched_only",
+  "kernel": "gemm",
+  "size_factor": 0.4,
+  "iterations": 1,
+  "high_name": "uvmbench_high",
+  "low_name": "uvmbench_low",
+  "mem_params": "high=20/low=80",
+  "sched_params": "high=1000000us/low=200us",
+  "mem_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/prefetch_eviction_pid",
+  "sched_tool": "/home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices",
+  "tenant_launcher": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py",
+  "uvmbench": "/home/yunwei37/workspace/gpu/gpu_ext/microbench/memory/uvmbench",
+  "common_release_origin": true,
+  "independent_exit_observation": true,
+  "command_high": "/usr/bin/python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257/tenant_links/uvmbench_high --size_factor=0.4 --mode=uvm --iterations=1 --kernel=gemm --output=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257/block04_sched_only/uvmbench_uvmbench_high_results.csv",
+  "command_low": "/usr/bin/python3 /home/yunwei37/workspace/gpu/gpu_ext/workloads/fig13-fast/tenant_launcher.py /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257/tenant_links/uvmbench_low --size_factor=0.4 --mode=uvm --iterations=1 --kernel=gemm --output=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257/block04_sched_only/uvmbench_uvmbench_low_results.csv",
+  "t_spawn_high": 1788865727.4116907,
+  "t_spawn_low": 1788865727.4120128,
+  "states_after_spawn": {
+    "high": "T",
+    "low": "T"
+  },
+  "t_sched_start": 1788865728.4627817,
+  "command_sched": "sudo /home/yunwei37/workspace/gpu/gpu_ext/extension/gpu_sched_set_timeslices -p uvmbench_high:1000000 -p uvmbench_low:200",
+  "t_release": 1788865728.462798,
+  "t_cont_high": 1788865728.4628043,
+  "t_cont_low": 1788865728.4628065,
+  "rc_sched_tool": 0,
+  "t_done_high": 1788865737.8198557,
+  "rc_high": 0,
+  "t_done_low": 1788865741.7921937,
+  "rc_low": 0,
+  "notes": [
+    "sched_tool_stopped rc=0"
+  ],
+  "status": "ok"
+}

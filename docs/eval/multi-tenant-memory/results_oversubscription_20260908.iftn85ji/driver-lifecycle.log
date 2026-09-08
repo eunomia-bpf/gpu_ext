@@ -1,0 +1,706 @@
++ date -Is
+2026-09-08T04:00:13-07:00
++ kill -INT 2474310 2474311
++ sweep_loaders_stopped=1
++ systemctl stop gdm nvidia-persistenced
++ sleep 1
++ sweep_changed=1
++ for sweep_module in nvidia_drm nvidia_modeset nvidia_uvm nvidia
++ '[' -d /sys/module/nvidia_drm ']'
++ for sweep_module in nvidia_drm nvidia_modeset nvidia_uvm nvidia
++ '[' -d /sys/module/nvidia_modeset ']'
++ rmmod nvidia_modeset
++ for sweep_module in nvidia_drm nvidia_modeset nvidia_uvm nvidia
++ '[' -d /sys/module/nvidia_uvm ']'
++ rmmod nvidia_uvm
++ for sweep_module in nvidia_drm nvidia_modeset nvidia_uvm nvidia
++ '[' -d /sys/module/nvidia ']'
++ rmmod nvidia
++ insmod /var/tmp/fig13-original-modules-20260908.TkarSf/nvidia.ko
++ insmod /var/tmp/fig13-original-modules-20260908.TkarSf/nvidia-uvm.ko uvm_enable_builtin_tests=0
++ nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
++ python3 -
+CUDA GPU capacity: 33669316608
++ python3 -u /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/run_sweep.py
+SWEEP_START kernel=hotspot requested_total_ratio=0.8
+2026-09-08T04:00:18.341429 combined start kernel=hotspot size_factor=0.4 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-0.8/combined_20260908_040018
+2026-09-08T04:00:18.341503 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T04:00:18.341512 --- block 0 arm baseline ---
+2026-09-08T04:00:18.392588 block00_baseline release t=1788865218.392562 cont_high=1788865218.392571 cont_low=1788865218.392573
+2026-09-08T04:00:23.661551 --- block 0 arm sched_only ---
+2026-09-08T04:00:24.712937 block00_sched_only release t=1788865224.712917 cont_high=1788865224.712925 cont_low=1788865224.712927
+2026-09-08T04:00:29.390202 --- block 0 arm prefetch_only ---
+2026-09-08T04:00:30.441831 block00_prefetch_only release t=1788865230.441810 cont_high=1788865230.441818 cont_low=1788865230.441821
+2026-09-08T04:00:36.271899 --- block 0 arm memory_only ---
+2026-09-08T04:00:37.323950 block00_memory_only release t=1788865237.323933 cont_high=1788865237.323939 cont_low=1788865237.323941
+2026-09-08T04:00:42.677358 --- block 0 arm combined ---
+2026-09-08T04:00:44.729849 block00_combined release t=1788865244.729833 cont_high=1788865244.729839 cont_low=1788865244.729841
+2026-09-08T04:00:49.733612 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T04:00:49.733640 --- block 1 arm sched_only ---
+2026-09-08T04:00:50.785472 block01_sched_only release t=1788865250.785455 cont_high=1788865250.785461 cont_low=1788865250.785463
+2026-09-08T04:00:55.464359 --- block 1 arm prefetch_only ---
+2026-09-08T04:00:56.516377 block01_prefetch_only release t=1788865256.516360 cont_high=1788865256.516366 cont_low=1788865256.516368
+2026-09-08T04:01:02.298491 --- block 1 arm memory_only ---
+2026-09-08T04:01:03.350335 block01_memory_only release t=1788865263.350318 cont_high=1788865263.350324 cont_low=1788865263.350326
+2026-09-08T04:01:09.242451 --- block 1 arm combined ---
+2026-09-08T04:01:11.294800 block01_combined release t=1788865271.294781 cont_high=1788865271.294788 cont_low=1788865271.294790
+2026-09-08T04:01:16.288938 --- block 1 arm baseline ---
+2026-09-08T04:01:16.340166 block01_baseline release t=1788865276.340151 cont_high=1788865276.340155 cont_low=1788865276.340156
+2026-09-08T04:01:21.661481 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T04:01:21.661512 --- block 2 arm prefetch_only ---
+2026-09-08T04:01:22.713202 block02_prefetch_only release t=1788865282.713175 cont_high=1788865282.713183 cont_low=1788865282.713187
+2026-09-08T04:01:28.559061 --- block 2 arm memory_only ---
+2026-09-08T04:01:29.610664 block02_memory_only release t=1788865289.610646 cont_high=1788865289.610653 cont_low=1788865289.610655
+2026-09-08T04:01:35.483318 --- block 2 arm combined ---
+2026-09-08T04:01:37.535984 block02_combined release t=1788865297.535966 cont_high=1788865297.535973 cont_low=1788865297.535975
+2026-09-08T04:01:42.545975 --- block 2 arm baseline ---
+2026-09-08T04:01:42.596995 block02_baseline release t=1788865302.596974 cont_high=1788865302.596980 cont_low=1788865302.596981
+2026-09-08T04:01:47.884838 --- block 2 arm sched_only ---
+2026-09-08T04:01:48.936610 block02_sched_only release t=1788865308.936587 cont_high=1788865308.936598 cont_low=1788865308.936601
+2026-09-08T04:01:53.632530 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T04:01:53.632559 --- block 3 arm memory_only ---
+2026-09-08T04:01:54.684147 block03_memory_only release t=1788865314.684117 cont_high=1788865314.684127 cont_low=1788865314.684130
+2026-09-08T04:02:00.557427 --- block 3 arm combined ---
+2026-09-08T04:02:02.609856 block03_combined release t=1788865322.609836 cont_high=1788865322.609843 cont_low=1788865322.609846
+2026-09-08T04:02:07.601276 --- block 3 arm baseline ---
+2026-09-08T04:02:07.652603 block03_baseline release t=1788865327.652578 cont_high=1788865327.652583 cont_low=1788865327.652584
+2026-09-08T04:02:13.016878 --- block 3 arm sched_only ---
+2026-09-08T04:02:14.068564 block03_sched_only release t=1788865334.068544 cont_high=1788865334.068552 cont_low=1788865334.068554
+2026-09-08T04:02:18.738025 --- block 3 arm prefetch_only ---
+2026-09-08T04:02:19.789465 block03_prefetch_only release t=1788865339.789448 cont_high=1788865339.789454 cont_low=1788865339.789456
+2026-09-08T04:02:25.615414 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T04:02:25.615445 --- block 4 arm combined ---
+2026-09-08T04:02:27.668155 block04_combined release t=1788865347.668138 cont_high=1788865347.668144 cont_low=1788865347.668146
+2026-09-08T04:02:32.687624 --- block 4 arm baseline ---
+2026-09-08T04:02:32.738577 block04_baseline release t=1788865352.738557 cont_high=1788865352.738563 cont_low=1788865352.738564
+2026-09-08T04:02:38.050686 --- block 4 arm sched_only ---
+2026-09-08T04:02:39.102661 block04_sched_only release t=1788865359.102642 cont_high=1788865359.102649 cont_low=1788865359.102652
+2026-09-08T04:02:43.825258 --- block 4 arm prefetch_only ---
+2026-09-08T04:02:44.877099 block04_prefetch_only release t=1788865364.877082 cont_high=1788865364.877088 cont_low=1788865364.877090
+2026-09-08T04:02:50.690348 --- block 4 arm memory_only ---
+2026-09-08T04:02:51.742785 block04_memory_only release t=1788865371.742768 cont_high=1788865371.742774 cont_low=1788865371.742776
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-0.8/combined_20260908_040018
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-0.8/combined_20260908_040018/combined_comparison.csv
+SWEEP_COMPLETE kernel=hotspot ratio=0.8 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-0.8/combined_20260908_040018/combined_comparison.csv
+SWEEP_START kernel=gemm requested_total_ratio=0.8
+2026-09-08T04:02:57.627248 combined start kernel=gemm size_factor=0.4 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257
+2026-09-08T04:02:57.627300 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T04:02:57.627309 --- block 0 arm baseline ---
+2026-09-08T04:02:57.678301 block00_baseline release t=1788865377.678280 cont_high=1788865377.678285 cont_low=1788865377.678285
+2026-09-08T04:03:11.426791 --- block 0 arm sched_only ---
+2026-09-08T04:03:12.478792 block00_sched_only release t=1788865392.478774 cont_high=1788865392.478780 cont_low=1788865392.478782
+2026-09-08T04:03:25.830763 --- block 0 arm prefetch_only ---
+2026-09-08T04:03:26.882728 block00_prefetch_only release t=1788865406.882712 cont_high=1788865406.882717 cont_low=1788865406.882720
+2026-09-08T04:03:42.998588 --- block 0 arm memory_only ---
+2026-09-08T04:03:44.050068 block00_memory_only release t=1788865424.050050 cont_high=1788865424.050056 cont_low=1788865424.050059
+2026-09-08T04:04:00.114036 --- block 0 arm combined ---
+2026-09-08T04:04:02.166806 block00_combined release t=1788865442.166785 cont_high=1788865442.166792 cont_low=1788865442.166795
+2026-09-08T04:04:17.378842 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T04:04:17.378872 --- block 1 arm sched_only ---
+2026-09-08T04:04:18.430771 block01_sched_only release t=1788865458.430753 cont_high=1788865458.430759 cont_low=1788865458.430761
+2026-09-08T04:04:31.763125 --- block 1 arm prefetch_only ---
+2026-09-08T04:04:32.814633 block01_prefetch_only release t=1788865472.814615 cont_high=1788865472.814621 cont_low=1788865472.814624
+2026-09-08T04:04:48.680042 --- block 1 arm memory_only ---
+2026-09-08T04:04:49.731404 block01_memory_only release t=1788865489.731387 cont_high=1788865489.731392 cont_low=1788865489.731394
+2026-09-08T04:05:05.494337 --- block 1 arm combined ---
+2026-09-08T04:05:07.546483 block01_combined release t=1788865507.546464 cont_high=1788865507.546471 cont_low=1788865507.546473
+2026-09-08T04:05:22.745411 --- block 1 arm baseline ---
+2026-09-08T04:05:22.796683 block01_baseline release t=1788865522.796667 cont_high=1788865522.796670 cont_low=1788865522.796671
+2026-09-08T04:05:36.528880 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T04:05:36.528911 --- block 2 arm prefetch_only ---
+2026-09-08T04:05:37.580770 block02_prefetch_only release t=1788865537.580753 cont_high=1788865537.580759 cont_low=1788865537.580761
+2026-09-08T04:05:53.674653 --- block 2 arm memory_only ---
+2026-09-08T04:05:54.725922 block02_memory_only release t=1788865554.725905 cont_high=1788865554.725910 cont_low=1788865554.725913
+2026-09-08T04:06:10.761496 --- block 2 arm combined ---
+2026-09-08T04:06:12.814520 block02_combined release t=1788865572.814503 cont_high=1788865572.814508 cont_low=1788865572.814510
+2026-09-08T04:06:28.038150 --- block 2 arm baseline ---
+2026-09-08T04:06:28.089222 block02_baseline release t=1788865588.089201 cont_high=1788865588.089205 cont_low=1788865588.089206
+2026-09-08T04:06:41.900633 --- block 2 arm sched_only ---
+2026-09-08T04:06:42.952673 block02_sched_only release t=1788865602.952654 cont_high=1788865602.952662 cont_low=1788865602.952663
+2026-09-08T04:06:56.374724 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T04:06:56.374752 --- block 3 arm memory_only ---
+2026-09-08T04:06:57.426402 block03_memory_only release t=1788865617.426371 cont_high=1788865617.426382 cont_low=1788865617.426385
+2026-09-08T04:07:13.464493 --- block 3 arm combined ---
+2026-09-08T04:07:15.517231 block03_combined release t=1788865635.517208 cont_high=1788865635.517219 cont_low=1788865635.517221
+2026-09-08T04:07:30.850710 --- block 3 arm baseline ---
+2026-09-08T04:07:30.901804 block03_baseline release t=1788865650.901783 cont_high=1788865650.901788 cont_low=1788865650.901790
+2026-09-08T04:07:44.704805 --- block 3 arm sched_only ---
+2026-09-08T04:07:45.756474 block03_sched_only release t=1788865665.756454 cont_high=1788865665.756462 cont_low=1788865665.756464
+2026-09-08T04:07:59.153900 --- block 3 arm prefetch_only ---
+2026-09-08T04:08:00.205559 block03_prefetch_only release t=1788865680.205540 cont_high=1788865680.205548 cont_low=1788865680.205549
+2026-09-08T04:08:16.367761 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T04:08:16.367790 --- block 4 arm combined ---
+2026-09-08T04:08:18.420090 block04_combined release t=1788865698.420067 cont_high=1788865698.420078 cont_low=1788865698.420080
+2026-09-08T04:08:33.641017 --- block 4 arm baseline ---
+2026-09-08T04:08:33.691960 block04_baseline release t=1788865713.691947 cont_high=1788865713.691950 cont_low=1788865713.691951
+2026-09-08T04:08:47.411088 --- block 4 arm sched_only ---
+2026-09-08T04:08:48.462817 block04_sched_only release t=1788865728.462798 cont_high=1788865728.462804 cont_low=1788865728.462806
+2026-09-08T04:09:01.796127 --- block 4 arm prefetch_only ---
+2026-09-08T04:09:02.847787 block04_prefetch_only release t=1788865742.847771 cont_high=1788865742.847776 cont_low=1788865742.847778
+2026-09-08T04:09:18.926879 --- block 4 arm memory_only ---
+2026-09-08T04:09:19.978458 block04_memory_only release t=1788865759.978441 cont_high=1788865759.978446 cont_low=1788865759.978448
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257/combined_comparison.csv
+SWEEP_COMPLETE kernel=gemm ratio=0.8 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-0.8/combined_20260908_040257/combined_comparison.csv
+SWEEP_START kernel=kmeans_sparse requested_total_ratio=0.8
+2026-09-08T04:09:36.008259 combined start kernel=kmeans_sparse size_factor=0.4 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936
+2026-09-08T04:09:36.008309 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T04:09:36.008317 --- block 0 arm baseline ---
+2026-09-08T04:09:36.059333 block00_baseline release t=1788865776.059312 cont_high=1788865776.059318 cont_low=1788865776.059319
+2026-09-08T04:10:03.818641 --- block 0 arm sched_only ---
+2026-09-08T04:10:04.870810 block00_sched_only release t=1788865804.870792 cont_high=1788865804.870798 cont_low=1788865804.870800
+2026-09-08T04:10:31.456939 --- block 0 arm prefetch_only ---
+2026-09-08T04:10:32.508681 block00_prefetch_only release t=1788865832.508663 cont_high=1788865832.508670 cont_low=1788865832.508672
+2026-09-08T04:11:00.592720 --- block 0 arm memory_only ---
+2026-09-08T04:11:01.644821 block00_memory_only release t=1788865861.644805 cont_high=1788865861.644810 cont_low=1788865861.644812
+2026-09-08T04:11:29.782459 --- block 0 arm combined ---
+2026-09-08T04:11:31.835071 block00_combined release t=1788865891.835037 cont_high=1788865891.835048 cont_low=1788865891.835052
+2026-09-08T04:11:58.758997 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T04:11:58.759026 --- block 1 arm sched_only ---
+2026-09-08T04:11:59.810750 block01_sched_only release t=1788865919.810733 cont_high=1788865919.810738 cont_low=1788865919.810741
+2026-09-08T04:12:26.421185 --- block 1 arm prefetch_only ---
+2026-09-08T04:12:27.473269 block01_prefetch_only release t=1788865947.473251 cont_high=1788865947.473258 cont_low=1788865947.473260
+2026-09-08T04:12:55.600641 --- block 1 arm memory_only ---
+2026-09-08T04:12:56.652342 block01_memory_only release t=1788865976.652323 cont_high=1788865976.652330 cont_low=1788865976.652333
+2026-09-08T04:13:24.861823 --- block 1 arm combined ---
+2026-09-08T04:13:26.914068 block01_combined release t=1788866006.914049 cont_high=1788866006.914055 cont_low=1788866006.914057
+2026-09-08T04:13:53.832783 --- block 1 arm baseline ---
+2026-09-08T04:13:53.883753 block01_baseline release t=1788866033.883740 cont_high=1788866033.883743 cont_low=1788866033.883744
+2026-09-08T04:14:21.577455 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T04:14:21.577486 --- block 2 arm prefetch_only ---
+2026-09-08T04:14:22.629084 block02_prefetch_only release t=1788866062.629066 cont_high=1788866062.629073 cont_low=1788866062.629075
+2026-09-08T04:14:50.785564 --- block 2 arm memory_only ---
+2026-09-08T04:14:51.837301 block02_memory_only release t=1788866091.837271 cont_high=1788866091.837281 cont_low=1788866091.837284
+2026-09-08T04:15:19.906479 --- block 2 arm combined ---
+2026-09-08T04:15:21.959191 block02_combined release t=1788866121.959172 cont_high=1788866121.959179 cont_low=1788866121.959182
+2026-09-08T04:15:48.932713 --- block 2 arm baseline ---
+2026-09-08T04:15:48.983732 block02_baseline release t=1788866148.983711 cont_high=1788866148.983715 cont_low=1788866148.983716
+2026-09-08T04:16:16.629485 --- block 2 arm sched_only ---
+2026-09-08T04:16:17.681126 block02_sched_only release t=1788866177.681108 cont_high=1788866177.681114 cont_low=1788866177.681116
+2026-09-08T04:16:44.330789 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T04:16:44.330817 --- block 3 arm memory_only ---
+2026-09-08T04:16:45.382758 block03_memory_only release t=1788866205.382740 cont_high=1788866205.382746 cont_low=1788866205.382748
+2026-09-08T04:17:13.490632 --- block 3 arm combined ---
+2026-09-08T04:17:15.543259 block03_combined release t=1788866235.543241 cont_high=1788866235.543247 cont_low=1788866235.543249
+2026-09-08T04:17:42.536008 --- block 3 arm baseline ---
+2026-09-08T04:17:42.587332 block03_baseline release t=1788866262.587314 cont_high=1788866262.587318 cont_low=1788866262.587319
+2026-09-08T04:18:10.299451 --- block 3 arm sched_only ---
+2026-09-08T04:18:11.351550 block03_sched_only release t=1788866291.351532 cont_high=1788866291.351538 cont_low=1788866291.351540
+2026-09-08T04:18:37.950265 --- block 3 arm prefetch_only ---
+2026-09-08T04:18:39.002125 block03_prefetch_only release t=1788866319.002107 cont_high=1788866319.002113 cont_low=1788866319.002115
+2026-09-08T04:19:07.110426 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T04:19:07.110456 --- block 4 arm combined ---
+2026-09-08T04:19:09.163325 block04_combined release t=1788866349.163307 cont_high=1788866349.163313 cont_low=1788866349.163315
+2026-09-08T04:19:36.118042 --- block 4 arm baseline ---
+2026-09-08T04:19:36.169411 block04_baseline release t=1788866376.169395 cont_high=1788866376.169399 cont_low=1788866376.169400
+2026-09-08T04:20:03.929580 --- block 4 arm sched_only ---
+2026-09-08T04:20:04.981522 block04_sched_only release t=1788866404.981500 cont_high=1788866404.981509 cont_low=1788866404.981513
+2026-09-08T04:20:31.604553 --- block 4 arm prefetch_only ---
+2026-09-08T04:20:32.656534 block04_prefetch_only release t=1788866432.656516 cont_high=1788866432.656522 cont_low=1788866432.656524
+2026-09-08T04:21:00.767087 --- block 4 arm memory_only ---
+2026-09-08T04:21:01.819469 block04_memory_only release t=1788866461.819452 cont_high=1788866461.819458 cont_low=1788866461.819460
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936/combined_comparison.csv
+SWEEP_COMPLETE kernel=kmeans_sparse ratio=0.8 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-0.8/combined_20260908_040936/combined_comparison.csv
+SWEEP_START kernel=hotspot requested_total_ratio=1.0
+2026-09-08T04:21:29.970002 combined start kernel=hotspot size_factor=0.5 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.0/combined_20260908_042129
+2026-09-08T04:21:29.970057 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T04:21:29.970066 --- block 0 arm baseline ---
+2026-09-08T04:21:30.021542 block00_baseline release t=1788866490.021523 cont_high=1788866490.021527 cont_low=1788866490.021528
+2026-09-08T04:21:48.923258 --- block 0 arm sched_only ---
+2026-09-08T04:21:49.975207 block00_sched_only release t=1788866509.975189 cont_high=1788866509.975195 cont_low=1788866509.975198
+2026-09-08T04:21:55.301072 --- block 0 arm prefetch_only ---
+2026-09-08T04:21:56.352779 block00_prefetch_only release t=1788866516.352760 cont_high=1788866516.352767 cont_low=1788866516.352769
+2026-09-08T04:22:02.902621 --- block 0 arm memory_only ---
+2026-09-08T04:22:03.954457 block00_memory_only release t=1788866523.954440 cont_high=1788866523.954446 cont_low=1788866523.954448
+2026-09-08T04:22:10.515488 --- block 0 arm combined ---
+2026-09-08T04:22:12.567937 block00_combined release t=1788866532.567919 cont_high=1788866532.567925 cont_low=1788866532.567928
+2026-09-08T04:22:18.226997 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T04:22:18.227021 --- block 1 arm sched_only ---
+2026-09-08T04:22:19.278786 block01_sched_only release t=1788866539.278767 cont_high=1788866539.278775 cont_low=1788866539.278777
+2026-09-08T04:22:24.603131 --- block 1 arm prefetch_only ---
+2026-09-08T04:22:25.654970 block01_prefetch_only release t=1788866545.654954 cont_high=1788866545.654960 cont_low=1788866545.654962
+2026-09-08T04:22:32.216496 --- block 1 arm memory_only ---
+2026-09-08T04:22:33.268800 block01_memory_only release t=1788866553.268782 cont_high=1788866553.268788 cont_low=1788866553.268790
+2026-09-08T04:22:39.835215 --- block 1 arm combined ---
+2026-09-08T04:22:41.887633 block01_combined release t=1788866561.887614 cont_high=1788866561.887621 cont_low=1788866561.887623
+2026-09-08T04:22:47.526767 --- block 1 arm baseline ---
+2026-09-08T04:22:47.577865 block01_baseline release t=1788866567.577848 cont_high=1788866567.577852 cont_low=1788866567.577852
+2026-09-08T04:23:05.727750 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T04:23:05.727777 --- block 2 arm prefetch_only ---
+2026-09-08T04:23:06.779880 block02_prefetch_only release t=1788866586.779863 cont_high=1788866586.779870 cont_low=1788866586.779871
+2026-09-08T04:23:13.282584 --- block 2 arm memory_only ---
+2026-09-08T04:23:14.334577 block02_memory_only release t=1788866594.334559 cont_high=1788866594.334566 cont_low=1788866594.334568
+2026-09-08T04:23:20.853124 --- block 2 arm combined ---
+2026-09-08T04:23:22.905431 block02_combined release t=1788866602.905413 cont_high=1788866602.905419 cont_low=1788866602.905422
+2026-09-08T04:23:28.543763 --- block 2 arm baseline ---
+2026-09-08T04:23:28.594743 block02_baseline release t=1788866608.594725 cont_high=1788866608.594729 cont_low=1788866608.594730
+2026-09-08T04:23:47.287249 --- block 2 arm sched_only ---
+2026-09-08T04:23:48.338999 block02_sched_only release t=1788866628.338981 cont_high=1788866628.338987 cont_low=1788866628.338989
+2026-09-08T04:23:53.679118 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T04:23:53.679143 --- block 3 arm memory_only ---
+2026-09-08T04:23:54.730924 block03_memory_only release t=1788866634.730907 cont_high=1788866634.730912 cont_low=1788866634.730915
+2026-09-08T04:24:01.255870 --- block 3 arm combined ---
+2026-09-08T04:24:03.308672 block03_combined release t=1788866643.308654 cont_high=1788866643.308661 cont_low=1788866643.308662
+2026-09-08T04:24:08.958000 --- block 3 arm baseline ---
+2026-09-08T04:24:09.009144 block03_baseline release t=1788866649.009133 cont_high=1788866649.009136 cont_low=1788866649.009137
+2026-09-08T04:24:27.905913 --- block 3 arm sched_only ---
+2026-09-08T04:24:28.957877 block03_sched_only release t=1788866668.957859 cont_high=1788866668.957865 cont_low=1788866668.957868
+2026-09-08T04:24:34.255462 --- block 3 arm prefetch_only ---
+2026-09-08T04:24:35.307466 block03_prefetch_only release t=1788866675.307447 cont_high=1788866675.307454 cont_low=1788866675.307457
+2026-09-08T04:24:41.828898 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T04:24:41.828926 --- block 4 arm combined ---
+2026-09-08T04:24:43.881558 block04_combined release t=1788866683.881531 cont_high=1788866683.881543 cont_low=1788866683.881547
+2026-09-08T04:24:49.497909 --- block 4 arm baseline ---
+2026-09-08T04:24:49.549104 block04_baseline release t=1788866689.549083 cont_high=1788866689.549088 cont_low=1788866689.549089
+2026-09-08T04:25:08.220837 --- block 4 arm sched_only ---
+2026-09-08T04:25:09.273396 block04_sched_only release t=1788866709.273379 cont_high=1788866709.273385 cont_low=1788866709.273387
+2026-09-08T04:25:14.598746 --- block 4 arm prefetch_only ---
+2026-09-08T04:25:15.650666 block04_prefetch_only release t=1788866715.650648 cont_high=1788866715.650655 cont_low=1788866715.650656
+2026-09-08T04:25:22.180690 --- block 4 arm memory_only ---
+2026-09-08T04:25:23.232808 block04_memory_only release t=1788866723.232777 cont_high=1788866723.232788 cont_low=1788866723.232791
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.0/combined_20260908_042129
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.0/combined_20260908_042129/combined_comparison.csv
+SWEEP_COMPLETE kernel=hotspot ratio=1.0 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.0/combined_20260908_042129/combined_comparison.csv
+SWEEP_START kernel=gemm requested_total_ratio=1.0
+2026-09-08T04:25:29.813005 combined start kernel=gemm size_factor=0.5 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.0/combined_20260908_042529
+2026-09-08T04:25:29.813054 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T04:25:29.813062 --- block 0 arm baseline ---
+2026-09-08T04:25:29.863986 block00_baseline release t=1788866729.863974 cont_high=1788866729.863978 cont_low=1788866729.863979
+2026-09-08T04:27:25.571328 --- block 0 arm sched_only ---
+2026-09-08T04:27:26.622799 block00_sched_only release t=1788866846.622781 cont_high=1788866846.622788 cont_low=1788866846.622790
+2026-09-08T04:27:42.967075 --- block 0 arm prefetch_only ---
+2026-09-08T04:27:44.019195 block00_prefetch_only release t=1788866864.019177 cont_high=1788866864.019184 cont_low=1788866864.019186
+2026-09-08T04:28:06.294634 --- block 0 arm memory_only ---
+2026-09-08T04:28:07.346546 block00_memory_only release t=1788866887.346519 cont_high=1788866887.346530 cont_low=1788866887.346533
+2026-09-08T04:28:29.572930 --- block 0 arm combined ---
+2026-09-08T04:28:31.625764 block00_combined release t=1788866911.625747 cont_high=1788866911.625753 cont_low=1788866911.625754
+2026-09-08T04:28:50.302645 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T04:28:50.302675 --- block 1 arm sched_only ---
+2026-09-08T04:28:51.354402 block01_sched_only release t=1788866931.354384 cont_high=1788866931.354391 cont_low=1788866931.354393
+2026-09-08T04:29:07.746989 --- block 1 arm prefetch_only ---
+2026-09-08T04:29:08.798606 block01_prefetch_only release t=1788866948.798582 cont_high=1788866948.798588 cont_low=1788866948.798590
+2026-09-08T04:29:31.113378 --- block 1 arm memory_only ---
+2026-09-08T04:29:32.165047 block01_memory_only release t=1788866972.165029 cont_high=1788866972.165035 cont_low=1788866972.165038
+2026-09-08T04:29:54.543481 --- block 1 arm combined ---
+2026-09-08T04:29:56.596130 block01_combined release t=1788866996.596112 cont_high=1788866996.596118 cont_low=1788866996.596121
+2026-09-08T04:30:15.404639 --- block 1 arm baseline ---
+2026-09-08T04:30:15.456004 block01_baseline release t=1788867015.455985 cont_high=1788867015.455990 cont_low=1788867015.455991
+2026-09-08T04:32:11.151059 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T04:32:11.151090 --- block 2 arm prefetch_only ---
+2026-09-08T04:32:12.203257 block02_prefetch_only release t=1788867132.203240 cont_high=1788867132.203246 cont_low=1788867132.203248
+2026-09-08T04:32:34.570932 --- block 2 arm memory_only ---
+2026-09-08T04:32:35.622664 block02_memory_only release t=1788867155.622647 cont_high=1788867155.622652 cont_low=1788867155.622655
+2026-09-08T04:32:55.453055 --- block 2 arm combined ---
+2026-09-08T04:32:57.505608 block02_combined release t=1788867177.505580 cont_high=1788867177.505587 cont_low=1788867177.505590
+2026-09-08T04:33:16.257655 --- block 2 arm baseline ---
+2026-09-08T04:33:16.308743 block02_baseline release t=1788867196.308728 cont_high=1788867196.308731 cont_low=1788867196.308732
+2026-09-08T04:35:11.778208 --- block 2 arm sched_only ---
+2026-09-08T04:35:12.839881 block02_sched_only release t=1788867312.839864 cont_high=1788867312.839869 cont_low=1788867312.839871
+2026-09-08T04:35:29.272512 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T04:35:29.272544 --- block 3 arm memory_only ---
+2026-09-08T04:35:30.324349 block03_memory_only release t=1788867330.324331 cont_high=1788867330.324337 cont_low=1788867330.324339
+2026-09-08T04:35:50.211990 --- block 3 arm combined ---
+2026-09-08T04:35:52.264015 block03_combined release t=1788867352.263996 cont_high=1788867352.264003 cont_low=1788867352.264005
+2026-09-08T04:36:10.998019 --- block 3 arm baseline ---
+2026-09-08T04:36:11.049331 block03_baseline release t=1788867371.049312 cont_high=1788867371.049316 cont_low=1788867371.049316
+2026-09-08T04:38:06.523877 --- block 3 arm sched_only ---
+2026-09-08T04:38:07.575611 block03_sched_only release t=1788867487.575586 cont_high=1788867487.575592 cont_low=1788867487.575601
+2026-09-08T04:38:23.913304 --- block 3 arm prefetch_only ---
+2026-09-08T04:38:24.965095 block03_prefetch_only release t=1788867504.965077 cont_high=1788867504.965083 cont_low=1788867504.965085
+2026-09-08T04:38:47.333665 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T04:38:47.333695 --- block 4 arm combined ---
+2026-09-08T04:38:49.386439 block04_combined release t=1788867529.386420 cont_high=1788867529.386427 cont_low=1788867529.386429
+2026-09-08T04:39:08.194227 --- block 4 arm baseline ---
+2026-09-08T04:39:08.245290 block04_baseline release t=1788867548.245269 cont_high=1788867548.245274 cont_low=1788867548.245275
+2026-09-08T04:41:04.068354 --- block 4 arm sched_only ---
+2026-09-08T04:41:05.120240 block04_sched_only release t=1788867665.120224 cont_high=1788867665.120229 cont_low=1788867665.120231
+2026-09-08T04:41:21.576400 --- block 4 arm prefetch_only ---
+2026-09-08T04:41:22.627957 block04_prefetch_only release t=1788867682.627940 cont_high=1788867682.627947 cont_low=1788867682.627949
+2026-09-08T04:41:44.937722 --- block 4 arm memory_only ---
+2026-09-08T04:41:45.989699 block04_memory_only release t=1788867705.989682 cont_high=1788867705.989688 cont_low=1788867705.989690
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.0/combined_20260908_042529
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.0/combined_20260908_042529/combined_comparison.csv
+SWEEP_COMPLETE kernel=gemm ratio=1.0 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.0/combined_20260908_042529/combined_comparison.csv
+SWEEP_START kernel=kmeans_sparse requested_total_ratio=1.0
+2026-09-08T04:42:08.348489 combined start kernel=kmeans_sparse size_factor=0.5 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.0/combined_20260908_044208
+2026-09-08T04:42:08.348525 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T04:42:08.348531 --- block 0 arm baseline ---
+2026-09-08T04:42:08.399766 block00_baseline release t=1788867728.399752 cont_high=1788867728.399756 cont_low=1788867728.399756
+2026-09-08T04:44:12.403224 --- block 0 arm sched_only ---
+2026-09-08T04:44:13.455343 block00_sched_only release t=1788867853.455327 cont_high=1788867853.455333 cont_low=1788867853.455335
+2026-09-08T04:44:46.320609 --- block 0 arm prefetch_only ---
+2026-09-08T04:44:47.372587 block00_prefetch_only release t=1788867887.372568 cont_high=1788867887.372576 cont_low=1788867887.372578
+2026-09-08T04:45:40.560698 --- block 0 arm memory_only ---
+2026-09-08T04:45:41.612199 block00_memory_only release t=1788867941.612182 cont_high=1788867941.612187 cont_low=1788867941.612190
+2026-09-08T04:46:37.675225 --- block 0 arm combined ---
+2026-09-08T04:46:39.727662 block00_combined release t=1788867999.727644 cont_high=1788867999.727649 cont_low=1788867999.727652
+2026-09-08T04:47:13.038854 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T04:47:13.038883 --- block 1 arm sched_only ---
+2026-09-08T04:47:14.090779 block01_sched_only release t=1788868034.090761 cont_high=1788868034.090767 cont_low=1788868034.090769
+2026-09-08T04:47:46.944193 --- block 1 arm prefetch_only ---
+2026-09-08T04:47:47.995732 block01_prefetch_only release t=1788868067.995712 cont_high=1788868067.995720 cont_low=1788868067.995722
+2026-09-08T04:48:43.420616 --- block 1 arm memory_only ---
+2026-09-08T04:48:44.472364 block01_memory_only release t=1788868124.472346 cont_high=1788868124.472352 cont_low=1788868124.472354
+2026-09-08T04:49:40.795105 --- block 1 arm combined ---
+2026-09-08T04:49:42.848413 block01_combined release t=1788868182.848395 cont_high=1788868182.848401 cont_low=1788868182.848403
+2026-09-08T04:50:16.120424 --- block 1 arm baseline ---
+2026-09-08T04:50:16.171858 block01_baseline release t=1788868216.171847 cont_high=1788868216.171849 cont_low=1788868216.171850
+2026-09-08T04:52:20.469816 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T04:52:20.469847 --- block 2 arm prefetch_only ---
+2026-09-08T04:52:21.521819 block02_prefetch_only release t=1788868341.521801 cont_high=1788868341.521807 cont_low=1788868341.521809
+2026-09-08T04:53:17.688455 --- block 2 arm memory_only ---
+2026-09-08T04:53:18.740336 block02_memory_only release t=1788868398.740319 cont_high=1788868398.740324 cont_low=1788868398.740327
+2026-09-08T04:54:16.149628 --- block 2 arm combined ---
+2026-09-08T04:54:18.202131 block02_combined release t=1788868458.202111 cont_high=1788868458.202119 cont_low=1788868458.202121
+2026-09-08T04:54:51.499360 --- block 2 arm baseline ---
+2026-09-08T04:54:51.550704 block02_baseline release t=1788868491.550684 cont_high=1788868491.550689 cont_low=1788868491.550690
+2026-09-08T04:56:55.758437 --- block 2 arm sched_only ---
+2026-09-08T04:56:56.811123 block02_sched_only release t=1788868616.811103 cont_high=1788868616.811109 cont_low=1788868616.811111
+2026-09-08T04:57:29.620272 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T04:57:29.620299 --- block 3 arm memory_only ---
+2026-09-08T04:57:30.672245 block03_memory_only release t=1788868650.672226 cont_high=1788868650.672232 cont_low=1788868650.672235
+2026-09-08T04:58:30.450976 --- block 3 arm combined ---
+2026-09-08T04:58:32.503480 block03_combined release t=1788868712.503462 cont_high=1788868712.503469 cont_low=1788868712.503470
+2026-09-08T04:59:05.787869 --- block 3 arm baseline ---
+2026-09-08T04:59:05.839075 block03_baseline release t=1788868745.839058 cont_high=1788868745.839061 cont_low=1788868745.839062
+2026-09-08T05:01:09.947517 --- block 3 arm sched_only ---
+2026-09-08T05:02:29.401461 block03_sched_only release t=1788868949.401446 cont_high=1788868949.401450 cont_low=1788868949.401452
+2026-09-08T05:03:02.237866 --- block 3 arm prefetch_only ---
+2026-09-08T05:03:03.289881 block03_prefetch_only release t=1788868983.289865 cont_high=1788868983.289871 cont_low=1788868983.289873
+2026-09-08T05:04:01.081578 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T05:04:01.081608 --- block 4 arm combined ---
+2026-09-08T05:04:03.134234 block04_combined release t=1788869043.134216 cont_high=1788869043.134223 cont_low=1788869043.134225
+2026-09-08T05:04:36.331695 --- block 4 arm baseline ---
+2026-09-08T05:04:36.382548 block04_baseline release t=1788869076.382527 cont_high=1788869076.382532 cont_low=1788869076.382533
+2026-09-08T05:06:40.973017 --- block 4 arm sched_only ---
+2026-09-08T05:06:42.024668 block04_sched_only release t=1788869202.024651 cont_high=1788869202.024657 cont_low=1788869202.024659
+2026-09-08T05:07:14.871218 --- block 4 arm prefetch_only ---
+2026-09-08T05:07:15.923355 block04_prefetch_only release t=1788869235.923339 cont_high=1788869235.923344 cont_low=1788869235.923346
+2026-09-08T05:08:15.238454 --- block 4 arm memory_only ---
+2026-09-08T05:08:16.290356 block04_memory_only release t=1788869296.290335 cont_high=1788869296.290343 cont_low=1788869296.290346
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.0/combined_20260908_044208
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.0/combined_20260908_044208/combined_comparison.csv
+SWEEP_COMPLETE kernel=kmeans_sparse ratio=1.0 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.0/combined_20260908_044208/combined_comparison.csv
+SWEEP_START kernel=hotspot requested_total_ratio=1.2
+2026-09-08T05:09:12.313799 combined start kernel=hotspot size_factor=0.6 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.2/combined_20260908_050912
+2026-09-08T05:09:12.313851 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T05:09:12.313861 --- block 0 arm baseline ---
+2026-09-08T05:09:12.364730 block00_baseline release t=1788869352.364707 cont_high=1788869352.364714 cont_low=1788869352.364715
+2026-09-08T05:10:09.109141 --- block 0 arm sched_only ---
+2026-09-08T05:10:10.160744 block00_sched_only release t=1788869410.160726 cont_high=1788869410.160732 cont_low=1788869410.160734
+2026-09-08T05:10:16.287470 --- block 0 arm prefetch_only ---
+2026-09-08T05:10:17.339580 block00_prefetch_only release t=1788869417.339564 cont_high=1788869417.339569 cont_low=1788869417.339571
+2026-09-08T05:10:44.355536 --- block 0 arm memory_only ---
+2026-09-08T05:10:45.407060 block00_memory_only release t=1788869445.407043 cont_high=1788869445.407049 cont_low=1788869445.407051
+2026-09-08T05:11:11.393370 --- block 0 arm combined ---
+2026-09-08T05:11:13.446045 block00_combined release t=1788869473.446027 cont_high=1788869473.446034 cont_low=1788869473.446036
+2026-09-08T05:11:20.118232 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T05:11:20.118262 --- block 1 arm sched_only ---
+2026-09-08T05:11:21.169930 block01_sched_only release t=1788869481.169912 cont_high=1788869481.169919 cont_low=1788869481.169921
+2026-09-08T05:11:27.289782 --- block 1 arm prefetch_only ---
+2026-09-08T05:11:28.341654 block01_prefetch_only release t=1788869488.341638 cont_high=1788869488.341644 cont_low=1788869488.341645
+2026-09-08T05:11:53.359856 --- block 1 arm memory_only ---
+2026-09-08T05:11:54.411708 block01_memory_only release t=1788869514.411690 cont_high=1788869514.411696 cont_low=1788869514.411699
+2026-09-08T05:12:21.293363 --- block 1 arm combined ---
+2026-09-08T05:12:23.346153 block01_combined release t=1788869543.346134 cont_high=1788869543.346142 cont_low=1788869543.346144
+2026-09-08T05:12:29.983567 --- block 1 arm baseline ---
+2026-09-08T05:12:30.034610 block01_baseline release t=1788869550.034590 cont_high=1788869550.034596 cont_low=1788869550.034598
+2026-09-08T05:13:26.612932 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T05:13:26.612963 --- block 2 arm prefetch_only ---
+2026-09-08T05:13:27.664829 block02_prefetch_only release t=1788869607.664813 cont_high=1788869607.664819 cont_low=1788869607.664820
+2026-09-08T05:13:54.306970 --- block 2 arm memory_only ---
+2026-09-08T05:13:55.358734 block02_memory_only release t=1788869635.358715 cont_high=1788869635.358722 cont_low=1788869635.358724
+2026-09-08T05:14:22.059097 --- block 2 arm combined ---
+2026-09-08T05:14:24.111696 block02_combined release t=1788869664.111676 cont_high=1788869664.111685 cont_low=1788869664.111687
+2026-09-08T05:14:30.760228 --- block 2 arm baseline ---
+2026-09-08T05:14:30.811709 block02_baseline release t=1788869670.811691 cont_high=1788869670.811695 cont_low=1788869670.811696
+2026-09-08T05:15:27.695696 --- block 2 arm sched_only ---
+2026-09-08T05:15:28.747332 block02_sched_only release t=1788869728.747312 cont_high=1788869728.747319 cont_low=1788869728.747322
+2026-09-08T05:15:34.882784 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T05:15:34.882814 --- block 3 arm memory_only ---
+2026-09-08T05:15:35.934789 block03_memory_only release t=1788869735.934772 cont_high=1788869735.934778 cont_low=1788869735.934780
+2026-09-08T05:16:02.503488 --- block 3 arm combined ---
+2026-09-08T05:16:04.556401 block03_combined release t=1788869764.556382 cont_high=1788869764.556389 cont_low=1788869764.556392
+2026-09-08T05:16:11.205933 --- block 3 arm baseline ---
+2026-09-08T05:16:11.257187 block03_baseline release t=1788869771.257170 cont_high=1788869771.257174 cont_low=1788869771.257175
+2026-09-08T05:17:08.124097 --- block 3 arm sched_only ---
+2026-09-08T05:17:09.176068 block03_sched_only release t=1788869829.176049 cont_high=1788869829.176057 cont_low=1788869829.176059
+2026-09-08T05:17:15.308750 --- block 3 arm prefetch_only ---
+2026-09-08T05:17:16.360406 block03_prefetch_only release t=1788869836.360388 cont_high=1788869836.360394 cont_low=1788869836.360397
+2026-09-08T05:17:42.896915 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T05:17:42.896946 --- block 4 arm combined ---
+2026-09-08T05:17:44.949337 block04_combined release t=1788869864.949319 cont_high=1788869864.949327 cont_low=1788869864.949328
+2026-09-08T05:17:51.576671 --- block 4 arm baseline ---
+2026-09-08T05:17:51.627629 block04_baseline release t=1788869871.627617 cont_high=1788869871.627620 cont_low=1788869871.627621
+2026-09-08T05:18:48.370798 --- block 4 arm sched_only ---
+2026-09-08T05:18:49.422689 block04_sched_only release t=1788869929.422670 cont_high=1788869929.422677 cont_low=1788869929.422679
+2026-09-08T05:18:55.550155 --- block 4 arm prefetch_only ---
+2026-09-08T05:18:56.602073 block04_prefetch_only release t=1788869936.602058 cont_high=1788869936.602063 cont_low=1788869936.602065
+2026-09-08T05:19:23.368616 --- block 4 arm memory_only ---
+2026-09-08T05:19:24.420226 block04_memory_only release t=1788869964.420208 cont_high=1788869964.420215 cont_low=1788869964.420217
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.2/combined_20260908_050912
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.2/combined_20260908_050912/combined_comparison.csv
+SWEEP_COMPLETE kernel=hotspot ratio=1.2 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.2/combined_20260908_050912/combined_comparison.csv
+SWEEP_START kernel=gemm requested_total_ratio=1.2
+2026-09-08T05:19:52.201293 combined start kernel=gemm size_factor=0.6 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.2/combined_20260908_051952
+2026-09-08T05:19:52.201350 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T05:19:52.201362 --- block 0 arm baseline ---
+2026-09-08T05:19:52.252679 block00_baseline release t=1788869992.252660 cont_high=1788869992.252664 cont_low=1788869992.252665
+2026-09-08T05:22:11.569264 --- block 0 arm sched_only ---
+2026-09-08T05:22:12.621025 block00_sched_only release t=1788870132.621001 cont_high=1788870132.621011 cont_low=1788870132.621014
+2026-09-08T05:22:32.108150 --- block 0 arm prefetch_only ---
+2026-09-08T05:22:33.160051 block00_prefetch_only release t=1788870153.160034 cont_high=1788870153.160040 cont_low=1788870153.160042
+2026-09-08T05:23:05.016741 --- block 0 arm memory_only ---
+2026-09-08T05:23:06.068949 block00_memory_only release t=1788870186.068929 cont_high=1788870186.068936 cont_low=1788870186.068939
+2026-09-08T05:23:37.925585 --- block 0 arm combined ---
+2026-09-08T05:23:39.978433 block00_combined release t=1788870219.978415 cont_high=1788870219.978421 cont_low=1788870219.978424
+2026-09-08T05:24:02.142946 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T05:24:02.142977 --- block 1 arm sched_only ---
+2026-09-08T05:24:03.194507 block01_sched_only release t=1788870243.194487 cont_high=1788870243.194494 cont_low=1788870243.194496
+2026-09-08T05:24:22.655250 --- block 1 arm prefetch_only ---
+2026-09-08T05:24:23.707495 block01_prefetch_only release t=1788870263.707474 cont_high=1788870263.707482 cont_low=1788870263.707485
+2026-09-08T05:24:55.727894 --- block 1 arm memory_only ---
+2026-09-08T05:24:56.779546 block01_memory_only release t=1788870296.779526 cont_high=1788870296.779534 cont_low=1788870296.779536
+2026-09-08T05:25:28.853318 --- block 1 arm combined ---
+2026-09-08T05:25:30.905632 block01_combined release t=1788870330.905611 cont_high=1788870330.905618 cont_low=1788870330.905621
+2026-09-08T05:25:53.173317 --- block 1 arm baseline ---
+2026-09-08T05:25:53.224549 block01_baseline release t=1788870353.224531 cont_high=1788870353.224535 cont_low=1788870353.224535
+2026-09-08T05:28:12.697732 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T05:28:12.697768 --- block 2 arm prefetch_only ---
+2026-09-08T05:28:13.749813 block02_prefetch_only release t=1788870493.749795 cont_high=1788870493.749801 cont_low=1788870493.749803
+2026-09-08T05:28:45.684552 --- block 2 arm memory_only ---
+2026-09-08T05:28:46.736217 block02_memory_only release t=1788870526.736198 cont_high=1788870526.736205 cont_low=1788870526.736207
+2026-09-08T05:29:18.471833 --- block 2 arm combined ---
+2026-09-08T05:29:20.524664 block02_combined release t=1788870560.524646 cont_high=1788870560.524652 cont_low=1788870560.524654
+2026-09-08T05:29:42.714799 --- block 2 arm baseline ---
+2026-09-08T05:29:42.765848 block02_baseline release t=1788870582.765826 cont_high=1788870582.765832 cont_low=1788870582.765833
+2026-09-08T05:32:01.897462 --- block 2 arm sched_only ---
+2026-09-08T05:32:02.949059 block02_sched_only release t=1788870722.949039 cont_high=1788870722.949046 cont_low=1788870722.949049
+2026-09-08T05:32:22.358809 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T05:32:22.358839 --- block 3 arm memory_only ---
+2026-09-08T05:32:23.410619 block03_memory_only release t=1788870743.410600 cont_high=1788870743.410606 cont_low=1788870743.410608
+2026-09-08T05:32:55.346752 --- block 3 arm combined ---
+2026-09-08T05:32:57.399165 block03_combined release t=1788870777.399145 cont_high=1788870777.399152 cont_low=1788870777.399154
+2026-09-08T05:33:19.638474 --- block 3 arm baseline ---
+2026-09-08T05:33:19.689694 block03_baseline release t=1788870799.689672 cont_high=1788870799.689677 cont_low=1788870799.689678
+2026-09-08T05:35:39.184116 --- block 3 arm sched_only ---
+2026-09-08T05:35:40.235816 block03_sched_only release t=1788870940.235797 cont_high=1788870940.235804 cont_low=1788870940.235806
+2026-09-08T05:35:59.663515 --- block 3 arm prefetch_only ---
+2026-09-08T05:36:00.715341 block03_prefetch_only release t=1788870960.715325 cont_high=1788870960.715331 cont_low=1788870960.715333
+2026-09-08T05:36:32.419673 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T05:36:32.419698 --- block 4 arm combined ---
+2026-09-08T05:36:34.472613 block04_combined release t=1788870994.472575 cont_high=1788870994.472583 cont_low=1788870994.472585
+2026-09-08T05:36:56.614849 --- block 4 arm baseline ---
+2026-09-08T05:36:56.665929 block04_baseline release t=1788871016.665914 cont_high=1788871016.665918 cont_low=1788871016.665919
+2026-09-08T05:39:16.342920 --- block 4 arm sched_only ---
+2026-09-08T05:39:17.394473 block04_sched_only release t=1788871157.394453 cont_high=1788871157.394461 cont_low=1788871157.394463
+2026-09-08T05:39:36.864937 --- block 4 arm prefetch_only ---
+2026-09-08T05:39:37.916602 block04_prefetch_only release t=1788871177.916579 cont_high=1788871177.916586 cont_low=1788871177.916588
+2026-09-08T05:40:09.776830 --- block 4 arm memory_only ---
+2026-09-08T05:40:10.828304 block04_memory_only release t=1788871210.828285 cont_high=1788871210.828291 cont_low=1788871210.828293
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.2/combined_20260908_051952
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.2/combined_20260908_051952/combined_comparison.csv
+SWEEP_COMPLETE kernel=gemm ratio=1.2 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.2/combined_20260908_051952/combined_comparison.csv
+SWEEP_START kernel=kmeans_sparse requested_total_ratio=1.2
+2026-09-08T05:40:42.946091 combined start kernel=kmeans_sparse size_factor=0.6 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.2/combined_20260908_054042
+2026-09-08T05:40:42.946147 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T05:40:42.946156 --- block 0 arm baseline ---
+2026-09-08T05:40:42.997142 block00_baseline release t=1788871242.997121 cont_high=1788871242.997127 cont_low=1788871242.997128
+2026-09-08T05:43:13.496933 --- block 0 arm sched_only ---
+2026-09-08T05:43:14.548679 block00_sched_only release t=1788871394.548661 cont_high=1788871394.548666 cont_low=1788871394.548669
+2026-09-08T05:43:53.582908 --- block 0 arm prefetch_only ---
+2026-09-08T05:43:54.634569 block00_prefetch_only release t=1788871434.634551 cont_high=1788871434.634558 cont_low=1788871434.634559
+2026-09-08T05:45:28.038705 --- block 0 arm memory_only ---
+2026-09-08T05:45:29.090762 block00_memory_only release t=1788871529.090730 cont_high=1788871529.090740 cont_low=1788871529.090744
+2026-09-08T05:47:02.621204 --- block 0 arm combined ---
+2026-09-08T05:47:04.673816 block00_combined release t=1788871624.673796 cont_high=1788871624.673804 cont_low=1788871624.673806
+2026-09-08T05:47:44.249842 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T05:47:44.249871 --- block 1 arm sched_only ---
+2026-09-08T05:47:45.301558 block01_sched_only release t=1788871665.301540 cont_high=1788871665.301546 cont_low=1788871665.301548
+2026-09-08T05:48:24.412972 --- block 1 arm prefetch_only ---
+2026-09-08T05:48:25.464904 block01_prefetch_only release t=1788871705.464886 cont_high=1788871705.464893 cont_low=1788871705.464895
+2026-09-08T05:49:58.947041 --- block 1 arm memory_only ---
+2026-09-08T05:49:59.998810 block01_memory_only release t=1788871799.998793 cont_high=1788871799.998798 cont_low=1788871799.998800
+2026-09-08T05:51:29.446438 --- block 1 arm combined ---
+2026-09-08T05:51:31.498962 block01_combined release t=1788871891.498943 cont_high=1788871891.498950 cont_low=1788871891.498952
+2026-09-08T05:52:11.072413 --- block 1 arm baseline ---
+2026-09-08T05:52:11.123640 block01_baseline release t=1788871931.123622 cont_high=1788871931.123627 cont_low=1788871931.123628
+2026-09-08T05:54:39.986820 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T05:54:39.986851 --- block 2 arm prefetch_only ---
+2026-09-08T05:54:41.038751 block02_prefetch_only release t=1788872081.038733 cont_high=1788872081.038739 cont_low=1788872081.038741
+2026-09-08T05:56:14.751352 --- block 2 arm memory_only ---
+2026-09-08T05:56:15.803196 block02_memory_only release t=1788872175.803178 cont_high=1788872175.803185 cont_low=1788872175.803186
+2026-09-08T05:57:45.798564 --- block 2 arm combined ---
+2026-09-08T05:57:47.850947 block02_combined release t=1788872267.850928 cont_high=1788872267.850934 cont_low=1788872267.850936
+2026-09-08T05:58:27.442979 --- block 2 arm baseline ---
+2026-09-08T05:58:27.494020 block02_baseline release t=1788872307.494002 cont_high=1788872307.494007 cont_low=1788872307.494008
+2026-09-08T06:00:57.649689 --- block 2 arm sched_only ---
+2026-09-08T06:00:58.701391 block02_sched_only release t=1788872458.701372 cont_high=1788872458.701379 cont_low=1788872458.701381
+2026-09-08T06:01:37.705481 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T06:01:37.705510 --- block 3 arm memory_only ---
+2026-09-08T06:01:38.757242 block03_memory_only release t=1788872498.757223 cont_high=1788872498.757230 cont_low=1788872498.757232
+2026-09-08T06:03:08.911253 --- block 3 arm combined ---
+2026-09-08T06:03:10.963988 block03_combined release t=1788872590.963969 cont_high=1788872590.963975 cont_low=1788872590.963978
+2026-09-08T06:03:50.540662 --- block 3 arm baseline ---
+2026-09-08T06:03:50.591705 block03_baseline release t=1788872630.591686 cont_high=1788872630.591690 cont_low=1788872630.591691
+2026-09-08T06:06:21.519999 --- block 3 arm sched_only ---
+2026-09-08T06:06:22.571468 block03_sched_only release t=1788872782.571450 cont_high=1788872782.571456 cont_low=1788872782.571459
+2026-09-08T06:07:01.664431 --- block 3 arm prefetch_only ---
+2026-09-08T06:07:02.716086 block03_prefetch_only release t=1788872822.716067 cont_high=1788872822.716074 cont_low=1788872822.716077
+2026-09-08T06:08:32.461794 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T06:08:32.461825 --- block 4 arm combined ---
+2026-09-08T06:08:34.514688 block04_combined release t=1788872914.514668 cont_high=1788872914.514677 cont_low=1788872914.514679
+2026-09-08T06:09:14.255982 --- block 4 arm baseline ---
+2026-09-08T06:09:14.307288 block04_baseline release t=1788872954.307266 cont_high=1788872954.307272 cont_low=1788872954.307273
+2026-09-08T06:11:43.903959 --- block 4 arm sched_only ---
+2026-09-08T06:11:44.955783 block04_sched_only release t=1788873104.955765 cont_high=1788873104.955771 cont_low=1788873104.955773
+2026-09-08T06:12:24.007008 --- block 4 arm prefetch_only ---
+2026-09-08T06:12:25.059064 block04_prefetch_only release t=1788873145.059047 cont_high=1788873145.059053 cont_low=1788873145.059055
+2026-09-08T06:13:54.617132 --- block 4 arm memory_only ---
+2026-09-08T06:13:55.668802 block04_memory_only release t=1788873235.668782 cont_high=1788873235.668788 cont_low=1788873235.668791
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.2/combined_20260908_054042
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.2/combined_20260908_054042/combined_comparison.csv
+SWEEP_COMPLETE kernel=kmeans_sparse ratio=1.2 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.2/combined_20260908_054042/combined_comparison.csv
+SWEEP_START kernel=hotspot requested_total_ratio=1.5
+2026-09-08T06:15:28.572120 combined start kernel=hotspot size_factor=0.75 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.5/combined_20260908_061528
+2026-09-08T06:15:28.572179 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T06:15:28.572189 --- block 0 arm baseline ---
+2026-09-08T06:15:28.623080 block00_baseline release t=1788873328.623057 cont_high=1788873328.623063 cont_low=1788873328.623064
+2026-09-08T06:18:15.867179 --- block 0 arm sched_only ---
+2026-09-08T06:18:16.918877 block00_sched_only release t=1788873496.918855 cont_high=1788873496.918864 cont_low=1788873496.918866
+2026-09-08T06:18:24.077261 --- block 0 arm prefetch_only ---
+2026-09-08T06:18:25.128807 block00_prefetch_only release t=1788873505.128787 cont_high=1788873505.128794 cont_low=1788873505.128796
+2026-09-08T06:19:43.712667 --- block 0 arm memory_only ---
+2026-09-08T06:19:44.764477 block00_memory_only release t=1788873584.764455 cont_high=1788873584.764465 cont_low=1788873584.764468
+2026-09-08T06:21:03.082000 --- block 0 arm combined ---
+2026-09-08T06:21:05.134292 block00_combined release t=1788873665.134258 cont_high=1788873665.134269 cont_low=1788873665.134274
+2026-09-08T06:21:12.868229 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T06:21:12.868258 --- block 1 arm sched_only ---
+2026-09-08T06:21:13.920393 block01_sched_only release t=1788873673.920374 cont_high=1788873673.920381 cont_low=1788873673.920384
+2026-09-08T06:21:21.084904 --- block 1 arm prefetch_only ---
+2026-09-08T06:21:22.136565 block01_prefetch_only release t=1788873682.136548 cont_high=1788873682.136554 cont_low=1788873682.136557
+2026-09-08T06:22:40.774213 --- block 1 arm memory_only ---
+2026-09-08T06:22:41.825892 block01_memory_only release t=1788873761.825873 cont_high=1788873761.825879 cont_low=1788873761.825882
+2026-09-08T06:24:00.407373 --- block 1 arm combined ---
+2026-09-08T06:24:02.459712 block01_combined release t=1788873842.459695 cont_high=1788873842.459702 cont_low=1788873842.459704
+2026-09-08T06:24:10.199629 --- block 1 arm baseline ---
+2026-09-08T06:24:10.250730 block01_baseline release t=1788873850.250708 cont_high=1788873850.250714 cont_low=1788873850.250715
+2026-09-08T06:26:58.067030 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T06:26:58.067063 --- block 2 arm prefetch_only ---
+2026-09-08T06:26:59.118702 block02_prefetch_only release t=1788874019.118671 cont_high=1788874019.118681 cont_low=1788874019.118685
+2026-09-08T06:28:17.714708 --- block 2 arm memory_only ---
+2026-09-08T06:28:18.766626 block02_memory_only release t=1788874098.766610 cont_high=1788874098.766616 cont_low=1788874098.766618
+2026-09-08T06:29:37.185472 --- block 2 arm combined ---
+2026-09-08T06:29:39.237667 block02_combined release t=1788874179.237650 cont_high=1788874179.237657 cont_low=1788874179.237658
+2026-09-08T06:29:46.921796 --- block 2 arm baseline ---
+2026-09-08T06:29:46.972888 block02_baseline release t=1788874186.972870 cont_high=1788874186.972875 cont_low=1788874186.972876
+2026-09-08T06:32:34.003548 --- block 2 arm sched_only ---
+2026-09-08T06:32:35.055192 block02_sched_only release t=1788874355.055176 cont_high=1788874355.055182 cont_low=1788874355.055183
+2026-09-08T06:32:42.232291 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T06:32:42.232319 --- block 3 arm memory_only ---
+2026-09-08T06:32:43.283938 block03_memory_only release t=1788874363.283918 cont_high=1788874363.283926 cont_low=1788874363.283928
+2026-09-08T06:34:02.102511 --- block 3 arm combined ---
+2026-09-08T06:34:04.154988 block03_combined release t=1788874444.154963 cont_high=1788874444.154974 cont_low=1788874444.154977
+2026-09-08T06:34:11.866468 --- block 3 arm baseline ---
+2026-09-08T06:34:11.918165 block03_baseline release t=1788874451.918145 cont_high=1788874451.918149 cont_low=1788874451.918150
+2026-09-08T06:36:59.968182 --- block 3 arm sched_only ---
+2026-09-08T06:37:01.020059 block03_sched_only release t=1788874621.020037 cont_high=1788874621.020048 cont_low=1788874621.020050
+2026-09-08T06:37:08.188888 --- block 3 arm prefetch_only ---
+2026-09-08T06:37:09.240845 block03_prefetch_only release t=1788874629.240815 cont_high=1788874629.240825 cont_low=1788874629.240829
+2026-09-08T06:38:26.903374 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T06:38:26.903404 --- block 4 arm combined ---
+2026-09-08T06:38:28.955688 block04_combined release t=1788874708.955658 cont_high=1788874708.955668 cont_low=1788874708.955671
+2026-09-08T06:38:36.650641 --- block 4 arm baseline ---
+2026-09-08T06:38:36.701631 block04_baseline release t=1788874716.701613 cont_high=1788874716.701616 cont_low=1788874716.701617
+2026-09-08T06:41:23.939642 --- block 4 arm sched_only ---
+2026-09-08T06:41:24.991168 block04_sched_only release t=1788874884.991151 cont_high=1788874884.991156 cont_low=1788874884.991158
+2026-09-08T06:41:32.137209 --- block 4 arm prefetch_only ---
+2026-09-08T06:41:33.188821 block04_prefetch_only release t=1788874893.188795 cont_high=1788874893.188808 cont_low=1788874893.188811
+2026-09-08T06:42:51.220813 --- block 4 arm memory_only ---
+2026-09-08T06:42:52.272494 block04_memory_only release t=1788874972.272476 cont_high=1788874972.272483 cont_low=1788874972.272485
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.5/combined_20260908_061528
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.5/combined_20260908_061528/combined_comparison.csv
+SWEEP_COMPLETE kernel=hotspot ratio=1.5 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/hotspot/ratio-1.5/combined_20260908_061528/combined_comparison.csv
+SWEEP_START kernel=gemm requested_total_ratio=1.5
+2026-09-08T06:44:09.874534 combined start kernel=gemm size_factor=0.75 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.5/combined_20260908_064409
+2026-09-08T06:44:09.874588 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T06:44:09.874605 --- block 0 arm baseline ---
+2026-09-08T06:44:09.925468 block00_baseline release t=1788875049.925449 cont_high=1788875049.925454 cont_low=1788875049.925454
+2026-09-08T06:47:04.491692 --- block 0 arm sched_only ---
+2026-09-08T06:47:05.543210 block00_sched_only release t=1788875225.543191 cont_high=1788875225.543198 cont_low=1788875225.543200
+2026-09-08T06:47:29.531678 --- block 0 arm prefetch_only ---
+2026-09-08T06:47:30.583317 block00_prefetch_only release t=1788875250.583299 cont_high=1788875250.583305 cont_low=1788875250.583307
+2026-09-08T06:49:54.039789 --- block 0 arm memory_only ---
+2026-09-08T06:49:55.091609 block00_memory_only release t=1788875395.091578 cont_high=1788875395.091588 cont_low=1788875395.091592
+2026-09-08T06:52:19.408124 --- block 0 arm combined ---
+2026-09-08T06:52:21.460722 block00_combined release t=1788875541.460703 cont_high=1788875541.460709 cont_low=1788875541.460712
+2026-09-08T06:52:49.014654 block 1 arm order: sched_only,prefetch_only,memory_only,combined,baseline
+2026-09-08T06:52:49.014682 --- block 1 arm sched_only ---
+2026-09-08T06:52:50.066286 block01_sched_only release t=1788875570.066268 cont_high=1788875570.066275 cont_low=1788875570.066276
+2026-09-08T06:53:14.021684 --- block 1 arm prefetch_only ---
+2026-09-08T06:53:15.073612 block01_prefetch_only release t=1788875595.073586 cont_high=1788875595.073599 cont_low=1788875595.073601
+2026-09-08T06:55:38.555208 --- block 1 arm memory_only ---
+2026-09-08T06:55:39.606690 block01_memory_only release t=1788875739.606661 cont_high=1788875739.606671 cont_low=1788875739.606675
+2026-09-08T06:57:59.827321 --- block 1 arm combined ---
+2026-09-08T06:58:01.879713 block01_combined release t=1788875881.879682 cont_high=1788875881.879692 cont_low=1788875881.879695
+2026-09-08T06:58:29.435018 --- block 1 arm baseline ---
+2026-09-08T06:58:29.486074 block01_baseline release t=1788875909.486051 cont_high=1788875909.486057 cont_low=1788875909.486058
+2026-09-08T07:01:25.117282 block 2 arm order: prefetch_only,memory_only,combined,baseline,sched_only
+2026-09-08T07:01:25.117314 --- block 2 arm prefetch_only ---
+2026-09-08T07:01:26.168948 block02_prefetch_only release t=1788876086.168928 cont_high=1788876086.168936 cont_low=1788876086.168938
+2026-09-08T07:03:49.319741 --- block 2 arm memory_only ---
+2026-09-08T07:03:50.371300 block02_memory_only release t=1788876230.371280 cont_high=1788876230.371287 cont_low=1788876230.371289
+2026-09-08T07:06:13.788109 --- block 2 arm combined ---
+2026-09-08T07:06:15.841117 block02_combined release t=1788876375.841099 cont_high=1788876375.841105 cont_low=1788876375.841107
+2026-09-08T07:06:43.352285 --- block 2 arm baseline ---
+2026-09-08T07:06:43.403361 block02_baseline release t=1788876403.403338 cont_high=1788876403.403345 cont_low=1788876403.403346
+2026-09-08T07:09:38.851063 --- block 2 arm sched_only ---
+2026-09-08T07:09:39.902796 block02_sched_only release t=1788876579.902775 cont_high=1788876579.902782 cont_low=1788876579.902785
+2026-09-08T07:10:03.877909 block 3 arm order: memory_only,combined,baseline,sched_only,prefetch_only
+2026-09-08T07:10:03.877937 --- block 3 arm memory_only ---
+2026-09-08T07:10:04.929665 block03_memory_only release t=1788876604.929646 cont_high=1788876604.929653 cont_low=1788876604.929655
+2026-09-08T07:12:27.620681 --- block 3 arm combined ---
+2026-09-08T07:12:29.673582 block03_combined release t=1788876749.673559 cont_high=1788876749.673568 cont_low=1788876749.673572
+2026-09-08T07:12:57.308956 --- block 3 arm baseline ---
+2026-09-08T07:12:57.360028 block03_baseline release t=1788876777.360005 cont_high=1788876777.360011 cont_low=1788876777.360013
+2026-09-08T07:15:52.971627 --- block 3 arm sched_only ---
+2026-09-08T07:15:54.023137 block03_sched_only release t=1788876954.023120 cont_high=1788876954.023127 cont_low=1788876954.023129
+2026-09-08T07:16:17.998994 --- block 3 arm prefetch_only ---
+2026-09-08T07:16:19.050585 block03_prefetch_only release t=1788876979.050565 cont_high=1788876979.050573 cont_low=1788876979.050575
+2026-09-08T07:18:42.784888 block 4 arm order: combined,baseline,sched_only,prefetch_only,memory_only
+2026-09-08T07:18:42.784918 --- block 4 arm combined ---
+2026-09-08T07:18:44.837275 block04_combined release t=1788877124.837252 cont_high=1788877124.837263 cont_low=1788877124.837265
+2026-09-08T07:19:12.367466 --- block 4 arm baseline ---
+2026-09-08T07:19:12.418435 block04_baseline release t=1788877152.418412 cont_high=1788877152.418418 cont_low=1788877152.418418
+2026-09-08T07:22:07.794112 --- block 4 arm sched_only ---
+2026-09-08T07:22:08.845846 block04_sched_only release t=1788877328.845826 cont_high=1788877328.845834 cont_low=1788877328.845835
+2026-09-08T07:22:32.908096 --- block 4 arm prefetch_only ---
+2026-09-08T07:22:33.959671 block04_prefetch_only release t=1788877353.959651 cont_high=1788877353.959657 cont_low=1788877353.959660
+2026-09-08T07:24:58.454281 --- block 4 arm memory_only ---
+2026-09-08T07:24:59.506107 block04_memory_only release t=1788877499.506087 cont_high=1788877499.506094 cont_low=1788877499.506097
+
+Results saved to: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.5/combined_20260908_064409
+CSV: /home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.5/combined_20260908_064409/combined_comparison.csv
+SWEEP_COMPLETE kernel=gemm ratio=1.5 csv=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/gemm/ratio-1.5/combined_20260908_064409/combined_comparison.csv
+SWEEP_START kernel=kmeans_sparse requested_total_ratio=1.5
+2026-09-08T07:27:20.098887 combined start kernel=kmeans_sparse size_factor=0.75 blocks=5 out=/home/yunwei37/workspace/gpu/gpu_ext/docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji/kmeans_sparse/ratio-1.5/combined_20260908_072720
+2026-09-08T07:27:20.098941 block 0 arm order: baseline,sched_only,prefetch_only,memory_only,combined
+2026-09-08T07:27:20.098953 --- block 0 arm baseline ---
+2026-09-08T07:27:20.149846 block00_baseline release t=1788877640.149819 cont_high=1788877640.149829 cont_low=1788877640.149832
+2026-09-08T07:30:38.528480 --- block 0 arm sched_only ---
+2026-09-08T07:30:39.580507 block00_sched_only release t=1788877839.580477 cont_high=1788877839.580489 cont_low=1788877839.580493
+2026-09-08T07:31:28.116572 --- block 0 arm prefetch_only ---
+2026-09-08T07:31:29.168186 block00_prefetch_only release t=1788877889.168166 cont_high=1788877889.168174 cont_low=1788877889.168176
+2026-09-08T07:34:31.522704 --- block 0 arm memory_only ---
+2026-09-08T07:34:32.574663 block00_memory_only release t=1788878072.574635 cont_high=1788878072.574646 cont_low=1788878072.574649

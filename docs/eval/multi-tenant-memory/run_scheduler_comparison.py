@@ -19,15 +19,17 @@ import os
 import signal
 import argparse
 import sys
+import json
+import threading
 from pathlib import Path
 from datetime import datetime
 
 # Paths
-BASE_DIR = Path("/home/yunwei37/workspace/gpu/co-processor-demo/gpu_ext_policy")
-SRC = BASE_DIR / "src"
-UVM = BASE_DIR / "microbench" / "memory" / "uvmbench"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SRC = REPO_ROOT / "extension"
+UVM = REPO_ROOT / "microbench" / "memory" / "uvmbench"
+TENANT_LAUNCHER = REPO_ROOT / "workloads" / "fig13-fast" / "tenant_launcher.py"
 SCHED_POLICY = SRC / "gpu_sched_set_timeslices"
-CLEANUP_TOOL = SRC / "cleanup_struct_ops_tool"
 DEFAULT_OUTPUT_DIR = Path(__file__).parent / "results_sched"
 
 # Benchmark parameters
@@ -53,15 +55,77 @@ SINGLE_PROCESS_CONFIGS = [
     # ("single_2x", 2),
 ]
 
+# Tenant comm names (via run-owned symlinks) used to key the scheduler policy.
+HIGH_NAME = "uvmbench_high"
+LOW_NAME = "uvmbench_low"
+
+
+# Processes this runner started. Cleanup targets only these (never a global
+# pkill or a global struct-ops sweep, which could remove another session's
+# live policy, e.g. LMCache).
+_OWN_PROCS = set()
+
+
+def _track(proc):
+    """Register a Popen handle so cleanup only ever touches our own children."""
+    if proc is not None:
+        _OWN_PROCS.add(proc)
+    return proc
+
+
+def stop_proc(proc, label="", notes=None):
+    """Stop one of our own processes: SIGINT, then SIGKILL if it lingers."""
+    if proc is None:
+        return
+    try:
+        if proc.poll() is None:
+            proc.send_signal(signal.SIGINT)
+    except (ProcessLookupError, OSError):
+        pass
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+            proc.wait(timeout=5)
+        except (ProcessLookupError, OSError, subprocess.TimeoutExpired):
+            pass
+    if notes is not None:
+        notes.append(f"{label}_stopped rc={proc.returncode}")
+    _OWN_PROCS.discard(proc)
+
 
 def cleanup_processes():
-    """Kill any lingering processes."""
-    subprocess.run(["pkill", "-9", "-f", "uvmbench"], capture_output=True)
-    subprocess.run(["pkill", "-9", "-f", "uvmbench_high"], capture_output=True)
-    subprocess.run(["pkill", "-9", "-f", "uvmbench_low"], capture_output=True)
-    if CLEANUP_TOOL.exists():
-        subprocess.run(["sudo", str(CLEANUP_TOOL)], capture_output=True)
-    time.sleep(1)
+    """Stop only the processes this runner started. No global pkill / struct-ops."""
+    for proc in list(_OWN_PROCS):
+        stop_proc(proc)
+    _OWN_PROCS.clear()
+
+
+def proc_state(pid):
+    """Return the kernel state letter for pid from /proc/<pid>/stat."""
+    try:
+        with open(f"/proc/{pid}/stat", "rb") as f:
+            data = f.read().decode(errors="replace")
+        return data.rsplit(")", 1)[1].split()[0]
+    except (OSError, IndexError):
+        return "?"
+
+
+def wait_stopped(pid, timeout_s=5.0):
+    """Wait until a spawned tenant reaches the stopped (pre-exec) state."""
+    deadline = time.time() + timeout_s
+    state = proc_state(pid)
+    while state not in ("T", "Z", "X") and time.time() < deadline:
+        time.sleep(0.05)
+        state = proc_state(pid)
+    return state
+
+
+def watch_tenant(proc, role, results):
+    """Independently observe one tenant's completion in its own thread."""
+    rc = proc.wait()
+    results[role] = {"rc": rc, "t_done": time.time()}
 
 
 def parse_output(output_file):
@@ -86,71 +150,142 @@ def parse_output(output_file):
     return median_ms, bw_gbps
 
 
-def run_uvmbench(output_file, size_factor, kernel, binary_name="uvmbench"):
-    """Start a uvmbench process with optional custom binary name."""
-    # Create symlink with custom name for scheduler policy identification
-    uvm_link = Path(f"/tmp/{binary_name}")
-    if uvm_link.exists():
-        uvm_link.unlink()
-    uvm_link.symlink_to(UVM)
-
-    cmd = [
-        str(uvm_link),
+def spawn_stopped_tenant(name, link_dir, run_root, size_factor, kernel):
+    """Spawn a tenant that stops before exec; the PID is preserved across exec."""
+    link = link_dir / name
+    if link.is_symlink():
+        link.unlink()
+    elif link.exists():
+        raise FileExistsError(f"{link} exists and is not a symlink")
+    link.symlink_to(UVM)
+    out_csv = run_root / f"uvmbench_{name}_results.csv"
+    argv = [
+        str(link),
         f"--size_factor={size_factor}",
         "--mode=uvm",
         f"--iterations={ITERATIONS}",
         f"--kernel={kernel}",
+        f"--output={out_csv}",
     ]
-    with open(output_file, 'w') as f:
-        proc = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
-    return proc
+    cmd = [sys.executable, str(TENANT_LAUNCHER)] + argv
+    log_path = run_root / f"tenant_{name}.log"
+    logf = open(log_path, "w", buffering=1)
+    proc = _track(subprocess.Popen(
+        cmd, stdout=logf, stderr=subprocess.STDOUT,
+        cwd=str(run_root), start_new_session=True,
+    ))
+    return proc, logf
 
 
 def run_experiment(policy_name, use_sched_policy, high_ts, low_ts, round_idx, size_factor, kernel, output_dir):
-    """Run a single experiment with scheduler policy."""
+    """Run one scheduler-policy experiment: stop-before-exec, common release,
+    independent completion, own-process cleanup only.
+
+    Latency is measured from the single common release origin (SIGCONT), not the
+    old pre-Popen start; raw tenant/tool logs and timing metadata are kept in a
+    fresh run_root subdirectory.
+    """
     cleanup_processes()
 
-    high_output = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
-    low_output = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
-    high_output.close()
-    low_output.close()
+    run_root = output_dir / f"round{round_idx + 1}_{policy_name}"
+    run_root.mkdir(parents=True, exist_ok=True)
+    link_dir = run_root / "tenant_links"
+    link_dir.mkdir(parents=True, exist_ok=True)
 
     sched_proc = None
+    high = low = None
+    files = []
+    results = {}
+    t_release = None
+    notes = []
+    failed = False
+    meta = {
+        "policy": policy_name,
+        "use_sched_policy": use_sched_policy,
+        "high_timeslice": high_ts,
+        "low_timeslice": low_ts,
+        "round": round_idx + 1,
+        "kernel": kernel,
+        "size_factor": size_factor,
+        "iterations": ITERATIONS,
+        "common_release_origin": True,
+        "independent_exit_observation": True,
+        "timing_note": "latency measured from the common release origin, not the pre-Popen start",
+    }
 
     try:
-        start_time = time.time()
+        high, high_logf = spawn_stopped_tenant(HIGH_NAME, link_dir, run_root, size_factor, kernel)
+        t_spawn_high = time.time()
+        low, low_logf = spawn_stopped_tenant(LOW_NAME, link_dir, run_root, size_factor, kernel)
+        t_spawn_low = time.time()
+        files.extend([high_logf, low_logf])
+        meta["high_pid"] = high.pid
+        meta["low_pid"] = low.pid
+        meta["t_spawn_high"] = t_spawn_high
+        meta["t_spawn_low"] = t_spawn_low
 
-        # Start both uvmbench processes with different names for scheduler identification
-        high_proc = run_uvmbench(high_output.name, size_factor, kernel, "uvmbench_high")
-        low_proc = run_uvmbench(low_output.name, size_factor, kernel, "uvmbench_low")
+        state_high = wait_stopped(high.pid)
+        state_low = wait_stopped(low.pid)
+        meta["states_after_spawn"] = {"high": state_high, "low": state_low}
+        if state_high != "T":
+            notes.append(f"{HIGH_NAME}_not_stopped_pre_policy:{state_high}")
+        if state_low != "T":
+            notes.append(f"{LOW_NAME}_not_stopped_pre_policy:{state_low}")
 
-        # Start scheduler policy if needed
+        # Start the scheduler policy while tenants are stopped (before CUDA init).
         if use_sched_policy and SCHED_POLICY.exists():
-            time.sleep(0.5)  # Wait for processes to start
-
             cmd = [
                 "sudo", str(SCHED_POLICY),
-                "-p", f"uvmbench_high:{high_ts}",
-                "-p", f"uvmbench_low:{low_ts}",
+                "-p", f"{HIGH_NAME}:{high_ts}",
+                "-p", f"{LOW_NAME}:{low_ts}",
             ]
-            sched_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            time.sleep(0.5)
-
+            sched_log = open(run_root / "sched_tool.log", "w", buffering=1)
+            files.append(sched_log)
+            sched_proc = _track(subprocess.Popen(
+                cmd, stdout=sched_log, stderr=subprocess.STDOUT, start_new_session=True,
+            ))
+            time.sleep(1.0)
+            meta["t_sched_start"] = time.time()
+            meta["command_sched"] = " ".join(cmd)
             if sched_proc.poll() is not None:
-                print("  Warning: Scheduler policy failed to start")
+                notes.append(f"sched_tool_exited_early rc={sched_proc.returncode}")
 
-        # Wait for completion
-        high_proc.wait()
-        high_end = time.time()
-        low_proc.wait()
-        low_end = time.time()
+        # Single common release origin: one timestamp, then resume both tenants.
+        t_release = time.time()
+        os.kill(high.pid, signal.SIGCONT)
+        t_cont_high = time.time()
+        os.kill(low.pid, signal.SIGCONT)
+        t_cont_low = time.time()
+        meta["t_release"] = t_release
+        meta["t_cont_high"] = t_cont_high
+        meta["t_cont_low"] = t_cont_low
 
-        high_latency = high_end - start_time
-        low_latency = low_end - start_time
+        # Observe each child's completion independently (no sequential wait).
+        threads = []
+        for proc, role in ((high, "high"), (low, "low")):
+            th = threading.Thread(target=watch_tenant, args=(proc, role, results))
+            th.start()
+            threads.append(th)
+        for th in threads:
+            th.join()
 
-        # Parse results
-        high_median, high_bw = parse_output(high_output.name)
-        low_median, low_bw = parse_output(low_output.name)
+        # Stop our own scheduler tool (own attachment only).
+        if sched_proc is not None:
+            stop_proc(sched_proc, "sched_tool", notes)
+            meta["rc_sched_tool"] = sched_proc.returncode
+
+        if "high" not in results or "low" not in results or t_release is None:
+            raise RuntimeError("missing tenant completion or release timestamp")
+
+        high_latency = results["high"]["t_done"] - t_release
+        low_latency = results["low"]["t_done"] - t_release
+        meta["t_done_high"] = results["high"]["t_done"]
+        meta["t_done_low"] = results["low"]["t_done"]
+        meta["rc_high"] = results["high"]["rc"]
+        meta["rc_low"] = results["low"]["rc"]
+
+        high_median, high_bw = parse_output(run_root / f"tenant_{HIGH_NAME}.log")
+        low_median, low_bw = parse_output(run_root / f"tenant_{LOW_NAME}.log")
 
         return {
             'policy': policy_name,
@@ -167,30 +302,27 @@ def run_experiment(policy_name, use_sched_policy, high_ts, low_ts, round_idx, si
             'round': round_idx + 1,
         }
 
+    except Exception as exc:
+        failed = True
+        notes.append(f"harness_error:{type(exc).__name__}:{exc}")
+        print(f"  harness error in {run_root}: {exc!r}")
+        return None
     finally:
-        if sched_proc:
-            sched_proc.send_signal(signal.SIGINT)
+        # Clean up only our own processes/attachments.
+        stop_proc(high, "high")
+        stop_proc(low, "low")
+        stop_proc(sched_proc, "sched_tool")
+        for f in files:
             try:
-                sched_proc.wait(timeout=5)
-            except:
-                sched_proc.kill()
-
-        # Cleanup
-        if CLEANUP_TOOL.exists():
-            subprocess.run(["sudo", str(CLEANUP_TOOL)], capture_output=True)
-
-        for f in [high_output.name, low_output.name]:
-            try:
-                os.unlink(f)
-            except:
+                f.close()
+            except OSError:
                 pass
-
-        # Remove symlinks
-        for name in ["uvmbench_high", "uvmbench_low"]:
-            try:
-                Path(f"/tmp/{name}").unlink()
-            except:
-                pass
+        meta["status"] = "error" if failed else "ok"
+        meta["notes"] = notes
+        try:
+            (run_root / "meta.json").write_text(json.dumps(meta, indent=2))
+        except OSError as exc:
+            print(f"  meta.json write failed: {exc}")
 
 
 def run_single_experiment(config_name, size_multiplier, round_idx, size_factor, kernel):
@@ -199,12 +331,23 @@ def run_single_experiment(config_name, size_multiplier, round_idx, size_factor, 
 
     output = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
     output.close()
+    proc = None
 
     try:
         actual_size_factor = size_factor * size_multiplier
         start_time = time.time()
 
-        proc = run_uvmbench(output.name, actual_size_factor, kernel)
+        # No policy is attached in the single-process baseline, so run uvmbench
+        # directly (no comm-keying symlink, no stop-before-exec needed).
+        cmd = [
+            str(UVM),
+            f"--size_factor={actual_size_factor}",
+            "--mode=uvm",
+            f"--iterations={ITERATIONS}",
+            f"--kernel={kernel}",
+        ]
+        with open(output.name, 'w') as f:
+            proc = _track(subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT))
         proc.wait()
         end_time = time.time()
 
@@ -226,13 +369,10 @@ def run_single_experiment(config_name, size_multiplier, round_idx, size_factor, 
             'round': round_idx + 1,
         }
     finally:
+        stop_proc(proc, "single")
         try:
             os.unlink(output.name)
-        except:
-            pass
-        try:
-            Path("/tmp/uvmbench").unlink()
-        except:
+        except OSError:
             pass
 
 

@@ -1,0 +1,863 @@
+libbpf: loading object 'prefetch_pid_tree_bpf' from buffer
+libbpf: elf: section(2) .symtab, size 864, link 1, flags 0, type=2
+libbpf: elf: section(3) kprobe/uvm_perf_prefetch_get_hint_va_block, size 432, link 0, flags 6, type=1
+libbpf: sec 'kprobe/uvm_perf_prefetch_get_hint_va_block': found program 'prefetch_get_hint_va_block' at insn offset 0 (0 bytes), code size 54 insns (432 bytes)
+libbpf: elf: section(4) struct_ops/gpu_page_prefetch, size 584, link 0, flags 6, type=1
+libbpf: sec 'struct_ops/gpu_page_prefetch': found program 'gpu_page_prefetch' at insn offset 0 (0 bytes), code size 73 insns (584 bytes)
+libbpf: elf: section(5) struct_ops/gpu_page_prefetch_iter, size 1192, link 0, flags 6, type=1
+libbpf: sec 'struct_ops/gpu_page_prefetch_iter': found program 'gpu_page_prefetch_iter' at insn offset 0 (0 bytes), code size 149 insns (1192 bytes)
+libbpf: elf: section(6) struct_ops/gpu_test_trigger, size 16, link 0, flags 6, type=1
+libbpf: sec 'struct_ops/gpu_test_trigger': found program 'gpu_test_trigger' at insn offset 0 (0 bytes), code size 2 insns (16 bytes)
+libbpf: elf: section(7) license, size 4, link 0, flags 3, type=1
+libbpf: license of prefetch_pid_tree_bpf is GPL
+libbpf: elf: section(8) .struct_ops, size 48, link 0, flags 3, type=1
+libbpf: elf: section(9) .maps, size 96, link 0, flags 3, type=1
+libbpf: elf: section(10) .rodata, size 47, link 0, flags 2, type=1
+libbpf: elf: section(11) .relkprobe/uvm_perf_prefetch_get_hint_va_block, size 16, link 2, flags 40, type=9
+libbpf: elf: section(12) .relstruct_ops/gpu_page_prefetch, size 128, link 2, flags 40, type=9
+libbpf: elf: section(13) .relstruct_ops/gpu_page_prefetch_iter, size 144, link 2, flags 40, type=9
+libbpf: elf: section(14) .rel.struct_ops, size 48, link 2, flags 40, type=9
+libbpf: elf: section(15) .BTF, size 40016, link 0, flags 0, type=1
+libbpf: elf: section(16) .BTF.ext, size 1964, link 0, flags 0, type=1
+libbpf: looking for externs among 36 symbols...
+libbpf: collected 1 externs total
+libbpf: extern (ksym) #0: symbol 30, name bpf_gpu_set_prefetch_region
+libbpf: map 'policy_config': at sec_idx 9, offset 0.
+libbpf: map 'policy_config': found type = 2.
+libbpf: map 'policy_config': found key [8], sz = 4.
+libbpf: map 'policy_config': found value [12], sz = 8.
+libbpf: map 'policy_config': found max_entries = 8.
+libbpf: map 'pid_stats': at sec_idx 9, offset 32.
+libbpf: map 'pid_stats': found type = 1.
+libbpf: map 'pid_stats': found key [8], sz = 4.
+libbpf: map 'pid_stats': found value [22], sz = 40.
+libbpf: map 'pid_stats': found max_entries = 1024.
+libbpf: map 'va_block_pid_cache': at sec_idx 9, offset 64.
+libbpf: map 'va_block_pid_cache': found type = 6.
+libbpf: map 'va_block_pid_cache': found key [8], sz = 4.
+libbpf: map 'va_block_pid_cache': found value [8], sz = 4.
+libbpf: map 'va_block_pid_cache': found max_entries = 1.
+libbpf: map 'prefetch.rodata' (global data): at sec_idx 10, offset 0, flags 80.
+libbpf: map 3 is "prefetch.rodata"
+libbpf: struct_ops init: struct gpu_mem_ops(type_id=456) uvm_ops_prefetch_pid_tree found at offset 0
+libbpf: sec '.relkprobe/uvm_perf_prefetch_get_hint_va_block': collecting relocation for section(3) 'kprobe/uvm_perf_prefetch_get_hint_va_block'
+libbpf: sec '.relkprobe/uvm_perf_prefetch_get_hint_va_block': relo #0: insn #5 against 'va_block_pid_cache'
+libbpf: prog 'prefetch_get_hint_va_block': found map 2 (va_block_pid_cache, sec 9, off 64) for insn #5
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': collecting relocation for section(4) 'struct_ops/gpu_page_prefetch'
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #0: insn #7 against 'va_block_pid_cache'
+libbpf: prog 'gpu_page_prefetch': found map 2 (va_block_pid_cache, sec 9, off 64) for insn #7
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #1: insn #16 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch': found map 0 (policy_config, sec 9, off 0) for insn #16
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #2: insn #23 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch': found map 0 (policy_config, sec 9, off 0) for insn #23
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #3: insn #35 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch': found map 0 (policy_config, sec 9, off 0) for insn #35
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #4: insn #42 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch': found map 0 (policy_config, sec 9, off 0) for insn #42
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #5: insn #54 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch': found map 0 (policy_config, sec 9, off 0) for insn #54
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #6: insn #61 against '.rodata'
+libbpf: prog 'gpu_page_prefetch': found data map 3 (prefetch.rodata, sec 10, off 0) for insn 61
+libbpf: sec '.relstruct_ops/gpu_page_prefetch': relo #7: insn #70 against 'bpf_gpu_set_prefetch_region'
+libbpf: prog 'gpu_page_prefetch': found extern #0 'bpf_gpu_set_prefetch_region' (sym 30) for insn #70
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': collecting relocation for section(5) 'struct_ops/gpu_page_prefetch_iter'
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #0: insn #8 against 'va_block_pid_cache'
+libbpf: prog 'gpu_page_prefetch_iter': found map 2 (va_block_pid_cache, sec 9, off 64) for insn #8
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #1: insn #18 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch_iter': found map 0 (policy_config, sec 9, off 0) for insn #18
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #2: insn #25 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch_iter': found map 0 (policy_config, sec 9, off 0) for insn #25
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #3: insn #38 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch_iter': found map 0 (policy_config, sec 9, off 0) for insn #38
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #4: insn #45 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch_iter': found map 0 (policy_config, sec 9, off 0) for insn #45
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #5: insn #58 against 'policy_config'
+libbpf: prog 'gpu_page_prefetch_iter': found map 0 (policy_config, sec 9, off 0) for insn #58
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #6: insn #97 against 'pid_stats'
+libbpf: prog 'gpu_page_prefetch_iter': found map 1 (pid_stats, sec 9, off 32) for insn #97
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #7: insn #119 against 'pid_stats'
+libbpf: prog 'gpu_page_prefetch_iter': found map 1 (pid_stats, sec 9, off 32) for insn #119
+libbpf: sec '.relstruct_ops/gpu_page_prefetch_iter': relo #8: insn #146 against 'bpf_gpu_set_prefetch_region'
+libbpf: prog 'gpu_page_prefetch_iter': found extern #0 'bpf_gpu_set_prefetch_region' (sym 30) for insn #146
+libbpf: struct_ops reloc uvm_ops_prefetch_pid_tree: for 33 value 0 shdr_idx 6 rel->r_offset 0 map->sec_offset 0 name 512 ('gpu_test_trigger')
+libbpf: struct_ops reloc uvm_ops_prefetch_pid_tree: for 28 value 0 shdr_idx 4 rel->r_offset 8 map->sec_offset 0 name 419 ('gpu_page_prefetch')
+libbpf: struct_ops reloc uvm_ops_prefetch_pid_tree: for 31 value 0 shdr_idx 5 rel->r_offset 16 map->sec_offset 0 name 479 ('gpu_page_prefetch_iter')
+libbpf: object 'prefetch_pid_tr': failed (-95) to create BPF token from '/sys/fs/bpf', skipping optional step...
+libbpf: loaded kernel BTF from '/sys/kernel/btf/vmlinux'
+libbpf: extern (func ksym) 'bpf_gpu_set_prefetch_region': resolved to nvidia_uvm [150331]
+libbpf: struct_ops init_kern uvm_ops_prefetch_pid_tree: type_id:456 kern_type_id:148561 kern_vtype_id:148591
+libbpf: struct_ops init_kern uvm_ops_prefetch_pid_tree: func ptr gpu_test_trigger is set to prog gpu_test_trigger from data(+0) to kern_data(+0)
+libbpf: struct_ops init_kern uvm_ops_prefetch_pid_tree: func ptr gpu_page_prefetch is set to prog gpu_page_prefetch from data(+8) to kern_data(+8)
+libbpf: struct_ops init_kern uvm_ops_prefetch_pid_tree: func ptr gpu_page_prefetch_iter is set to prog gpu_page_prefetch_iter from data(+16) to kern_data(+16)
+libbpf: sec 'kprobe/uvm_perf_prefetch_get_hint_va_block': found 6 CO-RE relocations
+libbpf: CO-RE relocating [30] struct pt_regs: found target candidate [185] struct pt_regs in [vmlinux]
+libbpf: prog 'prefetch_get_hint_va_block': relo #0: <byte_off> [30] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'prefetch_get_hint_va_block': relo #0: matching candidate #0 <byte_off> [185] struct pt_regs.di (0:14 @ offset 112)
+libbpf: prog 'prefetch_get_hint_va_block': relo #0: patched insn #0 (LDX/ST/STX) off 112 -> 112
+libbpf: CO-RE relocating [41] typedef uvm_va_block_t: found target candidate [147906] typedef uvm_va_block_t in [nvidia_uvm]
+libbpf: prog 'prefetch_get_hint_va_block': relo #1: <byte_off> [41] typedef uvm_va_block_t.managed_range (0:2 @ offset 40)
+libbpf: prog 'prefetch_get_hint_va_block': relo #1: matching candidate #0 <byte_off> [147906] typedef uvm_va_block_t.managed_range (0:2 @ offset 40)
+libbpf: prog 'prefetch_get_hint_va_block': relo #1: patched insn #11 (ALU/ALU64) imm 40 -> 40
+libbpf: CO-RE relocating [47] typedef uvm_va_range_managed_t: found target candidate [147900] typedef uvm_va_range_managed_t in [nvidia_uvm]
+libbpf: prog 'prefetch_get_hint_va_block': relo #2: <byte_off> [47] typedef uvm_va_range_managed_t.va_range.va_space (0:0:0 @ offset 0)
+libbpf: prog 'prefetch_get_hint_va_block': relo #2: matching candidate #0 <byte_off> [147900] typedef uvm_va_range_managed_t.va_range.va_space (0:0:0 @ offset 0)
+libbpf: prog 'prefetch_get_hint_va_block': relo #2: patched insn #20 (ALU/ALU64) imm 0 -> 0
+libbpf: CO-RE relocating [58] typedef uvm_va_space_t: found target candidate [147908] typedef uvm_va_space_t in [nvidia_uvm]
+libbpf: prog 'prefetch_get_hint_va_block': relo #3: <byte_off> [58] typedef uvm_va_space_t.va_space_mm.mm (0:1:0 @ offset 26688)
+libbpf: prog 'prefetch_get_hint_va_block': relo #3: matching candidate #0 <byte_off> [147908] typedef uvm_va_space_t.va_space_mm.mm (0:44:0 @ offset 367872)
+libbpf: prog 'prefetch_get_hint_va_block': relo #3: patched insn #28 (ALU/ALU64) imm 26688 -> 367872
+libbpf: CO-RE relocating [64] struct mm_struct: found target candidate [276] struct mm_struct in [vmlinux]
+libbpf: prog 'prefetch_get_hint_va_block': relo #4: <byte_off> [64] struct mm_struct.owner (0:0:51 @ offset 1176)
+libbpf: prog 'prefetch_get_hint_va_block': relo #4: matching candidate #0 <byte_off> [276] struct mm_struct.owner (0:0:51 @ offset 1176)
+libbpf: prog 'prefetch_get_hint_va_block': relo #4: patched insn #36 (ALU/ALU64) imm 1176 -> 1176
+libbpf: CO-RE relocating [138] struct task_struct: found target candidate [115] struct task_struct in [vmlinux]
+libbpf: prog 'prefetch_get_hint_va_block': relo #5: <byte_off> [138] struct task_struct.tgid (0:94 @ offset 2772)
+libbpf: prog 'prefetch_get_hint_va_block': relo #5: matching candidate #0 <byte_off> [115] struct task_struct.tgid (0:94 @ offset 2772)
+libbpf: prog 'prefetch_get_hint_va_block': relo #5: patched insn #44 (ALU/ALU64) imm 2772 -> 2772
+libbpf: sec 'struct_ops/gpu_page_prefetch_iter': found 2 CO-RE relocations
+libbpf: CO-RE relocating [449] typedef uvm_va_block_region_t: found target candidate [148139] typedef uvm_va_block_region_t in [nvidia_uvm]
+libbpf: prog 'gpu_page_prefetch_iter': relo #0: <byte_off> [449] typedef uvm_va_block_region_t.first (0:0 @ offset 0)
+libbpf: prog 'gpu_page_prefetch_iter': relo #0: matching candidate #0 <byte_off> [148139] typedef uvm_va_block_region_t.first (0:0 @ offset 0)
+libbpf: prog 'gpu_page_prefetch_iter': relo #0: patched insn #64 (ALU/ALU64) imm 0 -> 0
+libbpf: prog 'gpu_page_prefetch_iter': relo #1: <byte_off> [449] typedef uvm_va_block_region_t.outer (0:1 @ offset 2)
+libbpf: prog 'gpu_page_prefetch_iter': relo #1: matching candidate #0 <byte_off> [148139] typedef uvm_va_block_region_t.outer (0:1 @ offset 2)
+libbpf: prog 'gpu_page_prefetch_iter': relo #1: patched insn #71 (ALU/ALU64) imm 2 -> 2
+libbpf: map 'policy_config': created successfully, fd=3
+libbpf: map 'pid_stats': created successfully, fd=4
+libbpf: map 'va_block_pid_cache': created successfully, fd=5
+libbpf: map 'prefetch.rodata': created successfully, fd=6
+libbpf: map 'uvm_ops_prefetch_pid_tree': created successfully, fd=7
+Checking for old struct_ops instances...
+No old struct_ops instances found.
+Successfully loaded PID-based prefetch policy!
+
+Configuration (lower threshold = more prefetch bandwidth):
+  High priority PID: 2983171 (threshold: 20%)
+  Low priority PID:  2983172 (threshold: 80%)
+  Default threshold: 50%
+
+Press Ctrl-C to exit...
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 248956
+    Total used calls: 0
+    Policy allow (prefetched): 201041 (80.8%)
+    Policy deny (skipped): 47915 (19.2%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 1458600
+    Total used calls: 0
+    Policy allow (prefetched): 840430 (57.6%)
+    Policy deny (skipped): 618170 (42.4%)
+
+=== Summary ===
+  Total activated: 1707556
+  Policy allow (prefetched): 1041471 (61.0%)
+  Policy deny (skipped): 666085 (39.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 924992
+    Total used calls: 0
+    Policy allow (prefetched): 774782 (83.8%)
+    Policy deny (skipped): 150210 (16.2%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 10898987
+    Total used calls: 0
+    Policy allow (prefetched): 7581036 (69.6%)
+    Policy deny (skipped): 3317951 (30.4%)
+
+=== Summary ===
+  Total activated: 11823979
+  Policy allow (prefetched): 8355818 (70.7%)
+  Policy deny (skipped): 3468161 (29.3%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 1707334
+    Total used calls: 0
+    Policy allow (prefetched): 1440768 (84.4%)
+    Policy deny (skipped): 266566 (15.6%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 13384003
+    Total used calls: 0
+    Policy allow (prefetched): 9180817 (68.6%)
+    Policy deny (skipped): 4203186 (31.4%)
+
+=== Summary ===
+  Total activated: 15091337
+  Policy allow (prefetched): 10621585 (70.4%)
+  Policy deny (skipped): 4469752 (29.6%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 2562796
+    Total used calls: 0
+    Policy allow (prefetched): 2164330 (84.5%)
+    Policy deny (skipped): 398466 (15.5%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 14716343
+    Total used calls: 0
+    Policy allow (prefetched): 9940402 (67.5%)
+    Policy deny (skipped): 4775941 (32.5%)
+
+=== Summary ===
+  Total activated: 17279139
+  Policy allow (prefetched): 12104732 (70.1%)
+  Policy deny (skipped): 5174407 (29.9%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 3151581
+    Total used calls: 0
+    Policy allow (prefetched): 2657969 (84.3%)
+    Policy deny (skipped): 493612 (15.7%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 24265969
+    Total used calls: 0
+    Policy allow (prefetched): 16763240 (69.1%)
+    Policy deny (skipped): 7502729 (30.9%)
+
+=== Summary ===
+  Total activated: 27417550
+  Policy allow (prefetched): 19421209 (70.8%)
+  Policy deny (skipped): 7996341 (29.2%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 3955072
+    Total used calls: 0
+    Policy allow (prefetched): 3343275 (84.5%)
+    Policy deny (skipped): 611797 (15.5%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 27713921
+    Total used calls: 0
+    Policy allow (prefetched): 19065706 (68.8%)
+    Policy deny (skipped): 8648215 (31.2%)
+
+=== Summary ===
+  Total activated: 31668993
+  Policy allow (prefetched): 22408981 (70.8%)
+  Policy deny (skipped): 9260012 (29.2%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 4798609
+    Total used calls: 0
+    Policy allow (prefetched): 4062026 (84.7%)
+    Policy deny (skipped): 736583 (15.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 29145721
+    Total used calls: 0
+    Policy allow (prefetched): 19882084 (68.2%)
+    Policy deny (skipped): 9263637 (31.8%)
+
+=== Summary ===
+  Total activated: 33944330
+  Policy allow (prefetched): 23944110 (70.5%)
+  Policy deny (skipped): 10000220 (29.5%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 5494703
+    Total used calls: 0
+    Policy allow (prefetched): 4653850 (84.7%)
+    Policy deny (skipped): 840853 (15.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 39393836
+    Total used calls: 0
+    Policy allow (prefetched): 27215053 (69.1%)
+    Policy deny (skipped): 12178783 (30.9%)
+
+=== Summary ===
+  Total activated: 44888539
+  Policy allow (prefetched): 31868903 (71.0%)
+  Policy deny (skipped): 13019636 (29.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 6364634
+    Total used calls: 0
+    Policy allow (prefetched): 5401036 (84.9%)
+    Policy deny (skipped): 963598 (15.1%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 42070834
+    Total used calls: 0
+    Policy allow (prefetched): 28954219 (68.8%)
+    Policy deny (skipped): 13116615 (31.2%)
+
+=== Summary ===
+  Total activated: 48435468
+  Policy allow (prefetched): 34355255 (70.9%)
+  Policy deny (skipped): 14080213 (29.1%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 7212162
+    Total used calls: 0
+    Policy allow (prefetched): 6129110 (85.0%)
+    Policy deny (skipped): 1083052 (15.0%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 43971752
+    Total used calls: 0
+    Policy allow (prefetched): 30125081 (68.5%)
+    Policy deny (skipped): 13846671 (31.5%)
+
+=== Summary ===
+  Total activated: 51183914
+  Policy allow (prefetched): 36254191 (70.8%)
+  Policy deny (skipped): 14929723 (29.2%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 8038237
+    Total used calls: 0
+    Policy allow (prefetched): 6844597 (85.2%)
+    Policy deny (skipped): 1193640 (14.8%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 54277554
+    Total used calls: 0
+    Policy allow (prefetched): 37504317 (69.1%)
+    Policy deny (skipped): 16773237 (30.9%)
+
+=== Summary ===
+  Total activated: 62315791
+  Policy allow (prefetched): 44348914 (71.2%)
+  Policy deny (skipped): 17966877 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 8883232
+    Total used calls: 0
+    Policy allow (prefetched): 7571926 (85.2%)
+    Policy deny (skipped): 1311306 (14.8%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 56515665
+    Total used calls: 0
+    Policy allow (prefetched): 38912306 (68.9%)
+    Policy deny (skipped): 17603359 (31.1%)
+
+=== Summary ===
+  Total activated: 65398897
+  Policy allow (prefetched): 46484232 (71.1%)
+  Policy deny (skipped): 18914665 (28.9%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 9738918
+    Total used calls: 0
+    Policy allow (prefetched): 8308432 (85.3%)
+    Policy deny (skipped): 1430486 (14.7%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 58814673
+    Total used calls: 0
+    Policy allow (prefetched): 40364418 (68.6%)
+    Policy deny (skipped): 18450255 (31.4%)
+
+=== Summary ===
+  Total activated: 68553591
+  Policy allow (prefetched): 48672850 (71.0%)
+  Policy deny (skipped): 19880741 (29.0%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 10576182
+    Total used calls: 0
+    Policy allow (prefetched): 9030720 (85.4%)
+    Policy deny (skipped): 1545462 (14.6%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 69012790
+    Total used calls: 0
+    Policy allow (prefetched): 47635484 (69.0%)
+    Policy deny (skipped): 21377306 (31.0%)
+
+=== Summary ===
+  Total activated: 79588972
+  Policy allow (prefetched): 56666204 (71.2%)
+  Policy deny (skipped): 22922768 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 11420691
+    Total used calls: 0
+    Policy allow (prefetched): 9756257 (85.4%)
+    Policy deny (skipped): 1664434 (14.6%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 71055684
+    Total used calls: 0
+    Policy allow (prefetched): 48915349 (68.8%)
+    Policy deny (skipped): 22140335 (31.2%)
+
+=== Summary ===
+  Total activated: 82476375
+  Policy allow (prefetched): 58671606 (71.1%)
+  Policy deny (skipped): 23804769 (28.9%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 12275913
+    Total used calls: 0
+    Policy allow (prefetched): 10491761 (85.5%)
+    Policy deny (skipped): 1784152 (14.5%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 74139237
+    Total used calls: 0
+    Policy allow (prefetched): 50954018 (68.7%)
+    Policy deny (skipped): 23185219 (31.3%)
+
+=== Summary ===
+  Total activated: 86415150
+  Policy allow (prefetched): 61445779 (71.1%)
+  Policy deny (skipped): 24969371 (28.9%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 12996248
+    Total used calls: 0
+    Policy allow (prefetched): 11111192 (85.5%)
+    Policy deny (skipped): 1885056 (14.5%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 84093515
+    Total used calls: 0
+    Policy allow (prefetched): 58004811 (69.0%)
+    Policy deny (skipped): 26088704 (31.0%)
+
+=== Summary ===
+  Total activated: 97089763
+  Policy allow (prefetched): 69116003 (71.2%)
+  Policy deny (skipped): 27973760 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 13817140
+    Total used calls: 0
+    Policy allow (prefetched): 11816136 (85.5%)
+    Policy deny (skipped): 2001004 (14.5%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 85228780
+    Total used calls: 0
+    Policy allow (prefetched): 58657365 (68.8%)
+    Policy deny (skipped): 26571415 (31.2%)
+
+=== Summary ===
+  Total activated: 99045920
+  Policy allow (prefetched): 70473501 (71.2%)
+  Policy deny (skipped): 28572419 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 14588517
+    Total used calls: 0
+    Policy allow (prefetched): 12479497 (85.5%)
+    Policy deny (skipped): 2109020 (14.5%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 88791058
+    Total used calls: 0
+    Policy allow (prefetched): 61049909 (68.8%)
+    Policy deny (skipped): 27741149 (31.2%)
+
+=== Summary ===
+  Total activated: 103379575
+  Policy allow (prefetched): 73529406 (71.1%)
+  Policy deny (skipped): 29850169 (28.9%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 15255124
+    Total used calls: 0
+    Policy allow (prefetched): 13050176 (85.5%)
+    Policy deny (skipped): 2204948 (14.5%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 98335198
+    Total used calls: 0
+    Policy allow (prefetched): 67825290 (69.0%)
+    Policy deny (skipped): 30509908 (31.0%)
+
+=== Summary ===
+  Total activated: 113590322
+  Policy allow (prefetched): 80875466 (71.2%)
+  Policy deny (skipped): 32714856 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 16108945
+    Total used calls: 0
+    Policy allow (prefetched): 13782534 (85.6%)
+    Policy deny (skipped): 2326411 (14.4%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 99525658
+    Total used calls: 0
+    Policy allow (prefetched): 68504509 (68.8%)
+    Policy deny (skipped): 31021149 (31.2%)
+
+=== Summary ===
+  Total activated: 115634603
+  Policy allow (prefetched): 82287043 (71.2%)
+  Policy deny (skipped): 33347560 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 16907876
+    Total used calls: 0
+    Policy allow (prefetched): 14466924 (85.6%)
+    Policy deny (skipped): 2440952 (14.4%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 104074824
+    Total used calls: 0
+    Policy allow (prefetched): 71628874 (68.8%)
+    Policy deny (skipped): 32445950 (31.2%)
+
+=== Summary ===
+  Total activated: 120982700
+  Policy allow (prefetched): 86095798 (71.2%)
+  Policy deny (skipped): 34886902 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 17652705
+    Total used calls: 0
+    Policy allow (prefetched): 15107547 (85.6%)
+    Policy deny (skipped): 2545158 (14.4%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 112553380
+    Total used calls: 0
+    Policy allow (prefetched): 77569166 (68.9%)
+    Policy deny (skipped): 34984214 (31.1%)
+
+=== Summary ===
+  Total activated: 130206085
+  Policy allow (prefetched): 92676713 (71.2%)
+  Policy deny (skipped): 37529372 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 18523664
+    Total used calls: 0
+    Policy allow (prefetched): 15858885 (85.6%)
+    Policy deny (skipped): 2664779 (14.4%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 113802580
+    Total used calls: 0
+    Policy allow (prefetched): 78281857 (68.8%)
+    Policy deny (skipped): 35520723 (31.2%)
+
+=== Summary ===
+  Total activated: 132326244
+  Policy allow (prefetched): 94140742 (71.1%)
+  Policy deny (skipped): 38185502 (28.9%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 19381294
+    Total used calls: 0
+    Policy allow (prefetched): 16598542 (85.6%)
+    Policy deny (skipped): 2782752 (14.4%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 118954197
+    Total used calls: 0
+    Policy allow (prefetched): 81847353 (68.8%)
+    Policy deny (skipped): 37106844 (31.2%)
+
+=== Summary ===
+  Total activated: 138335491
+  Policy allow (prefetched): 98445895 (71.2%)
+  Policy deny (skipped): 39889596 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 20213897
+    Total used calls: 0
+    Policy allow (prefetched): 17319081 (85.7%)
+    Policy deny (skipped): 2894816 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 127229873
+    Total used calls: 0
+    Policy allow (prefetched): 87698242 (68.9%)
+    Policy deny (skipped): 39531631 (31.1%)
+
+=== Summary ===
+  Total activated: 147443770
+  Policy allow (prefetched): 105017323 (71.2%)
+  Policy deny (skipped): 42426447 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 21064287
+    Total used calls: 0
+    Policy allow (prefetched): 18049807 (85.7%)
+    Policy deny (skipped): 3014480 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 128400823
+    Total used calls: 0
+    Policy allow (prefetched): 88366283 (68.8%)
+    Policy deny (skipped): 40034540 (31.2%)
+
+=== Summary ===
+  Total activated: 149465110
+  Policy allow (prefetched): 106416090 (71.2%)
+  Policy deny (skipped): 43049020 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 21941663
+    Total used calls: 0
+    Policy allow (prefetched): 18808262 (85.7%)
+    Policy deny (skipped): 3133401 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 133979377
+    Total used calls: 0
+    Policy allow (prefetched): 92252441 (68.9%)
+    Policy deny (skipped): 41726936 (31.1%)
+
+=== Summary ===
+  Total activated: 155921040
+  Policy allow (prefetched): 111060703 (71.2%)
+  Policy deny (skipped): 44860337 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 22815522
+    Total used calls: 0
+    Policy allow (prefetched): 19559475 (85.7%)
+    Policy deny (skipped): 3256047 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 141570594
+    Total used calls: 0
+    Policy allow (prefetched): 97597407 (68.9%)
+    Policy deny (skipped): 43973187 (31.1%)
+
+=== Summary ===
+  Total activated: 164386116
+  Policy allow (prefetched): 117156882 (71.3%)
+  Policy deny (skipped): 47229234 (28.7%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 23687892
+    Total used calls: 0
+    Policy allow (prefetched): 20309443 (85.7%)
+    Policy deny (skipped): 3378449 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 142767944
+    Total used calls: 0
+    Policy allow (prefetched): 98280236 (68.8%)
+    Policy deny (skipped): 44487708 (31.2%)
+
+=== Summary ===
+  Total activated: 166455836
+  Policy allow (prefetched): 118589679 (71.2%)
+  Policy deny (skipped): 47866157 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 24490781
+    Total used calls: 0
+    Policy allow (prefetched): 20999961 (85.7%)
+    Policy deny (skipped): 3490820 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 149078932
+    Total used calls: 0
+    Policy allow (prefetched): 102740276 (68.9%)
+    Policy deny (skipped): 46338656 (31.1%)
+
+=== Summary ===
+  Total activated: 173569713
+  Policy allow (prefetched): 123740237 (71.3%)
+  Policy deny (skipped): 49829476 (28.7%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 25239990
+    Total used calls: 0
+    Policy allow (prefetched): 21644575 (85.8%)
+    Policy deny (skipped): 3595415 (14.2%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 155988075
+    Total used calls: 0
+    Policy allow (prefetched): 107537933 (68.9%)
+    Policy deny (skipped): 48450142 (31.1%)
+
+=== Summary ===
+  Total activated: 181228065
+  Policy allow (prefetched): 129182508 (71.3%)
+  Policy deny (skipped): 52045557 (28.7%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 26070150
+    Total used calls: 0
+    Policy allow (prefetched): 22357823 (85.8%)
+    Policy deny (skipped): 3712327 (14.2%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 157311025
+    Total used calls: 0
+    Policy allow (prefetched): 108292378 (68.8%)
+    Policy deny (skipped): 49018647 (31.2%)
+
+=== Summary ===
+  Total activated: 183381175
+  Policy allow (prefetched): 130650201 (71.2%)
+  Policy deny (skipped): 52730974 (28.8%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 26425084
+    Total used calls: 0
+    Policy allow (prefetched): 22653135 (85.7%)
+    Policy deny (skipped): 3771949 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 165770639
+    Total used calls: 0
+    Policy allow (prefetched): 114664930 (69.2%)
+    Policy deny (skipped): 51105709 (30.8%)
+
+=== Summary ===
+  Total activated: 192195723
+  Policy allow (prefetched): 137318065 (71.4%)
+  Policy deny (skipped): 54877658 (28.6%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 26425084
+    Total used calls: 0
+    Policy allow (prefetched): 22653135 (85.7%)
+    Policy deny (skipped): 3771949 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 165770639
+    Total used calls: 0
+    Policy allow (prefetched): 114664930 (69.2%)
+    Policy deny (skipped): 51105709 (30.8%)
+
+=== Summary ===
+  Total activated: 192195723
+  Policy allow (prefetched): 137318065 (71.4%)
+  Policy deny (skipped): 54877658 (28.6%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 26425084
+    Total used calls: 0
+    Policy allow (prefetched): 22653135 (85.7%)
+    Policy deny (skipped): 3771949 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 165770659
+    Total used calls: 0
+    Policy allow (prefetched): 114664940 (69.2%)
+    Policy deny (skipped): 51105719 (30.8%)
+
+=== Summary ===
+  Total activated: 192195743
+  Policy allow (prefetched): 137318075 (71.4%)
+  Policy deny (skipped): 54877668 (28.6%)
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 26425084
+    Total used calls: 0
+    Policy allow (prefetched): 22653135 (85.7%)
+    Policy deny (skipped): 3771949 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 165770659
+    Total used calls: 0
+    Policy allow (prefetched): 114664940 (69.2%)
+    Policy deny (skipped): 51105719 (30.8%)
+
+=== Summary ===
+  Total activated: 192195743
+  Policy allow (prefetched): 137318075 (71.4%)
+  Policy deny (skipped): 54877668 (28.6%)
+
+Detaching struct_ops...
+
+=== Per-PID Statistics ===
+  High priority PID 2983171:
+    Current active chunks: 0
+    Total activated: 26425084
+    Total used calls: 0
+    Policy allow (prefetched): 22653135 (85.7%)
+    Policy deny (skipped): 3771949 (14.3%)
+  Low priority PID 2983172:
+    Current active chunks: 0
+    Total activated: 165770659
+    Total used calls: 0
+    Policy allow (prefetched): 114664940 (69.2%)
+    Policy deny (skipped): 51105719 (30.8%)
+
+=== Summary ===
+  Total activated: 192195743
+  Policy allow (prefetched): 137318075 (71.4%)
+  Policy deny (skipped): 54877668 (28.6%)

@@ -73,6 +73,11 @@ Optional:
 
 - ``LMCACHE_KV_RECLAIM_DIAG_OUT``               path for the shutdown
   diagnostics JSON file (see ``write_diagnostics``).
+- ``LMCACHE_KV_RECLAIM_NATIVE_LIB``            native mode only; path of a
+  separately built native decision library (for example the total-cost
+  ablation build ``kv_reclaim_total_cost_native.so``).  Unset keeps the
+  in-tree ``kv_reclaim_native.so``.  The bpf arm is unaffected: the loader
+  already takes the object path as its first argument.
 
 At process exit the adapter writes one structured JSON diagnostics file
 (for the EngineCore process, which holds the one scheduler policy and
@@ -105,6 +110,7 @@ __all__ = [
     "MODE_ENV",
     "RECOMPUTE_NS_PER_TOKEN_ENV",
     "UVM_DEVICE_ENV",
+    "NATIVE_LIB_ENV",
     "DIAG_OUT_ENV",
     "EXPECTED_LMCACHE_VERSION",
     "KvReclaimVictimPolicy",
@@ -117,6 +123,7 @@ RECLAIM_ENV = "LMCACHE_KV_RECLAIM"
 MODE_ENV = "LMCACHE_KV_RECLAIM_MODE"
 RECOMPUTE_NS_PER_TOKEN_ENV = "LMCACHE_KV_RECLAIM_RECOMPUTE_NS_PER_TOKEN"
 UVM_DEVICE_ENV = "LMCACHE_KV_RECLAIM_UVM_DEVICE"
+NATIVE_LIB_ENV = "LMCACHE_KV_RECLAIM_NATIVE_LIB"
 DIAG_OUT_ENV = "LMCACHE_KV_RECLAIM_DIAG_OUT"
 EXPECTED_LMCACHE_VERSION = "0.5.4"
 BOOTSTRAP_STATE_ATTR = "_kv_reclaim_policy"
@@ -176,6 +183,9 @@ class _BootstrapState:
         self.mode = ""
         self.recompute_ns_per_token: Optional[int] = None
         self.uvm_path = ""
+        # Opt-in separately built native decision library (total-cost
+        # ablation arm); None keeps the in-tree kv_reclaim_native.so.
+        self.native_lib = environ.get(NATIVE_LIB_ENV) or None
         self.diag_out = environ.get(DIAG_OUT_ENV) or None
         if not self.enabled:
             return
@@ -219,7 +229,7 @@ class KvReclaimVictimPolicy:
         self.mode = state.mode
         self.recompute_ns_per_token = state.recompute_ns_per_token
         if state.mode == "native":
-            self.decider = _binding.KvReclaimNative()
+            self.decider = _binding.KvReclaimNative(state.native_lib)
         else:
             fd = os.open(state.uvm_path, os.O_RDWR)
             self.decider = _binding.KvReclaimKernel(fd)

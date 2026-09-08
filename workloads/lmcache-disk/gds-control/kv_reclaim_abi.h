@@ -35,6 +35,13 @@
  * against UVM_KV_RECLAIM_COST_SAT; the cost-per-freeable-byte comparison
  * cross-multiplies with an explicit overflow flag.
  *
+ * Ablation selector: defining UVM_KV_RECLAIM_POLICY_TOTAL_COST at compile
+ * time ranks eligible victims by ABSOLUTE estimated recovery ns instead of
+ * recovery ns per actually freeable byte. The per-candidate estimator,
+ * priority semantics, eligibility, unique-min/tie-to-stock rule, routes,
+ * and decision metadata are unchanged; the default (macro undefined) keeps
+ * the original cost-per-freeable-byte policy.
+ *
  * Priority keeps vLLM integer semantics: LOWER numeric value is MORE
  * important, and the scheduler would pick the max(priority, arrival)
  * victim. The worst priority class is therefore the MAXIMUM priority value
@@ -275,14 +282,28 @@ UVM_KV_RECLAIM_FN NvU64 uvm_kv_reclaim_cost_route(
     return full;
 }
 
-/* -1/0/1 for two (cost, freeable-bytes) pairs: a is cheaper per actually
- * freeable byte than b iff cost_a*free_b < cost_b*free_a, compared by
- * exact 128-bit cross-products (no float, no division, no overflow
- * ambiguity; the products are exact in 128 bits). 0 means equal
- * cost-per-freeable-byte. */
+/* -1/0/1 for two (cost, freeable-bytes) pairs under the ACTIVE ranking
+ * policy. Default: a is cheaper per actually freeable byte than b iff
+ * cost_a*free_b < cost_b*free_a, compared by exact 128-bit cross-products
+ * (no float, no division, no overflow ambiguity; the products are exact in
+ * 128 bits); 0 means equal cost-per-freeable-byte. With
+ * UVM_KV_RECLAIM_POLICY_TOTAL_COST defined: plain absolute order of the two
+ * estimated recovery ns (the freeable-byte arguments are then unused); 0
+ * means equal absolute cost. This is the only candidate comparison shared
+ * by uvm_kv_reclaim_compare() and uvm_kv_reclaim_choose(), so both keep
+ * consistent semantics under either policy. */
 UVM_KV_RECLAIM_FN int uvm_kv_reclaim_cost_cmp(
     NvU64 cost_a, NvU64 free_a, NvU64 cost_b, NvU64 free_b)
 {
+#ifdef UVM_KV_RECLAIM_POLICY_TOTAL_COST
+    (void)free_a;
+    (void)free_b;
+    if (cost_a < cost_b)
+        return -1;
+    if (cost_a > cost_b)
+        return 1;
+    return 0;
+#else
     NvU64 hi_a, lo_a, hi_b, lo_b;
 
     uvm_kv_reclaim_mul128(cost_a, free_b, &hi_a, &lo_a);
@@ -297,12 +318,13 @@ UVM_KV_RECLAIM_FN int uvm_kv_reclaim_cost_cmp(
     if (lo_a > lo_b)
         return 1;
     return 0;
+#endif
 }
 
-/* -1/0/1: candidate a vs b by estimated cost per actually freeable byte;
- * each candidate's cost/route is computed exactly once and the two costs
- * are compared with uvm_kv_reclaim_cost_cmp(). 0 means equal
- * cost-per-freeable-byte. */
+/* -1/0/1: candidate a vs b under the active ranking policy (default:
+ * estimated cost per actually freeable byte); each candidate's cost/route
+ * is computed exactly once and the two costs are compared with
+ * uvm_kv_reclaim_cost_cmp(). 0 means equal under the active policy. */
 UVM_KV_RECLAIM_FN int uvm_kv_reclaim_compare(
     const uvm_bpf_kv_reclaim_request_t *req,
     const uvm_bpf_kv_reclaim_candidate_t *cands, NvU32 a, NvU32 b)
@@ -317,8 +339,10 @@ UVM_KV_RECLAIM_FN int uvm_kv_reclaim_compare(
 }
 
 /* The full shared selection. *out defaults to the caller's stock victim;
- * a candidate replaces it only as the unique strict minimum of estimated
- * cost per actually freeable byte among eligible candidates. Ties, no
+ * a candidate replaces it only as the unique strict minimum under the
+ * active ranking policy (default: estimated cost per actually freeable
+ * byte; UVM_KV_RECLAIM_POLICY_TOTAL_COST: absolute estimated recovery ns)
+ * among eligible candidates. Ties, no
  * eligible candidate, and unusable telemetry all keep the stock victim
  * (route STOCK, estimated_ns 0). If the stock victim itself is the unique
  * minimum it is returned with its real route and estimate.

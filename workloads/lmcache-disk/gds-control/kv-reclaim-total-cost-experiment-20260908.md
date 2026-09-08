@@ -1,6 +1,8 @@
 # Total-recovery-cost reclaim ablation
 
-Status: implementation assigned; no new performance cells launched.
+Status: implementation built and source-checked; no new performance cells
+launched yet. The local implementation session is completing its handoff;
+root has requested no further source changes before measurement.
 
 This follows the completed [five-block grace comparison](../results-575-gds-kv-reclaim-grace-20260908.md).
 It addresses Q1/storage offload and the shepherd's policy-versus-mechanism
@@ -104,3 +106,25 @@ native library 28568 bytes, and loader 1517248 bytes. These sizes are an
 inventory, not a content identity check. Root will recheck the exact live
 process while holding the existing locks before any policy switch; the
 new build must not overwrite these original experiment assets.
+
+## Build completed
+
+Root built only `kv_reclaim_total_cost.bpf.o` and
+`kv_reclaim_total_cost_native.so` with the existing Makefile, using
+`-DUVM_KV_RECLAIM_POLICY_TOTAL_COST`. The new files are 38736 and 26200
+bytes respectively. The original object/library remain 42544/28568 bytes;
+neither original target was rebuilt. Python compilation of the adapter
+and the scoped diff whitespace check pass.
+
+The compile-time branch is inside the existing comparator. It does not
+add a non-inlined wrapper to the default BPF call chain. The only serving
+adapter change is the optional `LMCACHE_KV_RECLAIM_NATIVE_LIB` path passed
+to the existing native-library constructor. Candidate inputs, routes,
+eligibility and the driver ABI remain unchanged. Build success is not a
+claim of loaded-policy execution or measured improvement.
+
+Build command from the repository root:
+
+```sh
+make -C workloads/lmcache-disk/gds-control kv_reclaim_total_cost.bpf.o kv_reclaim_total_cost_native.so
+```

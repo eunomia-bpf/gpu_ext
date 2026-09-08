@@ -19,7 +19,8 @@ LIBBPF_A    := $(LIBBPF_DIR)/libbpf.a
 CUDA_TARGET := $(CUDA_HOME)/targets/x86_64-linux
 
 all: gds_policy.bpf.o gds_policy ioctl_probe gds_executor \
-     kv_reclaim_policy.bpf.o kv_reclaim_native.so kv_reclaim_loader
+     kv_reclaim_policy.bpf.o kv_reclaim_native.so kv_reclaim_loader \
+     kv_reclaim_total_cost.bpf.o kv_reclaim_total_cost_native.so
 
 # Tree libbpf (built in place; no libbpf/bootstrap bpftool needed).
 $(LIBBPF_A): $(wildcard $(LIBBPF_DIR)/*.[ch]) $(wildcard $(LIBBPF_DIR)/include/*.h)
@@ -48,8 +49,20 @@ kv_reclaim_native.so: kv_reclaim_native.c kv_reclaim_abi.h
 kv_reclaim_loader: kv_reclaim_loader.c $(LIBBPF_A)
 	$(CC) $(CFLAGS) -I$(LIBBPF_DIR) -o $@ $< $(LIBBPF_A) -lelf -lz
 
+# Total-cost policy ablation: the same existing sources, with the shared
+# ranking selector defined. Default per-byte targets above are untouched.
+kv_reclaim_total_cost.bpf.o: kv_reclaim_policy.bpf.c kv_reclaim_abi.h \
+	$(VMLINUX_DIR)/vmlinux.h
+	$(CLANG) $(BPF_CFLAGS) -DUVM_KV_RECLAIM_POLICY_TOTAL_COST \
+		-c $< -o $@
+
+kv_reclaim_total_cost_native.so: kv_reclaim_native.c kv_reclaim_abi.h
+	$(CC) $(CFLAGS) -fPIC -shared -DUVM_KV_RECLAIM_POLICY_TOTAL_COST \
+		-o $@ $<
+
 clean:
 	$(RM) gds_policy.bpf.o gds_policy ioctl_probe gds_executor \
-	     kv_reclaim_policy.bpf.o kv_reclaim_native.so kv_reclaim_loader
+	     kv_reclaim_policy.bpf.o kv_reclaim_native.so kv_reclaim_loader \
+	     kv_reclaim_total_cost.bpf.o kv_reclaim_total_cost_native.so
 
 .PHONY: all clean

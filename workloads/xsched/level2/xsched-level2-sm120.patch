@@ -335,3 +335,20 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      {
          std::lock_guard<std::mutex> lock(instrument_mtx_);
          auto it = kernels_.find(func);
+@@ -172,6 +268,16 @@
+     preempt_buf_ptr_ = preempt_buf_->Ptr();
+     instrument_ctx_ = InstrumentContext::Instance(ctx);
+     op_stream_ = instrument_ctx_->OpStream();
++
++    // ResizableBuffer does not zero its initial PM chunk (ExpandTo only
++    // clears newly expanded regions). Clear it before first use, mirroring
++    // the InstrumentContext constructor: the Level-2 protocol requires the
++    // header (global exit flag, preempt_idx) to start clean, otherwise the
++    // first aborted leader can read a stale nonzero preempt_idx, skip
++    // recording, and its command is never relaunched by Reactivate.
++    CUDA_ASSERT(Driver::MemsetD8Async(preempt_buf_ptr_, 0,
++                                      preempt_buf_->Size(), op_stream_));
++    CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
+ }
+ 
+ /* preempt buffer layout: (see also tools/instrument/inject.cu)

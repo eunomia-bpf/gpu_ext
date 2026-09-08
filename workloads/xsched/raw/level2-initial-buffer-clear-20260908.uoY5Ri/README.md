@@ -13,6 +13,14 @@ their logs are retained here. Build and execution held both shared experiment
 locks. The preceding committed main revision was `46d12f32`; the candidate
 was an uncommitted local-model edit at execution time.
 
+The matching constructor hunk is now retained in
+`level2/xsched-level2-sm120.patch`, alongside the freshly built tool source.
+The local model's first save command used `set -e` around `diff -u` and
+stopped on the normal difference exit status before updating the saved patch.
+Root transferred the already-generated hunk with `apply_patch`; a reverse
+dry-run of the complete saved patch against the tested isolated source
+returns zero. This bookkeeping correction does not alter the tested binary.
+
 Only the previously failed `native_port` configuration was retried, using
 the first-mismatch worker `service-mismatch-20260908.sHSYtE/priority_workload`.
 The command and shape match `../level2-first-mismatch-20260908.xlUdZS/README.md`,

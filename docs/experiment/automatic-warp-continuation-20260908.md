@@ -4,6 +4,26 @@ The user transferred this implementation and two performance studies from the
 paper task. Original worktree: `/home/yunwei37/workspace/gpu/bpftime-auto-warp`,
 branch `revision/automatic-warp-execution`, starting at `eef8a51`.
 
+## Mask-only peephole measured separately
+
+Root applied the bounded unconditional-ballot simplification in `bpftime`
+`0c3b6d1` (one insertion, fourteen deletions), built both runtime libraries,
+and measured a **new** ten-block variant with fresh controls. Predicated
+sites and the input BPF object are unchanged. The
+[complete new campaign](../../microbench/fig15-device/strict-warp-map-scaling/results-automatic-warp-mask-only-10blocks-20260908.77FmDj/README.md)
+is pushed as main `4279f762`: all 30 applications and 20 loaders exit zero,
+and all attached arms produce the expected map value. On/off paired mean
+elapsed cost remains **+53.1303%**, 95% interval
+**[+51.0982%, +54.5791%]**. Every pair is adverse.
+
+The previous +57.2860% campaign remains intact; the variants were not
+interleaved, so their difference is not an isolated causal measurement of
+the removed ballot. This small simplification does not solve the main
+overhead. GLM retains nontrivial event batching and scoped test-fixture
+work. The three local sessions were not stopped or duplicated. Both
+fixed-shape campaigns are complete; the pending reusable runner must not
+repeat either one. Table 1 and original block/work/count sweeps remain open.
+
 ## Ten-block shared-map result, completed
 
 Root completed a fresh fixed-shape comparison using the same original

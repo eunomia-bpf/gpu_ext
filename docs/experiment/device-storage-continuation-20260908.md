@@ -73,8 +73,11 @@ No added clock or logging gate blocks performance collection.
    to the runtime currently used for measurement; no repeated GPU cells.
 2. GLM, session `ses_f80c49c7cffebjDrdYLKy8X0ZC`: finish the XSched Level-2
    sm_120 native LDC adapter against actual NVCC-produced instructions.
-   The equivalent branchless BPF guardian source separately awaits a real
-   component build. Existing Level-1 results do not count as Level-2 results.
+   The equivalent branchless BPF guardian now builds: 49 BPF instructions,
+   accepted by the existing exporter, assembled to sm_120 cubin and linked
+   into the tool library (`01c4d4ba`). The first width/metadata parser piece
+   also compiles (`866f5489`); native encoding integration is still unfinished.
+   Existing Level-1 results do not count as Level-2 results.
 3. Qwen 27B, session `ses_f7e5a4134ffeup2HgHIRqLaiho`: prepare an isolated
    opt-in disk-restoration/GPU-promotion patch. CPU fault behavior and the
    measured CPU-first mode stay unchanged. No driver reload or performance

@@ -1,0 +1,162 @@
+diff --git a/workloads/lmcache-disk/gds-control/kv_reclaim_abi.h b/workloads/lmcache-disk/gds-control/kv_reclaim_abi.h
+--- a/workloads/lmcache-disk/gds-control/kv_reclaim_abi.h
++++ b/workloads/lmcache-disk/gds-control/kv_reclaim_abi.h
+@@ -35,12 +35,21 @@
+  * against UVM_KV_RECLAIM_COST_SAT; the cost-per-freeable-byte comparison
+  * cross-multiplies with an explicit overflow flag.
+  *
++ * The ranking denominator is net-releasable: with known coverage the
++ * candidate's own disk-backed prefix is expected to re-occupy its backed
++ * transfer bytes when the request is resumed (observed resumes re-read the
++ * full backed prefix), so the KV bytes actually freed for other work are
++ * freeable_bytes - min(freeable_bytes, disk_backed_bytes). A candidate
++ * with a zero net-releasable share is ineligible (its reclaim pays a
++ * restore while funding no free pool pages); unknown coverage is not
++ * netted and keeps the raw freeable footprint.
++ *
+  * Ablation selector: defining UVM_KV_RECLAIM_POLICY_TOTAL_COST at compile
+  * time ranks eligible victims by ABSOLUTE estimated recovery ns instead of
+  * recovery ns per actually freeable byte. The per-candidate estimator,
+  * priority semantics, eligibility, unique-min/tie-to-stock rule, routes,
+  * and decision metadata are unchanged; the default (macro undefined) keeps
+- * the original cost-per-freeable-byte policy.
++ * the cost-per-net-releasable-byte policy.
+  *
+  * Priority keeps vLLM integer semantics: LOWER numeric value is MORE
+  * important, and the scheduler would pick the max(priority, arrival)
+@@ -200,6 +209,26 @@ static inline NvU64 uvm_kv_reclaim_ceil_div_kib(NvU64 bytes)
+ #define UVM_KV_RECLAIM_FN static inline
+ #endif
+ 
++/* Net-releasable KV bytes for candidate c: the bytes the reclaim actually
++ * frees for other work. With known coverage the request's own disk-backed
++ * prefix is expected to re-occupy its backed transfer bytes at resume
++ * (observed resumes re-read the full backed prefix), so that share is
++ * netted out: freeable_bytes - min(freeable_bytes, disk_backed_bytes).
++ * Unknown coverage is not netted and keeps the raw footprint. Compare-
++ * and-subtract only (no division), saturating at 0; the caller treats 0
++ * as "the reclaim pays a restore and funds no free pages" and keeps the
++ * stock victim. */
++UVM_KV_RECLAIM_FN NvU64 uvm_kv_reclaim_net_freeable(
++    const uvm_bpf_kv_reclaim_candidate_t *c)
++{
++    NvU64 rebind = (c->flags & UVM_KV_RECLAIM_CANDIDATE_FLAG_COVERAGE_KNOWN) ?
++        c->disk_backed_bytes : 0;
++
++    if (rebind >= c->freeable_bytes)
++        return 0;
++    return c->freeable_bytes - rebind;
++}
++
+ /* Worst (least important) priority class among candidates with positive
+  * freeable bytes, in vLLM integer semantics: lower value is more important,
+  * so the worst class is the MAXIMUM priority value. Returns 0 when none;
+@@ -220,8 +249,10 @@ UVM_KV_RECLAIM_FN NvU32 uvm_kv_reclaim_worst_class(
+     return any ? worst : 0;
+ }
+ 
+-/* Eligible: positive freeable bytes, usable recompute rate, consistent
+- * telemetry, and the precomputed worst priority class. */
++/* Eligible: positive net-releasable bytes (uvm_kv_reclaim_net_freeable),
++ * usable recompute rate, consistent telemetry, and the precomputed worst
++ * priority class. The class itself is still elected on raw freeable bytes;
++ * a class whose members are all net-zero keeps the stock victim. */
+ UVM_KV_RECLAIM_FN NvU32 uvm_kv_reclaim_eligible(
+     const uvm_bpf_kv_reclaim_request_t *req,
+     const uvm_bpf_kv_reclaim_candidate_t *cands, NvU32 n, NvU32 i,
+@@ -235,6 +266,8 @@ UVM_KV_RECLAIM_FN NvU32 uvm_kv_reclaim_eligible(
+         return 0;
+     if (c->disk_backed_tokens > c->computed_tokens)
+         return 0;
++    if (uvm_kv_reclaim_net_freeable(c) == 0)
++        return 0;
+     if (c->priority != worst)
+         return 0;
+     return 1;
+@@ -282,8 +315,8 @@ UVM_KV_RECLAIM_FN NvU64 uvm_kv_reclaim_cost_route(
+     return full;
+ }
+ 
+-/* -1/0/1 for two (cost, freeable-bytes) pairs under the ACTIVE ranking
+- * policy. Default: a is cheaper per actually freeable byte than b iff
++/* -1/0/1 for two (cost, net-freeable-bytes) pairs under the ACTIVE ranking
++ * policy. Default: a is cheaper per net-releasable byte than b iff
+  * cost_a*free_b < cost_b*free_a, compared by exact 128-bit cross-products
+  * (no float, no division, no overflow ambiguity; the products are exact in
+  * 128 bits); 0 means equal cost-per-freeable-byte. With
+@@ -322,7 +355,7 @@ UVM_KV_RECLAIM_FN int uvm_kv_reclaim_cost_cmp(
+ }
+ 
+ /* -1/0/1: candidate a vs b under the active ranking policy (default:
+- * estimated cost per actually freeable byte); each candidate's cost/route
++ * estimated cost per net-releasable byte); each candidate's cost/route
+  * is computed exactly once and the two costs are compared with
+  * uvm_kv_reclaim_cost_cmp(). 0 means equal under the active policy. */
+ UVM_KV_RECLAIM_FN int uvm_kv_reclaim_compare(
+@@ -330,19 +363,26 @@ UVM_KV_RECLAIM_FN int uvm_kv_reclaim_compare(
+     const uvm_bpf_kv_reclaim_candidate_t *cands, NvU32 a, NvU32 b)
+ {
+     NvU32 route_a, route_b;
+-    NvU64 cost_a, cost_b;
+-
++    NvU64 cost_a, cost_b, net_a, net_b;
++
++    net_a = uvm_kv_reclaim_net_freeable(&cands[a]);
++    net_b = uvm_kv_reclaim_net_freeable(&cands[b]);
++    if (net_a == 0 || net_b == 0) {
++        if (net_a == 0 && net_b == 0)
++            return 0;
++        return (net_a == 0) ? 1 : -1;
++    }
+     cost_a = uvm_kv_reclaim_cost_route(req, &cands[a], &route_a);
+     cost_b = uvm_kv_reclaim_cost_route(req, &cands[b], &route_b);
+-    return uvm_kv_reclaim_cost_cmp(cost_a, cands[a].freeable_bytes,
+-                                   cost_b, cands[b].freeable_bytes);
++    return uvm_kv_reclaim_cost_cmp(cost_a, net_a, cost_b, net_b);
+ }
+ 
+ /* The full shared selection. *out defaults to the caller's stock victim;
+  * a candidate replaces it only as the unique strict minimum under the
+- * active ranking policy (default: estimated cost per actually freeable
++ * active ranking policy (default: estimated cost per net-releasable
+  * byte; UVM_KV_RECLAIM_POLICY_TOTAL_COST: absolute estimated recovery ns)
+- * among eligible candidates. Ties, no
++ * among eligible candidates (a zero net-releasable share is ineligible).
++ * Ties, no
+  * eligible candidate, and unusable telemetry all keep the stock victim
+  * (route STOCK, estimated_ns 0). If the stock victim itself is the unique
+  * minimum it is returned with its real route and estimate.
+@@ -361,7 +401,7 @@ UVM_KV_RECLAIM_FN void uvm_kv_reclaim_choose(
+ {
+     NvU32 i, best = 0, any = 0, tie = 0, route_i, worst;
+     NvU32 best_route = UVM_KV_RECLAIM_ROUTE_STOCK;
+-    NvU64 cost_i, best_cost = 0;
++    NvU64 cost_i, best_cost = 0, net_i, net_best = 0;
+     int cmp;
+ 
+     out->index = stock;
+@@ -376,19 +416,21 @@ UVM_KV_RECLAIM_FN void uvm_kv_reclaim_choose(
+             continue;
+ 
+         cost_i = uvm_kv_reclaim_cost_route(req, &cands[i], &route_i);
++        net_i = uvm_kv_reclaim_net_freeable(&cands[i]);
+         if (!any) {
+             best = i;
+             best_cost = cost_i;
+             best_route = route_i;
++            net_best = net_i;
+             any = 1;
+             continue;
+         }
+-        cmp = uvm_kv_reclaim_cost_cmp(cost_i, cands[i].freeable_bytes,
+-                                      best_cost, cands[best].freeable_bytes);
++        cmp = uvm_kv_reclaim_cost_cmp(cost_i, net_i, best_cost, net_best);
+         if (cmp < 0) {
+             best = i;
+             best_cost = cost_i;
+             best_route = route_i;
++            net_best = net_i;
+             tie = 0;
+         } else if (cmp == 0) {
+             tie = 1;
+

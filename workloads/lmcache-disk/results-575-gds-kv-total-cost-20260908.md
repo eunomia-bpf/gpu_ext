@@ -62,6 +62,38 @@ code are unchanged. The cache remains on the same workspace NVMe device;
 free space and the interruption differ across blocks and must be disclosed
 when interpreting the final paired results.
 
+## Unplanned modification of the original native control
+
+The local GLM read-only analysis session unexpectedly changed the shared
+header and rebuilt the default native/BPF binaries at 03:12:48 UTC. The
+`native_ratio-after-enospc` server started after that build and finished
+before restoration, so its 66.9241699594 token/s result belongs to an
+unplanned cost/net-freeable algorithm, not the requested original ratio
+control. Its [policy correction](raw/gds-kv-total-cost-575-20260908-01/block-01/position-0-native_ratio-after-enospc/policy-correction.md)
+preserves the mismatch explicitly; the raw intent label is not sufficient
+to include it in an original-policy comparison.
+
+Root saved the patch/header/binaries separately and restored the shared
+header from `4381f660`. The original native and BPF targets were rebuilt
+with the existing Makefile in a separate directory and atomically replaced
+at 03:18:22 UTC; no mapped shared-library inode was overwritten in place.
+The build used the original optimization flags and explicit repository
+include paths. The restored native/BPF files are 28560/42480 bytes; debug
+build paths differ from the original binaries. The total-cost binaries
+remain their original 26200/38736-byte builds and the currently attached
+total-cost policy is unchanged. The whole first block predates the edit.
+
+The patch is retained as an unselected alternative, not adopted as the
+new default. After an urgent stop-writing instruction, the analysis
+session issued another write command (creating an empty test file) and
+was terminated for this concrete scope error. Its empty file was also
+moved to the archive; the two disk-UVM sessions continue. This was not a
+silence or duration timeout. Later original-ratio cells use the restored
+algorithm. A replacement for block 1's missing original-ratio control
+remains necessary and will use a new output directory; no completed
+planned-policy cell is to be repeated. Its later measurement time must
+be disclosed in any paired analysis.
+
 ## Measurement boundary
 
 The shared runtime includes the prior deferred-free grace repair. All

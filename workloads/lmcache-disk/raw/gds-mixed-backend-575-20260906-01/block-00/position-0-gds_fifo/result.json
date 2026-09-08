@@ -1,0 +1,160 @@
+{
+  "block": 0,
+  "cleanup_errors": [],
+  "config": "gds_fifo",
+  "controlled_policy_inputs": {
+    "hbm_pressure_permille": 801,
+    "label": "explicit controlled inputs, not measured live HBM pressure",
+    "slack_ns": 10000000,
+    "speculative_recomputable": false
+  },
+  "decision_counts": {
+    "blocking_defer_miss": 0,
+    "decisions": 10,
+    "defer": 0,
+    "recompute": 0,
+    "submit_now": 10
+  },
+  "gds": {
+    "buffer_size_mib": 256,
+    "fstype": "ext4",
+    "gds_backend": "cufile",
+    "gds_path": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-mixed-backend-575-20260906-01/block-00/position-0-gds_fifo/cache",
+    "use_direct_io": true,
+    "use_gds": true
+  },
+  "kind": "lmcache_gds_mixed_backend",
+  "metrics": {
+    "completed_reads": 4,
+    "completed_writes": 6,
+    "read_end_to_end_p50_ms": 32.74317849991348,
+    "read_end_to_end_p99_ms": 33.871979000650754,
+    "total_storage_bandwidth_mib_s": 5191.172834504117,
+    "write_completion_ops_s": 131.64004162723228,
+    "write_completion_throughput_mib_s": 3159.360999053575
+  },
+  "policy_mode": "fifo",
+  "position": 0,
+  "requests": [
+    {
+      "bytes": 25165824,
+      "completed_s": 0.017170489999443816,
+      "id": "r0",
+      "object": "read-0",
+      "offer_s": 0.00021331599964469206,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.00021331599964469206
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.035930385000028764,
+      "id": "r1",
+      "object": "read-1",
+      "offer_s": 0.00205840599937801,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.00205840599937801
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.0372806479999781,
+      "id": "r2",
+      "object": "read-2",
+      "offer_s": 0.004174873000010848,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.004174873000010848
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.039397022999764886,
+      "id": "r3",
+      "object": "read-3",
+      "offer_s": 0.007016440999905171,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.007016440999905171
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.036291280999648734,
+      "id": "w0",
+      "object": "write-0",
+      "offer_s": 0.00086680599997635,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.0009413389998371713
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.04162536299918429,
+      "id": "w1",
+      "object": "write-1",
+      "offer_s": 0.004056572999616037,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.004119477999665833
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.04541968199919211,
+      "id": "w2",
+      "object": "write-2",
+      "offer_s": 0.008070036999924923,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.008166077999703703
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.04276662599932024,
+      "id": "w3",
+      "object": "write-3",
+      "offer_s": 0.012063862999639241,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.012338532999820018
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.045271128999957,
+      "id": "w4",
+      "object": "write-4",
+      "offer_s": 0.016055451999818615,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.016117548999318387
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.046445642999970005,
+      "id": "w5",
+      "object": "write-5",
+      "offer_s": 0.02006490199983091,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.02017975499984459
+    }
+  ],
+  "schema": 1,
+  "t0_wall": "1969-12-31T17:19:05-0800",
+  "traffic": {
+    "object_bytes": 25165824,
+    "pool_bytes": 268435456,
+    "prestore": {
+      "completed": 4,
+      "duration_s": 0.035156856000867265,
+      "errors": [],
+      "object_bytes": 25165824,
+      "objects": 4
+    },
+    "prestores": null,
+    "read_stagger_s": 0.002,
+    "reads": 4,
+    "total_offered_bytes": 251658240,
+    "write_stagger_s": 0.004,
+    "writes": 6
+  },
+  "wall_start": "2026-09-06T16:54:38-0700"
+}

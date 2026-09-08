@@ -1,0 +1,1659 @@
+{
+  "block": 0,
+  "cleanup_errors": [],
+  "config": "gds_native",
+  "controlled_policy_inputs": {
+    "hbm_pressure_permille": 801,
+    "label": "explicit controlled inputs, not measured live HBM pressure",
+    "slack_ns": 10000000,
+    "speculative_recomputable": false
+  },
+  "decision_counts": {
+    "blocking_defer_miss": 0,
+    "decisions": 160,
+    "defer": 96,
+    "recompute": 0,
+    "submit_now": 64
+  },
+  "gds": {
+    "buffer_size_mib": 4096,
+    "fstype": "ext4",
+    "gds_backend": "cufile",
+    "gds_path": "/home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control/workloads/lmcache-disk/raw/gds-mixed-fresh-process-575-20260906-five-block/block-3/position-1-gds_native/block-00/position-0-gds_native/cache",
+    "use_direct_io": true,
+    "use_gds": true
+  },
+  "kind": "lmcache_gds_mixed_backend",
+  "metrics": {
+    "completed_reads": 64,
+    "completed_writes": 96,
+    "read_end_to_end_p50_ms": 133.68323900022006,
+    "read_end_to_end_p99_ms": 208.75716699993063,
+    "total_storage_bandwidth_mib_s": 8682.837713264369,
+    "write_completion_ops_s": 230.9249057970984,
+    "write_completion_throughput_mib_s": 5542.197739130362
+  },
+  "policy_mode": "native",
+  "position": 0,
+  "requests": [
+    {
+      "bytes": 25165824,
+      "completed_s": 0.013976507999359455,
+      "id": "r0",
+      "object": "read-0",
+      "offer_s": 0.002514244999474613,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.002514244999474613
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.032508065999536484,
+      "id": "r1",
+      "object": "read-1",
+      "offer_s": 0.004357490999609581,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.004357490999609581
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.04808469099953072,
+      "id": "r2",
+      "object": "read-2",
+      "offer_s": 0.007639090999873588,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.007639090999873588
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.04770610699961253,
+      "id": "r3",
+      "object": "read-3",
+      "offer_s": 0.00834553499953472,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.00834553499953472
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.050143624000156706,
+      "id": "r4",
+      "object": "read-4",
+      "offer_s": 0.01035045199932938,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.01035045199932938
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.05330943999979354,
+      "id": "r5",
+      "object": "read-5",
+      "offer_s": 0.01378130200009764,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.01378130200009764
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.054078684999694815,
+      "id": "r6",
+      "object": "read-6",
+      "offer_s": 0.01434523799980525,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.01434523799980525
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.05595220899976994,
+      "id": "r7",
+      "object": "read-7",
+      "offer_s": 0.01635194899972703,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.01635194899972703
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.057405565999943065,
+      "id": "r8",
+      "object": "read-8",
+      "offer_s": 0.01835009399928822,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.01835009399928822
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.05943842099986796,
+      "id": "r9",
+      "object": "read-9",
+      "offer_s": 0.022855219999655674,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.022855219999655674
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.06160657300006278,
+      "id": "r10",
+      "object": "read-10",
+      "offer_s": 0.02292523399955826,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.02292523399955826
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.06372123299934174,
+      "id": "r11",
+      "object": "read-11",
+      "offer_s": 0.025742955000168877,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.025742955000168877
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2053374339993752,
+      "id": "r12",
+      "object": "read-12",
+      "offer_s": 0.02634835499975452,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.02634835499975452
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.21064151399968978,
+      "id": "r13",
+      "object": "read-13",
+      "offer_s": 0.028355682999972487,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.028355682999972487
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.23033651700006885,
+      "id": "r14",
+      "object": "read-14",
+      "offer_s": 0.030387574000087625,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.030387574000087625
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.06830762099980348,
+      "id": "r15",
+      "object": "read-15",
+      "offer_s": 0.03235004299949651,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.03235004299949651
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.24415151799985324,
+      "id": "r16",
+      "object": "read-16",
+      "offer_s": 0.03539435099992261,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.03539435099992261
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.219766888999402,
+      "id": "r17",
+      "object": "read-17",
+      "offer_s": 0.03634647299986682,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.03634647299986682
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.21307671500017022,
+      "id": "r18",
+      "object": "read-18",
+      "offer_s": 0.03836788099943078,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.03836788099943078
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2231683529998918,
+      "id": "r19",
+      "object": "read-19",
+      "offer_s": 0.04034644599960302,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.04034644599960302
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.22599454400005925,
+      "id": "r20",
+      "object": "read-20",
+      "offer_s": 0.044444821999604756,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.044444821999604756
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.248863664000055,
+      "id": "r21",
+      "object": "read-21",
+      "offer_s": 0.04451588699976128,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.04451588699976128
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.21002290700016601,
+      "id": "r22",
+      "object": "read-22",
+      "offer_s": 0.04717905899997277,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.04717905899997277
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.24069177799992758,
+      "id": "r23",
+      "object": "read-23",
+      "offer_s": 0.04840644900014013,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.04840644900014013
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.07254351499977929,
+      "id": "r24",
+      "object": "read-24",
+      "offer_s": 0.05037493700001505,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.05037493700001505
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.1954074440000113,
+      "id": "r25",
+      "object": "read-25",
+      "offer_s": 0.052346746999319294,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.052346746999319294
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.07493536399942968,
+      "id": "r26",
+      "object": "read-26",
+      "offer_s": 0.05436495100002503,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.05436495100002503
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.07629683899995143,
+      "id": "r27",
+      "object": "read-27",
+      "offer_s": 0.056346870999732346,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.056346870999732346
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.0805233639994185,
+      "id": "r28",
+      "object": "read-28",
+      "offer_s": 0.05834841599971696,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.05834841599971696
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.08226983799977461,
+      "id": "r29",
+      "object": "read-29",
+      "offer_s": 0.06034880300012446,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.06034880300012446
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.08472699100002501,
+      "id": "r30",
+      "object": "read-30",
+      "offer_s": 0.062389484999584965,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.062389484999584965
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.08591119099946809,
+      "id": "r31",
+      "object": "read-31",
+      "offer_s": 0.06434979999994539,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.06434979999994539
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.20171260699953564,
+      "id": "r32",
+      "object": "read-32",
+      "offer_s": 0.0663477829994008,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.0663477829994008
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.08916990099987743,
+      "id": "r33",
+      "object": "read-33",
+      "offer_s": 0.06835067799966055,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.06835067799966055
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.1686722459999146,
+      "id": "r34",
+      "object": "read-34",
+      "offer_s": 0.07035910099966713,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.07035910099966713
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.09031378300005599,
+      "id": "r35",
+      "object": "read-35",
+      "offer_s": 0.0723513049997564,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.0723513049997564
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2152613250000286,
+      "id": "r36",
+      "object": "read-36",
+      "offer_s": 0.07438113599982898,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.07438113599982898
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.09467389299970819,
+      "id": "r37",
+      "object": "read-37",
+      "offer_s": 0.07634607099953428,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.07634607099953428
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.14878887799932272,
+      "id": "r38",
+      "object": "read-38",
+      "offer_s": 0.07838478699977713,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.07838478699977713
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.20563171799949487,
+      "id": "r39",
+      "object": "read-39",
+      "offer_s": 0.08034669999960897,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.08034669999960897
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.10062545699929615,
+      "id": "r40",
+      "object": "read-40",
+      "offer_s": 0.08237181399999827,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.08237181399999827
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.21635721999973612,
+      "id": "r41",
+      "object": "read-41",
+      "offer_s": 0.08435556599943084,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.08435556599943084
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.11550518900003226,
+      "id": "r42",
+      "object": "read-42",
+      "offer_s": 0.08638184099982027,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.08638184099982027
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2365323289996013,
+      "id": "r43",
+      "object": "read-43",
+      "offer_s": 0.08834814599958918,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.08834814599958918
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.1272012760000507,
+      "id": "r44",
+      "object": "read-44",
+      "offer_s": 0.09035148499970092,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.09035148499970092
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.12453767999977572,
+      "id": "r45",
+      "object": "read-45",
+      "offer_s": 0.09234787900004449,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.09234787900004449
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.12805951999962417,
+      "id": "r46",
+      "object": "read-46",
+      "offer_s": 0.09444468399942707,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.09444468399942707
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.23323765299937804,
+      "id": "r47",
+      "object": "read-47",
+      "offer_s": 0.09652504199948453,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.09652504199948453
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2834455819993309,
+      "id": "r48",
+      "object": "read-48",
+      "offer_s": 0.09837477899964142,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.09837477899964142
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.30302400099935767,
+      "id": "r49",
+      "object": "read-49",
+      "offer_s": 0.10044618799929594,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.10044618799929594
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.27897392099930585,
+      "id": "r50",
+      "object": "read-50",
+      "offer_s": 0.10365359699972032,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.10365359699972032
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2861327529999471,
+      "id": "r51",
+      "object": "read-51",
+      "offer_s": 0.10434970400001475,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.10434970400001475
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2745045329993445,
+      "id": "r52",
+      "object": "read-52",
+      "offer_s": 0.10661042199990334,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.10661042199990334
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2773732440000458,
+      "id": "r53",
+      "object": "read-53",
+      "offer_s": 0.10950124000009964,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.10950124000009964
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2605385799997748,
+      "id": "r54",
+      "object": "read-54",
+      "offer_s": 0.11036565599988535,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.11036565599988535
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.29666793799970037,
+      "id": "r55",
+      "object": "read-55",
+      "offer_s": 0.11235048999969877,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.11235048999969877
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.27376905499932036,
+      "id": "r56",
+      "object": "read-56",
+      "offer_s": 0.11438803900000494,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.11438803900000494
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2639651559993581,
+      "id": "r57",
+      "object": "read-57",
+      "offer_s": 0.11634867300017504,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.11634867300017504
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.29237136299980193,
+      "id": "r58",
+      "object": "read-58",
+      "offer_s": 0.11844437499985361,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.11844437499985361
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.28524727300009545,
+      "id": "r59",
+      "object": "read-59",
+      "offer_s": 0.12034772199967847,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.12034772199967847
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2892133709992777,
+      "id": "r60",
+      "object": "read-60",
+      "offer_s": 0.12238178000006883,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.12238178000006883
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.28030102100001386,
+      "id": "r61",
+      "object": "read-61",
+      "offer_s": 0.12434830799975316,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.12434830799975316
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.267838404000031,
+      "id": "r62",
+      "object": "read-62",
+      "offer_s": 0.1272772319998694,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.1272772319998694
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.27156899700003123,
+      "id": "r63",
+      "object": "read-63",
+      "offer_s": 0.13049966899961873,
+      "role": "read_demand",
+      "status": "completed",
+      "submitted_s": 0.13049966899961873
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.25297846000012214,
+      "id": "w0",
+      "object": "write-0",
+      "offer_s": 0.029046415999800956,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.040816873999574455
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.24739515999954165,
+      "id": "w1",
+      "object": "write-1",
+      "offer_s": 0.030062933999943198,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.04092460699939693
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.23200458100018295,
+      "id": "w2",
+      "object": "write-2",
+      "offer_s": 0.03010719399935624,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.04097018299944466
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.24168706000000384,
+      "id": "w3",
+      "object": "write-3",
+      "offer_s": 0.030127328999697056,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.04136162599934323
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.25490446299954783,
+      "id": "w4",
+      "object": "write-4",
+      "offer_s": 0.03014402099961444,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.04160835099992255
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2368241329995726,
+      "id": "w5",
+      "object": "write-5",
+      "offer_s": 0.030161768999278138,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.0449189490000208
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.06991219300016382,
+      "id": "w6",
+      "object": "write-6",
+      "offer_s": 0.030176319999554835,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.047515485000076296
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.0668704939998861,
+      "id": "w7",
+      "object": "write-7",
+      "offer_s": 0.03036803599934501,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.04784908300007373
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.25112717999945744,
+      "id": "w8",
+      "object": "write-8",
+      "offer_s": 0.03518922799958091,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.048182368999732716
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.22258797099948424,
+      "id": "w9",
+      "object": "write-9",
+      "offer_s": 0.038342525999723875,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.04946568099967408
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.21395934199972544,
+      "id": "w10",
+      "object": "write-10",
+      "offer_s": 0.04441367399977025,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.05875540999932127
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.20574471999952948,
+      "id": "w11",
+      "object": "write-11",
+      "offer_s": 0.04715000499982125,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.05893211100010376
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.24870544299938047,
+      "id": "w12",
+      "object": "write-12",
+      "offer_s": 0.050344861999292334,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.06124893200012593
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.25620544899993547,
+      "id": "w13",
+      "object": "write-13",
+      "offer_s": 0.054317674999765586,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.0647026159995221
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.1515815160000784,
+      "id": "w14",
+      "object": "write-14",
+      "offer_s": 0.05842362699968362,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.06942287899983057
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.26117201799934264,
+      "id": "w15",
+      "object": "write-15",
+      "offer_s": 0.06235009000010905,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.07311969900001714
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.09331749499961006,
+      "id": "w16",
+      "object": "write-16",
+      "offer_s": 0.06641791199945146,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.0768540919998486
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.11067567699956271,
+      "id": "w17",
+      "object": "write-17",
+      "offer_s": 0.0703221180001492,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.08137622100002773
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.11371657099971344,
+      "id": "w18",
+      "object": "write-18",
+      "offer_s": 0.07433975200001441,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.0856579139999667
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.26480047699988063,
+      "id": "w19",
+      "object": "write-19",
+      "offer_s": 0.07834827699934976,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.08898053799930494
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.22703936000016256,
+      "id": "w20",
+      "object": "write-20",
+      "offer_s": 0.08234567699946638,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.09267031299987138
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2953818059995683,
+      "id": "w21",
+      "object": "write-21",
+      "offer_s": 0.08635087599941471,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.09772661999977572
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2921675839997988,
+      "id": "w22",
+      "object": "write-22",
+      "offer_s": 0.09049693799988745,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.10324172499986162
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3108094949993756,
+      "id": "w23",
+      "object": "write-23",
+      "offer_s": 0.09431349799979216,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.10516235199975199
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3084343539994734,
+      "id": "w24",
+      "object": "write-24",
+      "offer_s": 0.09834489799959556,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.10959911099962483
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2975309029998243,
+      "id": "w25",
+      "object": "write-25",
+      "offer_s": 0.10340050299964787,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.11465206899993063
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3043250379996607,
+      "id": "w26",
+      "object": "write-26",
+      "offer_s": 0.10657754400017438,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.11780112399992504
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.28323869399991963,
+      "id": "w27",
+      "object": "write-27",
+      "offer_s": 0.11044383899934473,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.12136095899950305
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.2718284049997237,
+      "id": "w28",
+      "object": "write-28",
+      "offer_s": 0.11434634299985191,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.1273525389997303
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3153792209996027,
+      "id": "w29",
+      "object": "write-29",
+      "offer_s": 0.11841296100010368,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.1308050239995282
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3107459899993046,
+      "id": "w30",
+      "object": "write-30",
+      "offer_s": 0.12234760299998015,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.13393397599975287
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.304203807999329,
+      "id": "w31",
+      "object": "write-31",
+      "offer_s": 0.12724171399986517,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.13846681599989097
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.31708535500001744,
+      "id": "w32",
+      "object": "write-32",
+      "offer_s": 0.1306788369993228,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.14184047599974292
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3180980050001381,
+      "id": "w33",
+      "object": "write-33",
+      "offer_s": 0.1343510229999083,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.14762568199967063
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.32156681699962064,
+      "id": "w34",
+      "object": "write-34",
+      "offer_s": 0.13835366599960253,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.15161993599940615
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.32328464799957146,
+      "id": "w35",
+      "object": "write-35",
+      "offer_s": 0.14234749600018404,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.15303075700012414
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3245064299999285,
+      "id": "w36",
+      "object": "write-36",
+      "offer_s": 0.14643877199978306,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.15845457099931082
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3278160840000055,
+      "id": "w37",
+      "object": "write-37",
+      "offer_s": 0.1516461259998323,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.16250638400015305
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.32955888499964203,
+      "id": "w38",
+      "object": "write-38",
+      "offer_s": 0.1543465639997521,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.16500186699977348
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3303110070000912,
+      "id": "w39",
+      "object": "write-39",
+      "offer_s": 0.15835032899940416,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.1713055579994034
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3350157240001863,
+      "id": "w40",
+      "object": "write-40",
+      "offer_s": 0.1623540350001349,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.17268220000005385
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3365256329998374,
+      "id": "w41",
+      "object": "write-41",
+      "offer_s": 0.16634835500008194,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.17843476599955466
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3371426719995725,
+      "id": "w42",
+      "object": "write-42",
+      "offer_s": 0.1713391959992805,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.18247564699959185
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3420872609995058,
+      "id": "w43",
+      "object": "write-43",
+      "offer_s": 0.1743480589993851,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.18462475199976325
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.34351089199935814,
+      "id": "w44",
+      "object": "write-44",
+      "offer_s": 0.1783461269997133,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.18884059599986358
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.34467067799960205,
+      "id": "w45",
+      "object": "write-45",
+      "offer_s": 0.18234544099959749,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.19259601700014173
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3495538919996761,
+      "id": "w46",
+      "object": "write-46",
+      "offer_s": 0.18634711999948195,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.1995539479994477
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3506945969993467,
+      "id": "w47",
+      "object": "write-47",
+      "offer_s": 0.19034581699997943,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.20089597399964987
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.35204996099946584,
+      "id": "w48",
+      "object": "write-48",
+      "offer_s": 0.1943488699998852,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.20577517099991383
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.35722551199978625,
+      "id": "w49",
+      "object": "write-49",
+      "offer_s": 0.19835354199949506,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2094803869995303
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3571891619994858,
+      "id": "w50",
+      "object": "write-50",
+      "offer_s": 0.20470167999974365,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.21564214599948173
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3591096579993973,
+      "id": "w51",
+      "object": "write-51",
+      "offer_s": 0.20634634199996071,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2167937059994074
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3630805929997223,
+      "id": "w52",
+      "object": "write-52",
+      "offer_s": 0.21034683200014115,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.22118331299952843
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.36469603899968206,
+      "id": "w53",
+      "object": "write-53",
+      "offer_s": 0.2143455539999195,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.22472653099976014
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.36529910799981735,
+      "id": "w54",
+      "object": "write-54",
+      "offer_s": 0.21834579299957113,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.22916337100014061
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3698696530000234,
+      "id": "w55",
+      "object": "write-55",
+      "offer_s": 0.22234643199954007,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.23317977199985762
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.37096589199973096,
+      "id": "w56",
+      "object": "write-56",
+      "offer_s": 0.22634713299976283,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2368365439997433
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.37178157800008194,
+      "id": "w57",
+      "object": "write-57",
+      "offer_s": 0.23060742699999537,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.24169875999996293
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3766177889992832,
+      "id": "w58",
+      "object": "write-58",
+      "offer_s": 0.23434601899953122,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.24452881599972898
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3783591499995964,
+      "id": "w59",
+      "object": "write-59",
+      "offer_s": 0.2383481729993946,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.24871526300012192
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.37919581799997104,
+      "id": "w60",
+      "object": "write-60",
+      "offer_s": 0.24234812899976532,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2529988249998496
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3857963860000382,
+      "id": "w61",
+      "object": "write-61",
+      "offer_s": 0.24634631099979742,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2573140650001733
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.38781571599974995,
+      "id": "w62",
+      "object": "write-62",
+      "offer_s": 0.25035125500016875,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2611832120001054
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3889467019998847,
+      "id": "w63",
+      "object": "write-63",
+      "offer_s": 0.25434611899981974,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2648090909997336
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.39332330399975035,
+      "id": "w64",
+      "object": "write-64",
+      "offer_s": 0.2583221790000607,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2686189159994683
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.39456989799964504,
+      "id": "w65",
+      "object": "write-65",
+      "offer_s": 0.2623448300000746,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.27303723499971966
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3951592019993768,
+      "id": "w66",
+      "object": "write-66",
+      "offer_s": 0.2663491939993037,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2774905799997214
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.3999465689994395,
+      "id": "w67",
+      "object": "write-67",
+      "offer_s": 0.27034459700007574,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2807963839995864
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.40204779999930906,
+      "id": "w68",
+      "object": "write-68",
+      "offer_s": 0.2743459570001505,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2846724399996674
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4014466549997451,
+      "id": "w69",
+      "object": "write-69",
+      "offer_s": 0.2783448159998443,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.289494924999417
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4052605279994168,
+      "id": "w70",
+      "object": "write-70",
+      "offer_s": 0.2823463469994749,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.29328981599974213
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.40704769199965085,
+      "id": "w71",
+      "object": "write-71",
+      "offer_s": 0.2863449890000993,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.2965389609998965
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4073572739998781,
+      "id": "w72",
+      "object": "write-72",
+      "offer_s": 0.29034569899977214,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3014767349995964
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4103765959998782,
+      "id": "w73",
+      "object": "write-73",
+      "offer_s": 0.29431363200001215,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3044688089994452
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4114506639998581,
+      "id": "w74",
+      "object": "write-74",
+      "offer_s": 0.2983328089994757,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.30849106999994547
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.41208435599946824,
+      "id": "w75",
+      "object": "write-75",
+      "offer_s": 0.30231236399959016,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3124226589998216
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4156943739999406,
+      "id": "w76",
+      "object": "write-76",
+      "offer_s": 0.3063207509994754,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.31661339699985547
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4153682910000498,
+      "id": "w77",
+      "object": "write-77",
+      "offer_s": 0.31034865899982833,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3215851549994113
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.41850497999985237,
+      "id": "w78",
+      "object": "write-78",
+      "offer_s": 0.31434676099979697,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.32452562199978274
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4196072849999837,
+      "id": "w79",
+      "object": "write-79",
+      "offer_s": 0.318347812999491,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.32904140899972845
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.42037742499996966,
+      "id": "w80",
+      "object": "write-80",
+      "offer_s": 0.32234780299950216,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3328064869992886
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4231984479993116,
+      "id": "w81",
+      "object": "write-81",
+      "offer_s": 0.3263251439993837,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3365350739995847
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.42465300599997136,
+      "id": "w82",
+      "object": "write-82",
+      "offer_s": 0.33037925099961285,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3414984969995203
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4249282749997292,
+      "id": "w83",
+      "object": "write-83",
+      "offer_s": 0.33446364300016285,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3446816839996245
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4284994949994143,
+      "id": "w84",
+      "object": "write-84",
+      "offer_s": 0.33834681099961017,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.34855495899955713
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.42846472400015045,
+      "id": "w85",
+      "object": "write-85",
+      "offer_s": 0.34238807400015503,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.353433765999398
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4314890429996012,
+      "id": "w86",
+      "object": "write-86",
+      "offer_s": 0.34634463299971685,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.35688278099951276
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4336436859994137,
+      "id": "w87",
+      "object": "write-87",
+      "offer_s": 0.3503512970000884,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3617006869999386
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4333660530000998,
+      "id": "w88",
+      "object": "write-88",
+      "offer_s": 0.3543453789998239,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3644806920001429
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4362791240000661,
+      "id": "w89",
+      "object": "write-89",
+      "offer_s": 0.3583523139996032,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3695155949999389
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4388941849992989,
+      "id": "w90",
+      "object": "write-90",
+      "offer_s": 0.3623511689993393,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.37286752199997863
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.438058060000003,
+      "id": "w91",
+      "object": "write-91",
+      "offer_s": 0.3663530979993084,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3766286919999402
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.4413042830001359,
+      "id": "w92",
+      "object": "write-92",
+      "offer_s": 0.3703527899997425,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.3806139689995689
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.44250645600004646,
+      "id": "w93",
+      "object": "write-93",
+      "offer_s": 0.3743525359996056,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.384919247999278
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.44307681000009325,
+      "id": "w94",
+      "object": "write-94",
+      "offer_s": 0.3783828050000011,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.38900293899951066
+    },
+    {
+      "bytes": 25165824,
+      "completed_s": 0.44476597499942727,
+      "id": "w95",
+      "object": "write-95",
+      "offer_s": 0.3823449840001558,
+      "role": "write_background",
+      "status": "completed",
+      "submitted_s": 0.39333382999939204
+    }
+  ],
+  "schema": 1,
+  "t0_wall": "2026-09-06T17:25:05-0700",
+  "traffic": {
+    "object_bytes": 25165824,
+    "pool_bytes": 4294967296,
+    "prestore": {
+      "completed": 64,
+      "duration_s": 0.24780879900026775,
+      "errors": [],
+      "object_bytes": 25165824,
+      "objects": 64
+    },
+    "read_stagger_s": 0.002,
+    "reads": 64,
+    "total_offered_bytes": 4026531840,
+    "write_stagger_s": 0.004,
+    "writes": 96
+  },
+  "wall_start": "2026-09-06T17:25:05-0700"
+}

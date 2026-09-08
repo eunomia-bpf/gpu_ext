@@ -55,7 +55,25 @@ ARMS = (
 TASKS = ("kernelretsnoop", "threadhist", "launchlate")
 
 AUTO_WARP_ENV_KEY = "BPFTIME_GPU_AUTO_WARP_EXECUTION"
+AUTO_WARP_TRANSPORT_ENV_KEY = "BPFTIME_GPU_RINGBUF_TRANSPORT"
+AUTO_WARP_TRANSPORT_ALIGNED = 1
+AUTO_WARP_TRANSPORT_ENCODED = 2
 AUTO_WARP_ARMS = ("baseline", "auto_warp_off", "auto_warp_on")
+AUTO_WARP_TRANSPORT_MARKER = "GPU ring-buffer aligned-word output enabled"
+# rope_norm launch geometry for the default target/model at pp512, from
+# ggml/src/ggml-cuda/rope.cu: block_dims(1, CUDA_ROPE_BLOCK_SIZE=256, 1) and
+# block_nums(nr, ceil(ne0/(2*256)), 1). The default TinyLlama GGUF has
+# head dimension 64 and 4 KV heads: this float-to-half K target has nr=PP*4.
+ORIGINAL_ROPE_BLOCK_Y = 256
+ORIGINAL_ROPE_ROWS = PP * 4
+ORIGINAL_ROPE_NE0 = 64
+ORIGINAL_THREAD_SLOTS = ORIGINAL_ROPE_BLOCK_Y * ORIGINAL_ROPE_ROWS * (
+    (ORIGINAL_ROPE_NE0 + 2 * ORIGINAL_ROPE_BLOCK_Y - 1)
+    // (2 * ORIGINAL_ROPE_BLOCK_Y)
+)
+ORIGINAL_VALUE_BYTES = 80
+ORIGINAL_MAP_ENTRIES = 256
+ORIGINAL_SHM_MARGIN_MB = 1024
 SOURCE_CONTRACTS = {
     "seven_arm_default": "legacy_runner_prepared_kernelretsnoop_capacity_patched",
     "auto_warp_three_arm": "original_example_source_no_capacity_patch",
@@ -91,6 +109,7 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
         "arms": list(arms),
         "blocks": args.blocks,
         "auto_warp_task": args.auto_warp_task if args.auto_warp_three_arm else None,
+        "auto_warp_transport": args.auto_warp_transport if args.auto_warp_three_arm else None,
         "source_contract": SOURCE_CONTRACTS[campaign_mode(args)],
         "schedule": build_schedule(args.blocks, arms),
         "cell_count": len(arms) * args.blocks,
@@ -157,6 +176,63 @@ def auto_warp_observed_marker(cell_dir: Path, record: dict[str, Any]) -> str:
     return "absent"
 
 
+def auto_warp_transport_marker(cell_dir: Path, record: dict[str, Any]) -> str:
+    texts = [record.get("stdout") or ""]
+    agent_log = cell_dir / "agent.log"
+    if agent_log.is_file():
+        texts.append(agent_log.read_text(errors="replace"))
+    combined = "\n".join(texts)
+    return "enabled" if AUTO_WARP_TRANSPORT_MARKER in combined else "absent"
+
+
+def original_ring_bytes(
+    thread_slots: int = ORIGINAL_THREAD_SLOTS,
+    value_bytes: int = ORIGINAL_VALUE_BYTES,
+    max_entries: int = ORIGINAL_MAP_ENTRIES,
+) -> int:
+    aligned_record = ((value_bytes + 8 + 7) // 8) * 8
+    return thread_slots * (24 + aligned_record * max_entries) + 32
+
+
+def auto_warp_probe_env(arm: str, args: argparse.Namespace) -> dict[str, str]:
+    env = {
+        AUTO_WARP_ENV_KEY: "1" if arm == "auto_warp_on" else "0",
+        AUTO_WARP_TRANSPORT_ENV_KEY: str(args.auto_warp_transport),
+    }
+    if args.auto_warp_task == "kernelretsnoop":
+        ring_bytes = original_ring_bytes()
+        shm_mb = (
+            ring_bytes + ORIGINAL_SHM_MARGIN_MB * 1024 * 1024
+        ) // (1024 * 1024) + 1
+        env["BPFTIME_MAP_GPU_THREAD_COUNT"] = str(ORIGINAL_THREAD_SLOTS)
+        env["BPFTIME_SHM_MEMORY_MB"] = str(shm_mb)
+    return env
+
+
+def relocate_runtime_includes(tool_dir: Path, bpftime_root: Path) -> None:
+    """Redirect the relative runtime include to the configured bpftime tree."""
+    runtime_include = str((bpftime_root / "runtime" / "include").resolve())
+    relative = runner.RELATIVE_RUNTIME_INCLUDE
+    for path in tool_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if relative in text:
+            path.write_text(text.replace(relative, runtime_include), encoding="utf-8")
+    for path in tool_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if runner.RELATIVE_RUNTIME_INCLUDE_PATTERN.search(text):
+            raise RuntimeError(f"relative runtime include remains in {path}")
+
+
 def build_tools(
     args: argparse.Namespace, output_dir: Path,
     *, tasks: tuple[str, ...] = TASKS, nvbit: bool = True,
@@ -173,6 +249,8 @@ def build_tools(
             build_root=build_root,
             target_symbol=args.target_symbol,
         )
+        if auto_warp:
+            relocate_runtime_includes(tool_dir, args.bpftime_root)
         core.build_tool(core.TOOLS[tool], tool_dir)
         tool_dirs[tool] = tool_dir
     nvbit_tool: Path | None = None
@@ -201,7 +279,7 @@ def run_arm_cell(
         tool = args.auto_warp_task
         is_gpubpf = True
         is_nvbit = False
-        auto_warp_env = {AUTO_WARP_ENV_KEY: "0" if arm.endswith("_off") else "1"}
+        auto_warp_env = auto_warp_probe_env(arm, args)
     else:
         tool = arm.partition("_")[2]
         is_gpubpf = arm.startswith("gpubpf_")
@@ -211,11 +289,14 @@ def run_arm_cell(
 
     started = time.monotonic()
     probe_teardown_error: str | None = None
+    probe_kwargs = {"extra_probe_env": auto_warp_env} if auto_warp_env else {}
     if is_gpubpf:
         result = None
         bench_env = bench_base_env(args)
         try:
-            with runner.private_probe(tool, args, tool_dirs[tool], cell_dir) as probe_env:
+            with runner.private_probe(
+                tool, args, tool_dirs[tool], cell_dir, **probe_kwargs
+            ) as probe_env:
                 merged_probe_env = {**probe_env, **auto_warp_env}
                 result = runner.run_bench(
                     arm, block, args, output_dir,
@@ -279,6 +360,9 @@ def run_arm_cell(
         record["auto_warp_requested"] = "off" if arm.endswith("_off") else "on"
         record["auto_warp_env"] = dict(auto_warp_env)
         record["auto_warp_observed"] = auto_warp_observed_marker(cell_dir, record)
+        record["auto_warp_transport_observed"] = auto_warp_transport_marker(cell_dir, record)
+        if args.auto_warp_task == "kernelretsnoop":
+            record["auto_warp_ring_bytes"] = original_ring_bytes()
     return record
 
 
@@ -349,6 +433,11 @@ def run_campaign(args: argparse.Namespace) -> int:
     arms = selected_arms(args)
     mode = campaign_mode(args)
     if args.auto_warp_three_arm:
+        if args.target_symbol != core.DEFAULT_TARGET_SYMBOL:
+            raise SystemExit(
+                "verified rope_norm geometry applies to "
+                f"{core.DEFAULT_TARGET_SYMBOL}; got {args.target_symbol}"
+            )
         tool_dirs, nvbit_tool = build_tools(
             args, output_dir, tasks=(args.auto_warp_task,),
             nvbit=False, auto_warp=True
@@ -422,6 +511,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="kernelretsnoop",
         choices=list(TASKS),
         help="gpubpf tool object shared by the auto_warp_off/auto_warp_on arms",
+    )
+    parser.add_argument(
+        "--auto-warp-transport",
+        type=int,
+        default=AUTO_WARP_TRANSPORT_ALIGNED,
+        choices=(AUTO_WARP_TRANSPORT_ALIGNED, AUTO_WARP_TRANSPORT_ENCODED),
+        help="loader/agent ring transport for the three-arm mode: 1 aligned-word, 2 encoded-tail",
     )
     parser.add_argument(
         "--dry-run",

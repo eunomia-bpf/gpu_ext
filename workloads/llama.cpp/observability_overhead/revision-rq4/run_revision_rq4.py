@@ -786,7 +786,8 @@ def segment_identity(path: Path) -> tuple[int, int, int]:
 @contextmanager
 def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: Path,
                   *, diagnostic_log_level: str | None = None,
-                  exact_exit_oracle: bool = False):
+                  exact_exit_oracle: bool = False,
+                  extra_probe_env: dict[str, str] | None = None):
     """Keep an owned loader alive until its direct CUDA client has returned."""
     name = f"rq4_{os.getpid()}_{time.monotonic_ns()}"
     segment = SHM_ROOT / name
@@ -815,6 +816,10 @@ def private_probe(tool: str, args: argparse.Namespace, tool_dir: Path, run_dir: 
         env.update(exit_environment)
         loader_env.update(exit_environment)
         target_env.update(exit_environment)
+    if extra_probe_env:
+        env.update(extra_probe_env)
+        loader_env.update(extra_probe_env)
+        target_env.update(extra_probe_env)
     if diagnostic_log_level is not None:
         if diagnostic_log_level != "info":
             raise ValueError("the optional untimed diagnostic logging level is info")

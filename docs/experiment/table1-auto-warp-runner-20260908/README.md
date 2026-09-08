@@ -1,5 +1,31 @@
 # Same-object Table1 runner: source checkpoint
 
+## Loader and original-layout integration follow-up
+
+The runner now relocates the original example's runtime include, passes the
+transport choice to the loader **before map creation**, and uses the original
+80-byte/256-entry layout for both off/on arms. `--auto-warp-transport 2`
+selects the encoded-publication candidate; the default seven-arm mode is
+unchanged. The `c4c83cd` runtime libraries were built earlier; the new original
+tool build and GPU campaign remain pending.
+
+The bundled GGUF metadata reader reports TinyLlama embedding length 2048,
+head count 32, KV head count 4 and RoPE dimension 64. For the selected
+float-to-half K kernel at pp512, the runner uses 2048 rows, head dimension 64,
+and 256 threads per block: 524288 slots, 11823743008 ring bytes. This corrects
+the earlier draft's explanation that substituted embedding length for head
+dimension; the resulting allocation size is unchanged.
+
+The existing six `test_run_table1_perf.py` tests pass. The explicit encoded
+transport dry-run produces 30 baseline/off/on cells at pp512/tg0; no GPU work
+was performed. Transport-marker presence is recorded separately from leader
+admission. An absent marker at warning log level is not proof of non-execution
+and is not a performance gate. Old dry-run files and all measured results stay
+unchanged. These updates close the source wiring items described below, not
+the unrun performance comparison.
+
+## Earlier checkpoint
+
 Local Qwen implemented the opt-in `--auto-warp-three-arm` mode in the
 existing `run_table1_perf.py`. It selects one tool, builds its original
 example source once without the legacy manual-warp capacity patch, and

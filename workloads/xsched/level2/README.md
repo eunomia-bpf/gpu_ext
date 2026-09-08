@@ -22,6 +22,13 @@ Still to build and exercise: the native sm_120 artifact path and
 end-to-end replay. Both decision arms keep the same trusted actuator. No
 host decision fallback or performance gain is claimed.
 
+The native artifact path also needs source integration: the current HAL
+factory has no `GuardianSM120` consumer for the generated arrays. Routing
+sm_120 to Level-2 alone does not complete that path. The source owner is
+adding the consumer and keeping cuXtra-only initialization out of the
+matched NVBit actuator path. That native cuXtra reference remains separate
+from the native-C/BPF pair, which must use the same NVBit actuator.
+
 The current HAL patch uses an 8192-slot mapped context pool, reserves slot
 zero, and does not retire assigned slots. This is a bring-up limitation,
 not support for unbounded long-running service. No binaries, cache payloads

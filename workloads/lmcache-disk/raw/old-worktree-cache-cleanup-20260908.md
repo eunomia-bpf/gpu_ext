@@ -1,6 +1,24 @@
 # Old LMCache worktree cache deletion
 
-Status: inventory recorded before deletion; source/results must be pushed first.
+Status: completed. The 149 listed cache directories and the three obsolete
+build executables were deleted after preservation push `fdbd1c12` on
+`revision/lmcache-gds-control` and collection push `294bda3e` on master.
+All 890 pre-existing non-cache raw files remain; the cleanup record adds one
+file. The worktree shrank from about 322 GiB to 4.3 GiB, and workspace
+available space rose from about 25 GiB to 342 GiB.
+
+Removed build products (not published as binary artifacts):
+
+- `workloads/lmcache-disk/gds-control/gds_policy`: 1517272 bytes.
+- `workloads/lmcache-disk/gds-control/gds_executor`: 1057656 bytes.
+- `workloads/lmcache-disk/gds-control/ioctl_probe`: 25272 bytes.
+
+The source Makefile remains for rebuilding. Cache deletion is permanent,
+not a move to another archive. The old worktree itself is not yet removed:
+the active 575 driver's Git common directory still lives in its worktree
+metadata. That linkage was left intact, and driver git status still works.
+Removing the whole worktree requires relocating that repository metadata;
+this cleanup does not make such a live structural change.
 
 User explicitly requested deletion, not archival, of regenerable cache and large
 build products. Scope is the inactive gpu_ext-lmcache-gds-control worktree only.
@@ -11,7 +29,7 @@ worktrees are not cleanup targets.
 Classification:
 
 - Preserve source and historical Python prototype on revision/lmcache-gds-control.
-- Preserve all 890 non-cache raw files; 201 previously untracked result/log files total 7571602 bytes and are being added before deletion. No large product is added to Git.
+- Preserve all 890 non-cache raw files; 201 previously untracked result/log files total 7571602 bytes and were committed and pushed before deletion. No large product was added to Git.
 - Delete only the 149 explicitly listed cache directories below, totaling 340726042624 allocated bytes (317.326 GiB before deletion).
 - No tracked file is inside a target cache directory. Cache payloads/sidecars are regenerable transport data, not performance measurements. Deleted contents cannot be recovered from Git; rerunning their producer is necessary.
 - Old compiled gds_policy, gds_executor and ioctl_probe may be removed after their sizes are recorded. Active loaders use the separate gpu_ext main path, not these binaries.
@@ -171,4 +189,3 @@ Paths are relative to /home/yunwei37/workspace/gpu/gpu_ext-lmcache-gds-control.
 | `workloads/lmcache-disk/raw/gds-five-arm-575-20260906-block1/block-00/position-0-recompute/cache` | 4096 |
 | `workloads/lmcache-disk/raw/gds-five-arm-575-20260906-block1/block-00/position-2-gds_fifo/cache` | 4096 |
 | `workloads/lmcache-disk/raw/gds-five-arm-575-20260906-block1/block-00/position-4-gds_bpf/cache` | 4096 |
-

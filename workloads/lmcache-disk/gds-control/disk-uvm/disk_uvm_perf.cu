@@ -34,9 +34,9 @@
  *                         fault hydrates the chunk from the backing file
  *                         (direct-I/O file read, no copy)
  *          gpu_restore  : first-touch GPU read after a second offload: the
- *                         UVM GPU fault restores via CPU-first hydration from
- *                         the file, then CPU->GPU copy
- *          steady_gpu   : GPU read with the data resident again
+ *                         UVM GPU fault restores via CPU-first hydration;
+ *                         successful access does not imply HBM promotion
+ *          steady_gpu   : repeated GPU read after restoration
  *
  * A small fixed set of sampled words is printed alongside the word the
  * deterministic pattern defines at that index, giving a simple observable
@@ -875,7 +875,8 @@ int main(int argc, char **argv)
     }
 
     /* 4f. First-touch GPU read at the same managed VA: UVM GPU fault ->
-     *     CPU-first hydration from the backing file -> CPU->GPU copy. */
+     *     CPU-first hydration from the backing file. The current residency
+     *     override chooses CPU; successful access does not imply HBM promotion. */
     {
         uint32_t samples[3];
         int sample_ctas[3];

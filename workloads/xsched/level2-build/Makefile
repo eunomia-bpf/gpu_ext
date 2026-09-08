@@ -15,6 +15,7 @@
 # Non-default extras:
 #   exporter       ensure the GLM bpf_to_ptx exporter exists
 #   ldc-patch      host-only: xg_ldc_patcher -> xg_sm120_guardian_arrays.h
+#   hal-arrays     print XG_SM120_GENERATED_HEADER wiring for the deps/xsched build
 #   clean          remove .output/
 #
 # Pipeline (mirrors the verified workloads/sass-kretprobe build):
@@ -101,7 +102,7 @@ $(EXPORTER): $(ADAPTER_SRC)
 NVCC_DEVFLAGS := -arch=$(SM) -O3 -std=c++14 -Xcompiler -fPIC
 NVCC_CUBINFLAGS := -cubin -O3 -gencode arch=compute_$(SM_NUM),code=$(SM)
 
-.PHONY: all bpf-ptx guardian-cubin guard-tool native ldc-patch exporter clean
+.PHONY: all bpf-ptx guardian-cubin guard-tool native ldc-patch hal-arrays exporter clean
 
 all: bpf-ptx guardian-cubin guard-tool native
 
@@ -175,9 +176,20 @@ native: $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN) $(PATCHER)
 
 # ------------------------------------------- host-only LDC re-encode step
 # Feeds GLM's HAL arch/sm120.cpp integration; never part of the default.
-ldc-patch: $(PATCHER) $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN)
-	$(PATCHER) $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN) $(NVDISASM) \
-		$(PATCHED_HEADER)
+# The generated arrays header is consumed by a deps/xsched build that
+# applies ../level2/xsched-level2-sm120.patch, configured with
+#   -DXG_SM120_GENERATED_HEADER=$(abspath .output/xg_sm120_guardian_arrays.h)
+# which enables GuardianSM120 and the arch-120 Guardian factory case.
+$(PATCHED_HEADER): $(PATCHER) $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN)
+	mkdir -p $(dir $@)
+	$(PATCHER) $(PROBE_CUBIN) $(CHECK_CUBIN) $(RESTORE_CUBIN) $(NVDISASM) $@
+
+ldc-patch: $(PATCHED_HEADER)
+
+# Print the exact CMake variable that wires the generated arrays into a
+# patched deps/xsched HAL build (see ../level2/xsched-level2-sm120.patch).
+hal-arrays: $(PATCHED_HEADER)
+	@echo "XG_SM120_GENERATED_HEADER=$(abspath $(PATCHED_HEADER))"
 
 exporter: $(EXPORTER)
 

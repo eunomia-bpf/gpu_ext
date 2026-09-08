@@ -22,12 +22,14 @@ Still to build and exercise: the native sm_120 artifact path and
 end-to-end replay. Both decision arms keep the same trusted actuator. No
 host decision fallback or performance gain is claimed.
 
-The native artifact path also needs source integration: the current HAL
-factory has no `GuardianSM120` consumer for the generated arrays. Routing
-sm_120 to Level-2 alone does not complete that path. The source owner is
-adding the consumer and keeping cuXtra-only initialization out of the
-matched NVBit actuator path. That native cuXtra reference remains separate
-from the native-C/BPF pair, which must use the same NVBit actuator.
+The stored HAL patch now includes `GuardianSM120`, its factory case and the
+generated-array consumer, enabled with `XG_SM120_GENERATED_HEADER` (the exact
+value is printed by `make hal-arrays` in `../level2-build`). The matched
+NVBit actuator path returns before cuXtra-only Guardian/InstrMemAllocator
+initialization. Patch application checking and a Makefile dry run pass;
+the actual HAL build and execution remain unfinished. The native cuXtra
+reference remains separate from the native-C/BPF pair, which uses the same
+NVBit actuator. Existing Level-1 dependencies and measurements are unchanged.
 
 The current HAL patch uses an 8192-slot mapped context pool, reserves slot
 zero, and does not retire assigned slots. This is a bring-up limitation,

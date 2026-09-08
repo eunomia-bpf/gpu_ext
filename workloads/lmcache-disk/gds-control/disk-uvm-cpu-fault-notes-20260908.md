@@ -31,3 +31,14 @@ guidance, not a runnable disk-UVM result or a new validation campaign.
 The writer received these concrete findings. Its current source-only backing
 interface and range associations are incomplete; no driver install or GPU
 fault/offload experiment has been performed for this extension.
+
+## Implementation handoff after provider error
+
+The Qwen 27B implementation session subsequently ended with a terminal
+`APIError`, HTTP 524. Its CLI exited; root did not impose a timeout or stop
+it for inactivity. The three partial source files remain in the existing
+575 worktree. A fresh local GLM session continues from those files and these
+notes, with permission for ordinary CPU builds now that the LMCache campaign
+and missing control have both finished. Driver installation/reload and GPU
+execution remain root-coordinated. No completion claim is attached to this
+handoff, and no fourth concurrent local session was launched.

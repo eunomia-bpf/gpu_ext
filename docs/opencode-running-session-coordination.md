@@ -58,6 +58,16 @@ time and its CLI exited, root resumed that same saved session through the
 direct coordinator using Qwen 27B. A successful generation and implementation
 are still unproven at dispatch; the active inference-task count remains three.
 
+Subsequent observation: direct Qwen 27B generation did succeed and produced
+source patches in the existing Fig.13 runner. Root committed and pushed the
+repository-relative paths (`8e0d3167`) and owned-process cleanup (`d7d18ba5`).
+Four-arm configuration and CSV fields are also present as uncommitted work,
+but the connected four-arm runner and plotting changes are not yet delivered.
+This establishes a working direct inference route, not completed experiments.
+The same session remains active; the two gateway-backed implementation
+sessions also remain live, with intermittent retries. No session was stopped
+and no fourth inference session was introduced.
+
 OpenCode documents the scoped override mechanism in its
 [custom configuration path instructions](https://dev.opencode.ai/docs/config/#custom-path).
 The private service address is resolved at use time rather than treated as

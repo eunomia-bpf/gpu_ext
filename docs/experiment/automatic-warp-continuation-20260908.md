@@ -25,6 +25,34 @@ completed implementation or a new measured speedup.
 
 ## Exact continuation prompt
 
+### Hook-count follow-up location, clarified by the user
+
+The hook-count studies must extend `microbench/fig15-device`, not substitute
+the separate trampoline-scaling workload. The existing
+`strict-warp-map-scaling/warp_map_bench.cu` already accepts thread count but
+launches one CTA; its `fig15_warp_map_kernel` has one hook before the output
+calculation. Its companion `run_strict_warp_map_scaling.py` provides existing
+launch, attachment and timing entrypoints. The parent `map_bench.cu` and
+`run_map_tier.py` supply the corresponding fixed-32-thread map-tier path.
+Reuse these files and their output conventions, keeping old modes and results.
+
+The required bounded follow-up adds grid/block-count control and arithmetic
+work outside the unchanged hook, with output indexing/allocation matching the
+grid. First vary block count at fixed work; then vary non-hook work with
+geometry and hook count fixed. Compare the same BPF object and transport with
+runtime optimization off/on plus uninstrumented control. Do not add a manual
+lane guard or silently discard per-lane side effects to obtain a speedup.
+Separate logical hook encounters from actual scalar handler executions and
+warmup from measured launches. If dynamic execution counters add work, collect
+them in explicitly labelled untimed companion launches rather than penalizing
+only one timed arm; static launch arithmetic alone is not an observed count.
+
+The old script's strict-admission/preflight campaigns are historical and are
+not prerequisites for these requested performance studies. Record ordinary
+execution errors and preserve all raw numbers. This downstream code task is
+queued behind the active original Fig.13 runner work; no fourth local model
+session was created. No new hook-count measurements exist yet.
+
 ```text
 Continue this SAME automatic-warp task and existing worktree /home/yunwei37/workspace/gpu/bpftime-auto-warp, branch revision/automatic-warp-execution at eef8a51. The earlier Qwen Next request ended in terminal HTTP 524 before producing code. Root verified the worktree is clean and is resuming with GLM after a separate Qwen Next continuation also ended with terminal HTTP 524. Do not repeat a broad survey or create another worktree/session. Root coordinates builds, GPU runs, reports, commits and branch pushes; you implement source with apply_patch. Read workspace AGENTS and local CLAUDE/CONTRIBUTING. No hashes/digests, new papers, paper edits, own subagents, PR/CI/review campaigns, driver install/reload, GPU runs, or short timeouts. Max 3 local OpenCode sessions globally; two other sessions own gpu_ext/kernel-driver source. You own ONLY bpftime-auto-warp source and isolated build outputs; shared frozen bpftime-table1-hostfix-plt and bpftime-sass-existing-application are read-only.
 
@@ -36,4 +64,3 @@ Source starting points: attach/nv_attach_impl/pass/ptxpass_core/{include/ptxpass
 
 After reusable implementation builds, root will reuse gpu_ext run_table1_perf.py and existing llama.cpp pp512/TinyLlama setup for ten matched repetitions with uninstrumented baseline, optimization disabled and enabled. Root also owns the requested original device-microbenchmark block-count/work sweeps; you may provide narrowly necessary runtime count reporting to distinguish hook encounters from scalar handler executions, with equal counting costs across compared arms. Do not modify gpu_ext benchmark scripts from this session. Do not run performance cells yet or claim a desired speedup. Deliver actual source, build command/output and exact on/off invocation plus remaining limitations. Keep old modes/results intact and leave code uncommitted for root review and publication.
 ```
-

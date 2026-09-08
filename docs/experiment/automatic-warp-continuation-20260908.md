@@ -29,13 +29,21 @@ new performance run. No extra verifier/correctness/clock campaign is planned.
 The full record-preserving batching objective and Table1 comparison remain
 unfinished; this candidate is an incremental optimization, not completion.
 
-The subsequent uncommitted candidate encodes the published tail in the
-unlocked state word to eliminate a separate tail publication operation.
-Device-side code has landed, but the host drain and map-owned mode selection
-are still being connected. It is not yet a runnable or measured variant.
-The shared map must own its protocol choice so independently attaching
-processes cannot select incompatible host/device layouts through environment
-settings. The runner owner is coordinating loader and client configuration.
+The subsequent candidate is pushed in bpftime `c4c83cd`. It encodes the
+published tail in the unlocked state word to eliminate a separate tail
+publication operation. Device production, host draining/statistics, and
+map-owned protocol selection are now connected in source. The loader selects
+the protocol at map creation; attaching agents read that stored choice.
+`BPFTIME_GPU_AUTO_WARP_EXECUTION=1` with
+`BPFTIME_GPU_RINGBUF_TRANSPORT=2` selects encoded publication; transport 1
+retains the aligned-copy path, and auto-warp 0 retains the legacy path.
+The runner must set the loader environment before map creation.
+
+This seven-file source checkpoint passed `git diff --check` but is **not
+built or measured**. The GPU owner's scan is still active. Root directly
+added the missing standard header, retained prior record counts for locked
+slots, and corrected comments/indentation; local GLM authored the protocol.
+Neither this checkpoint nor its publication replaces a performance run.
 
 For perspective, reducing a 90.71% throughput loss to 8% at an unchanged
 baseline would reduce added instrumentation time by about 112.29 times:

@@ -143,3 +143,29 @@ At 08:33 UTC block 2 completed with both tenant exit codes zero in every
 arm. Its closed `block02_*` records are retained. K-Means is 12/20 cells
 complete (overall 52/60), with block 3 running. No completed block was
 repeated or omitted; five-block analysis and restoration are still pending.
+
+## Memory-policy activity in the completed HotSpot/GEMM runs
+
+The existing final `=== Summary ===` sections of each `mem_tool.log` give
+the following medians across all five blocks; no additional run was used.
+
+| Workload | Memory-only: `Total activated` | Combined: `Total activated` | Memory-only: `Total used calls` | Combined: `Total used calls` |
+| --- | ---: | ---: | ---: | ---: |
+| HotSpot | 31891697 | 10579172 | 87965 | 19260 |
+| GEMM | 42581034 | 25355284 | 35024 | 19266 |
+
+These are policy bookkeeping counters, not transferred pages/bytes or unique
+GPU-memory accesses. In `extension/prefetch_eviction_pid.bpf.c`,
+`update_prefetch_stats` increments `total_activate` for prefetch-tree
+decisions; chunk activation also contributes to that field. `total_used`
+is incremented by the block-activation policy path. Allow/deny totals mix
+prefetch choices and LRU-reordering decisions, so the loader's generic
+"moved" label must not be read as a count of physical transfers.
+
+Adding scheduling is associated with substantially lower memory-policy
+activity than memory-only in these runs. This supports describing the
+composition as changing the memory-management workload, but does not
+separately establish a reduction in page faults, DMA traffic or thrashing,
+nor attribute all completion-time gains to one cause. The paired latency
+tradeoffs above remain the performance results; these counters neither
+replace them nor serve as a measurement-admission condition.

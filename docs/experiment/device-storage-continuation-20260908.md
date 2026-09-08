@@ -5,6 +5,30 @@ results remain intact. Non-trivial development runs through local OpenCode;
 the root reviews, builds, measures, records, commits and pushes. At most three
 local sessions run concurrently, without stopping them for silence.
 
+## Latest implementation checkpoint — 11:50 PDT
+
+Two follow-ups now build and their source commits are pushed:
+
+- Disk GPU promotion: driver `dea1fefc`, with the local model's early-return
+  repair integrated. The first UVM-only build failed on core module symbols;
+  the established full module build then succeeded. No new module loaded.
+  [Build records](../../workloads/lmcache-disk/raw/disk-uvm-gpu-promotion-20260908.bG4MBx/README.md)
+  and the existing five-repeat wrapper adapted for the opt-in are retained.
+  Qwen continues the existing client switch; measurements are still pending.
+- Record-preserving mode-3 transport: bpftime `886b4ca`, both host reader and
+  device writer, with regenerated embedded PTX. Agent and syscall-server
+  builds succeeded. Main `fe199ede` retains the patch and build log. Qwen
+  now prepares five rotating mode-2/mode-3 pairs, reusing the existing
+  original per-thread probe, with normal collector completion rather than
+  the old short post-client kill deadline. No new baseline/NVBit replay.
+
+GLM's native XSched turn reached its model output-length limit naturally;
+the same session resumed with only the incomplete metadata/main checkpoint
+in scope. The native prefix/transfer repair follows that checkpoint. No
+Level-2 performance measurement or new speedup is claimed. The three local
+sessions remain active; no one was stopped for silence. This is implementation
+progress, not an additional completed scientific result.
+
 ## Completed immediate requests
 
 - [Disk-backed UVM restoration](../../workloads/lmcache-disk/results-disk-uvm-restore-20260908.md):

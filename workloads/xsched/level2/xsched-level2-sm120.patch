@@ -1,0 +1,229 @@
+diff --git a/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h b/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h
+--- a/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h
++++ b/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h
+@@ -57,6 +57,9 @@ public:
+     CUdeviceptr preempt_buffer = 0;
+     CUdeviceptr entry_point_original = 0;
+     CUdeviceptr entry_point_guardian = 0;
++    // Level-2 tool actuator: index of this command's context slot in the
++    // InstrumentContext publish pool (slot 0 is reserved, never assigned)
++    uint64_t tool_ctx = 0;
+ 
+ protected:
+     bool deep_copy_ = false;
+diff --git a/platforms/cuda/hal/include/xsched/cuda/hal/common/options.h b/platforms/cuda/hal/include/xsched/cuda/hal/common/options.h
+--- a/platforms/cuda/hal/include/xsched/cuda/hal/common/options.h
++++ b/platforms/cuda/hal/include/xsched/cuda/hal/common/options.h
+@@ -11,5 +11,12 @@ enum CudaLv3Implementation
+ 
+ bool GetCudaSingleStreamPerProcessEnabled();
+ CudaLv3Implementation GetCudaLv3Implementation();
++// Level-2 sm_120 port (opt-in): route sm_120 to CudaQueueLv2 instead of the
++// frozen Level-1 fallback.
++bool GetCudaLv2Arch120Port();
++// Level-2 tool actuator mode: InstrumentContext publishes per-command
++// context blocks to the preloaded NVBit gate tool and launches plainly; the
++// tool injects the guardian/resume trampolines at kernel entry.
++bool GetLevel2ToolActuator();
+ 
+ } // namespace xsched::cuda
+diff --git a/platforms/cuda/hal/include/xsched/cuda/hal/level2/instrument.h b/platforms/cuda/hal/include/xsched/cuda/hal/level2/instrument.h
+--- a/platforms/cuda/hal/include/xsched/cuda/hal/level2/instrument.h
++++ b/platforms/cuda/hal/include/xsched/cuda/hal/level2/instrument.h
+@@ -43,8 +43,14 @@ public:
+ 
+ private:
+     const CUcontext kCtx;
++    // Level-2 sm_120 tool actuator mode (no cuXtra binary surgery)
++    const bool kToolActuator;
+     CUstream op_stream_;
+     bool trap_instrumented_ = false;
++    // pinned mapped publish pool for per-command context blocks
++    void *tool_ctx_pool_host_ = nullptr;
++    CUdeviceptr tool_ctx_pool_dev_ = 0;
++    uint64_t tool_ctx_count_ = 0;
+     CUdeviceptr entry_point_resume_ = 0;
+     std::shared_ptr<Guardian> guardian_ = nullptr;
+     std::unique_ptr<InstrMemAllocator> instr_mem_ = nullptr;
+diff --git a/platforms/cuda/hal/src/arch/arch.cpp b/platforms/cuda/hal/src/arch/arch.cpp
+--- a/platforms/cuda/hal/src/arch/arch.cpp
++++ b/platforms/cuda/hal/src/arch/arch.cpp
+@@ -77,6 +77,9 @@ std::shared_ptr<HwQueue> xsched::cuda::CudaQueueCreate(CUstream stream)
+     case 70: // Volta: V100, GV100
+     case 86: // Ampere: RTX3050 - RTX 3090 Ti
+         return std::make_shared<CudaQueueLv3Trap>(stream);
++    case 120: // Blackwell consumer: Level-2 guardian port (opt-in)
++        if (GetCudaLv2Arch120Port()) return std::make_shared<CudaQueueLv2>(stream);
++        return std::make_shared<CudaQueueLv1>(stream);
+     // NEW_CUDA_ARCH: New CUDA architecture support goes here
+     default:
+         return std::make_shared<CudaQueueLv1>(stream);
+@@ -109,6 +112,10 @@ CUresult xsched::cuda::DirectLaunch(std::shared_ptr<CudaKernelCommand> kernel, C
+     case 70:
+     case 86:
+         return CudaQueueLv3Trap::DirectLaunch(kernel, current_ctx, stream);
++    case 120:
++        if (GetCudaLv2Arch120Port())
++            return CudaQueueLv2::DirectLaunch(kernel, current_ctx, stream);
++        return CudaQueueLv1::DirectLaunch(kernel, stream);
+     // NEW_CUDA_ARCH: New CUDA architecture support goes here
+     default:
+         return CudaQueueLv1::DirectLaunch(kernel, stream);
+diff --git a/platforms/cuda/hal/src/common/options.cpp b/platforms/cuda/hal/src/common/options.cpp
+--- a/platforms/cuda/hal/src/common/options.cpp
++++ b/platforms/cuda/hal/src/common/options.cpp
+@@ -20,3 +20,15 @@ xsched::cuda::CudaLv3Implementation xsched::cuda::GetCudaLv3Implementation()
+     }();
+     return impl;
+ }
++
++bool xsched::cuda::GetCudaLv2Arch120Port()
++{
++    static const bool port = GetEnvOption("XSCHED_CUDA_LV2_PORT_120", false);
++    return port;
++}
++
++bool xsched::cuda::GetLevel2ToolActuator()
++{
++    static const bool act = GetEnvOption("XSCHED_LEVEL2_TOOL_ACTUATOR", false);
++    return act;
++}
+diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/src/level2/instrument.cpp
+--- a/platforms/cuda/hal/src/level2/instrument.cpp
++++ b/platforms/cuda/hal/src/level2/instrument.cpp
+@@ -1,6 +1,7 @@
+ #include <mutex>
+ #include <cstring>
+ #include <unordered_map>
++#include <dlfcn.h>
+ #include <cuxtra/cuxtra.h>
+ 
+ #include "xsched/utils/common.h"
+@@ -9,10 +10,34 @@
+ #include "xsched/cuda/hal/common/cuda_assert.h"
+ #include "xsched/cuda/hal/level2/instrument.h"
+ 
++#define XG_TOOL_CTX_BYTES 28 /* level2/xsched_guardian_abi.h arg block */
++#define XG_TOOL_CTX_STRIDE 32
++#define XG_TOOL_CTX_SLOTS 8192
++#define XG_TOOL_CTX_POOL_BYTES (XG_TOOL_CTX_STRIDE * XG_TOOL_CTX_SLOTS)
++
++/* Publish/unpublish the context block of the launch running on this thread.
++ * The NVBit gate tool exports xg_host_publish and consumes the pointer in
++ * its at-launch callback (one-shot per launch on the same thread). The tool
++ * must be preloaded ahead of libhalcuda when the tool actuator is enabled. */
++static void ToolPublish(CUdeviceptr ctx_dev)
++{
++    typedef void (*PublishFn)(uint64_t);
++    static PublishFn publish = nullptr;
++    static bool looked_up = false;
++    if (!looked_up) {
++        publish = (PublishFn)dlsym(RTLD_DEFAULT, "xg_host_publish");
++        looked_up = true;
++    }
++    XASSERT(publish != nullptr,
++            "Level-2 tool actuator enabled but xg_host_publish was not found; "
++            "preload the NVBit instrument tool first");
++    publish((uint64_t)ctx_dev);
++}
++
+ using namespace xsched::cuda;
+ using namespace xsched::preempt;
+ 
+-InstrumentContext::InstrumentContext(CUcontext ctx): kCtx(ctx)
++InstrumentContext::InstrumentContext(CUcontext ctx): kCtx(ctx), kToolActuator(GetLevel2ToolActuator())
+ {
+     // check current context
+     CUcontext current_ctx;
+@@ -35,6 +60,21 @@ InstrumentContext::InstrumentContext(CUcontext ctx): kCtx(ctx)
+     CUDA_ASSERT(Driver::MemsetD8Async(preempt_buf_->Ptr(), 0, preempt_buf_->Size(), op_stream_));
+     CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
+ 
++    if (kToolActuator) {
++        // NVBit tool actuator mode (Level-2 sm_120 port): the gate tool
++        // injects the guardian and resume trampolines at kernel entry at
++        // launch time, so no binary surgery happens here. Per-command
++        // context blocks live in a pinned mapped pool and are published to
++        // the tool on the launching thread right before the launch.
++        CUDA_ASSERT(Driver::MemHostAlloc((void **)&tool_ctx_pool_host_,
++                                         XG_TOOL_CTX_POOL_BYTES,
++                                         CU_MEMHOSTALLOC_DEVICEMAP));
++        CUDA_ASSERT(Driver::MemHostGetDevicePointer_v2(&tool_ctx_pool_dev_,
++                                                       tool_ctx_pool_host_, 0));
++        memset(tool_ctx_pool_host_, 0, XG_TOOL_CTX_POOL_BYTES);
++        return;
++    }
++
+     // prepare the resume instructions
+     size_t resume_size;
+     const void *resume_host;
+@@ -71,6 +111,22 @@ CUresult InstrumentContext::Launch(std::shared_ptr<CudaKernelCommand> kernel,
+         size_t buf_size = 2 * sizeof(uint64_t) + 2 * sizeof(uint32_t) * block_cnt;
+         preempt_buf_->ExpandTo(buf_size, op_stream_);
+ 
++        if (kToolActuator) {
++            // tool actuator: publish the default (empty-flag) preempt
++            // buffer with launch type 0; the trampoline falls through
++            // into the kernel body without actuating
++            char *args = (char *)tool_ctx_pool_host_ +
++                         kernel->tool_ctx * XG_TOOL_CTX_STRIDE;
++            memset(args, 0, XG_TOOL_CTX_BYTES);
++            *(uint64_t *)(args + 0) = (uint64_t)preempt_buf_->Ptr();
++            *(uint32_t *)(args + 24) = kKernelLaunchOriginal;
++            ToolPublish(tool_ctx_pool_dev_ +
++                        kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
++            CUresult ret = kernel->LaunchWrapper(stream);
++            ToolPublish(0);
++            return ret;
++        }
++
+         // only preempt_buf is useful in this case
+         memset(args_buf, 0, sizeof(args_buf));
+         *preempt_buf = preempt_buf_->Ptr(); // use default (empty) preempt buffer
+@@ -86,6 +142,25 @@ CUresult InstrumentContext::Launch(std::shared_ptr<CudaKernelCommand> kernel,
+     *guardian    = kernel->entry_point_guardian;
+     *kernel_idx  = kernel->GetIdx();
+     *killable    = kernel->killable;
++
++    if (kToolActuator) {
++        // tool actuator: the injected trampoline implements the guardian
++        // (type 1) and resume (type 2) decisions from this block; the
++        // entry slot stays the (unused) guardian entry of the command
++        char *args = (char *)tool_ctx_pool_host_ +
++                     kernel->tool_ctx * XG_TOOL_CTX_STRIDE;
++        memset(args, 0, XG_TOOL_CTX_BYTES);
++        *(uint64_t *)(args + 0) = (uint64_t)kernel->preempt_buffer;
++        *(uint64_t *)(args + 8) = (uint64_t)kernel->entry_point_guardian;
++        *(int64_t *)(args + 16) = (int64_t)kernel->GetIdx();
++        *(uint32_t *)(args + 24) = (uint32_t)type;
++        ToolPublish(tool_ctx_pool_dev_ +
++                    kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
++        CUresult ret = kernel->LaunchWrapper(stream);
++        ToolPublish(0);
++        return ret;
++    }
++
+     CUdeviceptr entry_point = type == kKernelLaunchResume
+                             ? entry_point_resume_ // launch to resume
+                             : kernel->entry_point_guardian;
+@@ -110,6 +185,20 @@ void InstrumentContext::Instrument(std::shared_ptr<CudaKernelCommand> kernel)
+ {
+     CUfunction func = kernel->kFuncHandle;
+ 
++    if (kToolActuator) {
++        // tool actuator: no binary instrumentation; assign one publish
++        // pool slot per command (slot 0 is reserved, never assigned)
++        std::lock_guard<std::mutex> lock(instrument_mtx_);
++        uint64_t slot = ++tool_ctx_count_;
++        XASSERT(slot < XG_TOOL_CTX_SLOTS,
++                "tool actuator context pool exhausted (%" FMT_64U " slots)",
++                (unsigned long long)XG_TOOL_CTX_SLOTS);
++        kernel->tool_ctx = slot;
++        memset((char *)tool_ctx_pool_host_ + slot * XG_TOOL_CTX_STRIDE, 0,
++               XG_TOOL_CTX_BYTES);
++        return;
++    }
++
+     {
+         std::lock_guard<std::mutex> lock(instrument_mtx_);
+         auto it = kernels_.find(func);

@@ -1,0 +1,281 @@
+diff --git a/kernel-open/nvidia-uvm/uvm.c b/kernel-open/nvidia-uvm/uvm.c
+index 6f1b8359..2f906b1a 100644
+--- a/kernel-open/nvidia-uvm/uvm.c
++++ b/kernel-open/nvidia-uvm/uvm.c
+@@ -1321,6 +1321,49 @@ out:
+     return status;
+ }
+ 
++//
++// UvmDiskBackingSetGpuPromotion - toggles GPU promotion for a registered
++// disk-backed range.
++//
++static NV_STATUS uvm_api_disk_backing_set_gpu_promotion(UVM_DISK_BACKING_SET_GPU_PROMOTION_PARAMS *params, struct file *filp)
++{
++    uvm_va_space_t *va_space = uvm_va_space_get(filp);
++    uvm_va_range_t *va_range;
++    uvm_va_range_managed_t *managed_range;
++    NV_STATUS status = NV_OK;
++
++    if (params->abiVersion != UVM_DISK_BACKING_ABI_VERSION ||
++        params->pad0 != 0 || params->pad1 != 0 || params->enable > 1)
++        return NV_ERR_INVALID_ARGUMENT;
++
++    if (params->rangeStart > params->rangeEnd ||
++        params->rangeStart % PAGE_SIZE != 0 ||
++        (params->rangeEnd + 1) % PAGE_SIZE != 0)
++        return NV_ERR_INVALID_ARGUMENT;
++
++    uvm_va_space_down_write(va_space);
++
++    va_range = uvm_va_range_find(va_space, params->rangeStart);
++    if (!va_range || va_range->node.start != params->rangeStart ||
++        va_range->node.end != params->rangeEnd) {
++        status = NV_ERR_INVALID_ARGUMENT;
++        goto out;
++    }
++
++    managed_range = uvm_va_range_to_managed_or_null(va_range);
++    if (!managed_range) {
++        status = NV_ERR_INVALID_ARGUMENT;
++        goto out;
++    }
++
++    status = uvm_disk_backing_set_gpu_promote(managed_range, params->enable != 0);
++
++out:
++    uvm_va_space_up_write(va_space);
++
++    return status;
++}
++
+ static long uvm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+ {
+     switch (cmd)
+@@ -1336,6 +1379,7 @@ static long uvm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+         UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_DISK_BACKING_REGISTER,          uvm_api_disk_backing_register);
+         UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_DISK_BACKING_OFFLOAD,           uvm_api_disk_backing_offload);
+         UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_DISK_BACKING_QUERY,             uvm_api_disk_backing_query);
++        UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_DISK_BACKING_SET_GPU_PROMOTION, uvm_api_disk_backing_set_gpu_promotion);
+ 
+         UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_PAGEABLE_MEM_ACCESS,            uvm_api_pageable_mem_access);
+         UVM_ROUTE_CMD_STACK_INIT_CHECK(UVM_PAGEABLE_MEM_ACCESS_ON_GPU,     uvm_api_pageable_mem_access_on_gpu);
+diff --git a/kernel-open/nvidia-uvm/uvm_disk_backing.c b/kernel-open/nvidia-uvm/uvm_disk_backing.c
+index a49d78ce..b05e496c 100644
+--- a/kernel-open/nvidia-uvm/uvm_disk_backing.c
++++ b/kernel-open/nvidia-uvm/uvm_disk_backing.c
+@@ -57,6 +57,11 @@ struct uvm_disk_backing_shared_struct
+     // Woken when a pending span completes or fails; used by the OFFLOAD
+     // ioctl's wait and by the STATUS ioctl.
+     wait_queue_head_t wq;
++
++    // GPU promotion (see uvm_disk_backing.h): shared by every view of the
++    // registered range, so it survives range splits. Written under the VA
++    // space write lock, read on the fault path with the VA space lock held.
++    bool gpu_promote;
+ };
+ 
+ // One backing view attached to a single managed range, or to one half of a
+@@ -1008,6 +1013,26 @@ bool uvm_disk_backing_sealed_range(uvm_va_block_t *block)
+     return backing && backing->sealed_read_only;
+ }
+ 
++NV_STATUS uvm_disk_backing_set_gpu_promote(uvm_va_range_managed_t *range,
++                                           bool enable)
++{
++    uvm_disk_backing_t *backing = range->disk_backing;
++
++    uvm_assert_rwsem_locked_write(&range->va_range.va_space->lock);
++
++    if (!backing)
++        return NV_ERR_INVALID_STATE;
++
++    backing->shared->gpu_promote = enable;
++
++    return NV_OK;
++}
++
++bool uvm_disk_backing_gpu_promote(uvm_disk_backing_t *backing)
++{
++    return backing && backing->shared->gpu_promote;
++}
++
+ bool uvm_disk_backing_reject_write(uvm_va_block_t *block, NvU64 address, bool is_write)
+ {
+     uvm_disk_backing_t *backing = uvm_disk_backing_from_block(block);
+diff --git a/kernel-open/nvidia-uvm/uvm_disk_backing.h b/kernel-open/nvidia-uvm/uvm_disk_backing.h
+index ff894af6..7fee3f38 100644
+--- a/kernel-open/nvidia-uvm/uvm_disk_backing.h
++++ b/kernel-open/nvidia-uvm/uvm_disk_backing.h
+@@ -81,6 +81,22 @@ void uvm_disk_backing_release(uvm_disk_backing_t *backing);
+ // address; callers on the fault path hold both as appropriate.
+ bool uvm_disk_backing_sealed_range(uvm_va_block_t *block);
+ 
++// GPU promotion state for the whole registered range (shared by all views,
++// including halves created by a split). While set, a fault on a page that
++// is durably on disk but not resident anywhere is restored through a CPU
++// staging chunk populated from the backing store and left resident on the
++// faulting GPU; while clear (the default) the residency selection forces
++// the CPU for such faults and the restored copy stays CPU-resident.
++//
++// The setter requires the VA space lock in write mode; the getter is a
++// plain read, safe on the fault path (same discipline as
++// sealed_read_only).
++NV_STATUS uvm_disk_backing_set_gpu_promote(uvm_va_range_managed_t *range,
++                                           bool enable);
++
++// Current GPU promotion state; false for a NULL backing.
++bool uvm_disk_backing_gpu_promote(uvm_disk_backing_t *backing);
++
+ // Reject CPU/GPU write faults into the sealed range. access_type is a
+ // uvm_fault_access_type_t; anything above READ is rejected.
+ bool uvm_disk_backing_reject_write(uvm_va_block_t *block,
+diff --git a/kernel-open/nvidia-uvm/uvm_ioctl.h b/kernel-open/nvidia-uvm/uvm_ioctl.h
+index 31e2563e..575c7a54 100644
+--- a/kernel-open/nvidia-uvm/uvm_ioctl.h
++++ b/kernel-open/nvidia-uvm/uvm_ioctl.h
+@@ -1304,6 +1304,28 @@ typedef struct
+     NV_STATUS rmStatus;                                    // OUT
+ } UVM_DISK_BACKING_QUERY_PARAMS;
+ 
++//
++// UvmDiskBackingSetGpuPromotion
++//
++// Toggles GPU promotion for a registered disk-backed range. While enabled,
++// a fault on a page that is durably on disk but not resident anywhere is
++// restored through a CPU staging chunk populated from the backing store and
++// left resident on the faulting GPU. While disabled (the default) the
++// restored copy stays CPU-resident. CPU fault restoration is unaffected.
++//
++#define UVM_DISK_BACKING_SET_GPU_PROMOTION                    UVM_IOCTL_BASE(87)
++
++typedef struct
++{
++    NvU32     abiVersion;                                  // IN
++    NvU32     pad0;                                        // IN reserved, must be 0
++    NvU64     rangeStart            NV_ALIGN_BYTES(8);     // IN page aligned
++    NvU64     rangeEnd              NV_ALIGN_BYTES(8);     // IN inclusive
++    NvU32     enable;                                      // IN 0 or 1
++    NvU32     pad1;                                        // IN reserved, must be 0
++    NV_STATUS rmStatus;                                    // OUT
++} UVM_DISK_BACKING_SET_GPU_PROMOTION_PARAMS;
++
+ //
+ // Temporary ioctls which should be removed before UVM 8 release
+ // Number backwards from 2047 - highest custom ioctl function number
+diff --git a/kernel-open/nvidia-uvm/uvm_va_block.c b/kernel-open/nvidia-uvm/uvm_va_block.c
+index 35ce7864..4dbc5010 100644
+--- a/kernel-open/nvidia-uvm/uvm_va_block.c
++++ b/kernel-open/nvidia-uvm/uvm_va_block.c
+@@ -3262,12 +3262,52 @@ static NV_STATUS block_populate_pages(uvm_va_block_t *block,
+ 
+         uvm_page_mask_zero(pages_staged);
+ 
++        // Sealed disk-backed ranges with GPU promotion enabled: pages that
++        // are durably on disk but not resident on any processor cannot be
++        // populated directly on the destination GPU, because a fresh GPU
++        // allocation would carry zeros instead of the durable bytes. Stage
++        // them through the CPU: block_populate_pages_cpu() restores their
++        // content from the backing file into a fresh CPU staging chunk, and
++        // block_copy_resident_pages() moves the bytes to the destination
++        // with a normal CPU->GPU copy, leaving the page resident there.
++        // This must happen before the early return below: for a fully
++        // offloaded range no processor is resident, so the no-staging-source
++        // check would otherwise skip the CPU staging populate entirely.
++        if (uvm_disk_backing_sealed_range(block)) {
++            uvm_disk_backing_t *backing = uvm_disk_backing_from_block(block);
++
++            if (backing && uvm_disk_backing_gpu_promote(backing)) {
++                uvm_page_mask_t *any_resident_mask;
++                uvm_page_index_t staged_page_index;
++
++                any_resident_mask = &block_context->scratch_page_mask;
++                uvm_page_mask_zero(any_resident_mask);
++                for_each_id_in_mask(id, &block->resident)
++                    uvm_page_mask_or(any_resident_mask,
++                                     any_resident_mask,
++                                     uvm_va_block_resident_mask_get(block, id, NUMA_NO_NODE));
++
++                for_each_va_block_page_in_region_mask(staged_page_index, populate_page_mask, region) {
++                    if (!uvm_page_mask_test(any_resident_mask, staged_page_index) &&
++                        uvm_disk_backing_page_on_disk(backing,
++                                                      uvm_va_block_cpu_page_address(block, staged_page_index)))
++                        uvm_page_mask_set(pages_staged, staged_page_index);
++                }
++            }
++        }
++
+         // Get the mask of all processors that have resident pages from which
+         // the destination cannot copy directly.
+         can_copy_from_processors = block_get_can_copy_from_mask(block, dest_id);
+         if (!uvm_processor_mask_andnot(tmp_processor_mask, &block->resident, can_copy_from_processors)) {
+-            uvm_processor_mask_cache_free(tmp_processor_mask);
+-            return status;
++            // No processor is resident that the destination cannot copy from.
++            // If disk promotion queued on-disk pages for the CPU staging
++            // populate below, fall through and stage them; otherwise there is
++            // nothing to stage.
++            if (uvm_page_mask_empty(pages_staged)) {
++                uvm_processor_mask_cache_free(tmp_processor_mask);
++                return status;
++            }
+         }
+ 
+         // Compute the pages that will be staged through the CPU by:
+@@ -3290,6 +3330,7 @@ static NV_STATUS block_populate_pages(uvm_va_block_t *block,
+ 
+         //   3. Removing any pages not in the populate mask.
+         uvm_page_mask_region_clear_outside(pages_staged, region);
++
+         cpu_populate_mask = pages_staged;
+ 
+         uvm_processor_mask_cache_free(tmp_processor_mask);
+@@ -4956,6 +4997,29 @@ static NV_STATUS block_copy_resident_pages(uvm_va_block_t *block,
+ 
+     // If we get here, that means we were staging the copy through the CPU and
+     // we should copy as many pages from the CPU as we copied to the CPU.
++    // Sealed disk-backed ranges with GPU promotion enabled stage on-disk
++    // pages whose CPU staging chunks were populated directly from the
++    // backing store instead of copied in from a resident source; count
++    // those against the invariant as well.
++    if (UVM_ID_IS_GPU(dst_id) && uvm_disk_backing_sealed_range(block)) {
++        uvm_disk_backing_t *backing = uvm_disk_backing_from_block(block);
++
++        if (backing && uvm_disk_backing_gpu_promote(backing)) {
++            uvm_page_mask_t *disk_staged_mask;
++            uvm_processor_id_t rid;
++
++            disk_staged_mask = &block_context->scratch_page_mask;
++            uvm_page_mask_zero(disk_staged_mask);
++            for_each_id_in_mask(rid, &block->resident)
++                uvm_page_mask_or(disk_staged_mask,
++                                 disk_staged_mask,
++                                 uvm_va_block_resident_mask_get(block, rid, NUMA_NO_NODE));
++
++            uvm_page_mask_andnot(disk_staged_mask, pages_staged, disk_staged_mask);
++            pages_copied_to_cpu += uvm_page_mask_region_weight(disk_staged_mask, region);
++        }
++    }
++
+     UVM_ASSERT(pages_copied == pages_copied_to_cpu);
+ 
+ out:
+@@ -11915,6 +11979,9 @@ uvm_processor_id_t uvm_va_block_select_residency(uvm_va_block_t *va_block,
+     // Sealed disk-backed ranges restore from the backing file on the CPU: if
+     // the page has no resident copy anywhere, populating a fresh copy on a
+     // GPU would silently zero the page instead of reading its durable bytes.
++    // With GPU promotion enabled the page is staged through the CPU instead
++    // (see block_populate_pages()) and ends up resident on the faulting GPU,
++    // so the override is skipped.
+     if (UVM_ID_IS_GPU(id) && uvm_disk_backing_sealed_range(va_block)) {
+         uvm_disk_backing_t *backing = uvm_disk_backing_from_block(va_block);
+         uvm_processor_id_t rid;
+@@ -11928,7 +11995,7 @@ uvm_processor_id_t uvm_va_block_select_residency(uvm_va_block_t *va_block,
+             }
+         }
+ 
+-        if (!resident_anywhere && backing &&
++        if (!uvm_disk_backing_gpu_promote(backing) && !resident_anywhere && backing &&
+             uvm_disk_backing_page_on_disk(backing,
+                                           uvm_va_block_cpu_page_address(va_block, page_index)))
+             id = UVM_ID_CPU;

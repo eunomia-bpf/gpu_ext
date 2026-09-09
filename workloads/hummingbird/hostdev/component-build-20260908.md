@@ -65,3 +65,35 @@ The native wrapper deliberately remains callable for the upcoming matched
 integration. This does not establish its overhead relative to the original
 inline mapping. Actual kernel consumption, cubin integration and the
 host/device performance comparison remain unfinished; no GPU was run here.
+
+## Real ResNet-152 source transformation and PTX build
+
+Root ran the local-model `hb_split_model.py` against the existing original
+ResNet-152 source (299940 bytes) and host metadata (121968 bytes):
+
+```sh
+python3 -B workloads/hummingbird/hostdev/hb_split_model.py \
+  --source workloads/gpreempt/deps/upstream/model/resnet152/mod.cu \
+  --host workloads/gpreempt/deps/upstream/model/resnet152/host.json \
+  --output /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable
+/usr/local/cuda-12.9/bin/nvcc -ptx -rdc=true --keep-device-functions \
+  -arch=sm_120 -std=c++14 -O3 \
+  -I/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev \
+  /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-bpf.cu \
+  -o /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-native.ptx
+```
+
+Both commands exited zero. The transform identifies 44 kernel entrypoints
+and 307 recorded launches; the generated CUDA/PTX sizes are 318837/416892
+bytes. These are generated build inputs, kept outside Git. The transformed
+source uses `hb_ctx.out_*` for the original kernel's coordinate-dependent
+computations; it currently calls the **native callable adapter**, not BPF.
+
+The actual optimized PTX has 43 call sites targeting `hb_device_map$13`,
+a compiler-specialized local-memory clone. The separate visible
+`hb_device_map` definition is not their target. Replacing only that visible
+definition would therefore leave the real kernels on the native path.
+The clone receives a generic local-context pointer and does not read its
+second, unused length parameter. Root supplied these facts to the local
+model for the unfinished PTX call-target replacement. No BPF consumption,
+cubin integration, GPU execution or performance result is claimed here.

@@ -84,9 +84,17 @@ run from the repository root with Python 3 and Matplotlib available. Outputs
 go only to a newly allocated directory, never the paper:
 
 ```sh
+# On a new clone: fetch the pinned plot-source submodule (no paper build).
+git submodule update --init --depth 1 -- docs/paper
 artifact_out=$(mktemp -d /tmp/gpubpf-artifact.XXXXXX)
 python3 -B scripts/artifact/reproduce_figures.py --out-dir "$artifact_out"
 ```
+
+`docs/paper` is a separate Git repository, not an ordinary directory supplied
+by cloning the parent repository. Initializing this one submodule is enough
+for these two figures; the GPU/driver/model submodules are not needed.
+The tested Python environment is Python 3.12.3, Matplotlib 3.6.3 and NumPy
+1.26.4. The statistics-only `reanalyze.py` does not need Matplotlib or NumPy.
 
 This command was executed successfully on 2026-09-09, also from another
 working directory using the absolute script path. It produces both PDFs and
@@ -103,6 +111,17 @@ The wrapper fixes reproduction without modifying the paper, input records
 or original plot source. It does not require historical Git objects, model
 caches or GPU software. Choose a new output path for another invocation;
 existing outputs are never overwritten.
+
+Fresh-checkout observation, 2026-09-09: a depth-one, blob-filtered GitHub clone
+at `d8f78200` successfully recalculated both 15-cell campaigns using only
+the selected published JSON files. Figure generation initially reported the
+uninitialized plot submodule; after initializing its pinned `62f5ed1` revision
+with the command above, both figures generated with exit zero, including the
+5.572554% selected and 5.400619% extended GPU-array results. The parent checkout
+and paper submodule stayed clean. This used the Python packages already
+installed on the host, but none of its original workload builds, model caches
+or driver modules. It validates this CPU path, not a fresh OS installation or
+all live GPU experiments.
 
 Use the estimator named in each report. A ratio of medians, median of paired
 ratios, geometric mean of paired ratios, and mean per-pair overhead are

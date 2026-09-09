@@ -406,7 +406,7 @@ def _query_probe(dispatch: IoctlDispatch, fd: int, start: int, end: int) -> int:
     p.rmStatus = 0
     buf = bytearray(ctypes.string_at(ctypes.addressof(p), ctypes.sizeof(p)))
     dispatch(fd, UVM_DISK_BACKING_QUERY, buf)
-    ctypes.memmove(ctypes.addressof(p), buf, ctypes.sizeof(p))
+    ctypes.memmove(ctypes.addressof(p), bytes(buf), ctypes.sizeof(p))
     return int(p.rmStatus)
 
 
@@ -524,7 +524,7 @@ class DiskUvmBacking:
             ctypes.string_at(ctypes.addressof(params), ctypes.sizeof(params))
         )
         self._dispatch(fd, command, buf)
-        ctypes.memmove(ctypes.addressof(params), buf, ctypes.sizeof(params))
+        ctypes.memmove(ctypes.addressof(params), bytes(buf), ctypes.sizeof(params))
         if trace is not None:
             trace.append((fd, command))
         return int(params.rmStatus)
@@ -736,12 +736,12 @@ def _open_backing_direct(path: str) -> int:
 
 
 def _is_direct_flag(flags_field: str) -> bool:
-    # O_DIRECT is 020000 octal; the .cu recorded 0140002 as the honored value.
+    # Use the platform constant; on this Linux host O_DIRECT is 040000 octal.
     try:
         value = int(flags_field, 8)
     except ValueError:
         return False
-    return bool(value & 0o20000)
+    return bool(value & os.O_DIRECT)
 
 
 def _read_fdinfo_flags(fd: int) -> str:

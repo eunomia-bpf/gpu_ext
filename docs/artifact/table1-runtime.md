@@ -4,10 +4,13 @@ Navigation for reproducing the current RTX 5090 Table 1 prefill token/s loss
 results. Companion to [reanalysis.md](reanalysis.md) (CPU-only statistics) and
 [ARTIFACT.md](../../ARTIFACT.md). It maps component ownership, build/run
 entrypoints, measured shapes, recorded revisions, and fresh-checkout gaps. This
-document itself claims no new GPU run, measurement, or experiment; its only
-build reference is the [component-only build
+document itself claims no new GPU run, measurement, or experiment; its build
+references are retained build evidence, not Table 1 measurements: the
+[component-only build
 record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/table1-component-build-20260909.jqAD9c/README.md)
-linked below, which is retained build evidence, not a Table 1 measurement.
+and the [fresh runtime build
+record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/runtime-published-build-20260909.IktLa7/README.md),
+both linked below.
 
 ## Measured quantity (do not extend)
 
@@ -28,9 +31,10 @@ linked below, which is retained build evidence, not a Table 1 measurement.
 | Reused command helpers | gpu_ext | [run_revision_rq4.py](../../workloads/llama.cpp/observability_overhead/revision-rq4/run_revision_rq4.py) supplies `private_probe` and `run_bench`; `run_arm_cell` is defined in the perf runner. The matched runner's lease/safety/verifier machinery is not used by the 06 perf cells. |
 | gpubpf tool sources | bpftime (published) | [eunomia-bpf/bpftime](https://github.com/eunomia-bpf/bpftime) `example/gpu/{kernelretsnoop,threadhist,launchlate}`; copied + patched per run (SEC rewrite, [kernelretsnoop-phase-capacity.patch](../../workloads/llama.cpp/observability_overhead/revision-rq4/kernelretsnoop-phase-capacity.patch) for kernelretsnoop, Makefile include rewrite) |
 | GPU runtime (agent, syscall-server, PTX passes, map 1503) | bpftime (published repo, local build untracked) | branch [revision/table1-host-plt-fix](https://github.com/eunomia-bpf/bpftime/tree/revision/table1-host-plt-fix); local READONLY checkout `/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt` plus **untracked** build tree `build-table1-575-warp` |
+| Fresh runtime build entrypoint | gpu_ext | [build_table1_runtime.sh](../../scripts/artifact/build_table1_runtime.sh) (first fresh build completed 2026-09-09 with exit 0; runtime execution remains untested; see "Fresh runtime build") |
 | NVBit arm | gpu_ext adapters + NVBit 1.8 core | adapter [nvbit_adapters/observability](../../workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/README.md) (tracked); NVBit 1.8 x86_64 release under `revision-rq4/deps/nvbit_release_x86_64` (gitignored; obtain the official release separately) |
 | onevalue GPU-array candidate | gpu_ext | [onevalue-array-candidate](../../workloads/llama.cpp/observability_overhead/revision-rq4/onevalue-array-candidate/README.md) @ `99b66423` (record `7911b79a`); built into a temporary staging dir |
-| llama.cpp binary + model | submodule + local build | `workloads/llama.cpp/llama.cpp` (eunomia-bpf fork; run-pinned commit not recorded); `build-ptx-1b/` tree and `models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf` (668 MB) not in git |
+| llama.cpp binary + model | submodule + local build | `workloads/llama.cpp/llama.cpp` (eunomia-bpf fork); the measured commit is recorded in every cell's nested stdout JSON (`build_commit 26836b27` / `build_number 7102`, resolving to `26836b27ae1ec9d6e94c6b56306cca75c7e86814`), see [table1-llama-source.md](table1-llama-source.md); `build-ptx-1b/` tree and `models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf` (668 MB) not in git |
 
 ## Actual runner path and build entrypoints
 
@@ -89,6 +93,72 @@ linked below, which is retained build evidence, not a Table 1 measurement.
   44 entries, `BPFTIME_SHM_MEMORY_MB=1000`; threadhist 1048576 entries,
   SHM 200; launchlate 22528 entries.
 
+## Fresh runtime build (documented procedure; first build completed)
+
+[build_table1_runtime.sh](../../scripts/artifact/build_table1_runtime.sh)
+builds the two runtime shared libraries the Table 1 gpubpf arms preload into a
+brand-new output tree from the published source revision, with the documented
+runtime configuration. It writes only under its output directory, refuses an
+existing nonempty one, never touches the recorded checkout
+(`bpftime-table1-hostfix-plt`) or the measured build tree
+(`build-table1-575-warp`), and deletes nothing. From the repo root, replacing
+the quoted placeholders:
+
+```sh
+bash scripts/artifact/build_table1_runtime.sh \
+    --output-dir "FRESH_BUILD_OUTPUT" \
+    --source-rev "eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7" \
+    --cuda-home "/usr/local/cuda-12.9" \
+    --llvm-cmake-dir "/usr/lib/llvm-15/cmake" \
+    --jobs "2"
+```
+
+(`--source-rev`, `--cuda-home`, `--llvm-cmake-dir`, and the compiler defaults
+are the recorded values; relative paths are accepted and resolved to
+absolute. `--bpftime-url` defaults to the public `eunomia-bpf/bpftime`
+repository.)
+
+- Source: `revision/table1-host-plt-fix` at the explicit revision above
+  (branch tip verified 2026-09-09 via `git ls-remote`; not proven identical to
+  the untracked tree that produced the measured build). The script clones a
+  fresh checkout and detaches at that revision.
+- Submodules: `git submodule update --init --recursive` checks out the
+  gitlinks recorded in that revision — including the nested uBPF dependency
+  `third_party/ubpf` @ `39872ad4` and the libbpf nested in
+  `third_party/bpftool` @ `3f077472` (the same pins
+  [preparation.json](../../workloads/llama.cpp/observability_overhead/revision-rq4/runtime-575/preparation.json)
+  recorded for the measured preparation) — plus `vm/llvm-jit` @ `f66cafa` and
+  the remaining gitlinks. The resulting commit IDs are recorded in the log
+  and report; they are not gated.
+- Configuration (from the recorded
+  `build-table1-575-warp/CMakeCache.txt`): `CMAKE_BUILD_TYPE=Debug`,
+  `BPFTIME_ENABLE_CUDA_ATTACH=ON` + `BPFTIME_CUDA_ROOT`,
+  `BPFTIME_LLVM_JIT=ON`, `BPFTIME_UBPF_JIT=ON`, `ENABLE_EBPF_VERIFIER=ON`,
+  `LLVM_DIR=/usr/lib/llvm-15/cmake` (LLVM 15), compilers `/usr/bin/cc` +
+  `/usr/bin/c++` (GCC 13 host). The build report records resolved paths;
+  this does not assert identity with every historical cache entry.
+- Targets: only `bpftime-agent` and `bpftime-syscall-server` — the two
+  libraries Table 1 preloads, together with their build dependencies.
+- Outputs: `<out>/bpftime-source/`, `<out>/build/` (artifacts at in-tree
+  `runtime/agent/libbpftime-agent.so` and
+  `runtime/syscall-server/libbpftime-syscall-server.so` — the layout
+  `run_table1_perf.py --bpftime-build-dir` expects), `<out>/build.log`
+  (every command and its output), and `<out>/build-report.json` (checked-out
+  commit IDs, configuration, artifact paths and sizes; emitted with `jq`, no
+  file hashes).
+- Host prerequisites: `git`, `cmake`, `jq`, CUDA 12.9, an LLVM 15 CMake
+  config, and the package set from the published `installation.md` in the
+  bpftime repo (boost, libelf, zlib, yaml-cpp, clang, pkg-config, GCC ≥ 12).
+  Command/path checks report missing prerequisites; additional dependency
+  errors surface in the configure/build log.
+- Status: **build completed**, 2026-09-09, 11:50:45–11:53:47 PDT, exit zero.
+  Agent and syscall-server sizes are 277,369,912 and 272,480,568 bytes.
+  The fresh source checkout stayed clean. The
+  [successful run record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/runtime-published-build-20260909.IktLa7/README.md)
+  retains the script, command, logs and build report. Runtime execution
+  with these new libraries remains untested; no historical measurement
+  was repeated or replaced.
+
 ## User-configurable paths and knobs
 
 `run_table1_perf.py` flags; defaults are stale host paths that the recorded
@@ -131,8 +201,8 @@ entrypoint above), and `--nvbit-root` (NVBit release root override; default
 ## Recorded source revisions
 
 - gpu_ext: onevalue candidate `99b66423` (build/measurement record),
-  five-pair record `7911b79a`. The 06 `cells.json` embeds no revision; it
-  records absolute launch paths instead.
+  five-pair record `7911b79a`. The 06 `cells.json` embeds no gpu_ext source
+  revision; it records absolute launch paths and the llama build version.
 - bpftime: the branch tip was verified 2026-09-09 by `git ls-remote` of the
   public repo as `eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7`. That is the
   current branch HEAD, **not** evidence that the historically measured build
@@ -142,8 +212,11 @@ entrypoint above), and `--nvbit-root` (NVBit release root override; default
   on base `d6316fa`) predate the later warp-coalesced / PLT-attach /
   array-related commits on the branch and do not fully describe the
   measured tree. The current local `vm/llvm-jit` revision is `f66cafa`.
-- llama.cpp: eunomia-bpf fork submodule; the commit behind `build-ptx-1b`
-  is **not recorded** in the campaign records (gap).
+- llama.cpp: all 70 original and 20 GPU-array benchmark records report
+  `build_commit=26836b27`, `build_number=7102` in nested stdout JSON;
+  the full source revision is `26836b27ae1ec9d6e94c6b56306cca75c7e86814`.
+  See the [source-version inventory](table1-llama-source.md). This identifies
+  the reported Git version, not every build flag or uncommitted edit.
 - NVBit: official 1.8 x86_64 release; no revision recorded beyond the name.
 
 ## CPU figure reproduction (working) versus full runtime
@@ -166,20 +239,18 @@ entrypoint above), and `--nvbit-root` (NVBit release root override; default
 
 ## Fresh-checkout gaps (established)
 
-1. **No fresh build/runtime procedure yet** (top remaining gap): the
-   bpftime source is public (branch above), but the measured runtime is the
-   untracked local tree `build-table1-575-warp`. Reproducing it needs a
-   fresh build whose exact procedure is only partially recorded (CMake
-   flags from its `CMakeCache.txt`, LLVM 15, nested uBPF dependency pin —
-   check [preparation.json](../../workloads/llama.cpp/observability_overhead/revision-rq4/runtime-575/preparation.json)
-   before building) plus first bring-up on a fresh host. The gap is a
-   documented, verified build/run procedure, not missing public source.
+1. **Fresh runtime execution remains open**: the public-source bpftime
+   library build now succeeds using the procedure above. Installation on
+   a fresh OS and probe/benchmark execution with those newly built libraries
+   have not been established. The historical measured runtime remains a
+   separate untracked build; a new successful build does not rewrite its history.
 2. **NVBit core not vendored here**: `revision-rq4/deps/nvbit_release_x86_64`
    is gitignored; obtain the official NVBit 1.8 x86_64 release separately.
 3. **Workload binary + model not published**: `build-ptx-1b/` (cmake flags
    in the [harness README](../../workloads/llama.cpp/observability_overhead/README.md))
-   and the 668 MB TinyLlama gguf; the llama.cpp submodule commit actually
-   used is not recorded.
+   and the 668 MB TinyLlama gguf remain regenerable/downloaded inputs outside
+   Git. The reported llama.cpp version is now recovered; its fresh build
+   and model-preparation procedure are separate work, not a source-version gap.
 4. **Ephemeral staging paths**: the runner worktree
    `/home/yunwei37/workspace/gpu/gpu_ext-table1-runner` (06 cwd; partial log
    mirror under `retained-runner-worktree-20260907/`) and
@@ -195,5 +266,6 @@ entrypoint above), and `--nvbit-root` (NVBit release root override; default
 
 - [06 campaign](../../workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-06/README.md) (`cells.json`, `summary.json`, per-cell `probe-execution.json`)
 - [component-only build record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/table1-component-build-20260909.jqAD9c/README.md) (`build.sh`, per-component build logs, `prepared-tools.json`, runner source captures)
+- [fresh runtime build record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/runtime-published-build-20260909.IktLa7/README.md) (public-source checkout, two runtime libraries, commands and logs)
 - [onevalue campaign](../../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md) (`cells.json`, `summary.json`, per-cell `probe.log`/`agent.log`)
 - [onevalue build/measurement record](../../workloads/llama.cpp/observability_overhead/revision-rq4/onevalue-array-candidate/build-and-measurement.md), [runtime facts](../../workloads/llama.cpp/observability_overhead/revision-rq4/device-array-runtime-notes.md), [NVBit adapters](../../workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/README.md), [runtime-575 overlays](../../workloads/llama.cpp/observability_overhead/revision-rq4/runtime-575/README.md), [harness README](../../workloads/llama.cpp/observability_overhead/README.md)

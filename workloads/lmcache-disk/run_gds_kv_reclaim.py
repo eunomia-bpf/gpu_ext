@@ -571,12 +571,15 @@ def run_cell(arm: str, block: int, position: int, run_dir: Path, port: int,
                                 for spec in specs},
         "warm_order": list(warm_order),
         "adapter_diagnostics_path": None,
+        "disk_uvm_enabled": disk_uvm,
+        "disk_uvm_diagnostics_path": None,
         "cold_output_tokens": ops.OUTPUT_TOKENS,
         "prompt_count": len(prefixes),
         "started_ns": time.time_ns(), "ready": False, "ready_error": None,
         "requests": [], "barriers": [], "warm_phase": None,
         "cache_footprint": None, "kv_pool_log": None,
         "preemption_log": None, "adapter_diagnostics": None,
+        "disk_uvm_diagnostics": None,
         "cleanup_errors": [], "server_returncode": None, "error": None,
     }
     log_path = run_dir / "server.log"
@@ -585,9 +588,14 @@ def run_cell(arm: str, block: int, position: int, run_dir: Path, port: int,
     diag_path = run_dir / DIAG_NAME
     if arm != "stock":
         record["adapter_diagnostics_path"] = str(diag_path)
+    disk_uvm_diag_path = run_dir / DISK_UVM_DIAG_NAME
+    if disk_uvm:
+        record["disk_uvm_diagnostics_path"] = str(disk_uvm_diag_path)
     record["environment"] = cell_server_environment(
         arm, cache_dir, expected_driver, gds_buffer_size_mib,
-        recompute_ns_per_token, record["adapter_diagnostics_path"])
+        recompute_ns_per_token, record["adapter_diagnostics_path"],
+        disk_uvm=disk_uvm, disk_uvm_fault_lib=disk_uvm_fault_lib,
+        disk_uvm_diag_out=record["disk_uvm_diagnostics_path"])
     proc = None
     log_file = None
     stopped = False
@@ -598,7 +606,9 @@ def run_cell(arm: str, block: int, position: int, run_dir: Path, port: int,
                          **_options: Any) -> dict[str, str]:
         return cell_server_environment(
             arm, cache_dir_arg, expected_driver, gds_buffer_size_mib,
-            recompute_ns_per_token, record["adapter_diagnostics_path"])
+            recompute_ns_per_token, record["adapter_diagnostics_path"],
+            disk_uvm=disk_uvm, disk_uvm_fault_lib=disk_uvm_fault_lib,
+            disk_uvm_diag_out=record["disk_uvm_diagnostics_path"])
 
     ops.server_environment = cell_environment
     try:
@@ -1140,6 +1150,8 @@ def run_campaign(args: argparse.Namespace) -> int:
             "gds_buffer_size_mib": args.gds_buffer_size_mib,
             "kv_cache_memory_bytes": args.kv_cache_memory_bytes,
             "gds_policy_mode": GDS_POLICY_MODE,
+            "disk_uvm_enabled": args.disk_uvm,
+            "disk_uvm_fault_lib": args.disk_uvm_fault_lib,
             "max_num_seqs": MAX_NUM_SEQS,
             "warm_output_tokens_bound": args.warm_output_tokens,
             "warm_concurrency": args.warm_concurrency,
@@ -1284,7 +1296,9 @@ def run_campaign(args: argparse.Namespace) -> int:
                             warm_output_tokens=args.warm_output_tokens,
                             warm_stagger_ms=args.warm_stagger_ms,
                             warm_concurrency=args.warm_concurrency,
-                            recompute_ns_per_token=price)
+                            recompute_ns_per_token=price,
+                            disk_uvm=args.disk_uvm,
+                            disk_uvm_fault_lib=args.disk_uvm_fault_lib)
                     except Exception as error:  # noqa: BLE001 - preserved
                         record = {
                             "schema": 1, "kind": KIND, "arm": arm,
@@ -1334,6 +1348,8 @@ def dry_run_plan(args: argparse.Namespace) -> dict[str, Any]:
     specs = warm_specs(prefixes)
     return {
         "dry_run": True, "kind": KIND,
+        "disk_uvm_enabled": args.disk_uvm,
+        "disk_uvm_fault_lib": args.disk_uvm_fault_lib,
         "metric": ("warm burst TTFT/E2E/output rate and actual generated "
                    "token counts per arm, plus registry-observed disk read "
                    "stats and reclaim decisions from adapter exit "
@@ -1434,6 +1450,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                               "available (resume), otherwise "
                               "kv_reclaim_calibration.run_calibration runs "
                               "into <root>/calibration"))
+    parser.add_argument("--disk-uvm", action="store_true",
+                        help="enable experimental disk/UVM restore in every arm")
+    parser.add_argument("--disk-uvm-fault-lib",
+                        help="path to the built disk/UVM CUDA fault helper")
     parser.add_argument("--dry-run", action="store_true",
                         help="print the fixed plan without touching GPU or output state")
     args = parser.parse_args(argv)

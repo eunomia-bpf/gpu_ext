@@ -1,5 +1,31 @@
 # Original host/device implementation prompts
 
+## Qwen Next terminal gateway failure and same-session fallback — 2026-09-09 PDT
+
+The Next attempt described below completed its automatic retries without
+producing a model response or scoped code change. The assistant record
+ended with `APIError`, HTTP status 524, response date
+`2026-09-09 08:11:12 UTC`; the scoped session status then omitted this
+session. Root did not cancel a live or retrying request.
+
+Read-only checks found that the gateway's authenticated model list still
+advertises Next. Its model routing names the cluster service
+`qwen38-flash-next.models.svc.cluster.local:8000`, resolved through cluster
+DNS to `10.43.200.169`. Direct model-list requests return Unauthorized,
+including with the configured gateway credential; backend authorization
+is not available in the returned model configuration. These observations
+do not establish that the model itself is down or that inference works.
+No credentials or response-body identifiers are recorded here.
+
+Root resumed **the same** `ses_f7d8b1dbeffeMN1yhvQzVm7VsS` through the
+working `spark-direct-qwen27/qwen3.8-27b-nvfp4` provider. The request returns
+204, the new assistant names that provider/model, and scoped status is
+busy. The other Qwen 27B LMCache and GLM native sessions remain running;
+there are still only three local sessions, with no fourth or new worktree.
+Three distinct models were attempted, but the current working fallback has
+two Qwen 27B sessions. No new XSched result is attributed to the failed Next
+attempt; it resumes the existing unfinished tool-actuator task.
+
 ## Three distinct local models resumed — 2026-09-09 PDT
 
 The tool-actuator session `ses_f7d8b1dbeffeMN1yhvQzVm7VsS` naturally ended

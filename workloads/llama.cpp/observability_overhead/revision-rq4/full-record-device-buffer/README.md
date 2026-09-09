@@ -53,7 +53,11 @@ are untouched.
 For the SoA build, within each record index k the ten fields become ten
 contiguous field planes of 16384 u64 thread slots: `plane[k * 16384 +
 slot]`. Simultaneous appends by adjacent lanes then write 8 bytes apart
-instead of 80 bytes apart. The BPF writer and the host collector select
+instead of 80 bytes apart. That is storage-order adjacency: whether the
+physical warp lanes of a given launch geometry map to adjacent slots
+depends on that geometry's coordinate mapping (see the opt-in
+warp-contiguous storage index section below). The BPF writer and the host
+collector select
 the layout from the same `FRDB_SOA_LAYOUT` compile flag through the shared
 `full_record_device_buffer_value.h`, so both sides always match.
 
@@ -115,6 +119,60 @@ the copied `full-record-device-buffer-aosoa` binary (renamed
 `kernelretsnoop`), then run it from that directory. The SoA arm reuses
 the frozen `raw/full-record-soa-20260908.HWfuRS/kernelretsnoop` binary.
 
+## Opt-in warp-contiguous storage index (soa-warp) (default OFF)
+
+`make LAYOUT=soa-warp` builds a field-major SoA variant whose BPF writer
+maps threads to storage slots with the standard block-major/thread-major
+order instead of the default row-major order. It is opt-in and off by
+default; the default build and `LAYOUT=soa` keep the measured record-major
+AoS and field-major SoA variants, and the measured results above are
+untouched.
+
+The bank value is byte-identical to `LAYOUT=soa` (same 335675408 bytes,
+same ten field planes, counters, and per-slot capacity); the only change
+is the writer's storage-slot bijection:
+
+- `block_linear = ((block_z * grid_y) + block_y) * grid_x + block_x`
+- `lane_linear = ((thread_z * block_dim_y) + thread_y) * block_dim_x + thread_x`
+- storage base = `block_linear * (block_dim_x * block_dim_y * block_dim_z) + lane_linear`
+
+For the measured pp512 rope geometry (grid 2048x1x1, block 1x256x1) this
+is `block_x * 256 + thread_y`, so adjacent physical warp lanes (which
+differ in `thread_y`) map to adjacent storage slots and the SoA field
+stores are 8 bytes apart. Under the default row-major mapping, which is
+`thread_x`-fastest, one warp's lanes land 2048 slots apart (16 KiB stride
+within a bank, spread across four banks). Fixed-geometry scope: this
+bijection exactly covers the pp512 rope launch (2048 x 256 = 524288
+threads = the slot capacity). Exceeding the slot or event capacity is
+reported through the unchanged out-of-range and overflow counters;
+other in-capacity geometries are not rejected, but are not evaluated here.
+
+The BPF writer and the host collector select the variant from the same
+`FRDB_SOA_LAYOUT` + `FRDB_WARP_CONTIGUOUS_INDEX` compile flags through the
+shared `full_record_device_buffer_value.h`, so both sides always match;
+the collector is unchanged and prints `Full-record layout: field-major SoA
+(warp-contiguous index)`.
+
+Unchanged: all ten u64 fields and per-thread timestamps (80 bytes/event),
+the per-slot counters, 256 records per slot, 32 banks x 16384 slots, the
+single host drain buffer, and the post-client 32 whole-value drains. No
+sampling, deduplication, or leader-only filtering is introduced.
+
+The build goes to a separate object tree (`.output-soa-warp/`) and a
+distinct binary (`full-record-device-buffer-soa-warp`), so toggling
+`LAYOUT` cannot reuse objects from the other layouts. Measurements live in
+their own raw directories and results do not alter the measured numbers
+above. The [completed five-block comparison](../results-full-record-soa-warp-20260909.md)
+reports a 20.565% median paired throughput improvement over frozen SoA;
+baseline-relative loss falls from 27.641% to 12.862%. The full-record and
+post-client-drain measurement scope is unchanged.
+
+The five-block comparison reuses the existing runner pattern in
+`paired-soa-warp.py`: copy it into the new campaign raw directory next to
+the copied `full-record-device-buffer-soa-warp` binary (renamed
+`kernelretsnoop`), then run it from that directory. The SoA arm reuses
+the frozen `raw/full-record-soa-20260908.HWfuRS/kernelretsnoop` binary.
+
 ## Coordinate mapping
 
 The BPF program reuses the existing per-thread linear coordinate
@@ -122,7 +180,10 @@ The BPF program reuses the existing per-thread linear coordinate
 computed in u64 before any bank/slot indexing. Bank = `thread_id / 16384`,
 slot = `thread_id % 16384`. Out-of-range coordinates (`thread_id >= 524288`)
 and per-slot overflow are reported in their own counters, not dropped
-silently; the supported geometry is not generalized.
+silently; the supported geometry is not generalized. The opt-in
+`LAYOUT=soa-warp` build replaces only this coordinate mapping with the
+block-major/thread-major order described in its section; everything
+downstream (bank/slot split, counters, capacity, drain) is unchanged.
 
 ## Collector
 
@@ -163,10 +224,14 @@ counts are reported without gating.
 - `full-record-device-buffer.c` — host collector (32 drains, one reused
   buffer).
 - `Makefile` — builds `full-record-device-buffer` (BPF object, skeleton,
-  collector) and the opt-in `LAYOUT=soa` / `LAYOUT=aosoa` variants.
+  collector) and the opt-in `LAYOUT=soa` / `LAYOUT=aosoa` /
+  `LAYOUT=soa-warp` variants.
 - `paired-aosoa.py` — five-block AoSoA/SoA/baseline paired runner template
   for the new grouped-SoA comparison (copied into the campaign raw
   directory at run time).
+- `paired-soa-warp.py` — five-block soa-warp/SoA/baseline paired runner
+  template for the warp-contiguous-index comparison (copied into the
+  campaign raw directory at run time).
 - `.gitignore` — ignores the local `.output*` build trees and binaries.
 
 ## Build

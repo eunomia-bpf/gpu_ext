@@ -1,4 +1,12 @@
-# Full-record warp-contiguous SoA: running
+# Full-record warp-contiguous SoA: complete
+
+All five paired blocks and 15 clients finish with exit zero, as do the ten
+collectors. Median paired throughput improvement versus the old SoA is
+20.565%; paired loss versus baseline is 12.862% (old SoA: 27.641%). All
+23068672 complete 80-byte records are reported by each collector.
+The post-client whole-arena drain remains outside prefill timing.
+See [the complete report](../../results-full-record-soa-warp-20260909.md)
+and [analysis.json](analysis.json). The original start record follows.
 
 Root built the local Qwen candidate successfully in the isolated directory
 /home/yunwei37/workspace/gpu/bpftime-auto-warp/example/gpu/full-record-soa-warp-20260909.3mlEOo.
@@ -26,4 +34,3 @@ No old measurement is overwritten or resumed under a changed binary.
 The final full-arena drain stays outside client prefill timing and is
 reported separately. No clock comparison or new performance gate is added.
 No result is claimed before the new measurements finish; no manuscript edit.
-

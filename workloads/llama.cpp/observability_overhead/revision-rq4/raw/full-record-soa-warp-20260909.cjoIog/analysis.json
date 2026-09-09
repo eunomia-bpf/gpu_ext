@@ -1,0 +1,335 @@
+{
+  "formulas": {
+    "warp_vs_soa_pct": "100*(soa-warp/soa-1), within block",
+    "warp_loss_pct": "100*(1-soa-warp/baseline), within block",
+    "soa_loss_pct": "100*(1-soa/baseline), within block"
+  },
+  "rows": [
+    {
+      "block": 1,
+      "arm": "soa-warp",
+      "cell_root": "pair-01-soa-warp",
+      "throughput_tok_s": 33135.29172,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA (warp-contiguous index)",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1501738737,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-01-soa-warp/auto_warp_off_run_01/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 1,
+      "arm": "soa",
+      "cell_root": "pair-01-soa",
+      "throughput_tok_s": 27726.515614,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1485451771,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-01-soa/auto_warp_off_run_01/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 1,
+      "arm": "baseline",
+      "cell_root": "pair-01-baseline",
+      "throughput_tok_s": 38336.733847,
+      "returncode": 0
+    },
+    {
+      "block": 2,
+      "arm": "soa",
+      "cell_root": "pair-02-soa",
+      "throughput_tok_s": 27791.847099,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1483572499,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-02-soa/auto_warp_off_run_02/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 2,
+      "arm": "baseline",
+      "cell_root": "pair-02-baseline",
+      "throughput_tok_s": 38308.302374,
+      "returncode": 0
+    },
+    {
+      "block": 2,
+      "arm": "soa-warp",
+      "cell_root": "pair-02-soa-warp",
+      "throughput_tok_s": 33381.157927,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA (warp-contiguous index)",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1504324059,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-02-soa-warp/auto_warp_off_run_02/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 3,
+      "arm": "baseline",
+      "cell_root": "pair-03-baseline",
+      "throughput_tok_s": 38359.697384,
+      "returncode": 0
+    },
+    {
+      "block": 3,
+      "arm": "soa-warp",
+      "cell_root": "pair-03-soa-warp",
+      "throughput_tok_s": 33464.874692,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA (warp-contiguous index)",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1486602291,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-03-soa-warp/auto_warp_off_run_03/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 3,
+      "arm": "soa",
+      "cell_root": "pair-03-soa",
+      "throughput_tok_s": 27756.630514,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1512119836,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-03-soa/auto_warp_off_run_03/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 4,
+      "arm": "soa-warp",
+      "cell_root": "pair-04-soa-warp",
+      "throughput_tok_s": 33339.488984,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA (warp-contiguous index)",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1507644190,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-04-soa-warp/auto_warp_off_run_04/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 4,
+      "arm": "soa",
+      "cell_root": "pair-04-soa",
+      "throughput_tok_s": 27646.791503,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1509295054,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-04-soa/auto_warp_off_run_04/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 4,
+      "arm": "baseline",
+      "cell_root": "pair-04-baseline",
+      "throughput_tok_s": 38440.663495,
+      "returncode": 0
+    },
+    {
+      "block": 5,
+      "arm": "soa",
+      "cell_root": "pair-05-soa",
+      "throughput_tok_s": 27646.85719,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1476015380,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-05-soa/auto_warp_off_run_05/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    },
+    {
+      "block": 5,
+      "arm": "baseline",
+      "cell_root": "pair-05-baseline",
+      "throughput_tok_s": 38093.72455,
+      "returncode": 0
+    },
+    {
+      "block": 5,
+      "arm": "soa-warp",
+      "cell_root": "pair-05-soa-warp",
+      "throughput_tok_s": 33493.785137,
+      "returncode": 0,
+      "full_record": {
+        "record_bytes": 80,
+        "layout": "field-major SoA (warp-contiguous index)",
+        "drain_bytes": 10741613056,
+        "drain_time_ns": 1495062301,
+        "committed_records": 23068672,
+        "active_slots": 524288,
+        "overflow_records": 0,
+        "out-of-range_threads": 0,
+        "nonzero_timestamps": 23068672
+      },
+      "probe_log": "pair-05-soa-warp/auto_warp_off_run_05/probe.log",
+      "loader_returncode": 0,
+      "shutdown_wait": "normal_exit_no_deadline"
+    }
+  ],
+  "blocks": [
+    {
+      "block": 1,
+      "soa-warp": 33135.29172,
+      "soa": 27726.515614,
+      "baseline": 38336.733847,
+      "warp_vs_soa_pct": 19.507594034891774,
+      "warp_loss_pct": 13.56777587720096,
+      "soa_loss_pct": 27.67637502804714
+    },
+    {
+      "block": 2,
+      "soa": 27791.847099,
+      "baseline": 38308.302374,
+      "soa-warp": 33381.157927,
+      "warp_vs_soa_pct": 20.11133268001146,
+      "warp_loss_pct": 12.861818826887173,
+      "soa_loss_pct": 27.452156904080304
+    },
+    {
+      "block": 3,
+      "baseline": 38359.697384,
+      "soa-warp": 33464.874692,
+      "soa": 27756.630514,
+      "warp_vs_soa_pct": 20.565335461452538,
+      "warp_loss_pct": 12.760326660036824,
+      "soa_loss_pct": 27.641164016123298
+    },
+    {
+      "block": 4,
+      "soa-warp": 33339.488984,
+      "soa": 27646.791503,
+      "baseline": 38440.663495,
+      "warp_vs_soa_pct": 20.590807003345326,
+      "warp_loss_pct": 13.270256148579506,
+      "soa_loss_pct": 28.079307198753124
+    },
+    {
+      "block": 5,
+      "soa": 27646.85719,
+      "baseline": 38093.72455,
+      "soa-warp": 33493.785137,
+      "warp_vs_soa_pct": 21.148617026585082,
+      "warp_loss_pct": 12.075320718409511,
+      "soa_loss_pct": 27.424116395570465
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "median": 38336.733847,
+      "min": 38093.72455,
+      "max": 38440.663495
+    },
+    "soa": {
+      "median": 27726.515614,
+      "min": 27646.791503,
+      "max": 27791.847099,
+      "drain_ms_median": 1485.451771
+    },
+    "soa-warp": {
+      "median": 33381.157927,
+      "min": 33135.29172,
+      "max": 33493.785137,
+      "drain_ms_median": 1501.738737
+    },
+    "warp_vs_soa_pct": {
+      "median": 20.565335461452538,
+      "min": 19.507594034891774,
+      "max": 21.148617026585082
+    },
+    "warp_loss_pct": {
+      "median": 12.861818826887173,
+      "min": 12.075320718409511,
+      "max": 13.56777587720096
+    },
+    "soa_loss_pct": {
+      "median": 27.641164016123298,
+      "min": 27.424116395570465,
+      "max": 28.079307198753124
+    }
+  }
+}

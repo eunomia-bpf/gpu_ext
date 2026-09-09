@@ -1090,10 +1090,11 @@ def bootstrap_from_env(
         )
 
     # Surface the transport counters when a diagnostics path is configured, so a
-    # silent stock fallback is never mistaken for working UVM.  The primary dump
-    # is the GdsBackend ``close`` hook (see install_backend); atexit is a
-    # fallback for a process whose backend close is never reached.
+    # silent stock fallback is never mistaken for working UVM.  The reliable
+    # dump is the EngineCore.shutdown seam (the actual worker exit); the
+    # GdsBackend close hook and atexit are secondary fallbacks.
     if DIAG_OUT_ENV in os.environ:
+        _install_engine_shutdown_hook()
         atexit.register(_dump_process_counters)
 
     from lmcache.v1.storage_backend.gds_backend import GdsBackend
@@ -1172,6 +1173,35 @@ def _dump_process_counters() -> None:
         counters.get("not_aligned", 0), counters.get("error", 0),
         counters.get("retained_total", 0),
     )
+
+
+def _install_engine_shutdown_hook() -> None:
+    """Wrap vLLM's base ``EngineCore.shutdown`` so the process counters are
+    dumped at the actual engine-exit point.
+
+    ``GdsBackend.close`` and stdlib ``atexit`` do not fire in the multiprocessing
+    EngineCore worker (the first runs observed zero per-pid dumps from that
+    worker), so the reliable seam is the teardown that ``run_engine_core``'s
+    ``finally`` always runs.  Wrapping the base ``EngineCore.shutdown`` covers
+    every variant: ``EngineCoreProc``/``EngineCoreActor`` inherit it, and the DP
+    variants call ``super().shutdown()``.  The dump runs before the original
+    shutdown; it is a single per-pid write with no hot-path cost, no polling,
+    and no extra signal handler.  Idempotent.
+    """
+    try:
+        from vllm.v1.engine.core import EngineCore
+    except Exception:
+        return
+    if getattr(EngineCore, "_disk_uvm_shutdown_hook", False):
+        return
+    original_shutdown = EngineCore.shutdown
+
+    def shutdown_with_dump(self: Any, *args: Any, **kwargs: Any) -> None:
+        _dump_process_counters()
+        return original_shutdown(self, *args, **kwargs)
+
+    EngineCore.shutdown = shutdown_with_dump
+    EngineCore._disk_uvm_shutdown_hook = True
 
 
 abi_layout_self_check()

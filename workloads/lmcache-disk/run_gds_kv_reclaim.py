@@ -504,6 +504,56 @@ def collect_adapter_diagnostics(record: dict[str, Any]) -> None:
     record["adapter_diagnostics"] = entry
 
 
+def collect_disk_uvm_diagnostics(record: dict[str, Any]) -> None:
+    """Collect the disk-UVM transport counters; report absence, never hide it.
+
+    Mirrors :func:`collect_adapter_diagnostics` for the orthogonal disk-UVM
+    opt-in.  The backing module dumps per process to
+    ``<LMCACHE_DISK_UVM_DIAG_OUT>.<pid>`` at GdsBackend close (and, as a
+    fallback, atexit); only a process that prepared at least one backing writes
+    a file, so the store-owning EngineCore's counters are not masked by an
+    auxiliary empty dump.  A missing or unreadable dump is reported in
+    ``disk_uvm_diagnostics`` and never discards the cell's performance.
+    """
+    path_value = record.get("disk_uvm_diagnostics_path")
+    entry: dict[str, Any] = {
+        "expected": bool(record.get("disk_uvm_enabled")),
+        "path": path_value,
+        "arrived": False,
+        "error": None,
+        "files": [],
+        "payload": None,
+    }
+    if path_value:
+        # Read the per-pid dumps once; the collector runs in the finally after
+        # the server process has exited, so no polling/wait is needed for an
+        # absent counter file.
+        base = Path(path_value)
+        candidates = sorted(base.parent.glob(f"{base.name}.*"),
+                            key=lambda p: p.stat().st_mtime)
+        if base.is_file():
+            candidates = [base] + candidates
+
+        for f in candidates:
+            rec: dict[str, Any] = {"path": str(f), "pid": None, "counters": None}
+            try:
+                doc = json.loads(f.read_text())
+                rec["pid"] = doc.get("pid")
+                rec["counters"] = doc.get("counters")
+            except Exception as error:  # noqa: BLE001 - reported, not hidden
+                rec["error"] = f"parse failed: {type(error).__name__}: {error}"
+            entry["files"].append(rec)
+
+        # Prefer a dump that prepared at least one backing; else the first file.
+        with_store = [r for r in entry["files"]
+                      if (r.get("counters") or {}).get("retained_total", 0) > 0]
+        chosen = with_store or entry["files"]
+        if chosen:
+            entry["arrived"] = True
+            entry["payload"] = chosen[0].get("counters")
+    record["disk_uvm_diagnostics"] = entry
+
+
 def adapter_policy_summary(record: dict[str, Any]) -> dict[str, Any]:
     """Small per-cell numeric summary inside cell metrics; raw payload stays
     whole in the record.  A content summary, not an integrity digest: no
@@ -757,6 +807,7 @@ def run_cell(arm: str, block: int, position: int, run_dir: Path, port: int,
         record["kv_pool_log"] = scan_kv_pool_log(log)
         record["preemption_log"] = scan_preemption_log(log)
         collect_adapter_diagnostics(record)
+        collect_disk_uvm_diagnostics(record)
         try:
             files = ops.disk_files(cache_dir)
             record["cache_footprint"] = {

@@ -132,7 +132,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
     }
     if (is_exit) return;
 
-    nvbit_set_at_launch(ctx, f, published_ctx, launch_stream(cbid, params));
+    nvbit_set_at_launch(ctx, f, published_ctx);
     const uint64_t consumed = published_ctx;
     /* one-shot consumption: a later launch that bypasses the XSched queue
      * must never act on a stale context block */

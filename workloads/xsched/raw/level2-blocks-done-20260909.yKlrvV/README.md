@@ -62,3 +62,16 @@ While root gathered this observation, its free execution slot was assigned
 to the already queued full-record grouped-SoA implementation. LMCache and
 native-blob XSched development remain live: three active local sessions,
 not four. No silent session was cancelled and no manuscript was edited.
+
+## Shared-index publication incident
+
+Root intended a scoped XSched commit but used plain `git commit` after
+staging these paths. The shared index also contained other tasks' staged
+changes; consequently published commit `57653814` contains 186 paths,
+including multi-tenant-memory records and unfinished Hummingbird, LMCache
+runner, and native-XSched work. Those additional files were not validated
+by this diagnostic and are not evidence of completed new experiments.
+No manuscript content or `docs/paper` gitlink was included. Existing work
+and published history are preserved, rather than resetting other owners'
+changes. Subsequent root commits use `git commit --only` with an explicit
+path list so unrelated staged changes remain outside the commit.

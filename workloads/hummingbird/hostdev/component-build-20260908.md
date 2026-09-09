@@ -110,3 +110,48 @@ The cubin is 441616 bytes; `ptxas-native.log` in the same temporary directory
 retains assembly output. This advances the native adapter build only.
 The BPF-call replacement, integrated model loading and paired GPU
 measurements are still unfinished; no generated binary is committed.
+
+## Integrated BPF cubin and first execution attempt
+
+The local-model `patch_device_map.py` now replaces all 43 actual specialized
+call targets with `hb_device_bpf_map` and inserts the exported BPF function.
+Root executed:
+
+```sh
+python3 -B workloads/hummingbird/hostdev/patch_device_map.py \
+  --kernel /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-native.ptx \
+  --bpf /tmp/hummingbird-hostdev-build-20260908.nxilLJ/hb_map-own.ptx \
+  --output /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-bpf.ptx
+/usr/local/cuda-12.9/bin/ptxas -arch=sm_120 -O3 -v \
+  /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-bpf.ptx \
+  -o /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-bpf.cubin
+```
+
+Both exited zero; the complete BPF cubin is 439632 bytes. This is a build
+result, not a performance comparison. Initial non-root and root client
+attempts both exited 134 at `NvRmQuery` with ioctl errno 22, before device
+execution. Raw logs are in `raw-first-real-20260908.08lUpN/`.
+The loaded NVIDIA core lacked `nv_gpu_sched_gsp_control_complete`, whereas
+the saved compatible core contained it. The previous lifecycle restored the
+core using `modprobe nvidia` and the custom UVM using `insmod`.
+
+Root's subsequent temporary compatible-core run successfully queried both
+owned contexts and set their timeslices. The execution and restoration log,
+not the assembly result, determines the eventual client outcome. The
+original inline implementation remains a required comparison; a callable
+native adapter alone must not be labeled the unchanged original algorithm.
+
+The compatible-core client subsequently finished successfully at 20:49:57
+PDT: 6000 foreground and 7718 background requests completed in the 60-second
+timed interval (100.0 and 128.633333 requests/s). The existing client reports
+zero maximum absolute output error for both models. It records 193330285
+host JIT decisions, 3581 split launches and 2368 output-small launches.
+These launch statistics are host-side counters, not a new device-call count
+measurement. There is **no paired overhead estimate yet**.
+
+`run-compatible-driver.sh` preserves the actual invocation and temporary
+module lifecycle. It exited zero and records `RESTORATION_OK=1`. GDS/KV
+loaders 4070246/4070247 both report `attached`; GDM and persistence services
+are active, and the GPU returned to 0% / 1 MiB. The script's explicit PIDs
+describe this invocation and must be refreshed before any future run.
+Both earlier failed startup logs are retained alongside the successful log.

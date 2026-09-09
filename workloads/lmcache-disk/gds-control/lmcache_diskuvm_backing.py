@@ -666,8 +666,10 @@ class DiskUvmBacking:
             )
             success = True
             return (True, self.backing)
-        except Exception:
+        except Exception as error:
             self.last_reason = "error"
+            _log.warning("disk-uvm prepare failed: %s: %s",
+                         type(error).__name__, error)
             return (False, None)
         finally:
             if not success:
@@ -744,7 +746,7 @@ def _is_direct_flag(flags_field: str) -> bool:
 
 def _read_fdinfo_flags(fd: int) -> str:
     try:
-        with open(f"/proc/self/fdinfo/{fd}", "re") as handle:
+        with open(f"/proc/self/fdinfo/{fd}", "r") as handle:
             for line in handle:
                 if line.startswith("flags:"):
                     return line.split(":", 1)[1].strip()

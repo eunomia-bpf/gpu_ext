@@ -1,0 +1,42 @@
+{
+  "name": "lc2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "lc",
+    "2",
+    "4",
+    "50",
+    "9511106",
+    "340",
+    "256",
+    "0",
+    "0"
+  ],
+  "returncode": -2,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"lc\",\"process_id\":2,\"streams\":4,\"tasks\":50}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 370510 @ 02:23:45.713337] using global scheduler",
+    "[XSCHED INFO @ T 370510 @ 02:23:46.421268] native-700 probe 1: resume blob VA 0x764e5c600000 size 336, syncing",
+    "[XSCHED INFO @ T 370510 @ 02:23:46.421276] native-700 probe 1: resume blob copy synced clean"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "XSCHED_SCHEDULER": "GLB",
+    "XSCHED_AUTO_XQUEUE": "ON",
+    "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+    "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+    "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+    "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+    "XSCHED_CUDA_LV2_PORT_120": "1",
+    "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+    "XG_SERVICE_ONLY": "1",
+    "XG_NATIVE_META_EXTEND": "1",
+    "XG_NATIVE_META_KPARAM": "1"
+  }
+}

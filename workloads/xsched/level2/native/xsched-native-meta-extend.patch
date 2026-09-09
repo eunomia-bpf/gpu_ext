@@ -178,7 +178,7 @@
 +/// @param max_entries capacity of the caller buffers
 +/// @param out_entries receives the registered entry count (not nullptr)
 +/// @return 1 when a registered layout exists for kernel_name, else 0
-+extern "C" int XgGetRelayOriginalParams(const char *kernel_name,
++extern "C" __attribute__((visibility("default"))) int XgGetRelayOriginalParams(const char *kernel_name,
 +                                        unsigned int *ordinals,
 +                                        unsigned int *offsets,
 +                                        unsigned int *sizes,
@@ -1384,7 +1384,7 @@
  CudaCommand::CudaCommand(preempt::XCommandProperties props)
      : HwCommand(GetCudaLv3Implementation() == kCudaLv3ImplementationTsg
                  ? props | preempt::kCommandPropertyDeactivatable : props)
-@@ -73,19 +160,38 @@
+@@ -73,19 +160,39 @@
      deep_copy_ = true;
      params_ = (void **)malloc(param_cnt_ * sizeof(void *));
  
@@ -1396,6 +1396,7 @@
 +    // sizes with this wiring).
 +    XgParamLayout layout;
 +    bool have_orig = GetXgOriginalLayout(kFuncHandle, param_cnt_, &layout);
++    if (!have_orig) GetLoadedLayout(kFuncHandle, param_cnt_, &layout);
 +    // marshal truth = original layout when registered; the alloc extent
 +    // comes from the loaded (grown) layout, which equals the original
 +    // one when no growth is registered
@@ -1433,7 +1434,7 @@
          }
      } else if (extra != nullptr) {
          // Get extra buffer and its size from extra map.
-@@ -109,18 +215,18 @@
+@@ -109,18 +216,18 @@
  
          // Set params_ to point to extra_data_.
          for (size_t i = 0; i < param_cnt_; ++i) {
@@ -1457,7 +1458,7 @@
      if (!deep_copy_) return;
      if (param_data_) free(param_data_);
      if (extra_data_) free(extra_data_);
-@@ -128,6 +234,121 @@
+@@ -128,6 +235,121 @@
      if (extra_) free(extra_);
  }
  

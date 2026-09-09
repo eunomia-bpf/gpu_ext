@@ -42,10 +42,15 @@ asked to prefer small incremental edits if that write failed again.
 The newly landed serving wrapper was also returned for two concrete API
 corrections. Installed LMCache decrements the memory object's reference
 before invoking the put-completion callback, so capture its byte count at
-submission, not after release. Place the new transport wrapper inside the
-existing native/BPF read-admission wrapper; otherwise a successful UVM
-restore bypasses the policy decision. These are implementation fixes before
-the actual serving run, not extra measurement gates.
+submission, not after release. Root then checked the admission adapter's
+actual methods and corrected its earlier ordering advice: admission wraps
+`get_blocking` / `get_non_blocking` / batched gets, not `_load_gds`.
+Keeping the transport replacement below those outer gets preserves read
+admission without rearranging them. Install the new put-completion wrapper
+after the existing admission adapter so both immediate and deferred writes
+receive its chained callback; deferred writes invoke `_original_async_save`
+directly and can bypass an inner submit wrapper. These are implementation
+fixes before the actual serving run, not extra measurement gates.
 
 All three local sessions remain allocated to these tasks; automatic
 compaction is live work. Grouped full-record layout optimization remains

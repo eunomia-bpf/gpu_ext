@@ -38,6 +38,16 @@ and must not be rerun just because an older status entry describes them as pendi
   BE workers fail output completion; both LC workers finish. The original
   tool is restored and GPU is idle. Placement alone does not fix delivery;
   there is no new Level-2 performance result.
+  The later [per-launch enable repair](../workloads/xsched/raw/level2-perlaunch-enable-20260909.bOiYh5/README.md)
+  now completes all six workers / 1200 kernels with no missing output.
+  Enabling instrumentation after setting each launch value makes device
+  context slots advance normally. The native C guardian port is runnable;
+  this does not repair the separate original cuXtra route. A
+  [five-block baseline/native/BPF comparison](../workloads/xsched/raw/level2-device-policy-pair-20260909.buBjns/README.md)
+  is running, reusing that completed native sample rather than repeating it.
+  Native/BPF arms include both host scheduling and device guardian decisions,
+  with the same NVBit actuator and retained diagnostics. Completed Level-1
+  results remain separate and unchanged.
 
 Three local OpenCode sessions continue: one Qwen 27B result-analysis task and
 two existing GLM XSched tasks. The driver and callback tasks completed

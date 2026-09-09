@@ -62,6 +62,21 @@ rerun from a fresh checkout.
 
 ## CPU-only reproduction
 
+For the supplemental LMCache physical-reclaim and XSched Level-2 campaigns,
+the following standard-library-only command reads all 30 published cell
+summaries and recomputes per-arm medians and within-block comparisons:
+
+```sh
+python3 -B scripts/artifact/reanalyze.py --campaign all
+```
+
+It also works from another working directory when called by its absolute
+script path. This was executed successfully on 2026-09-09; the numbers match
+the recorded summaries. `--campaign lm` or `--campaign xsched` selects one,
+and `--output NEW_FILE` saves the report without overwriting an existing file.
+This recomputes statistics from cell summaries, not GPU measurements or every
+per-request timestamp. Missing records are reported explicitly.
+
 Run from the repository root with Python 3 and Matplotlib available. These
 commands write only to a newly allocated output directory, never the paper:
 
@@ -124,7 +139,8 @@ to fill optional diagnostics.
 
 ## Open items
 
-- Complete portable CPU reanalysis and historic-cohort figure entrypoints.
+- Extend the portable CPU reanalysis beyond the two supplemental campaigns
+  above and complete the historic-cohort figure entrypoint.
 - Check fresh-checkout build/run instructions per workload; a successful
   recorded run is not yet proof that all local build dependencies are published.
 - Recover the original agent-study transcripts from their author; present

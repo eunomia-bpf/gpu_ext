@@ -4,6 +4,11 @@
       "stock",
       "native",
       "bpf"
+    ],
+    [
+      "native",
+      "bpf",
+      "stock"
     ]
   ],
   "calibration": {
@@ -503,6 +508,132 @@
       },
       "position": 2,
       "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-2-bpf"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 110.133402537,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 74.38251984676354,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.07263917953785502,
+        "warm_ttft_max_ms": 29959.212732,
+        "warm_ttft_median_ms": 24541.590335,
+        "warm_ttft_p95_ms": 31204.4159022
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-0-native"
+    },
+    {
+      "arm": "bpf",
+      "block": 1,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 118.705941169,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 69.01086768974068,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06739342547826238,
+        "warm_ttft_max_ms": 34412.911015,
+        "warm_ttft_median_ms": 27114.9648175,
+        "warm_ttft_p95_ms": 37036.66970585
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-1-bpf"
+    },
+    {
+      "arm": "stock",
+      "block": 1,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 109.820557589,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 74.59441273880891,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.07284610619024308,
+        "warm_ttft_max_ms": 30013.155848,
+        "warm_ttft_median_ms": 24534.191508,
+        "warm_ttft_p95_ms": 31331.39503565
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-2-stock"
     }
   ],
   "kind": "gds-kv-reclaim-575",
@@ -513,7 +644,7 @@
       "bpf"
     ],
     "attempts_per_cell": 1,
-    "blocks": 1,
+    "blocks": 2,
     "campaign_wall_clock_timeout": null,
     "cold_output_tokens": 16,
     "disk_uvm_enabled": true,
@@ -546,304 +677,456 @@
     },
     "warm_stagger_ms": 250.0
   },
+  "resume": {
+    "adopted": [
+      {
+        "arm": "stock",
+        "block": 0,
+        "position": 0,
+        "result_json": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-0-stock/result.json",
+        "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-0-stock"
+      },
+      {
+        "arm": "native",
+        "block": 0,
+        "position": 1,
+        "result_json": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-1-native/result.json",
+        "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-1-native"
+      },
+      {
+        "arm": "bpf",
+        "block": 0,
+        "position": 2,
+        "result_json": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-2-bpf/result.json",
+        "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-2-bpf"
+      }
+    ],
+    "completed_failures": [],
+    "previous_params": {
+      "arms": [
+        "stock",
+        "native",
+        "bpf"
+      ],
+      "attempts_per_cell": 1,
+      "blocks": 1,
+      "campaign_wall_clock_timeout": null,
+      "cold_output_tokens": 16,
+      "disk_uvm_enabled": true,
+      "disk_uvm_fault_lib": "/tmp/lmcache-diskuvm-serving-build-20260909.7dZdC8/libdiskuvm_fault.so",
+      "expected_driver": "575.57.08",
+      "gds_buffer_size_mib": 256,
+      "gds_policy_mode": "fifo",
+      "kv_cache_memory_bytes": 402653184,
+      "max_num_seqs": 2,
+      "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+      "port": 18080,
+      "reclaim_modes": {
+        "bpf": "bpf",
+        "native": "native",
+        "stock": null
+      },
+      "retry": false,
+      "store_barrier_timeout_s": 120.0,
+      "warm_concurrency": 4,
+      "warm_output_tokens_bound": 1024,
+      "warm_prefix_tokens": {
+        "0": 1536,
+        "1": 1024,
+        "2": 1536,
+        "3": 1024,
+        "4": 1536,
+        "5": 1024,
+        "6": 1536,
+        "7": 1024
+      },
+      "warm_stagger_ms": 250.0
+    },
+    "raw_imported_records": 0,
+    "unfinished": []
+  },
   "summary": {
-    "cells_attempted": 3,
+    "cells_attempted": 6,
     "kind": "gds-kv-reclaim-575",
     "per_arm": {
       "bpf": {
         "adapter_counters": {
           "coverage_unknown_candidates": [
+            null,
             null
           ],
           "disk_route_recompute_fallback": [
+            null,
             null
           ],
           "forced_zero_lookups": [
+            null,
             null
           ],
           "override_picks": [
+            null,
             null
           ],
           "read_pricing_missing_decisions": [
+            null,
             null
           ],
           "route_consumed_disk_prefix": [
+            null,
             null
           ],
           "route_consumed_full_recompute": [
+            null,
             null
           ],
           "seam_invocations": [
+            null,
             null
           ],
           "stock_kept": [
+            null,
             null
           ]
         },
         "backing_activated": [
+          null,
           null
         ],
         "backing_read_stats": [
+          null,
           null
         ],
-        "cells_attempted": 1,
-        "cells_measured": 1,
+        "cells_attempted": 2,
+        "cells_measured": 2,
         "decision_records": [
+          0,
           0
         ],
         "diagnostics_arrived": [
+          false,
           false
         ],
         "diagnostics_expected": [
+          true,
           true
         ],
         "errors": [
+          null,
           null
         ],
         "medians": {
-          "warm_output_tokens_per_s": 64.47741984395684,
-          "warm_requests_per_s": 0.0629662303163641,
-          "warm_ttft_median_ms": 31266.9338525
+          "warm_output_tokens_per_s": 66.74414376684877,
+          "warm_requests_per_s": 0.06517982789731325,
+          "warm_ttft_median_ms": 29190.949334999998
         },
         "per_cell_values": {
           "kv_pool_tokens": [
+            4096,
             4096
           ],
           "preemption_log_count": [
+            0,
             0
           ],
           "warm_elapsed_s": [
-            127.052230375
+            127.052230375,
+            118.705941169
           ],
           "warm_failures": [
+            0,
             0
           ],
           "warm_output_tokens": [
+            8192,
             8192
           ],
           "warm_output_tokens_per_s": [
-            64.47741984395684
+            64.47741984395684,
+            69.01086768974068
           ],
           "warm_requests": [
+            8,
             8
           ],
           "warm_requests_per_s": [
-            0.0629662303163641
+            0.0629662303163641,
+            0.06739342547826238
           ],
           "warm_ttft_max_ms": [
-            32614.487584
+            32614.487584,
+            34412.911015
           ],
           "warm_ttft_median_ms": [
-            31266.9338525
+            31266.9338525,
+            27114.9648175
           ],
           "warm_ttft_p95_ms": [
-            32907.095433049995
+            32907.095433049995,
+            37036.66970585
           ]
         },
         "reclaim_enabled": true,
         "reclaim_mode": "bpf",
         "recovery_records": [
+          0,
           0
         ],
         "server_returncodes": [
+          0,
           0
         ]
       },
       "native": {
         "adapter_counters": {
           "coverage_unknown_candidates": [
+            null,
             null
           ],
           "disk_route_recompute_fallback": [
+            null,
             null
           ],
           "forced_zero_lookups": [
+            null,
             null
           ],
           "override_picks": [
+            null,
             null
           ],
           "read_pricing_missing_decisions": [
+            null,
             null
           ],
           "route_consumed_disk_prefix": [
+            null,
             null
           ],
           "route_consumed_full_recompute": [
+            null,
             null
           ],
           "seam_invocations": [
+            null,
             null
           ],
           "stock_kept": [
+            null,
             null
           ]
         },
         "backing_activated": [
+          null,
           null
         ],
         "backing_read_stats": [
+          null,
           null
         ],
-        "cells_attempted": 1,
-        "cells_measured": 1,
+        "cells_attempted": 2,
+        "cells_measured": 2,
         "decision_records": [
+          0,
           0
         ],
         "diagnostics_arrived": [
+          false,
           false
         ],
         "diagnostics_expected": [
+          true,
           true
         ],
         "errors": [
+          null,
           null
         ],
         "medians": {
-          "warm_output_tokens_per_s": 66.62501902189736,
-          "warm_requests_per_s": 0.06506349513857164,
-          "warm_ttft_median_ms": 30249.5472285
+          "warm_output_tokens_per_s": 70.50376943433045,
+          "warm_requests_per_s": 0.06885133733821333,
+          "warm_ttft_median_ms": 27395.56878175
         },
         "per_cell_values": {
           "kv_pool_tokens": [
+            4096,
             4096
           ],
           "preemption_log_count": [
+            0,
             0
           ],
           "warm_elapsed_s": [
-            122.956812925
+            122.956812925,
+            110.133402537
           ],
           "warm_failures": [
+            0,
             0
           ],
           "warm_output_tokens": [
+            8192,
             8192
           ],
           "warm_output_tokens_per_s": [
-            66.62501902189736
+            66.62501902189736,
+            74.38251984676354
           ],
           "warm_requests": [
+            8,
             8
           ],
           "warm_requests_per_s": [
-            0.06506349513857164
+            0.06506349513857164,
+            0.07263917953785502
           ],
           "warm_ttft_max_ms": [
-            31436.091738
+            31436.091738,
+            29959.212732
           ],
           "warm_ttft_median_ms": [
-            30249.5472285
+            30249.5472285,
+            24541.590335
           ],
           "warm_ttft_p95_ms": [
-            31706.698037149996
+            31706.698037149996,
+            31204.4159022
           ]
         },
         "reclaim_enabled": true,
         "reclaim_mode": "native",
         "recovery_records": [
+          0,
           0
         ],
         "server_returncodes": [
+          0,
           0
         ]
       },
       "stock": {
         "adapter_counters": {
           "coverage_unknown_candidates": [
+            null,
             null
           ],
           "disk_route_recompute_fallback": [
+            null,
             null
           ],
           "forced_zero_lookups": [
+            null,
             null
           ],
           "override_picks": [
+            null,
             null
           ],
           "read_pricing_missing_decisions": [
+            null,
             null
           ],
           "route_consumed_disk_prefix": [
+            null,
             null
           ],
           "route_consumed_full_recompute": [
+            null,
             null
           ],
           "seam_invocations": [
+            null,
             null
           ],
           "stock_kept": [
+            null,
             null
           ]
         },
         "backing_activated": [
+          null,
           null
         ],
         "backing_read_stats": [
+          null,
           null
         ],
-        "cells_attempted": 1,
-        "cells_measured": 1,
+        "cells_attempted": 2,
+        "cells_measured": 2,
         "decision_records": [
+          0,
           0
         ],
         "diagnostics_arrived": [
+          false,
           false
         ],
         "diagnostics_expected": [
+          false,
           false
         ],
         "errors": [
+          null,
           null
         ],
         "medians": {
-          "warm_output_tokens_per_s": 73.1990471404751,
-          "warm_requests_per_s": 0.07148344447312022,
-          "warm_ttft_median_ms": 25076.623476499997
+          "warm_output_tokens_per_s": 73.896729939642,
+          "warm_requests_per_s": 0.07216477533168164,
+          "warm_ttft_median_ms": 24805.40749225
         },
         "per_cell_values": {
           "kv_pool_tokens": [
+            4096,
             4096
           ],
           "preemption_log_count": [
+            0,
             0
           ],
           "warm_elapsed_s": [
-            111.914025114
+            111.914025114,
+            109.820557589
           ],
           "warm_failures": [
+            0,
             0
           ],
           "warm_output_tokens": [
+            8192,
             8192
           ],
           "warm_output_tokens_per_s": [
-            73.1990471404751
+            73.1990471404751,
+            74.59441273880891
           ],
           "warm_requests": [
+            8,
             8
           ],
           "warm_requests_per_s": [
-            0.07148344447312022
+            0.07148344447312022,
+            0.07284610619024308
           ],
           "warm_ttft_max_ms": [
-            30477.64579
+            30477.64579,
+            30013.155848
           ],
           "warm_ttft_median_ms": [
-            25076.623476499997
+            25076.623476499997,
+            24534.191508
           ],
           "warm_ttft_p95_ms": [
-            31757.603531149995
+            31757.603531149995,
+            31331.39503565
           ]
         },
         "reclaim_enabled": false,
         "reclaim_mode": null,
         "recovery_records": [
+          0,
           0
         ],
         "server_returncodes": [
+          0,
           0
         ]
       }
@@ -860,6 +1143,16 @@
       5,
       6,
       7
+    ],
+    "1": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      0
     ]
   }
 }

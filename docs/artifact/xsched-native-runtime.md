@@ -6,7 +6,9 @@ root, replace the quoted placeholders with your built components and a new
 output directory:
 
 ```sh
-python3 -B workloads/xsched/level2/native/run_native_blob.py run \
+env -u XG_NATIVE_ORIGINAL_ENTRY_CONTROL \
+  XG_NATIVE_META_EXTEND=1 XG_NATIVE_META_KPARAM=1 \
+  python3 -B workloads/xsched/level2/native/run_native_blob.py run \
   --workload "WORKLOAD_BINARY" \
   --hal-install-dir "NATIVE_HAL_INSTALL" \
   --xserver-native "NATIVE_XSERVER_BINARY" \
@@ -20,6 +22,8 @@ nothing and keeps the historical component locations as its defaults.
 Overrides reach the component lookup, worker library paths, server command
 and recorded protocol without changing module globals or the native
 cuXtra actuator. There is no NVBit/BPF fallback on this route.
+The environment flags above retain the successful run's metadata-extension
+and parameter-marshalling path; the original-entry diagnostic override is off.
 
 The [completed native bring-up](../../workloads/xsched/raw/level2-native-retabs-20260909.oJDCbU/README.md)
 is one cell: six workers exit zero, 400 LC / 800 BE service records and a

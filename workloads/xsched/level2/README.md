@@ -120,3 +120,11 @@ python3 -B workloads/xsched/level2/run_tool_pair.py run \
 This runner change was validated CPU-only for syntax/help and direct
 path/environment behavior; it adds no dry-run mode, preflight, build, or GPU
 run.
+
+## 2026-09-09 runner log decoding
+
+`run_tool_pair.py` now decodes managed-process stdout/stderr as UTF-8 with
+`backslashreplace`. This preserves later stderr lines if a diagnostic byte is
+not valid UTF-8; it does not change JSON parsing, metrics, scheduling, or
+cleanup. The separate native original cuXtra failure is a CUDA 700 failure in
+that route, not a consequence of this log-decoding change.

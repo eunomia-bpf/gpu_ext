@@ -173,7 +173,8 @@ class ManagedProcess:
         full = ["taskset", "-c", cpu_mask] + delayed_preload + list(command)
         self.proc = subprocess.Popen(
             full, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, bufsize=1, env=launcher_env, start_new_session=True,
+            text=True, bufsize=1, encoding="utf-8", errors="backslashreplace",
+            env=launcher_env, start_new_session=True,
         )
         self.threads = [
             threading.Thread(target=self._reader, args=(self.proc.stdout, self.stdout_lines, True),

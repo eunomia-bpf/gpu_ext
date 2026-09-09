@@ -1,6 +1,12 @@
 # Disk/UVM serving with valid descriptor and ioctl handling
 
-## First completed block; five-block campaign still running
+## Correction: interrupted requests in the first block
+
+The earlier version of this report incorrectly described all eight requests
+in each arm as complete. Server exit zero did not imply EngineCore success.
+The original numbers and raw records below remain preserved, but the native
+and BPF rates are partial-output rates from failed serving, not formal paired
+throughput measurements. This correction supersedes the earlier interpretation.
 
 Started 2026-09-09 03:36:41 PDT. Sources 8a352587 and a26c57a5 fix
 the descriptor mode/flag and ctypes ioctl readback, and permit vLLM
@@ -13,16 +19,20 @@ earlier fallback-only runs; none of their completed cells is reused.
 | Native reclaim policy | 62.769598 | 48 | 5 | 15 / 15 |
 | BPF reclaim policy | 61.733256 | 48 | 8 | 12 / 12 |
 
-Each cell completes eight warm requests, 8192 generated tokens and
-server exit zero, with no recorded HTTP failures. BPF/native throughput
-changes by -1.6510% in this first block.
-One block does not establish a stable advantage or overhead estimate.
+Native and BPF each record two HTTP 500 failures. Native reports only 2048
+completed output tokens and 2167 observed streamed tokens across eight attempts;
+several HTTP 200 streams also end early. Native server.log records an EngineCore
+CUDA out-of-memory exception at line 853: an additional 20 MiB allocation fails
+with 8.38 MiB free. Thus the previously reported -1.6510% ratio must not be used
+as a BPF mechanism-overhead estimate. The same failure also occurs in later
+cells. All raw observations remain, including unsuccessful runs.
 
 For the first time these serving cells report successful backing
 preparation and completed UVM restorations, rather than only a fallback
 path. However, substantial restore errors still invoke the original
 GDS read. Thus this is a **hybrid UVM-restoration / GDS-fallback
-performance observation**, not a claim that every read uses UVM.
+execution observation**, not a completed performance comparison or a claim
+that every read uses UVM.
 The exact restore exception is currently swallowed by the pre-existing
 read wrapper; it is the next implementation issue to expose and repair.
 Counters are existing observations, not a gate used to discard timings.

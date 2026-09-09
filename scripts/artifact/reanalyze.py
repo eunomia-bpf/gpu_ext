@@ -2,20 +2,30 @@
 """CPU-only reanalysis entrypoint for completed raw evidence.
 
 Recomputes cell metrics and paired statistics from existing raw
-result.json records. Three campaigns are supported; the default
-(``--campaign all``) includes all three:
+result.json records. Four campaigns are supported; the default
+(``--campaign all``) includes all four (70 cells: the existing 55
+plus 15 MoE):
 
   lm       LMCache disk physical-reclaim serving, pXYN4F
   xsched   XSched Level-2 device policy pair, buBjns (+ reused bOiYh5
            native block 0)
   storage  LMCache GDS write-budget serving, five-block-02
            (25 cells: 5 blocks x fifo/native10/bpf10/native200/bpf200)
+  moe      MoE paper-v3-575 postboot timing,
+           timing-849ea75d-02-postboot
+           (15 cells: 5 blocks x native-off/paper-native/paper-bpf)
 
-The storage campaign is a cell-summary statistical reanalysis: it
-recomputes arm medians and within-block paired ratios from the
-per-cell metrics recorded in each result.json. It does not re-derive
-percentiles from the per-request records retained in the same files,
-and it is not a new GPU measurement.
+The storage and moe campaigns are cell-summary statistical
+reanalyses: they recompute arm medians and within-block paired
+statistics from the per-cell metrics recorded in each result.json.
+They do not re-derive percentiles or throughput from the per-request
+records retained in the same files, and they are not new GPU
+measurements. For moe, primary throughput is
+verified_output_tokens/duration_s over the full eight-request window
+including final drain, TTFT is the per-cell median first visible
+text (not first model token), and the paired statistic is the
+geometric mean of the per-block candidate/reference ratios - not
+the median of paired ratios.
 
 Read-only: opens JSON records only. No GPU, no builds, no process
 control, no gates. The default action prints the report to stdout.
@@ -37,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 import sys
 from pathlib import Path
@@ -64,6 +75,14 @@ ST_KEY_MAP = (
     ("read_scheduled_p50_ms", "read_scheduled_offer_to_completion_p50_ms"),
     ("write_throughput_mib_s", "write_completion_throughput_mib_s"),
     ("total_bandwidth_mib_s", "total_storage_bandwidth_mib_s"),
+)
+MOE_REL = "workloads/moe-infinity/raw/paper-v3-575/timing-849ea75d-02-postboot"
+MOE_BLOCKS = (1, 2, 3, 4, 5)
+MOE_ARMS = ("native-off", "paper-native", "paper-bpf")
+MOE_PAIRS = (
+    ("paper-bpf", "paper-native"),
+    ("paper-native", "native-off"),
+    ("paper-bpf", "native-off"),
 )
 
 
@@ -96,6 +115,15 @@ def fmt(value: Optional[float], spec: str = ".6f", suffix: str = "") -> str:
     if value is None:
         return "missing"
     return f"{value:{spec}}{suffix}"
+
+
+def full(value: Optional[float]) -> str:
+    """Exact shortest-repr rendering; medians and geometric means only."""
+    return "missing" if value is None else repr(float(value))
+
+
+def geomean(values: List[float]) -> float:
+    return math.exp(sum(math.log(v) for v in values) / len(values))
 
 
 # ---------------------------------------------------------------- lm campaign
@@ -575,6 +603,244 @@ def st_report(root: Path, cells: dict, missing: List[str], incomplete: List[str]
     return "\n".join(lines)
 
 
+# ------------------------------------------------------------------ moe campaign
+
+
+def moe_cell_flagged(rec: dict) -> List[str]:
+    """Status issues of one cell; empty means clean."""
+    flags: List[str] = []
+    if rec["passed"] is not True:
+        flags.append(f"passed={rec['passed']}")
+    if rec["block_passed"] is not True:
+        flags.append(f"block_passed={rec['block_passed']}")
+    if rec["server_exit_code"] not in (0, None):
+        flags.append(f"server_exit_code={rec['server_exit_code']}")
+    if rec["cleanup_errors"]:
+        flags.append(f"cleanup_errors={rec['cleanup_errors']}")
+    return flags
+
+
+def load_moe_cells(root: Path) -> Tuple[Dict[Tuple[int, str], dict], List[str]]:
+    """Return {(block, arm): record} plus human-readable missing notes.
+
+    Source: the top-level block result.json files only
+    (block-01..05-attempt-01/result.json), each holding a ``cells``
+    list with one entry per mode. The per-mode subdirectory records
+    (SSE dumps, telemetry, launch/admission files) are not read.
+    """
+    base = root / MOE_REL
+    cells: Dict[Tuple[int, str], dict] = {}
+    missing: List[str] = []
+    if not base.is_dir():
+        return cells, [f"campaign directory not found: {MOE_REL}"]
+    for block in MOE_BLOCKS:
+        result_path = base / f"block-{block:02d}-attempt-01/result.json"
+        rec = read_json(result_path)
+        if not isinstance(rec, dict):
+            missing.extend(
+                f"block {block} arm {arm}: no result.json" for arm in MOE_ARMS
+            )
+            continue
+        block_passed = rec.get("passed")
+        entries: Dict[str, dict] = {}
+        for cell in rec.get("cells") or []:
+            if isinstance(cell, dict) and isinstance(cell.get("mode"), str):
+                entries[cell["mode"]] = cell
+        for arm in MOE_ARMS:
+            cell = entries.get(arm)
+            if not isinstance(cell, dict):
+                missing.append(
+                    f"block {block} arm {arm}: no cell entry in "
+                    f"{result_path.relative_to(root)}"
+                )
+                continue
+            vtok = num(cell.get("verified_output_tokens"))
+            dur = num(cell.get("duration_s"))
+            cells[(block, arm)] = {
+                "path": str(result_path.relative_to(root)),
+                "throughput": (vtok / dur) if (vtok is not None and dur) else None,
+                "ttft": num(cell.get("first_text_ttft_median_ms")),
+                "passed": cell.get("passed"),
+                "block_passed": block_passed,
+                "server_exit_code": cell.get("server_exit_code"),
+                "cleanup_errors": cell.get("cleanup_errors") or [],
+            }
+    return cells, missing
+
+
+def moe_incomplete(cells: Dict[Tuple[int, str], dict]) -> List[str]:
+    notes: List[str] = []
+    for (block, arm), rec in sorted(cells.items()):
+        if rec["throughput"] is None:
+            notes.append(
+                f"block {block} arm {arm}: "
+                "throughput (verified_output_tokens/duration_s) unavailable"
+            )
+        if rec["ttft"] is None:
+            notes.append(
+                f"block {block} arm {arm}: first_text_ttft_median_ms missing"
+            )
+        notes.extend(f"block {block} arm {arm}: {f}" for f in moe_cell_flagged(rec))
+    return notes
+
+
+def moe_report(root: Path, cells: dict, missing: List[str], incomplete: List[str]) -> str:
+    lines = [f"== MoE paper-v3-575 postboot timing ({MOE_REL.split('/')[-1]}) =="]
+    lines.append(f"source: {MOE_REL} (top-level block-01..05-attempt-01/result.json only)")
+    lines.append(f"cells: {len(cells)} present / {len(MOE_BLOCKS) * len(MOE_ARMS)} expected")
+    lines.append("note: cell-summary statistical reanalysis. throughput =")
+    lines.append("      verified_output_tokens/duration_s over the full 8-request")
+    lines.append("      window including final drain; TTFT = per-cell median first")
+    lines.append("      visible text (not first model token). native-off is the")
+    lines.append("      baseline (dispatcher count-cache eviction), paper-native")
+    lines.append("      the native arm, paper-bpf the BPF arm (userspace")
+    lines.append("      bpftime JIT selectors). Not a fresh SSE/correctness")
+    lines.append("      audit, not original-hardware or full-artifact")
+    lines.append("      reproduction.")
+    if missing:
+        lines.append("missing cells:")
+        lines.extend(f"  {n}" for n in missing)
+    if incomplete:
+        lines.append(
+            "incomplete or error-status cells (numeric values retained when available):"
+        )
+        lines.extend(f"  {n}" for n in incomplete)
+    if not cells:
+        lines.append("no usable cells; stopping campaign report.")
+        return "\n".join(lines)
+
+    lines.append(
+        "per-cell throughput (verified_output_tokens/duration_s, token/s) and"
+    )
+    lines.append("TTFT median (ms); * = cell with an error/incomplete status:")
+    for block in MOE_BLOCKS:
+        for arm in MOE_ARMS:
+            rec = cells.get((block, arm))
+            if rec is None:
+                continue
+            star = "*" if moe_cell_flagged(rec) else ""
+            lines.append(
+                f"  block {block} {arm:<12} throughput={fmt(rec['throughput'])} "
+                f"ttft_ms={fmt(rec['ttft'], '.6f')}{star}  ({rec['path']})"
+            )
+
+    lines.append("per-arm marginal medians over available per-arm numeric values:")
+    med: Dict[Tuple[str, str], Optional[float]] = {}
+    for key in ("throughput", "ttft"):
+        for arm in MOE_ARMS:
+            vals = [
+                r[key] for (b, a), r in cells.items()
+                if a == arm and r[key] is not None
+            ]
+            med[(key, arm)] = median(vals) if vals else None
+            lines.append(f"  {key:<10} {arm:<12} {full(med[(key, arm)])}")
+
+    lines.append("paired statistics; per-block ratios retained:")
+    lines.append("      geometric-mean ratio = exp(mean(log(candidate/reference)))")
+    lines.append("      over the available blocks; it is not the median of paired")
+    lines.append("      ratios. throughput: >1 favors candidate; ttft: <1 favors")
+    lines.append("      candidate. bN* = flagged block (see incomplete cells).")
+    geo: Dict[Tuple[str, str, str], Optional[float]] = {}
+    for cand, ref in MOE_PAIRS:
+        for key in ("throughput", "ttft"):
+            per_block: Dict[int, float] = {}
+            flagged: Dict[int, List[str]] = {}
+            for block in MOE_BLOCKS:
+                c = cells.get((block, cand), {}).get(key)
+                r = cells.get((block, ref), {}).get(key)
+                if c is not None and r:
+                    per_block[block] = c / r
+                    fl = (
+                        moe_cell_flagged(cells[(block, cand)])
+                        + moe_cell_flagged(cells[(block, ref)])
+                    )
+                    if fl:
+                        flagged[block] = fl
+            lines.append(f"  {key} {cand}/{ref}:")
+            if not per_block:
+                lines.append("    insufficient complete blocks")
+                geo[(key, cand, ref)] = None
+                continue
+            lines.append(
+                "    per block: "
+                + " ".join(
+                    f"b{b}={fmt(per_block[b], '.6f')}" + ("*" if b in flagged else "")
+                    for b in sorted(per_block)
+                )
+            )
+            if flagged:
+                lines.append(
+                    "    flagged blocks (status issue, numeric ratios retained): "
+                    + "; ".join(
+                        f"b{b}: {'; '.join(sorted(set(flagged[b])))}"
+                        for b in sorted(flagged)
+                    )
+                )
+            geo[(key, cand, ref)] = geomean(
+                [per_block[b] for b in sorted(per_block)]
+            )
+            lines.append(
+                f"    geometric-mean ratio: {full(geo[(key, cand, ref)])}"
+            )
+
+    lines.append("cross-check against existing audited-analysis-final.json:")
+    summary = read_json(root / MOE_REL / "audited-analysis-final.json")
+    if not isinstance(summary, dict):
+        lines.append("  audited-analysis-final.json not present; skipped.")
+        return "\n".join(lines)
+    ok = True
+    analysis = summary.get("analysis") if isinstance(summary.get("analysis"), dict) else {}
+    modes = analysis.get("modes") if isinstance(analysis.get("modes"), dict) else {}
+    for arm in MOE_ARMS:
+        entry = modes.get(arm) if isinstance(modes, dict) else None
+        entry = entry if isinstance(entry, dict) else {}
+        for label, metric in (
+            ("output_throughput_tokens_per_s", "throughput"),
+            ("first_text_ttft_median_ms", "ttft"),
+        ):
+            ref_v = num(entry.get(label))
+            mine = med.get((metric, arm))
+            if ref_v is None or mine is None or abs(ref_v - mine) > 1e-9 * abs(ref_v):
+                ok = False
+                lines.append(
+                    f"  analysis.modes.{arm}.{label}: "
+                    f"summary={full(ref_v)} recomputed={full(mine)} (MISMATCH)"
+                )
+    paired = analysis.get("paired") if isinstance(analysis.get("paired"), dict) else {}
+    secondary = summary.get("secondary") if isinstance(summary.get("secondary"), dict) else {}
+    sec = secondary.get("first_visible_text_ttft") if isinstance(secondary, dict) else None
+    sec_paired = sec.get("paired") if isinstance(sec, dict) else None
+    sec_paired = sec_paired if isinstance(sec_paired, dict) else {}
+    for cand, ref in MOE_PAIRS:
+        key = f"{cand}/{ref}"
+        entry = paired.get(key) if isinstance(paired, dict) else None
+        entry = entry if isinstance(entry, dict) else {}
+        ref_v = num(entry.get("geometric_throughput_ratio"))
+        mine = geo.get(("throughput", cand, ref))
+        if ref_v is None or mine is None or abs(ref_v - mine) > 1e-9 * abs(ref_v):
+            ok = False
+            lines.append(
+                f"  analysis.paired.{key}.geometric_throughput_ratio: "
+                f"summary={full(ref_v)} recomputed={full(mine)} (MISMATCH)"
+            )
+        sec_entry = sec_paired.get(key) if isinstance(sec_paired, dict) else None
+        sec_entry = sec_entry if isinstance(sec_entry, dict) else {}
+        ref_v = num(sec_entry.get("geometric_ttft_ratio"))
+        mine = geo.get(("ttft", cand, ref))
+        if ref_v is None or mine is None or abs(ref_v - mine) > 1e-9 * abs(ref_v):
+            ok = False
+            lines.append(
+                f"  secondary.first_visible_text_ttft.paired.{key}.geometric_ttft_ratio: "
+                f"summary={full(ref_v)} recomputed={full(mine)} (MISMATCH)"
+            )
+    if ok:
+        lines.append("  all arm medians and geometric-mean ratios match the")
+        lines.append("  existing audited analysis.")
+    lines.append("  note: paired_block_bootstrap_ci95 is retained in the audited")
+    lines.append("        analysis; this tool does not recompute or refresh any CI.")
+    return "\n".join(lines)
+
+
 # --------------------------------------------------------------------- output
 
 
@@ -583,7 +849,7 @@ def guarded_output(path: Path, root: Path) -> Path:
     paper = (root / "docs" / "paper").resolve()
     if target == paper or paper in target.parents:
         die("--output must be outside docs/paper")
-    for rel in (LM_REL, XS_BUBJNS_REL, XS_BOIYH5_REL, ST_REL):
+    for rel in (LM_REL, XS_BUBJNS_REL, XS_BOIYH5_REL, ST_REL, MOE_REL):
         raw = (root / rel).resolve()
         if target == raw or raw in target.parents:
             die(f"--output must not write into raw campaign directory {rel}")
@@ -596,9 +862,10 @@ def main() -> None:
     )
     parser.add_argument("--repo-root", type=Path, default=None,
                         help="repository root (default: derived from this file's location)")
-    parser.add_argument("--campaign", choices=("all", "lm", "xsched", "storage"),
+    parser.add_argument("--campaign",
+                        choices=("all", "lm", "xsched", "storage", "moe"),
                         default="all",
-                        help="campaign to reanalyze; default runs all three")
+                        help="campaign to reanalyze; default runs all four")
     parser.add_argument("--output", type=Path, default=None,
                         help="write the report to this path instead of stdout "
                              "(created exclusively, never overwritten; rejected "
@@ -621,6 +888,10 @@ def main() -> None:
         cells, missing = load_st_cells(root)
         incomplete = st_incomplete(cells)
         sections.append(st_report(root, cells, missing, incomplete))
+    if args.campaign in ("all", "moe"):
+        cells, missing = load_moe_cells(root)
+        incomplete = moe_incomplete(cells)
+        sections.append(moe_report(root, cells, missing, incomplete))
     if not sections:
         die("no campaign data found; nothing to report")
 

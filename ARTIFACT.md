@@ -92,10 +92,10 @@ rerun from a fresh checkout.
 
 ## CPU-only reproduction
 
-For LMCache's paper-selected write-budget campaign and the supplemental
-physical-reclaim and XSched Level-2 campaigns, the following
-standard-library-only command reads all 55 published cell summaries
-(25 + 15 + 15) and recomputes per-arm medians and within-block comparisons:
+For the paper-selected MoE and LMCache write-budget campaigns and the
+supplemental physical-reclaim and XSched Level-2 campaigns, the following
+standard-library-only command reads all 70 published cell summaries
+(15 + 25 + 15 + 15) and recomputes per-arm medians and within-block comparisons:
 
 ```sh
 python3 -B scripts/artifact/reanalyze.py --campaign all
@@ -103,13 +103,22 @@ python3 -B scripts/artifact/reanalyze.py --campaign all
 
 It also works from another working directory when called by its absolute
 script path. This was executed successfully on 2026-09-09; the numbers match
-the recorded summaries. `--campaign storage`, `--campaign lm` or
-`--campaign xsched` selects one,
+the recorded summaries. `--campaign moe`, `--campaign storage`,
+`--campaign lm` or `--campaign xsched` selects one,
 and `--output NEW_FILE` saves the report without overwriting an existing file.
 This recomputes statistics from cell summaries, not GPU measurements or every
 per-request timestamp. Missing records are reported explicitly.
 See the [entrypoint reference](docs/artifact/reanalysis.md) for source maps,
 output files and the exact statistic definitions.
+
+MoE throughput medians remain 11.896381 / 11.223299 / 11.190012 token/s
+for baseline/native/BPF; first-visible-text TTFT medians remain
+1975.941635 / 1513.444654 / 1535.957289 ms. Its paired statistic is the
+geometric mean of per-block ratios: BPF/native is 0.996540 for throughput
+and 0.995129 for TTFT. All five pairs and adverse results remain visible.
+The baseline is the dispatcher's count-cache eviction path; the BPF arm
+uses userspace bpftime JIT selectors. This is the same-frontend policy
+comparison, not a new GPU run or full original-system reproduction.
 
 The storage mode retains all five arms (FIFO, native/BPF with 10 ms and
 200 ms write-delay budgets), including per-block read-p99 and write-throughput
@@ -209,7 +218,7 @@ signal a historical PID or load a module solely because an old log names it.
 | Runtime | Build/source entry | Run record and current boundary |
 | --- | --- | --- |
 | Table 1 observability | [Runtime dependency map](docs/artifact/table1-runtime.md) | Separates the seven-arm 70-cell campaign, paper-selected five GPU-array pairs, ten-pair extension, and full-record supplements. Public bpftime source is linked separately from the local build; full fresh-runtime reproduction remains open. |
-| XSched Level-2 | [Component build instructions](workloads/xsched/level2-build/README.md), [runner instructions](workloads/xsched/level2/README.md) | The runner accepts explicit native/BPF server, HPF, guard-tool and HAL locations. Its completed policy-port campaign is separate from the unfinished original cuXtra resume path. |
+| XSched Level-2 | [Component build instructions](workloads/xsched/level2-build/README.md), [runner instructions](workloads/xsched/level2/README.md) | The runner accepts explicit native/BPF server, HPF, guard-tool and HAL locations. Its completed policy-port campaign is separate from the [single-cell native cuXtra bring-up](workloads/xsched/raw/level2-native-retabs-20260909.oJDCbU/README.md); a matched multi-arm comparison with that native actuator remains open. |
 | LMCache write-budget storage | [Policy/executor build targets](workloads/lmcache-disk/gds-control/Makefile), [completed report](workloads/lmcache-disk/results-575-gds-write-budget-20260907.md) | [Recorded 25-cell commands](workloads/lmcache-disk/raw/gds-write-budget-575-20260907-five-block-02/run-plan.json) preserve the measured configuration; their historical paths need relocation. The CPU `storage` command above is portable, but this does not establish a fresh runtime rebuild. |
 
 Build targets produce components; dated run records describe executions.
@@ -224,7 +233,7 @@ to fill optional diagnostics.
 
 ## Open items
 
-- Extend portable CPU reanalysis beyond the three campaigns and
+- Extend portable CPU reanalysis beyond the four campaigns and
   two paper figures above; the complete paper is not yet a one-command rerun.
 - Check fresh-checkout build/run instructions per workload; a successful
   recorded run is not yet proof that all local build dependencies are published.
@@ -234,8 +243,11 @@ to fill optional diagnostics.
   the current seven-panel English caption says medians generally, while POD's
   selected source reports operator means. Detailed artifact statistics must
   preserve the source estimator.
-- Original cuXtra Level-2 on sm_120 remains under implementation; the completed
-  shared-actuator policy-port comparison is a separate result. The latest
-  [constant-bank expansion attempt](workloads/xsched/raw/level2-native-constant0-20260909.oAKEda/README.md)
-  builds and gets past first-launch rejection, but BE resume still fails
-  with CUDA 700. Partial LC completion is not a complete performance cell.
+- Original cuXtra Level-2 on sm_120 now completes a
+  [native resume bring-up cell](workloads/xsched/raw/level2-native-retabs-20260909.oJDCbU/README.md):
+  six worker exits zero, 400 LC / 800 BE service records, and a resume
+  launch in each BE process. A matched multi-arm performance campaign with
+  this native actuator remains open; the completed shared-actuator
+  policy-port comparison is a separate result. The earlier
+  [constant-bank attempt](workloads/xsched/raw/level2-native-constant0-20260909.oAKEda/README.md)
+  remains a failed CUDA 700 resume attempt, not a performance sample.

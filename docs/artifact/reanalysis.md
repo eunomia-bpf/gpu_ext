@@ -15,8 +15,9 @@ GPU workload reproduction is a separate task.
 ## `scripts/artifact/reanalyze.py`
 
 Recomputes cell metrics and paired statistics for the paper-selected
-LMCache write-budget campaign and the two supplemental campaigns from
-their raw `result.json` records.
+LMCache write-budget campaign, the two supplemental campaigns, and
+the MoE paper-v3-575 postboot timing campaign, from their raw
+`result.json` records.
 
 Campaigns and source maps:
 
@@ -54,10 +55,39 @@ Campaigns and source maps:
   block0-missing/block-01-*/result.json`; global blocks 1..4 from
   `.../buBjns/remaining/block-0{1..4}-*/result.json`. Metrics:
   `lc_service.p99_us` converted to ms and `be_kernels_per_s`;
-  `be_service.p99_us` and the host elapsed times are retained in the
-  per-cell table. Cross-checks the per-arm `lc_service_p99_median_us`
-  medians against the two existing sub-summaries
-  (`block0-missing/summary.json`, `remaining/summary.json`).
+   `be_service.p99_us` and the host elapsed times are retained in the
+   per-cell table. Cross-checks the per-arm `lc_service_p99_median_us`
+   medians against the two existing sub-summaries
+   (`block0-missing/summary.json`, `remaining/summary.json`).
+- `moe` - MoE paper-v3-575 postboot timing,
+  `workloads/moe-infinity/raw/paper-v3-575/
+  timing-849ea75d-02-postboot/` (15 cells: 5 blocks x
+  native-off/paper-native/paper-bpf). Source: the top-level
+  `block-0{1..5}-attempt-01/result.json` files only; each holds a
+  `cells` list with one entry per mode. The per-mode subdirectory
+  records (SSE dumps, telemetry, launch/admission files) are not
+  read. Primary throughput: `verified_output_tokens/duration_s` over
+  the full eight-request window including final drain (512 tokens
+  per arm here); TTFT: per-cell `first_text_ttft_median_ms`, first
+  visible text, not first model token. Arm roles: native-off is the
+  baseline (dispatcher count-cache eviction), paper-native the
+  native arm, paper-bpf the BPF arm (userspace bpftime JIT
+  selectors) - not the earlier native-UVM or kernel stride-LFU
+  campaigns. Statistics: per-arm marginal medians and, for each of
+  the three pairs (paper-bpf/paper-native,
+  paper-native/native-off, paper-bpf/native-off), the geometric-mean
+  ratio `exp(mean(log(candidate/reference)))` per block for
+  throughput and TTFT, with per-block ratios retained; blocks with
+  error/incomplete status keep their numeric ratios and are listed,
+  never filled in or dropped. The paired bootstrap CIs in the
+  audited analysis are retained but not recomputed. Cross-checks arm
+  medians and all three geometric-mean ratios against the
+  campaign's existing `audited-analysis-final.json`
+  (`.analysis.modes[mode]`, `.analysis.paired[pair]`,
+  `.secondary.first_visible_text_ttft.paired[pair]`;
+  match/MISMATCH lines). This is a cell-summary statistical
+  reanalysis, not a fresh SSE/correctness audit and not
+  original-hardware or full-artifact reproduction.
 
 Statistics vocabulary (kept explicit in the report):
 
@@ -70,10 +100,15 @@ Statistics vocabulary (kept explicit in the report):
   ratios.
 - ratio of medians: `100*(median(candidate blocks)/median(reference
   blocks) - 1)`.
+- geometric-mean paired ratio (used by `moe`):
+  `exp(mean over blocks of log(candidate/reference))`. It is not the
+  median of paired ratios; the two differ in general, and only the
+  geometric mean is reported for `moe`.
 
-The two differ in general; both are reported and labeled. Pairs use
-available numeric values for both arms; missing or incomplete status is
-reported separately, never filled in. The tool never
+For `lm`, `xsched` and `storage`, the median of paired ratios and ratio of
+medians are reported separately; `moe` uses the geometric-mean ratio above.
+Pairs use available numeric values for both arms; missing or incomplete
+status is reported separately, never filled in. The tool never
 stops running jobs or imposes gates.
 
 What this recomputes: statistics only, from the per-cell summary metrics
@@ -86,9 +121,10 @@ evidence for GPU-direct P2P.
 Usage:
 
 ```
-python3 scripts/artifact/reanalyze.py                   # all three campaigns, stdout
+python3 scripts/artifact/reanalyze.py                   # all four campaigns, stdout
 python3 scripts/artifact/reanalyze.py --campaign storage  # one campaign
 python3 scripts/artifact/reanalyze.py --campaign lm     # another campaign
+python3 scripts/artifact/reanalyze.py --campaign moe    # MoE timing campaign
 python3 scripts/artifact/reanalyze.py --output PATH     # exclusive creation
 ```
 
@@ -96,8 +132,9 @@ python3 scripts/artifact/reanalyze.py --output PATH     # exclusive creation
 with an error; nothing is deleted or overwritten, and the path is rejected
 under `docs/paper` or inside any raw campaign directory.
 
-Verified run (`--campaign all`, 2026-09-09): all 55 cells present
-(25 + 15 + 15), no MISMATCH lines against the existing summaries. Storage
+Verified run (`--campaign all`, 2026-09-09): all 70 cells present
+(25 + 15 + 15 + 15), no MISMATCH lines against the existing
+summaries. Storage
 scheduled-arrival read-p99 medians (ms)
 fifo/native10/bpf10/native200/bpf200 =
 323.706609 / 245.705683 / 239.091153 / 123.141164 / 118.096937 and
@@ -108,7 +145,13 @@ bpf200/fifo write throughput +17.989185%, matching the published campaign
 analysis. LM medians
 stock/native/bpf = 73.574518 / 68.608032 / 65.422796 token/s and
 median-of-paired-ratios BPF/native -4.047522%, BPF/stock -11.241969%,
-native/stock -5.436485%.
+native/stock -5.436485%. MoE medians
+native-off/paper-native/paper-bpf =
+11.896381 / 11.223299 / 11.190012 token/s and
+1975.941635 / 1513.4446535 / 1535.957289 ms TTFT; geometric-mean
+ratios paper-bpf/paper-native 0.996540 (throughput) / 0.995129
+(TTFT) and paper-bpf/native-off 0.930786 / 0.775152, matching the
+audited analysis.
 
 ## `scripts/artifact/reproduce_figures.py`
 

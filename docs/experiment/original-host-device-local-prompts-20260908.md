@@ -1,5 +1,18 @@
 # Original host/device implementation prompts
 
+## Provider recovery — 2026-09-08 17:58 PDT
+
+The resumed Hummingbird Qwen Next request
+`msg_0839582f5001K3LnUd2wCBRNt7` exhausted provider retries and ended with
+`APIError`, HTTP 524, completion time `1788915359547` ms Unix. It delivered
+no code. Root observed the session disappear from active status and the
+terminal error before resuming the same Hummingbird session on the available
+`spark-direct-qwen27/qwen3.8-27b-nvfp4` route. This is not a silence timeout,
+a discarded implementation, or a fourth session. Original scope is unchanged.
+Active work remains XSched tool Qwen 27B, XSched native GLM, and Hummingbird
+Qwen 27B. Three distinct models were attempted; Qwen Next's service failure
+necessitates this fallback. No new Hummingbird result is claimed.
+
 ## Live continuation — 2026-09-08 17:34 PDT
 
 The SoA implementation/measurement and its queued read-only paper feedback

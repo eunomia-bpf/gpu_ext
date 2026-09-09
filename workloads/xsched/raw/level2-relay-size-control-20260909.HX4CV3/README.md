@@ -62,3 +62,21 @@ driver-frame offset at that shim breakpoint and encounter an inaccessible
 address before performing the intervention. Both root-authored debugger
 setup failures and their lifecycle/server logs are retained separately.
 Only the driver-resolved control above supports the conclusion.
+
+## Implementation follow-up (not another run)
+
+GLM subsequently added an opt-in KPARAM descriptor-growth candidate. Root
+identified a required companion change in the current native HAL:
+`platforms/cuda/hal/src/common/cuda_command.cpp`, constructor lines 81–96,
+queries `cuXtraGetParamInfo` and copies each reported size from the original
+application argument pointer. If the driver's descriptor query exposes the
+expanded final argument, that copy would read beyond the original 8-byte
+argument before the relay is constructed. The metadata pass also reaches
+the timer kernel, whose ordinary launch does not use the relay.
+
+The candidate therefore needs to retain the original host argument layout
+and use it when constructing a padded launch buffer, while preserving
+non-relay launches. Root sent these concrete source findings in
+`msg_0851bf163001zYyGA2ChlwT6iI`. The widened-descriptor candidate has not
+been run; this paragraph reports a source-level dependency, not a measured
+failure or a verified fix. The successful diagnostic above remains unchanged.

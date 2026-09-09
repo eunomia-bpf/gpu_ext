@@ -77,25 +77,30 @@ and `--output NEW_FILE` saves the report without overwriting an existing file.
 This recomputes statistics from cell summaries, not GPU measurements or every
 per-request timestamp. Missing records are reported explicitly.
 
-Run from the repository root with Python 3 and Matplotlib available. These
-commands write only to a newly allocated output directory, never the paper:
+To regenerate the paper-selected observability and seven-policy figures,
+run from the repository root with Python 3 and Matplotlib available. Outputs
+go only to a newly allocated directory, never the paper:
 
 ```sh
 artifact_out=$(mktemp -d /tmp/gpubpf-artifact.XXXXXX)
-python3 -B docs/paper/tex-revision/img/results-raw/revision/plot_port_panels.py \
-  --output-prefix "$artifact_out/matched-seven"
+python3 -B scripts/artifact/reproduce_figures.py --out-dir "$artifact_out"
 ```
 
-This seven-panel command was executed successfully on 2026-09-09. It renders
-the published panel data; it is not a fresh GPU run or a full reanalysis of
-every worker log. The panel inputs name their underlying result reports.
+This command was executed successfully on 2026-09-09, also from another
+working directory using the absolute script path. It produces both PDFs and
+PNGs, the derived observability data, selected cells and a subset note. The
+seven-panel figure renders published panel inputs, not every worker log.
+Neither operation launches a GPU workload.
 
-The observability plot's default command currently needs an explicit historic
-five-pair input: its source expects five GPU-array pairs, while the live input
-file now contains the completed ten-pair extension. The default invocation
-was tested and fails with `expected 5 baseline blocks`. A portable wrapper
-outside the paper is being prepared; neither the paper nor measurements are
-to be changed to conceal the cohort mismatch.
+The unchanged observability plot's direct default invocation expects five
+GPU-array pairs but its input was extended to ten. The wrapper explicitly
+selects the paper's blocks 1--5 and derives their summary: 5.572554% mean
+paired overhead. It also records the retained ten-block 5.400619% result.
+The first five pairs are a subset, not an independent second experiment.
+The wrapper fixes reproduction without modifying the paper, input records
+or original plot source. It does not require historical Git objects, model
+caches or GPU software. Choose a new output path for another invocation;
+existing outputs are never overwritten.
 
 Use the estimator named in each report. A ratio of medians, median of paired
 ratios, geometric mean of paired ratios, and mean per-pair overhead are
@@ -110,7 +115,7 @@ paper cohort. Each linked report includes source/raw references and limits.
 | Experiment | Evidence | Relationship to paper |
 | --- | --- | --- |
 | LMCache five-arm serving | [Report](workloads/lmcache-disk/results-575-lmcache-gds-five-arm-20260906.md) | Recompute, CPU, disk FIFO, native and BPF controls. |
-| Disk/UVM physical reclaim | [15-cell results](workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/RESULTS.md) | Warm generation throughput: stock/native/BPF 73.575/68.608/65.423 token/s. Negative policy result; CPU-staged disk restore, not demonstrated GPU-direct P2P. |
+| Disk/UVM physical reclaim | [15-cell results](workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/RESULTS.md), [interpretation and limits](workloads/lmcache-disk/gds-control/physical-reclaim-performance-analysis-20260909.md) | Warm generation throughput: stock/native/BPF 73.575/68.608/65.423 token/s. Negative policy result; CPU-staged disk restore, not demonstrated GPU-direct P2P. |
 | XSched Level-2 host/device port | [Five-block results](workloads/xsched/raw/level2-device-policy-pair-20260909.buBjns/README.md) | 15 cells; BPF/native service-p99 paired median +13.51%. Same NVBit actuator, not original cuXtra artifact reproduction on sm_120. |
 | Hummingbird host/device | [Report](workloads/hummingbird/hostdev/results-performance-20260908.md) | Additional device path; keep negative and uncertain effects. |
 | Full-record device-buffer layout | [Warp-contiguous SoA report](workloads/llama.cpp/observability_overhead/revision-rq4/results-full-record-soa-warp-20260909.md) | Different full-record payload experiment; does not replace the Table-1 cohort. |
@@ -139,8 +144,8 @@ to fill optional diagnostics.
 
 ## Open items
 
-- Extend the portable CPU reanalysis beyond the two supplemental campaigns
-  above and complete the historic-cohort figure entrypoint.
+- Extend portable CPU reanalysis beyond the two supplemental campaigns and
+  two paper figures above; the complete paper is not yet a one-command rerun.
 - Check fresh-checkout build/run instructions per workload; a successful
   recorded run is not yet proof that all local build dependencies are published.
 - Recover the original agent-study transcripts from their author; present

@@ -44,3 +44,9 @@ large LC tail improvement with lower BE throughput; BPF/native LC p99 is
 about 0.98% higher. The reused native timing gap and enabled diagnostics
 remain limitations. These are partial-campaign observations, not the
 completed five-block result. The other four blocks continue unchanged.
+
+Global block 1 also completes all three arms and all worker exits zero:
+baseline/native/BPF LC service p99 is 2168.047584/769.950592/793.632992 ms;
+BE throughput is 10.199266/9.891486/9.874405 kernels/s. This second block
+retains the same tail/throughput tradeoff; BPF's LC p99 is higher than native.
+Six of fifteen cells are complete. The remaining three blocks continue.

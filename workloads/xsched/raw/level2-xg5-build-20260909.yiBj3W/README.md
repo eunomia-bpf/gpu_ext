@@ -22,3 +22,8 @@ xsched_guardian.ptx is the unchanged reused BPF export. Generated PTX is kept
 as build inspection output. The cubin remains local and is not required in Git.
 The old XG4 binary/results and all formal performance data remain unchanged.
 
+Follow-up at 05:53:52 PDT: link-tool.sh embeds this cubin with the existing
+fatbinary/carrier pipeline and links the unchanged tool object and NVBit
+library. It exits zero and produces a 3,153,248-byte xsched_guard_tool.so
+in this raw directory. The installed tool remains untouched. The host drain
+and real diagnostic execution are still pending; this is not runtime evidence.

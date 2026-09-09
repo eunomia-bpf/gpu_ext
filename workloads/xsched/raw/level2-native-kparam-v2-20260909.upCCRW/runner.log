@@ -1,0 +1,72 @@
+{
+  "phase": "level2-native-blob-run",
+  "scope": "sm_120 Level-2 native cuXtra blob route bring-up on the isolated native HAL install: GuardianSM120 serves the captured SASS arrays; no NVBit tool, no tool-entry accounting (not applicable); service-only metrics; the completed historical baseline is not rerun and no BPF raw-blob arm is run",
+  "config_order": [
+    "native_blob"
+  ],
+  "pair_blocks": 1,
+  "initial_run": false,
+  "streams": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "tasks_per_stream": 50,
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "fixed_delay_ns": 5000000,
+  "clock_offset_ns": 0,
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "worker_environments": {
+    "lc": {
+      "CUDA_HOME": "/usr/local/cuda-12.9",
+      "XSCHED_SCHEDULER": "GLB",
+      "XSCHED_AUTO_XQUEUE": "ON",
+      "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+      "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+      "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+      "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+      "XSCHED_CUDA_LV2_PORT_120": "1",
+      "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+      "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+      "XG_SERVICE_ONLY": "1",
+      "XG_NATIVE_META_EXTEND": "1",
+      "XG_NATIVE_META_KPARAM": "1"
+    },
+    "be": {
+      "CUDA_HOME": "/usr/local/cuda-12.9",
+      "XSCHED_SCHEDULER": "GLB",
+      "XSCHED_AUTO_XQUEUE": "ON",
+      "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+      "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+      "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+      "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+      "XSCHED_CUDA_LV2_PORT_120": "1",
+      "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+      "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+      "XG_SERVICE_ONLY": "1",
+      "XG_NATIVE_META_EXTEND": "1",
+      "XG_NATIVE_META_KPARAM": "1"
+    }
+  },
+  "paths": {
+    "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "workload_original_measured": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-output-20260908.66ppYl/priority_workload",
+    "xserver_native": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "native_hal_install_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install",
+    "hal_lib_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+    "guard_tool": null
+  }
+}
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 350, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 336, in main
+    record = run_native_cell(block, "paired", cell_dir, args.workload,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 141, in run_native_cell
+    running_events = [worker.wait_event("running") for worker in be_workers]
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 197, in wait_event
+    raise RuntimeError(
+RuntimeError: be1 exited -7 before running: [XSCHED INFO @ T 359868 @ 02:14:18.218161] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520; [XSCHED INFO @ T 359868 @ 02:14:18.218162] meta-extend: fatbin-cubin[0] KPARAM(V2) ordinal 0 offset 0x0 size 0x8 -> 0x1520 (declared launch extent 0x1520); [XSCHED INFO @ T 359868 @ 02:14:18.218163] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]; [XSCHED INFO @ T 359868 @ 02:14:18.218164] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520; [XSCHED INFO @ T 359868 @ 02:14:18.218164] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520; [XSCHED INFO @ T 359868 @ 02:14:18.218165] meta-extend: fatbin-cubin[1] KPARAM(V2) ordinal 4 offset 0x18 size 0x8 -> 0x1508 (declared launch extent 0x1520); [XSCHED INFO @ T 359868 @ 02:14:18.218166] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]; [XSCHED INFO @ T 359868 @ 02:14:18.218166] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x5f675158e058)

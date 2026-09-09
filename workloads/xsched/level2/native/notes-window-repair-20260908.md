@@ -249,3 +249,128 @@ log). Preserved: `xsched-native-window-args-relay.patch` (cf39c397,
 failed candidate: 16/16 immediate 701 under relay config),
 `xsched-native-launch-error-propagation.patch` (approved; published as
 patch commit 2b04ecaf in the diagnosis run lineage).
+
+### 5.3 KPARAM ordinal growth + original-argument marshaling (HX4CV3 causal response)
+
+Causal chain closed by root's driver-entry control (raw
+`level2-relay-size-control-20260909.HX4CV3/debug-driver.log` + control
+script): on the same installed binary (metadata=1, original entry), a
+GDB change of only the relay `CU_LAUNCH_PARAM BUFFER_SIZE` 0x1520 -> 0x20
+at the real driver `cuLaunchKernel` entry makes all 200 queued kernels
+launch ret 0, the BE complete and exit cleanly (outputs_validated
+17408000), while the unmodified relay 701s the first launch (kv7jHZ,
+NmlhJN). So the rejected quantity is the relay buffer/declared-extent
+relation, not entry redirection and not the CBANK patch. Conclusion:
+the driver checks the launch parameter buffer against the KPARAM-declared
+ordinal extent (0x20), which the CBANK-only patch did not raise.
+
+Compiler specimen (nvcc 12.9 sm_120, /tmp/kpspec, kernel with a
+0x1520-byte by-value parameter): large-parameter kernels carry
+EIATTR_KPARAM_INFO_V2 (id 0x45, fmt 4, paylen 12: u32 index, u16 ordinal,
+u16 offset, u16 plain_size, u16 attrs; attrs 0x0500 pointer / 0x0000
+scalar), small kernels of the same compilation keep legacy
+EIATTR_KPARAM_INFO (id 0x17: attrs 0xf500/0xf000, u16 size field ==
+size*4+1 on 5 observed records). The compiler sets CBANK_PARAM_SIZE ==
+PARAM_CBANK.psize == max ordinal end. The in-place rewrite therefore
+converts each legacy record to the V2 shape (same 16-byte slot, attrs
+high nibble cleared) and grows the max-end ordinal to 0x1520
+blob-relative (timer ord0 0x8 -> 0x1520; compute ord4 0x8 -> 0x1508 at
+offset 0x18; both fit the u16 plain-size field).
+
+Original-argument marshaling (HAL): after growth the loaded param table
+reports the grown size per ordinal, so the constructor deep copy and the
+relay blob fill would copy ~5 KiB from the app's own 8-byte argument
+pointer before any relay adoption. The extender now registers each grown
+kernel's ORIGINAL per-ordinal layout (ordinal-indexed, density-checked,
+keyed by the mangled name the section table carries, i.e. the string
+cuFuncGetName reports) and the HAL (cuda_command.cpp) marshals:
+
+  - constructor deep copy, kernelParams form: buffer size and per-ordinal
+    memcpy from the original layout;
+  - constructor deep copy, extra-buffer form: param pointer placement and
+    the buffer-range assert from the original layout;
+  - window-relay adoption: rel_param_end, blob fill and asserts from the
+    original layout (blob still padded to 0x1520 via the window branch).
+
+Plain non-relay launches marshal only original sizes. The lookup is
+dlsym("XgGetRelayOriginalParams") on the already-loaded shim (no hard
+link); without the shim or the knob the HAL falls back to loaded param
+info, and a registry/loaded disagreement falls back with a warning
+(count or last-offset cross-check). Registry is per-image memory, bounded
+64 kernels x 32 params, no eviction claim.
+
+Open dimensions for the build owner's run (not neutralized by this
+wiring): (1) plain kernelParams launches of grown kernels (e.g. the
+timer kernel outside the relay corridor) let the driver copy per-ordinal
+at the grown extent from wherever the pointers land - CBANK growth was
+already tolerated in NmlhJN, KPARAM growth of plain launches is the new
+untested dimension; (2) whether the driver's acceptance additionally
+depends on the .nv.constant0 section extent (compiler invariant
+constant0 size == param_start + max ordinal end; ours stay 0x3a0) - if
+the 701 persists after this repair, growing constant0 (section byte
+insertion + shdr/phdr relocations) is the deferred next knob.
+
+Verification this session (CPU only): both compile modes pass for the
+shim file and the HAL file (g++ -O2 and -O3 -DRELEASE_MODE -DNDEBUG
+-Wall -Wextra -Werror); local specimen test: both knobs patch the same
+six extent bytes as before plus the V2 conversion/growth and the
+registered layouts answer ordinal-dense {ordinal, offset, original size}
+for compute (5 params) and timer (1 param); EXTEND-only keeps records
+byte-identical (6-byte diff) and the query returns 0 (HAL fallback);
+wrapper/fatbin route answers the same registry through the nested
+container. Patch `xsched-native-meta-extend.patch` regenerated (h + c +
+i + NEW cuda_command.cpp sections, 1437 lines), applies clean on a
+pristine tree, applied bytes = live source for all four files, reverse
+application restores pristine.
+
+Delivery state: source READY for root build + real XSched native run under
+worker env XG_NATIVE_META_EXTEND=1 XG_NATIVE_META_KPARAM=1 (+ the
+corridor's existing relay/level2 flags). Build must re-run the cmake
+configure step before --build --target install (GLOB_RECURSE note
+above).
+
+### 5.4 Non-relay driver-side overread closure (root follow-up before the run)
+
+Defect: a deep copy with original sizes still leaves the ordinary
+(non-relay) launch reading the GROWN KPARAM extent from an original-sized
+allocation. In the deep-copy constructor the driver copies per-ordinal at
+the loaded (grown) sizes from params_[i] buffers owned by the command:
+the timer kernel's original 8-byte ordinal 0 would be read at the grown
+0x1520 extent, ~5 KiB past the original-end malloc. A plain passthrough
+launch is worse: the app's raw pointers go to the driver unchanged.
+
+Closure 1 - command-owned params (cuda_command.cpp ctor): the params
+buffer is now allocated at the LOADED (grown) extent (equal to the
+original extent when nothing is registered) and zero-filled via calloc;
+per-ordinal copies from the caller stay limited to the ORIGINAL sizes
+(marshal truth = original layout, alloc truth = loaded layout). The
+grown extent then reads back as zeroes in the pad: no out-of-bounds
+driver-side read, deterministic upload content. The extra-buffer form is
+unchanged (the driver copies the caller-declared BUFFER_SIZE bytes from
+extra_data_, so there is no extent mismatch on the read side).
+
+Closure 2 - plain passthrough corridor (shim.cpp): root's smaller option
+"preserve original KPARAM metadata" is not implementable at image-patch
+time - the extender cannot know which kernels will ride the relay and
+which launch plainly, so the timer cannot be excluded from growth
+there. The implemented closure is the other option, pad at the actual
+corridor: XLaunchKernel{,_ptsz} and XLaunchKernelEx{,_ptsz} now detect a
+grown kernel (registry name lookup, XgKernelGrown) and construct an
+owned deep copy instead of passing the app's raw pointers, for both the
+CHECK_STREAM fallback direct launch and the crafted command
+(XLaunchKernelImpl gained a force_deep_copy argument). Non-grown kernels
+keep the zero-cost passthrough; managed-stream launches were already
+deep-copy and are covered by closure 1. Relay/instrumented launches are
+unaffected (relay blob adoption under the launch mutex).
+
+Bypassing the ctor entirely (true raw passthrough) now exists only where
+no shim launch command is constructed at all: XLaunchKernelEx with a
+null config (the driver rejects the null config before any parameter
+copy) and legacy direct Driver:: calls outside the shim's launch
+entries. Neither reaches a parameter copy of grown extents inside our
+code.
+
+Compile-checked after the changes: window_meta_extend.cpp,
+cuda_command.cpp and shim.cpp all pass g++ -O2 and
+-O3 -DRELEASE_MODE -DNDEBUG -Wall -Wextra -Werror in the isolated tree.
+No new tests or gates were added.

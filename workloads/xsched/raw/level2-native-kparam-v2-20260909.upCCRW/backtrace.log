@@ -1,0 +1,133 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 362411 @ 02:17:16.568282] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 362414)]
+[New Thread 0x7ffff67fe000 (LWP 362415)]
+[New Thread 0x7ffff4ae1000 (LWP 362419)]
+[New Thread 0x7fffea5ff000 (LWP 362420)]
+[XSCHED INFO @ T 362411 @ 02:17:16.798412] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 362411 @ 02:17:16.798432] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 362422)]
+[New Thread 0x7ffddd7fe000 (LWP 362423)]
+[New Thread 0x7ffddcffd000 (LWP 362424)]
+[New Thread 0x7ffdb1fff000 (LWP 362425)]
+{"event":"ready","role":"be","process_id":1,"streams":4,"tasks":50}
+[XSCHED INFO @ T 362411 @ 02:17:16.800110] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520
+[XSCHED INFO @ T 362411 @ 02:17:16.800116] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520
+[XSCHED INFO @ T 362411 @ 02:17:16.800118] meta-extend: fatbin-cubin[0] KPARAM(V2) ordinal 0 offset 0x0 size 0x8 -> 0x1520 (declared launch extent 0x1520)
+[XSCHED INFO @ T 362411 @ 02:17:16.800120] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 362411 @ 02:17:16.800121] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520
+[XSCHED INFO @ T 362411 @ 02:17:16.800122] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520
+[XSCHED INFO @ T 362411 @ 02:17:16.800123] meta-extend: fatbin-cubin[1] KPARAM(V2) ordinal 4 offset 0x18 size 0x8 -> 0x1508 (declared launch extent 0x1520)
+[XSCHED INFO @ T 362411 @ 02:17:16.800124] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 362411 @ 02:17:16.800125] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x55555560e058)
+
+Thread 1 "priority_worklo" received signal SIGBUS, Bus error.
+0x00007ffff73172a5 in xsched::cuda::CudaKernelCommand::CudaKernelCommand(CUfunc_st*, void**, void**, bool) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+
+Thread 9 (Thread 0x7ffdb1fff000 (LWP 362425) "priority_worklo"):
+#0  0x00007ffff7098e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x5555565c0818) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x5555565c0818) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x5555565c0818, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff709b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x5555565c07c8, cond=0x5555565c07f0) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x5555565c07f0, mutex=0x5555565c07c8) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffff728f1f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007ffff7294fad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 8 (Thread 0x7ffddcffd000 (LWP 362424) "priority_worklo"):
+#0  0x00007ffff7098e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x5555565be5a8) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x5555565be5a8) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x5555565be5a8, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff709b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x5555565be558, cond=0x5555565be580) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x5555565be580, mutex=0x5555565be558) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffff728f1f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007ffff7294fad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 7 (Thread 0x7ffddd7fe000 (LWP 362423) "priority_worklo"):
+#0  0x00007ffff7098e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x5555565bc438) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x5555565bc438) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x5555565bc438, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff709b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x5555565bc3e8, cond=0x5555565bc410) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x5555565bc410, mutex=0x5555565bc3e8) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffff728f1f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007ffff7294fad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 6 (Thread 0x7ffdddfff000 (LWP 362422) "priority_worklo"):
+#0  0x00007ffff7098e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x5555565ba388) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x5555565ba388) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x5555565ba388, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff709b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x5555565ba338, cond=0x5555565ba360) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x5555565ba360, mutex=0x5555565ba338) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffff728f1f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007ffff7294fad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 5 (Thread 0x7fffea5ff000 (LWP 362420) "cuda-EvtHandlr"):
+#0  0x00007ffff711b5fd in __GI___poll (fds=0x7ffdd8000c20, nfds=10, timeout=29) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffea95f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007fffeaa4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 4 (Thread 0x7ffff4ae1000 (LWP 362419) "priority_worklo"):
+#0  0x00007ffff7098e51 in __futex_abstimed_wait_common64 (private=32767, cancel=true, abstime=0x7ffff4ade800, op=393, expected=0, futex_word=0x555555671928) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=32767, abstime=0x7ffff4ade800, clockid=0, expected=0, futex_word=0x555555671928) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x555555671928, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x7ffff4ade800, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff709bd6e in __pthread_cond_wait_common (abstime=0x7ffff4ade800, clockid=0, mutex=0x55555569d498, cond=0x555555671900) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_timedwait64 (cond=0x555555671900, mutex=0x55555569d498, abstime=0x7ffff4ade800) at ./nptl/pthread_cond_wait.c:652
+#5  0x00007fffea8bb35a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#6  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#7  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#8  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 3 (Thread 0x7ffff67fe000 (LWP 362415) "cuda00001c00008"):
+#0  0x00007ffff711b5fd in __GI___poll (fds=0x555555642e80, nfds=3, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffea95f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007fffeaa4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 2 (Thread 0x7ffff6fff000 (LWP 362414) "priority_worklo"):
+#0  0x00007ffff712c64d in __libc_msgrcv (msgflg=0, msgtyp=<optimized out>, msgsz=16384, msgp=0x7ffff0000e10, msqid=98333) at ../sysdeps/unix/sysv/linux/msgrcv.c:26
+#1  __libc_msgrcv (msqid=98333, msgp=0x7ffff0000e10, msgsz=16384, msgtyp=0, msgflg=0) at ../sysdeps/unix/sysv/linux/msgrcv.c:22
+#2  0x00007ffff72d7293 in msgq::MessageQueue::Receive() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#3  0x00007ffff72cd8df in ipc::Node::Receive() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#4  0x00007ffff72b8abc in xsched::sched::GlobalScheduler::Worker() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#5  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#6  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 1 (Thread 0x7ffff7f7e000 (LWP 362411) "priority_worklo"):
+#0  0x00007ffff73172a5 in xsched::cuda::CudaKernelCommand::CudaKernelCommand(CUfunc_st*, void**, void**, bool) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#1  0x00007ffff73cf315 in cudaError_enum xsched::cuda::XLaunchKernelImpl<xsched::cuda::CudaKernelLaunchCommand, CUfunc_st*&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, void**&, void**&>(CUstream_st*, bool, CUfunc_st*&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, void**&, void**&) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+#2  0x00007ffff73cb1a0 in xsched::cuda::XLaunchKernel(CUfunc_st*, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, CUstream_st*, void**, void**) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+#3  0x00005555555658a6 in libcudart_static_4d8b33a106dceb3c07a56e26de61f2d53bb62a68 ()
+#4  0x00005555555ceb03 in cudaLaunchKernel ()
+#5  0x000055555555d43e in main ()
+=> 0x7ffff73172a5 <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+997>:	mov    -0x140(%rbp,%rax,8),%rsi
+   0x7ffff73172ad <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1005>:	add    -0x240(%rbp,%rax,8),%rsi
+   0x7ffff73172b5 <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1013>:	call   0x7ffff73043b0 <calloc@plt>
+   0x7ffff73172ba <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1018>:	cmpq   $0x0,0x118(%r15)
+   0x7ffff73172c2 <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1026>:	mov    %rax,0x120(%r15)
+   0x7ffff73172c9 <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1033>:	je     0x7ffff73171c0 <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+768>
+   0x7ffff73172cf <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1039>:	xor    %ecx,%ecx
+   0x7ffff73172d1 <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1041>:	jmp    0x7ffff73172df <_ZN6xsched4cuda17CudaKernelCommandC2EP9CUfunc_stPPvS5_b+1055>

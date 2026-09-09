@@ -48,6 +48,26 @@
 # registered layout disagrees with the loaded param table (count or last
 # offset), the HAL falls back to loaded param info and logs a warning.
 #
+# FOURTH PIECE - NON-RELAY DRIVER-SIDE OVERREAD CLOSURE. Correct original
+# host copies are not enough: an ordinary (non-relay) launch lets the
+# DRIVER copy per-ordinal at the loaded (grown) sizes. Command-owned
+# params (constructor deep copy) now allocate the LOADED (grown) extent,
+# zero-filled (calloc), and copy only the ORIGINAL per-ordinal bytes, so
+# the driver's grown-extent read lands in zeroed pad inside the
+# allocation instead of ~5 KiB past an original-end malloc (this is what
+# a plain level-0/1 launch of the 8-byte timer argument would do).
+# Plain passthrough launches (app's raw pointers; the CHECK_STREAM
+# fallback and the no-XQueue direct launch in shim.cpp) construct an
+# owned deep copy when the kernel's ordinal table was grown
+# (XgKernelGrown: registry name lookup); non-grown kernels keep the
+# zero-cost passthrough. Preserving original KPARAM metadata for the
+# timer instead (do not grow at all) is not implementable at image-patch
+# time: the extender cannot know which kernels ride the relay, so
+# corridor padding is the chosen smaller measure. True raw passthrough
+# remains only for XLaunchKernelEx with a null config (driver rejects
+# the null config before any parameter copy) and direct Driver:: calls
+# outside the shim's launch entries.
+#
 # Module images may also arrive wrapped in the CUDA runtime fatbin wrapper
 # (__fatBinC_Wrapper_t from fatbinary_section.h: magic 0x466243b1, version
 # 1, whose data field points at the real container). Static cudart passes
@@ -1155,6 +1175,114 @@
  DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryLoadFromFile, CUresult, cuLibraryLoadFromFile, CUlibrary *, library, const char *, fileName, CUjit_option *, jitOptions, void **, jitOptionsValues, unsigned int, numJitOptions, CUlibraryOption *, libraryOptions, void **, libraryOptionValues, unsigned int, numLibraryOptions);
  DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryUnload, CUresult, cuLibraryUnload, CUlibrary, library);
  DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryGetKernel, CUresult, cuLibraryGetKernel, CUkernel *, pKernel, CUlibrary, library, const char *, name);
+--- a/platforms/cuda/shim/src/shim.cpp
++++ b/platforms/cuda/shim/src/shim.cpp
+@@ -20,6 +20,37 @@
+ namespace xsched::cuda
+ {
+ 
++// Grown-kernel detection for launch corridors that bypass the command
++// ownership (plain passthrough with the app's raw parameter pointers).
++// With the shim's opt-in KPARAM growth (XG_NATIVE_META_KPARAM), an
++// ordinary kernelParams launch makes the DRIVER copy per-ordinal at the
++// loaded (grown) sizes, which would read past the app's original-sized
++// argument storage (e.g. the 8-byte timer argument vs the 0x1520 grown
++// extent). For kernels whose ordinal table was grown, the passthrough
++// corridors therefore construct an owned deep copy instead - the
++// CudaKernelCommand constructor zero-fills the grown extent and copies
++// only the original per-ordinal bytes (cuda_command.cpp). Non-grown
++// kernels keep the zero-cost passthrough. Relay/instrumented launches
++// are unaffected (they adopt the relay blob under the launch mutex).
++extern "C" int XgGetRelayOriginalParams(const char *kernel_name,
++                                        unsigned int *ordinals,
++                                        unsigned int *offsets,
++                                        unsigned int *sizes,
++                                        size_t max_entries,
++                                        size_t *out_entries);
++
++static bool XgKernelGrown(CUfunction f)
++{
++    const char *name = nullptr;
++    if (Driver::FuncGetName(&name, f) != CUDA_SUCCESS || name == nullptr) return false;
++    unsigned int ordinals[32];
++    unsigned int offsets[32];
++    unsigned int sizes[32];
++    size_t cnt = 0;
++    if (XgGetRelayOriginalParams(name, ordinals, offsets, sizes, 32, &cnt) != 1) return false;
++    return cnt != 0;
++}
++
+ static utils::ObjectMap<CUevent, std::shared_ptr<CudaEventRecordCommand>> g_events;
+ 
+ CUstream GetPTDS()
+@@ -119,10 +150,11 @@
+ }
+ 
+ template <typename CmdT, typename... Args>
+-CUresult XLaunchKernelImpl(CUstream stream, Args&&... args)
++CUresult XLaunchKernelImpl(CUstream stream, bool force_deep_copy, Args&&... args)
+ {
+     auto xq = HwQueueManager::GetXQueue(GetHwQueueHandle(stream));
+-    auto kernel = std::make_shared<CmdT>(std::forward<Args>(args)..., xq != nullptr);
++    auto kernel = std::make_shared<CmdT>(std::forward<Args>(args)...,
++                                         xq != nullptr || force_deep_copy);
+     if (xq == nullptr) return DirectLaunch(kernel, stream);
+     xq->Submit(kernel);
+     return CUDA_SUCCESS;
+@@ -136,10 +168,11 @@
+     XDEBG("XLaunchKernel(func: %p, stream: %p, grid: [%u, %u, %u], block: [%u, %u, %u], "
+           "shm: %u, params: %p, extra: %p)", f, stream, gdx, gdy, gdz, bdx, bdy, bdz,
+           shmem, params, extra);
++    bool grown = XgKernelGrown(f);
+     CHECK_STREAM(stream, DirectLaunch(std::make_shared<CudaKernelLaunchCommand>(
+-        f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra, false), stream));
++        f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra, grown), stream));
+     return XLaunchKernelImpl<CudaKernelLaunchCommand>(
+-        stream, f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra);
++        stream, grown, f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra);
+ }
+ 
+ CUresult XLaunchKernel_ptsz(CUfunction f,
+@@ -150,10 +183,11 @@
+     XDEBG("XLaunchKernel_ptsz(func: %p, stream: %p, grid: [%u, %u, %u], block: [%u, %u, %u], "
+           "shm: %u, params: %p, extra: %p)", f, stream, gdx, gdy, gdz, bdx, bdy, bdz,
+           shmem, params, extra);
++    bool grown = XgKernelGrown(f);
+     CHECK_STREAM_PTSZ(stream, DirectLaunch(std::make_shared<CudaKernelLaunchCommand>(
+-        f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra, false), stream));
++        f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra, grown), stream));
+     return XLaunchKernelImpl<CudaKernelLaunchCommand>(
+-        stream, f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra);
++        stream, grown, f, gdx, gdy, gdz, bdx, bdy, bdz, shmem, params, extra);
+ }
+ 
+ CUresult XLaunchKernelEx(const CUlaunchConfig *config, CUfunction f, void **params, void **extra)
+@@ -167,9 +201,10 @@
+           config, f, params, extra, config->hStream);
+ 
+     CUlaunchConfig cfg = *config;
++    bool grown = XgKernelGrown(f);
+     CHECK_STREAM(cfg.hStream, DirectLaunch(std::make_shared<CudaKernelLaunchExCommand>(
+-        &cfg, f, params, extra, false), cfg.hStream));
+-    return XLaunchKernelImpl<CudaKernelLaunchExCommand>(cfg.hStream, &cfg, f, params, extra);
++        &cfg, f, params, extra, grown), cfg.hStream));
++    return XLaunchKernelImpl<CudaKernelLaunchExCommand>(cfg.hStream, grown, &cfg, f, params, extra);
+ }
+ 
+ CUresult XLaunchKernelEx_ptsz(const CUlaunchConfig *config, CUfunction f, void **params, void **extra)
+@@ -183,9 +218,10 @@
+           config, f, params, extra, config->hStream);
+ 
+     CUlaunchConfig cfg = *config;
++    bool grown = XgKernelGrown(f);
+     CHECK_STREAM_PTSZ(cfg.hStream, DirectLaunch(std::make_shared<CudaKernelLaunchExCommand>(
+-        &cfg, f, params, extra, false), cfg.hStream));
+-    return XLaunchKernelImpl<CudaKernelLaunchExCommand>(cfg.hStream, &cfg, f, params, extra);
++        &cfg, f, params, extra, grown), cfg.hStream));
++    return XLaunchKernelImpl<CudaKernelLaunchExCommand>(cfg.hStream, grown, &cfg, f, params, extra);
+ }
+ 
+ static inline CUresult XLaunchHostFuncImpl(CUstream stream, CUhostFn fn, void *data)
 --- a/platforms/cuda/hal/src/common/cuda_command.cpp
 +++ b/platforms/cuda/hal/src/common/cuda_command.cpp
 @@ -1,4 +1,5 @@
@@ -1256,7 +1384,7 @@
  CudaCommand::CudaCommand(preempt::XCommandProperties props)
      : HwCommand(GetCudaLv3Implementation() == kCudaLv3ImplementationTsg
                  ? props | preempt::kCommandPropertyDeactivatable : props)
-@@ -73,19 +160,25 @@
+@@ -73,19 +160,38 @@
      deep_copy_ = true;
      params_ = (void **)malloc(param_cnt_ * sizeof(void *));
  
@@ -1267,41 +1395,57 @@
 +    // deep-copy truth; plain, non-relay launches never marshal grown
 +    // sizes with this wiring).
 +    XgParamLayout layout;
-+    if (!GetXgOriginalLayout(kFuncHandle, param_cnt_, &layout))
-+        GetLoadedLayout(kFuncHandle, param_cnt_, &layout);
++    bool have_orig = GetXgOriginalLayout(kFuncHandle, param_cnt_, &layout);
++    // marshal truth = original layout when registered; the alloc extent
++    // comes from the loaded (grown) layout, which equals the original
++    // one when no growth is registered
++    XgParamLayout alloc_layout;
++    if (have_orig) GetLoadedLayout(kFuncHandle, param_cnt_, &alloc_layout);
++    else alloc_layout = layout;
++    XgParamLayout &marshal = layout;
++    XgParamLayout &alloc = alloc_layout;
 +
      if (params != nullptr) {
-         // Allocate a continuous buffer for all of the params
-         // buffer size = last param offset + last param size
+-        // Allocate a continuous buffer for all of the params
+-        // buffer size = last param offset + last param size
 -        size_t last_offset, last_size;
 -        cuXtraGetParamInfo(kFuncHandle, param_cnt_ - 1, &last_offset, &last_size, nullptr);
 -        size_t buffer_size = last_offset + last_size;
-+        size_t buffer_size = layout.offset[layout.count - 1] + layout.size[layout.count - 1];
-         param_data_ = (char *)malloc(buffer_size);
+-        param_data_ = (char *)malloc(buffer_size);
++        // Allocate a continuous buffer for all of the params. The buffer
++        // covers the LOADED (grown) extent and is zero-filled: an
++        // ordinary (non-relay) launch lets the driver copy per-ordinal
++        // at the loaded (grown) sizes, so with the opt-in KPARAM growth
++        // the driver-side per-ordinal copy would read past an
++        // original-sized allocation. Copies from the caller stay limited
++        // to the ORIGINAL per-ordinal sizes; the zeroed pad is what the
++        // grown extent contributes to the upload.
++        size_t buffer_size = alloc.offset[alloc.count - 1] + alloc.size[alloc.count - 1];
++        param_data_ = (char *)calloc(1, buffer_size);
  
          for (size_t i = 0; i < param_cnt_; ++i) {
 -            size_t offset, size;
 -            cuXtraGetParamInfo(kFuncHandle, i, &offset, &size, nullptr);
 -            params_[i] = (void*)&param_data_[offset];
 -            memcpy(params_[i], params[i], size);
-+            params_[i] = (void*)&param_data_[layout.offset[i]];
-+            memcpy(params_[i], params[i], layout.size[i]);
++            params_[i] = (void*)&param_data_[marshal.offset[i]];
++            memcpy(params_[i], params[i], marshal.size[i]);
          }
      } else if (extra != nullptr) {
          // Get extra buffer and its size from extra map.
-@@ -109,18 +202,18 @@
+@@ -109,18 +215,18 @@
  
          // Set params_ to point to extra_data_.
          for (size_t i = 0; i < param_cnt_; ++i) {
 -            size_t offset, size;
 -            cuXtraGetParamInfo(kFuncHandle, i, &offset, &size, nullptr);
 -            XASSERT(offset + size <= extra_buffer_size_,
-+            XASSERT(layout.offset[i] + layout.size[i] <= extra_buffer_size_,
++            XASSERT(marshal.offset[i] + marshal.size[i] <= extra_buffer_size_,
                      "extra[%zu] out of range: offset (%zu) + size (%zu) > buffer size (%zu)",
 -                    i, offset, size, extra_buffer_size_);
 -            params_[i] = (void*)&extra_data_[offset];
-+                    i, layout.offset[i], layout.size[i], extra_buffer_size_);
-+            params_[i] = (void*)&extra_data_[layout.offset[i]];
++                    i, marshal.offset[i], marshal.size[i], extra_buffer_size_);
++            params_[i] = (void*)&extra_data_[marshal.offset[i]];
          }
      }
  }
@@ -1313,7 +1457,7 @@
      if (!deep_copy_) return;
      if (param_data_) free(param_data_);
      if (extra_data_) free(extra_data_);
-@@ -128,6 +221,121 @@
+@@ -128,6 +234,121 @@
      if (extra_) free(extra_);
  }
  

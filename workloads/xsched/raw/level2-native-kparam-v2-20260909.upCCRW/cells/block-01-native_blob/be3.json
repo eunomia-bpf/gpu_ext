@@ -1,0 +1,51 @@
+{
+  "name": "be3",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "be",
+    "3",
+    "4",
+    "50",
+    "9511106",
+    "340",
+    "256",
+    "1",
+    "0"
+  ],
+  "returncode": -7,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":3,\"streams\":4,\"tasks\":50}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 359874 @ 02:14:17.452711] using global scheduler",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.209001] native-700 probe 1: resume blob VA 0x75b788600000 size 336, syncing",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.209009] native-700 probe 1: resume blob copy synced clean",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218157] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218161] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218162] meta-extend: fatbin-cubin[0] KPARAM(V2) ordinal 0 offset 0x0 size 0x8 -> 0x1520 (declared launch extent 0x1520)",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218164] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218164] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218165] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218165] meta-extend: fatbin-cubin[1] KPARAM(V2) ordinal 4 offset 0x18 size 0x8 -> 0x1508 (declared launch extent 0x1520)",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218166] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]",
+    "[XSCHED INFO @ T 359874 @ 02:14:18.218167] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x604d69e26058)"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "XSCHED_SCHEDULER": "GLB",
+    "XSCHED_AUTO_XQUEUE": "ON",
+    "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+    "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+    "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+    "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+    "XSCHED_CUDA_LV2_PORT_120": "1",
+    "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+    "XG_SERVICE_ONLY": "1",
+    "XG_NATIVE_META_EXTEND": "1",
+    "XG_NATIVE_META_KPARAM": "1"
+  }
+}

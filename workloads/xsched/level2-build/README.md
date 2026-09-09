@@ -1,5 +1,16 @@
 # XSched Level-2 component build (bounded)
 
+Current status (2026-09-09): the NVBit-actuator policy port has
+[15 completed measurements](../raw/level2-device-policy-pair-20260909.buBjns/README.md).
+The [canonical host-tool rebuild](../raw/canonical-tool-build-20260909.MnNeOe/README.md)
+completed using this Makefile and the existing measured device carrier.
+That isolated rebuild is not a fresh build of the entire device pipeline or
+a new timing run. The original cuXtra path remains unfinished. Start with the
+[source status](../level2/README.md) and [artifact guide](../../../ARTIFACT.md)
+before following the original component notes below.
+
+## Historical source-preparation notes
+
 Status: **SOURCE PREPARATION / UNBUILT.** The root session has not built this
 Makefile yet. Nothing in `.output/` exists until it does; no output, artifact,
 or benchmark number is claimed or fabricated in this directory, and the

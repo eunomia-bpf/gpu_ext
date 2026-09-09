@@ -11,7 +11,7 @@ This folder documents reproduction; it does not contain the manuscript.
 | Recalculate existing measurements | [Reanalysis reference](reanalysis.md) | CPU-only statistics from 70 published cell summaries across four campaigns. |
 | Regenerate the two supported paper figures | [Figure instructions](../../ARTIFACT.md#cpu-only-reproduction) | New output files outside the manuscript; no GPU run. |
 | Prepare Table 1 tools and runtime | [Runtime dependency map](table1-runtime.md), [fresh runtime build record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/runtime-published-build-20260909.IktLa7/README.md) | Tool and runtime-library builds, remaining execution dependencies and measured cohort definitions. |
-| Build/run XSched Level-2 | [Build instructions](../../workloads/xsched/level2-build/README.md), [runner instructions](../../workloads/xsched/level2/README.md) | Separate shared-actuator policy ports from original-actuator bring-up. |
+| Build/run XSched Level-2 | [Native runtime guide](xsched-native-runtime.md), [shared-actuator runner](../../workloads/xsched/level2/README.md) | Separate shared-actuator policy ports from original-actuator bring-up. |
 | Build components or find LMCache disk experiments | [LMCache runtime guide](lmcache-runtime.md) | Published-source build, storage-request latency versus serving throughput, and remaining runtime dependencies. |
 
 ## Where material belongs

@@ -71,3 +71,21 @@ xserver-layout.log retain the exact second observation. It uses the same
 frozen binary, workload/environment, shared leases and deliberate post-snapshot
 exit. No throughput measurement or completed native Level-2 run is claimed.
 
+## Matched original-entry control: first launch still returns 701
+
+At 06:07:54 PDT, the same installed efb36b2c binary, META_EXTEND=1 and
+META_KPARAM=1 were used with the existing ORIGINAL_ENTRY_CONTROL=1 option.
+The first CudaCommand::LaunchWrapper returned 0x2bd (CUDA error 701).
+GDB did not modify the launch buffer or target memory; it exited after this
+first return. This is not a completed workload or a throughput measurement.
+
+Unlike the older HX4CV3 shortened-buffer control, this observation retains
+META_KPARAM=1. Switching to the original entry does not by itself eliminate
+the current first-launch rejection. The common extended metadata and launch
+parameter path remain under investigation; this result does not establish
+which field causes the rejection.
+
+run-original-launch.sh, load-original-launch.gdb, original-launch.log,
+original-launch-lifecycle.log and xserver-original-launch.log preserve this
+observation. Both shared leases and the existing xserver cleanup trap were
+used; no driver reload was required.

@@ -1,0 +1,47 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+Function "xsched::cuda::CudaKernelCommand::AdoptWindowRelayExtra(void const*)" not defined.
+Breakpoint 1 ('xsched::cuda::CudaKernelCommand::AdoptWindowRelayExtra(void const*)') pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 635730 @ 06:07:53.978334] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 635733)]
+[New Thread 0x7ffff67fe000 (LWP 635734)]
+[New Thread 0x7ffff4ae1000 (LWP 635738)]
+[New Thread 0x7fffea5ff000 (LWP 635739)]
+[XSCHED INFO @ T 635730 @ 06:07:54.215924] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 635730 @ 06:07:54.215945] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 635740)]
+[New Thread 0x7ffddd7fe000 (LWP 635741)]
+[New Thread 0x7ffddcffd000 (LWP 635742)]
+[New Thread 0x7ffdb1fff000 (LWP 635743)]
+{"event":"ready","role":"be","process_id":2,"streams":4,"tasks":50}
+[XSCHED INFO @ T 635730 @ 06:07:54.226687] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520
+[XSCHED INFO @ T 635730 @ 06:07:54.226693] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520
+[XSCHED INFO @ T 635730 @ 06:07:54.226695] meta-extend: fatbin-cubin[0] KPARAM(V2) ordinal 0 offset 0x0 size 0x8 -> 0x1520 (declared launch extent 0x1520)
+[XSCHED INFO @ T 635730 @ 06:07:54.226697] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 635730 @ 06:07:54.226698] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520
+[XSCHED INFO @ T 635730 @ 06:07:54.226699] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520
+[XSCHED INFO @ T 635730 @ 06:07:54.226700] meta-extend: fatbin-cubin[1] KPARAM(V2) ordinal 4 offset 0x18 size 0x8 -> 0x1508 (declared launch extent 0x1520)
+[XSCHED INFO @ T 635730 @ 06:07:54.226701] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 635730 @ 06:07:54.226702] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x55555560e058)
+[XSCHED INFO @ T 635730 @ 06:07:54.236372] native-700 probe 3: binary kernel=1408 B guardian=640 B ep_inst=0x7ffdb6600200 regs=16->32 barriers=1->1
+[XSCHED INFO @ T 635741 @ 06:07:54.236647] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 635741 @ 06:07:54.236661] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[Switching to Thread 0x7ffddd7fe000 (LWP 635741)]
+
+Thread 7 "priority_worklo" hit Breakpoint 1, 0x00007ffff7313a30 in xsched::cuda::CudaKernelCommand::AdoptWindowRelayExtra(void const*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+Temporary breakpoint 2 at 0x7ffff7312280
+
+Thread 7 "priority_worklo" hit Temporary breakpoint 2, 0x00007ffff7312280 in xsched::cuda::CudaCommand::LaunchWrapper(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#0  0x00007ffff7312280 in xsched::cuda::CudaCommand::LaunchWrapper(CUstream_st*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#1  0x00007ffff732396e in xsched::cuda::InstrumentContext::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, xsched::cuda::LaunchType) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#2  0x00007ffff7325b30 in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#3  0x00007ffff7321dbf in xsched::cuda::CudaQueueLv2::Launch(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#4  0x00007ffff7292cf2 in xsched::preempt::LaunchWorker::LaunchHwCommand(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+0x00007ffff732396e in xsched::cuda::InstrumentContext::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, xsched::cuda::LaunchType) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+$1 = 0x2bd

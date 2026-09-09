@@ -574,7 +574,8 @@ def server_environment(config: str, cache_dir: Path,
 
 def server_argv(config: str, model_path: Path, port: int | str,
                 max_num_seqs: int | None = None,
-                kv_cache_memory_bytes: int | None = None) -> list[str]:
+                kv_cache_memory_bytes: int | None = None,
+                shutdown_timeout: int | None = None) -> list[str]:
     argv = [str(VLLM), "serve", str(model_path), "--served-model-name", MODEL_ID,
             "--enforce-eager", "--max-model-len", "4096", "--gpu-memory-utilization", "0.98",
             "--max-num-seqs", str("1" if max_num_seqs is None else max_num_seqs),
@@ -585,6 +586,8 @@ def server_argv(config: str, model_path: Path, port: int | str,
         )])
     if kv_cache_memory_bytes is not None:
         argv.extend(["--kv-cache-memory-bytes", str(kv_cache_memory_bytes)])
+    if shutdown_timeout is not None:
+        argv.extend(["--shutdown-timeout", str(shutdown_timeout)])
     return argv
 
 
@@ -592,9 +595,11 @@ def start_server(config: str, model_path: Path, cache_dir: Path, port: int, log_
                  trace_dir: Path | None = None, expected_driver: str = EXPECTED_DRIVER,
                  uvm_weights: dict[str, str] | None = None,
                  max_num_seqs: int | None = None,
-                 kv_cache_memory_bytes: int | None = None):
+                 kv_cache_memory_bytes: int | None = None,
+                 shutdown_timeout: int | None = None):
     argv = server_argv(config, model_path, port, max_num_seqs=max_num_seqs,
-                       kv_cache_memory_bytes=kv_cache_memory_bytes)
+                       kv_cache_memory_bytes=kv_cache_memory_bytes,
+                       shutdown_timeout=shutdown_timeout)
     launch = list(argv)
     if trace_dir is not None:
         trace_dir = trace_dir.resolve()

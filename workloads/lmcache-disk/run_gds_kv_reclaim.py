@@ -667,7 +667,8 @@ def run_cell(arm: str, block: int, position: int, run_dir: Path, port: int,
                 "lmcache_disk", model_path, cache_dir, port, log_path,
                 expected_driver=expected_driver,
                 max_num_seqs=MAX_NUM_SEQS,
-                kv_cache_memory_bytes=kv_cache_memory_bytes)
+                kv_cache_memory_bytes=kv_cache_memory_bytes,
+                shutdown_timeout=30 if disk_uvm else None)
         except FileExistsError:
             raise ops.GateError(
                 "server log already exists; this cell would not be a first "

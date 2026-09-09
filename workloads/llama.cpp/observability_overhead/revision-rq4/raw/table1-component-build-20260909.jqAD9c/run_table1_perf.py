@@ -479,11 +479,6 @@ def run_build_only(args: argparse.Namespace) -> int:
         )
     else:
         tool_dirs, nvbit_tool = build_tools(args, output_dir)
-    built = (
-        "gpubpf tools and the NVBit tool"
-        if nvbit_tool is not None
-        else "gpubpf tool"
-    )
     record: dict[str, Any] = {
         "kind": f"{KIND}_build_only",
         "build_only": True,
@@ -508,7 +503,7 @@ def run_build_only(args: argparse.Namespace) -> int:
         },
         "nvbit_tool": str(nvbit_tool) if nvbit_tool is not None else None,
         "note": (
-            f"component preparation only: {built} built; "
+            "component preparation only: gpubpf tools and NVBit tool built; "
             "no probe loader, syscall server, or benchmark was run"
         ),
     }

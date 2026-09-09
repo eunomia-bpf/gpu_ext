@@ -3,8 +3,11 @@
 Navigation for reproducing the current RTX 5090 Table 1 prefill token/s loss
 results. Companion to [reanalysis.md](reanalysis.md) (CPU-only statistics) and
 [ARTIFACT.md](../../ARTIFACT.md). It maps component ownership, build/run
-entrypoints, measured shapes, recorded revisions, and fresh-checkout gaps. It
-claims no GPU run, build, or new experiment.
+entrypoints, measured shapes, recorded revisions, and fresh-checkout gaps. This
+document itself claims no new GPU run, measurement, or experiment; its only
+build reference is the [component-only build
+record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/table1-component-build-20260909.jqAD9c/README.md)
+linked below, which is retained build evidence, not a Table 1 measurement.
 
 ## Measured quantity (do not extend)
 
@@ -55,6 +58,31 @@ claims no GPU run, build, or new experiment.
   SEC target, `make -j8 CUDA_HOME=/usr/local/cuda-12.9
   BPFTOOL=/usr/local/sbin/bpftool`, and symlink `kernelretsnoop ->
   onevalue-array` so the unmodified runner can use it.
+- Component-only preparation (no probes, no benchmarks). Run from the repo
+  root, replacing the quoted placeholders:
+
+  ```sh
+  python3 workloads/llama.cpp/observability_overhead/revision-rq4/run_table1_perf.py \
+      --build-only \
+      --output-dir "NEW_OUTPUT_DIR" \
+      --bpftime-root "BPFTIME_CHECKOUT" \
+      --bpftime-build-dir "BPFTIME_CHECKOUT/build-table1-575-warp" \
+      --nvbit-root "NVBIT_1_8_RELEASE_ROOT"
+  ```
+
+  `--nvbit-root` is optional (default: the pinned release under
+  `revision-rq4/deps`). The command builds the three gpubpf example tools and
+  the NVBit `observability.so` into `NEW_OUTPUT_DIR`, records a compact
+  `NEW_OUTPUT_DIR/prepared-tools.json` (resolved tool paths, mode, roots),
+  and returns before any probe loader, syscall server, or benchmark; it
+  refuses an existing nonempty `NEW_OUTPUT_DIR` and deletes nothing. The first
+  actual run is retained in
+  [raw/table1-component-build-20260909.jqAD9c](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/table1-component-build-20260909.jqAD9c/README.md):
+  all four components built on this host (exit zero) against the **existing**
+  `build-table1-575-warp` tree and local NVBit 1.8 release. That record is
+  existing-host component-build evidence, not a full fresh bpftime runtime or
+  llama.cpp rebuild. Remaining gap: the command does **not** build the
+  bpftime runtime (agent/syscall-server) or the llama.cpp binary/model.
 - The `build-table1-575-warp` tree is Debug with `BPFTIME_ENABLE_CUDA_ATTACH=ON`,
   `BPFTIME_LLVM_JIT=ON`, `ENABLE_EBPF_VERIFIER=ON`, `BPFTIME_UBPF_JIT=ON`,
   CUDA 12.9, LLVM 15. Measured envs: kernelretsnoop timing 524288 slots ×
@@ -74,7 +102,9 @@ runs overrode. `--model` (default the TinyLlama gguf), `--llama-bench`
 `--blocks 10`, `--probe-startup-s` (default 3; onevalue runs used 20 after
 the cuInit-recursion fix), `--gpu-thread-count` (default 22528),
 `--threadhist-gpu-thread-count 1048576`, `--n-gpu-layers 99`, `--uvm`,
-`--no-warmup`. The model is a download, not in git.
+`--no-warmup`, `--build-only` (stop after the component build; see the
+entrypoint above), and `--nvbit-root` (NVBit release root override; default
+`revision-rq4/deps/nvbit_release_x86_64`). The model is a download, not in git.
 
 ## Measured shape and statistics (preserved)
 
@@ -164,5 +194,6 @@ the cuInit-recursion fix), `--gpu-thread-count` (default 22528),
 ## Retained source / raw records
 
 - [06 campaign](../../workloads/llama.cpp/observability_overhead/revision-rq4/results-table1-warp-plt-575-06/README.md) (`cells.json`, `summary.json`, per-cell `probe-execution.json`)
+- [component-only build record](../../workloads/llama.cpp/observability_overhead/revision-rq4/raw/table1-component-build-20260909.jqAD9c/README.md) (`build.sh`, per-component build logs, `prepared-tools.json`, runner source captures)
 - [onevalue campaign](../../workloads/llama.cpp/observability_overhead/revision-rq4/results-onevalue-array-bootstrap-575-20260907/README.md) (`cells.json`, `summary.json`, per-cell `probe.log`/`agent.log`)
 - [onevalue build/measurement record](../../workloads/llama.cpp/observability_overhead/revision-rq4/onevalue-array-candidate/build-and-measurement.md), [runtime facts](../../workloads/llama.cpp/observability_overhead/revision-rq4/device-array-runtime-notes.md), [NVBit adapters](../../workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/README.md), [runtime-575 overlays](../../workloads/llama.cpp/observability_overhead/revision-rq4/runtime-575/README.md), [harness README](../../workloads/llama.cpp/observability_overhead/README.md)

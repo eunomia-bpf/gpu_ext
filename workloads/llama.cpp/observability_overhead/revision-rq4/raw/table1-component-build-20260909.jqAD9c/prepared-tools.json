@@ -1,0 +1,43 @@
+{
+  "kind": "table1_perf_build_only",
+  "build_only": true,
+  "mode": "seven_arm_default",
+  "source_contract": "legacy_runner_prepared_kernelretsnoop_capacity_patched",
+  "arms": [
+    "baseline",
+    "gpubpf_kernelretsnoop",
+    "nvbit_kernelretsnoop",
+    "gpubpf_threadhist",
+    "nvbit_threadhist",
+    "gpubpf_launchlate",
+    "nvbit_launchlate"
+  ],
+  "blocks": 10,
+  "pp": 512,
+  "tg": 0,
+  "model": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+  "llama_bench": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/llama-bench",
+  "bpftime_root": "/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt",
+  "bpftime_build_dir": "/home/yunwei37/workspace/gpu/bpftime-table1-hostfix-plt/build-table1-575-warp",
+  "target_symbol": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+  "uprobe_binary": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/build-ptx-1b/bin/libggml-cuda.so.0.9.4",
+  "uprobe_symbol_hint": "_Z9rope_normILb1ELb0Ef6__halfEvPKT1_PT2_iiiiiPKifff14rope_corr_dimsfPKfPKli",
+  "nvbit_root": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64",
+  "nvbit_source_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/llama.cpp/observability_overhead/revision-rq4/nvbit_adapters/observability",
+  "tools": {
+    "kernelretsnoop": {
+      "source_dir": "/tmp/gpubpf-table1-components-20260909.JPYk6U/gpubpf_tool_build/kernelretsnoop",
+      "binary": "/tmp/gpubpf-table1-components-20260909.JPYk6U/gpubpf_tool_build/kernelretsnoop/kernelretsnoop"
+    },
+    "threadhist": {
+      "source_dir": "/tmp/gpubpf-table1-components-20260909.JPYk6U/gpubpf_tool_build/threadhist",
+      "binary": "/tmp/gpubpf-table1-components-20260909.JPYk6U/gpubpf_tool_build/threadhist/threadhist"
+    },
+    "launchlate": {
+      "source_dir": "/tmp/gpubpf-table1-components-20260909.JPYk6U/gpubpf_tool_build/launchlate",
+      "binary": "/tmp/gpubpf-table1-components-20260909.JPYk6U/gpubpf_tool_build/launchlate/launchlate"
+    }
+  },
+  "nvbit_tool": "/tmp/gpubpf-table1-components-20260909.JPYk6U/nvbit_tool_build/observability.so",
+  "note": "component preparation only: gpubpf tools and NVBit tool built; no probe loader, syscall server, or benchmark was run"
+}

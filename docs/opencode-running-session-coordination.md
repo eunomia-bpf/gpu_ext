@@ -125,3 +125,10 @@ scoped to `workloads/xsched/level2/tool/xsched_guard_tool.cu` and
 denied. The native cuXtra session had no such session-specific restriction.
 This corrects the authorized task's tool configuration without aborting a
 live request, adding another inference session or changing global permissions.
+
+The storage-reanalysis session `ses_f79368de2ffe73ktR6CFJj90vq` subsequently
+ended its Qwen Next gateway request with HTTP 524 at Unix time 1788969097671
+ms. Root resumed the same task with the existing direct Qwen 27B provider
+and build agent, preserving the 25-cell statistical-reanalysis scope. This
+was another terminal provider error, not cancellation for missing output;
+the total remained three live sessions.

@@ -9,6 +9,21 @@
       "native",
       "bpf",
       "stock"
+    ],
+    [
+      "bpf",
+      "stock",
+      "native"
+    ],
+    [
+      "stock",
+      "native",
+      "bpf"
+    ],
+    [
+      "native",
+      "bpf",
+      "stock"
     ]
   ],
   "calibration": {
@@ -634,6 +649,174 @@
       },
       "position": 2,
       "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-2-stock"
+    },
+    {
+      "arm": "bpf",
+      "block": 2,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 122.430616663,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 66.91136762423676,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06534313244554371,
+        "warm_ttft_max_ms": 31348.42697,
+        "warm_ttft_median_ms": 29921.360209,
+        "warm_ttft_p95_ms": 31439.56327185
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-02/position-0-bpf"
+    },
+    {
+      "arm": "stock",
+      "block": 2,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 116.747210193,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 70.16870027521378,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06852412136251346,
+        "warm_ttft_max_ms": 32568.263313,
+        "warm_ttft_median_ms": 26064.637013,
+        "warm_ttft_p95_ms": 34405.69367425
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-02/position-1-stock"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 123.501639559,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 66.33110320844335,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06477646797699546,
+        "warm_ttft_max_ms": 31563.542206,
+        "warm_ttft_median_ms": 30539.838044,
+        "warm_ttft_p95_ms": 31743.5609053
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-02/position-2-native"
+    },
+    {
+      "arm": "stock",
+      "block": 3,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 111.529386858,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 73.45149319640852,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.0717299738246177,
+        "warm_ttft_max_ms": 31000.297882,
+        "warm_ttft_median_ms": 24795.3557495,
+        "warm_ttft_p95_ms": 32820.24333955
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-03/position-0-stock"
     }
   ],
   "kind": "gds-kv-reclaim-575",
@@ -644,7 +827,7 @@
       "bpf"
     ],
     "attempts_per_cell": 1,
-    "blocks": 2,
+    "blocks": 5,
     "campaign_wall_clock_timeout": null,
     "cold_output_tokens": 16,
     "disk_uvm_enabled": true,
@@ -699,6 +882,27 @@
         "position": 2,
         "result_json": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-2-bpf/result.json",
         "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-2-bpf"
+      },
+      {
+        "arm": "native",
+        "block": 1,
+        "position": 0,
+        "result_json": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-0-native/result.json",
+        "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-0-native"
+      },
+      {
+        "arm": "bpf",
+        "block": 1,
+        "position": 1,
+        "result_json": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-1-bpf/result.json",
+        "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-1-bpf"
+      },
+      {
+        "arm": "stock",
+        "block": 1,
+        "position": 2,
+        "result_json": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-2-stock/result.json",
+        "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-01/position-2-stock"
       }
     ],
     "completed_failures": [],
@@ -709,7 +913,7 @@
         "bpf"
       ],
       "attempts_per_cell": 1,
-      "blocks": 1,
+      "blocks": 2,
       "campaign_wall_clock_timeout": null,
       "cold_output_tokens": 16,
       "disk_uvm_enabled": true,
@@ -745,133 +949,162 @@
     "raw_imported_records": 0,
     "unfinished": []
   },
+  "stopped_early": "deferred SIGINT request; stopping between cells",
   "summary": {
-    "cells_attempted": 6,
+    "cells_attempted": 10,
     "kind": "gds-kv-reclaim-575",
     "per_arm": {
       "bpf": {
         "adapter_counters": {
           "coverage_unknown_candidates": [
             null,
+            null,
             null
           ],
           "disk_route_recompute_fallback": [
+            null,
             null,
             null
           ],
           "forced_zero_lookups": [
             null,
+            null,
             null
           ],
           "override_picks": [
+            null,
             null,
             null
           ],
           "read_pricing_missing_decisions": [
             null,
+            null,
             null
           ],
           "route_consumed_disk_prefix": [
+            null,
             null,
             null
           ],
           "route_consumed_full_recompute": [
             null,
+            null,
             null
           ],
           "seam_invocations": [
             null,
+            null,
             null
           ],
           "stock_kept": [
+            null,
             null,
             null
           ]
         },
         "backing_activated": [
           null,
+          null,
           null
         ],
         "backing_read_stats": [
           null,
+          null,
           null
         ],
-        "cells_attempted": 2,
-        "cells_measured": 2,
+        "cells_attempted": 3,
+        "cells_measured": 3,
         "decision_records": [
+          0,
           0,
           0
         ],
         "diagnostics_arrived": [
           false,
+          false,
           false
         ],
         "diagnostics_expected": [
+          true,
           true,
           true
         ],
         "errors": [
           null,
+          null,
           null
         ],
         "medians": {
-          "warm_output_tokens_per_s": 66.74414376684877,
-          "warm_requests_per_s": 0.06517982789731325,
-          "warm_ttft_median_ms": 29190.949334999998
+          "warm_output_tokens_per_s": 66.91136762423676,
+          "warm_requests_per_s": 0.06534313244554371,
+          "warm_ttft_median_ms": 29921.360209
         },
         "per_cell_values": {
           "kv_pool_tokens": [
+            4096,
             4096,
             4096
           ],
           "preemption_log_count": [
             0,
+            0,
             0
           ],
           "warm_elapsed_s": [
             127.052230375,
-            118.705941169
+            118.705941169,
+            122.430616663
           ],
           "warm_failures": [
+            0,
             0,
             0
           ],
           "warm_output_tokens": [
             8192,
+            8192,
             8192
           ],
           "warm_output_tokens_per_s": [
             64.47741984395684,
-            69.01086768974068
+            69.01086768974068,
+            66.91136762423676
           ],
           "warm_requests": [
+            8,
             8,
             8
           ],
           "warm_requests_per_s": [
             0.0629662303163641,
-            0.06739342547826238
+            0.06739342547826238,
+            0.06534313244554371
           ],
           "warm_ttft_max_ms": [
             32614.487584,
-            34412.911015
+            34412.911015,
+            31348.42697
           ],
           "warm_ttft_median_ms": [
             31266.9338525,
-            27114.9648175
+            27114.9648175,
+            29921.360209
           ],
           "warm_ttft_p95_ms": [
             32907.095433049995,
-            37036.66970585
+            37036.66970585,
+            31439.56327185
           ]
         },
         "reclaim_enabled": true,
         "reclaim_mode": "bpf",
         "recovery_records": [
           0,
+          0,
           0
         ],
         "server_returncodes": [
+          0,
           0,
           0
         ]
@@ -880,125 +1113,153 @@
         "adapter_counters": {
           "coverage_unknown_candidates": [
             null,
+            null,
             null
           ],
           "disk_route_recompute_fallback": [
+            null,
             null,
             null
           ],
           "forced_zero_lookups": [
             null,
+            null,
             null
           ],
           "override_picks": [
+            null,
             null,
             null
           ],
           "read_pricing_missing_decisions": [
             null,
+            null,
             null
           ],
           "route_consumed_disk_prefix": [
+            null,
             null,
             null
           ],
           "route_consumed_full_recompute": [
             null,
+            null,
             null
           ],
           "seam_invocations": [
             null,
+            null,
             null
           ],
           "stock_kept": [
+            null,
             null,
             null
           ]
         },
         "backing_activated": [
           null,
+          null,
           null
         ],
         "backing_read_stats": [
           null,
+          null,
           null
         ],
-        "cells_attempted": 2,
-        "cells_measured": 2,
+        "cells_attempted": 3,
+        "cells_measured": 3,
         "decision_records": [
+          0,
           0,
           0
         ],
         "diagnostics_arrived": [
           false,
+          false,
           false
         ],
         "diagnostics_expected": [
+          true,
           true,
           true
         ],
         "errors": [
           null,
+          null,
           null
         ],
         "medians": {
-          "warm_output_tokens_per_s": 70.50376943433045,
-          "warm_requests_per_s": 0.06885133733821333,
-          "warm_ttft_median_ms": 27395.56878175
+          "warm_output_tokens_per_s": 66.62501902189736,
+          "warm_requests_per_s": 0.06506349513857164,
+          "warm_ttft_median_ms": 30249.5472285
         },
         "per_cell_values": {
           "kv_pool_tokens": [
+            4096,
             4096,
             4096
           ],
           "preemption_log_count": [
             0,
+            0,
             0
           ],
           "warm_elapsed_s": [
             122.956812925,
-            110.133402537
+            110.133402537,
+            123.501639559
           ],
           "warm_failures": [
+            0,
             0,
             0
           ],
           "warm_output_tokens": [
             8192,
+            8192,
             8192
           ],
           "warm_output_tokens_per_s": [
             66.62501902189736,
-            74.38251984676354
+            74.38251984676354,
+            66.33110320844335
           ],
           "warm_requests": [
+            8,
             8,
             8
           ],
           "warm_requests_per_s": [
             0.06506349513857164,
-            0.07263917953785502
+            0.07263917953785502,
+            0.06477646797699546
           ],
           "warm_ttft_max_ms": [
             31436.091738,
-            29959.212732
+            29959.212732,
+            31563.542206
           ],
           "warm_ttft_median_ms": [
             30249.5472285,
-            24541.590335
+            24541.590335,
+            30539.838044
           ],
           "warm_ttft_p95_ms": [
             31706.698037149996,
-            31204.4159022
+            31204.4159022,
+            31743.5609053
           ]
         },
         "reclaim_enabled": true,
         "reclaim_mode": "native",
         "recovery_records": [
           0,
+          0,
           0
         ],
         "server_returncodes": [
+          0,
           0,
           0
         ]
@@ -1007,125 +1268,181 @@
         "adapter_counters": {
           "coverage_unknown_candidates": [
             null,
+            null,
+            null,
             null
           ],
           "disk_route_recompute_fallback": [
+            null,
+            null,
             null,
             null
           ],
           "forced_zero_lookups": [
             null,
+            null,
+            null,
             null
           ],
           "override_picks": [
+            null,
+            null,
             null,
             null
           ],
           "read_pricing_missing_decisions": [
             null,
+            null,
+            null,
             null
           ],
           "route_consumed_disk_prefix": [
+            null,
+            null,
             null,
             null
           ],
           "route_consumed_full_recompute": [
             null,
+            null,
+            null,
             null
           ],
           "seam_invocations": [
             null,
+            null,
+            null,
             null
           ],
           "stock_kept": [
+            null,
+            null,
             null,
             null
           ]
         },
         "backing_activated": [
           null,
+          null,
+          null,
           null
         ],
         "backing_read_stats": [
           null,
+          null,
+          null,
           null
         ],
-        "cells_attempted": 2,
-        "cells_measured": 2,
+        "cells_attempted": 4,
+        "cells_measured": 4,
         "decision_records": [
+          0,
+          0,
           0,
           0
         ],
         "diagnostics_arrived": [
           false,
+          false,
+          false,
           false
         ],
         "diagnostics_expected": [
+          false,
+          false,
           false,
           false
         ],
         "errors": [
           null,
+          null,
+          null,
           null
         ],
         "medians": {
-          "warm_output_tokens_per_s": 73.896729939642,
-          "warm_requests_per_s": 0.07216477533168164,
-          "warm_ttft_median_ms": 24805.40749225
+          "warm_output_tokens_per_s": 73.32527016844182,
+          "warm_requests_per_s": 0.07160670914886896,
+          "warm_ttft_median_ms": 24935.989612999998
         },
         "per_cell_values": {
           "kv_pool_tokens": [
+            4096,
+            4096,
             4096,
             4096
           ],
           "preemption_log_count": [
             0,
+            0,
+            0,
             0
           ],
           "warm_elapsed_s": [
             111.914025114,
-            109.820557589
+            109.820557589,
+            116.747210193,
+            111.529386858
           ],
           "warm_failures": [
+            0,
+            0,
             0,
             0
           ],
           "warm_output_tokens": [
             8192,
+            8192,
+            8192,
             8192
           ],
           "warm_output_tokens_per_s": [
             73.1990471404751,
-            74.59441273880891
+            74.59441273880891,
+            70.16870027521378,
+            73.45149319640852
           ],
           "warm_requests": [
+            8,
+            8,
             8,
             8
           ],
           "warm_requests_per_s": [
             0.07148344447312022,
-            0.07284610619024308
+            0.07284610619024308,
+            0.06852412136251346,
+            0.0717299738246177
           ],
           "warm_ttft_max_ms": [
             30477.64579,
-            30013.155848
+            30013.155848,
+            32568.263313,
+            31000.297882
           ],
           "warm_ttft_median_ms": [
             25076.623476499997,
-            24534.191508
+            24534.191508,
+            26064.637013,
+            24795.3557495
           ],
           "warm_ttft_p95_ms": [
             31757.603531149995,
-            31331.39503565
+            31331.39503565,
+            34405.69367425,
+            32820.24333955
           ]
         },
         "reclaim_enabled": false,
         "reclaim_mode": null,
         "recovery_records": [
           0,
+          0,
+          0,
           0
         ],
         "server_returncodes": [
+          0,
+          0,
           0,
           0
         ]
@@ -1153,6 +1470,36 @@
       6,
       7,
       0
+    ],
+    "2": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      0,
+      1
+    ],
+    "3": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      0,
+      1,
+      2
+    ],
+    "4": [
+      4,
+      5,
+      6,
+      7,
+      0,
+      1,
+      2,
+      3
     ]
   }
 }

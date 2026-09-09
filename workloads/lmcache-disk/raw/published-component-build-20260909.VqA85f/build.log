@@ -1,0 +1,63 @@
+2026-09-09T11:26:30-07:00
+fcb77b7 docs: record component publication and terminal provider recovery
+02bdeb7 sync: latest libbpf changes from kernel
+make: Entering directory '/tmp/gpubpf-artifact-clean-20260909.hHEHPu/repo/workloads/lmcache-disk/gds-control'
+clang -g -O2 -target bpf -D__TARGET_ARCH_x86 -I../../../vmlinux/x86 -I../../../libbpf/src -c gds_policy.bpf.c -o gds_policy.bpf.o
+make -C ../../../libbpf/src
+make[1]: Entering directory '/tmp/gpubpf-artifact-clean-20260909.hHEHPu/repo/libbpf/src'
+  MKDIR    staticobjs
+  MKDIR    sharedobjs
+  CC       staticobjs/bpf.o
+cc -O2 -g -Wall -Wextra -o ioctl_probe ioctl_probe.c
+/usr/local/cuda-12.9/bin/nvcc -O2 -std=c++17 -Wno-deprecated-gpu-targets -Xcompiler=-Wall,-Wextra -I/usr/local/cuda-12.9/targets/x86_64-linux/include -o gds_executor gds_executor.cu \
+	-L/usr/local/cuda-12.9/targets/x86_64-linux/lib -Xlinker=-rpath \
+	-Xlinker=/usr/local/cuda-12.9/targets/x86_64-linux/lib -lcufile
+  CC       staticobjs/btf.o
+  CC       staticobjs/libbpf.o
+  CC       staticobjs/libbpf_errno.o
+  CC       staticobjs/netlink.o
+  CC       staticobjs/nlattr.o
+  CC       staticobjs/str_error.o
+  CC       staticobjs/libbpf_probes.o
+  CC       staticobjs/bpf_prog_linfo.o
+  CC       staticobjs/btf_dump.o
+  CC       staticobjs/hashmap.o
+  CC       staticobjs/ringbuf.o
+  CC       staticobjs/strset.o
+  CC       staticobjs/linker.o
+  CC       staticobjs/gen_loader.o
+  CC       staticobjs/relo_core.o
+  CC       staticobjs/usdt.o
+  CC       staticobjs/zip.o
+  CC       staticobjs/elf.o
+  CC       staticobjs/features.o
+  CC       staticobjs/btf_iter.o
+  CC       staticobjs/btf_relocate.o
+  CC       sharedobjs/bpf.o
+  CC       sharedobjs/btf.o
+  CC       sharedobjs/libbpf.o
+  CC       sharedobjs/libbpf_errno.o
+  CC       sharedobjs/netlink.o
+  CC       sharedobjs/nlattr.o
+  CC       sharedobjs/str_error.o
+  CC       sharedobjs/libbpf_probes.o
+  CC       sharedobjs/bpf_prog_linfo.o
+  CC       sharedobjs/btf_dump.o
+  CC       sharedobjs/hashmap.o
+  CC       sharedobjs/ringbuf.o
+  CC       sharedobjs/strset.o
+  CC       sharedobjs/linker.o
+  CC       sharedobjs/gen_loader.o
+  CC       sharedobjs/relo_core.o
+  CC       sharedobjs/usdt.o
+  CC       sharedobjs/zip.o
+  CC       sharedobjs/elf.o
+  CC       sharedobjs/features.o
+  CC       sharedobjs/btf_iter.o
+  CC       sharedobjs/btf_relocate.o
+  AR       libbpf.a
+  CC       libbpf.so.1.6.0
+make[1]: Leaving directory '/tmp/gpubpf-artifact-clean-20260909.hHEHPu/repo/libbpf/src'
+cc -O2 -g -Wall -Wextra -I../../../libbpf/src -o gds_policy gds_policy.c ../../../libbpf/src/libbpf.a -lelf -lz
+make: Leaving directory '/tmp/gpubpf-artifact-clean-20260909.hHEHPu/repo/workloads/lmcache-disk/gds-control'
+2026-09-09T11:26:36-07:00

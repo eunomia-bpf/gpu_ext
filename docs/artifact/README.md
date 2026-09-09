@@ -12,7 +12,7 @@ This folder documents reproduction; it does not contain the manuscript.
 | Regenerate the two supported paper figures | [Figure instructions](../../ARTIFACT.md#cpu-only-reproduction) | New output files outside the manuscript; no GPU run. |
 | Prepare Table 1 tools | [Runtime dependency map](table1-runtime.md) | Component build instructions, runtime paths and measured cohort definitions. |
 | Build/run XSched Level-2 | [Build instructions](../../workloads/xsched/level2-build/README.md), [runner instructions](../../workloads/xsched/level2/README.md) | Separate shared-actuator policy ports from original-actuator bring-up. |
-| Find LMCache disk experiments | [Storage report](../../workloads/lmcache-disk/results-575-gds-write-budget-20260907.md), [physical-reclaim report](../../workloads/lmcache-disk/gds-control/physical-reclaim-performance-analysis-20260909.md) | Separate storage-request latency from serving throughput and retain negative results. |
+| Build components or find LMCache disk experiments | [LMCache runtime guide](lmcache-runtime.md) | Published-source build, storage-request latency versus serving throughput, and remaining runtime dependencies. |
 
 ## Where material belongs
 

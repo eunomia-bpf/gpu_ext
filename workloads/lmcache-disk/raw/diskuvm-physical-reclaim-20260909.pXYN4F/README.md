@@ -53,3 +53,10 @@ unavailable counters must not be presented as zero. Stock/native have complete
 disk-UVM counters, including 48 prepared ranges each. Earlier OOM results are
 not overwritten, and the later blocks will determine whether completion is
 stable across the campaign.
+
+Block 1 also completes all three cells with 8192 tokens and zero HTTP
+failures each: native 68.387745, BPF 68.733332, stock 70.572913 token/s.
+Native/BPF each record 40 UVM restores, zero fallback and zero restore
+errors. Stock's diagnostic counters are unavailable in this block. Thus
+six of fifteen planned cells are complete; the campaign continues and
+missing counters are retained as missing rather than forcing a repeat.

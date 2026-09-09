@@ -1,5 +1,25 @@
 # Original host/device implementation prompts
 
+## Live continuation — 2026-09-08 17:34 PDT
+
+The SoA implementation/measurement and its queued read-only paper feedback
+finished naturally (`finish=stop`) in session
+`ses_f7d059dcdffeTZqUX0xZIV5cYc`. Root used this freed slot to resume the
+existing Hummingbird session `ses_f80c496aeffeBh330rKhrRwPgX` on
+`spark-gateway/qwen3.8-flash-next-nvfp4-220k`. Its earlier HTTP 524 was a
+confirmed terminal API error, not a silence timeout imposed by root.
+The current API reports Hummingbird busy. Qwen 27B continues XSched tool
+repair (`ses_f7d8b1dbeffeMN1yhvQzVm7VsS`), and GLM continues native sm_120
+repair (`ses_f7d4e2503ffesJKDZlvxdw0z0A`): three active sessions total.
+No Hummingbird host/device completion or new performance result is claimed.
+The completed host-only campaigns remain untouched.
+
+Exact continuation prompt:
+
+```text
+Resume this existing Hummingbird task from its actual terminal HTTP524, preserving the original scope in docs/experiment/original-host-device-local-prompts-20260908.md (Hummingbird section). One slot is now free because SoA + its queued readonly review finished naturally; there will be only three sessions: Qwen27 XSched tool repair, GLM XSched native repair, and this Qwen Next Hummingbird task. No new papers, manuscript edits, hashes, worktrees, own subagents, GPU runs or driver changes. Read current source and implement the original consumed device logical-block mapping through genuine device BPF, paired with the existing host idle policy, native and host-only controls. Do not re-run completed 50-cell idle or pipeline batches. You own only workloads/hummingbird/ and may add opt-in host-device files; do not edit shared exporter/runtime/XSched. Root builds/runs/commits; provide source patch and ordinary build command. Reuse exporter read-only from workloads/xsched/level2/bpf/bpf_to_ptx_ctx48.patch or workloads/sass-kretprobe if helpful, preserving coordinate semantics in real DNN memory accesses; no marker-only substitute. Focus a bounded runnable implementation over another survey. No artificial timeout; continue until implementation handoff or actual error.
+```
+
 2026-09-08. Local OpenCode implementation tasks; no new GPU measurements yet.
 Qwen Next's earlier FineMoE session ended in a terminal HTTP 524 without a
 patch. These tasks implement existing paper-described logic, not new policies.

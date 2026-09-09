@@ -1,5 +1,35 @@
 # Revision completion checklist
 
+## Experiment-only update — 2026-09-09 PDT
+
+No manuscript files are changed by this update. Completed cells are retained
+and must not be rerun just because an older status entry describes them as pending.
+
+- The trampoline/work-scaling comparison below is complete, including actual
+  invocation counts. Its total hook-plus-callback cost is not block-independent.
+- The subsequent [warp-contiguous full-record comparison](../workloads/llama.cpp/observability_overhead/revision-rq4/results-full-record-soa-warp-20260909.md)
+  completes five blocks / 15 clients. Median paired throughput gain over the
+  previous SoA layout is 20.565%; paired loss versus uninstrumented is 12.862%.
+  All event fields remain; the post-client drain is measured separately.
+  This does not replace historical Table 1 or earlier layout measurements.
+- End-to-end disk/UVM serving is implemented but not yet a complete successful
+  comparison. The [per-range reclaim attempt](../workloads/lmcache-disk/raw/diskuvm-serving-reclaim-20260909.EFVUGf/RESULTS.md)
+  retains five observations, including two EngineCore OOM failures. The original
+  module/loaders were restored. Physical GPU-chunk release after CPU migration
+  is the current driver repair hypothesis, not a demonstrated OOM fix.
+- XSched Level-1 remains complete; Level-2 is still under repair. The
+  [current native snapshots](../workloads/xsched/raw/level2-native-resolver-snapshot-20260909.KKFqHz/README.md)
+  show that the first original-layout lookup succeeds, while a matched
+  original-entry control still returns CUDA 701 with META_KPARAM=1.
+  The earlier shortened-buffer control below did not enable META_KPARAM;
+  it does not isolate the cause of this later configuration's failure.
+  A device-consumed-argument diagnostic has built and linked, but its host
+  integration/runtime observation remains pending. None is a new performance result.
+
+Three local OpenCode sessions continue: one Qwen 27B driver task and two
+existing GLM XSched tasks. No session is stopped for lack of recent output;
+actual provider retries are not treated as completed implementation work.
+
 ## Experimental follow-up — 2026-09-08 PDT
 
 This update records experiment completion, not manuscript integration. This

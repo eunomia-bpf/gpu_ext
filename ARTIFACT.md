@@ -20,6 +20,8 @@ so old reports and commands retain their meaning:
 
 ```text
 ARTIFACT.md                 current navigation and scope
+scripts/artifact/           CPU reanalysis and figure-reproduction commands
+docs/artifact/              command reference and runtime dependency maps
 workloads/<system>/         source, workload instructions, dated reports
   raw/ or results*/        immutable run records and derived summaries
 microbench/                mechanism and device microbenchmarks
@@ -203,6 +205,15 @@ but workload-specific runtime revisions and patches still matter. Follow each
 record's source revisions; stock 575 alone does not provide all gpubpf hooks.
 Resolve local model, bpftime, driver and workload-build locations anew. Never
 signal a historical PID or load a module solely because an old log names it.
+
+| Runtime | Build/source entry | Run record and current boundary |
+| --- | --- | --- |
+| XSched Level-2 | [Component build instructions](workloads/xsched/level2-build/README.md), [runner instructions](workloads/xsched/level2/README.md) | The runner accepts explicit native/BPF server, HPF, guard-tool and HAL locations. Its completed policy-port campaign is separate from the unfinished original cuXtra resume path. |
+| LMCache write-budget storage | [Policy/executor build targets](workloads/lmcache-disk/gds-control/Makefile), [completed report](workloads/lmcache-disk/results-575-gds-write-budget-20260907.md) | [Recorded 25-cell commands](workloads/lmcache-disk/raw/gds-write-budget-575-20260907-five-block-02/run-plan.json) preserve the measured configuration; their historical paths need relocation. The CPU `storage` command above is portable, but this does not establish a fresh runtime rebuild. |
+
+Build targets produce components; dated run records describe executions.
+Neither should be presented as a tested fresh-machine installer unless that
+complete path has actually been exercised.
 
 On the shared experiment host, GPU runs and heavy builds coordinate with
 `/tmp/gpubpf-revision-gpu0.lock` and `/tmp/gpubpf-revision-struct-ops.lock`.

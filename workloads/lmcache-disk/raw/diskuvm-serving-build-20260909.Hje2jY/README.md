@@ -35,7 +35,28 @@ serving connection is ready.
 Remaining integration work is still owned by the same local session:
 capture the KV size before completion/refcount release, connect the backing
 wrapper after admission, forward the opt-in through the real runner, and
-report actual restore versus fallback use. The exact-size Python CUDA
-allocator also landed but is still part of that uncommitted integration.
-No new timing or completed-LMCache claim follows from this build. Previous
+report actual restore versus fallback use. No new timing or completed-LMCache
+claim follows from this build. Previous
 primitive and serving measurements remain unchanged and are not rerun.
+
+## Python CUDA helper publication
+
+Root also reviewed and published the separate 7,718-byte
+`../../gds-control/lmcache_diskuvm_backing_cuda.py` helper. Its allocation is
+exactly the requested managed-range size, retaining that allocation's base;
+it no longer overallocates and attempts to register an interior range. A
+non-block-aligned returned base is released and reported to the caller for
+stock fallback. The fault library is loaded lazily on restore. After driver
+hydration, a D2D copy moves the managed range into the actual destination;
+root corrected the old comment that mislabeled that D2D step as CPU-to-GPU.
+
+Python syntax compilation exits zero with:
+
+```
+env PYTHONPYCACHEPREFIX=/tmp/lmcache-diskuvm-serving-build-20260909.7dZdC8/pycache \
+  python3 -m py_compile workloads/lmcache-disk/gds-control/lmcache_diskuvm_backing_cuda.py
+```
+
+This does not import or execute CUDA and is not an allocation, disk-I/O or
+serving validation. The main backing/runner connection remains unfinished;
+no completed primitive or serving cell is repeated for this publication.

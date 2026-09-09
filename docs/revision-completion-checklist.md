@@ -23,8 +23,12 @@ and must not be rerun just because an older status entry describes them as pendi
   original-entry control still returns CUDA 701 with META_KPARAM=1.
   The earlier shortened-buffer control below did not enable META_KPARAM;
   it does not isolate the cause of this later configuration's failure.
-  A device-consumed-argument diagnostic has built and linked, but its host
-  integration/runtime observation remains pending. None is a new performance result.
+  The [device-consumed-argument diagnostic](../workloads/xsched/raw/level2-xg5-runtime-20260909.jgLEyd/README.md)
+  now builds and runs. Host publications advance across slots, but retained
+  device entries keep reading one early slot through ordinal 200, including
+  its later resume state. This narrows repair to per-launch context delivery
+  or its argument ABI. Three BE workers fail; one is cleaned up after failure;
+  both LC workers finish. It is not a successful performance comparison.
 
 Three local OpenCode sessions continue: one Qwen 27B driver task and two
 existing GLM XSched tasks. No session is stopped for lack of recent output;

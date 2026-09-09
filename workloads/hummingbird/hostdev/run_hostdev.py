@@ -275,9 +275,11 @@ def main() -> None:
 
     print('\narm                block  status  HP_p99_ns     BE_goodput  max_err')
     for entry in sorted(analysis['cells'], key=lambda x: (x['arm'], x['block'])):
+        goodput = entry.get('be_goodput_rps')
+        goodput_text = f"{goodput:.2f}" if goodput is not None else '-'
         print(f"{entry['arm']:<18} {entry['block']:>5}  {entry['status']:<7}  "
               f"{str(entry.get('hp_p99_ns', '-')):>11}  "
-              f"{(f\"{entry['be_goodput_rps']:.2f}\" if entry.get('be_goodput_rps') is not None else '-'):>11}  "
+              f"{goodput_text:>11}  "
               f"{str(entry.get('be_max_abs_error', '-')):>7}")
     for pair, stats in analysis['estimate'].items():
         for metric, est in stats.items():

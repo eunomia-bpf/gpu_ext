@@ -7,37 +7,46 @@
 # with a smaller extent, both compiler-written extent records are raised to
 # 0x1520 so the window-args relay blob matches the declared c[0x0] param
 # extent: EIATTR_CBANK_PARAM_SIZE (nvinfo id 0x19, fmt 3) and the
-# EIATTR_PARAM_CBANK param_size (id 0x0a, fmt 4). KPARAM_INFO (app args)
-# and all other records/sections stay byte-identical. Fail-open on every
+# EIATTR_PARAM_CBANK param_size (id 0x0a, fmt 4). All other records/sections
+# stay byte-identical unless the second knob is also set. Fail-open on every
 # anomaly; idempotent.
 #
-# Files (isolated native source tree, shim only):
-#   platforms/cuda/shim/src/window_meta_extend.cpp            (new)
-#   platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h (new)
-#   platforms/cuda/shim/src/intercept.cpp                     (4 hooks)
-# The runner change (forwarding XG_NATIVE_META_EXTEND to the workers,
-# see native_worker_env in workloads/xsched/level2/native/run_native_blob.py)
-# is maintained directly in the main repository, not in this patch.
-#
-# SECOND OPT-IN XG_NATIVE_META_KPARAM (KPARAM_INFO ordinal growth): raises
-# the max declared ordinal end so it covers the 0x1520 relay blob. Causal
+# SECOND OPT-IN XG_NATIVE_META_KPARAM (KPARAM_INFO ordinal growth). Causal
 # evidence (build owner's driver-entry control, raw HX4CV3, same installed
 # binary, original entry selected): changing only the relay CU_LAUNCH_PARAM
 # BUFFER_SIZE from 0x1520 to the original compute size 0x20 at the real
 # driver cuLaunchKernel entry makes all 200 queued kernels launch ret 0 and
 # the BE complete and exit cleanly (outputs validated); the full-size relay
 # fails the first launch with 701 (kv7jHZ, NmlhJN). The declared ordinal
-# extent (0x20) is the remaining candidate the driver checks against the
-# buffer. CONSTRAINT: the grown ordinals are safe only for blob-form
-# launches (extra buffer, params == nullptr); a plain kernelParams launch
-# marshals per-ordinal using the declared sizes and would copy the grown
-# size from the app's own argument pointer. The knob is separate from
-# XG_NATIVE_META_EXTEND so a metadata-only control configuration stays
-# available. Size-field encoding is inferred from 5 observed records
-# (size*4 + 1 for 4-aligned sizes); the grown values are unvalidated until
-# the build owner's run. The forwarding for this second variable must be
-# added to the runner's worker environment (same pattern as
-# XG_NATIVE_META_EXTEND in native_worker_env).
+# extent (0x20) is the candidate the driver checks against the buffer.
+# With the knob set, legacy EIATTR_KPARAM_INFO records (id 0x17, u16
+# size*4+1) are converted in place to the compiler's own large-parameter
+# shape EIATTR_KPARAM_INFO_V2 (id 0x45, u16 plain size; attrs high nibble
+# cleared: 0xf500 -> 0x0500 pointer, 0xf000 -> 0x0000 scalar; shape from an
+# nvcc 12.9 sm_120 specimen with a 0x1520-byte by-value parameter) and the
+# max declared ordinal end is grown to cover 0x1520 blob-relative. Record
+# count and ordinal order are preserved. Without the knob the KPARAM
+# records are left byte-identical and the HAL below falls back to loaded
+# param info.
+#
+# THIRD PIECE - HAL ORIGINAL-ARGUMENT MARSHALING (cuda_command.cpp). The
+# grown ordinals must not be observed by host-side copies: the constructor
+# deep copy and the window-relay blob build were per-ordinal calls into
+# cuXtraGetParamInfo, which after the growth reports the grown size and
+# would copy ~5 KiB from the app's own 8-byte argument pointer before any
+# relay is adopted. The extender therefore registers each grown kernel's
+# ORIGINAL per-ordinal {ordinal, offset, size} layout keyed by the kernel's
+# mangled name (section-name scan; ordinal-indexed, density checked), and
+# the HAL marshals host-side copies from those ORIGINAL sizes: the
+# constructor deep copy (kernelParams form and the param pointers of the
+# extra-buffer form), and the window-relay blob fill. Loaded (grown) sizes
+# only reach the driver's launch-side blob validation via the relay
+# extra map; plain non-relay launches marshal original sizes. The lookup
+# is dlsym("XgGetRelayOriginalParams") on the already-loaded shim, so the
+# HAL keeps no hard link to the shim; without the shim or without the knob
+# it marshals from loaded param info as before. Regression guard: if the
+# registered layout disagrees with the loaded param table (count or last
+# offset), the HAL falls back to loaded param info and logs a warning.
 #
 # Module images may also arrive wrapped in the CUDA runtime fatbin wrapper
 # (__fatBinC_Wrapper_t from fatbinary_section.h: magic 0x466243b1, version
@@ -56,20 +65,26 @@
 # in the real run - the four BE logs confirm both extent records raised
 # (0x8/0x20 -> 0x1520), an owned wrapper copy 0x20 + nested container
 # 0x4818 bytes, a successful module load and binary guardian preparation -
-# while the first launch still returns 701. The metadata route is reached
-# but not sufficient; parameter delivery remains the open failure.
+# while the first launch still returns 701 with the relay alone. The
+# declared-ordinal-extent knob plus the original-argument marshaling above
+# are the response to the HX4CV3 causal evidence; engagement and effect
+# are unvalidated until the build owner's run.
 #
-# Verified CPU-side on the local priority_workload specimen (no GPU):
-# exactly six bytes differ per image (the two extent records of each of the
-# two kernels, 0x8/0x20 -> 0x1520); nvdisasm -c and cuobjdump -elf parse the
-# patched cubin and patched fatbin and report EIATTR_CBANK_PARAM_SIZE 0x1520
-# beside EIATTR_PARAM_CBANK 0x15200380; repeated application is idempotent.
-# XgFreeExtendedImage reads the preceding allocation header, so it is NOT
-# safe for arbitrary foreign pointers. Memory-safety scrutiny in the
-# session did not retain a valgrind artifact file, so no retained-clean
-# claim is made. After the wrapper case was added the source compiles as
-# g++ -O2 and as -O3 -DRELEASE_MODE -Wall -Wextra -Werror; the wrapper
-# path was not CPU-unit-tested before deployment.
+# Verified CPU-side on the local priority_workload specimen (no GPU): with
+# both knobs the extender patches the same six extent bytes as before,
+# converts the six legacy KPARAM records to the V2 shape, grows the two
+# max-end ordinals (timer ord0 0x8 -> 0x1520, compute ord4 off 0x18
+# 0x8 -> 0x1508), registers both kernels' original layouts and answers
+# XgGetRelayOriginalParams with ordinal-dense entries; with only
+# XG_NATIVE_META_EXTEND records stay byte-identical (6-byte diff) and the
+# query returns 0 (HAL fallback). nvdisasm -c and cuobjdump -elf parse the
+# patched cubin and patched fatbin. XgFreeExtendedImage reads the
+# preceding allocation header, so it is NOT safe for arbitrary foreign
+# pointers. Memory-safety scrutiny in the session did not retain a
+# valgrind artifact file, so no retained-clean claim is made. After these
+# changes the source compiles as g++ -O2 and as
+# -O3 -DRELEASE_MODE -DNDEBUG -Wall -Wextra -Werror,
+# for both the shim file and the HAL file.
 #
 # BUILD NOTE: window_meta_extend.cpp enters the shim sources via
 # file(GLOB_RECURSE) evaluated at CMAKE CONFIGURE time. A build directory
@@ -84,7 +99,7 @@
 # from the source root (level2-build/.output/<native dir>/source).
 --- /dev/null
 +++ b/platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,64 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -128,9 +143,30 @@
 +void XgFreeExtendedImage(void *p);
 +
 +} // namespace xsched::cuda
++
++/// @brief Original per-ordinal parameter layout, registered by the extender
++///        for kernels whose EIATTR_KPARAM table was grown under
++///        XG_NATIVE_META_KPARAM (keyed by the kernel's mangled name, i.e.
++///        the string cuFuncGetName reports). The HAL host-side marshaling
++///        (constructor deep copy and window-relay adoption) uses these
++///        ORIGINAL sizes/offsets so the app's own arguments keep their
++///        compiled layout; grown sizes only reach the driver's launch-side
++///        blob validation.
++/// @param kernel_name mangled kernel name (may be nullptr: no lookup)
++/// @param ordinals/offsets/sizes caller buffers of at least max_entries
++///        elements (may be nullptr to only query the entry count)
++/// @param max_entries capacity of the caller buffers
++/// @param out_entries receives the registered entry count (not nullptr)
++/// @return 1 when a registered layout exists for kernel_name, else 0
++extern "C" int XgGetRelayOriginalParams(const char *kernel_name,
++                                        unsigned int *ordinals,
++                                        unsigned int *offsets,
++                                        unsigned int *sizes,
++                                        size_t max_entries,
++                                        size_t *out_entries);
 --- /dev/null
 +++ b/platforms/cuda/shim/src/window_meta_extend.cpp
-@@ -0,0 +1,694 @@
+@@ -0,0 +1,913 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -164,32 +200,84 @@
 +//       {u32 kind 0xa/0x9, u16 param_start, u16 param_size}; the param
 +//       size is the 16-bit field at payload offset +6.
 +//
-+// A second opt-in (XG_NATIVE_META_KPARAM) also grows the KPARAM_INFO
-+// ordinal table so the max declared ordinal end covers the blob extent.
-+// Causal evidence (root HX4CV3 driver-entry control on the same installed
-+// binary, original entry selected): shortening the relay CU_LAUNCH_PARAM
-+// BUFFER_SIZE from 0x1520 to the original compute size 0x20 at the real
-+// driver cuLaunchKernel makes all 200 queued kernels launch ret 0 and the
-+// BE complete and exit cleanly, while the full-size relay fails the first
++// A second opt-in (XG_NATIVE_META_KPARAM) also converts the KPARAM_INFO
++// ordinal table into the compiler's own large-parameter shape and grows the
++// max declared ordinal end so it covers the blob extent. Causal evidence
++// (root HX4CV3 driver-entry control on the same installed binary, original
++// entry selected): shortening the relay CU_LAUNCH_PARAM BUFFER_SIZE from
++// 0x1520 to the original compute size 0x20 at the real driver
++// cuLaunchKernel makes all 200 queued kernels launch ret 0 and the BE
++// complete and exit cleanly, while the full-size relay fails the first
 +// launch with 701 (kv7jHZ, NmlhJN). The declared ordinal extent (0x20,
 +// from KPARAM_INFO) is therefore the candidate the driver checks against
-+// the buffer. CONSTRAINT: only blob-form launches (extra buffer, params
-+// == nullptr) are safe with grown ordinals; a plain kernelParams launch
-+// marshals per-ordinal and would copy the grown size from the app's own
-+// argument pointer.
-+// The KPARAM_INFO records (id 0x17) that describe the app's own arguments
-+// are never touched, so per-argument ordinals/offsets/sizes and hence the
-+// app launch parameters keep their compiled layout; the window args are
-+// extra, undeclared-by-KPARAM bank bytes inside the enlarged extent. All
-+// other records (KPARAM_INFO, EXIT_INSTR_OFFSETS 0x1c, SW_WAR 0x36, the
++// the buffer.
++//
++// Compiler specimen (nvcc 12.9 sm_120, kernel with a 0x1520-byte by-value
++// struct param, /tmp/kpspec comparison): for that large parameter nvcc
++// emits EIATTR_KPARAM_INFO_V2 (id 0x45, fmt 4, payload 12 bytes:
++// {u32 index, u16 ordinal, u16 offset, u16 plain_size, u16 attrs}; attrs
++// 0x0500 for pointer params, 0 for scalars), while small kernels of the
++// same compilation keep the legacy EIATTR_KPARAM_INFO (id 0x17) records
++// {index, ordinal, offset, u16 attrs (0xf500 ptr / 0xf000 scal), u16
++// size_field == size*4+1 (observed on 5 records, sizes 4 and 8)}; it sets
++// CBANK_PARAM_SIZE == PARAM_CBANK.psize == the max ordinal end
++// (0x152c = last param end in the specimen) and sizes .nv.constant0 of the
++// kernel to param_start + max ordinal end exactly (0x18ac; the workload
++// kernels follow the same rule: 0x3a0 = 0x380 + 0x20). The in-place patch
++// therefore keeps record slots at their lengths: legacy 0x17 records are
++// converted in place to the V2 shape (plain size, attrs bits 12..15
++// cleared, pointer/sanner mapping preserved: 0xf500 -> 0x0500, 0xf000 ->
++// 0x0000) and the max-end ordinal size is grown to 0x1520.
++//
++// Since the extender works on images before function handles exist, it
++// keeps the patched kernels' ORIGINAL per-ordinal layout, keyed by the
++// kernel's mangled name (the same string cuFuncGetName reports). The HAL
++// constructor deep copy and window-relay adoption look this layout up via
++// XgGetRelayOriginalParams so every host-side marshal keeps the original
++// sizes; only the driver's launch-side blob validation sees the grown
++// extent, and non-relay/plain launches never marshal grown sizes.
++
++#include "xsched/cuda/shim/window_meta_extend.h"
++
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <mutex>
++#include <string>
++#include <unordered_map>
++#include <vector>
++//
++// HOST-MARSHALING CONSTRAINT AND HAL WIRING: the grown ordinals must not
++// be observed by the per-ordinal host deep copy in CudaKernelCommand's
++// constructor: after the module is loaded with grown records,
++// cuXtraGetParamInfo reports the grown size for the last ordinal and the
++// constructor's memcpy of that size from the app's own 8-byte argument
++// pointer would read ~5 KiB out of bounds BEFORE AdoptWindowRelayExtra
++// ever runs. The constructor and the relay adoption therefore marshal -
++// via the shim-registered ORIGINAL per-ordinal layout - with the original
++// sizes (see XgGetRelayOriginalParams below); the padded 0x1520 blob is
++// only materialized for blob-form launches, and non-relay launches never
++// marshal grown sizes. Without XG_NATIVE_META_KPARAM records are left
++// byte-identical and the HAL falls back to loaded param info.
++// The KPARAM family conversion changes only the records named above; the
++// KPARAM record SLOTS (count and ordinal order) are preserved, so
++// per-argument ordinals/offsets keep their compiled layout; the window
++// args remain extra, undeclared-by-KPARAM bank bytes inside the enlarged
++// extent. All other records (EXIT_INSTR_OFFSETS 0x1c, SW_WAR 0x36, the
 +// .nv.merc mirrors, module-wide .nv.info) are left byte-identical.
 +//
 +// Limitation kept explicit: the current implementation does not grow the
-+// bank DATA image (.nv.constant0, 0x3a0 bytes for the specimen); growing it
-+// would require inserting bytes and rewriting every later section/table
-+// offset. Whether the driver sizes the c[0x0] bank from the EIATTR records
-+// above (making the data section irrelevant) is unproven and is resolved by
-+// the actual run.
++// bank DATA image (.nv.constant0, 0x3a0 bytes for the specimen; the
++// compiler rule from the kpspec specimen is .nv.constant0 == param_start +
++// max ordinal end, so the compiler shape for the fused blob would be
++// 0x18a0). Growing the section in place requires inserting bytes and
++// rewriting every later section/table offset. Whether the driver sizes the
++// c[0x0] bank from the EIATTR records above (making the data section
++// irrelevant) or from the .nv.constant0 extent is unproven and is resolved
++// by the actual run.
 +//
 +// This is a CPU-side byte patch of the module image before the real driver
 +// loads it (cuModuleLoadData copies the image, so the mutated buffer can be
@@ -211,10 +299,14 @@
 +#include "xsched/cuda/shim/window_meta_extend.h"
 +
 +#include <algorithm>
++#include <array>
 +#include <cstdint>
 +#include <cstdio>
 +#include <cstdlib>
 +#include <cstring>
++#include <mutex>
++#include <string>
++#include <unordered_map>
 +#include <vector>
 +
 +#include "xsched/utils/log.h"
@@ -225,6 +317,79 @@
 +
 +constexpr uint16_t kMetaParamStart = 0x380;  // sm_120 parameter-region base
 +constexpr uint16_t kMetaParamSize  = 0x1520; // covers window args rel 0x1500 + 0x1c, 16-aligned
++
++// ---------------------------------------------------------------------
++// Relay original-layout registry: for every kernel whose KPARAM table was
++// grown (pass C), remember the app's ORIGINAL per-ordinal {ordinal,
++// offset, size}, keyed by the kernel's mangled name (the same string
++// cuFuncGetName reports). The HAL constructor deep copy and the window
++// relay adoption consult this table through XgGetRelayOriginalParams, so
++// host-side marshaling always uses the original sizes and only the
++// driver's launch-side blob validation sees the grown extent.
++constexpr size_t kRelayLayoutMaxKernels = 64;
++constexpr size_t kRelayLayoutMaxParams  = 32;
++
++struct RelayParamEntries
++{
++    size_t count;
++    std::array<uint32_t, kRelayLayoutMaxParams> ordinals;
++    std::array<uint32_t, kRelayLayoutMaxParams> offsets;
++    std::array<uint32_t, kRelayLayoutMaxParams> sizes;
++};
++
++std::mutex g_relay_layout_mutex;
++std::unordered_map<std::string, RelayParamEntries> g_relay_layouts;
++bool g_relay_layout_overflow = false;
++
++void remember_relay_originals(const char *kernel_name,
++                              const std::vector<std::array<uint32_t, 3>> &entries)
++{
++    std::lock_guard<std::mutex> lock(g_relay_layout_mutex);
++    if (g_relay_layouts.size() >= kRelayLayoutMaxKernels) {
++        if (!g_relay_layout_overflow) {
++            g_relay_layout_overflow = true;
++            XWARN("meta-extend: relay layout registry full (%zu kernels); "
++                  "further grown kernels marshal from loaded param info",
++                  kRelayLayoutMaxKernels);
++        }
++        return;
++    }
++    if (entries.size() > kRelayLayoutMaxParams) return;
++    RelayParamEntries e;
++    e.count = entries.size();
++    for (size_t i = 0; i < entries.size(); ++i) {
++        e.ordinals[i] = entries[i][0];
++        e.offsets[i] = entries[i][1];
++        e.sizes[i] = entries[i][2];
++    }
++    g_relay_layouts[kernel_name] = e;
++    XDEBG("meta-extend: registered original layout for %s (%zu params)",
++          kernel_name, entries.size());
++}
++
++bool query_relay_originals(const char *kernel_name, unsigned int *ordinals,
++                           unsigned int *offsets, unsigned int *sizes,
++                           size_t max_entries, size_t *out_entries)
++{
++    std::lock_guard<std::mutex> lock(g_relay_layout_mutex);
++    auto it = g_relay_layouts.find(kernel_name);
++    if (it == g_relay_layouts.end()) return false;
++    const RelayParamEntries &e = it->second;
++    if (ordinals != nullptr && offsets != nullptr && sizes != nullptr &&
++        max_entries >= e.count) {
++        for (size_t i = 0; i < e.count; ++i) {
++            ordinals[i] = e.ordinals[i];
++            offsets[i] = e.offsets[i];
++            sizes[i] = e.sizes[i];
++        }
++    }
++    *out_entries = e.count;
++    return true;
++}
++
++} // namespace
++
++namespace {
 +
 +constexpr uint32_t kFatbinMagic = 0xba55ed50u;
 +constexpr uint32_t kElfMagic    = 0x464c457fu; // "\x7f" "ELF" little-endian
@@ -249,18 +414,27 @@
 +constexpr uint8_t kNvInfoParamCBank   = 0x0a; // EIATTR_PARAM_CBANK (SVAL)
 +constexpr uint8_t kNvInfoCBankPrmSize = 0x19; // EIATTR_CBANK_PARAM_SIZE (HVAL)
 +constexpr uint8_t kNvInfoKParamInfo   = 0x17; // EIATTR_KPARAM_INFO (app args)
++constexpr uint8_t kNvInfoKParamInfoV2 = 0x45; // EIATTR_KPARAM_INFO_V2
 +
-+// EIATTR_KPARAM_INFO (fmt 4, payload 12 bytes):
++// EIATTR_KPARAM_INFO (fmt 4, payload 12 bytes) - legacy shape:
 +//   {u32 index, u16 ordinal, u16 offset, u16 attrs (0xf000 scal /
 +//   0xf500 ptr), u16 size_field}. Every observed record encodes
 +//   size_field == size * 4 + 1 (5 records, sizes 4 and 8: 0x11, 0x21;
 +//   both formulas size*4+1 and (size>>2)<<4|1 coincide for 4-aligned
 +//   sizes). Offsets are relative to the param base (0x380), the same
 +//   coordinate system as the launch blob, so the max ordinal end is the
-+//   declared launch-parameter extent. kv7jHZ evidence: a 0x1520-byte
-+//   CU_LAUNCH_PARAM_BUFFER is rejected with 701 while the CBANK records
-+//   alone are raised, so the growing knob targets this ordinal table.
-+constexpr size_t kNvInfoKParamPaylen  = 12;   // sizeof KPARAM payload
++//   declared launch-parameter extent.
++// EIATTR_KPARAM_INFO_V2 (fmt 4, payload 12 bytes) - the shape nvcc emits
++//   for kernels with a large by-value parameter (kpspec big_kernel,
++//   0x1520-byte struct): {u32 index, u16 ordinal, u16 offset, u16
++//   plain_size, u16 attrs; attrs 0x0500 pointer / 0x0000 scalar}. The
++//   specimen uses V2 records exclusively for this kernel and legacy
++//   records for its small sibling, both under CUDA_API_VERSION 0x81.
++// kv7jHZ/HX4CV3 evidence: a 0x1520-byte CU_LAUNCH_PARAM_BUFFER is
++// rejected with 701 while a 0x20 buffer is accepted on the same patched
++// image, so the ordinal table (not the CBANK records alone) governs the
++// launch-buffer acceptance candidate; the pass C growth targets it.
++constexpr size_t kNvInfoKParamPaylen  = 12;   // both record shapes
 +
 +// paylen no larger than a .nv.info record can sanity-carry; anything above
 +// is treated as a parse anomaly rather than trusted (prevents an unwalkable
@@ -301,6 +475,15 @@
 +{
 +    size_t off;
 +    size_t size;
++};
++
++// Range with the kernel's mangled name (from the per-kernel nvinfo section
++// name). The name is the key the HAL constructor consults through
++// XgGetRelayOriginalParams to marshal the app's arguments with their
++// ORIGINAL sizes after the module was loaded with a grown ordinal table.
++struct NamedRange : Range
++{
++    std::string name;
 +};
 +
 +// ELF64 little-endian only (CUDA cubins are always ELF64 LE).
@@ -378,7 +561,7 @@
 +// section per kernel. The module-wide ".nv.info" and the ".nv.merc.*"
 +// mirrors carry no PARAM_CBANK records and are deliberately left out.
 +bool elf_kernel_info_sections(const char *base, size_t size,
-+                              std::vector<Range> *nvinfo_out)
++                              std::vector<NamedRange> *nvinfo_out)
 +{
 +    if (!elf64le(base, size)) return false;
 +    uint64_t shoff = le(base + 0x28, 8);
@@ -411,7 +594,8 @@
 +        size_t n = 0;
 +        while (n + 1 < sizeof(buf) && name[n] != '\0') buf[n] = name[n], ++n;
 +        buf[n] = '\0';
-+        Range r{(size_t)s_off, (size_t)s_size};
++        // kernel mangled name: the section name minus the ".nv.info." prefix
++        NamedRange r{(size_t)s_off, (size_t)s_size, buf + 9};
 +        nvinfo_out->push_back(r);
 +        if (s_size >= 12) {
 +            XDEBG("meta-extend: scan %s (0x%llx B)", buf,
@@ -429,7 +613,8 @@
 +//
 +// Returns: -1 parse anomaly, 0 no eligible bank, 1 patched, 2 already
 +// covering the window.
-+int extend_kernel_info_section(const char *tag, char *base,
++int extend_kernel_info_section(const char *tag, const char *kernel_name,
++                               char *base,
 +                               size_t /*sec_walk_span*/, size_t sec_off,
 +                               size_t sec_size, bool *wrote)
 +{
@@ -521,26 +706,36 @@
 +            o += 4;
 +        }
 +    }
-+    // pass C (opt-in XG_NATIVE_META_KPARAM): grow the KPARAM_INFO ordinal
-+    // table so the max declared ordinal end covers the relay blob extent
-+    // (0x1520 blob-relative). kv7jHZ evidence: the driver rejects the
-+    // 0x1520-byte relay CU_LAUNCH_PARAM_BUFFER with 701 while the CBANK
-+    // records alone are raised (and with the original entry), so the
-+    // KPARAM-declared ordinal extent is the remaining declared-extent
-+    // candidate governing launch-buffer acceptance.
-+    // CONSTRAINT: this is safe only while the patched kernels launch with
-+    // the blob form (extra buffer, params_ == nullptr): the driver copies
-+    // the buffer bytes wholesale. A plain kernelParams launch marshals
-+    // per-ordinal using the declared sizes and would copy the grown size
-+    // from the app's own argument pointer (out-of-bounds read). The knob
-+    // exists so the build owner can run metadata-only and metadata+KPARAM
-+    // configurations in isolation.
++    // pass C (opt-in XG_NATIVE_META_KPARAM): convert the legacy KPARAM_INFO
++    // ordinal records into the compiler's own large-parameter shape and grow
++    // the max declared ordinal end so it covers the relay blob extent
++    // (0x1520 blob-relative). kv7jHZ/HX4CV3 evidence: the driver rejects a
++    // 0x1520-byte relay CU_LAUNCH_PARAM_BUFFER with 701 while a 0x20 buffer
++    // is accepted on the same patched image (CBANK records raised, original
++    // entry), so the KPARAM-declared ordinal extent is the remaining
++    // declared-extent candidate governing launch-buffer acceptance.
++    // Record conversion follows the nvcc large-parameter specimen: legacy
++    // EIATTR_KPARAM_INFO (id 0x17, {index, ord, off, u16 attrs, u16
++    // size*4+1}) is rewritten in place (slot length preserved) as
++    // EIATTR_KPARAM_INFO_V2 (id 0x45, {index, ord, off, u16 plain_size,
++    // u16 attrs}); attrs bits 12..15 are cleared (0xf500 -> 0x0500 pointer,
++    // 0xf000 -> 0x0000 scalar) and the grown ordinal carries its plain size.
++    // HOST-MARSHALING CONSTRAINT: the constructor deep copy in the HAL
++    // marshals per-ordinal from the loaded (grown) param info and would
++    // copy the grown size from the app's own argument pointer. The original
++    // per-ordinal layout is therefore registered by the extender at patch
++    // time (kernels with grown sections are keyed by their mangled kernel
++    // name) and the HAL constructor/relay marshaling consults
++    // XgGetRelayOriginalParams to allocate and copy ORIGINAL sizes; grown
++    // sizes only affect the driver's launch-side blob validation. Non-
++    // relay/plain launches never marshal grown sizes with this wiring.
 +    if (meta_kparam_enabled()) {
++        bool walked = true;
 +        bool have = false;
 +        size_t best_off = 0, best_rec = 0;
 +        uint32_t best_end = 0;
-+        int kordinal = -1;
-+        bool walked = true;
++        unsigned kordinal = 0;
++        std::vector<std::array<uint32_t, 3>> origs;
 +        o = 0;
 +        while (o + 4 <= sec_size) {
 +            uint8_t fmt = (uint8_t)buf[o];
@@ -548,23 +743,52 @@
 +            if (fmt == kNvInfoFmt4) {
 +                uint64_t paylen = (uint64_t)le(buf + o + 2, 2);
 +                if (o + 4 + paylen > sec_size) { walked = false; break; }
-+                if (id == kNvInfoKParamInfo &&
-+                    paylen == kNvInfoKParamPaylen) {
++                if (paylen == kNvInfoKParamPaylen &&
++                    (id == kNvInfoKParamInfo ||
++                     id == kNvInfoKParamInfoV2)) {
++                    // 0x17: {u32 index, u16 ord, u16 off, u16 attrs,
++                    //         u16 size*4+1}
++                    // 0x45: {u32 index, u16 ord, u16 off, u16 size,
++                    //         u16 attrs}
++                    bool legacy = (id == kNvInfoKParamInfo);
++                    uint16_t ord   = (uint16_t)le(buf + o + 8, 2);
 +                    uint16_t off16 = (uint16_t)le(buf + o + 10, 2);
-+                    uint16_t enc   = (uint16_t)le(buf + o + 14, 2);
-+                    // observed encoding: size_field == size * 4 + 1 on
-+                    // 4-aligned sizes; leave foreign records untouched
-+                    if ((enc & 3) == 1) {
-+                        uint32_t sz = (uint32_t)((enc - 1) >> 2);
-+                        uint32_t end = (uint32_t)off16 + sz;
-+                        if (!have || end > best_end ||
-+                            (end == best_end && off16 > best_off)) {
-+                            have = true;
-+                            best_end = end;
-+                            best_off = off16;
-+                            best_rec = o;
-+                            kordinal = (int)(int16_t)le(buf + o + 8, 2);
-+                        }
++                    uint32_t sz, attrs;
++                    if (legacy) {
++                        uint16_t enc = (uint16_t)le(buf + o + 14, 2);
++                        sz    = ((enc & 3) == 1)
++                              ? (uint32_t)((enc - 1) >> 2)
++                              : 0xffffffffu; // foreign encoding: sized 0
++                        attrs = (uint32_t)(le(buf + o + 12, 2) & 0x0fff);
++                    } else {
++                        sz    = (uint32_t)le(buf + o + 12, 2);
++                        attrs = (uint32_t)le(buf + o + 14, 2);
++                    }
++                    if (sz != 0xffffffffu)
++                        origs.push_back({(uint32_t)ord, (uint32_t)off16, sz});
++                    if (legacy && sz != 0xffffffffu) {
++                        // in-place conversion to the V2 shape: plain size
++                        // and cleared attr high nibble
++                        char *dst = buf + o + 12;
++                        dst[0] = (char)(sz & 0xff);
++                        dst[1] = (char)((sz >> 8) & 0xff);
++                        dst[2] = (char)(attrs & 0xff);
++                        dst[3] = (char)((attrs >> 8) & 0xff);
++                        buf[o + 1] = (char)kNvInfoKParamInfoV2;
++                        XDEBG("meta-extend: %s KPARAM ordinal %u size 0x%x"
++                              " attrs 0x%x: legacy record -> V2", tag,
++                              (unsigned)ord, (unsigned)sz, (unsigned)attrs);
++                    }
++                    if (sz != 0xffffffffu &&
++                        (!have ||
++                         (uint32_t)off16 + sz > best_end ||
++                         ((uint32_t)off16 + sz == best_end &&
++                          off16 > best_off))) {
++                        have = true;
++                        best_end = (uint32_t)off16 + sz;
++                        best_off = off16;
++                        best_rec = o;
++                        kordinal = (unsigned)ord;
 +                    }
 +                }
 +                o += (size_t)4 + paylen;
@@ -581,21 +805,39 @@
 +        } else if (best_end >= kMetaParamSize) {
 +            XDEBG("meta-extend: %s KPARAM extent 0x%x already covers the "
 +                  "window", tag, (unsigned)best_end);
-+        } else if (kMetaParamSize - best_off > 0x3ffe) {
-+            XWARN("meta-extend: %s KPARAM growth 0x%x would overflow the "
-+                  "size field; ordinal table left unchanged", tag,
-+                  (unsigned)(kMetaParamSize - best_off));
 +        } else {
 +            uint32_t new_size = (uint32_t)(kMetaParamSize - (uint32_t)best_off);
-+            uint16_t field = (uint16_t)(new_size * 4 + 1);
-+            buf[best_rec + 14] = (char)(field & 0xff);
-+            buf[best_rec + 15] = (char)((field >> 8) & 0xff);
-+            XINFO("meta-extend: %s KPARAM ordinal %d offset 0x%x size 0x%x "
-+                  "-> 0x%x (declared launch extent 0x%x)", tag, kordinal,
-+                  (unsigned)best_off, (unsigned)(best_end - best_off),
-+                  (unsigned)new_size, (unsigned)kMetaParamSize);
-+            ++patched;
-+            *wrote = true;
++            // plain-size field: 16-bit, so the grown ordinal must fit
++            if (new_size > 0xffff) {
++                XWARN("meta-extend: %s KPARAM growth 0x%x overflows the "
++                      "plain-size field; ordinal table left unchanged", tag,
++                      (unsigned)new_size);
++            } else {
++              buf[best_rec + 12] = (char)(new_size & 0xff);
++                buf[best_rec + 13] = (char)((new_size >> 8) & 0xff);
++                XINFO("meta-extend: %s KPARAM(V2) ordinal %u offset 0x%x "
++                      "size 0x%x -> 0x%x (declared launch extent 0x%x)",
++                      tag, kordinal, (unsigned)best_off,
++                      (unsigned)(best_end - best_off), (unsigned)new_size,
++                      (unsigned)kMetaParamSize);
++                ++patched;
++                // registry entries are ordinal-indexed (the HAL marshals
++                // params[ordinal] positionally): CUDA param ordinals are
++                // dense 0..n-1; sort and verify before registering
++                std::sort(origs.begin(), origs.end(),
++                          [](const std::array<uint32_t, 3> &a,
++                             const std::array<uint32_t, 3> &b)
++                          { return a[0] < b[0]; });
++                bool dense = true;
++                for (size_t i = 0; i < origs.size(); ++i)
++                    if (origs[i][0] != i) { dense = false; break; }
++                if (dense) {
++                    remember_relay_originals(kernel_name, origs);
++                } else {
++                    XWARN("meta-extend: %s non-dense KPARAM ordinals; "
++                          "original layout not registered", kernel_name);
++                }
++            }
 +        }
 +    }
 +
@@ -612,7 +854,7 @@
 +// aborts the load).
 +bool extend_cubin(const char *what, char *base, size_t size, int *patched)
 +{
-+    std::vector<Range> sections;
++    std::vector<NamedRange> sections;
 +    if (!elf_kernel_info_sections(base, size, &sections)) {
 +        XDEBG("meta-extend: %s is not a supported ELF64 cubin", what);
 +        return false;
@@ -620,10 +862,10 @@
 +    char tag[128];
 +    int idx = 0;
 +    bool wrote = false;
-+    for (const Range &r : sections) {
++    for (const NamedRange &r : sections) {
 +        std::snprintf(tag, sizeof(tag), "%s[%d]", what, idx++);
-+        int rc = extend_kernel_info_section(tag, base, size, r.off, r.size,
-+                                            &wrote);
++        int rc = extend_kernel_info_section(tag, r.name.c_str(), base, size,
++                                            r.off, r.size, &wrote);
 +        if (rc < 0) {
 +            XWARN("meta-extend: %s nvinfo parse anomaly; kernel left "
 +                  "unpatched", tag);
@@ -825,6 +1067,19 @@
 +}
 +
 +} // namespace xsched::cuda
++
++int XgGetRelayOriginalParams(const char *kernel_name, unsigned int *ordinals,
++                             unsigned int *offsets, unsigned int *sizes,
++                             size_t max_entries, size_t *out_entries)
++{
++    if (out_entries != nullptr) *out_entries = 0;
++    if (kernel_name == nullptr || out_entries == nullptr) return 0;
++    if (xsched::cuda::query_relay_originals(kernel_name, ordinals, offsets,
++                                            sizes, max_entries, out_entries))
++        return 1;
++    XDEBG("meta-extend: no registered original layout for %s", kernel_name);
++    return 0;
++}
 --- a/platforms/cuda/shim/src/intercept.cpp
 +++ b/platforms/cuda/shim/src/intercept.cpp
 @@ -4,6 +4,7 @@
@@ -900,3 +1155,283 @@
  DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryLoadFromFile, CUresult, cuLibraryLoadFromFile, CUlibrary *, library, const char *, fileName, CUjit_option *, jitOptions, void **, jitOptionsValues, unsigned int, numJitOptions, CUlibraryOption *, libraryOptions, void **, libraryOptionValues, unsigned int, numLibraryOptions);
  DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryUnload, CUresult, cuLibraryUnload, CUlibrary, library);
  DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryGetKernel, CUresult, cuLibraryGetKernel, CUkernel *, pKernel, CUlibrary, library, const char *, name);
+--- a/platforms/cuda/hal/src/common/cuda_command.cpp
++++ b/platforms/cuda/hal/src/common/cuda_command.cpp
+@@ -1,4 +1,5 @@
+ #include <cstring>
++#include <dlfcn.h>
+ #include <cuxtra/cuxtra.h>
+ 
+ #include "xsched/utils/log.h"
+@@ -10,6 +11,92 @@
+ 
+ using namespace xsched::cuda;
+ 
++namespace {
++
++// Original per-ordinal parameter layout used for host-side marshaling.
++// Offsets are positions inside the argument blob; sizes are the byte
++// counts to copy from the caller's argument pointers.
++constexpr size_t kXgRelayMaxParams = 32;
++
++struct XgParamLayout
++{
++    size_t count;
++    size_t offset[kXgRelayMaxParams];
++    size_t size[kXgRelayMaxParams];
++};
++
++typedef int (*XgRelayQueryFn)(const char *, unsigned int *, unsigned int *,
++                              unsigned int *, size_t, size_t *);
++
++// The shim registers grown kernels' original layouts at image-patch time
++// (opt-in XG_NATIVE_META_KPARAM extend, window_meta_extend.cpp) and exports
++// the lookup by mangled kernel name. The shim is loaded first (the HAL
++// runs against it as libcuda.so.1), so the symbol is probed without
++// creating a load-time dependency: a HAL process without the shim simply
++// gets a null function pointer.
++XgRelayQueryFn XgRelayQuerySymbol()
++{
++    static XgRelayQueryFn fn = nullptr;
++    static bool probed = false;
++    if (!probed) {
++        probed = true;
++        void *h = dlopen("libcuda.so.1", RTLD_NOW | RTLD_NOLOAD);
++        if (h == nullptr) h = dlopen("libcuda.so", RTLD_NOW | RTLD_NOLOAD);
++        if (h != nullptr) fn = (XgRelayQueryFn)dlsym(h, "XgGetRelayOriginalParams");
++    }
++    return fn;
++}
++
++// Query the registered ORIGINAL layout by kernel name. Returns false when
++// the shim export is absent, the kernel has no registered growth (marshal
++// with the loaded param info), or the registry disagrees with the loaded
++// param table (fall back, never guess).
++bool GetXgOriginalLayout(CUfunction func, size_t param_cnt, XgParamLayout *out)
++{
++    XgRelayQueryFn fn = XgRelayQuerySymbol();
++    if (fn == nullptr) return false;
++    const char *name = nullptr;
++    if (Driver::FuncGetName(&name, func) != CUDA_SUCCESS || name == nullptr) return false;
++    unsigned int ordinals[kXgRelayMaxParams];
++    unsigned int offsets[kXgRelayMaxParams];
++    unsigned int sizes[kXgRelayMaxParams];
++    size_t cnt = 0;
++    if (!fn(name, ordinals, offsets, sizes, kXgRelayMaxParams, &cnt)) return false;
++    if (cnt == 0 || cnt != param_cnt || cnt > kXgRelayMaxParams) {
++        XWARN("kernel %s: registered original layout (%zu entries) does not "
++              "match the loaded param count (%zu); using loaded param info",
++              name, cnt, param_cnt);
++        return false;
++    }
++    // the meta extend keeps offsets unchanged: cross-check the registry
++    // against the loaded param table's last position before trusting it
++    size_t last_offset = 0, last_size = 0;
++    cuXtraGetParamInfo(func, cnt - 1, &last_offset, &last_size, nullptr);
++    if (last_offset != (size_t)offsets[cnt - 1]) {
++        XWARN("kernel %s: registered offsets disagree with the loaded param "
++              "info (0x%x vs 0x%zx); using loaded param info", name,
++              offsets[cnt - 1], last_offset);
++        return false;
++    }
++    out->count = cnt;
++    for (size_t i = 0; i < cnt; ++i) {
++        out->offset[i] = offsets[i];
++        out->size[i] = sizes[i];
++    }
++    return true;
++}
++
++// Fill the layout from the loaded (grown) param table.
++void GetLoadedLayout(CUfunction func, size_t param_cnt, XgParamLayout *out)
++{
++    out->count = param_cnt;
++    for (size_t i = 0; i < param_cnt; ++i) {
++        cuXtraGetParamInfo(func, i, &out->offset[i], &out->size[i], nullptr);
++    }
++}
++
++} // namespace
++
+ CudaCommand::CudaCommand(preempt::XCommandProperties props)
+     : HwCommand(GetCudaLv3Implementation() == kCudaLv3ImplementationTsg
+                 ? props | preempt::kCommandPropertyDeactivatable : props)
+@@ -73,19 +160,25 @@
+     deep_copy_ = true;
+     params_ = (void **)malloc(param_cnt_ * sizeof(void *));
+ 
++    // Marshal with the ORIGINAL per-ordinal layout: after the shim's
++    // opt-in meta extend, the loaded param table's grown ordinal only
++    // serves the driver's launch-side blob validation and must never be
++    // used for host-side copies (the app's own argument sizes are the
++    // deep-copy truth; plain, non-relay launches never marshal grown
++    // sizes with this wiring).
++    XgParamLayout layout;
++    if (!GetXgOriginalLayout(kFuncHandle, param_cnt_, &layout))
++        GetLoadedLayout(kFuncHandle, param_cnt_, &layout);
++
+     if (params != nullptr) {
+         // Allocate a continuous buffer for all of the params
+         // buffer size = last param offset + last param size
+-        size_t last_offset, last_size;
+-        cuXtraGetParamInfo(kFuncHandle, param_cnt_ - 1, &last_offset, &last_size, nullptr);
+-        size_t buffer_size = last_offset + last_size;
++        size_t buffer_size = layout.offset[layout.count - 1] + layout.size[layout.count - 1];
+         param_data_ = (char *)malloc(buffer_size);
+ 
+         for (size_t i = 0; i < param_cnt_; ++i) {
+-            size_t offset, size;
+-            cuXtraGetParamInfo(kFuncHandle, i, &offset, &size, nullptr);
+-            params_[i] = (void*)&param_data_[offset];
+-            memcpy(params_[i], params[i], size);
++            params_[i] = (void*)&param_data_[layout.offset[i]];
++            memcpy(params_[i], params[i], layout.size[i]);
+         }
+     } else if (extra != nullptr) {
+         // Get extra buffer and its size from extra map.
+@@ -109,18 +202,18 @@
+ 
+         // Set params_ to point to extra_data_.
+         for (size_t i = 0; i < param_cnt_; ++i) {
+-            size_t offset, size;
+-            cuXtraGetParamInfo(kFuncHandle, i, &offset, &size, nullptr);
+-            XASSERT(offset + size <= extra_buffer_size_,
++            XASSERT(layout.offset[i] + layout.size[i] <= extra_buffer_size_,
+                     "extra[%zu] out of range: offset (%zu) + size (%zu) > buffer size (%zu)",
+-                    i, offset, size, extra_buffer_size_);
+-            params_[i] = (void*)&extra_data_[offset];
++                    i, layout.offset[i], layout.size[i], extra_buffer_size_);
++            params_[i] = (void*)&extra_data_[layout.offset[i]];
+         }
+     }
+ }
+ 
+ CudaKernelCommand::~CudaKernelCommand()
+ {
++    if (relay_extra_) delete[] relay_extra_;
++    if (relay_blob_) free(relay_blob_);
+     if (!deep_copy_) return;
+     if (param_data_) free(param_data_);
+     if (extra_data_) free(extra_data_);
+@@ -128,6 +221,121 @@
+     if (extra_) free(extra_);
+ }
+ 
++// Opaque token saved by AdoptWindowRelayExtra(): the launch configuration
++// (extra_/params_) in effect before the relay was adopted. A no-op token is
++// produced when the relay cannot be adopted or is already active.
++struct WindowRelayToken
++{
++    void **extra;
++    void **params;
++    bool noop;
++};
++
++void *CudaKernelCommand::AdoptWindowRelayExtra(const void *window_args)
++{
++    WindowRelayToken *token = new WindowRelayToken{extra_, params_, false};
++    // single active relay per command (adoption runs under the launch mutex);
++    // a second adoption restores as a no-op
++    if (relay_extra_ != nullptr) {
++        token->noop = true;
++        return token;
++    }
++
++    // sm_120 window-args relay: the guardian/resume prefix consumes the
++    // 28-byte argument block at the absolute debugger window base
++    // XG_DEBUGGER_BASE (0x1880, xsched_guardian_abi.h), which lies outside
++    // the workload kernel's declared constant-bank extent and is therefore
++    // not covered by the kernel params. CU_LAUNCH_PARAM_BUFFER bytes are
++    // argument-buffer-relative (same coordinate system the ctor uses with
++    // cuXtraGetParamInfo offsets for extra_data_), so the window is placed
++    // at (absolute window base - sm_120 parameter base) inside the blob and
++    // both the real kernel params and the window args ride one blob through
++    // the normal launch-parameter upload.
++    const size_t kWindowBaseAbs = 0x1880; // XG_DEBUGGER_BASE
++    const size_t kWindowBytes = 28;       // XG_ARGS_BYTES
++    // constant-bank parameter base established for this explicitly
++    // sm_120-scoped adapter from the dagger workload cubins; not derived
++    // from cuXtraGetParamInfo
++    const size_t kParamBaseAbs = 0x380;
++    if (param_cnt_ == 0 || params_ == nullptr) {
++        XERRO_NOEXIT("window relay unsupported: kernel %p has param_cnt=%zu params_=%p",
++              (void *)kFunc, param_cnt_, (void *)params_);
++        token->noop = true;
++        return token; // launch as before (window stays undelivered)
++    }
++    // Marshal the blob from the ORIGINAL per-ordinal layout (see the
++    // constructor): the deep-copied params carry original-sized data, so
++    // the blob fill must read original sizes as well. The window branch
++    // below still pads the blob to the declared 0x1520 extent for the
++    // driver's launch-side validation.
++    XgParamLayout layout;
++    if (!GetXgOriginalLayout(kFuncHandle, param_cnt_, &layout))
++        GetLoadedLayout(kFuncHandle, param_cnt_, &layout);
++    size_t last_idx = layout.count - 1;
++    size_t last_offset = layout.offset[last_idx], last_size = layout.size[last_idx];
++    size_t rel_param_end = last_offset + last_size;
++    size_t rel_window_base = kWindowBaseAbs - kParamBaseAbs; // 0x1500
++    if (rel_param_end > rel_window_base) {
++        XERRO_NOEXIT("window relay unsupported: kernel %p params end at 0x%zx, "
++                     "past blob-relative window base 0x%zx",
++                     (void *)kFunc, rel_param_end, rel_window_base);
++        token->noop = true;
++        return token; // launch as before (window stays undelivered)
++    }
++    size_t blob_size = rel_param_end > rel_window_base + kWindowBytes
++                     ? rel_param_end : rel_window_base + kWindowBytes;
++    blob_size = (blob_size + 0xf) & ~(size_t)0xf;
++    char *blob = (char *)malloc(blob_size);
++    XASSERT(blob != nullptr, "window relay blob malloc failed (%zu B)", blob_size);
++    memset(blob, 0, blob_size);
++    for (size_t i = 0; i != param_cnt_; ++i) {
++        XASSERT(layout.offset[i] + layout.size[i] <= blob_size,
++                "window relay param %zu out of blob range: %zu + %zu > %zu",
++                i, layout.offset[i], layout.size[i], blob_size);
++        memcpy(blob + layout.offset[i], params_[i], layout.size[i]);
++    }
++    memcpy(blob + rel_window_base, window_args, kWindowBytes);
++
++    // relay_blob_size_ must outlive the launch (extra_[3] points to it)
++    relay_blob_ = blob;
++    relay_blob_size_ = blob_size;
++    relay_extra_ = new void *[5];
++    relay_extra_[0] = CU_LAUNCH_PARAM_BUFFER_POINTER;
++    relay_extra_[1] = relay_blob_;
++    relay_extra_[2] = CU_LAUNCH_PARAM_BUFFER_SIZE;
++    relay_extra_[3] = (void *)&relay_blob_size_;
++    relay_extra_[4] = CU_LAUNCH_PARAM_END;
++    // launch with the blob only, regardless of the command's original form;
++    // the saved token restores both members after the launch. Original
++    // extra-buffer commands still marshal correctly: their params_[i] point
++    // into extra_data_, which this loop reads.
++    extra_ = relay_extra_;
++    params_ = nullptr;
++    return token;
++}
++
++void CudaKernelCommand::RestoreWindowRelayExtra(void *token_v)
++{
++    WindowRelayToken *token = (WindowRelayToken *)token_v;
++    if (token == nullptr) return;
++    bool noop = token->noop;
++    if (!noop) {
++        extra_ = token->extra;
++        params_ = token->params;
++    }
++    delete token;
++    if (noop) return;
++    if (relay_extra_ != nullptr) {
++        delete[] relay_extra_;
++        relay_extra_ = nullptr;
++    }
++    if (relay_blob_ != nullptr) {
++        free(relay_blob_);
++        relay_blob_ = nullptr;
++    }
++    relay_blob_size_ = 0;
++}
++
+ CudaKernelLaunchExCommand::CudaKernelLaunchExCommand(const CUlaunchConfig *cfg, CUfunction func,
+                                                      void **params, void **extra, bool deep_copy)
+     : CudaKernelCommand(func, params, extra, deep_copy)

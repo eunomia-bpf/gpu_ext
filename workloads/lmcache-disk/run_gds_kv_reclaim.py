@@ -540,9 +540,11 @@ def run_cell(arm: str, block: int, position: int, run_dir: Path, port: int,
              model_path: Path, prefixes: list[dict[str, Any]],
              warm_order: list[int], expected_driver: str,
              store_barrier_timeout_s: float, gds_buffer_size_mib: int,
-             kv_cache_memory_bytes: int, warm_output_tokens: int,
-             warm_stagger_ms: float, warm_concurrency: int,
-             recompute_ns_per_token: int) -> dict[str, Any]:
+              kv_cache_memory_bytes: int, warm_output_tokens: int,
+              warm_stagger_ms: float, warm_concurrency: int,
+              recompute_ns_per_token: int,
+              disk_uvm: bool = False,
+              disk_uvm_fault_lib: str | None = None) -> dict[str, Any]:
     """One arm, once: sequential cold population, then overlapping warm burst."""
     specs = warm_specs(prefixes)
     specs_by_index = {spec["index"]: spec for spec in specs}

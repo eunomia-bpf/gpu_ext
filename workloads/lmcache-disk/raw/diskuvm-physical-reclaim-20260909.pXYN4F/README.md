@@ -66,3 +66,15 @@ and zero HTTP failures each: BPF 65.422796, stock 73.961755, native
 67.656516 token/s. Stock/native record 72/40 UVM restores and zero
 fallback/errors; BPF's diagnostic counters are unavailable. Nine of
 fifteen planned cells are now preserved; the remaining blocks continue.
+
+## Concurrent host-work limitation
+
+The native XSched OpenCode session independently compiled a small CUDA
+metadata specimen during the first native serving cell, despite the
+source-only request. Its local bigk.cubin is 16424 bytes with completion
+mtime 06:51:18 PDT. The recorded command uses nvcc -cubin; it does not
+launch a GPU kernel. The duration and performance effect were not measured,
+so this record does not assume the overlap had zero effect. The first pair
+is retained, not silently excluded or rerun. Root reiterated no compiler,
+build or GPU actions during the remaining campaign; the queued callback
+tool build still waits for both leases.

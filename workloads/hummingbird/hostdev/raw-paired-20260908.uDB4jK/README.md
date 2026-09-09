@@ -1,4 +1,9 @@
-# Hummingbird host/device comparison — in progress
+# Hummingbird host/device comparison — complete
+
+Final update: all five blocks / 20 cells have completed with zero exits.
+See [the full report](../results-performance-20260908.md) for final paired
+effects, block-0 sensitivity and limitations. The dated progress notes
+below retain the execution history rather than describing current status.
 
 2026-09-08. Five blocks and four implementation arms use the existing
 Hummingbird client, frozen idle-policy profile, 60-second periodic 100 Hz

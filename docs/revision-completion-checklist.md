@@ -52,7 +52,7 @@ status entries remain below; completed cells must not be repeated.
   still fails with CUDA 700 (`bd38f2bc`). These narrow diagnostics leave
   redirected execution and restoration unfinished; no completed baseline
   or successful control needs repeating.
-- **Hummingbird host/device mapping now runs; paired comparison remains open.**
+- **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed
   block coordinates in the original workload. Its existing OpenCode session
@@ -64,8 +64,14 @@ status entries remain below; completed cells must not be repeated.
   `b15ade70`: 6000 foreground and 7718 background requests, exit zero.
   The initial ioctl failure was resolved by temporarily loading the saved
   compatible scheduler core; the prior driver/services/loaders were restored.
-  Original-inline, callable-native and BPF-device paired comparisons remain
-  unfinished, so no overhead or superiority is established. The two XSched sessions
+  The subsequent [20-cell paired comparison](../workloads/hummingbird/hostdev/results-performance-20260908.md)
+  completes five blocks: original/host-BPF/callable-native/device-BPF BE
+  goodput medians are 133.150/132.950/129.017/128.967 requests/s. Total
+  BPF/original paired geometric-mean change is -3.052%; incremental device
+  BPF/native-adapter is -0.072% with interval including zero. All earlier
+  data and the adverse foreground block-0-excluded sensitivity remain.
+  This is an opt-in rebuilt-cubin adapter comparison, not transparent
+  unchanged-binary instrumentation or formal equivalence. The two XSched sessions
   plus this session respect the three-session limit; silence is not a reason
   to stop them.
 

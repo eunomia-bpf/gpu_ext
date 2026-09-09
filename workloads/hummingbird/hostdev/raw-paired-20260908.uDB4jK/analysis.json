@@ -1,0 +1,530 @@
+{
+  "cells": [
+    {
+      "block": 0,
+      "arm": "bpf_device",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-first-real-20260908.08lUpN/full-bpf-compatible-core.log",
+      "hp_p99_ns": 1876349,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 128.61666666666667,
+      "be_completed_in_window": 7717,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 0,
+      "arm": "inline_bpfhost",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-00-inline_bpfhost.log",
+      "hp_p99_ns": 1913771,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 132.55,
+      "be_completed_in_window": 7953,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 0,
+      "arm": "native_adapter",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-00-native_adapter.log",
+      "hp_p99_ns": 1902283,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 129.03333333333333,
+      "be_completed_in_window": 7742,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 0,
+      "arm": "original_inline",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-00-original_inline.log",
+      "hp_p99_ns": 1892354,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 132.53333333333333,
+      "be_completed_in_window": 7952,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 1,
+      "arm": "bpf_device",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-01-bpf_device.log",
+      "hp_p99_ns": 1944597,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 129.18333333333334,
+      "be_completed_in_window": 7751,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 1,
+      "arm": "inline_bpfhost",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-01-inline_bpfhost.log",
+      "hp_p99_ns": 1884845,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 132.95,
+      "be_completed_in_window": 7977,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 1,
+      "arm": "native_adapter",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-01-native_adapter.log",
+      "hp_p99_ns": 1871289,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 128.73333333333332,
+      "be_completed_in_window": 7724,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 1,
+      "arm": "original_inline",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-01-original_inline.log",
+      "hp_p99_ns": 1910994,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 133.18333333333334,
+      "be_completed_in_window": 7991,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 2,
+      "arm": "bpf_device",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-02-bpf_device.log",
+      "hp_p99_ns": 1848676,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 128.96666666666667,
+      "be_completed_in_window": 7738,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 2,
+      "arm": "inline_bpfhost",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-02-inline_bpfhost.log",
+      "hp_p99_ns": 1855223,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 133.25,
+      "be_completed_in_window": 7995,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 2,
+      "arm": "native_adapter",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-02-native_adapter.log",
+      "hp_p99_ns": 1823283,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 128.78333333333333,
+      "be_completed_in_window": 7727,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 2,
+      "arm": "original_inline",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-02-original_inline.log",
+      "hp_p99_ns": 1884592,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 133.08333333333334,
+      "be_completed_in_window": 7985,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 3,
+      "arm": "bpf_device",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-03-bpf_device.log",
+      "hp_p99_ns": 1838645,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 129.31666666666666,
+      "be_completed_in_window": 7759,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 3,
+      "arm": "inline_bpfhost",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-03-inline_bpfhost.log",
+      "hp_p99_ns": 2079409,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 132.9,
+      "be_completed_in_window": 7974,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 3,
+      "arm": "native_adapter",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-03-native_adapter.log",
+      "hp_p99_ns": 1828340,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 129.75,
+      "be_completed_in_window": 7785,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 3,
+      "arm": "original_inline",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-03-original_inline.log",
+      "hp_p99_ns": 1861538,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 133.15,
+      "be_completed_in_window": 7989,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 4,
+      "arm": "bpf_device",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-04-bpf_device.log",
+      "hp_p99_ns": 1877594,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 128.76666666666668,
+      "be_completed_in_window": 7726,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 4,
+      "arm": "inline_bpfhost",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-04-inline_bpfhost.log",
+      "hp_p99_ns": 1966073,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 133.08333333333334,
+      "be_completed_in_window": 7985,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 4,
+      "arm": "native_adapter",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-04-native_adapter.log",
+      "hp_p99_ns": 1885870,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 129.01666666666668,
+      "be_completed_in_window": 7741,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    },
+    {
+      "block": 4,
+      "arm": "original_inline",
+      "log": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/hummingbird/hostdev/raw-paired-20260908.uDB4jK/block-04-original_inline.log",
+      "hp_p99_ns": 1830382,
+      "hp_coverage": 1.0,
+      "be_goodput_rps": 133.2,
+      "be_completed_in_window": 7992,
+      "be_max_abs_error": 0,
+      "status": "measured"
+    }
+  ],
+  "estimate": {
+    "host_bpf": {
+      "hp_p99_ns_all_blocks": {
+        "geometric_ratio": 1.0333363799728177,
+        "block_ratios": [
+          1.0113176498688934,
+          0.9863165452115495,
+          0.9844162556139472,
+          1.1170381695135958,
+          1.0741326127551516
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9905024528010855,
+          1.0810745715689927
+        ],
+        "median": 1.0113176498688934,
+        "range": [
+          0.9844162556139472,
+          1.1170381695135958
+        ]
+      },
+      "hp_p99_ns_excl_block0": {
+        "geometric_ratio": 1.0389155646806112,
+        "block_ratios": [
+          0.9863165452115495,
+          0.9844162556139472,
+          1.1170381695135958,
+          1.0741326127551516
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.985365942321551,
+          1.0953753363878842
+        ],
+        "median": 1.0302245789833506,
+        "range": [
+          0.9844162556139472,
+          1.1170381695135958
+        ]
+      },
+      "be_goodput_rps_all_blocks": {
+        "geometric_ratio": 0.999373835634044,
+        "block_ratios": [
+          1.0001257545271631,
+          0.9982480290326616,
+          1.0012523481527864,
+          0.9981224183251971,
+          0.9991241241241243
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9983729315759049,
+          1.000425477092555
+        ],
+        "median": 0.9991241241241243,
+        "range": [
+          0.9981224183251971,
+          1.0012523481527864
+        ]
+      },
+      "be_goodput_rps_excl_block0": {
+        "geometric_ratio": 0.999185944257205,
+        "block_ratios": [
+          0.9982480290326616,
+          1.0012523481527864,
+          0.9981224183251971,
+          0.9991241241241243
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9981852217030874,
+          1.0005004217675892
+        ],
+        "median": 0.9986860765783929,
+        "range": [
+          0.9981224183251971,
+          1.0012523481527864
+        ]
+      }
+    },
+    "callable_adapter": {
+      "hp_p99_ns_all_blocks": {
+        "geometric_ratio": 0.960610876220364,
+        "block_ratios": [
+          0.993997191931532,
+          0.9928078966705485,
+          0.9827837408225318,
+          0.8792594434283972,
+          0.9592064994534791
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9169162697668336,
+          0.9912695022224968
+        ],
+        "median": 0.9827837408225318,
+        "range": [
+          0.8792594434283972,
+          0.993997191931532
+        ]
+      },
+      "hp_p99_ns_excl_block0": {
+        "geometric_ratio": 0.9524410058330808,
+        "block_ratios": [
+          0.9928078966705485,
+          0.9827837408225318,
+          0.8792594434283972,
+          0.9592064994534791
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9040704446999572,
+          0.9877831030180823
+        ],
+        "median": 0.9709951201380055,
+        "range": [
+          0.8792594434283972,
+          0.9928078966705485
+        ]
+      },
+      "be_goodput_rps_all_blocks": {
+        "geometric_ratio": 0.970787927403167,
+        "block_ratios": [
+          0.9734691311454796,
+          0.9682838159709164,
+          0.9664790494058787,
+          0.9762979683972911,
+          0.96944270507201
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9677929994006244,
+          0.9741243576407929
+        ],
+        "median": 0.96944270507201,
+        "range": [
+          0.9664790494058787,
+          0.9762979683972911
+        ]
+      },
+      "be_goodput_rps_excl_block0": {
+        "geometric_ratio": 0.9701187811346442,
+        "block_ratios": [
+          0.9682838159709164,
+          0.9664790494058787,
+          0.9762979683972911,
+          0.96944270507201
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9672191128535605,
+          0.9742882331627899
+        ],
+        "median": 0.9688632605214632,
+        "range": [
+          0.9664790494058787,
+          0.9762979683972911
+        ]
+      }
+    },
+    "incremental_bpf": {
+      "hp_p99_ns_all_blocks": {
+        "geometric_ratio": 1.0079824352989672,
+        "block_ratios": [
+          0.9863669075526618,
+          1.0391751354280392,
+          1.0139270755006218,
+          1.0056362602141833,
+          0.9956115744987725
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9937557353542167,
+          1.0239518404846002
+        ],
+        "median": 1.0056362602141833,
+        "range": [
+          0.9863669075526618,
+          1.0391751354280392
+        ]
+      },
+      "hp_p99_ns_excl_block0": {
+        "geometric_ratio": 1.0134599294746975,
+        "block_ratios": [
+          1.0391751354280392,
+          1.0139270755006218,
+          1.0056362602141833,
+          0.9956115744987725
+        ],
+        "paired_block_bootstrap_ci95": [
+          1.0001591967246122,
+          1.0306869828593885
+        ],
+        "median": 1.0097816678574025,
+        "range": [
+          0.9956115744987725,
+          1.0391751354280392
+        ]
+      },
+      "be_goodput_rps_all_blocks": {
+        "geometric_ratio": 0.9992788093885219,
+        "block_ratios": [
+          0.9967708602428313,
+          1.0034955981356812,
+          1.0014235796557527,
+          0.9966602440590879,
+          0.9980622658571244
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9969847482129963,
+          1.0017328418074316
+        ],
+        "median": 0.9980622658571244,
+        "range": [
+          0.9966602440590879,
+          1.0034955981356812
+        ]
+      },
+      "be_goodput_rps_excl_block0": {
+        "geometric_ratio": 0.999906782021902,
+        "block_ratios": [
+          1.0034955981356812,
+          1.0014235796557527,
+          0.9966602440590879,
+          0.9980622658571244
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.997361008599859,
+          1.0024590535547198
+        ],
+        "median": 0.9997429227564385,
+        "range": [
+          0.9966602440590879,
+          1.0034955981356812
+        ]
+      }
+    },
+    "total_bpf": {
+      "hp_p99_ns_all_blocks": {
+        "geometric_ratio": 1.0005578033968858,
+        "block_ratios": [
+          0.9915422801442013,
+          1.0175840426500553,
+          0.9809422941411191,
+          0.9877021043889515,
+          1.0257935228821087
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9857573481118808,
+          1.0164247343042645
+        ],
+        "median": 0.9915422801442013,
+        "range": [
+          0.9809422941411191,
+          1.0257935228821087
+        ]
+      },
+      "hp_p99_ns_excl_block0": {
+        "geometric_ratio": 1.0028244634863341,
+        "block_ratios": [
+          1.0175840426500553,
+          0.9809422941411191,
+          0.9877021043889515,
+          1.0257935228821087
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9843163963925975,
+          1.0216805371243098
+        ],
+        "median": 1.0026430735195033,
+        "range": [
+          0.9809422941411191,
+          1.0257935228821087
+        ]
+      },
+      "be_goodput_rps_all_blocks": {
+        "geometric_ratio": 0.9694803698493089,
+        "block_ratios": [
+          0.9704476861167003,
+          0.9699662119884871,
+          0.969067000626174,
+          0.9712104143196895,
+          0.9667167167167169
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.968015206438294,
+          0.9706563612779282
+        ],
+        "median": 0.9699662119884871,
+        "range": [
+          0.9667167167167169,
+          0.9712104143196895
+        ]
+      },
+      "be_goodput_rps_excl_block0": {
+        "geometric_ratio": 0.969238691475481,
+        "block_ratios": [
+          0.9699662119884871,
+          0.969067000626174,
+          0.9712104143196895,
+          0.9667167167167169
+        ],
+        "paired_block_bootstrap_ci95": [
+          0.9675280685286901,
+          0.9706741168486952
+        ],
+        "median": 0.9695166063073306,
+        "range": [
+          0.9667167167167169,
+          0.9712104143196895
+        ]
+      }
+    }
+  }
+}

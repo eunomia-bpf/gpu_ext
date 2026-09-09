@@ -225,3 +225,26 @@ The Qwen Next native-path request then ended with APIError HTTP 524 at
 that same saved session through the configured direct Qwen 27B provider,
 keeping its two-file scope. This was terminal provider-error recovery, not
 cancellation for inactivity; at most three OpenCode sessions remain live.
+
+## Fresh-runtime preparation and status repair — 2026-09-09
+
+The Table-1 component task finished naturally at 1788978144619 ms. That
+same Qwen 27B session now owns only a new
+`scripts/artifact/build_table1_runtime.sh` and `docs/artifact/table1-runtime.md`:
+prepare a fresh build from the published bpftime branch, with explicit
+dependencies and no use of the existing runtime binary. Root will execute
+the build; the model does not run GPU work or alter the source checkout it
+inspects. The two native XSched sessions retain their separate scopes.
+
+Root independently built the four LMCache storage targets from GitHub
+source `fcb77b7d` and pinned libbpf `02bdeb7`; all succeeded in six seconds.
+The commands, logs and runtime guide are published in `30902c27`.
+The existing serving environment and modified-driver deployment remain
+separate dependencies, not implied by that component build.
+
+`25cbe34d` marks the old LMCache OOM handoff and early native-XSched failures
+as historical and links their later successful runs. Old data and failure
+descriptions remain intact. Root also reviewed the new native runner's
+path threading and exercised its CLI help successfully. The patch-chain
+task is packaging the two remaining live-HAL source deltas; no original
+native GPU cell or completed campaign was repeated.

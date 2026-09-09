@@ -78,6 +78,15 @@ status entries remain below; completed cells must not be repeated.
   called, but receives an unhandled CUDA fatbin wrapper and passes it through
   unchanged. That concrete format case is now in local-model repair.
   No native Level-2 performance sample is added by this attempt.
+  The subsequent [wrapped-image retry](../workloads/xsched/raw/level2-native-wrapped-meta-20260908.NmlhJN/README.md)
+  builds and actually changes both extent records before module loading,
+  but the first launch still returns 701. The separate
+  [resume-to-guardian / volatile-access retry](../workloads/xsched/raw/level2-resume-guardian-20260908.Rbs4dz/README.md)
+  also builds and runs; both LC workers finish, while all four BE workers
+  report missing output despite matched preparation/callback counts.
+  Neither candidate closes Level-2 performance. Both leave GPU idle without
+  a driver change or persistence restart; their source and adverse raw
+  records remain separate from completed Level-1 results.
 - **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed

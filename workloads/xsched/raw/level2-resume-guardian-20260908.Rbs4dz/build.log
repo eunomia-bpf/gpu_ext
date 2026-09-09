@@ -1,0 +1,16 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'
+mkdir -p .output/tramp/
+/usr/local/cuda-12.9/bin/nvcc -ptx -rdc=true -arch=sm_120 -O3 -std=c++14 --keep-device-functions \
+	../level2/tramp/xsched_guard_tramp.cu -o .output/tramp/xsched_guard_tramp.ptx
+mkdir -p .output/merged/
+bash ../level2/tool/merge_ptx.sh .output/ptx/xsched_guardian.ptx .output/tramp/xsched_guard_tramp.ptx .output/merged/xg_guardian.ptx
+/usr/local/cuda-12.9/bin/ptxas -arch=sm_120 -astoolspatch .output/merged/xg_guardian.ptx -o .output/xg_guardian.cubin
+/usr/local/cuda-12.9/bin/fatbinary -64 --embedded-fatbin .output/xg_guardian.fatbin.c \
+	--image3=kind=elf,sm=120,file=.output/xg_guardian.cubin
+g++ -x c++ -fPIC -O2 -I/usr/local/cuda-12.9/targets/x86_64-linux/include -c .output/xg_guardian.fatbin.c -o .output/xg_guardian_carrier.o
+/usr/local/cuda-12.9/bin/nvcc -arch=sm_120 -O3 \
+	.output/xsched_guard_tool.o .output/xg_guardian_carrier.o \
+	-L../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -lnvbit -L/usr/local/cuda-12.9/targets/x86_64-linux/lib -lcuda -lcudart_static \
+	-shared -o .output/xsched_guard_tool.so
+XG tool built: .output/xsched_guard_tool.so
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'

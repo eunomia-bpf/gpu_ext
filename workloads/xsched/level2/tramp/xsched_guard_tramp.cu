@@ -19,8 +19,14 @@
  *   resume launch (restore_exec): every thread materializes the per-block
  *   snapshot of the restore flag (read-only) and takes the decision;
  *   blocks whose restore flag is zero exit, the others synchronize, clear
- *   the flag and fall through into the kernel body (command replay
- *   continues).
+ *   the flag, and re-enter the guardian entry (check_preempt) exactly as
+ *   the original restore_exec transfers to func_entry_point; only after
+ *   that re-check does execution fall through into the kernel body.
+ *
+ *   All reads of the externally-mutable argument block and the
+ *   preempt-buffer flag/index words are volatile, requesting explicit
+ *   accesses rather than compiler reuse. This is not a general guarantee
+ *   of cross-device coherence or freshness.
  *
  * The ONLY difference between the matched arms is which function supplies
  * the bounded decision, selected at insertion time (decision_mode); BOTH
@@ -69,7 +75,7 @@ static __device__ __forceinline__ void xg_exit()
  * launches read only the per-block restore flag; guardian launches read
  * the global deactivation flag and the recorded preempt_idx. */
 static __device__ __forceinline__ void xg_snapshot_fill(
-    struct XgSnapshotCtx *snap, const XgArgs *args, uint64_t buf,
+    struct XgSnapshotCtx *snap, const volatile XgArgs *args, uint64_t buf,
     uint64_t block_idx, uint64_t launch_type)
 {
     snap->kernel_idx = (unsigned long long)args->kernel_idx;
@@ -79,12 +85,15 @@ static __device__ __forceinline__ void xg_snapshot_fill(
         snap->global_exit_flag = 0;
         snap->preempt_idx = 0;
         snap->block_restore_flag =
-            (unsigned long long)((const uint32_t *)(buf + 4ULL * (2ULL * block_idx + 5ULL)))[0];
+            (unsigned long long)(*(const volatile uint32_t *)
+                                 (buf + 4ULL * (2ULL * block_idx + 5ULL)));
         return;
     }
     snap->block_restore_flag = 0;
-    snap->global_exit_flag = (unsigned long long)((const uint32_t *)buf)[0];
-    snap->preempt_idx = ((const unsigned long long *)(buf + 8ULL))[0];
+    snap->global_exit_flag =
+        (unsigned long long)(*(const volatile uint32_t *)buf);
+    snap->preempt_idx =
+        (*(const volatile unsigned long long *)(buf + 8ULL));
 }
 
 __device__ __noinline__ unsigned long long xg_native_decision(
@@ -128,38 +137,55 @@ extern "C" __device__ __noinline__ void xg_tramp(int32_t guard,
      * launched outside the XSched queue must run without the guardian. */
     if (args_dev == 0) return;
 
-    const XgArgs *args = (const XgArgs *)args_dev;
+    /* The argument block is written by the host actuator before each launch
+     * and the preempt-buffer words are written by other launches/threads;
+     * read them volatile to request explicit accesses. The protocol still
+     * relies on its existing host/device ordering and synchronization. */
+    const volatile XgArgs *args = (const volatile XgArgs *)args_dev;
     const uint64_t buf = args->preempt_buf;
-    if (buf == 0 || args->launch_type == XG_LAUNCH_ORIGINAL) return;
+    const uint32_t launch_type = args->launch_type;
+    if (buf == 0 || launch_type == XG_LAUNCH_ORIGINAL) return;
 
     const uint64_t block_idx = (uint64_t)xg_blockid();
 
-    if (args->launch_type == XG_LAUNCH_RESUME) {
-        uint32_t *restore = (uint32_t *)(buf + 4ULL * (2ULL * block_idx + 5ULL));
+    if (launch_type == XG_LAUNCH_RESUME) {
+        /* restore_exec: every thread materializes the per-block restore flag
+         * (read-only snapshot) and takes the decision; blocks whose restore
+         * flag is zero exit, the others synchronize, clear the flag, and then
+         * re-enter the guardian entry below (as the original restore_exec
+         * transfers to func_entry_point) rather than returning straight to
+         * the application body. */
+        volatile uint32_t *restore =
+            (volatile uint32_t *)(buf + 4ULL * (2ULL * block_idx + 5ULL));
         struct XgSnapshotCtx snap;
-        xg_snapshot_fill(&snap, args, buf, block_idx, (uint64_t)args->launch_type);
+        xg_snapshot_fill(&snap, args, buf, block_idx, (uint64_t)launch_type);
         const unsigned long long d =
             decision_mode == 1u ? xg_bpf_decision(&snap)
                                 : xg_native_decision(&snap);
         if (d & XG_D_RESUME_SKIP) xg_exit();
         __syncthreads();
         *restore = 0; /* all threads, as in restore_exec */
-        return;       /* fall through into the kernel body */
+        /* fall through to the guardian re-entry below */
     }
 
-    uint32_t *block_exit = (uint32_t *)(buf + 4ULL * (2ULL * block_idx + 4ULL));
-    uint32_t *block_restore = (uint32_t *)(buf + 4ULL * (2ULL * block_idx + 5ULL));
+    /* check_preempt (guardian entry): taken both by direct GUARDIAN launches
+     * and by the resume re-entry above. The leader materializes an explicit
+     * GUARDIAN snapshot (global exit flag + recorded preempt idx), not the
+     * resume snapshot. */
+    volatile uint32_t *block_exit =
+        (volatile uint32_t *)(buf + 4ULL * (2ULL * block_idx + 4ULL));
+    volatile uint32_t *block_restore =
+        (volatile uint32_t *)(buf + 4ULL * (2ULL * block_idx + 5ULL));
     if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
-        /* one leader materializes the snapshot and takes the decision */
         struct XgSnapshotCtx snap;
-        xg_snapshot_fill(&snap, args, buf, block_idx, (uint64_t)args->launch_type);
+        xg_snapshot_fill(&snap, args, buf, block_idx, XG_LAUNCH_GUARDIAN);
         const unsigned long long d =
             decision_mode == 1u ? xg_bpf_decision(&snap)
                                 : xg_native_decision(&snap);
         if (d & XG_D_CLEAR_EXIT) *block_exit = 0;
         if (d & XG_D_ABORT) *block_exit = 1;
         if (d & XG_D_RECORD_IDX)
-            *(unsigned long long *)(buf + 8ULL) = snap.kernel_idx;
+            *(volatile unsigned long long *)(buf + 8ULL) = snap.kernel_idx;
         if (d & XG_D_RECORD_RESTORE) *block_restore = 1;
         __threadfence_block();
     }

@@ -1,0 +1,56 @@
+{
+  "name": "be2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "be",
+    "2",
+    "4",
+    "50",
+    "9511106",
+    "340",
+    "256",
+    "1",
+    "0"
+  ],
+  "returncode": -11,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":2,\"streams\":4,\"tasks\":50}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 109185 @ 23:55:49.832030] using global scheduler",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.463942] native-700 probe 1: resume blob VA 0x7f279a600000 size 336, syncing",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.463949] native-700 probe 1: resume blob copy synced clean",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.464966] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.464970] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.464970] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.464971] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.464972] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.464972] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.464972] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x5cfd8d36b058)",
+    "[XSCHED INFO @ T 109185 @ 23:55:50.478695] native-700 probe 3: binary kernel=1408 B guardian=640 B ep_inst=0x7f279a600200 regs=16->32 barriers=1->1",
+    "[XSCHED INFO @ T 109472 @ 23:55:50.478917] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7f279a600200 entry=0x139808070435328 idx=1 killable=0",
+    "[XSCHED INFO @ T 109472 @ 23:55:50.478926] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01",
+    "[XSCHED INFO @ T 109472 @ 23:55:50.478942] native-700 probe 2: launch ret=701",
+    "[XSCHED ERRO @ T 109472 @ 23:55:50.478946] cuda error 701: too many resources requested for launch @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/level2/instrument.cpp:377",
+    "[XSCHED INFO @ T 109473 @ 23:55:50.478947] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7f279a600200 entry=0x139808070435328 idx=1 killable=0",
+    "[XSCHED INFO @ T 109473 @ 23:55:50.478954] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01",
+    "[XSCHED INFO @ T 109473 @ 23:55:50.478959] native-700 probe 2: launch ret=4"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "XSCHED_SCHEDULER": "GLB",
+    "XSCHED_AUTO_XQUEUE": "ON",
+    "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+    "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+    "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+    "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+    "XSCHED_CUDA_LV2_PORT_120": "1",
+    "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+    "XG_SERVICE_ONLY": "1",
+    "XG_NATIVE_META_EXTEND": "1"
+  }
+}

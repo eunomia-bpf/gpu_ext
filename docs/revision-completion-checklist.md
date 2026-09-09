@@ -35,13 +35,33 @@ status entries remain below; completed cells must not be repeated.
   identical record semantics across historical campaigns.
 - **XSched Level-2 host/device follow-up remains unfinished.** Existing
   Level-1 results are unchanged. The
-  [latest tool-route attempt](../workloads/xsched/raw/level2-replay-diagnostic-20260908.d9Gydm/README.md)
+  [reactivation diagnostic](../workloads/xsched/raw/level2-replay-diagnostic-20260908.d9Gydm/README.md)
   observes real reactivation and resume launches, but two background
   processes report missing output; the native SASS route still fails with
   CUDA 700. `b83a66d7` preserves the diagnostic records and corrects the
   earlier inference from a launch counter. These failed attempts are not
   performance comparisons. Local OpenCode sessions continue implementation;
   only failed cells need retry after a concrete repair.
+  The later [ordinary-launch-value attempt](../workloads/xsched/raw/level2-ordinary-launch-value-20260908.Cp8bpS/README.md)
+  still loses output (`ff9bff89`). On the native route, the
+  [original-entry control](../workloads/xsched/raw/level2-native-original-entry-20260908.pn3UDn/README.md)
+  completes all six workers / 1,200 kernels with the same preparation but
+  without redirecting execution (`f6590e80`); this is not Level-2 success
+  or a policy performance sample. The subsequent
+  [resume-allocation padding attempt](../workloads/xsched/raw/level2-native-entry-alignment-20260908.jOzEYp/README.md)
+  still fails with CUDA 700 (`bd38f2bc`). These narrow diagnostics leave
+  redirected execution and restoration unfinished; no completed baseline
+  or successful control needs repeating.
+- **Hummingbird original host/device mapping remains implementation work.**
+  Existing host-policy and pipeline measurements remain complete and are
+  not device-BPF evidence. The opt-in follow-up must consume BPF-computed
+  block coordinates in the original workload. Its existing OpenCode session
+  continues through Qwen 27B after Qwen Next's actual terminal HTTP 524,
+  as recorded in `71ff359c` and the
+  [local-model task record](experiment/original-host-device-local-prompts-20260908.md).
+  No new host/device performance result exists yet. The two XSched sessions
+  plus this session respect the three-session limit; silence is not a reason
+  to stop them.
 
 ## Current manuscript snapshot — 2026-09-07 PDT
 

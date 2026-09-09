@@ -87,6 +87,11 @@ status entries remain below; completed cells must not be repeated.
   Neither candidate closes Level-2 performance. Both leave GPU idle without
   a driver change or persistence restart; their source and adverse raw
   records remain separate from completed Level-1 results.
+  A subsequent [original-entry control with the new wrapper and argument relay](../workloads/xsched/raw/level2-wrapped-relay-entry-control-20260909.kv7jHZ/README.md)
+  still returns CUDA 701 and exits 139. Thus guardian entry redirection is
+  not necessary for this launch rejection; the common parameter/resource
+  setup remains under repair. This single-BE diagnostic adds no performance
+  sample and does not repeat the earlier, pre-relay successful control.
 - **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed

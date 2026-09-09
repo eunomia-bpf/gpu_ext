@@ -94,3 +94,28 @@ missing-counter list. To recompute, read warm_phase.output_tokens_per_s from
 each result, group by block/arm, and use 100*(candidate/reference-1).
 Large generated binaries and disposable KV caches are not Git artifacts.
 No manuscript files are changed.
+
+## Follow-up using existing logs only
+
+The saved logs expose different recovery behavior without any new run.
+Native and BPF have identical counts within every block: blocks 0/2/4 each
+contain 1414 warm zero-hit admission lines, eight positive-hit admission
+lines, eight retrieval completion lines and six rollback warnings; blocks
+1/3 contain 1380, eight, eight and four respectively. Stock has no warm
+zero-hit admission lines, 495–496 positive-hit admission lines, 15–16
+retrieval completion lines and 7–8 rollback warnings.
+
+These are counts of existing log messages, not independent requests,
+preemptions, disk operations or physical SSD traffic. Repeated checks of a
+waiting request must not be counted as repeated recomputations. In
+block-4 native, the same 2295-token request is repeatedly checked with zero
+computed/hit tokens at roughly 24 ms spacing; this motivates inspecting
+re-admission after the selected full-recompute route. It does not isolate
+the cause of the throughput gap, and matching counts do not prove matching
+timing. The native/BPF latency difference remains unexplained.
+
+lookup-log-counts.txt retains all fifteen counts. The extraction counts
+warm Reqid lines containing zero computed/hit/load tokens, warm Reqid lines
+with a positive LMCache hit count, all Retrieved/required tokens lines, and
+all rolled back from lines. The result.json preemption_log field is only
+its runner's parser output; a zero there does not establish no preemption.

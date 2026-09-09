@@ -19,7 +19,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <unordered_set>
@@ -35,6 +37,8 @@ static uint32_t guarded_launches = 0;
 static uint32_t instrumented_functions = 0;
 static std::unordered_set<CUfunction> instrumented;
 static std::mutex instrumented_mtx;
+static std::atomic<uint32_t> xg3_pub_cnt{0};
+static std::atomic<uint32_t> xg3_cb_cnt{0};
 
 static bool is_launch_cbid(nvbit_api_cuda_t cbid)
 {
@@ -101,6 +105,11 @@ extern "C" __attribute__((visibility("default")))
 void xg_host_publish(uint64_t ctx_dev)
 {
     published_ctx = ctx_dev;
+    const uint32_t n = xg3_pub_cnt.fetch_add(1);
+    if (n < 512) {
+        fprintf(stderr, "XG3 pub tid=%lu val=%p\n",
+                (unsigned long)pthread_self(), (void *)ctx_dev);
+    }
 }
 
 void nvbit_at_init()
@@ -140,6 +149,15 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
         }
     }
 
+    {
+        const uint32_t n = xg3_cb_cnt.fetch_add(1);
+        if (n < 512) {
+            fprintf(stderr, "XG3 cb tid=%lu f=%p pub=%p\n",
+                    (unsigned long)pthread_self(), (void *)f,
+                    (void *)published_ctx);
+        }
+    }
+
     nvbit_set_at_launch(ctx, f, published_ctx);
     const uint64_t consumed = published_ctx;
     /* one-shot consumption: a later launch that bypasses the XSched queue
@@ -155,6 +173,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 
 void nvbit_at_term()
 {
-    fprintf(stderr, "XG done functions=%u launches=%u\n",
-            instrumented_functions, guarded_launches);
+    fprintf(stderr, "XG done functions=%u launches=%u pubs=%u cbs=%u\n",
+            instrumented_functions, guarded_launches,
+            xg3_pub_cnt.load(), xg3_cb_cnt.load());
 }

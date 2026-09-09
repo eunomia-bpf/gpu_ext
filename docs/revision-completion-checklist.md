@@ -52,14 +52,20 @@ status entries remain below; completed cells must not be repeated.
   still fails with CUDA 700 (`bd38f2bc`). These narrow diagnostics leave
   redirected execution and restoration unfinished; no completed baseline
   or successful control needs repeating.
-- **Hummingbird original host/device mapping remains implementation work.**
+- **Hummingbird host/device mapping now runs; paired comparison remains open.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed
   block coordinates in the original workload. Its existing OpenCode session
   continues through Qwen 27B after Qwen Next's actual terminal HTTP 524,
   as recorded in `71ff359c` and the
   [local-model task record](experiment/original-host-device-local-prompts-20260908.md).
-  No new host/device performance result exists yet. The two XSched sessions
+  The [integrated model record](../workloads/hummingbird/hostdev/component-build-20260908.md)
+  now includes the real BPF cubin and a completed 60-second client run in
+  `b15ade70`: 6000 foreground and 7718 background requests, exit zero.
+  The initial ioctl failure was resolved by temporarily loading the saved
+  compatible scheduler core; the prior driver/services/loaders were restored.
+  Original-inline, callable-native and BPF-device paired comparisons remain
+  unfinished, so no overhead or superiority is established. The two XSched sessions
   plus this session respect the three-session limit; silence is not a reason
   to stop them.
 

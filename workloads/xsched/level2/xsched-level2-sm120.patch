@@ -291,7 +291,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
          // only preempt_buf is useful in this case
          memset(args_buf, 0, sizeof(args_buf));
          *preempt_buf = preempt_buf_->Ptr(); // use default (empty) preempt buffer
-@@ -86,6 +152,38 @@
+@@ -86,6 +152,47 @@
      *guardian    = kernel->entry_point_guardian;
      *kernel_idx  = kernel->GetIdx();
      *killable    = kernel->killable;
@@ -322,6 +322,15 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +        ToolPublish(tool_ctx_pool_dev_ +
 +                    kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
 +        CUresult ret = kernel->LaunchWrapper(stream);
++        {
++            static std::atomic<uint64_t> xg3_submit_cnt{0};
++            if (xg3_submit_cnt.fetch_add(1) < 512) {
++                XINFO("XG3 submit slot=" FMT_64U " cmd_idx=" FMT_64D
++                      " type=%u ret=%d",
++                      (uint64_t)kernel->tool_ctx, (int64_t)kernel->GetIdx(),
++                      (unsigned int)type, (int)ret);
++            }
++        }
 +        ToolPublish(0);
 +        launch_mtx_.unlock();
 +        return ret;
@@ -330,7 +339,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      CUdeviceptr entry_point = type == kKernelLaunchResume
                              ? entry_point_resume_ // launch to resume
                              : kernel->entry_point_guardian;
-@@ -110,6 +208,20 @@
+@@ -110,6 +217,20 @@
  {
      CUfunction func = kernel->kFuncHandle;
  
@@ -351,7 +360,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      {
          std::lock_guard<std::mutex> lock(instrument_mtx_);
          auto it = kernels_.find(func);
-@@ -172,6 +284,16 @@
+@@ -172,6 +293,16 @@
      preempt_buf_ptr_ = preempt_buf_->Ptr();
      instrument_ctx_ = InstrumentContext::Instance(ctx);
      op_stream_ = instrument_ctx_->OpStream();
@@ -368,7 +377,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  }
  
  /* preempt buffer layout: (see also tools/instrument/inject.cu)
-@@ -180,12 +302,14 @@
+@@ -180,12 +311,14 @@
   */
  void InstrumentManager::Deactivate()
  {
@@ -383,7 +392,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      // read preempt_idx from preempt buffer
      CUDA_ASSERT(Driver::MemcpyDtoHAsync_v2(&preempt_idx_, preempt_buf_ptr_ + sizeof(uint64_t),
                                             sizeof(uint64_t), op_stream_));
-@@ -193,6 +317,9 @@
+@@ -193,6 +326,9 @@
      CUDA_ASSERT(Driver::MemsetD8Async(preempt_buf_ptr_, 0, 2 * sizeof(uint64_t), op_stream_));
      CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
  
@@ -393,7 +402,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  #define MAX_DEBUG_BLOCK_SIZE    1024
  #define PREEMPT_BUFFER_DEBUG    false
  
-@@ -218,6 +345,15 @@
+@@ -218,6 +354,15 @@
                      ? kKernelLaunchResume // the first preempted kernel
                      : kKernelLaunchGuardian;
      }

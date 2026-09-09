@@ -103,3 +103,15 @@ disposed or restarted during a live request. Disk-UVM had independently
 resumed on this coordinator after its terminal gateway 524; automatic warp
 development remains with GLM on the original coordinator. There are still
 only three inference sessions. No incomplete implementation is called done.
+
+## Terminal gateway error and source-task continuation — 2026-09-09
+
+The XSched tool-reconciliation session `ses_f7d8b1dbeffeMN1yhvQzVm7VsS`
+completed its request with APIError HTTP 524 at Unix time 1788968227574 ms
+and disappeared from the coordinator's live session status. Root did not
+abort it for silence. The same saved session then resumed through the
+already configured direct Qwen 27B provider to finish the bounded source
+reconciliation. The native cuXtra task and Qwen Next storage-artifact task
+remain live, keeping three concurrent OpenCode sessions. This continuation
+does not repeat the completed 15-cell XSched policy-port campaign, and does
+not establish that the newly reconciled canonical source has been measured.

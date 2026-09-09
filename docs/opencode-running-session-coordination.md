@@ -192,3 +192,26 @@ in each BE process. This closes the observed resume bring-up failure,
 not a multi-arm performance campaign. The current three tasks have
 separate write scopes; no live session was terminated for silence and no
 fourth inference task was started.
+
+## Reproduction organization and component build — 2026-09-09
+
+The artifact navigation update is published in `bebba7d0`: `ARTIFACT.md`
+is the current evidence/status entry, and `docs/artifact/README.md` routes
+readers by reproduction task and material ownership. Existing raw paths,
+historical results and manuscript files were not moved or modified.
+
+Root exercised the Table-1 component-only candidate at 11:07:17–11:07:53
+PDT under both shared leases. All three gpubpf tools and the NVBit adapter
+built with exit zero. The small source/log record is
+`workloads/llama.cpp/observability_overhead/revision-rq4/raw/table1-component-build-20260909.jqAD9c/`.
+This reused existing bpftime dependencies; it is not a full runtime rebuild
+or a new performance campaign. The Qwen 27B task is finishing its command
+documentation and mode-specific report wording before publication.
+
+After the GLM task completed its prior patch/notes scope naturally at
+1788976725665 ms, root published it in `04f3ec98` and resumed the same
+session for fresh-source patch preparation from XSched `f49289f`. It must
+document patch order without depending on unrelated dirty source or
+altering the successful live HAL. The Qwen Next native-path task continues
+separately. Provider retries do not authorize cancellation or a fourth
+session. No completed GPU measurements are repeated by these three tasks.

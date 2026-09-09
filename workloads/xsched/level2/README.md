@@ -92,3 +92,31 @@ is retained. The completed 15-cell comparison is in
 same NVBit-actuator native/BPF policy-port scope, not the original cuXtra
 native SASS route. This source reconciliation does not claim that a newly
 built canonical binary was measured.
+
+## 2026-09-09 runner path overrides
+
+`run_tool_pair.py` now accepts `--xserver-native`, `--xserver-bpftime`,
+`--hpf-bin`, `--guard-tool`, and `--hal-lib-dir` overrides; defaults are
+unchanged. The selected paths are resolved once and used consistently for
+required-file checks, worker/server environment setup, and protocol paths.
+Baseline remains free of policy libraries. Template: replace the quoted
+local paths and target symbol, then run under the existing root-held
+GPU/experiment locks. The geometry below matches the recorded 50-task run:
+
+```sh
+python3 -B workloads/xsched/level2/run_tool_pair.py run \
+    --workload '/path/to/priority_workload' \
+    --xserver-native '/path/to/native/xserver' \
+    --xserver-bpftime '/path/to/xserver-bpftime' \
+    --hpf-bin '/path/to/bpftime_hpf.bin' \
+    --guard-tool '/path/to/xsched_guard_tool.so' \
+    --hal-lib-dir '/path/to/hal/lib' \
+    --target-symbol '<exact symbol for the workload>' \
+    --no-initial --repetitions 5 --reps 9511106 \
+    --tasks 50 --blocks 340 --threads 256 \
+    --output '/path/to/new-results-directory'
+```
+
+This runner change was validated CPU-only for syntax/help and direct
+path/environment behavior; it adds no dry-run mode, preflight, build, or GPU
+run.

@@ -223,4 +223,7 @@ to fill optional diagnostics.
   selected source reports operator means. Detailed artifact statistics must
   preserve the source estimator.
 - Original cuXtra Level-2 on sm_120 remains under implementation; the completed
-  shared-actuator policy-port comparison is a separate result.
+  shared-actuator policy-port comparison is a separate result. The latest
+  [constant-bank expansion attempt](workloads/xsched/raw/level2-native-constant0-20260909.oAKEda/README.md)
+  builds and gets past first-launch rejection, but BE resume still fails
+  with CUDA 700. Partial LC completion is not a complete performance cell.

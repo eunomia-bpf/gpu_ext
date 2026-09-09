@@ -69,6 +69,20 @@ FIXED_DELAY_NS = 5_000_000
 TOOL_CTX_SLOTS = 8192
 METRIC_SCOPE = "gpu_service_and_host_elapsed"
 
+
+def resolve_component_paths(args) -> dict:
+    def choose(value, default):
+        return (Path(value).expanduser().resolve()
+                if value else Path(default).expanduser().resolve())
+
+    return {
+        "xserver_native": choose(args.xserver_native, XSERVER_NATIVE),
+        "xserver_bpftime": choose(args.xserver_bpftime, XSERVER_BPFTIME),
+        "hpf_bin": choose(args.hpf_bin, HPF_BIN),
+        "guard_tool": choose(args.guard_tool, GUARD_TOOL),
+        "hal_lib_dir": choose(args.hal_lib_dir, HAL_LIB_DIR),
+    }
+
 XG_LOADED = re.compile(r"(?m)^XG tool loaded decision=(\S+) target=(.*)$")
 XG_ENTRY = re.compile(
     r"(?m)^XG instrumented_entry function_idx=(\d+) entry_offset=(\d+) decision_mode=(\d+)$")
@@ -109,19 +123,19 @@ def allowed_cpus(required: int) -> list:
     return cpus[:required]
 
 
-def server_spec(config: str):
+def server_spec(config: str, paths: dict):
     if config == "baseline":
         return None
     env = clean_env()
     if config == "native_port":
-        return [str(XSERVER_NATIVE), "HPF", HPF_QUANTUM], env
+        return [str(paths["xserver_native"]), "HPF", HPF_QUANTUM], env
     if config == "bpf_port":
-        env["GPUBPF_HPF_CODE"] = str(HPF_BIN)
-        return [str(XSERVER_BPFTIME), "HPF", HPF_QUANTUM], env
+        env["GPUBPF_HPF_CODE"] = str(paths["hpf_bin"])
+        return [str(paths["xserver_bpftime"]), "HPF", HPF_QUANTUM], env
     raise ValueError(f"unknown config: {config}")
 
 
-def worker_env(config: str, role: str, target_symbol: str) -> dict:
+def worker_env(config: str, role: str, target_symbol: str, paths: dict) -> dict:
     env = clean_env()
     if config != "baseline":
         env.update({
@@ -135,8 +149,8 @@ def worker_env(config: str, role: str, target_symbol: str) -> dict:
             "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
             "XG_DECISION": "native" if config == "native_port" else "bpf",
             "XG_TARGET_SYMBOL": target_symbol,
-            "LD_PRELOAD": str(GUARD_TOOL),
-            "LD_LIBRARY_PATH": str(HAL_LIB_DIR),
+            "LD_PRELOAD": str(paths["guard_tool"]),
+            "LD_LIBRARY_PATH": str(paths["hal_lib_dir"]),
         })
     env["XG_SERVICE_ONLY"] = "1"
     return env
@@ -300,12 +314,12 @@ def parse_worker_xg(stderr_lines: list, decision: str, target_symbol: str,
 
 def run_cell(config: str, block: int, block_type: str, run_dir: Path, workload: Path,
              streams: int, tasks: int, reps: int, blocks: int, threads: int,
-             target_symbol: str) -> dict:
+             target_symbol: str, paths: dict) -> dict:
     cpus = allowed_cpus(10)
     server = None
     workers = []
     try:
-        spec = server_spec(config)
+        spec = server_spec(config, paths)
         if spec is not None:
             command, env = spec
             server = ManagedProcess("xserver", command, env, cpus[0])
@@ -321,7 +335,8 @@ def run_cell(config: str, block: int, block_type: str, run_dir: Path, workload: 
                        str(reps), str(blocks), str(threads),
                        "1" if role == "be" else "0", "0"]
             workers.append(ManagedProcess(f"{role}{pid}", command,
-                                          worker_env(config, role, target_symbol), cpus[2:]))
+                                          worker_env(config, role, target_symbol,
+                                           paths), cpus[2:]))
         for worker in workers:
             worker.wait_event("ready")
 
@@ -416,20 +431,22 @@ def run_cell(config: str, block: int, block_type: str, run_dir: Path, workload: 
     return record
 
 
-def required_files(configs, workload: Path) -> list:
+def required_files(configs, workload: Path, paths: dict) -> list:
     required = [workload]
     if any(config != "baseline" for config in configs):
-        required += [GUARD_TOOL,
-                     HAL_LIB_DIR / "libshimcuda.so", HAL_LIB_DIR / "libhalcuda.so",
-                     HAL_LIB_DIR / "libpreempt.so", HAL_LIB_DIR / "libcuda.so.1"]
+        required += [paths["guard_tool"],
+                     paths["hal_lib_dir"] / "libshimcuda.so",
+                     paths["hal_lib_dir"] / "libhalcuda.so",
+                     paths["hal_lib_dir"] / "libpreempt.so",
+                     paths["hal_lib_dir"] / "libcuda.so.1"]
     if "native_port" in configs:
-        required.append(XSERVER_NATIVE)
+        required.append(paths["xserver_native"])
     if "bpf_port" in configs:
-        required += [XSERVER_BPFTIME, HPF_BIN]
+        required += [paths["xserver_bpftime"], paths["hpf_bin"]]
     return [str(path) for path in required if not path.is_file()]
 
 
-def build_protocol(args, workload: Path) -> dict:
+def build_protocol(args, workload: Path, paths: dict) -> dict:
     return {
         "phase": "level2-tool-actuator-pair",
         "scope": ("sm_120 Level-2 tool-actuator port bring-up: native-C vs device-BPF "
@@ -447,16 +464,17 @@ def build_protocol(args, workload: Path) -> dict:
         "clock_offset_ns": 0,
         "metric_scope": METRIC_SCOPE,
         "worker_environments": {
-            config: {role: runtime_environment(worker_env(config, role, args.target_symbol))
-                     for role in ("lc", "be")} for config in CONFIGS
+            config: {role: runtime_environment(
+                worker_env(config, role, args.target_symbol, paths))
+                for role in ("lc", "be")} for config in CONFIGS
         },
         "paths": {
             "workload": str(workload),
-            "xserver_native": str(XSERVER_NATIVE),
-            "xserver_bpftime": str(XSERVER_BPFTIME),
-            "bpftime_hpf_code": str(HPF_BIN),
-            "guard_tool": str(GUARD_TOOL),
-            "hal_lib_dir": str(HAL_LIB_DIR),
+            "xserver_native": str(paths["xserver_native"]),
+            "xserver_bpftime": str(paths["xserver_bpftime"]),
+            "bpftime_hpf_code": str(paths["hpf_bin"]),
+            "guard_tool": str(paths["guard_tool"]),
+            "hal_lib_dir": str(paths["hal_lib_dir"]),
         },
     }
 
@@ -531,6 +549,16 @@ def main() -> int:
                              "(default workloads/xsched/raw/level2-tool-pair-<timestamp>)")
     parser.add_argument("--workload", type=Path, default=DEFAULT_WORKLOAD,
                         help="root-built priority_workload binary")
+    parser.add_argument("--xserver-native", type=Path, default=None,
+                         help="override the native xserver binary")
+    parser.add_argument("--xserver-bpftime", type=Path, default=None,
+                         help="override the bpftime xserver binary")
+    parser.add_argument("--hpf-bin", type=Path, default=None,
+                         help="override the bpftime HPF binary")
+    parser.add_argument("--guard-tool", type=Path, default=None,
+                         help="override the NVBit guard tool shared library")
+    parser.add_argument("--hal-lib-dir", type=Path, default=None,
+                         help="override the isolated HAL library directory")
     parser.add_argument("--reps", type=int, required=True,
                         help="kernel recurrence repetitions; set directly, no calibration")
     parser.add_argument("--tasks", type=int, default=5,
@@ -559,7 +587,8 @@ def main() -> int:
         parser.error(f"streams*tasks ({STREAMS * args.tasks}) must stay below the "
                      f"{TOOL_CTX_SLOTS}-slot non-retiring tool context pool")
 
-    missing = required_files(args.configs, args.workload)
+    paths = resolve_component_paths(args)
+    missing = required_files(args.configs, args.workload, paths)
     if missing:
         print(json.dumps({"error": "missing required components", "missing": missing},
                          indent=2))
@@ -568,7 +597,7 @@ def main() -> int:
     out_root = args.output or (XSCHED_DIR / "raw"
                                / f"level2-tool-pair-{time.strftime('%Y%m%d_%H%M%S')}")
     out_root.mkdir(parents=True, exist_ok=False)
-    protocol = build_protocol(args, args.workload)
+    protocol = build_protocol(args, args.workload, paths)
     (out_root / "protocol.json").write_text(json.dumps(protocol, indent=2) + "\n")
     print(json.dumps(protocol, indent=2), flush=True)
 
@@ -586,7 +615,7 @@ def main() -> int:
             try:
                 record = run_cell(config, block, block_type, cell_dir, args.workload,
                                   STREAMS, args.tasks, args.reps, args.blocks, args.threads,
-                                  args.target_symbol)
+                                  args.target_symbol, paths)
                 print(json.dumps(record), flush=True)
             except BaseException as exc:
                 (cell_dir / "failure.json").write_text(json.dumps(

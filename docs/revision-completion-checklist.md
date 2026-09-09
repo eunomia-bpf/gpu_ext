@@ -52,6 +52,16 @@ status entries remain below; completed cells must not be repeated.
   still fails with CUDA 700 (`bd38f2bc`). These narrow diagnostics leave
   redirected execution and restoration unfinished; no completed baseline
   or successful control needs repeating.
+  The subsequent [direct at-launch preparation attempt](../workloads/xsched/raw/level2-direct-prepare-v2-20260908.cOtHcJ/README.md)
+  is retained in `c6153b3b`: direct preparation before CUDA submission still
+  leaves missing BE output; it is not a performance result. The post-run
+  busy state and persistence-only recovery are recorded in `58e6cf60`.
+  Native launch-error propagation is now preserved as an additive
+  [source patch](../workloads/xsched/level2/native/xsched-native-launch-error-propagation.patch):
+  it checks the launch result instead of waiting indefinitely for a device
+  entry stamp after an already-rejected launch. Reverse-application checking
+  confirms it is present in the isolated native source; that check is not
+  a successful Level-2 runtime result. Parameter delivery remains in repair.
 - **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed
@@ -74,6 +84,12 @@ status entries remain below; completed cells must not be repeated.
   unchanged-binary instrumentation or formal equivalence. The two XSched sessions
   plus this session respect the three-session limit; silence is not a reason
   to stop them.
+  With this comparison finished, the same local session has moved to actual
+  LMCache KV integration with the measured disk-UVM backing mechanism.
+  The read-only backing contract applies to completed immutable chunks,
+  not the mutable live KV pool wholesale. End-to-end integration and its
+  performance remain unfinished; the unused Hummingbird launcher is WIP
+  and is not a prerequisite for this work.
 
 ## Current manuscript snapshot — 2026-09-07 PDT
 

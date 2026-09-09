@@ -1,5 +1,26 @@
 # Original host/device implementation prompts
 
+## Coordinator continuation notes — 2026-09-08
+
+OpenCode permission queries and replies must use the same `directory` query
+parameter as the active session. An unscoped `/permission` query returned
+an empty list while the XSched tool session was actually waiting for access
+to its task-specific temporary patch directory. Root found the request with
+`/permission?directory=%2Fhome%2Fyunwei37%2Fworkspace%2Fgpu%2Fgpu_ext`,
+checked the operation, and replied `once` to that request using the same
+directory parameter. Do not interpret a pending tool call as model inference
+without checking this scoped endpoint. Do not restart or terminate the
+session to resolve a permission request. Buffered SSE events may describe
+older requests; current scoped API state is authoritative.
+
+Hummingbird integration must retain the existing inline native coordinate
+mapping as an original-implementation control. The new callable native
+wrapper is an additional adapter control, not the original inline path:
+comparing only BPF against that wrapper would omit their shared wrapper
+overhead. Keep the same workload, arrival trace, host rule and tile budgets.
+The compiled components in `504e8fc9` and `c239abb7` do not yet establish
+actual DNN kernel consumption or a host/device performance result.
+
 ## Provider recovery — 2026-09-08 17:58 PDT
 
 The resumed Hummingbird Qwen Next request

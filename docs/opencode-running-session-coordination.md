@@ -115,3 +115,13 @@ reconciliation. The native cuXtra task and Qwen Next storage-artifact task
 remain live, keeping three concurrent OpenCode sessions. This continuation
 does not repeat the completed 15-cell XSched policy-port campaign, and does
 not establish that the newly reconciled canonical source has been measured.
+
+The resumed task also inherited session-specific deny rules for edit, write,
+glob and grep despite using the build agent. Its tool list exposed only bash,
+read and invalid, and actual glob calls failed. Root updated only this
+session's rules: read-only searches are allowed, and edit/write access is
+scoped to `workloads/xsched/level2/tool/xsched_guard_tool.cu` and
+`workloads/xsched/level2/README.md`. Other write scopes and nested tasks remain
+denied. The native cuXtra session had no such session-specific restriction.
+This corrects the authorized task's tool configuration without aborting a
+live request, adding another inference session or changing global permissions.

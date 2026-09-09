@@ -158,3 +158,12 @@ completed performance cell. Root owns builds, serialized GPU execution,
 review, commits and pushes; implementation tasks do not run GPU work.
 The manuscript stays read-only, old data remain intact, and the artifact
 tasks reanalyze existing results rather than launching new measurements.
+
+The MoE task's Qwen Next request subsequently reached terminal APIError
+HTTP 524 at Unix time 1788974177436 ms, with no code produced. After
+confirming the completed error and absence from live status, root resumed
+the same session through the configured direct Qwen 27B provider. The
+script/guide scope is unchanged; this is recovery from a terminal provider
+error, not cancellation for silence. The two other sessions continue and
+the active inference-task count remains at most three. No new MoE GPU
+measurement was requested.

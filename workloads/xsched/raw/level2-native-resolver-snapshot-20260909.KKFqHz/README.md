@@ -1,0 +1,49 @@
+# Native relay resolver is present at the first launch
+
+2026-09-09 05:30:09 PDT, installed native candidate efb36b2c.
+This targeted GDB observation reuses the previous workload, environment and
+GO input, but stops at the first AdoptWindowRelayExtra entry before launching
+the instrumented kernel. It does not repeat a throughput cell or the old
+exit-handler backtrace. Both shared leases cover execution; no UVM module
+or target parameter/entrypoint is changed. GDB deliberately exits after the
+snapshot; xserver is cleaned up by the existing shell trap.
+
+## Observation
+
+The resolver's probed byte is 1. Its three stored function pointers exactly
+equal the corresponding exported symbols in the loaded shim:
+
+| Function | Stored pointer and exported-symbol address |
+| --- | --- |
+| XgGetRelayOriginalParams | 0x7ffff73cf6f0 |
+| XgFindRelayOriginalParams | 0x7ffff73d0950 |
+| XgHasRelayLayouts | 0x7ffff73cfc70 |
+
+The loaded-library list contains both the isolated shim libcuda.so.1 and
+the real system libcuda.so. The resolver therefore has not selected absent
+or different functions at this first relay.
+
+The raw registry memory is also retained. Its libstdc++ hashtable header
+shows bucket_count 13 and element_count 2 (field order from the local
+/usr/include/c++/13/bits/hashtable.h:387–390). The registry is not empty.
+This does not identify which entry the subsequent lookup selects or prove
+that its returned parameter layout is correct.
+
+## Consequence
+
+This contradicts the root's preceding hypothesis that wrong dynamic-library
+resolution explains the first failure. Do not add another library-name
+fallback as a claimed fix based on that hypothesis. The earlier yNZVZG
+trace still shows first launch error 701 before the later parameter-window
+overlap message and exit-handler SIGSEGV. A later CUDA failure could affect
+metadata queries; that causal direction remains unproven.
+
+The next repair must address the first failing launch using its actual
+parameter layout and driver launch behavior. These are diagnostic
+observations, not performance numbers or a successful native Level-2 run.
+
+run-backtrace.sh and load-backtrace.gdb retain the exact commands.
+backtrace.log, lifecycle.log and xserver-debug.log retain the outputs.
+The prior debug-go.txt input is referenced by its preserved absolute path.
+No manuscript or previous measurement is changed.
+

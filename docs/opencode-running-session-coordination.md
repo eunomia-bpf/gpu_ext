@@ -215,3 +215,13 @@ document patch order without depending on unrelated dirty source or
 altering the successful live HAL. The Qwen Next native-path task continues
 separately. Provider retries do not authorize cancellation or a fourth
 session. No completed GPU measurements are repeated by these three tasks.
+
+Table-1 component preparation, its guide and the successful build record
+are now published in `aa601a15`. Root's final CPU checks passed all 11
+cases; the full runtime rebuild remains a separate open item.
+
+The Qwen Next native-path request then ended with APIError HTTP 524 at
+1788978089951 ms and left live status, without producing code. Root resumed
+that same saved session through the configured direct Qwen 27B provider,
+keeping its two-file scope. This was terminal provider-error recovery, not
+cancellation for inactivity; at most three OpenCode sessions remain live.

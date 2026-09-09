@@ -62,6 +62,14 @@ status entries remain below; completed cells must not be repeated.
   entry stamp after an already-rejected launch. Reverse-application checking
   confirms it is present in the isolated native source; that check is not
   a successful Level-2 runtime result. Parameter delivery remains in repair.
+  The [context-scoped replay retry](../workloads/xsched/raw/level2-context-replay-20260908.CgSRR6/README.md)
+  now builds and runs in `c8eeeb2f`: BE1/2/4 each have 201 preparations and
+  201 filtered callbacks, repairing the earlier 201/200 discrepancy, but
+  all three still report missing output. Both LC workers finish; BE3 is
+  cleaned up after the failure. The next repair concerns guardian/resume
+  execution, not another unchanged callback-count retry. No complete
+  Level-2 performance result follows. The raw record includes the repeated
+  post-run busy state and persistence-only recovery; GPU returned to idle.
 - **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed

@@ -97,3 +97,16 @@ The clone receives a generic local-context pointer and does not read its
 second, unused length parameter. Root supplied these facts to the local
 model for the unfinished PTX call-target replacement. No BPF consumption,
 cubin integration, GPU execution or performance result is claimed here.
+
+The callable-native PTX was subsequently assembled successfully (exit 0):
+
+```sh
+/usr/local/cuda-12.9/bin/ptxas -arch=sm_120 -O3 -v \
+  /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-native.ptx \
+  -o /tmp/hummingbird-hostdev-build-20260908.nxilLJ/resnet152-callable/mod-native.cubin
+```
+
+The cubin is 441616 bytes; `ptxas-native.log` in the same temporary directory
+retains assembly output. This advances the native adapter build only.
+The BPF-call replacement, integrated model loading and paired GPU
+measurements are still unfinished; no generated binary is committed.

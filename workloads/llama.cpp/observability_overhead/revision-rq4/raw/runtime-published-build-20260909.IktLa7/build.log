@@ -1,0 +1,591 @@
+=== build_table1_runtime 2026-09-09T18:50:45Z
+output_dir=/tmp/gpubpf-table1-runtime-20260909.X8d8Ho source_rev=eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7
+cuda_home=/usr/local/cuda-12.9 llvm_cmake_dir=/usr/lib/llvm-15/lib/cmake/llvm jobs=2
+c_compiler=/usr/bin/x86_64-linux-gnu-gcc-13 cxx_compiler=/usr/bin/c++
++ git clone --no-checkout https://github.com/eunomia-bpf/bpftime.git /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source'...
++ git -C /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source checkout --detach eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7
+HEAD is now at eef8a51 Add opt-in CUDA startup stage timing without changing compilation policy
++ git -C /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source submodule update --init --recursive
+Submodule 'verifier/ebpf-verifier' (https://github.com/vbpf/ebpf-verifier) registered for path 'bpftime-verifier/ebpf-verifier'
+Submodule 'third_party/Catch2' (https://github.com/catchorg/Catch2.git) registered for path 'third_party/Catch2'
+Submodule 'third_party/argparse' (https://github.com/p-ranav/argparse.git) registered for path 'third_party/argparse'
+Submodule 'third_party/bpftool' (https://github.com/libbpf/bpftool) registered for path 'third_party/bpftool'
+Submodule 'third_party/spdlog' (https://github.com/gabime/spdlog) registered for path 'third_party/spdlog'
+Submodule 'third_party/ubpf' (https://github.com/iovisor/ubpf) registered for path 'third_party/ubpf'
+Submodule 'vm/llvm-jit' (https://github.com/eunomia-bpf/llvmbpf) registered for path 'vm/llvm-jit'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/Catch2'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/argparse'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/bpftool'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/spdlog'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/ubpf'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/vm/llvm-jit'...
+Submodule path 'bpftime-verifier/ebpf-verifier': checked out 'fd85b8a6ac2c0cb5621d9c1f38368089d616b8b9'
+Submodule 'ebpf-samples' (https://github.com/vbpf/ebpf-samples.git) registered for path 'bpftime-verifier/ebpf-verifier/ebpf-samples'
+Submodule 'external/ELFIO' (https://github.com/serge1/ELFIO.git) registered for path 'bpftime-verifier/ebpf-verifier/external/ELFIO'
+Submodule 'external/bpf_conformance' (https://github.com/Alan-Jowett/bpf_conformance.git) registered for path 'bpftime-verifier/ebpf-verifier/external/bpf_conformance'
+Submodule 'external/libbtf' (https://github.com/Alan-Jowett/libbtf.git) registered for path 'bpftime-verifier/ebpf-verifier/external/libbtf'
+Submodule 'external/radix_tree' (https://github.com/ytakano/radix_tree) registered for path 'bpftime-verifier/ebpf-verifier/external/radix_tree'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/ebpf-samples'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/external/ELFIO'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/external/bpf_conformance'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/external/libbtf'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/external/radix_tree'...
+Submodule path 'bpftime-verifier/ebpf-verifier/ebpf-samples': checked out 'e052151f8cf3b3d65bfaade6255318a566457fbb'
+Submodule 'bpf_cilium_test' (https://github.com/4ast/bpf_cilium_test.git) registered for path 'bpftime-verifier/ebpf-verifier/ebpf-samples/bpf_cilium_test'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/ebpf-samples/bpf_cilium_test'...
+Submodule path 'bpftime-verifier/ebpf-verifier/ebpf-samples/bpf_cilium_test': checked out '9820a2f47a7b5e034fff3095f17041175b2e8b21'
+Submodule path 'bpftime-verifier/ebpf-verifier/external/ELFIO': checked out '73a241079a040710481e9b840248ec0425e46c7c'
+Submodule path 'bpftime-verifier/ebpf-verifier/external/bpf_conformance': checked out '78df87a6e85d4051d6bc1c92b1b6c05d7195cf05'
+Submodule 'external/elfio' (https://github.com/serge1/ELFIO.git) registered for path 'bpftime-verifier/ebpf-verifier/external/bpf_conformance/external/elfio'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/external/bpf_conformance/external/elfio'...
+Submodule path 'bpftime-verifier/ebpf-verifier/external/bpf_conformance/external/elfio': checked out '8ae6cec5d60495822ecd57d736f66149da9b1830'
+Submodule path 'bpftime-verifier/ebpf-verifier/external/libbtf': checked out 'f5fab5a0b36869c104fa45a6ffb6c87295a22888'
+Submodule 'external/ebpf-samples' (https://github.com/vbpf/ebpf-samples.git) registered for path 'bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples'...
+Submodule path 'bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples': checked out 'e6486118e4997a9780a30fd4bfeedcefd1567c8b'
+Submodule 'bpf_cilium_test' (https://github.com/4ast/bpf_cilium_test.git) registered for path 'bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples/bpf_cilium_test'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples/bpf_cilium_test'...
+Submodule path 'bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples/bpf_cilium_test': checked out '9820a2f47a7b5e034fff3095f17041175b2e8b21'
+Submodule path 'bpftime-verifier/ebpf-verifier/external/radix_tree': checked out 'f8bc846ef1f00ee43af2ddc04af67d2e44d50685'
+Submodule path 'third_party/Catch2': checked out '6e79e682b726f524310d55dec8ddac4e9c52fb5f'
+Submodule path 'third_party/argparse': checked out '69dabd88a8e6680b1a1a18397eb3e165e4019ce6'
+Submodule path 'third_party/bpftool': checked out '53c1852920c8a8f8ccedb7a64e3d9852949792c7'
+Submodule 'libbpf' (https://github.com/libbpf/libbpf.git) registered for path 'third_party/bpftool/libbpf'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/bpftool/libbpf'...
+Submodule path 'third_party/bpftool/libbpf': checked out '3f077472ee7e703b733c2c9ae15ef3f4c13ee25b'
+Submodule path 'third_party/spdlog': checked out '48bcf39a661a13be22666ac64db8a7f886f2637e'
+Submodule path 'third_party/ubpf': checked out '39872ad471c206051407d89ab8ed62d9ba0d7310'
+Submodule 'external/bpf_conformance' (https://github.com/Alan-Jowett/bpf_conformance.git) registered for path 'third_party/ubpf/external/bpf_conformance'
+Submodule 'vm/compat/libraries/win-c/src' (https://github.com/takamin/win-c) registered for path 'third_party/ubpf/vm/compat/libraries/win-c/src'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/ubpf/external/bpf_conformance'...
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/ubpf/vm/compat/libraries/win-c/src'...
+Submodule path 'third_party/ubpf/external/bpf_conformance': checked out '73b6ea325b8b48ebdb17f2382c25ec38183154f8'
+Submodule 'external/elfio' (https://github.com/serge1/ELFIO.git) registered for path 'third_party/ubpf/external/bpf_conformance/external/elfio'
+Cloning into '/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/ubpf/external/bpf_conformance/external/elfio'...
+Submodule path 'third_party/ubpf/external/bpf_conformance/external/elfio': checked out '8a08b5be22456ff5879c30d82b9715f40f40b98f'
+Submodule path 'third_party/ubpf/vm/compat/libraries/win-c/src': checked out '29a86ef6ce6b0ef22742ba0ba7ef7d71c96da578'
+Submodule path 'vm/llvm-jit': checked out 'f66cafa4478b9991e16095e7844f9e8586979111'
+eef8a51 Add opt-in CUDA startup stage timing without changing compilation policy
+ fd85b8a6ac2c0cb5621d9c1f38368089d616b8b9 bpftime-verifier/ebpf-verifier (v0.1-alpha-950-gfd85b8a6)
+ e052151f8cf3b3d65bfaade6255318a566457fbb bpftime-verifier/ebpf-verifier/ebpf-samples (v0.1-alpha-50-ge052151)
+ 9820a2f47a7b5e034fff3095f17041175b2e8b21 bpftime-verifier/ebpf-verifier/ebpf-samples/bpf_cilium_test (heads/master)
+ 73a241079a040710481e9b840248ec0425e46c7c bpftime-verifier/ebpf-verifier/external/ELFIO (Release_3.7-261-g73a2410)
+ 78df87a6e85d4051d6bc1c92b1b6c05d7195cf05 bpftime-verifier/ebpf-verifier/external/bpf_conformance (v0.0.4-7-g78df87a)
+ 8ae6cec5d60495822ecd57d736f66149da9b1830 bpftime-verifier/ebpf-verifier/external/bpf_conformance/external/elfio (Release_3.7-259-g8ae6cec)
+ f5fab5a0b36869c104fa45a6ffb6c87295a22888 bpftime-verifier/ebpf-verifier/external/libbtf (0.0.1-15-gf5fab5a)
+ e6486118e4997a9780a30fd4bfeedcefd1567c8b bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples (v0.1-alpha-49-ge648611)
+ 9820a2f47a7b5e034fff3095f17041175b2e8b21 bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples/bpf_cilium_test (heads/master)
+ f8bc846ef1f00ee43af2ddc04af67d2e44d50685 bpftime-verifier/ebpf-verifier/external/radix_tree (heads/master)
+ 6e79e682b726f524310d55dec8ddac4e9c52fb5f third_party/Catch2 (v3.4.0)
+ 69dabd88a8e6680b1a1a18397eb3e165e4019ce6 third_party/argparse (v3.0-3-g69dabd8)
+ 53c1852920c8a8f8ccedb7a64e3d9852949792c7 third_party/bpftool (v7.6.0-22-g53c1852)
+ 3f077472ee7e703b733c2c9ae15ef3f4c13ee25b third_party/bpftool/libbpf (v1.6.0-25-g3f07747)
+ 48bcf39a661a13be22666ac64db8a7f886f2637e third_party/spdlog (v1.2.1-2497-g48bcf39a)
+ 39872ad471c206051407d89ab8ed62d9ba0d7310 third_party/ubpf (remotes/origin/strings-277-g39872ad4)
+ 73b6ea325b8b48ebdb17f2382c25ec38183154f8 third_party/ubpf/external/bpf_conformance (v0.0.6-15-g73b6ea3)
+ 8a08b5be22456ff5879c30d82b9715f40f40b98f third_party/ubpf/external/bpf_conformance/external/elfio (Release_3.7-294-g8a08b5b)
+ 29a86ef6ce6b0ef22742ba0ba7ef7d71c96da578 third_party/ubpf/vm/compat/libraries/win-c/src (v1.0-2-g29a86ef)
+ f66cafa4478b9991e16095e7844f9e8586979111 vm/llvm-jit (remotes/origin/agent/thread-safe-llvm-init)
++ cmake -S /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source -B /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/x86_64-linux-gnu-gcc-13 -DCMAKE_CXX_COMPILER=/usr/bin/c++ -DBPFTIME_ENABLE_CUDA_ATTACH=ON -DBPFTIME_CUDA_ROOT=/usr/local/cuda-12.9 -DBPFTIME_LLVM_JIT=ON -DBPFTIME_UBPF_JIT=ON -DENABLE_EBPF_VERIFIER=ON -DLLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/x86_64-linux-gnu-gcc-13 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Enabling ubsan for Debug builds; Processor=x86_64
+-- Started CMake for bpftime v0.1.0...
+
+-- copying compiler.h;err.h;filter.h;kernel.h;list.h;overflow.h;ring_buffer.h;types.h from /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/cmake/../third_party/libbpf//include/linux to /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux
+-- copying linux/bpf.h;linux/bpf_common.h;linux/btf.h;linux/fcntl.h;linux/if_link.h;linux/if_xdp.h;linux/netdev.h;linux/netlink.h;linux/openat2.h;linux/perf_event.h;linux/pkt_cls.h;linux/pkt_sched.h;linux/stddef.h from /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/cmake/../third_party/libbpf//include/uapi/ to /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi
+-- copying bpf.h;bpf_common.h;btf.h;fcntl.h;if_link.h;if_xdp.h;netdev.h;netlink.h;openat2.h;perf_event.h;pkt_cls.h;pkt_sched.h;stddef.h from /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/cmake/../third_party/libbpf//include/uapi/linux to /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux
+-- All headers to copy: /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/compiler.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/err.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/filter.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/kernel.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/list.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/overflow.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/ring_buffer.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/types.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/bpf.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/bpf_common.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/btf.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/fcntl.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/if_link.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/if_xdp.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/netdev.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/netlink.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/openat2.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/perf_event.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/pkt_cls.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/pkt_sched.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//uapi/linux/stddef.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/bpf.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/bpf_common.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/btf.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/fcntl.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/if_link.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/if_xdp.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/netdev.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/netlink.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/openat2.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/perf_event.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/pkt_cls.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/pkt_sched.h;/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf//linux/stddef.h
+-- System Name: Linux
+-- System Version: 6.15.11-061511-generic
+-- System Processor: x86_64
+-- Using frida: arch=linux-x86_64, version=16.1.2
+-- Downloading Frida Core Devkit
+-- Downloading Frida GUM Devkit
+-- Downloading FridaCore from https://github.com/frida/frida/releases/download/16.1.2/frida-core-devkit-16.1.2-linux-x86_64.tar.xz
+-- Downloading FridaGum from https://github.com/frida/frida/releases/download/16.1.2/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz
+-- Performing Test HAVE_FLAG__ffile_prefix_map__tmp_gpubpf_table1_runtime_20260909_X8d8Ho_build__deps_catch2_src__
+-- Performing Test HAVE_FLAG__ffile_prefix_map__tmp_gpubpf_table1_runtime_20260909_X8d8Ho_build__deps_catch2_src__ - Success
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake (found version "1.83.0")  
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake (found version "1.83.0") found components: program_options filesystem 
+Boost_LIBRARY_DIRS: 
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Build spdlog: 1.15.2
+-- Build type: Debug
+-- Looking for fwrite_unlocked
+-- Looking for fwrite_unlocked - found
+-- Setting SPDLOG_ACTIVE_LEVEL to SPDLOG_LEVEL_TRACE
+-- Supporting llvm-jit
+-- Performing Test HAVE_FFI_CALL
+-- Performing Test HAVE_FFI_CALL - Success
+-- Found FFI: /usr/lib/x86_64-linux-gnu/libffi.so  
+-- Performing Test Terminfo_LINKABLE
+-- Performing Test Terminfo_LINKABLE - Success
+-- Found Terminfo: /usr/lib/x86_64-linux-gnu/libtinfo.so  
+-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.3")  
+-- Found zstd: /usr/lib/x86_64-linux-gnu/libzstd.so  
+-- Found LibXml2: /usr/lib/x86_64-linux-gnu/libxml2.so (found version "2.9.14") 
+-- Checking LLVM_VERSION_MAJOR macro value...
+-- LLVM_VERSION_MAJOR is: 15
+-- LLVM_LIBS=LLVMAArch64CodeGen;LLVMAArch64AsmParser;LLVMAArch64Desc;LLVMAArch64Disassembler;LLVMAArch64Info;LLVMAArch64Utils;LLVMAMDGPUCodeGen;LLVMAMDGPUAsmParser;LLVMAMDGPUDesc;LLVMAMDGPUDisassembler;LLVMAMDGPUInfo;LLVMAMDGPUUtils;LLVMARMCodeGen;LLVMARMAsmParser;LLVMARMDesc;LLVMARMDisassembler;LLVMARMInfo;LLVMARMUtils;LLVMAVRCodeGen;LLVMAVRAsmParser;LLVMAVRDesc;LLVMAVRDisassembler;LLVMAVRInfo;LLVMBPFCodeGen;LLVMBPFAsmParser;LLVMBPFDesc;LLVMBPFDisassembler;LLVMBPFInfo;LLVMHexagonCodeGen;LLVMHexagonAsmParser;LLVMHexagonDesc;LLVMHexagonDisassembler;LLVMHexagonInfo;LLVMLanaiCodeGen;LLVMLanaiAsmParser;LLVMLanaiDesc;LLVMLanaiDisassembler;LLVMLanaiInfo;LLVMMipsCodeGen;LLVMMipsAsmParser;LLVMMipsDesc;LLVMMipsDisassembler;LLVMMipsInfo;LLVMMSP430CodeGen;LLVMMSP430AsmParser;LLVMMSP430Desc;LLVMMSP430Disassembler;LLVMMSP430Info;LLVMNVPTXCodeGen;LLVMNVPTXDesc;LLVMNVPTXInfo;LLVMPowerPCCodeGen;LLVMPowerPCAsmParser;LLVMPowerPCDesc;LLVMPowerPCDisassembler;LLVMPowerPCInfo;LLVMRISCVCodeGen;LLVMRISCVAsmParser;LLVMRISCVDesc;LLVMRISCVDisassembler;LLVMRISCVInfo;LLVMSparcCodeGen;LLVMSparcAsmParser;LLVMSparcDesc;LLVMSparcDisassembler;LLVMSparcInfo;LLVMSystemZCodeGen;LLVMSystemZAsmParser;LLVMSystemZDesc;LLVMSystemZDisassembler;LLVMSystemZInfo;LLVMVECodeGen;LLVMVEAsmParser;LLVMVEDesc;LLVMVEDisassembler;LLVMVEInfo;LLVMWebAssemblyCodeGen;LLVMWebAssemblyAsmParser;LLVMWebAssemblyDesc;LLVMWebAssemblyDisassembler;LLVMWebAssemblyInfo;LLVMWebAssemblyUtils;LLVMX86CodeGen;LLVMX86AsmParser;LLVMX86Desc;LLVMX86Disassembler;LLVMX86Info;LLVMXCoreCodeGen;LLVMXCoreDesc;LLVMXCoreDisassembler;LLVMXCoreInfo;LLVMM68kCodeGen;LLVMM68kAsmParser;LLVMM68kDesc;LLVMM68kDisassembler;LLVMM68kInfo;LLVMCore;LLVMSupport;LLVMTarget;LLVMAnalysis;LLVMipo;LLVMTransformUtils;LLVMBitReader;LLVMAsmParser;LLVMLinker;LLVMMC;LLVMMCParser;LLVMMCDisassembler;LLVMObject;LLVMExecutionEngine;LLVMRuntimeDyld;LLVMOrcJIT;LLVMMCJIT;LLVMX86CodeGen;LLVMX86Desc;LLVMX86Info;LLVMX86AsmParser;LLVMNVPTXCodeGen;LLVMNVPTXDesc;LLVMNVPTXInfo;LLVMAArch64CodeGen;LLVMAArch64Desc;LLVMAArch64Info;LLVMAArch64AsmParser
+-- Supporting ubpf-jit
+PTX_PASS_EXECUTABLE=$<TARGET_FILE:ptxpass_kprobe_entry>;$<TARGET_FILE:ptxpass_kretprobe>;$<TARGET_FILE:ptxpass_kprobe_memcapture>
+-- Detected CUDA version: 12.9
+-- CUDA 12.9: Using cupti (dynamic library)
+PTX_COMPILER_SHARED_LIB=$<TARGET_FILE:nv_attach_impl_ptx_compiler>
+-- Detected CUDA version: 12.9
+-- CUDA 12.9: Using cupti (dynamic library)
+-- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.13")  
+-- Started CMake for runtime v0.1.0...
+
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake (found version "1.83.0")  
+-- Building for architecture: x86_64
+INFO Headers: include/
+INFO Found the following sources: src/attach/bpf_attach_ctx.cpp;src/handler/handler_manager.cpp;src/handler/map_handler.cpp;src/handler/perf_event_handler.cpp;src/handler/prog_handler.cpp;src/handler/epoll_handler.cpp;src/handler/memfd_handler.cpp;src/bpftime_shm.cpp;src/bpftime_shm_internal.cpp;src/bpftime_shm_json.cpp;src/bpftime_prog.cpp;src/bpftime_config.cpp;src/ufunc.cpp;src/bpf_helper.cpp;src/platform_utils.cpp;src/bpf_map/userspace/array_map.cpp;src/bpf_map/userspace/fix_hash_map.cpp;src/bpf_map/userspace/var_hash_map.cpp;src/bpf_map/userspace/ringbuf_map.cpp;src/bpf_map/userspace/perf_event_array_map.cpp;src/bpf_map/userspace/per_cpu_array_map.cpp;src/bpf_map/userspace/per_cpu_hash_map.cpp;src/bpf_map/userspace/prog_array.cpp;src/bpf_map/userspace/stack_trace_map.cpp;src/bpf_map/userspace/lru_var_hash_map.cpp;src/bpf_map/userspace/queue.cpp;src/bpf_map/userspace/stack.cpp;src/bpf_map/userspace/bloom_filter.cpp;src/bpf_map/userspace/lpm_trie_map.cpp;extension/extension_helper.cpp;src/attach/bpf_attach_ctx_cuda.cpp;src/bpf_map/gpu/nv_gpu_gdrcopy.cpp;src/bpf_map/gpu/nv_gpu_per_thread_array_map.cpp;src/bpf_map/gpu/nv_gpu_shared_array_map.cpp;src/bpf_map/gpu/nv_gpu_ringbuf_map.cpp;src/bpf_map/gpu_kernel_shared/array_map_kernel_gpu.cpp;src/bpf_map/gpu/nv_gpu_shared_hash_map.cpp;src/bpf_map/gpu/nv_gpu_array_host_map.cpp;src/bpf_map/gpu/nv_gpu_shared_array_host_map.cpp;src/bpf_map/shared/array_map_kernel_user.cpp;src/bpf_map/shared/hash_map_kernel_user.cpp;src/bpf_map/shared/percpu_array_map_kernel_user.cpp;src/bpf_map/shared/perf_event_array_kernel_user.cpp
+INFO Found the following boost include dirs : /usr/include
+-- Detected CUDA version: 12.9
+-- CUDA 12.9: Using cupti (dynamic library)
+-- runtime CUDA libs= cuda;cudart;/usr/local/cuda-12.9/targets/x86_64-linux/lib/libnvptxcompiler_static.a;cupti;nvrtc
+-- Added all header and implementation files.
+
+-- Detected CUDA version: 12.9
+-- CUDA 12.9: Using cupti (dynamic library)
+-- Detected CUDA version: 12.9
+-- CUDA 12.9: Using cupti (dynamic library)
+-- Using llvm-jit
+-- Detected CUDA version: 12.9
+-- CUDA 12.9: Using cupti (dynamic library)
+-- Configuring done (5.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build
++ cmake --build /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build --config Debug --target bpftime-agent --target bpftime-syscall-server -j 2
+[  0%] Creating directories for 'libbpf'
+[  0%] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/spdlog.cpp.o
+[  2%] No download step for 'libbpf'
+[  5%] No update step for 'libbpf'
+[  5%] No patch step for 'libbpf'
+[  5%] Performing configure step for 'libbpf'
+[  5%] Performing build step for 'libbpf'
+make[4]: warning: -j0 forced in submake: resetting jobserver mode.
+  MKDIR    /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs
+  MKDIR    /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs
+  INSTALL  bpf.h libbpf.h btf.h libbpf_common.h libbpf_legacy.h bpf_helpers.h bpf_helper_defs.h bpf_tracing.h bpf_endian.h bpf_core_read.h skel_internal.h libbpf_version.h usdt.bpf.h
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/bpf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/btf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/libbpf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/libbpf_errno.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/netlink.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/nlattr.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/str_error.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/libbpf_probes.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/bpf_prog_linfo.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/btf_dump.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/hashmap.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/ringbuf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/strset.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/gen_loader.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/linker.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/relo_core.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/usdt.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/zip.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/elf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/features.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/btf_iter.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/staticobjs/btf_relocate.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/bpf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/btf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/libbpf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/netlink.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/nlattr.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/libbpf_errno.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/str_error.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/libbpf_probes.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/bpf_prog_linfo.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/btf_dump.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/hashmap.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/ringbuf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/linker.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/relo_core.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/usdt.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/strset.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/gen_loader.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/zip.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/elf.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/features.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/btf_iter.o
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/sharedobjs/btf_relocate.o
+  INSTALL  /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.pc
+  AR       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.a
+  CC       /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.so.1.7.0
+  INSTALL  /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.a /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.so /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.so.1 /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.so.1.7.0
+[  5%] No install step for 'libbpf'
+[  5%] Completed 'libbpf'
+[  5%] Built target libbpf
+[  5%] Creating directories for 'FridaGum'
+[  5%] Performing download step (download, verify and extract) for 'FridaGum'
+-- Downloading...
+   dst='/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+   timeout='none'
+   inactivity timeout='none'
+-- Using src='https://github.com/frida/frida/releases/download/16.1.2/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+-- [download 0% complete]
+-- [download 1% complete]
+-- [download 2% complete]
+-- [download 3% complete]
+-- [download 4% complete]
+-- [download 5% complete]
+-- [download 6% complete]
+-- [download 7% complete]
+-- [download 8% complete]
+-- [download 9% complete]
+-- [download 10% complete]
+-- [download 11% complete]
+-- [download 12% complete]
+-- [download 13% complete]
+-- [download 14% complete]
+-- [download 15% complete]
+-- [download 16% complete]
+-- [download 17% complete]
+-- [download 18% complete]
+-- [download 19% complete]
+-- [download 20% complete]
+-- [download 21% complete]
+-- [download 22% complete]
+-- [download 28% complete]
+-- [download 29% complete]
+-- [download 30% complete]
+-- [download 31% complete]
+-- [download 32% complete]
+-- [download 33% complete]
+-- [download 34% complete]
+-- [download 40% complete]
+-- [download 41% complete]
+-- [download 42% complete]
+-- [download 51% complete]
+-- [download 52% complete]
+-- [download 53% complete]
+-- [download 54% complete]
+-- [download 55% complete]
+-- [download 56% complete]
+-- [download 57% complete]
+-- [download 58% complete]
+-- [download 59% complete]
+-- [download 60% complete]
+-- [download 61% complete]
+-- [download 62% complete]
+-- [download 63% complete]
+-- [download 64% complete]
+-- [download 65% complete]
+-- [download 66% complete]
+-- [download 67% complete]
+-- [download 68% complete]
+-- [download 69% complete]
+-- [download 70% complete]
+-- [download 71% complete]
+-- [download 72% complete]
+-- [download 73% complete]
+-- [download 74% complete]
+-- [download 75% complete]
+-- [download 76% complete]
+-- [download 77% complete]
+-- [download 78% complete]
+-- [download 79% complete]
+-- [download 80% complete]
+-- [download 81% complete]
+-- [download 82% complete]
+-- [download 83% complete]
+-- [download 84% complete]
+-- [download 85% complete]
+-- [download 86% complete]
+-- [download 87% complete]
+-- [download 88% complete]
+-- [download 89% complete]
+-- [download 90% complete]
+-- [download 91% complete]
+-- [download 92% complete]
+-- [download 93% complete]
+-- [download 94% complete]
+-- [download 95% complete]
+-- [download 96% complete]
+-- [download 97% complete]
+-- [download 98% complete]
+-- [download 99% complete]
+-- [download 100% complete]
+-- verifying file...
+       file='/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+-- Downloading... done
+-- extracting...
+     src='/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/third_party/frida/frida-gum-devkit-16.1.2-linux-x86_64.tar.xz'
+     dst='/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/FridaGum-prefix/src/FridaGum'
+-- extracting... [tar xfz]
+[  5%] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/stdout_sinks.cpp.o
+-- extracting... [analysis]
+-- extracting... [rename]
+-- extracting... [clean up]
+-- extracting... done
+[  5%] No update step for 'FridaGum'
+[  8%] No patch step for 'FridaGum'
+[ 11%] No configure step for 'FridaGum'
+[ 11%] No build step for 'FridaGum'
+[ 11%] No install step for 'FridaGum'
+[ 11%] Completed 'FridaGum'
+[ 11%] Built target FridaGum
+[ 13%] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_json.cpp.o
+[ 13%] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_map.cpp.o
+[ 13%] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/color_sinks.cpp.o
+[ 13%] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_parse.cpp.o
+[ 16%] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/file_sinks.cpp.o
+[ 16%] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_type_data.cpp.o
+[ 16%] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/async.cpp.o
+[ 16%] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/cfg.cpp.o
+[ 19%] Building CXX object bpftime-verifier/ebpf-verifier/external/libbtf/libbtf/CMakeFiles/libbtf.dir/btf_write.cpp.o
+[ 19%] Building CXX object third_party/spdlog/CMakeFiles/spdlog.dir/src/bundled_fmtlib_format.cpp.o
+[ 19%] Linking CXX static library liblibbtf.a
+[ 19%] Built target libbtf
+[ 22%] Creating directories for 'ubpf'
+[ 22%] No download step for 'ubpf'
+[ 22%] No update step for 'ubpf'
+[ 22%] No patch step for 'ubpf'
+[ 22%] Performing configure step for 'ubpf'
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pow in m
+[ 25%] Linking CXX static library libspdlogd.a
+-- Looking for pow in m - found
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/vm/compat/ubpf-vm/ubpf
+[ 27%] Performing build step for 'ubpf'
+[ 16%] Building C object vm/CMakeFiles/ubpf.dir/ubpf_jit_arm64.c.o
+[ 27%] Built target spdlog
+[ 27%] Generating syscall_id_list.h
+[ 27%] Built target bpftime_syscall_trace_syscall_id_table
+[ 33%] Building C object vm/CMakeFiles/ubpf.dir/ubpf_jit.c.o
+[ 50%] Building C object vm/CMakeFiles/ubpf.dir/ubpf_jit_x86_64.c.o
+[ 66%] Building C object vm/CMakeFiles/ubpf.dir/ubpf_loader.c.o
+[ 83%] Building C object vm/CMakeFiles/ubpf.dir/ubpf_vm.c.o
+[ 27%] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/llvm_jit_context.cpp.o
+[100%] Linking C static library ../lib/libubpf.a
+[100%] Built target ubpf
+[ 27%] No install step for 'ubpf'
+[ 27%] Completed 'ubpf'
+[ 27%] Built target ubpf
+[ 27%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_cfg.cpp.o
+[ 27%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_files.cpp.o
+[ 27%] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/compiler.cpp.o
+[ 27%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_marshal.cpp.o
+[ 30%] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/compiler_utils.cpp.o
+[ 30%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_ostream.cpp.o
+[ 33%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_parse.cpp.o
+[ 33%] Building CXX object vm/compat/llvm-vm/llvm-jit/CMakeFiles/llvmbpf_vm.dir/src/vm.cpp.o
+[ 33%] Linking CXX static library ../libllvmbpf_vm.a
+[ 33%] Built target llvmbpf_vm
+[ 36%] Building CXX object vm/compat/ubpf-vm/CMakeFiles/bpftime_ubpf_vm_obj.dir/compat_ubpf.cpp.o
+[ 36%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/asm_unmarshal.cpp.o
+[ 36%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/assertions.cpp.o
+[ 36%] Built target bpftime_ubpf_vm_obj
+[ 36%] Building CXX object attach/nv_attach_impl/ptx_compiler/CMakeFiles/nv_attach_impl_ptx_compiler.dir/ptx_compiler.cpp.o
+[ 36%] Linking CXX shared library libnv_attach_impl_ptx_compiler.so
+[ 36%] Built target nv_attach_impl_ptx_compiler
+[ 36%] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_uprobe_attach_impl.cpp.o
+[ 36%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/config.cpp.o
+[ 38%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/array_domain.cpp.o
+[ 38%] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_internal_attach_entry.cpp.o
+[ 38%] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_attach_entry.cpp.o
+[ 38%] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_attach_utils.cpp.o
+In file included from /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/./external/radix_tree/radix_tree.hpp:9,
+                 from /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/src/crab/array_domain.cpp:11:
+/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/./external/radix_tree/radix_tree_it.hpp:12:35: warning: ‘template<class _Category, class _Tp, class _Distance, class _Pointer, class _Reference> struct std::iterator’ is deprecated [-Wdeprecated-declarations]
+   12 | class radix_tree_it : public std::iterator<std::forward_iterator_tag, std::pair<K, T> > {
+      |                                   ^~~~~~~~
+In file included from /usr/include/c++/13/bits/stl_algobase.h:65,
+                 from /usr/include/c++/13/algorithm:60,
+                 from /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/bpftime-verifier/ebpf-verifier/src/crab/array_domain.cpp:4:
+/usr/include/c++/13/bits/stl_iterator_base_types.h:127:34: note: declared here
+  127 |     struct _GLIBCXX17_DEPRECATED iterator
+      |                                  ^~~~~~~~
+[ 38%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/bitset_domain.cpp.o
+[ 41%] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_attach_private_data.cpp.o
+[ 41%] Building CXX object attach/frida_uprobe_attach_impl/CMakeFiles/bpftime_frida_uprobe_attach_impl.dir/src/frida_register_conversion.cpp.o
+[ 41%] Linking CXX static library libbpftime_frida_uprobe_attach_impl.a
+[ 41%] Built target bpftime_frida_uprobe_attach_impl
+[ 44%] Building CXX object attach/syscall_trace_attach_impl/CMakeFiles/bpftime_syscall_trace_attach_impl.dir/src/syscall_trace_attach_impl.cpp.o
+[ 44%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/ebpf_domain.cpp.o
+[ 44%] Building CXX object attach/syscall_trace_attach_impl/CMakeFiles/bpftime_syscall_trace_attach_impl.dir/src/syscall_table.cpp.o
+[ 44%] Building CXX object attach/syscall_trace_attach_impl/CMakeFiles/bpftime_syscall_trace_attach_impl.dir/src/syscall_trace_attach_private_data.cpp.o
+[ 44%] Linking CXX static library libbpftime_syscall_trace_attach_impl.a
+[ 44%] Built target bpftime_syscall_trace_attach_impl
+[ 44%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/fwd_analyzer.cpp.o
+[ 47%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/interval.cpp.o
+[ 47%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/split_dbm.cpp.o
+[ 47%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/thresholds.cpp.o
+[ 47%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/var_factory.cpp.o
+[ 50%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab/wto.cpp.o
+[ 50%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab_utils/debug.cpp.o
+[ 50%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab_utils/stats.cpp.o
+[ 50%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/crab_verifier.cpp.o
+[ 52%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/ebpf_yaml.cpp.o
+[ 52%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/linux/gpl/spec_prototypes.cpp.o
+[ 52%] Building CXX object bpftime-verifier/ebpf-verifier/CMakeFiles/ebpfverifier.dir/src/linux/linux_platform.cpp.o
+[ 52%] Building CXX object attach/nv_attach_impl/pass/ptxpass_core/CMakeFiles/ptxpass_core.dir/src/core.cpp.o
+[ 52%] Linking CXX static library libebpfverifier.a
+[ 52%] Built target ebpfverifier
+[ 52%] Building CXX object vm/compat/llvm-vm/CMakeFiles/bpftime_llvm_vm_obj.dir/compat_llvm.cpp.o
+[ 55%] Building CXX object attach/nv_attach_impl/pass/ptxpass_core/CMakeFiles/ptxpass_core.dir/src/nv_attach_impl_register_guard_patcher.cpp.o
+[ 55%] Linking CXX static library libptxpass_core.a
+[ 55%] Built target ptxpass_core
+[ 55%] Linking CXX static library libbpftime_ubpf_vm.a
+[ 55%] Built target bpftime_ubpf_vm
+[ 55%] Building CXX object attach/nv_attach_impl/pass/ptxpass_kprobe_entry/CMakeFiles/ptxpass_kprobe_entry.dir/main.cpp.o
+/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/vm/compat/llvm-vm/compat_llvm.cpp:82:63: warning: constructor priorities from 0 to 100 are reserved for the implementation [-Wprio-ctor-dtor]
+   82 | __attribute__((constructor(0))) void register_llvm_vm_factory()
+      |                                                               ^
+[ 55%] Built target bpftime_llvm_vm_obj
+[ 55%] Building CXX object attach/nv_attach_impl/pass/ptxpass_kretprobe/CMakeFiles/ptxpass_kretprobe.dir/main.cpp.o
+[ 55%] Linking CXX shared library libptxpass_kprobe_entry.so
+[ 55%] Linking CXX shared library libptxpass_kretprobe.so
+[ 55%] Built target ptxpass_kprobe_entry
+[ 58%] Building CXX object attach/nv_attach_impl/pass/ptxpass_kprobe_memcapture/CMakeFiles/ptxpass_kprobe_memcapture.dir/main.cpp.o
+[ 58%] Built target ptxpass_kretprobe
+[ 58%] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/bpftime-verifier.cpp.o
+[ 58%] Linking CXX shared library libptxpass_kprobe_memcapture.so
+[ 61%] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/platform-impl.cpp.o
+[ 61%] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/gpu_platform.cpp.o
+[ 61%] Built target ptxpass_kprobe_memcapture
+[ 61%] Linking CXX static library libbpftime_llvm_vm.a
+[ 61%] Built target bpftime_llvm_vm
+[ 61%] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/gpu_verifier.cpp.o
+[ 61%] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/simt_safety_check.cpp.o
+[ 63%] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/gpu/uniformity_analysis.cpp.o
+[ 63%] Building CXX object vm/vm-core/CMakeFiles/bpftime_vm.dir/src/ebpf-vm.cpp.o
+[ 63%] Linking CXX static library libbpftime-verifier.a
+[ 63%] Built target bpftime-verifier
+[ 63%] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_impl.cpp.o
+[ 66%] Linking CXX static library libbpftime_vm.a
+[ 66%] Built target bpftime_vm
+[ 69%] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_private_data.cpp.o
+[ 69%] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_impl_frida_setup.cpp.o
+[ 69%] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_impl_patcher.cpp.o
+[ 69%] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_utils.cpp.o
+[ 72%] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_attach_fatbin_record.cpp.o
+[ 72%] Building CXX object attach/nv_attach_impl/CMakeFiles/bpftime_nv_attach_impl.dir/nv_elf_introspect.cpp.o
+[ 72%] Linking CXX static library libbpftime_nv_attach_impl.a
+[ 72%] Built target bpftime_nv_attach_impl
+[ 72%] Building CXX object runtime/CMakeFiles/runtime.dir/src/attach/bpf_attach_ctx.cpp.o
+[ 72%] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/handler_manager.cpp.o
+[ 72%] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/map_handler.cpp.o
+[ 75%] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/perf_event_handler.cpp.o
+[ 75%] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/prog_handler.cpp.o
+[ 75%] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/epoll_handler.cpp.o
+[ 75%] Building CXX object runtime/CMakeFiles/runtime.dir/src/handler/memfd_handler.cpp.o
+[ 77%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_shm.cpp.o
+[ 77%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_shm_internal.cpp.o
+[ 77%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_shm_json.cpp.o
+[ 77%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_prog.cpp.o
+[ 80%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpftime_config.cpp.o
+[ 80%] Building CXX object runtime/CMakeFiles/runtime.dir/src/ufunc.cpp.o
+[ 80%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_helper.cpp.o
+[ 80%] Building CXX object runtime/CMakeFiles/runtime.dir/src/platform_utils.cpp.o
+[ 83%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/array_map.cpp.o
+[ 83%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/fix_hash_map.cpp.o
+[ 83%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/var_hash_map.cpp.o
+[ 83%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/ringbuf_map.cpp.o
+[ 86%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/perf_event_array_map.cpp.o
+[ 86%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/per_cpu_array_map.cpp.o
+[ 86%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/per_cpu_hash_map.cpp.o
+[ 86%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/prog_array.cpp.o
+[ 86%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/stack_trace_map.cpp.o
+[ 88%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/lru_var_hash_map.cpp.o
+[ 88%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/queue.cpp.o
+[ 88%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/stack.cpp.o
+[ 88%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/bloom_filter.cpp.o
+[ 91%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/userspace/lpm_trie_map.cpp.o
+[ 91%] Building CXX object runtime/CMakeFiles/runtime.dir/extension/extension_helper.cpp.o
+[ 91%] Building CXX object runtime/CMakeFiles/runtime.dir/src/attach/bpf_attach_ctx_cuda.cpp.o
+[ 91%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_gdrcopy.cpp.o
+[ 94%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_per_thread_array_map.cpp.o
+/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/runtime/src/attach/bpf_attach_ctx_cuda.cpp: In lambda function:
+/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source/runtime/src/attach/bpf_attach_ctx_cuda.cpp:131:38: warning: variable ‘start_time’ set but not used [-Wunused-but-set-variable]
+  131 |                                 auto start_time =
+      |                                      ^~~~~~~~~~
+[ 94%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_shared_array_map.cpp.o
+[ 94%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_ringbuf_map.cpp.o
+[ 94%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu_kernel_shared/array_map_kernel_gpu.cpp.o
+[ 97%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_shared_hash_map.cpp.o
+[ 97%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_array_host_map.cpp.o
+[ 97%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu/nv_gpu_shared_array_host_map.cpp.o
+[ 97%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/array_map_kernel_user.cpp.o
+[100%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/hash_map_kernel_user.cpp.o
+[100%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/percpu_array_map_kernel_user.cpp.o
+[100%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/perf_event_array_kernel_user.cpp.o
+[100%] Linking CXX static library libruntime.a
+[100%] Built target runtime
+[100%] Building CXX object runtime/agent/CMakeFiles/bpftime-agent.dir/agent.cpp.o
+[100%] Linking CXX shared library libbpftime-agent.so
+[100%] Built target bpftime-agent
+[  0%] Performing build step for 'libbpf'
+make[4]: warning: -j0 forced in submake: resetting jobserver mode.
+[  5%] Built target spdlog
+  INSTALL  bpf.h libbpf.h btf.h libbpf_common.h libbpf_legacy.h bpf_helpers.h bpf_helper_defs.h bpf_tracing.h bpf_endian.h bpf_core_read.h skel_internal.h libbpf_version.h usdt.bpf.h
+  INSTALL  /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.pc
+  INSTALL  /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.a /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.so /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.so.1 /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/libbpf/libbpf/libbpf.so.1.7.0
+[ 11%] Built target FridaGum
+[ 11%] No install step for 'libbpf'
+[ 11%] Completed 'libbpf'
+[ 17%] Built target libbtf
+[ 22%] Built target ubpf
+[ 28%] Built target libbpf
+[ 28%] Built target nv_attach_impl_ptx_compiler
+[ 31%] Built target llvmbpf_vm
+[ 34%] Built target bpftime_ubpf_vm_obj
+[ 37%] Built target ptxpass_core
+[ 37%] Built target bpftime_llvm_vm_obj
+[ 51%] Built target ebpfverifier
+[ 51%] Built target bpftime_ubpf_vm
+[ 51%] Built target ptxpass_kprobe_entry
+[ 51%] Built target ptxpass_kretprobe
+[ 54%] Built target ptxpass_kprobe_memcapture
+[ 54%] Built target bpftime_llvm_vm
+[ 57%] Building CXX object bpftime-verifier/CMakeFiles/bpftime-verifier.dir/src/platform-impl.cpp.o
+[ 60%] Built target bpftime_vm
+[ 60%] Linking CXX static library libbpftime-verifier.a
+[ 62%] Built target bpftime-verifier
+[ 68%] Built target bpftime_nv_attach_impl
+[ 68%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_helper.cpp.o
+[ 68%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/gpu_kernel_shared/array_map_kernel_gpu.cpp.o
+[ 68%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/array_map_kernel_user.cpp.o
+[ 71%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/hash_map_kernel_user.cpp.o
+[ 71%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/percpu_array_map_kernel_user.cpp.o
+[ 71%] Building CXX object runtime/CMakeFiles/runtime.dir/src/bpf_map/shared/perf_event_array_kernel_user.cpp.o
+[ 71%] Linking CXX static library libruntime.a
+[ 97%] Built target runtime
+[ 97%] Building CXX object runtime/syscall-server/CMakeFiles/bpftime-syscall-server.dir/syscall_context.cpp.o
+[100%] Building CXX object runtime/syscall-server/CMakeFiles/bpftime-syscall-server.dir/syscall_server_main.cpp.o
+[100%] Building CXX object runtime/syscall-server/CMakeFiles/bpftime-syscall-server.dir/syscall_server_utils.cpp.o
+[100%] Linking CXX shared library libbpftime-syscall-server.so
+[100%] Built target bpftime-syscall-server

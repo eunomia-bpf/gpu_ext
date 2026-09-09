@@ -1,0 +1,118 @@
+{
+  "kind": "table1_runtime_fresh_build",
+  "status": "completed",
+  "timestamp_utc": "2026-09-09T18:53:47Z",
+  "bpftime_url": "https://github.com/eunomia-bpf/bpftime.git",
+  "bpftime_source_rev_requested": "eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7",
+  "bpftime_head": "eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7",
+  "source_dir": "/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source",
+  "build_dir": "/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build",
+  "submodule_pins": [
+    {
+      "path": "bpftime-verifier/ebpf-verifier",
+      "commit": "fd85b8a6ac2c0cb5621d9c1f38368089d616b8b9"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/ebpf-samples",
+      "commit": "e052151f8cf3b3d65bfaade6255318a566457fbb"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/ebpf-samples/bpf_cilium_test",
+      "commit": "9820a2f47a7b5e034fff3095f17041175b2e8b21"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/external/ELFIO",
+      "commit": "73a241079a040710481e9b840248ec0425e46c7c"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/external/bpf_conformance",
+      "commit": "78df87a6e85d4051d6bc1c92b1b6c05d7195cf05"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/external/bpf_conformance/external/elfio",
+      "commit": "8ae6cec5d60495822ecd57d736f66149da9b1830"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/external/libbtf",
+      "commit": "f5fab5a0b36869c104fa45a6ffb6c87295a22888"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples",
+      "commit": "e6486118e4997a9780a30fd4bfeedcefd1567c8b"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/external/libbtf/external/ebpf-samples/bpf_cilium_test",
+      "commit": "9820a2f47a7b5e034fff3095f17041175b2e8b21"
+    },
+    {
+      "path": "bpftime-verifier/ebpf-verifier/external/radix_tree",
+      "commit": "f8bc846ef1f00ee43af2ddc04af67d2e44d50685"
+    },
+    {
+      "path": "third_party/Catch2",
+      "commit": "6e79e682b726f524310d55dec8ddac4e9c52fb5f"
+    },
+    {
+      "path": "third_party/argparse",
+      "commit": "69dabd88a8e6680b1a1a18397eb3e165e4019ce6"
+    },
+    {
+      "path": "third_party/bpftool",
+      "commit": "53c1852920c8a8f8ccedb7a64e3d9852949792c7"
+    },
+    {
+      "path": "third_party/bpftool/libbpf",
+      "commit": "3f077472ee7e703b733c2c9ae15ef3f4c13ee25b"
+    },
+    {
+      "path": "third_party/spdlog",
+      "commit": "48bcf39a661a13be22666ac64db8a7f886f2637e"
+    },
+    {
+      "path": "third_party/ubpf",
+      "commit": "39872ad471c206051407d89ab8ed62d9ba0d7310"
+    },
+    {
+      "path": "third_party/ubpf/external/bpf_conformance",
+      "commit": "73b6ea325b8b48ebdb17f2382c25ec38183154f8"
+    },
+    {
+      "path": "third_party/ubpf/external/bpf_conformance/external/elfio",
+      "commit": "8a08b5be22456ff5879c30d82b9715f40f40b98f"
+    },
+    {
+      "path": "third_party/ubpf/vm/compat/libraries/win-c/src",
+      "commit": "29a86ef6ce6b0ef22742ba0ba7ef7d71c96da578"
+    },
+    {
+      "path": "vm/llvm-jit",
+      "commit": "f66cafa4478b9991e16095e7844f9e8586979111"
+    }
+  ],
+  "cmake_options": {
+    "CMAKE_BUILD_TYPE": "Debug",
+    "BPFTIME_ENABLE_CUDA_ATTACH": "ON",
+    "BPFTIME_CUDA_ROOT": "/usr/local/cuda-12.9",
+    "BPFTIME_LLVM_JIT": "ON",
+    "BPFTIME_UBPF_JIT": "ON",
+    "ENABLE_EBPF_VERIFIER": "ON",
+    "LLVM_DIR": "/usr/lib/llvm-15/lib/cmake/llvm",
+    "CMAKE_C_COMPILER": "/usr/bin/x86_64-linux-gnu-gcc-13",
+    "CMAKE_CXX_COMPILER": "/usr/bin/c++"
+  },
+  "build_targets": [
+    "bpftime-agent",
+    "bpftime-syscall-server"
+  ],
+  "artifacts": {
+    "agent": {
+      "path": "/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/runtime/agent/libbpftime-agent.so",
+      "bytes": 277369912
+    },
+    "syscall_server": {
+      "path": "/tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/runtime/syscall-server/libbpftime-syscall-server.so",
+      "bytes": 272480568
+    }
+  },
+  "note": "fresh component build from the published revision; Table 1 measured numbers remain the historical records and are unchanged"
+}

@@ -1,0 +1,20 @@
+2026-09-09T11:50:45-07:00
+build_table1_runtime: checking out eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7 into /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source
++ git clone --no-checkout https://github.com/eunomia-bpf/bpftime.git /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source
++ git -C /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source checkout --detach eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7
++ git -C /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source submodule update --init --recursive
+checked out HEAD eef8a51abaf2ca1f0cdca9f2425af3bd535da1b7; submodule commit IDs recorded in /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build.log
+build_table1_runtime: configuring (recorded Debug / CUDA-attach / LLVM+uBPF JIT / verifier config)
++ cmake -S /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/bpftime-source -B /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/usr/bin/x86_64-linux-gnu-gcc-13 -DCMAKE_CXX_COMPILER=/usr/bin/c++ -DBPFTIME_ENABLE_CUDA_ATTACH=ON -DBPFTIME_CUDA_ROOT=/usr/local/cuda-12.9 -DBPFTIME_LLVM_JIT=ON -DBPFTIME_UBPF_JIT=ON -DENABLE_EBPF_VERIFIER=ON -DLLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm
+build_table1_runtime: building bpftime-agent and bpftime-syscall-server
++ cmake --build /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build --config Debug --target bpftime-agent --target bpftime-syscall-server -j 2
+
+build_table1_runtime: build completed
+  agent:          /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/runtime/agent/libbpftime-agent.so (277369912 bytes)
+  syscall-server: /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build/runtime/syscall-server/libbpftime-syscall-server.so (272480568 bytes)
+  log:            /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build.log
+  report:         /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build-report.json
+Pass --bpftime-build-dir /tmp/gpubpf-table1-runtime-20260909.X8d8Ho/build to the Table 1 perf runner.
+Runtime execution (probe loaders and benchmarks) remains untested;
+this script compiled only the two Table 1 runtime libraries.
+2026-09-09T11:53:47-07:00

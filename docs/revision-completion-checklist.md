@@ -12,11 +12,15 @@ and must not be rerun just because an older status entry describes them as pendi
   previous SoA layout is 20.565%; paired loss versus uninstrumented is 12.862%.
   All event fields remain; the post-client drain is measured separately.
   This does not replace historical Table 1 or earlier layout measurements.
-- End-to-end disk/UVM serving is implemented but not yet a complete successful
-  comparison. The [per-range reclaim attempt](../workloads/lmcache-disk/raw/diskuvm-serving-reclaim-20260909.EFVUGf/RESULTS.md)
-  retains five observations, including two EngineCore OOM failures. The original
-  module/loaders were restored. Physical GPU-chunk release after CPU migration
-  is the current driver repair hypothesis, not a demonstrated OOM fix.
+- End-to-end disk/UVM serving now completes [five blocks / 15 cells](../workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/RESULTS.md)
+  after driver 95097e20 adds physical GPU-chunk release. Each cell produces
+  8192 tokens with no HTTP failure and server exit zero; original module/loaders
+  are restored. Stock/native/BPF median throughput is 73.575/68.608/65.423
+  token/s. Paired BPF/native difference is median -4.048%, adverse in 4/5 pairs.
+  This is completed but negative performance evidence, not isolated BPF
+  overhead or proof of universal OOM elimination. The earlier
+  [per-range reclaim attempt](../workloads/lmcache-disk/raw/diskuvm-serving-reclaim-20260909.EFVUGf/RESULTS.md)
+  and its two EngineCore OOM failures remain preserved.
 - XSched Level-1 remains complete; Level-2 is still under repair. The
   [current native snapshots](../workloads/xsched/raw/level2-native-resolver-snapshot-20260909.KKFqHz/README.md)
   show that the first original-layout lookup succeeds, while a matched
@@ -30,8 +34,9 @@ and must not be rerun just because an older status entry describes them as pendi
   or its argument ABI. Three BE workers fail; one is cleaned up after failure;
   both LC workers finish. It is not a successful performance comparison.
 
-Three local OpenCode sessions continue: one Qwen 27B driver task and two
-existing GLM XSched tasks. No session is stopped for lack of recent output;
+Three local OpenCode sessions continue: one Qwen 27B result-analysis task and
+two existing GLM XSched tasks. The driver and callback tasks completed
+naturally before their sessions were reused. No session is stopped for lack of recent output;
 actual provider retries are not treated as completed implementation work.
 
 ## Experimental follow-up — 2026-09-08 PDT

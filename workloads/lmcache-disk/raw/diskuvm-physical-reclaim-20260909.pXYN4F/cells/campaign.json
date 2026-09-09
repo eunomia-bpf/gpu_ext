@@ -1,0 +1,1765 @@
+{
+  "block_orders": [
+    [
+      "stock",
+      "native",
+      "bpf"
+    ],
+    [
+      "native",
+      "bpf",
+      "stock"
+    ],
+    [
+      "bpf",
+      "stock",
+      "native"
+    ],
+    [
+      "stock",
+      "native",
+      "bpf"
+    ],
+    [
+      "native",
+      "bpf",
+      "stock"
+    ]
+  ],
+  "calibration": {
+    "cleanup_errors": [],
+    "command": [
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+      "serve",
+      "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+      "--served-model-name",
+      "Qwen/Qwen3-30B-A3B-FP8",
+      "--enforce-eager",
+      "--max-model-len",
+      "4096",
+      "--gpu-memory-utilization",
+      "0.98",
+      "--max-num-seqs",
+      "2",
+      "--no-enable-prefix-caching",
+      "--port",
+      "18080",
+      "--kv-cache-memory-bytes",
+      "402653184"
+    ],
+    "elapsed_s": 4.360113614,
+    "error": null,
+    "expected_driver_parameter": "575.57.08",
+    "finished_ns": 1788820768058903137,
+    "kind": "kv-reclaim-recompute-calibration",
+    "kv_cache_memory_bytes": 402653184,
+    "launch_command": [
+      "/usr/bin/taskset",
+      "-c",
+      "8-15",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+      "serve",
+      "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+      "--served-model-name",
+      "Qwen/Qwen3-30B-A3B-FP8",
+      "--enforce-eager",
+      "--max-model-len",
+      "4096",
+      "--gpu-memory-utilization",
+      "0.98",
+      "--max-num-seqs",
+      "2",
+      "--no-enable-prefix-caching",
+      "--port",
+      "18080",
+      "--kv-cache-memory-bytes",
+      "402653184"
+    ],
+    "max_num_seqs": 2,
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "note": "recompute_ns_per_token is the observed end-to-end TTFT per prompt token on the recompute server; a proxy, not pure GPU compute",
+    "output_tokens": 16,
+    "output_tokens_per_s": 29.35703317202596,
+    "port": 18080,
+    "ready": true,
+    "ready_error": null,
+    "recompute_ns_per_token": 62502,
+    "requests": [
+      {
+        "attempted": true,
+        "index": 0,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p0-recompute",
+        "response": {
+          "e2e_ms": 864.117821,
+          "engine_request_id": "cmpl-cal-p0-recompute",
+          "generated_token_ids": [
+            13710,
+            374,
+            6188,
+            311,
+            1936,
+            6950,
+            11,
+            5695,
+            37669,
+            11,
+            323,
+            1855,
+            264,
+            5530,
+            315,
+            53817
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p0-recompute",
+          "status": 200,
+          "text": " Script is designed to build trust, establish credibility, and create a sense of urgency",
+          "ttft_ms": 535.474529,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 1,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p1-recompute",
+        "response": {
+          "e2e_ms": 498.167022,
+          "engine_request_id": "cmpl-cal-p1-recompute",
+          "generated_token_ids": [
+            3142,
+            280,
+            2440,
+            13874,
+            19324,
+            32313,
+            11,
+            279,
+            1196,
+            6801,
+            311,
+            2647,
+            279,
+            2885,
+            536,
+            1667
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p1-recompute",
+          "status": 200,
+          "text": "_value;\n};\n```\n\nOkay, the user wants to update the Data class using",
+          "ttft_ms": 63.788687,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 2,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p2-recompute",
+        "response": {
+          "e2e_ms": 498.806485,
+          "engine_request_id": "cmpl-cal-p2-recompute",
+          "generated_token_ids": [
+            198,
+            3124,
+            46511,
+            70377,
+            73325,
+            11,
+            30003,
+            58610,
+            11,
+            10054,
+            284,
+            330,
+            4449,
+            16033,
+            290,
+            1138
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p2-recompute",
+          "status": 200,
+          "text": "\nUPROPERTY(EditAnywhere, BlueprintReadWrite, Category = \"Level Progression\")\n",
+          "ttft_ms": 65.164268,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 3,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p3-recompute",
+        "response": {
+          "e2e_ms": 499.476006,
+          "engine_request_id": "cmpl-cal-p3-recompute",
+          "generated_token_ids": [
+            419,
+            3033,
+            4157,
+            45653,
+            11,
+            30759,
+            11,
+            4279,
+            20362,
+            323,
+            4279,
+            1910,
+            1987,
+            576,
+            11251,
+            429
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p3-recompute",
+          "status": 200,
+          "text": " this government cannot endure, permanently, half slave and half free.” The crisis that",
+          "ttft_ms": 65.821845,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 4,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p4-recompute",
+        "response": {
+          "e2e_ms": 499.574618,
+          "engine_request_id": "cmpl-cal-p4-recompute",
+          "generated_token_ids": [
+            26278,
+            11,
+            264,
+            1697,
+            448,
+            264,
+            7743,
+            11,
+            323,
+            264,
+            1697,
+            448,
+            264,
+            6249,
+            271,
+            4710
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p4-recompute",
+          "status": 200,
+          "text": " piano, a person with a voice, and a person with a camera\n\n \n\n",
+          "ttft_ms": 65.5932,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 5,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p5-recompute",
+        "response": {
+          "e2e_ms": 498.145965,
+          "engine_request_id": "cmpl-cal-p5-recompute",
+          "generated_token_ids": [
+            1616,
+            1588,
+            13,
+            1260,
+            594,
+            23939,
+            553,
+            279,
+            30157,
+            323,
+            11074,
+            264,
+            5538,
+            5530,
+            315,
+            3633
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p5-recompute",
+          "status": 200,
+          "text": " way here. He's touched by the gesture and feels a deep sense of connection",
+          "ttft_ms": 64.216182,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 6,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p6-recompute",
+        "response": {
+          "e2e_ms": 499.088854,
+          "engine_request_id": "cmpl-cal-p6-recompute",
+          "generated_token_ids": [
+            32313,
+            11,
+            279,
+            1196,
+            6801,
+            264,
+            2390,
+            3293,
+            20389,
+            94674,
+            1667,
+            9308,
+            11,
+            15179,
+            11,
+            323
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p6-recompute",
+          "status": 200,
+          "text": "Okay, the user wants a project select dropdown searcher using HTML, CSS, and",
+          "ttft_ms": 65.154099,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 7,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p7-recompute",
+        "response": {
+          "e2e_ms": 501.781799,
+          "engine_request_id": "cmpl-cal-p7-recompute",
+          "generated_token_ids": [
+            25591,
+            419,
+            11,
+            582,
+            633,
+            1447,
+            91,
+            32,
+            481,
+            76782,
+            481,
+            48338,
+            40,
+            91,
+            284,
+            760
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p7-recompute",
+          "status": 200,
+          "text": "anding this, we get:\n\n|A - BK - λI| = |",
+          "ttft_ms": 66.770122,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      }
+    ],
+    "rerun": false,
+    "reused_from": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/kv-reclaim-recompute-calibration-575-20260907-01/calibration.json",
+    "schema": 1,
+    "server_returncode": 0,
+    "started_ns": 1788820739250933538,
+    "total_output_tokens": 128
+  },
+  "cells": [
+    {
+      "arm": "stock",
+      "block": 0,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 114.256638187,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 71.69824116995662,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.07001781364253576,
+        "warm_ttft_max_ms": 31870.113364,
+        "warm_ttft_median_ms": 26039.5308095,
+        "warm_ttft_p95_ms": 33399.192894550004
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-00/position-0-stock"
+    },
+    {
+      "arm": "native",
+      "block": 0,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 118.224413389,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 69.29194880456231,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06766791875445538,
+        "warm_ttft_max_ms": 32571.167451,
+        "warm_ttft_median_ms": 27697.580817000002,
+        "warm_ttft_p95_ms": 33665.77241245001
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-00/position-1-native"
+    },
+    {
+      "arm": "bpf",
+      "block": 0,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 123.211423198,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 66.48734173645171,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06492904466450362,
+        "warm_ttft_max_ms": 34199.033966,
+        "warm_ttft_median_ms": 28835.948896,
+        "warm_ttft_p95_ms": 35642.325834150004
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-00/position-2-bpf"
+    },
+    {
+      "arm": "native",
+      "block": 1,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 119.787543699,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 68.38774506124537,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06678490728637243,
+        "warm_ttft_max_ms": 31765.323409,
+        "warm_ttft_median_ms": 28699.381828999998,
+        "warm_ttft_p95_ms": 32098.089317750004
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-01/position-0-native"
+    },
+    {
+      "arm": "bpf",
+      "block": 1,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 119.185259735,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 68.73333177453598,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.0671223943110703,
+        "warm_ttft_max_ms": 31476.628904,
+        "warm_ttft_median_ms": 28505.563913500002,
+        "warm_ttft_p95_ms": 31689.456351250003
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-01/position-1-bpf"
+    },
+    {
+      "arm": "stock",
+      "block": 1,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 116.07853035,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 70.57291279704766,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06891886015336686,
+        "warm_ttft_max_ms": 31800.391071,
+        "warm_ttft_median_ms": 25927.072176,
+        "warm_ttft_p95_ms": 33318.400108049995
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-01/position-2-stock"
+    },
+    {
+      "arm": "bpf",
+      "block": 2,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 125.216293627,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 65.422795729785,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06388944895486816,
+        "warm_ttft_max_ms": 34913.771726,
+        "warm_ttft_median_ms": 29401.1171905,
+        "warm_ttft_p95_ms": 36247.2508961
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-02/position-0-bpf"
+    },
+    {
+      "arm": "stock",
+      "block": 2,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 110.759946048,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 73.96175505944935,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.0722282764252435,
+        "warm_ttft_max_ms": 30739.197242,
+        "warm_ttft_median_ms": 24979.6988205,
+        "warm_ttft_p95_ms": 32156.844403699994
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-02/position-1-stock"
+    },
+    {
+      "arm": "native",
+      "block": 2,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 121.082203048,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 67.65651593531452,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06607081634308058,
+        "warm_ttft_max_ms": 33132.051425,
+        "warm_ttft_median_ms": 28028.932955,
+        "warm_ttft_p95_ms": 34162.200965749995
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-02/position-2-native"
+    },
+    {
+      "arm": "stock",
+      "block": 3,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 111.341683156,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 73.57532029152325,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.07185089872219068,
+        "warm_ttft_max_ms": 31254.859106,
+        "warm_ttft_median_ms": 24941.911463999997,
+        "warm_ttft_p95_ms": 33130.2281015
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-03/position-0-stock"
+    },
+    {
+      "arm": "native",
+      "block": 3,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 117.742750358,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 69.57540889007606,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.0679447352442149,
+        "warm_ttft_max_ms": 31723.626914,
+        "warm_ttft_median_ms": 28132.5856885,
+        "warm_ttft_p95_ms": 32189.654285149998
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-03/position-1-native"
+    },
+    {
+      "arm": "bpf",
+      "block": 3,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 125.709410785,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 65.16616336712234,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06363883141320541,
+        "warm_ttft_max_ms": 32939.45503,
+        "warm_ttft_median_ms": 30209.8571105,
+        "warm_ttft_p95_ms": 33286.79139245
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-03/position-2-bpf"
+    },
+    {
+      "arm": "native",
+      "block": 4,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 119.402929714,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 68.60803180978806,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06700003106424615,
+        "warm_ttft_max_ms": 33106.246293,
+        "warm_ttft_median_ms": 27995.151372,
+        "warm_ttft_p95_ms": 34323.75672505
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-04/position-0-native"
+    },
+    {
+      "arm": "bpf",
+      "block": 4,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 125.445434929,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 65.30329305834472,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06377274712728977,
+        "warm_ttft_max_ms": 35026.537512,
+        "warm_ttft_median_ms": 29397.3526465,
+        "warm_ttft_p95_ms": 36480.239728450004
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-04/position-1-bpf"
+    },
+    {
+      "arm": "stock",
+      "block": 4,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 111.342897467,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 73.57451787553812,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.0718501151128302,
+        "warm_ttft_max_ms": 30859.118449,
+        "warm_ttft_median_ms": 24943.6471665,
+        "warm_ttft_p95_ms": 32429.18728230001
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/cells/block-04/position-2-stock"
+    }
+  ],
+  "kind": "gds-kv-reclaim-575",
+  "params": {
+    "arms": [
+      "stock",
+      "native",
+      "bpf"
+    ],
+    "attempts_per_cell": 1,
+    "blocks": 5,
+    "campaign_wall_clock_timeout": null,
+    "cold_output_tokens": 16,
+    "disk_uvm_enabled": true,
+    "disk_uvm_fault_lib": "/tmp/lmcache-diskuvm-serving-build-20260909.7dZdC8/libdiskuvm_fault.so",
+    "expected_driver": "575.57.08",
+    "gds_buffer_size_mib": 256,
+    "gds_policy_mode": "fifo",
+    "kv_cache_memory_bytes": 402653184,
+    "max_num_seqs": 2,
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "port": 18080,
+    "reclaim_modes": {
+      "bpf": "bpf",
+      "native": "native",
+      "stock": null
+    },
+    "retry": false,
+    "store_barrier_timeout_s": 120.0,
+    "warm_concurrency": 4,
+    "warm_output_tokens_bound": 1024,
+    "warm_prefix_tokens": {
+      "0": 1536,
+      "1": 1024,
+      "2": 1536,
+      "3": 1024,
+      "4": 1536,
+      "5": 1024,
+      "6": 1536,
+      "7": 1024
+    },
+    "warm_stagger_ms": 250.0
+  },
+  "summary": {
+    "cells_attempted": 15,
+    "kind": "gds-kv-reclaim-575",
+    "per_arm": {
+      "bpf": {
+        "adapter_counters": {
+          "coverage_unknown_candidates": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "disk_route_recompute_fallback": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "forced_zero_lookups": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "override_picks": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "read_pricing_missing_decisions": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "route_consumed_disk_prefix": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "route_consumed_full_recompute": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seam_invocations": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "stock_kept": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        "backing_activated": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "backing_read_stats": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "cells_attempted": 5,
+        "cells_measured": 5,
+        "decision_records": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "diagnostics_arrived": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "diagnostics_expected": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "errors": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "medians": {
+          "warm_output_tokens_per_s": 65.422795729785,
+          "warm_requests_per_s": 0.06388944895486816,
+          "warm_ttft_median_ms": 29397.3526465
+        },
+        "per_cell_values": {
+          "kv_pool_tokens": [
+            4096,
+            4096,
+            4096,
+            4096,
+            4096
+          ],
+          "preemption_log_count": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "warm_elapsed_s": [
+            123.211423198,
+            119.185259735,
+            125.216293627,
+            125.709410785,
+            125.445434929
+          ],
+          "warm_failures": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "warm_output_tokens": [
+            8192,
+            8192,
+            8192,
+            8192,
+            8192
+          ],
+          "warm_output_tokens_per_s": [
+            66.48734173645171,
+            68.73333177453598,
+            65.422795729785,
+            65.16616336712234,
+            65.30329305834472
+          ],
+          "warm_requests": [
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "warm_requests_per_s": [
+            0.06492904466450362,
+            0.0671223943110703,
+            0.06388944895486816,
+            0.06363883141320541,
+            0.06377274712728977
+          ],
+          "warm_ttft_max_ms": [
+            34199.033966,
+            31476.628904,
+            34913.771726,
+            32939.45503,
+            35026.537512
+          ],
+          "warm_ttft_median_ms": [
+            28835.948896,
+            28505.563913500002,
+            29401.1171905,
+            30209.8571105,
+            29397.3526465
+          ],
+          "warm_ttft_p95_ms": [
+            35642.325834150004,
+            31689.456351250003,
+            36247.2508961,
+            33286.79139245,
+            36480.239728450004
+          ]
+        },
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "recovery_records": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "server_returncodes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "native": {
+        "adapter_counters": {
+          "coverage_unknown_candidates": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "disk_route_recompute_fallback": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "forced_zero_lookups": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "override_picks": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "read_pricing_missing_decisions": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "route_consumed_disk_prefix": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "route_consumed_full_recompute": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seam_invocations": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "stock_kept": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        "backing_activated": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "backing_read_stats": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "cells_attempted": 5,
+        "cells_measured": 5,
+        "decision_records": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "diagnostics_arrived": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "diagnostics_expected": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "errors": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "medians": {
+          "warm_output_tokens_per_s": 68.60803180978806,
+          "warm_requests_per_s": 0.06700003106424615,
+          "warm_ttft_median_ms": 28028.932955
+        },
+        "per_cell_values": {
+          "kv_pool_tokens": [
+            4096,
+            4096,
+            4096,
+            4096,
+            4096
+          ],
+          "preemption_log_count": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "warm_elapsed_s": [
+            118.224413389,
+            119.787543699,
+            121.082203048,
+            117.742750358,
+            119.402929714
+          ],
+          "warm_failures": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "warm_output_tokens": [
+            8192,
+            8192,
+            8192,
+            8192,
+            8192
+          ],
+          "warm_output_tokens_per_s": [
+            69.29194880456231,
+            68.38774506124537,
+            67.65651593531452,
+            69.57540889007606,
+            68.60803180978806
+          ],
+          "warm_requests": [
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "warm_requests_per_s": [
+            0.06766791875445538,
+            0.06678490728637243,
+            0.06607081634308058,
+            0.0679447352442149,
+            0.06700003106424615
+          ],
+          "warm_ttft_max_ms": [
+            32571.167451,
+            31765.323409,
+            33132.051425,
+            31723.626914,
+            33106.246293
+          ],
+          "warm_ttft_median_ms": [
+            27697.580817000002,
+            28699.381828999998,
+            28028.932955,
+            28132.5856885,
+            27995.151372
+          ],
+          "warm_ttft_p95_ms": [
+            33665.77241245001,
+            32098.089317750004,
+            34162.200965749995,
+            32189.654285149998,
+            34323.75672505
+          ]
+        },
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "recovery_records": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "server_returncodes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "stock": {
+        "adapter_counters": {
+          "coverage_unknown_candidates": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "disk_route_recompute_fallback": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "forced_zero_lookups": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "override_picks": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "read_pricing_missing_decisions": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "route_consumed_disk_prefix": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "route_consumed_full_recompute": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "seam_invocations": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "stock_kept": [
+            null,
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        "backing_activated": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "backing_read_stats": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "cells_attempted": 5,
+        "cells_measured": 5,
+        "decision_records": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "diagnostics_arrived": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "diagnostics_expected": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "errors": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "medians": {
+          "warm_output_tokens_per_s": 73.57451787553812,
+          "warm_requests_per_s": 0.0718501151128302,
+          "warm_ttft_median_ms": 24979.6988205
+        },
+        "per_cell_values": {
+          "kv_pool_tokens": [
+            4096,
+            4096,
+            4096,
+            4096,
+            4096
+          ],
+          "preemption_log_count": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "warm_elapsed_s": [
+            114.256638187,
+            116.07853035,
+            110.759946048,
+            111.341683156,
+            111.342897467
+          ],
+          "warm_failures": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "warm_output_tokens": [
+            8192,
+            8192,
+            8192,
+            8192,
+            8192
+          ],
+          "warm_output_tokens_per_s": [
+            71.69824116995662,
+            70.57291279704766,
+            73.96175505944935,
+            73.57532029152325,
+            73.57451787553812
+          ],
+          "warm_requests": [
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "warm_requests_per_s": [
+            0.07001781364253576,
+            0.06891886015336686,
+            0.0722282764252435,
+            0.07185089872219068,
+            0.0718501151128302
+          ],
+          "warm_ttft_max_ms": [
+            31870.113364,
+            31800.391071,
+            30739.197242,
+            31254.859106,
+            30859.118449
+          ],
+          "warm_ttft_median_ms": [
+            26039.5308095,
+            25927.072176,
+            24979.6988205,
+            24941.911463999997,
+            24943.6471665
+          ],
+          "warm_ttft_p95_ms": [
+            33399.192894550004,
+            33318.400108049995,
+            32156.844403699994,
+            33130.2281015,
+            32429.18728230001
+          ]
+        },
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "recovery_records": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "server_returncodes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "timestamp": "20260909T064726",
+  "warm_orders": {
+    "0": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "1": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      0
+    ],
+    "2": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      0,
+      1
+    ],
+    "3": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      0,
+      1,
+      2
+    ],
+    "4": [
+      4,
+      5,
+      6,
+      7,
+      0,
+      1,
+      2,
+      3
+    ]
+  }
+}

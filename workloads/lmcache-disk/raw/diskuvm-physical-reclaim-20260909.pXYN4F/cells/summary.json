@@ -1,0 +1,639 @@
+{
+  "cells_attempted": 15,
+  "kind": "gds-kv-reclaim-575",
+  "per_arm": {
+    "bpf": {
+      "adapter_counters": {
+        "coverage_unknown_candidates": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "disk_route_recompute_fallback": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "forced_zero_lookups": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "override_picks": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "read_pricing_missing_decisions": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "route_consumed_disk_prefix": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "route_consumed_full_recompute": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "seam_invocations": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "stock_kept": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      "backing_activated": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "backing_read_stats": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "cells_attempted": 5,
+      "cells_measured": 5,
+      "decision_records": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "diagnostics_arrived": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "diagnostics_expected": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "errors": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "medians": {
+        "warm_output_tokens_per_s": 65.422795729785,
+        "warm_requests_per_s": 0.06388944895486816,
+        "warm_ttft_median_ms": 29397.3526465
+      },
+      "per_cell_values": {
+        "kv_pool_tokens": [
+          4096,
+          4096,
+          4096,
+          4096,
+          4096
+        ],
+        "preemption_log_count": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "warm_elapsed_s": [
+          123.211423198,
+          119.185259735,
+          125.216293627,
+          125.709410785,
+          125.445434929
+        ],
+        "warm_failures": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "warm_output_tokens": [
+          8192,
+          8192,
+          8192,
+          8192,
+          8192
+        ],
+        "warm_output_tokens_per_s": [
+          66.48734173645171,
+          68.73333177453598,
+          65.422795729785,
+          65.16616336712234,
+          65.30329305834472
+        ],
+        "warm_requests": [
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "warm_requests_per_s": [
+          0.06492904466450362,
+          0.0671223943110703,
+          0.06388944895486816,
+          0.06363883141320541,
+          0.06377274712728977
+        ],
+        "warm_ttft_max_ms": [
+          34199.033966,
+          31476.628904,
+          34913.771726,
+          32939.45503,
+          35026.537512
+        ],
+        "warm_ttft_median_ms": [
+          28835.948896,
+          28505.563913500002,
+          29401.1171905,
+          30209.8571105,
+          29397.3526465
+        ],
+        "warm_ttft_p95_ms": [
+          35642.325834150004,
+          31689.456351250003,
+          36247.2508961,
+          33286.79139245,
+          36480.239728450004
+        ]
+      },
+      "reclaim_enabled": true,
+      "reclaim_mode": "bpf",
+      "recovery_records": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "server_returncodes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "native": {
+      "adapter_counters": {
+        "coverage_unknown_candidates": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "disk_route_recompute_fallback": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "forced_zero_lookups": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "override_picks": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "read_pricing_missing_decisions": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "route_consumed_disk_prefix": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "route_consumed_full_recompute": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "seam_invocations": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "stock_kept": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      "backing_activated": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "backing_read_stats": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "cells_attempted": 5,
+      "cells_measured": 5,
+      "decision_records": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "diagnostics_arrived": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "diagnostics_expected": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "errors": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "medians": {
+        "warm_output_tokens_per_s": 68.60803180978806,
+        "warm_requests_per_s": 0.06700003106424615,
+        "warm_ttft_median_ms": 28028.932955
+      },
+      "per_cell_values": {
+        "kv_pool_tokens": [
+          4096,
+          4096,
+          4096,
+          4096,
+          4096
+        ],
+        "preemption_log_count": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "warm_elapsed_s": [
+          118.224413389,
+          119.787543699,
+          121.082203048,
+          117.742750358,
+          119.402929714
+        ],
+        "warm_failures": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "warm_output_tokens": [
+          8192,
+          8192,
+          8192,
+          8192,
+          8192
+        ],
+        "warm_output_tokens_per_s": [
+          69.29194880456231,
+          68.38774506124537,
+          67.65651593531452,
+          69.57540889007606,
+          68.60803180978806
+        ],
+        "warm_requests": [
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "warm_requests_per_s": [
+          0.06766791875445538,
+          0.06678490728637243,
+          0.06607081634308058,
+          0.0679447352442149,
+          0.06700003106424615
+        ],
+        "warm_ttft_max_ms": [
+          32571.167451,
+          31765.323409,
+          33132.051425,
+          31723.626914,
+          33106.246293
+        ],
+        "warm_ttft_median_ms": [
+          27697.580817000002,
+          28699.381828999998,
+          28028.932955,
+          28132.5856885,
+          27995.151372
+        ],
+        "warm_ttft_p95_ms": [
+          33665.77241245001,
+          32098.089317750004,
+          34162.200965749995,
+          32189.654285149998,
+          34323.75672505
+        ]
+      },
+      "reclaim_enabled": true,
+      "reclaim_mode": "native",
+      "recovery_records": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "server_returncodes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "stock": {
+      "adapter_counters": {
+        "coverage_unknown_candidates": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "disk_route_recompute_fallback": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "forced_zero_lookups": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "override_picks": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "read_pricing_missing_decisions": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "route_consumed_disk_prefix": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "route_consumed_full_recompute": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "seam_invocations": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "stock_kept": [
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      "backing_activated": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "backing_read_stats": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "cells_attempted": 5,
+      "cells_measured": 5,
+      "decision_records": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "diagnostics_arrived": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "diagnostics_expected": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "errors": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "medians": {
+        "warm_output_tokens_per_s": 73.57451787553812,
+        "warm_requests_per_s": 0.0718501151128302,
+        "warm_ttft_median_ms": 24979.6988205
+      },
+      "per_cell_values": {
+        "kv_pool_tokens": [
+          4096,
+          4096,
+          4096,
+          4096,
+          4096
+        ],
+        "preemption_log_count": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "warm_elapsed_s": [
+          114.256638187,
+          116.07853035,
+          110.759946048,
+          111.341683156,
+          111.342897467
+        ],
+        "warm_failures": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "warm_output_tokens": [
+          8192,
+          8192,
+          8192,
+          8192,
+          8192
+        ],
+        "warm_output_tokens_per_s": [
+          71.69824116995662,
+          70.57291279704766,
+          73.96175505944935,
+          73.57532029152325,
+          73.57451787553812
+        ],
+        "warm_requests": [
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "warm_requests_per_s": [
+          0.07001781364253576,
+          0.06891886015336686,
+          0.0722282764252435,
+          0.07185089872219068,
+          0.0718501151128302
+        ],
+        "warm_ttft_max_ms": [
+          31870.113364,
+          31800.391071,
+          30739.197242,
+          31254.859106,
+          30859.118449
+        ],
+        "warm_ttft_median_ms": [
+          26039.5308095,
+          25927.072176,
+          24979.6988205,
+          24941.911463999997,
+          24943.6471665
+        ],
+        "warm_ttft_p95_ms": [
+          33399.192894550004,
+          33318.400108049995,
+          32156.844403699994,
+          33130.2281015,
+          32429.18728230001
+        ]
+      },
+      "reclaim_enabled": false,
+      "reclaim_mode": null,
+      "recovery_records": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "server_returncodes": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

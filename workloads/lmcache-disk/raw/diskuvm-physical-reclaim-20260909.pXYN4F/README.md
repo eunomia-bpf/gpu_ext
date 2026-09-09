@@ -1,5 +1,11 @@
 # Physical GPU-chunk reclaim: disk/UVM serving comparison
 
+Final update: all 15 cells complete and the original module/loaders are
+restored. [RESULTS.md](RESULTS.md) supersedes the running-status notes below:
+stock/native/BPF median throughput is 73.574518/68.608032/65.422796 token/s.
+The paired BPF/native median difference is -4.047522%; adverse data and
+three unavailable diagnostic-counter records are retained.
+
 The local Qwen driver implementation is committed and pushed as 95097e20
 on gpu_ext-kernel-modules branch revision/gpu-storage-decision-575, based
 on dea1fefc. The complete driver build exits zero at 06:46:56 PDT on

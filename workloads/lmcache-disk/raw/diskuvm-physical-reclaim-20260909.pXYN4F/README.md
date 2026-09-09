@@ -67,6 +67,12 @@ and zero HTTP failures each: BPF 65.422796, stock 73.961755, native
 fallback/errors; BPF's diagnostic counters are unavailable. Nine of
 fifteen planned cells are now preserved; the remaining blocks continue.
 
+Block 3 completes all three cells with 8192 completed/observed tokens and
+zero HTTP failures: stock 73.575320, native 69.575409, BPF 65.166163 token/s.
+All three have disk-UVM counters: restores 82/40/40, respectively, with
+zero fallback and zero restore errors. Twelve of fifteen cells are complete;
+the final block continues. The adverse BPF/native result remains included.
+
 ## Concurrent host-work limitation
 
 The native XSched OpenCode session independently compiled a small CUDA

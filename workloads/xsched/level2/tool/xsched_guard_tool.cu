@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <mutex>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -33,6 +34,7 @@ static thread_local uint64_t published_ctx = 0; /* set by xg_host_publish */
 static uint32_t guarded_launches = 0;
 static uint32_t instrumented_functions = 0;
 static std::unordered_set<CUfunction> instrumented;
+static std::mutex instrumented_mtx;
 
 static bool is_launch_cbid(nvbit_api_cuda_t cbid)
 {
@@ -125,20 +127,30 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
     if (!is_launch_cbid(cbid)) return;
     CUfunction f = launch_func(cbid, params);
     if (f == nullptr || !nvbit_is_func_kernel(ctx, f)) return;
-    if (instrumented.find(f) == instrumented.end()) {
-        const char *mangled = nvbit_get_func_name(ctx, f, true);
-        const char *demangled = nvbit_get_func_name(ctx, f, false);
-        if (target_symbol != mangled && target_symbol != demangled) return;
-    }
     if (is_exit) return;
+
+    bool insert_entry = false;
+    {
+        std::lock_guard<std::mutex> lock(instrumented_mtx);
+        if (instrumented.find(f) == instrumented.end()) {
+            const char *mangled = nvbit_get_func_name(ctx, f, true);
+            const char *demangled = nvbit_get_func_name(ctx, f, false);
+            if (target_symbol != mangled && target_symbol != demangled) return;
+            insert_entry = true;
+        }
+    }
 
     nvbit_set_at_launch(ctx, f, published_ctx);
     const uint64_t consumed = published_ctx;
     /* one-shot consumption: a later launch that bypasses the XSched queue
      * must never act on a stale context block */
     published_ctx = 0;
-    if (consumed != 0) guarded_launches++;
-    if (instrumented.insert(f).second) insert_entry_call(ctx, f);
+    {
+        std::lock_guard<std::mutex> lock(instrumented_mtx);
+        if (consumed != 0) guarded_launches++;
+        if (insert_entry && instrumented.insert(f).second)
+            insert_entry_call(ctx, f);
+    }
 }
 
 void nvbit_at_term()

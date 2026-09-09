@@ -1,0 +1,70 @@
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'
+mkdir -p .output/
+/usr/local/cuda-12.9/bin/nvcc -c -arch=sm_120 -O3 -std=c++14 -Xcompiler -fPIC -I../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core \
+	../level2/tool/xsched_guard_tool.cu -o .output/xsched_guard_tool.o
+../level2/tool/xsched_guard_tool.cu(59): warning #177-D: function "launch_stream" was declared but never referenced
+  static CUstream launch_stream(nvbit_api_cuda_t cbid, const void *params)
+                  ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/usr/local/cuda-12.9/bin/nvcc -arch=sm_120 -O3 \
+	.output/xsched_guard_tool.o .output/xg_guardian_carrier.o \
+	-L../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -lnvbit -L/usr/local/cuda-12.9/targets/x86_64-linux/lib -lcuda -lcudart_static \
+	-shared -o .output/xsched_guard_tool.so
+XG tool built: .output/xsched_guard_tool.so
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'
+[ 11%] Built target utils
+[ 19%] Built target boost_container
+[ 23%] Built target protocol
+[ 29%] Built target ipc
+[ 56%] Built target sched
+[ 71%] Built target preempt
+[ 73%] Building CXX object platforms/cuda/CMakeFiles/halcuda.dir/hal/src/level2/instrument.cpp.o
+[ 74%] Linking CXX shared library libhalcuda.so
+[ 94%] Built target halcuda
+[ 95%] Linking CXX shared library libshimcuda.so
+[100%] Built target shimcuda
+Install the project...
+-- Install configuration: "Release"
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/cmake/XSched/XSchedConfig.cmake
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/cmake/XSched/XSchedConfigVersion.cmake
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/cmake/XSched/XSchedTargets.cmake
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/cmake/XSched/XSchedTargets-release.cmake
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/hint.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/xsched.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/xqueue.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/types.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/README.md
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/python
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/python/xsched
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/python/xsched/__init__.py
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libpreempt.so
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/sched
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/sched/agent.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/sched/executor.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/xqueue
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/xqueue/launch_worker.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/xqueue/xqueue.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/xqueue/async_xqueue.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/xqueue/xcommand.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/xqueue/command_buffer.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/hal
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/hal/hw_queue.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/preempt/hal/hw_command.h
+-- Installing: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libhalcuda.so
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/include/xsched/cuda/hal.h
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/python
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/python/xsched
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/python/xsched/cuda
+-- Up-to-date: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/python/xsched/cuda/__init__.py
+ln: failed to create symbolic link 'libcuda.so.1': File exists
+-- Installing: shim softlink created: libcuda.so.1
+ln: failed to create symbolic link 'libcuda.so': File exists
+-- Installing: shim softlink created: libcuda.so
+-- Installing: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib/libshimcuda.so

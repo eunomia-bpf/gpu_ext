@@ -266,7 +266,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      // prepare the resume instructions
      size_t resume_size;
      const void *resume_host;
-@@ -71,6 +119,22 @@
+@@ -71,6 +119,24 @@
          size_t buf_size = 2 * sizeof(uint64_t) + 2 * sizeof(uint32_t) * block_cnt;
          preempt_buf_->ExpandTo(buf_size, op_stream_);
  
@@ -279,17 +279,19 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +            memset(args, 0, XG_TOOL_CTX_BYTES);
 +            *(uint64_t *)(args + 0) = (uint64_t)preempt_buf_->Ptr();
 +            *(uint32_t *)(args + 24) = kKernelLaunchOriginal;
++            launch_mtx_.lock();
 +            ToolPublish(tool_ctx_pool_dev_ +
 +                        kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
 +            CUresult ret = kernel->LaunchWrapper(stream);
 +            ToolPublish(0);
++            launch_mtx_.unlock();
 +            return ret;
 +        }
 +
          // only preempt_buf is useful in this case
          memset(args_buf, 0, sizeof(args_buf));
          *preempt_buf = preempt_buf_->Ptr(); // use default (empty) preempt buffer
-@@ -86,6 +150,36 @@
+@@ -86,6 +152,38 @@
      *guardian    = kernel->entry_point_guardian;
      *kernel_idx  = kernel->GetIdx();
      *killable    = kernel->killable;
@@ -316,17 +318,19 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +                               kernel->tool_ctx * XG_TOOL_CTX_STRIDE));
 +            }
 +        }
++        launch_mtx_.lock();
 +        ToolPublish(tool_ctx_pool_dev_ +
 +                    kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
 +        CUresult ret = kernel->LaunchWrapper(stream);
 +        ToolPublish(0);
++        launch_mtx_.unlock();
 +        return ret;
 +    }
 +
      CUdeviceptr entry_point = type == kKernelLaunchResume
                              ? entry_point_resume_ // launch to resume
                              : kernel->entry_point_guardian;
-@@ -110,6 +204,20 @@
+@@ -110,6 +208,20 @@
  {
      CUfunction func = kernel->kFuncHandle;
  
@@ -347,7 +351,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      {
          std::lock_guard<std::mutex> lock(instrument_mtx_);
          auto it = kernels_.find(func);
-@@ -172,6 +280,16 @@
+@@ -172,6 +284,16 @@
      preempt_buf_ptr_ = preempt_buf_->Ptr();
      instrument_ctx_ = InstrumentContext::Instance(ctx);
      op_stream_ = instrument_ctx_->OpStream();
@@ -364,7 +368,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  }
  
  /* preempt buffer layout: (see also tools/instrument/inject.cu)
-@@ -180,12 +298,14 @@
+@@ -180,12 +302,14 @@
   */
  void InstrumentManager::Deactivate()
  {
@@ -379,7 +383,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      // read preempt_idx from preempt buffer
      CUDA_ASSERT(Driver::MemcpyDtoHAsync_v2(&preempt_idx_, preempt_buf_ptr_ + sizeof(uint64_t),
                                             sizeof(uint64_t), op_stream_));
-@@ -193,6 +313,9 @@
+@@ -193,6 +317,9 @@
      CUDA_ASSERT(Driver::MemsetD8Async(preempt_buf_ptr_, 0, 2 * sizeof(uint64_t), op_stream_));
      CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
  
@@ -389,7 +393,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  #define MAX_DEBUG_BLOCK_SIZE    1024
  #define PREEMPT_BUFFER_DEBUG    false
  
-@@ -218,6 +341,15 @@
+@@ -218,6 +345,15 @@
                      ? kKernelLaunchResume // the first preempted kernel
                      : kKernelLaunchGuardian;
      }

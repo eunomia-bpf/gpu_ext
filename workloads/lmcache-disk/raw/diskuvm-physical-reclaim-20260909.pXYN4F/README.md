@@ -60,3 +60,9 @@ Native/BPF each record 40 UVM restores, zero fallback and zero restore
 errors. Stock's diagnostic counters are unavailable in this block. Thus
 six of fifteen planned cells are complete; the campaign continues and
 missing counters are retained as missing rather than forcing a repeat.
+
+Block 2 also completes all three cells with 8192 completed/observed tokens
+and zero HTTP failures each: BPF 65.422796, stock 73.961755, native
+67.656516 token/s. Stock/native record 72/40 UVM restores and zero
+fallback/errors; BPF's diagnostic counters are unavailable. Nine of
+fifteen planned cells are now preserved; the remaining blocks continue.

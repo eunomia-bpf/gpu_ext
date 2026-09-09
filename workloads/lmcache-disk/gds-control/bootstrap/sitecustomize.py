@@ -14,3 +14,7 @@ from lmcache_kv_reclaim_adapter import (
 )
 
 bootstrap_kv_reclaim()
+
+from lmcache_diskuvm_backing import bootstrap_from_env as bootstrap_disk_uvm
+
+bootstrap_disk_uvm()

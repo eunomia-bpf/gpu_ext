@@ -60,3 +60,26 @@ env PYTHONPYCACHEPREFIX=/tmp/lmcache-diskuvm-serving-build-20260909.7dZdC8/pycac
 This does not import or execute CUDA and is not an allocation, disk-I/O or
 serving validation. The main backing/runner connection remains unfinished;
 no completed primitive or serving cell is repeated for this publication.
+
+## Backing module and opt-in bootstrap publication
+
+The local model's main `lmcache_diskuvm_backing.py` now captures KV size at
+submission, prepares a retained backing at write completion, and uses it
+for later reads into the real GDS destination. Root added the small
+`bootstrap/sitecustomize.py` connection after the existing admission,
+async-prefetch and KV-reclaim bootstrap calls. This order puts the new
+completion wrapper outside the original admission wrapper. The feature
+remains default-off under `LMCACHE_DISK_UVM_PROMOTION`.
+
+Root's syntax compilation of both modules exits zero. A direct import with
+that opt-in unset prints `disabled import: ok; bootstrap: None` without
+importing CUDA or running a request. This validates syntax and the disabled
+module import only, not the enabled serving path. The compiled helper and
+driver-promotion primitive are not repeated as new GPU tests here.
+
+Root also corrected two explanatory comments: GPU fault hydration does read
+disk, and OFFLOAD rewrites the existing KV bytes even though it does not
+extend or truncate the file layout. No nonexistent CPU test file is cited.
+The runner opt-in/collection work and the new real-request measurement are
+still unfinished; the published module is experimental, not a completed
+LMCache reproduction or performance result.

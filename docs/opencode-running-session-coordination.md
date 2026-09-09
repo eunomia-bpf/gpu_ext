@@ -132,3 +132,29 @@ ms. Root resumed the same task with the existing direct Qwen 27B provider
 and build agent, preserving the 25-cell statistical-reanalysis scope. This
 was another terminal provider error, not cancellation for missing output;
 the total remained three live sessions.
+
+## Artifact handoff and native resume repair — 2026-09-09
+
+The storage and tool-runner sessions above completed naturally at Unix
+times 1788972629466 and 1788972710070 ms. Their scopes are published:
+55-cell reanalysis (`49f0f92c`, `3f025b08`), runtime path overrides
+(`86968df3`), and robust diagnostic decoding (`fa6976c2`). Neither session
+was aborted for silence. Root independently ran the published reanalysis
+from a GitHub checkout and tested the runner's path and log handling on CPU.
+
+After those completions, two fresh, bounded tasks were started:
+
+- `ses_f78ea2597ffeluxeVI3HtZL8NH`, Qwen Next: add MoE's existing 15-cell
+  statistical reanalysis to `scripts/artifact/reanalyze.py` and its guide.
+- `ses_f78ea20a5ffeGWAlFGYFgkvOI6`, direct Qwen 27B: write only the Table-1
+  runtime dependency map in `docs/artifact/table1-runtime.md`.
+- Existing `ses_f7d4e2503ffesJKDZlvxdw0z0A`, GLM Next: repair original
+  cuXtra restore/resume execution after the constant-bank change.
+
+The three sessions have disjoint write scopes. The latest native attempt
+is recorded in `bc7d9583`: the first-launch rejection no longer occurs,
+both LC workers complete, but BE resume fails with CUDA 700. It is not a
+completed performance cell. Root owns builds, serialized GPU execution,
+review, commits and pushes; implementation tasks do not run GPU work.
+The manuscript stays read-only, old data remain intact, and the artifact
+tasks reanalyze existing results rather than launching new measurements.

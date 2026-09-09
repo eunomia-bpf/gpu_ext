@@ -1,0 +1,100 @@
+[New LWP 3918896]
+[New LWP 3918893]
+[New LWP 3918891]
+[New LWP 3918889]
+[New LWP 3918852]
+[New LWP 3918851]
+[New LWP 3918836]
+[New LWP 3918828]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+0x000056235dab2463 in main ()
+
+Thread 9 (Thread 0x7832c25ff000 (LWP 3918828) "priority_worklo"):
+#0  0x00007832c272c64d in __libc_msgrcv (msgflg=0, msgtyp=<optimized out>, msgsz=16384, msgp=0x7832bc000fd0, msqid=32818) at ../sysdeps/unix/sysv/linux/msgrcv.c:26
+#1  __libc_msgrcv (msqid=32818, msgp=0x7832bc000fd0, msgsz=16384, msgtyp=0, msgflg=0) at ../sysdeps/unix/sysv/linux/msgrcv.c:22
+#2  0x00007832c28e1293 in msgq::MessageQueue::Receive() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#3  0x00007832c28d78df in ipc::Node::Receive() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#4  0x00007832c28c2abc in xsched::sched::GlobalScheduler::Worker() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#5  0x00007832c2af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#6  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#7  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 8 (Thread 0x7832c1dfe000 (LWP 3918836) "cuda00001400006"):
+#0  0x00007832c271b5fd in __GI___poll (fds=0x562386591e80, nfds=3, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007832b695f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007832b6a4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007832b694f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 7 (Thread 0x7832b65ff000 (LWP 3918851) "priority_worklo"):
+#0  0x00007832c2698e51 in __futex_abstimed_wait_common64 (private=32764, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x5623865c08f8) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=32764, abstime=0x0, clockid=0, expected=0, futex_word=0x5623865c08f8) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x5623865c08f8, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007832c269b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x5623865ec498, cond=0x5623865c08d0) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x5623865c08d0, mutex=0x5623865ec498) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007832b68bb209 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#6  0x00007832b694f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#7  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#8  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 6 (Thread 0x7832b5dfe000 (LWP 3918852) "cuda-EvtHandlr"):
+#0  0x00007832c271b5fd in __GI___poll (fds=0x7830a4000c20, nfds=10, timeout=100) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007832b695f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007832b6a4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007832b694f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 5 (Thread 0x7830a991f000 (LWP 3918889) "priority_worklo"):
+#0  0x00007832c2698e51 in __futex_abstimed_wait_common64 (private=22051, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x5623875094ec) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=22051, abstime=0x0, clockid=0, expected=0, futex_word=0x5623875094ec) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x5623875094ec, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007832c269b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x562387509498, cond=0x5623875094c0) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x5623875094c0, mutex=0x562387509498) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007832c28991f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007832c289efad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007832c2af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 4 (Thread 0x7830a911e000 (LWP 3918891) "priority_worklo"):
+#0  0x00007832c2698e51 in __futex_abstimed_wait_common64 (private=22051, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x56238750b59c) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=22051, abstime=0x0, clockid=0, expected=0, futex_word=0x56238750b59c) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x56238750b59c, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007832c269b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x56238750b548, cond=0x56238750b570) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x56238750b570, mutex=0x56238750b548) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007832c28991f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007832c289efad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007832c2af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 3 (Thread 0x7830a891d000 (LWP 3918893) "priority_worklo"):
+#0  0x00007832c2698e51 in __futex_abstimed_wait_common64 (private=22051, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x56238750d70c) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=22051, abstime=0x0, clockid=0, expected=0, futex_word=0x56238750d70c) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x56238750d70c, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007832c269b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x56238750d6b8, cond=0x56238750d6e0) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x56238750d6e0, mutex=0x56238750d6b8) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007832c28991f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007832c289efad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007832c2af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 2 (Thread 0x78307dfff000 (LWP 3918896) "priority_worklo"):
+#0  0x00007832c2698e51 in __futex_abstimed_wait_common64 (private=22051, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x56238750f97c) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=22051, abstime=0x0, clockid=0, expected=0, futex_word=0x56238750f97c) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x56238750f97c, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007832c269b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x56238750f928, cond=0x56238750f950) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x56238750f950, mutex=0x56238750f928) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007832c28991f4 in xsched::preempt::CommandBuffer::Dequeue() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007832c289efad in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007832c2af5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#8  0x00007832c269cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#9  0x00007832c2729d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 1 (Thread 0x7832c359c000 (LWP 3918817) "priority_worklo"):
+#0  0x000056235dab2463 in main ()
+[Inferior 1 (process 3918817) detached]

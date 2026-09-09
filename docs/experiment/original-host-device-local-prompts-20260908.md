@@ -24,14 +24,28 @@ sent to the same session before its next device-protocol change.
 
 LMCache remains actual put/get integration work, not another primitive
 campaign. Its Qwen session naturally reached a response-length limit and
-was resumed on the same session; it was not cancelled. Root clarified that
-allocation padding is only for VA alignment: register exactly the existing
-KV span when its size is a supported 2 MiB multiple, otherwise retain the
-stock path. Do not extend/truncate KV files, compare whole-buffer snapshots
+was resumed on the same session; it was not cancelled. Root initially
+suggested allocation padding for VA alignment, but then inspected
+`uvm.c:uvm_api_disk_backing_register` and the already-run
+`gds-control/disk-uvm/disk_uvm_perf.cu`: registration/offload require the
+managed range's actual endpoint. The suggested interior span of an enlarged
+allocation is incompatible with that ABI. Root withdrew that advice before
+running the integration and directed exact-size `cudaMallocManaged`, as in
+the completed primitive, with stock fallback if the returned range does not
+fit. Register exactly the existing KV span when its size is a supported
+2 MiB multiple. Do not extend/truncate KV files, compare whole-buffer snapshots
 in the timed path, or repeat preparation inside every demand read. Await
 real asynchronous writeback completion without an arbitrary short timeout.
 After a subsequent oversized write-call error, the still-live session was
 asked to prefer small incremental edits if that write failed again.
+
+The newly landed serving wrapper was also returned for two concrete API
+corrections. Installed LMCache decrements the memory object's reference
+before invoking the put-completion callback, so capture its byte count at
+submission, not after release. Place the new transport wrapper inside the
+existing native/BPF read-admission wrapper; otherwise a successful UVM
+restore bypasses the policy decision. These are implementation fixes before
+the actual serving run, not extra measurement gates.
 
 All three local sessions remain allocated to these tasks; automatic
 compaction is live work. Grouped full-record layout optimization remains

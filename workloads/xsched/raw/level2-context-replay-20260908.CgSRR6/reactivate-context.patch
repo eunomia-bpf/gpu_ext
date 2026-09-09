@@ -1,0 +1,37 @@
+--- a/platforms/cuda/hal/src/level2/cuda_queue.cpp
++++ b/platforms/cuda/hal/src/level2/cuda_queue.cpp
+@@ -29,15 +29,29 @@
+ void CudaQueueLv2::Reactivate(const preempt::CommandLog &log)
+ {
+     XASSERT(level_ >= kPreemptLevelDeactivate, "Reactivate() not supported on level-%d", level_);
++
++    // Reactivate() runs on the caller's thread (e.g. the scheduler), which
++    // unlike worker launch threads may have no current CUDA context (workers
++    // get one via OnXQueueCreate()). NVBit's interception of the replayed
++    // launches keys off the current context: nvbit_is_func_kernel(ctx, f)
++    // filters the pre-launch callback and the set_at_launch value is associated
++    // per-context. Push the queue's context for the replay, then restore the
++    // caller's context, so the resume launch is intercepted on the same context
++    // the value was armed on.
++    CUcontext popped_ctx = nullptr;
++    CUDA_ASSERT(Driver::CtxPushCurrent_v2(context_));
++
+     this->Synchronize();
+ 
+     uint64_t resume_cmd_idx = instrument_manager_->Reactivate();
+-    if (resume_cmd_idx == 0) return;
+-
+-    for (auto cmd : log) {
+-        if (cmd->GetIdx() < (int64_t)resume_cmd_idx) continue;
+-        this->Launch(cmd);
++    if (resume_cmd_idx != 0) {
++        for (auto cmd : log) {
++            if (cmd->GetIdx() < (int64_t)resume_cmd_idx) continue;
++            this->Launch(cmd);
++        }
+     }
++
++    CUDA_ASSERT(Driver::CtxPopCurrent_v2(&popped_ctx));
+ }
+ 
+ void CudaQueueLv2::OnPreemptLevelChange(XPreemptLevel level)

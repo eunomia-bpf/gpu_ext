@@ -1,5 +1,39 @@
 # Original host/device implementation prompts
 
+## Three distinct local models resumed — 2026-09-09 PDT
+
+The tool-actuator session `ses_f7d8b1dbeffeMN1yhvQzVm7VsS` naturally ended
+its Qwen 27B response with `finish=length`; the scoped status no longer
+listed it as running. Root resumed the **same session** with
+`spark-gateway/qwen3.8-flash-next-nvfp4-220k`. The async request returned 204;
+the subsequent assistant record names that model and scoped status is busy.
+No live session was stopped or restarted because of silence. The earlier
+Qwen Next HTTP 524 is historical, not evidence that this continuation failed.
+
+The three concurrent assignments are now:
+
+- Qwen Next: XSched tool actuator, same session above.
+- Qwen 27B: LMCache real KV/disk-UVM integration,
+  `ses_f80c496aeffeBh330rKhrRwPgX`.
+- GLM: XSched native actuator, `ses_f7d4e2503ffesJKDZlvxdw0z0A`.
+
+The tool handoff retains the failed `Rbs4dz` candidate and the concrete
+stream-1/cmd-3 missing-output observation. Root's source correction in
+`msg_08509c708001Apu23mOxc82dSA` notes that both synchronization paths check
+`pause_count_` before retiring commands, and suspension pauses the worker
+before deactivation. Therefore ordinary CUDA completion after an abort
+does not by itself establish a command-log-retention bug. Next must retain
+that distinction when selecting the next repair, not alter the original
+algorithm based on the rejected explanation.
+
+Native runtime findings are published separately in `06e8ae20` and
+`972adb42`; the latter records why descriptor growth also needs original
+host-argument layout handling. LMCache's ABI mirrors already match the
+driver; root directed its session to finish the missing CUDA fault helper,
+exact-size allocation, callback-time size capture and bootstrap/runner
+connection, without adding a diagnostics framework. All three tasks remain
+unfinished; no new performance result follows from this model handoff.
+
 ## Runtime-directed continuation — 2026-09-08 23:28 PDT
 
 The native XSched metadata candidate builds after refreshing CMake's source

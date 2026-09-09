@@ -309,7 +309,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +        *(uint32_t *)(args + 24) = (uint32_t)type;
 +        {
 +            static std::atomic<uint64_t> xg2_pub_cnt{0};
-+            if (xg2_pub_cnt.fetch_add(1) < 32) {
++            if (xg2_pub_cnt.fetch_add(1) < 512) {
 +                XINFO("XG2 toolpub slot=" FMT_64U " buf=%p cmd_idx=" FMT_64D
 +                      " type=%u ctx_dev=%p",
 +                      (uint64_t)kernel->tool_ctx, (void *)kernel->preempt_buffer,
@@ -399,7 +399,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      }
 +    {
 +        static std::atomic<uint64_t> xg2_log_cnt{0};
-+        if (xg2_log_cnt.fetch_add(1) < 32) {
++        if (xg2_log_cnt.fetch_add(1) < 512) {
 +            XINFO("XG2 Launch mgr=%p cmd_idx=" FMT_64D " type=%d level=%d"
 +                  " preempt_idx=" FMT_64U,
 +                  (void *)this, (int64_t)kernel->GetIdx(), (int)launch_type,

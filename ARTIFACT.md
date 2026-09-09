@@ -76,6 +76,8 @@ the recorded summaries. `--campaign lm` or `--campaign xsched` selects one,
 and `--output NEW_FILE` saves the report without overwriting an existing file.
 This recomputes statistics from cell summaries, not GPU measurements or every
 per-request timestamp. Missing records are reported explicitly.
+See the [entrypoint reference](docs/artifact/reanalysis.md) for source maps,
+output files and the exact statistic definitions.
 
 To regenerate the paper-selected observability and seven-policy figures,
 run from the repository root with Python 3 and Matplotlib available. Outputs

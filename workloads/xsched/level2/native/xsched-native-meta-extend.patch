@@ -1,0 +1,654 @@
+# sm_120 Level-2 native: compiler-declared extended-parameter metadata extender
+#
+# Opt-in (XG_NATIVE_META_EXTEND, presence-based, default off). At the four
+# module-load entry points of the shim (cuModuleLoadData{,Ex},
+# cuModuleLoadFatBinary, cuLibraryLoadData) the image is copied and, for
+# every sm_120 kernel whose EIATTR_PARAM_CBANK declares param_start 0x380
+# with a smaller extent, both compiler-written extent records are raised to
+# 0x1520 so the window-args relay blob matches the declared c[0x0] param
+# extent: EIATTR_CBANK_PARAM_SIZE (nvinfo id 0x19, fmt 3) and the
+# EIATTR_PARAM_CBANK param_size (id 0x0a, fmt 4). KPARAM_INFO (app args)
+# and all other records/sections stay byte-identical. Fail-open on every
+# anomaly; idempotent.
+#
+# Files (isolated native source tree, shim only):
+#   platforms/cuda/shim/src/window_meta_extend.cpp            (new)
+#   platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h (new)
+#   platforms/cuda/shim/src/intercept.cpp                     (4 hooks)
+# The runner change (forwarding XG_NATIVE_META_EXTEND to the workers,
+# see native_worker_env in workloads/xsched/level2/native/run_native_blob.py)
+# is maintained directly in the main repository, not in this patch.
+#
+# Verified CPU-side on the local priority_workload specimen (no GPU):
+# exactly six bytes differ per image (the two extent records of each of the
+# two kernels, 0x8/0x20 -> 0x1520); nvdisasm -c and cuobjdump -elf parse the
+# patched cubin and patched fatbin and report EIATTR_CBANK_PARAM_SIZE 0x1520
+# beside EIATTR_PARAM_CBANK 0x15200380; repeated application is idempotent;
+# The free helper requires an owned pointer: it reads the preceding header
+# before checking its marker and is not safe for arbitrary foreign pointers.
+# Memory-safety
+# scrutiny in the session did not retain a valgrind artifact file, so no
+# retained-clean claim is made.
+#
+# BUILD NOTE: window_meta_extend.cpp enters the shim sources via
+# file(GLOB_RECURSE) evaluated at CMAKE CONFIGURE time. A build directory
+# configured before the file exists silently omits it (observed: nm -D on
+# the installed libshimcuda.so showed undefined XgMetaExtendImage/
+# XgFreeExtendedImage and all six workers failed before reaching ready).
+# Re-run the cmake configure step, then --build --target install.
+#
+# Experimental and unintegrated until the build owner tests it; this is an
+# sm_120 native actuator port, not an unchanged upstream artifact.
+# Apply plain: patch -p1 < xsched-native-meta-extend.patch
+# from the source root (level2-build/.output/<native dir>/source).
+--- /dev/null
++++ b/platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h
+@@ -0,0 +1,35 @@
++// SPDX-License-Identifier: GPL-2.0
++//
++// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
++// actuator port). See window_meta_extend.cpp for the mechanism and scope.
++
++#pragma once
++
++#include <cstddef>
++
++namespace xsched::cuda
++{
++
++struct XgExtendedImage
++{
++    const void *ptr;  // pointer to load: original image or owned patched copy
++    bool owned;       // true when ptr is an owned copy created by this module
++};
++
++/// @brief Opt-in (XG_NATIVE_META_EXTEND) module-image extension: raises the
++/// declared sm_120 parameter extent of eligible kernels to cover the fused
++/// parameter window. Returns the original image untouched when disabled,
++/// unidentifiable, or on any anomaly (the loader never fails because of us).
++/// @param image the module image passed to cuModuleLoadData and friends
++/// @return an XgExtendedImage; the returned ptr is what the driver load call
++///         must receive. If owned, it is an owned copy whose storage starts
++///         16 bytes before ptr; free it with XgFreeExtendedImage(ptr) - the
++///         SAME pointer - after the load call returns.
++XgExtendedImage XgMetaExtendImage(const void *image);
++
++/// @brief Frees an owned copy whose ptr was returned by XgMetaExtendImage
++///        (pass exactly ext.ptr). Pointers without the module's ownership
++///        header are reported and deliberately left untouched.
++void XgFreeExtendedImage(void *p);
++
++} // namespace xsched::cuda
+--- /dev/null
++++ b/platforms/cuda/shim/src/window_meta_extend.cpp
+@@ -0,0 +1,495 @@
++// SPDX-License-Identifier: GPL-2.0
++//
++// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
++// actuator port, additive and unintegrated until tested by the build owner).
++//
++// Opt-in with the XG_NATIVE_META_EXTEND environment variable (presence
++// based). When enabled, every CUDA module image that passes through the
++// module-load entry points of the shim is copied and, inside its sm_120
++// cubins, every kernel whose declared constant-bank parameter region starts
++// at the sm_120 parameter base 0x380 with a smaller extent gets that extent
++// raised to 0x1520, which covers the fused guardian/resume parameter window
++// at c[0x0][0x1880..0x189c] (blob-relative 0x1500..0x151c, see
++// CudaKernelCommand::AdoptWindowRelayExtra and the 28-byte XG_ARGS_BYTES
++// block in level2/xsched_guardian_abi.h).
++//
++// Two compiler-written nvinfo records describe that extent and both are
++// raised together (cuobjdump -elf equivalence, nvcc 12.9 specimen):
++//   EIATTR_CBANK_PARAM_SIZE (id 0x19, fmt 3): 16-bit whole bank size
++//       (0x20 for the specimen kernel) lives at record offset +2.
++//   EIATTR_PARAM_CBANK     (id 0x0a, fmt 4): payload
++//       {u32 kind 0xa/0x9, u16 param_start, u16 param_size}; the param
++//       size is the 16-bit field at payload offset +6.
++// The KPARAM_INFO records (id 0x17) that describe the app's own arguments
++// are never touched, so per-argument ordinals/offsets/sizes and hence the
++// app launch parameters keep their compiled layout; the window args are
++// extra, undeclared-by-KPARAM bank bytes inside the enlarged extent. All
++// other records (KPARAM_INFO, EXIT_INSTR_OFFSETS 0x1c, SW_WAR 0x36, the
++// .nv.merc mirrors, module-wide .nv.info) are left byte-identical.
++//
++// Limitation kept explicit: the current implementation does not grow the
++// bank DATA image (.nv.constant0, 0x3a0 bytes for the specimen); growing it
++// would require inserting bytes and rewriting every later section/table
++// offset. Whether the driver sizes the c[0x0] bank from the EIATTR records
++// above (making the data section irrelevant) is unproven and is resolved by
++// the actual run.
++//
++// This is a CPU-side byte patch of the module image before the real driver
++// loads it (cuModuleLoadData copies the image, so the mutated buffer can be
++// freed right after the call). All failures pass the original image through
++// unchanged: the extender never aborts the loading process.
++//
++// Ownership: the patched copy is a raw malloc block with a 16-byte header
++// [uint64 magic 0x474d495458455847 ("XGEXTIMG") | uint64 data size] placed
++// in front of the image bytes. The handed-out pointer is the image data
++// pointer itself; XgFreeExtendedImage steps back over the header, validates
++// the magic, and frees the whole block. Pointers that do not carry the
++// header are reported and deliberately NOT freed (leak beats crash).
++
++#include "xsched/cuda/shim/window_meta_extend.h"
++
++#include <algorithm>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <vector>
++
++#include "xsched/utils/log.h"
++
++namespace xsched::cuda {
++
++namespace {
++
++constexpr uint16_t kMetaParamStart = 0x380;  // sm_120 parameter-region base
++constexpr uint16_t kMetaParamSize  = 0x1520; // covers window args rel 0x1500 + 0x1c, 16-aligned
++
++constexpr uint32_t kFatbinMagic = 0xba55ed50u;
++constexpr uint32_t kElfMagic    = 0x464c457fu; // "\x7f" "ELF" little-endian
++
++constexpr uint8_t kNvInfoFmt4 = 0x04;         // {id, paylen, payload...}
++constexpr uint8_t kNvInfoFmt3 = 0x03;         // {id, u16 value}  (HVAL)
++constexpr uint8_t kNvInfoFmt2 = 0x02;         // {id, u16 value}  (BVAL)
++constexpr uint8_t kNvInfoParamCBank   = 0x0a; // EIATTR_PARAM_CBANK (SVAL)
++constexpr uint8_t kNvInfoCBankPrmSize = 0x19; // EIATTR_CBANK_PARAM_SIZE (HVAL)
++
++// paylen no larger than a .nv.info record can sanity-carry; anything above
++// is treated as a parse anomaly rather than trusted (prevents an unwalkable
++// record from crashing the section scan).
++constexpr uint64_t kNvInfoMaxPaylen = 0x8000;
++
++constexpr uint64_t kRectMagic   = 0x474d495458455847ull; // "XGEXTIMG"
++constexpr size_t   kRectHdrSize = 16;                    // magic u64 + size u64
++
++constexpr size_t kImageMaxBytes = (size_t)1 << 27; // sanity bound: 128 MiB
++
++bool meta_extend_enabled()
++{
++    static const bool enabled = std::getenv("XG_NATIVE_META_EXTEND") != nullptr;
++    return enabled;
++}
++
++uint64_t le(const char *p, unsigned n)
++{
++    uint64_t v = 0;
++    for (unsigned i = 0; i < n; ++i)
++        v |= (uint64_t)(uint8_t)p[i] << (8 * i);
++    return v;
++}
++
++struct Range
++{
++    size_t off;
++    size_t size;
++};
++
++// ELF64 little-endian only (CUDA cubins are always ELF64 LE).
++bool elf64le(const char *b, size_t size)
++{
++    return size >= 64 && le(b, 4) == kElfMagic && b[4] == 2 && b[5] == 1;
++}
++
++// Whole-file extent a CUDA loader must map: the greater of the ELF header,
++// the section table, the program header table, and every section body. nvcc
++// cubins place the program header table after the section table (readelf on
++// the 11136-byte specimen: section headers end at 10856, program headers at
++// 10856..11136), so the section-table end alone truncates real images.
++bool cubin_whole_size(const char *b, size_t size, size_t *whole)
++{
++    if (!elf64le(b, size)) return false;
++    uint64_t shoff = le(b + 0x28, 8);
++    uint16_t shent = (uint16_t)le(b + 0x3a, 2);
++    uint16_t shnum = (uint16_t)le(b + 0x3c, 2);
++    uint64_t phoff = le(b + 0x20, 8);
++    uint16_t phent = (uint16_t)le(b + 0x36, 2);
++    uint16_t phnum = (uint16_t)le(b + 0x38, 2);
++    uint64_t end = 64;
++    if (shoff != 0 && shnum != 0 && shent >= 0x40)
++        end = std::max<uint64_t>(end, shoff + (uint64_t)shnum * shent);
++    if (phoff != 0 && phnum != 0 && phent != 0)
++        end = std::max<uint64_t>(end, phoff + (uint64_t)phnum * phent);
++    // section bodies referenced by in-bounds headers
++    if (shoff != 0 && shnum != 0 && shent >= 0x40 &&
++        shoff <= size && shnum <= (size - shoff) / shent) {
++        for (uint16_t i = 0; i < shnum; ++i) {
++            const char *h = b + shoff + (uint64_t)i * shent;
++            uint64_t s_off  = le(h + 0x18, 8);
++            uint64_t s_size = le(h + 0x20, 8);
++            if (s_off <= size && s_size <= size - s_off)
++                end = std::max<uint64_t>(end, s_off + s_size);
++        }
++    }
++    *whole = (size_t)end;
++    return true;
++}
++
++// Whole-container extent of a fatbin. Measured nvcc 12.9 layout: container
++// header 0x10 bytes, then kind-2 entries; the fileSize field (0x2be0) counts
++// after the container header, entry extent is entryHdrSize + paddedPayload,
++// and the whole image is hdrsz + fileSize (0x2bf0). A legacy container whose
++// fileSize already includes the header is accepted with a warning.
++bool fatbin_whole_size(const char *b, size_t size, size_t *whole,
++                       bool *legacy)
++{
++    uint16_t hdrsz = (uint16_t)le(b + 6, 2);
++    uint64_t fsize = le(b + 8, 8);
++    if (hdrsz >= 0x10 && fsize >= hdrsz &&
++        hdrsz + fsize <= size && hdrsz + fsize >= (uint64_t)hdrsz * 2) {
++        *whole = (size_t)(hdrsz + fsize);
++        *legacy = false;
++        return true;
++    }
++    if (hdrsz >= 0x10 && fsize >= hdrsz && fsize <= size) {
++        XWARN("meta-extend: fatbin fileSize 0x%llx spans past the "
++              "header-relative extent (image 0x%llx); using legacy extent",
++              (unsigned long long)fsize, (unsigned long long)size);
++        *whole = (size_t)fsize;
++        *legacy = true;
++        return true;
++    }
++    XWARN("meta-extend: fatbin extents (hdr 0x%x file 0x%llx image 0x%llx) "
++          "inconsistent; leaving the image unpatched",
++          (unsigned)hdrsz, (unsigned long long)fsize,
++          (unsigned long long)size);
++    return false;
++}
++
++// Collect per-kernel nvinfo sections: names beginning ".nv.info.", i.e. one
++// section per kernel. The module-wide ".nv.info" and the ".nv.merc.*"
++// mirrors carry no PARAM_CBANK records and are deliberately left out.
++bool elf_kernel_info_sections(const char *base, size_t size,
++                              std::vector<Range> *nvinfo_out)
++{
++    if (!elf64le(base, size)) return false;
++    uint64_t shoff = le(base + 0x28, 8);
++    uint16_t shentsize = (uint16_t)le(base + 0x3a, 2);
++    uint16_t shnum = (uint16_t)le(base + 0x3c, 2);
++    uint16_t shstrndx = (uint16_t)le(base + 0x3e, 2);
++    if (shoff == 0 || shnum == 0 || shentsize < 0x40 || shstrndx >= shnum)
++        return false;
++    if (shoff > size || shnum > (size - shoff) / shentsize)
++        return false;
++    const char *shstr_hdr = base + shoff + (uint64_t)shstrndx * shentsize;
++    uint64_t str_off = le(shstr_hdr + 0x18, 8);
++    uint64_t str_size = le(shstr_hdr + 0x20, 8);
++    if (str_off > size || str_size > size - str_off)
++        return false;
++    const char *shstr = base + str_off;
++    size_t str_left = (size_t)(size - str_off);
++    for (uint16_t i = 0; i < shnum; ++i) {
++        const char *h = base + shoff + (uint64_t)i * shentsize;
++        uint64_t s_off = le(h + 0x18, 8);
++        uint64_t s_size = le(h + 0x20, 8);
++        if (s_off > size || s_size > size - s_off) return false;
++        uint64_t n_ofs = le(h, 4);
++        if (n_ofs >= str_left) continue;
++        const char *name = shstr + n_ofs;
++        size_t name_left = str_left - (size_t)n_ofs;
++        if (name_left < 10) continue; // ".nv.info." + NUL minimum
++        if (std::memcmp(name, ".nv.info.", 9) != 0) continue;
++        char buf[256];
++        size_t n = 0;
++        while (n + 1 < sizeof(buf) && name[n] != '\0') buf[n] = name[n], ++n;
++        buf[n] = '\0';
++        Range r{(size_t)s_off, (size_t)s_size};
++        nvinfo_out->push_back(r);
++        if (s_size >= 12) {
++            XDEBG("meta-extend: scan %s (0x%llx B)", buf,
++                  (unsigned long long)s_size);
++        }
++    }
++    return true;
++}
++
++// Patch the parameter-extent nvinfo records of one kernel section.
++//
++// Pass A (read-only) finds EIATTR_PARAM_CBANK and decides eligibility from
++// its param_start/param_size. Pass B raises EIATTR_CBANK_PARAM_SIZE (the
++// record precedes PARAM_CBANK in compiler layout) and PARAM_CBANK itself.
++//
++// Returns: -1 parse anomaly, 0 no eligible bank, 1 patched, 2 already
++// covering the window.
++int extend_kernel_info_section(const char *tag, char *base,
++                               size_t /*sec_walk_span*/, size_t sec_off,
++                               size_t sec_size, bool *wrote)
++{
++    if (sec_size < 4) return 0;
++    const char *sec = base + sec_off;
++
++    // pass A: find PARAM_CBANK, read param region
++    size_t cbank_rec = sec_size; // offset of the PARAM_CBANK record
++    bool cbank_present = false;
++    uint16_t pstart = 0, psize = 0;
++    size_t o = 0;
++    while (o + 4 <= sec_size) {
++        uint8_t fmt = (uint8_t)sec[o];
++        uint8_t id = (uint8_t)sec[o + 1];
++        if (fmt != kNvInfoFmt4 && fmt != kNvInfoFmt3 && fmt != kNvInfoFmt2)
++            return -1;
++        uint64_t paylen = (fmt == kNvInfoFmt4) ? (uint64_t)le(sec + o + 2, 2) : 0;
++        uint64_t rec = (fmt == kNvInfoFmt4) ? 4 + paylen : 4;
++        if (rec > kNvInfoMaxPaylen || o + rec > sec_size) return -1;
++        if (fmt == kNvInfoFmt4 && id == kNvInfoParamCBank && paylen == 8) {
++            cbank_present = true;
++            cbank_rec = o;
++            pstart = (uint16_t)le(sec + o + 8, 2);
++            psize  = (uint16_t)le(sec + o + 10, 2);
++        }
++        o += (size_t)rec;
++    }
++    if (o != sec_size) {
++        // trailing halves of records: tolerated on a read-only pass only
++        // when nothing to patch; otherwise flag the anomaly
++        return cbank_present ? -1 : 0;
++    }
++    if (!cbank_present || pstart != kMetaParamStart) return 0;
++    if (psize >= kMetaParamSize) {
++        // already extended on a previous load of the same image; make the
++        // paired CBANK_PARAM_SIZE record consistent before reporting
++        bool aligned = true;
++        o = 0;
++        while (o + 4 <= sec_size) {
++            uint8_t fmt = (uint8_t)sec[o];
++            if (fmt == kNvInfoFmt3 &&
++                (uint8_t)sec[o + 1] == kNvInfoCBankPrmSize) {
++                uint16_t v = (uint16_t)le(sec + o + 2, 2);
++                if (v < kMetaParamSize) {
++                    if (tag[0] != '\0' && v != 0) {
++                        XWARN("meta-extend: %s CBANK_PARAM_SIZE 0x%x "
++                              "unextended beside PARAM_CBANK 0x%x",
++                              tag, (unsigned)v, (unsigned)psize);
++                    }
++                    aligned = false;
++                    break;
++                }
++            }
++            o += 4;
++        }
++        return aligned ? 2 : -1;
++    }
++
++    // pass B: raise CBANK_PARAM_SIZE (id 0x19, u16 at record offset +2)
++    char *buf = base + sec_off;
++    o = 0;
++    int patched = 0;
++    while (o + 4 <= sec_size) {
++        uint8_t fmt = buf[o];
++        uint8_t id = buf[o + 1];
++        if (fmt == kNvInfoFmt4) {
++            uint64_t paylen = (uint64_t)le(buf + o + 2, 2);
++            if (o + 4 + paylen > sec_size) break; // pass A already validated
++            if (id == kNvInfoParamCBank && paylen == 8 && o == cbank_rec) {
++                char *field = buf + o + 10;
++                field[0] = (char)(kMetaParamSize & 0xff);
++                field[1] = (char)((kMetaParamSize >> 8) & 0xff);
++                XINFO("meta-extend: %s PARAM_CBANK param_size 0x%x -> 0x%x",
++                      tag, (unsigned)psize, (unsigned)kMetaParamSize);
++                ++patched;
++            }
++            o += (size_t)(4 + paylen);
++        } else {
++            if (id == kNvInfoCBankPrmSize && patched >= 0) {
++                uint16_t v = (uint16_t)le(buf + o + 2, 2);
++                if (v != kMetaParamSize) {
++                    buf[o + 2] = (char)(kMetaParamSize & 0xff);
++                    buf[o + 3] = (char)((kMetaParamSize >> 8) & 0xff);
++                    XINFO("meta-extend: %s CBANK_PARAM_SIZE 0x%x -> 0x%x",
++                          tag, (unsigned)v, (unsigned)kMetaParamSize);
++                    ++patched;
++                }
++            }
++            o += 4;
++        }
++    }
++    if (patched == 0) return -1; // pass A said eligible but nothing was patched
++    *wrote = true;
++    XINFO("meta-extend: %s declared c[0x0] param region [0x%x, 0x%x]",
++          tag, (unsigned)kMetaParamStart,
++          (unsigned)(kMetaParamStart + kMetaParamSize));
++    return 1;
++}
++
++// Patch all eligible kernels of one cubin ELF in place. Returns false on
++// structural anomalies (caller then uses the unpatched copy as-is; nothing
++// aborts the load).
++bool extend_cubin(const char *what, char *base, size_t size, int *patched)
++{
++    std::vector<Range> sections;
++    if (!elf_kernel_info_sections(base, size, &sections)) {
++        XDEBG("meta-extend: %s is not a supported ELF64 cubin", what);
++        return false;
++    }
++    char tag[128];
++    int idx = 0;
++    bool wrote = false;
++    for (const Range &r : sections) {
++        std::snprintf(tag, sizeof(tag), "%s[%d]", what, idx++);
++        int rc = extend_kernel_info_section(tag, base, size, r.off, r.size,
++                                            &wrote);
++        if (rc < 0) {
++            XWARN("meta-extend: %s nvinfo parse anomaly; kernel left "
++                  "unpatched", tag);
++        }
++    }
++    *patched = wrote ? 1 : 0;
++    return true;
++}
++
++// Copy-and-patch the whole image held in data[0..size). Returns the number
++// of kernels for which a record was rewritten (only used for the log line).
++void meta_extend_image(char *data, size_t size)
++{
++    if (le(data, 4) != kFatbinMagic) {
++        int kernels = 0;
++        extend_cubin("cubin", data, size, &kernels);
++        if (kernels == 0) {
++            XDEBG("meta-extend: cubin untouched (no eligible kernel)");
++        }
++        return;
++    }
++
++    size_t whole = 0;
++    bool legacy = false;
++    // header fields were validated during the whole-size computation in
++    // XgMetaExtendImage; re-derive the walk bound from the copy itself
++    if (!fatbin_whole_size(data, size, &whole, &legacy) || whole > size ||
++        whole >= kImageMaxBytes) {
++        XWARN("meta-extend: fatbin bound re-check failed; loading unpatched");
++        return;
++    }
++    uint16_t hdrsz = (uint16_t)le(data + 6, 2);
++    size_t off = hdrsz;
++    int kernels = 0;
++    while (off + 0x20 <= whole) {
++        const char *e = data + off;
++        uint16_t kind = (uint16_t)le(e, 2);
++        uint32_t ehdr = (uint32_t)le(e + 4, 4);
++        uint64_t padded = le(e + 8, 8);
++        if (ehdr < 0x28 || off + ehdr + padded > whole) {
++            XWARN("meta-extend: fatbin entry beyond container (off 0x%llx); "
++                  "leaving the rest unpatched", (unsigned long long)off);
++            break;
++        }
++        if (kind == 2) {
++            char *elf = const_cast<char *>(e) + ehdr;
++            if (std::memcmp(elf, "\x7f" "ELF", 4) == 0)
++                extend_cubin("fatbin-cubin", elf, (size_t)padded, &kernels);
++        }
++        off += (size_t)ehdr + (size_t)padded;
++    }
++    if (kernels == 0) {
++        XDEBG("meta-extend: fatbin had no eligible kernel");
++    }
++}
++
++} // namespace
++
++XgExtendedImage XgMetaExtendImage(const void *image)
++{
++    XgExtendedImage out{image, false};
++    if (image == nullptr) return out;
++    if (!meta_extend_enabled()) return out;
++
++    const char *b = (const char *)image;
++    size_t size = 0;
++    if (le(b, 4) == kFatbinMagic) {
++        size_t whole = 0;
++        bool legacy = false;
++        if (!fatbin_whole_size(b, kImageMaxBytes, &whole, &legacy)) {
++            // the first probe runs unbounded; verify against a real read
++            // only after the caller's buffer size is unknown: use the
++            // second stage below
++        }
++        (void)whole;
++        // Container extent must be derived from the copy below; a bare
++        // header probe cannot bound the caller's allocation, so size the
++        // buffer from the fatbin header itself and let the staging path
++        // validate.
++        uint16_t hdrsz = (uint16_t)le(b + 6, 2);
++        uint64_t fsize = le(b + 8, 8);
++        if (hdrsz < 0x10 || fsize < hdrsz ||
++            fsize + hdrsz > kImageMaxBytes) {
++            XWARN("meta-extend: unusable fatbin header (hdr 0x%x size "
++                  "0x%llx); loading unpatched", (unsigned)hdrsz,
++                  (unsigned long long)fsize);
++            return out;
++        }
++        size = (size_t)(fsize + hdrsz);
++    } else if (le(b, 4) == kElfMagic) {
++        if (!cubin_whole_size(b, kImageMaxBytes, &size)) {
++            XWARN("meta-extend: unusable cubin header; loading unpatched");
++            return out;
++        }
++    } else {
++        return out; // PTX text or an unknown container: unchanged
++    }
++    if (size < 64 || size > kImageMaxBytes) {
++        XWARN("meta-extend: image extent 0x%llx rejected; loading unpatched",
++              (unsigned long long)size);
++        return out;
++    }
++
++    try {
++        void *base = nullptr;
++        // header-checked allocation: [kRectMagic | data size | image bytes]
++        void *block = std::malloc(kRectHdrSize + size);
++        base = block;
++        if (base == nullptr) {
++            XWARN("meta-extend: image copy allocation failed; loading "
++                  "unpatched");
++            return out;
++        }
++        *(uint64_t *)base = kRectMagic;
++        *((uint64_t *)base + 1) = (uint64_t)size;
++        std::memcpy((char *)base + kRectHdrSize, b, size);
++        char *data = (char *)base + kRectHdrSize;
++        meta_extend_image(data, size);
++        out.ptr = data;
++        out.owned = true;
++        XINFO("meta-extend: owned copy 0x%llx bytes "
++              "(source image 0x%llx)", (unsigned long long)size,
++              (unsigned long long)(uintptr_t)image);
++    } catch (...) {
++        XWARN("meta-extend: image copy failed; loading unpatched");
++        if (out.owned)
++            XgFreeExtendedImage(const_cast<void *>(out.ptr));
++        return out;
++    }
++    return out;
++}
++
++void XgFreeExtendedImage(void *p)
++{
++    if (p == nullptr) return;
++    char *hdr = (char *)p - kRectHdrSize;
++    uint64_t magic = le(hdr, 8);
++    if (magic != kRectMagic) {
++        // not an owned copy: never free pointers we did not hand out
++        XWARN("meta-extend: pointer 0x%llx is not an owned image copy; "
++              "NOT freed", (unsigned long long)(uintptr_t)p);
++        return;
++    }
++    std::free(hdr);
++}
++
++} // namespace xsched::cuda
+--- a/platforms/cuda/shim/src/intercept.cpp
++++ b/platforms/cuda/shim/src/intercept.cpp
+@@ -4,6 +4,7 @@
+ #include "xsched/utils/log.h"
+ #include "xsched/utils/function.h"
+ #include "xsched/cuda/shim/shim.h"
++#include "xsched/cuda/shim/window_meta_extend.h"
+ #include "xsched/cuda/hal/common/driver.h"
+ 
+ using namespace xsched::cuda;
+@@ -65,9 +66,37 @@
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::CtxGetSharedMemConfig, CUresult, cuCtxGetSharedMemConfig, CUsharedconfig *, pConfig);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::CtxSetSharedMemConfig, CUresult, cuCtxSetSharedMemConfig, CUsharedconfig, config);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleLoad, CUresult, cuModuleLoad, CUmodule *, module, const char *, fname);
+-DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleLoadData, CUresult, cuModuleLoadData, CUmodule *, module, const void *, image);
+-DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleLoadDataEx, CUresult, cuModuleLoadDataEx, CUmodule *, module, const void *, image, unsigned int, numOptions, CUjit_option *, options, void **, optionValues);
+-DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleLoadFatBinary, CUresult, cuModuleLoadFatBinary, CUmodule *, module, const void *, fatCubin);
++// sm_120 native actuator port (additive, unintegrated until tested): the
++// module-load entry points run the opt-in (XG_NATIVE_META_EXTEND) metadata
++// extension from window_meta_extend.cpp before the real driver call, then
++// free the patched copy. The original auto-generated redirects were
++// DEFINE_EXPORT_C_REDIRECT_CALL to Driver::ModuleLoadData /
++// ModuleLoadDataEx / ModuleLoadFatBinary / LibraryLoadData.
++EXPORT_C_FUNC CUresult cuModuleLoadData(CUmodule *module, const void *image)
++{
++    XgExtendedImage ext = XgMetaExtendImage(image);
++    CUresult ret = Driver::ModuleLoadData(module, ext.ptr);
++    if (ext.owned) XgFreeExtendedImage(const_cast<void *>(ext.ptr));
++    return ret;
++}
++EXPORT_C_FUNC CUresult cuModuleLoadDataEx(CUmodule *module, const void *image,
++                                          unsigned int numOptions,
++                                          CUjit_option *options,
++                                          void **optionValues)
++{
++    XgExtendedImage ext = XgMetaExtendImage(image);
++    CUresult ret = Driver::ModuleLoadDataEx(module, ext.ptr, numOptions,
++                                            options, optionValues);
++    if (ext.owned) XgFreeExtendedImage(const_cast<void *>(ext.ptr));
++    return ret;
++}
++EXPORT_C_FUNC CUresult cuModuleLoadFatBinary(CUmodule *module, const void *fatCubin)
++{
++    XgExtendedImage ext = XgMetaExtendImage(fatCubin);
++    CUresult ret = Driver::ModuleLoadFatBinary(module, ext.ptr);
++    if (ext.owned) XgFreeExtendedImage(const_cast<void *>(ext.ptr));
++    return ret;
++}
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleUnload, CUresult, cuModuleUnload, CUmodule, hmod);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleGetLoadingMode, CUresult, cuModuleGetLoadingMode, CUmoduleLoadingMode *, mode);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleGetFunction, CUresult, cuModuleGetFunction, CUfunction *, hfunc, CUmodule, hmod, const char *, name);
+@@ -81,7 +110,22 @@
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LinkDestroy, CUresult, cuLinkDestroy, CUlinkState, state);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleGetTexRef, CUresult, cuModuleGetTexRef, CUtexref *, pTexRef, CUmodule, hmod, const char *, name);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::ModuleGetSurfRef, CUresult, cuModuleGetSurfRef, CUsurfref *, pSurfRef, CUmodule, hmod, const char *, name);
+-DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryLoadData, CUresult, cuLibraryLoadData, CUlibrary *, library, const void *, code, CUjit_option *, jitOptions, void **, jitOptionsValues, unsigned int, numJitOptions, CUlibraryOption *, libraryOptions, void **, libraryOptionValues, unsigned int, numLibraryOptions);
++EXPORT_C_FUNC CUresult cuLibraryLoadData(CUlibrary *library, const void *code,
++                                         CUjit_option *jitOptions,
++                                         void **jitOptionsValues,
++                                         unsigned int numJitOptions,
++                                         CUlibraryOption *libraryOptions,
++                                         void **libraryOptionValues,
++                                         unsigned int numLibraryOptions)
++{
++    XgExtendedImage ext = XgMetaExtendImage(code);
++    CUresult ret = Driver::LibraryLoadData(library, ext.ptr, jitOptions,
++                                           jitOptionsValues, numJitOptions,
++                                           libraryOptions, libraryOptionValues,
++                                           numLibraryOptions);
++    if (ext.owned) XgFreeExtendedImage(const_cast<void *>(ext.ptr));
++    return ret;
++}
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryLoadFromFile, CUresult, cuLibraryLoadFromFile, CUlibrary *, library, const char *, fileName, CUjit_option *, jitOptions, void **, jitOptionsValues, unsigned int, numJitOptions, CUlibraryOption *, libraryOptions, void **, libraryOptionValues, unsigned int, numLibraryOptions);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryUnload, CUresult, cuLibraryUnload, CUlibrary, library);
+ DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryGetKernel, CUresult, cuLibraryGetKernel, CUkernel *, pKernel, CUlibrary, library, const char *, name);

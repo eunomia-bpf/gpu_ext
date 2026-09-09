@@ -38,3 +38,39 @@ for a behavior-preserving repair; compiler warnings are not disabled globally.
 
 GPU remains idle after the failed initialization. No driver reload, reset,
 reboot, or local-model termination is performed for this attempt.
+
+## Repaired build and real launch failure
+
+The local model adds braces to the three debug-only conditional bodies.
+`rebuild-fixed.log` records build/install exit 0. The same runner and
+configuration then execute in `cells-fixed/`; all six processes reach
+`ready`, but BE1 exits with SIGSEGV before `running`, and the runner exits 1.
+Several stderr reader threads encounter non-UTF-8 error text, so their JSON
+logs are incomplete. `runner-fixed.log` retains that limitation. No timing
+sample is accepted or reconstructed from those fragments.
+
+Root performs one single-worker debugger diagnosis, retaining raw stderr
+bytes in `debug-backtrace-fixed.log`. Its first launch returns CUDA **701**
+(too many resources requested). Later launch threads return **4** after
+CUDA teardown starts, and multiple `CUDA_ASSERT` error paths enter
+`exit(1)`; the observed SIGSEGV is in `__run_exit_handlers`. Thus the primary
+observed launch error remains 701. The preceding debugger-parameter
+readback reports equality, so a stack-overwrite diagnosis is not established.
+No metadata-extender log is present; whether runtime module loading actually
+traverses the new shim wrappers remains unresolved. This run does not prove
+that the driver accepted and then rejected an extended parameter bank.
+
+The first debugger invocation accidentally replaces the inferior's arguments
+with redirection only; it exits at usage without launching anything. Its
+`debug-backtrace.log` is retained separately, not counted as a workload run.
+The corrected invocation supplies the original arguments explicitly and
+feeds `debug-go.txt`; each diagnostic has its own short-lived xserver log.
+The debugger's exit 0 is not application success: its inferior stops on
+SIGSEGV. Both diagnostics use the shared leases and leave GPU idle.
+
+The additive shim patch is
+`../../level2/native/xsched-native-meta-extend.patch`. A reverse-application
+check succeeds against the isolated source after the build repair; this
+records source correspondence, not a successful runtime result. The next
+implementation must resolve module-load coverage and launch 701. All
+completed comparisons and earlier failed attempts remain unchanged.

@@ -71,10 +71,11 @@ status entries remain below; completed cells must not be repeated.
   Level-2 performance result follows. The raw record includes the repeated
   post-run busy state and persistence-only recovery; GPU returned to idle.
   The native [metadata-extent attempt](../workloads/xsched/raw/level2-native-meta-extent-20260908.aY3rBY/README.md)
-  reaches a separate initialization failure: the cached build omits the new
-  shim source, leaving unresolved symbols. Refreshing CMake exposes three
-  empty-debug-body compilation warnings; the same local session is repairing
-  these. No native Level-2 performance sample is added by this attempt.
+  first exposes omitted-source and empty-debug-body build problems, now
+  repaired. The subsequent actual launch still fails; a debugger records
+  initial CUDA 701 followed by teardown errors and a host exit-handler
+  crash. Module-load coverage of the new metadata wrapper remains unresolved.
+  No native Level-2 performance sample is added by this attempt.
 - **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed

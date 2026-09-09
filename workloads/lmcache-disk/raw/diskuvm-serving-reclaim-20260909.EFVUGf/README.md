@@ -1,5 +1,10 @@
 # Disk/UVM serving with per-range reclaim: start record
 
+Final status: five observations saved, including two EngineCore OOM failures.
+The deferred stop and original-module restoration completed at 05:11:29 PDT.
+See [RESULTS.md](RESULTS.md). The start record below is retained as history;
+this run does not establish a successful five-block performance comparison.
+
 This is a fresh five-block comparison using the same workload, output length,
 concurrency, arm order and existing 62502 ns/token calibration as aodtQv.
 The former 13 observations, including five EngineCore OOM failures, remain
@@ -34,4 +39,3 @@ The original loader PIDs were re-read as 514572/514573 immediately before this
 invocation; those values are historical targets and must be re-resolved for
 any later run. This record does not claim that all cells have finished.
 No manuscript is edited and no old number or failure record is deleted.
-

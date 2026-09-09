@@ -1,0 +1,168 @@
+[ 15%] Built target utils
+[ 19%] Built target boost_container
+[ 29%] Built target protocol
+[ 29%] Built target ipc
+[ 56%] Built target sched
+[ 71%] Built target preempt
+[ 73%] Building CXX object platforms/cuda/CMakeFiles/halcuda.dir/hal/src/level2/instrument.cpp.o
+In file included from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/xassert.h:6,
+                 from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:10:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp: In member function ‘CUresult xsched::cuda::InstrumentContext::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream, xsched::cuda::LaunchType)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: format ‘%p’ expects argument of type ‘void*’, but argument 10 has type ‘uint64_t’ {aka ‘long unsigned int’} [-Werror=format=]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:168:17: note: in expansion of macro ‘XINFO’
+  168 |                 XINFO("XG2 toolpub slot=%" FMT_64U " buf=%p cmd_idx=%" FMT_64D
+      |                 ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: format ‘%u’ expects argument of type ‘unsigned int’, but argument 11 has type ‘void*’ [-Werror=format=]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:168:17: note: in expansion of macro ‘XINFO’
+  168 |                 XINFO("XG2 toolpub slot=%" FMT_64U " buf=%p cmd_idx=%" FMT_64D
+      |                 ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: format ‘%p’ expects argument of type ‘void*’, but argument 12 has type ‘int64_t’ {aka ‘long int’} [-Werror=format=]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:168:17: note: in expansion of macro ‘XINFO’
+  168 |                 XINFO("XG2 toolpub slot=%" FMT_64U " buf=%p cmd_idx=%" FMT_64D
+      |                 ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: too many arguments for format [-Werror=format-extra-args]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:168:17: note: in expansion of macro ‘XINFO’
+  168 |                 XINFO("XG2 toolpub slot=%" FMT_64U " buf=%p cmd_idx=%" FMT_64D
+      |                 ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp: In member function ‘uint64_t xsched::cuda::InstrumentManager::Reactivate()’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: format ‘%p’ expects argument of type ‘void*’, but argument 10 has type ‘uint64_t’ {aka ‘long unsigned int’} [-Werror=format=]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:316:5: note: in expansion of macro ‘XINFO’
+  316 |     XINFO("XG2 Reactivate out idx=%" FMT_64U " mgr=%p",
+      |     ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: too many arguments for format [-Werror=format-extra-args]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:316:5: note: in expansion of macro ‘XINFO’
+  316 |     XINFO("XG2 Reactivate out idx=%" FMT_64U " mgr=%p",
+      |     ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp: In member function ‘void xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream, XPreemptLevel)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: format ‘%d’ expects argument of type ‘int’, but argument 11 has type ‘int64_t’ {aka ‘long int’} [-Werror=format=]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:347:13: note: in expansion of macro ‘XINFO’
+  347 |             XINFO("XG2 Launch mgr=%p cmd_idx=%" FMT_64D " type=%d level=%d"
+      |             ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:88:26: error: too many arguments for format [-Werror=format-extra-args]
+   88 |         fprintf(XLOG_FD, "[XSCHED "                                                 \
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   89 |                 "%s" level_str "%s"                                                 \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   90 |                 " @ T " FMT_TID " @ %02d:%02d:%02d.%06" PRId64 "] " format "\n",    \
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/common.h:48:21: note: in expansion of macro ‘XLOG_HELPER’
+   48 | #define UNFOLD(...) __VA_ARGS__
+      |                     ^~~~~~~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:100:5: note: in expansion of macro ‘UNFOLD’
+  100 |     UNFOLD(XLOG_HELPER UNFOLD(( \
+      |     ^~~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/utils/include/xsched/utils/log.h:113:28: note: in expansion of macro ‘XLOG’
+  113 | #define XINFO(format, ...) XLOG(INFO, format __VA_OPT__(,) __VA_ARGS__)
+      |                            ^~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-source-20260908.f492JH/platforms/cuda/hal/src/level2/instrument.cpp:347:13: note: in expansion of macro ‘XINFO’
+  347 |             XINFO("XG2 Launch mgr=%p cmd_idx=%" FMT_64D " type=%d level=%d"
+      |             ^~~~~
+cc1plus: all warnings being treated as errors
+gmake[2]: *** [platforms/cuda/CMakeFiles/halcuda.dir/build.make:216: platforms/cuda/CMakeFiles/halcuda.dir/hal/src/level2/instrument.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:575: platforms/cuda/CMakeFiles/halcuda.dir/all] Error 2
+gmake: *** [Makefile:136: all] Error 2

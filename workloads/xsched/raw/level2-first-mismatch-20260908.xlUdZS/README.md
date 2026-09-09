@@ -36,6 +36,12 @@ unreplayed work, not a small arithmetic discrepancy. The 200 guarded-launch
 count matches the submitted commands and shows no additional counted replay
 launches in this process. It does not alone identify the faulty replay step.
 
+Later [targeted HAL logs](../level2-replay-diagnostic-20260908.d9Gydm/README.md)
+directly observe resume launches even when the tool still prints 200.
+The tool counter increments non-atomically across launch threads; the
+historical count above therefore must not be read as evidence that no
+replay occurred. The original run and its recorded value are unchanged.
+
 All workers and xserver are cleaned up; raw per-process results and the
 runner exception are retained. Immediately afterward NVML reported 100%
 utilization / 1 MiB / P0 without compute processes. A single uninstrumented

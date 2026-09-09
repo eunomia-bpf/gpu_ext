@@ -33,6 +33,11 @@ and must not be rerun just because an older status entry describes them as pendi
   its later resume state. This narrows repair to per-launch context delivery
   or its argument ABI. Three BE workers fail; one is cleaned up after failure;
   both LC workers finish. It is not a successful performance comparison.
+  The subsequent [inside-callback delivery repair](../workloads/xsched/raw/level2-callback-delivery-20260909.Y7qcwZ/README.md)
+  builds but still leaves BE1 reading slot 1 through ordinal 200. All four
+  BE workers fail output completion; both LC workers finish. The original
+  tool is restored and GPU is idle. Placement alone does not fix delivery;
+  there is no new Level-2 performance result.
 
 Three local OpenCode sessions continue: one Qwen 27B result-analysis task and
 two existing GLM XSched tasks. The driver and callback tasks completed

@@ -14,11 +14,29 @@ GPU workload reproduction is a separate task.
 
 ## `scripts/artifact/reanalyze.py`
 
-Recomputes cell metrics and paired statistics for the two latest
-supplemental campaigns from their raw `result.json` records.
+Recomputes cell metrics and paired statistics for the paper-selected
+LMCache write-budget campaign and the two supplemental campaigns from
+their raw `result.json` records.
 
 Campaigns and source maps:
 
+- `storage` - LMCache GDS write-budget serving, five-block-02
+  (25 cells: 5 blocks x
+  fifo/native10/bpf10/native200/bpf200):
+  `workloads/lmcache-disk/raw/gds-write-budget-575-20260907-five-block-02/
+  block-00..04/position-0..4-<arm>/result.json`. The arm is read from the
+  position directory name; native10/bpf10 and native200/bpf200 are the
+  same policy programs with 10 ms and 200 ms cumulative write-delay
+  budgets. Metrics: scheduled-arrival
+  `read_scheduled_offer_to_completion_p99_ms`/`_p50_ms`,
+  `write_completion_throughput_mib_s` and
+  `total_storage_bandwidth_mib_s` from each cell's `metrics`; the
+  budget-exhausted write count is retained from the campaign's
+  `paired-analysis.json` row for the same block/position. All five arms
+  are retained, including native10/bpf10 and the mixed-sign pairs
+  (bpf200/native200 has two adverse blocks). Cross-checks per-arm medians
+  (all four metrics) and per-pair p99/write-throughput medians against
+  the campaign's existing `paired-analysis.json` (match/MISMATCH lines).
 - `lm` - LMCache disk physical-reclaim serving, pXYN4F:
   `workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F/
   cells/block-*/position-*/result.json` (15 cells: 5 blocks x
@@ -44,7 +62,9 @@ Campaigns and source maps:
 Statistics vocabulary (kept explicit in the report):
 
 - per-cell value: the raw per-cell metric.
-- marginal median: median of a single arm's values across complete blocks.
+- marginal median: median of a single arm's available numeric values over
+  its blocks. Missing values are omitted; incomplete status is reported
+  separately and does not automatically exclude an available value.
 - paired ratio (per block): `100*(candidate/reference - 1)` for that block.
 - median of paired ratios: median over blocks of the per-block paired
   ratios.
@@ -56,23 +76,39 @@ available numeric values for both arms; missing or incomplete status is
 reported separately, never filled in. The tool never
 stops running jobs or imposes gates.
 
+What this recomputes: statistics only, from the per-cell summary metrics
+each runner already recorded in `result.json`. The per-request records
+(offer/submitted/completion times) retained in the same files are not
+reprocessed, so this is a cell-summary statistical reanalysis, not a
+raw-request percentile reconstruction, not a new GPU measurement, and not
+evidence for GPU-direct P2P.
+
 Usage:
 
 ```
-python3 scripts/artifact/reanalyze.py                 # both campaigns, stdout
-python3 scripts/artifact/reanalyze.py --campaign lm   # one campaign
-python3 scripts/artifact/reanalyze.py --output PATH   # exclusive creation
+python3 scripts/artifact/reanalyze.py                   # all three campaigns, stdout
+python3 scripts/artifact/reanalyze.py --campaign storage  # one campaign
+python3 scripts/artifact/reanalyze.py --campaign lm     # another campaign
+python3 scripts/artifact/reanalyze.py --output PATH     # exclusive creation
 ```
 
 `--output` creates the report exclusively: an existing file aborts the run
 with an error; nothing is deleted or overwritten, and the path is rejected
 under `docs/paper` or inside any raw campaign directory.
 
-Verified run (`--campaign all`): all 30 cells present (15 + 15), no
-MISMATCH lines against the existing summaries; LM medians
+Verified run (`--campaign all`, 2026-09-09): all 55 cells present
+(25 + 15 + 15), no MISMATCH lines against the existing summaries. Storage
+scheduled-arrival read-p99 medians (ms)
+fifo/native10/bpf10/native200/bpf200 =
+323.706609 / 245.705683 / 239.091153 / 123.141164 / 118.096937 and
+write-throughput medians (MiB/s)
+5043.566001 / 5105.571055 / 4988.735170 / 5732.372957 / 5786.561373;
+median-of-paired-ratios bpf200/fifo p99 -61.904198% and
+bpf200/fifo write throughput +17.989185%, matching the published campaign
+analysis. LM medians
 stock/native/bpf = 73.574518 / 68.608032 / 65.422796 token/s and
 median-of-paired-ratios BPF/native -4.047522%, BPF/stock -11.241969%,
-native/stock -5.436485%, matching the published campaign analysis.
+native/stock -5.436485%.
 
 ## `scripts/artifact/reproduce_figures.py`
 

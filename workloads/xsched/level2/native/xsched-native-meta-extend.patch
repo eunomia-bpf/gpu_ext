@@ -19,6 +19,26 @@
 # see native_worker_env in workloads/xsched/level2/native/run_native_blob.py)
 # is maintained directly in the main repository, not in this patch.
 #
+# Module images may also arrive wrapped in the CUDA runtime fatbin wrapper
+# (__fatBinC_Wrapper_t from fatbinary_section.h: magic 0x466243b1, version
+# 1, whose data field points at the real container). Static cudart passes
+# this wrapper to cuLibraryLoadData and the driver follows wrapper->data
+# (root gdb evidence: debug-module-image.log in raw aY3rBY). The extender
+# recognizes the wrapper and hands the load call one owned block holding a
+# wrapper copy in a 32-byte slot (24 bytes used) whose data field is
+# retargeted at the patched nested container copy inside the same block,
+# so the driver receives the original wrapper ABI except for the owned
+# data pointer; one free of the handed-out wrapper pointer covers both.
+# Wrapper versions other than 1 and nested payloads that are neither
+# fatbin nor cubin pass through unchanged.
+#
+# Deployment status (build owner, raw NmlhJN): the wrapper route engages
+# in the real run - the four BE logs confirm both extent records raised
+# (0x8/0x20 -> 0x1520), an owned wrapper copy 0x20 + nested container
+# 0x4818 bytes, a successful module load and binary guardian preparation -
+# while the first launch still returns 701. The metadata route is reached
+# but not sufficient; parameter delivery remains the open failure.
+#
 # Verified CPU-side on the local priority_workload specimen (no GPU):
 # exactly six bytes differ per image (the two extent records of each of the
 # two kernels, 0x8/0x20 -> 0x1520); nvdisasm -c and cuobjdump -elf parse the
@@ -28,7 +48,9 @@
 # before checking its marker and is not safe for arbitrary foreign pointers.
 # Memory-safety
 # scrutiny in the session did not retain a valgrind artifact file, so no
-# retained-clean claim is made.
+# retained-clean claim is made. After the wrapper case was added the
+# source compiles as g++ -O2 and as -O3 -DRELEASE_MODE -Wall -Wextra
+# -Werror; the wrapper path was not CPU-unit-tested before deployment.
 #
 # BUILD NOTE: window_meta_extend.cpp enters the shim sources via
 # file(GLOB_RECURSE) evaluated at CMAKE CONFIGURE time. A build directory
@@ -43,7 +65,7 @@
 # from the source root (level2-build/.output/<native dir>/source).
 --- /dev/null
 +++ b/platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,38 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -70,7 +92,10 @@
 +/// @return an XgExtendedImage; the returned ptr is what the driver load call
 +///         must receive. If owned, it is an owned copy whose storage starts
 +///         16 bytes before ptr; free it with XgFreeExtendedImage(ptr) - the
-+///         SAME pointer - after the load call returns.
++///         SAME pointer - after the load call returns. A copy may also be a
++///         retargeted runtime fatbin wrapper (__fatBinC_Wrapper_t) whose
++///         data field points at a patched nested container in the same
++///         block; freeing the wrapper pointer covers both.
 +XgExtendedImage XgMetaExtendImage(const void *image);
 +
 +/// @brief Frees an owned copy whose ptr was returned by XgMetaExtendImage
@@ -81,7 +106,7 @@
 +} // namespace xsched::cuda
 --- /dev/null
 +++ b/platforms/cuda/shim/src/window_meta_extend.cpp
-@@ -0,0 +1,495 @@
+@@ -0,0 +1,576 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -96,6 +121,16 @@
 +// at c[0x0][0x1880..0x189c] (blob-relative 0x1500..0x151c, see
 +// CudaKernelCommand::AdoptWindowRelayExtra and the 28-byte XG_ARGS_BYTES
 +// block in level2/xsched_guardian_abi.h).
++//
++// Module images arrive either bare (raw fatbin container 0xba55ed50 or ELF
++// cubin) or wrapped in the CUDA runtime fatbin wrapper (fatbinary_section.h
++// __fatBinC_Wrapper_t: u32 magic 0x466243b1, u32 version 1, data -> the
++// real container, filename_or_fatbins). Static cudart hands the wrapper to
++// cuLibraryLoadData and the driver follows wrapper->data (root gdb
++// specimen). For a wrapped image the extender owns one block holding a
++// wrapper copy whose data field is retargeted at the patched nested
++// container copy inside the same block, so the driver receives a wrapper
++// identical to the original except for the owned data pointer.
 +//
 +// Two compiler-written nvinfo records describe that extent and both are
 +// raised together (cuobjdump -elf equivalence, nvcc 12.9 specimen):
@@ -127,8 +162,11 @@
 +// [uint64 magic 0x474d495458455847 ("XGEXTIMG") | uint64 data size] placed
 +// in front of the image bytes. The handed-out pointer is the image data
 +// pointer itself; XgFreeExtendedImage steps back over the header, validates
-+// the magic, and frees the whole block. Pointers that do not carry the
-+// header are reported and deliberately NOT freed (leak beats crash).
++// the magic, and frees the whole block. For a wrapped image the block also
++// holds the 24-byte wrapper copy in a 32-byte slot in front of the
++// container copy; freeing the handed-out wrapper pointer frees the whole
++// block. Pointers that do not carry the header are reported and
++// deliberately NOT freed (leak beats crash).
 +
 +#include "xsched/cuda/shim/window_meta_extend.h"
 +
@@ -150,6 +188,20 @@
 +
 +constexpr uint32_t kFatbinMagic = 0xba55ed50u;
 +constexpr uint32_t kElfMagic    = 0x464c457fu; // "\x7f" "ELF" little-endian
++
++// CUDA runtime fatbin wrapper (fatbinary_section.h __fatBinC_Wrapper_t):
++// {u32 magic 0x466243b1 (FATBINC_MAGIC), u32 version (FATBINC_VERSION 1),
++// const unsigned long long *data -> the real fatbin container,
++// void *filename_or_fatbins}. Static cudart hands this wrapper to the
++// module-load entry and the driver follows wrapper->data (root gdb
++// specimen: cuLibraryLoadData called from libcudart_static with the
++// wrapper at rdi). The owned block reserves 32 bytes for the 24-byte
++// wrapper copy (8 zero pad) so the nested container copy behind it stays
++// 16-byte aligned; the wrapper copy's data field is retargeted at it.
++constexpr uint32_t kFatbinWrapperMagic = 0x466243b1u; // FATBINC_MAGIC
++constexpr uint32_t kFatbinWrapperVer1  = 1u;          // FATBINC_VERSION
++constexpr size_t   kFatbinWrapSize     = 24;          // sizeof(__fatBinC_Wrapper_t), lp64
++constexpr size_t   kFatbinWrapCopy     = 32;          // incl. alignment pad
 +
 +constexpr uint8_t kNvInfoFmt4 = 0x04;         // {id, paylen, payload...}
 +constexpr uint8_t kNvInfoFmt3 = 0x03;         // {id, u16 value}  (HVAL)
@@ -496,6 +548,8 @@
 +
 +    const char *b = (const char *)image;
 +    size_t size = 0;
++    bool wrapped = false; // b is the runtime fatbin wrapper; payload at nest
++    const char *nest = nullptr;
 +    if (le(b, 4) == kFatbinMagic) {
 +        size_t whole = 0;
 +        bool legacy = false;
@@ -524,8 +578,43 @@
 +            XWARN("meta-extend: unusable cubin header; loading unpatched");
 +            return out;
 +        }
++    } else if (le(b, 4) == kFatbinWrapperMagic &&
++               le(b + 4, 4) == kFatbinWrapperVer1) {
++        // the runtime fatbin wrapper: own a retargeted wrapper copy plus the
++        // patched nested container, in one block (see kFatbinWrapCopy)
++        uint64_t dptr = le(b + 8, 8);
++        if (dptr == 0) {
++            XWARN("meta-extend: fatbin wrapper without data; loading "
++                  "unpatched");
++            return out;
++        }
++        const char *d = (const char *)(uintptr_t)dptr;
++        if (le(d, 4) == kFatbinMagic) {
++            uint16_t hdrsz = (uint16_t)le(d + 6, 2);
++            uint64_t fsize = le(d + 8, 8);
++            if (hdrsz < 0x10 || fsize < hdrsz ||
++                fsize + hdrsz > kImageMaxBytes) {
++                XWARN("meta-extend: unusable wrapped fatbin header (hdr "
++                      "0x%x size 0x%llx); loading unpatched", (unsigned)hdrsz,
++                      (unsigned long long)fsize);
++                return out;
++            }
++            size = (size_t)(fsize + hdrsz);
++        } else if (le(d, 4) == kElfMagic) {
++            if (!cubin_whole_size(d, kImageMaxBytes, &size)) {
++                XWARN("meta-extend: unusable wrapped cubin header; loading "
++                      "unpatched");
++                return out;
++            }
++        } else {
++            XDEBG("meta-extend: wrapper payload is neither fatbin nor "
++                  "cubin; unchanged");
++            return out;
++        }
++        wrapped = true;
++        nest = d;
 +    } else {
-+        return out; // PTX text or an unknown container: unchanged
++        return out; // PTX text or other unknown container: unchanged
 +    }
 +    if (size < 64 || size > kImageMaxBytes) {
 +        XWARN("meta-extend: image extent 0x%llx rejected; loading unpatched",
@@ -533,10 +622,14 @@
 +        return out;
 +    }
 +
++    size_t wrap = wrapped ? kFatbinWrapCopy : 0;
 +    try {
 +        void *base = nullptr;
-+        // header-checked allocation: [kRectMagic | data size | image bytes]
-+        void *block = std::malloc(kRectHdrSize + size);
++        // header-checked allocation: [kRectMagic | copy size | image bytes];
++        // the wrapper case prepends a 32-byte retargeted wrapper copy
++        // (24 bytes per fatbinary_section.h plus 8 zero pad) in front of
++        // the nested container copy, so one free covers both
++        void *block = std::malloc(kRectHdrSize + wrap + size);
 +        base = block;
 +        if (base == nullptr) {
 +            XWARN("meta-extend: image copy allocation failed; loading "
@@ -544,15 +637,28 @@
 +            return out;
 +        }
 +        *(uint64_t *)base = kRectMagic;
-+        *((uint64_t *)base + 1) = (uint64_t)size;
-+        std::memcpy((char *)base + kRectHdrSize, b, size);
++        *((uint64_t *)base + 1) = (uint64_t)(wrap + size);
 +        char *data = (char *)base + kRectHdrSize;
-+        meta_extend_image(data, size);
++        if (wrapped) {
++            std::memcpy(data, b, kFatbinWrapSize);
++            std::memset(data + kFatbinWrapSize, 0, wrap - kFatbinWrapSize);
++            // retarget the copy's data field at the nested fatbin copy
++            *(char **)(data + 8) = data + wrap;
++            std::memcpy(data + wrap, nest, size);
++            meta_extend_image(data + wrap, size);
++            XINFO("meta-extend: owned fatbin-wrapper copy 0x%llx + 0x%llx "
++                  "bytes (source wrapper 0x%llx)",
++                  (unsigned long long)wrap, (unsigned long long)size,
++                  (unsigned long long)(uintptr_t)image);
++        } else {
++            std::memcpy(data, b, size);
++            meta_extend_image(data, size);
++            XINFO("meta-extend: owned copy 0x%llx bytes "
++                  "(source image 0x%llx)", (unsigned long long)size,
++                  (unsigned long long)(uintptr_t)image);
++        }
 +        out.ptr = data;
 +        out.owned = true;
-+        XINFO("meta-extend: owned copy 0x%llx bytes "
-+              "(source image 0x%llx)", (unsigned long long)size,
-+              (unsigned long long)(uintptr_t)image);
 +    } catch (...) {
 +        XWARN("meta-extend: image copy failed; loading unpatched");
 +        if (out.owned)

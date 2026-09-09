@@ -167,3 +167,28 @@ script/guide scope is unchanged; this is recovery from a terminal provider
 error, not cancellation for silence. The two other sessions continue and
 the active inference-task count remains at most three. No new MoE GPU
 measurement was requested.
+
+## Published reanalysis and native bring-up — 2026-09-09
+
+The Table-1 documentation task completed naturally at Unix time
+1788975540367 ms and is published in `07660def`. The same session now
+implements only `--build-only` and an explicit NVBit-root override in the
+existing performance runner and its build helper, plus the runtime guide.
+It does not build or run GPU workloads; root owns those steps.
+
+MoE's resumed task completed at 1788976601552 ms. Its source/guide are
+published in `578b9ed5`; root ran all 70 cells from the independent GitHub
+checkout of that commit with matching summary statistics. After this
+completion, a new Qwen Next task, `ses_f78ad5d79ffe2O9BUfZO6q4iuO`, owns
+only `workloads/xsched/level2/native/run_native_blob.py` and the new
+`docs/artifact/xsched-native-runtime.md`: expose HAL-install/server paths
+without changing the native algorithm or repeating GPU cells.
+
+The GLM native-code task continues on patch/notes only. Root captured its
+RET.ABS candidate, rebuilt both current stub sources and the isolated HAL,
+then completed one native cuXtra cell; implementation and all records are
+published in `6a635bc1`. All six workers exit zero, with a resume launch
+in each BE process. This closes the observed resume bring-up failure,
+not a multi-arm performance campaign. The current three tasks have
+separate write scopes; no live session was terminated for silence and no
+fourth inference task was started.

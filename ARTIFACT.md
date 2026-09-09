@@ -181,6 +181,13 @@ output was written outside the clone; both the parent and manuscript
 submodule stayed clean. This confirms the published CPU reanalysis path,
 without the original workload builds, model cache or a GPU run.
 
+MoE extension, 2026-09-09: the independent GitHub clone was fast-forwarded
+to `578b9ed5`. Its own `reanalyze.py --campaign all` completed all 70 cells
+using the published MoE block records alongside the existing campaigns;
+the reported medians and paired statistics match the retained summaries.
+The output stayed outside the clone, and both the parent and manuscript
+submodule remained clean. No original runtime, model cache or GPU was used.
+
 Use the estimator named in each report. A ratio of medians, median of paired
 ratios, geometric mean of paired ratios, and mean per-pair overhead are
 different quantities. Retain units, timing boundaries, cohort sizes and all

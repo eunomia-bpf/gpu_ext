@@ -1003,6 +1003,19 @@ def install_backend(
     backend._load_bytes_from_disk_with_memory = load_bytes_with_memory
     backend._load_gds = load_gds
     backend.submit_put_task = submit_put_task
+
+    # Dump the transport counters at engine close (reliable; a multiprocessing
+    # child may exit without running stdlib atexit).  Runs after the original
+    # close so the counters are final; it never raises.
+    original_close = getattr(backend, "close", None)
+    if callable(original_close):
+        def close_with_dump(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return original_close(*args, **kwargs)
+            finally:
+                _dump_process_counters()
+        backend.close = close_with_dump
+
     setattr(backend, _BACKEND_ATTR, store)
     return store
 
@@ -1076,10 +1089,12 @@ def bootstrap_from_env(
             f"found {installed}"
         )
 
-    # Surface the transport counters at process exit when a diagnostics path is
-    # configured, so a silent stock fallback is never mistaken for working UVM.
+    # Surface the transport counters when a diagnostics path is configured, so a
+    # silent stock fallback is never mistaken for working UVM.  The primary dump
+    # is the GdsBackend ``close`` hook (see install_backend); atexit is a
+    # fallback for a process whose backend close is never reached.
     if DIAG_OUT_ENV in os.environ:
-        atexit.register(_diagnostics_atexit)
+        atexit.register(_dump_process_counters)
 
     from lmcache.v1.storage_backend.gds_backend import GdsBackend
 
@@ -1121,6 +1136,7 @@ def write_diagnostics(path: str) -> str:
     doc = {
         "schema": 1,
         "kind": "lmcache-disk-uvm-promotion",
+        "pid": os.getpid(),
         "counters": backing_diagnostics(),
     }
     with open(path, "w") as handle:
@@ -1129,20 +1145,28 @@ def write_diagnostics(path: str) -> str:
     return path
 
 
-def _diagnostics_atexit() -> None:
-    """Atexit dump of the aggregate counters (registered by
-    :func:`bootstrap_from_env` when ``LMCACHE_DISK_UVM_DIAG_OUT`` is set)."""
+def _dump_process_counters() -> None:
+    """Write this process's counters to a process-specific file at teardown.
+
+    Called from the GdsBackend ``close`` hook (the reliable engine-close point)
+    and, as a fallback, from ``atexit``.  A process that prepared no backings
+    (an auxiliary process with no store) writes nothing, so it never masks the
+    store-owning EngineCore's counters.  The file is named
+    ``<LMCACHE_DISK_UVM_DIAG_OUT>.<pid>`` so several processes can dump without
+    overwriting one another.
+    """
     path = os.environ.get(DIAG_OUT_ENV)
-    if not path:
-        return
+    if not path or not _ALL_STORES:
+        return  # no auxiliary empty overwrite
     try:
         counters = backing_diagnostics()
-        write_diagnostics(path)
+        write_diagnostics(f"{path}.{os.getpid()}")
     except Exception:  # never let the dump break a clean serving exit
         return
     _log.info(
-        "disk-uvm counters: prepared=%s restored=%s stock_fallback=%s "
+        "disk-uvm counters (pid=%s): prepared=%s restored=%s stock_fallback=%s "
         "not_fitted=%s not_aligned=%s error=%s retained=%s",
+        os.getpid(),
         counters.get("prepared", 0), counters.get("restored", 0),
         counters.get("stock_fallback", 0), counters.get("not_fitted", 0),
         counters.get("not_aligned", 0), counters.get("error", 0),

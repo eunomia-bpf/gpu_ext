@@ -1,6 +1,6 @@
 # Five-policy oversubscription sweep: analysis only
 
-This directory reads the running campaign in
+This directory reads the completed campaign in
 `../results_oversubscription_20260908.iftn85ji` and writes independent previews.
 It does not modify the paper, original figures, experiment sources or raw data.
 
@@ -63,7 +63,7 @@ allocation ratio nor the free-memory snapshot alone establishes fault traffic.
 because it is slow or does not favor the combined policy. The original
 single-tenant and old five-bar data remain untouched in their original files.
 
-All figures are vector PDFs at 3.33 by 1.20 inches, with one row of three
+All figures are vector PDFs at 3.33 by 1.30 inches, with one row of three
 panels. Red solid lines emphasize Memory + Scheduler; color, line pattern
 and marker distinguish the five policies. The layout follows the original
 `all_kernels_stacked.pdf`: a bottom legend, a y-axis label on each panel,
@@ -96,3 +96,18 @@ at epoch 1788868949.401446, after the CPU build ended. The wait therefore
 does not enter that cell's elapsed time. Driver state and the two experiment
 locks remained with the sweep. The pause was between measured executions,
 not an interruption of a running GPU workload.
+
+## Paired speedup preview
+
+```sh
+python3 docs/eval/multi-tenant-memory/oversubscription-analysis-20260908/analyze.py docs/eval/multi-tenant-memory/results_oversubscription_20260908.iftn85ji --speedup-only --output docs/eval/multi-tenant-memory/oversubscription-analysis-20260908/preview-speedup
+```
+
+`high_speedup.pdf` shows high-priority completion speedup over Default.
+For each complete workload/ratio point, compute Default time divided by
+policy time within each repetition, then plot the median of the five ratios.
+Whiskers retain the observed minimum and maximum of those paired ratios.
+Default is 1×. The three panels use independent linear y-axis ranges.
+The absolute-time previews and all original measurements remain available.
+
+The paper speedup version uses 8 pt labels/ticks/legend and 9 pt panel titles.

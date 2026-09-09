@@ -38,6 +38,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('campaign', type=Path)
     parser.add_argument('--output', type=Path, default=Path(__file__).parent / 'preview')
+    parser.add_argument('--speedup-only', action='store_true',
+                        help='plot paired high-priority speedup over Default')
     args = parser.parse_args()
     capacity = json.loads((args.campaign / 'gpu-memory.json').read_text())['total_bytes']
     output = args.output
@@ -110,6 +112,7 @@ def main():
     for (kernel, ratio), rows in complete.items():
         assert len({r['actual_allocation_ratio'] for r in rows}) == 1
         assert len({r['tenant_requested_bytes'] for r in rows}) == 1
+        baseline = {r['block']: r for r in rows if r['policy'] == 'baseline'}
         for policy in POLICIES:
             selected = [r for r in rows if r['policy'] == policy]
             assert sorted(r['block'] for r in selected) == list(range(5))
@@ -118,6 +121,9 @@ def main():
             for metric in ('high_s', 'low_s', 'both_finished_s', 'high_kernel_ms', 'low_kernel_ms'):
                 values = [r[metric] for r in selected]
                 summary.update({metric + '_median': median(values), metric + '_min': min(values), metric + '_max': max(values)})
+            speedups = [baseline[r['block']]['high_s'] / r['high_s'] for r in selected]
+            summary.update(high_speedup_median=median(speedups),
+                           high_speedup_min=min(speedups), high_speedup_max=max(speedups))
             summaries.append(summary)
     for name, rows in [('cells.csv', cells), ('summary.csv', summaries)]:
         if rows:
@@ -133,13 +139,15 @@ def main():
     # Match the original all_kernels_stacked.pdf, including its bottom legend,
     # repeated axis labels, prominent titles, and thin gray frame/grid.
     plt.rcParams.update({'font.family': 'sans-serif', 'font.size': 8, 'pdf.fonttype': 42,
-                         'axes.labelsize': 7, 'axes.titlesize': 8.5,
+                         'axes.labelsize': 8, 'axes.titlesize': 9,
                          'axes.linewidth': .4, 'axes.edgecolor': '.75',
                          'grid.linewidth': .4, 'grid.color': '.75',
-                         'xtick.labelsize': 7, 'ytick.labelsize': 7})
-    for metric, ylabel in [('high_s', 'High-priority time (s)'), ('low_s', 'Low-priority time (s)'),
-                           ('both_finished_s', 'Both completed (s)')]:
-        fig, axes = plt.subplots(1, 3, figsize=(3.33, 1.20))
+                         'xtick.labelsize': 8, 'ytick.labelsize': 8})
+    plots = ([('high_speedup', 'Speedup (×)')] if args.speedup_only else
+             [('high_s', 'High-priority time (s)'), ('low_s', 'Low-priority time (s)'),
+              ('both_finished_s', 'Both completed (s)')])
+    for metric, ylabel in plots:
+        fig, axes = plt.subplots(1, 3, figsize=(3.33, 1.30))
         for ax, kernel, title in zip(axes, KERNELS, ['HotSpot', 'GEMM', 'K-Means']):
             for policy, label, color, marker, style in zip(POLICIES, LABELS,
                     ['#777777', '#3498db', '#2ecc71', '#9b59b6', '#e74c3c'],
@@ -150,23 +158,27 @@ def main():
                 err = [[r[metric + '_median'] - r[metric + '_min'] for r in data],
                        [r[metric + '_max'] - r[metric + '_median'] for r in data]]
                 if data:
+                    if metric == 'high_speedup' and policy == 'baseline':
+                        style = '--'
                     ax.errorbar(x, y, yerr=err, color=color, marker=marker, linestyle=style,
                                 linewidth=1.3 if policy == 'combined' else 1.0, markersize=4,
                                 markerfacecolor=color, markeredgewidth=.4,
                                 elinewidth=.5, capsize=1, alpha=.85, label=label)
-            ax.set_xlim(.7, 1.6); ax.set_xticks([.8, 1.0, 1.2, 1.5]); ax.set_ylim(bottom=0)
+            if metric == 'high_speedup':
+                ax.axhline(1, color='#777777', linestyle='--', linewidth=1, alpha=.85)
+            ax.set_xlim(.7, 1.6); ax.set_xticks([.8, 1.0, 1.2, 1.5], ['0.8', '1', '1.2', '1.5']); ax.set_ylim(bottom=0)
             ax.set_ylim(0, ax.get_ylim()[1] * 1.10)
             ax.yaxis.set_major_locator(MaxNLocator(3)); ax.set_axisbelow(True)
             ax.grid(axis='both', alpha=.8)
-            ax.set_title(title, fontsize=8.5, pad=2)
+            ax.set_title(title, fontsize=9, pad=2)
             ax.set_ylabel(ylabel, labelpad=1)
         handles, labels = axes[0].get_legend_handles_labels()
         # Legend samples show line/marker styles without the error-bar glyphs.
         fig.legend([handle.lines[0] for handle in handles], labels,
-                   loc='lower center', ncol=5, fontsize=7, frameon=False,
-                   columnspacing=.6, handlelength=1.2, handletextpad=.3,
+                   loc='lower center', ncol=5, fontsize=8, frameon=False,
+                   columnspacing=.35, handlelength=1.0, handletextpad=.2,
                    bbox_to_anchor=(.5, -.015), borderaxespad=0)
-        fig.supxlabel('Oversubscription ratio', fontsize=7, y=.135)
+        fig.supxlabel('Oversubscription ratio', fontsize=8, y=.135)
         fig.subplots_adjust(left=.12, right=.98, bottom=.36, top=.86, wspace=.68)
         fig.savefig(output / f'{metric}.pdf')
         fig.savefig(output / f'{metric}.png', dpi=220)

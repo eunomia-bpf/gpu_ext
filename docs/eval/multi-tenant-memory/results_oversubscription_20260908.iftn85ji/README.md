@@ -1,8 +1,8 @@
 # Three-workload oversubscription sweep
 
-User-authorized on 2026-09-08. Status: running since 04:00 PDT, 2026-09-08. Both experiment locks are held.
+User-authorized on 2026-09-08. Status: all 300 authorized cells completed on 2026-09-08 at 08:22 PDT. Driver restoration completed at 08:23:49 PDT after a retry, and both experiment locks were released.
 The default, scheduler, prefetch, and eviction tools have completed initial real cells.
-No completed sweep or speedup is claimed yet.
+The final analysis contains all 12 workload/ratio points. See final-completion-summary.json and completion-notification-incident.md for results and restoration status.
 
 Question: how do memory-only, scheduler-only, and joint policies affect
 high-priority completion as the two-tenant working set exceeds GPU capacity?

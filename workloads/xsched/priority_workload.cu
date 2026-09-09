@@ -292,6 +292,13 @@ int main(int argc, char **argv)
             || value != expected_by_lane[local_index & 31U]) {
             std::fprintf(stderr, "sink mismatch index=%zu value=%a expected=%a\n",
                          index, value, expected_by_lane[local_index & 31U]);
+            for (int stream = 0; stream < stream_count; ++stream) {
+                for (int task = 0; task < std::min(5, tasks_per_stream); ++task) {
+                    const int flat = stream * tasks_per_stream + task;
+                    std::fprintf(stderr, "mismatch window stream=%d cmd=%d flat=%d blocks_done=%u\n",
+                                 stream, task + 1, flat, host_stamps[flat].blocks_done);
+                }
+            }
             fail("correctness", "output differs from the per-lane recurrence");
         }
     }

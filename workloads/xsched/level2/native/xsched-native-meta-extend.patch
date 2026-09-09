@@ -19,6 +19,26 @@
 # see native_worker_env in workloads/xsched/level2/native/run_native_blob.py)
 # is maintained directly in the main repository, not in this patch.
 #
+# SECOND OPT-IN XG_NATIVE_META_KPARAM (KPARAM_INFO ordinal growth): raises
+# the max declared ordinal end so it covers the 0x1520 relay blob. Causal
+# evidence (build owner's driver-entry control, raw HX4CV3, same installed
+# binary, original entry selected): changing only the relay CU_LAUNCH_PARAM
+# BUFFER_SIZE from 0x1520 to the original compute size 0x20 at the real
+# driver cuLaunchKernel entry makes all 200 queued kernels launch ret 0 and
+# the BE complete and exit cleanly (outputs validated); the full-size relay
+# fails the first launch with 701 (kv7jHZ, NmlhJN). The declared ordinal
+# extent (0x20) is the remaining candidate the driver checks against the
+# buffer. CONSTRAINT: the grown ordinals are safe only for blob-form
+# launches (extra buffer, params == nullptr); a plain kernelParams launch
+# marshals per-ordinal using the declared sizes and would copy the grown
+# size from the app's own argument pointer. The knob is separate from
+# XG_NATIVE_META_EXTEND so a metadata-only control configuration stays
+# available. Size-field encoding is inferred from 5 observed records
+# (size*4 + 1 for 4-aligned sizes); the grown values are unvalidated until
+# the build owner's run. The forwarding for this second variable must be
+# added to the runner's worker environment (same pattern as
+# XG_NATIVE_META_EXTEND in native_worker_env).
+#
 # Module images may also arrive wrapped in the CUDA runtime fatbin wrapper
 # (__fatBinC_Wrapper_t from fatbinary_section.h: magic 0x466243b1, version
 # 1, whose data field points at the real container). Static cudart passes
@@ -43,14 +63,13 @@
 # exactly six bytes differ per image (the two extent records of each of the
 # two kernels, 0x8/0x20 -> 0x1520); nvdisasm -c and cuobjdump -elf parse the
 # patched cubin and patched fatbin and report EIATTR_CBANK_PARAM_SIZE 0x1520
-# beside EIATTR_PARAM_CBANK 0x15200380; repeated application is idempotent;
-# The free helper requires an owned pointer: it reads the preceding header
-# before checking its marker and is not safe for arbitrary foreign pointers.
-# Memory-safety
-# scrutiny in the session did not retain a valgrind artifact file, so no
-# retained-clean claim is made. After the wrapper case was added the
-# source compiles as g++ -O2 and as -O3 -DRELEASE_MODE -Wall -Wextra
-# -Werror; the wrapper path was not CPU-unit-tested before deployment.
+# beside EIATTR_PARAM_CBANK 0x15200380; repeated application is idempotent.
+# XgFreeExtendedImage reads the preceding allocation header, so it is NOT
+# safe for arbitrary foreign pointers. Memory-safety scrutiny in the
+# session did not retain a valgrind artifact file, so no retained-clean
+# claim is made. After the wrapper case was added the source compiles as
+# g++ -O2 and as -O3 -DRELEASE_MODE -Wall -Wextra -Werror; the wrapper
+# path was not CPU-unit-tested before deployment.
 #
 # BUILD NOTE: window_meta_extend.cpp enters the shim sources via
 # file(GLOB_RECURSE) evaluated at CMAKE CONFIGURE time. A build directory
@@ -65,7 +84,7 @@
 # from the source root (level2-build/.output/<native dir>/source).
 --- /dev/null
 +++ b/platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,43 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -86,8 +105,11 @@
 +
 +/// @brief Opt-in (XG_NATIVE_META_EXTEND) module-image extension: raises the
 +/// declared sm_120 parameter extent of eligible kernels to cover the fused
-+/// parameter window. Returns the original image untouched when disabled,
-+/// unidentifiable, or on any anomaly (the loader never fails because of us).
++/// parameter window. With XG_NATIVE_META_KPARAM also set, the KPARAM_INFO
++/// ordinal table is grown so the declared launch-parameter extent covers
++/// the relay blob (safe only for blob-form launches). Returns the original
++/// image untouched when disabled, unidentifiable, or on any anomaly (the
++/// loader never fails because of us).
 +/// @param image the module image passed to cuModuleLoadData and friends
 +/// @return an XgExtendedImage; the returned ptr is what the driver load call
 +///         must receive. If owned, it is an owned copy whose storage starts
@@ -100,13 +122,15 @@
 +
 +/// @brief Frees an owned copy whose ptr was returned by XgMetaExtendImage
 +///        (pass exactly ext.ptr). Pointers without the module's ownership
-+///        header are reported and deliberately left untouched.
++///        header are reported and deliberately left untouched; the header
++///        is read before validation, so this is NOT safe for arbitrary
++///        foreign pointers.
 +void XgFreeExtendedImage(void *p);
 +
 +} // namespace xsched::cuda
 --- /dev/null
 +++ b/platforms/cuda/shim/src/window_meta_extend.cpp
-@@ -0,0 +1,576 @@
+@@ -0,0 +1,694 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -139,6 +163,20 @@
 +//   EIATTR_PARAM_CBANK     (id 0x0a, fmt 4): payload
 +//       {u32 kind 0xa/0x9, u16 param_start, u16 param_size}; the param
 +//       size is the 16-bit field at payload offset +6.
++//
++// A second opt-in (XG_NATIVE_META_KPARAM) also grows the KPARAM_INFO
++// ordinal table so the max declared ordinal end covers the blob extent.
++// Causal evidence (root HX4CV3 driver-entry control on the same installed
++// binary, original entry selected): shortening the relay CU_LAUNCH_PARAM
++// BUFFER_SIZE from 0x1520 to the original compute size 0x20 at the real
++// driver cuLaunchKernel makes all 200 queued kernels launch ret 0 and the
++// BE complete and exit cleanly, while the full-size relay fails the first
++// launch with 701 (kv7jHZ, NmlhJN). The declared ordinal extent (0x20,
++// from KPARAM_INFO) is therefore the candidate the driver checks against
++// the buffer. CONSTRAINT: only blob-form launches (extra buffer, params
++// == nullptr) are safe with grown ordinals; a plain kernelParams launch
++// marshals per-ordinal and would copy the grown size from the app's own
++// argument pointer.
 +// The KPARAM_INFO records (id 0x17) that describe the app's own arguments
 +// are never touched, so per-argument ordinals/offsets/sizes and hence the
 +// app launch parameters keep their compiled layout; the window args are
@@ -166,7 +204,9 @@
 +// holds the 24-byte wrapper copy in a 32-byte slot in front of the
 +// container copy; freeing the handed-out wrapper pointer frees the whole
 +// block. Pointers that do not carry the header are reported and
-+// deliberately NOT freed (leak beats crash).
++// deliberately NOT freed (leak beats crash); the header is read before
++// validation, so XgFreeExtendedImage is NOT safe for arbitrary foreign
++// pointers.
 +
 +#include "xsched/cuda/shim/window_meta_extend.h"
 +
@@ -208,6 +248,19 @@
 +constexpr uint8_t kNvInfoFmt2 = 0x02;         // {id, u16 value}  (BVAL)
 +constexpr uint8_t kNvInfoParamCBank   = 0x0a; // EIATTR_PARAM_CBANK (SVAL)
 +constexpr uint8_t kNvInfoCBankPrmSize = 0x19; // EIATTR_CBANK_PARAM_SIZE (HVAL)
++constexpr uint8_t kNvInfoKParamInfo   = 0x17; // EIATTR_KPARAM_INFO (app args)
++
++// EIATTR_KPARAM_INFO (fmt 4, payload 12 bytes):
++//   {u32 index, u16 ordinal, u16 offset, u16 attrs (0xf000 scal /
++//   0xf500 ptr), u16 size_field}. Every observed record encodes
++//   size_field == size * 4 + 1 (5 records, sizes 4 and 8: 0x11, 0x21;
++//   both formulas size*4+1 and (size>>2)<<4|1 coincide for 4-aligned
++//   sizes). Offsets are relative to the param base (0x380), the same
++//   coordinate system as the launch blob, so the max ordinal end is the
++//   declared launch-parameter extent. kv7jHZ evidence: a 0x1520-byte
++//   CU_LAUNCH_PARAM_BUFFER is rejected with 701 while the CBANK records
++//   alone are raised, so the growing knob targets this ordinal table.
++constexpr size_t kNvInfoKParamPaylen  = 12;   // sizeof KPARAM payload
 +
 +// paylen no larger than a .nv.info record can sanity-carry; anything above
 +// is treated as a parse anomaly rather than trusted (prevents an unwalkable
@@ -222,6 +275,17 @@
 +bool meta_extend_enabled()
 +{
 +    static const bool enabled = std::getenv("XG_NATIVE_META_EXTEND") != nullptr;
++    return enabled;
++}
++
++// Second independent knob: also grow the KPARAM_INFO ordinal table so the
++// declared launch-parameter extent covers the relay blob (see pass C).
++// Separate from XG_NATIVE_META_EXTEND so a metadata-only control run stays
++// available. Only meaningful together with blob-form launches; see the
++// constraint note in the pass C comments.
++bool meta_kparam_enabled()
++{
++    static const bool enabled = std::getenv("XG_NATIVE_META_KPARAM") != nullptr;
 +    return enabled;
 +}
 +
@@ -457,6 +521,84 @@
 +            o += 4;
 +        }
 +    }
++    // pass C (opt-in XG_NATIVE_META_KPARAM): grow the KPARAM_INFO ordinal
++    // table so the max declared ordinal end covers the relay blob extent
++    // (0x1520 blob-relative). kv7jHZ evidence: the driver rejects the
++    // 0x1520-byte relay CU_LAUNCH_PARAM_BUFFER with 701 while the CBANK
++    // records alone are raised (and with the original entry), so the
++    // KPARAM-declared ordinal extent is the remaining declared-extent
++    // candidate governing launch-buffer acceptance.
++    // CONSTRAINT: this is safe only while the patched kernels launch with
++    // the blob form (extra buffer, params_ == nullptr): the driver copies
++    // the buffer bytes wholesale. A plain kernelParams launch marshals
++    // per-ordinal using the declared sizes and would copy the grown size
++    // from the app's own argument pointer (out-of-bounds read). The knob
++    // exists so the build owner can run metadata-only and metadata+KPARAM
++    // configurations in isolation.
++    if (meta_kparam_enabled()) {
++        bool have = false;
++        size_t best_off = 0, best_rec = 0;
++        uint32_t best_end = 0;
++        int kordinal = -1;
++        bool walked = true;
++        o = 0;
++        while (o + 4 <= sec_size) {
++            uint8_t fmt = (uint8_t)buf[o];
++            uint8_t id = (uint8_t)buf[o + 1];
++            if (fmt == kNvInfoFmt4) {
++                uint64_t paylen = (uint64_t)le(buf + o + 2, 2);
++                if (o + 4 + paylen > sec_size) { walked = false; break; }
++                if (id == kNvInfoKParamInfo &&
++                    paylen == kNvInfoKParamPaylen) {
++                    uint16_t off16 = (uint16_t)le(buf + o + 10, 2);
++                    uint16_t enc   = (uint16_t)le(buf + o + 14, 2);
++                    // observed encoding: size_field == size * 4 + 1 on
++                    // 4-aligned sizes; leave foreign records untouched
++                    if ((enc & 3) == 1) {
++                        uint32_t sz = (uint32_t)((enc - 1) >> 2);
++                        uint32_t end = (uint32_t)off16 + sz;
++                        if (!have || end > best_end ||
++                            (end == best_end && off16 > best_off)) {
++                            have = true;
++                            best_end = end;
++                            best_off = off16;
++                            best_rec = o;
++                            kordinal = (int)(int16_t)le(buf + o + 8, 2);
++                        }
++                    }
++                }
++                o += (size_t)4 + paylen;
++            } else {
++                o += 4;
++            }
++        }
++        if (!walked || o != sec_size) {
++            XWARN("meta-extend: %s KPARAM walk anomaly; ordinal table left "
++                  "unchanged", tag);
++        } else if (!have) {
++            XWARN("meta-extend: %s no KPARAM_INFO record found; ordinal "
++                  "table left unchanged", tag);
++        } else if (best_end >= kMetaParamSize) {
++            XDEBG("meta-extend: %s KPARAM extent 0x%x already covers the "
++                  "window", tag, (unsigned)best_end);
++        } else if (kMetaParamSize - best_off > 0x3ffe) {
++            XWARN("meta-extend: %s KPARAM growth 0x%x would overflow the "
++                  "size field; ordinal table left unchanged", tag,
++                  (unsigned)(kMetaParamSize - best_off));
++        } else {
++            uint32_t new_size = (uint32_t)(kMetaParamSize - (uint32_t)best_off);
++            uint16_t field = (uint16_t)(new_size * 4 + 1);
++            buf[best_rec + 14] = (char)(field & 0xff);
++            buf[best_rec + 15] = (char)((field >> 8) & 0xff);
++            XINFO("meta-extend: %s KPARAM ordinal %d offset 0x%x size 0x%x "
++                  "-> 0x%x (declared launch extent 0x%x)", tag, kordinal,
++                  (unsigned)best_off, (unsigned)(best_end - best_off),
++                  (unsigned)new_size, (unsigned)kMetaParamSize);
++            ++patched;
++            *wrote = true;
++        }
++    }
++
 +    if (patched == 0) return -1; // pass A said eligible but nothing was patched
 +    *wrote = true;
 +    XINFO("meta-extend: %s declared c[0x0] param region [0x%x, 0x%x]",

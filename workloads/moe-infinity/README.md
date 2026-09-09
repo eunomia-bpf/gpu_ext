@@ -9,6 +9,12 @@ not a formal equivalence proof. Both paper arms have lower throughput but lower
 first-visible-text latency than the baseline. See the
 [complete results and limitations](results-paper-v3-protected-575.md).
 
+For the paper's TTFT comparison, the bars show per-mode medians, while the
+22.1% (native) and 22.5% (gpubpf) reductions use the geometric mean of five
+paired policy/baseline ratios. Dividing the bar heights instead gives 23.41%
+and 22.27%; the two calculations summarize the same measurements differently.
+See [Results](results-paper-v3-protected-575.md#results) for both summaries.
+
 The follow-up [predictive-prefetch causal ablation](predictive-prefetch-ablation.md)
 is now implemented but has **no GPU result**.  It replaces the confounded
 three-arm comparison with native/BPF eviction × prefetch off/on on one strict

@@ -90,6 +90,10 @@ def native_worker_env(role: str) -> dict:
     # user asks for it (presence-based at the shim: XG_NATIVE_META_EXTEND)
     if "XG_NATIVE_META_EXTEND" in os.environ:
         env["XG_NATIVE_META_EXTEND"] = os.environ["XG_NATIVE_META_EXTEND"]
+    # second opt-in: KPARAM_INFO ordinal growth (XG_NATIVE_META_KPARAM),
+    # presence-based at the shim, same forwarding pattern
+    if "XG_NATIVE_META_KPARAM" in os.environ:
+        env["XG_NATIVE_META_KPARAM"] = os.environ["XG_NATIVE_META_KPARAM"]
     return env
 
 

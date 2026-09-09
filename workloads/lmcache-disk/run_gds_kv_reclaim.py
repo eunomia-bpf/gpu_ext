@@ -117,6 +117,10 @@ ADAPTER_DIAG_POLL_S = 0.25
 RAW_NAME = "raw.jsonl"
 SUMMARY_NAME = "summary.json"
 DIAG_NAME = "kv-reclaim-diagnostics.json"
+DISK_UVM_PROMOTION_ENV = "LMCACHE_DISK_UVM_PROMOTION"
+DISK_UVM_DIAG_OUT_ENV = "LMCACHE_DISK_UVM_DIAG_OUT"
+DISK_UVM_FAULT_LIB_ENV = "LMCACHE_DISK_UVM_FAULT_LIB"
+DISK_UVM_DIAG_NAME = "disk-uvm-diagnostics.json"
 WARM_PROGRESS_NAME = "warm-progress.json"
 BOOTSTRAP = HERE / "gds-control" / "bootstrap"
 GDS_CONTROL = HERE / "gds-control"
@@ -181,13 +185,20 @@ def warm_specs(prefixes: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def cell_server_environment(arm: str, cache_dir: Path, expected_driver: str,
                             gds_buffer_size_mib: int,
                             recompute_ns_per_token: int | None,
-                            diag_out: str | None) -> dict[str, str]:
+                            diag_out: str | None,
+                            disk_uvm: bool = False,
+                            disk_uvm_fault_lib: str | None = None,
+                            disk_uvm_diag_out: str | None = None) -> dict[str, str]:
     """Identical GDS demand environment per arm; reclaim arms add opt-ins.
 
     Every arm gets the existing GDS/cuFile demand backend in the same FIFO
     per-IO policy mode.  ``native``/``bpf`` add the agreed reclaim opt-in
     environment (including the measured recompute proxy price and the
     per-cell diagnostics exit path); ``stock`` leaves the opt-in off.
+    ``disk_uvm`` is an orthogonal read-transport opt-in layered *under* the
+    existing admission (it never changes the policy or the stock/native/bpf
+    comparison); it enables the disk-UVM put-completion preparation and the
+    per-cell counter dump.
     """
     if arm not in ARMS:
         raise ValueError(f"unknown arm: {arm!r}")
@@ -220,6 +231,16 @@ def cell_server_environment(arm: str, cache_dir: Path, expected_driver: str,
             env[DIAG_OUT_ENV] = str(diag_out)
         if arm == "bpf":
             env[UVM_DEVICE_ENV] = UVM_DEVICE
+    if disk_uvm:
+        # Orthogonal read-transport opt-in under the admission; does not change
+        # the policy or the stock/native/bpf comparison.
+        env[DISK_UVM_PROMOTION_ENV] = "1"
+        if disk_uvm_diag_out:
+            env[DISK_UVM_DIAG_OUT_ENV] = str(disk_uvm_diag_out)
+        if disk_uvm_fault_lib:
+            env[DISK_UVM_FAULT_LIB_ENV] = str(disk_uvm_fault_lib)
+        elif DISK_UVM_FAULT_LIB_ENV in os.environ:
+            env[DISK_UVM_FAULT_LIB_ENV] = os.environ[DISK_UVM_FAULT_LIB_ENV]
     return env
 
 

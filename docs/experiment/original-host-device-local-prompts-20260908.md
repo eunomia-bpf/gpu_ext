@@ -1,5 +1,43 @@
 # Original host/device implementation prompts
 
+## Runtime-directed continuation — 2026-09-08 23:28 PDT
+
+The native XSched metadata candidate builds after refreshing CMake's source
+inventory and bracing three disabled-debug conditional bodies. Actual launch
+still fails; the recorded debugger diagnosis in `fefe8898` shows the shim's
+`cuLibraryLoadData` does enter `XgMetaExtendImage`, but its argument is CUDA's
+version-1 `__fatBinC_Wrapper_t` (`0x466243b1`), not the bare fatbin/ELF images
+the candidate handles. Root asked the same GLM session to preserve this
+wrapper and patch its nested image. Do not add new proc-address interception
+based on the earlier absence of an owned-copy log. This is a concrete
+implementation gap, not a successful Level-2 performance measurement.
+
+The tool-path Qwen session's index inference also needed correction:
+`preempt/include/xsched/preempt/xqueue/async_xqueue.h` initializes
+`next_hw_cmd_idx_` to 1, and `async_xqueue.cpp` assigns it with `fetch_add`.
+`priority_workload.cu` computes zero-based `flat = stream_idx *
+tasks_per_stream + task_idx`. Consequently, `preempt_idx=1` is command 1 /
+task 0; the missing sink element 87040 at the measured 340 x 256 geometry
+belongs to task 1, not task 0. It is incorrect to equate the missing task
+with the resumed command solely from those numbers. This correction was
+sent to the same session before its next device-protocol change.
+
+LMCache remains actual put/get integration work, not another primitive
+campaign. Its Qwen session naturally reached a response-length limit and
+was resumed on the same session; it was not cancelled. Root clarified that
+allocation padding is only for VA alignment: register exactly the existing
+KV span when its size is a supported 2 MiB multiple, otherwise retain the
+stock path. Do not extend/truncate KV files, compare whole-buffer snapshots
+in the timed path, or repeat preparation inside every demand read. Await
+real asynchronous writeback completion without an arbitrary short timeout.
+After a subsequent oversized write-call error, the still-live session was
+asked to prefer small incremental edits if that write failed again.
+
+All three local sessions remain allocated to these tasks; automatic
+compaction is live work. Grouped full-record layout optimization remains
+queued for a free slot. No manuscript, completed cell, or global driver
+configuration is changed by these continuation instructions.
+
 ## Coordinator continuation notes — 2026-09-08
 
 OpenCode permission queries and replies must use the same `directory` query

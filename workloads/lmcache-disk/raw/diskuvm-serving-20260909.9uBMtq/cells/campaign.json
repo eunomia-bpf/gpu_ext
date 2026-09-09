@@ -1,0 +1,865 @@
+{
+  "block_orders": [
+    [
+      "stock",
+      "native",
+      "bpf"
+    ]
+  ],
+  "calibration": {
+    "cleanup_errors": [],
+    "command": [
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+      "serve",
+      "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+      "--served-model-name",
+      "Qwen/Qwen3-30B-A3B-FP8",
+      "--enforce-eager",
+      "--max-model-len",
+      "4096",
+      "--gpu-memory-utilization",
+      "0.98",
+      "--max-num-seqs",
+      "2",
+      "--no-enable-prefix-caching",
+      "--port",
+      "18080",
+      "--kv-cache-memory-bytes",
+      "402653184"
+    ],
+    "elapsed_s": 4.360113614,
+    "error": null,
+    "expected_driver_parameter": "575.57.08",
+    "finished_ns": 1788820768058903137,
+    "kind": "kv-reclaim-recompute-calibration",
+    "kv_cache_memory_bytes": 402653184,
+    "launch_command": [
+      "/usr/bin/taskset",
+      "-c",
+      "8-15",
+      "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/current-venv/bin/vllm",
+      "serve",
+      "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+      "--served-model-name",
+      "Qwen/Qwen3-30B-A3B-FP8",
+      "--enforce-eager",
+      "--max-model-len",
+      "4096",
+      "--gpu-memory-utilization",
+      "0.98",
+      "--max-num-seqs",
+      "2",
+      "--no-enable-prefix-caching",
+      "--port",
+      "18080",
+      "--kv-cache-memory-bytes",
+      "402653184"
+    ],
+    "max_num_seqs": 2,
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "note": "recompute_ns_per_token is the observed end-to-end TTFT per prompt token on the recompute server; a proxy, not pure GPU compute",
+    "output_tokens": 16,
+    "output_tokens_per_s": 29.35703317202596,
+    "port": 18080,
+    "ready": true,
+    "ready_error": null,
+    "recompute_ns_per_token": 62502,
+    "requests": [
+      {
+        "attempted": true,
+        "index": 0,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p0-recompute",
+        "response": {
+          "e2e_ms": 864.117821,
+          "engine_request_id": "cmpl-cal-p0-recompute",
+          "generated_token_ids": [
+            13710,
+            374,
+            6188,
+            311,
+            1936,
+            6950,
+            11,
+            5695,
+            37669,
+            11,
+            323,
+            1855,
+            264,
+            5530,
+            315,
+            53817
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p0-recompute",
+          "status": 200,
+          "text": " Script is designed to build trust, establish credibility, and create a sense of urgency",
+          "ttft_ms": 535.474529,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 1,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p1-recompute",
+        "response": {
+          "e2e_ms": 498.167022,
+          "engine_request_id": "cmpl-cal-p1-recompute",
+          "generated_token_ids": [
+            3142,
+            280,
+            2440,
+            13874,
+            19324,
+            32313,
+            11,
+            279,
+            1196,
+            6801,
+            311,
+            2647,
+            279,
+            2885,
+            536,
+            1667
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p1-recompute",
+          "status": 200,
+          "text": "_value;\n};\n```\n\nOkay, the user wants to update the Data class using",
+          "ttft_ms": 63.788687,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 2,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p2-recompute",
+        "response": {
+          "e2e_ms": 498.806485,
+          "engine_request_id": "cmpl-cal-p2-recompute",
+          "generated_token_ids": [
+            198,
+            3124,
+            46511,
+            70377,
+            73325,
+            11,
+            30003,
+            58610,
+            11,
+            10054,
+            284,
+            330,
+            4449,
+            16033,
+            290,
+            1138
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p2-recompute",
+          "status": 200,
+          "text": "\nUPROPERTY(EditAnywhere, BlueprintReadWrite, Category = \"Level Progression\")\n",
+          "ttft_ms": 65.164268,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 3,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p3-recompute",
+        "response": {
+          "e2e_ms": 499.476006,
+          "engine_request_id": "cmpl-cal-p3-recompute",
+          "generated_token_ids": [
+            419,
+            3033,
+            4157,
+            45653,
+            11,
+            30759,
+            11,
+            4279,
+            20362,
+            323,
+            4279,
+            1910,
+            1987,
+            576,
+            11251,
+            429
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p3-recompute",
+          "status": 200,
+          "text": " this government cannot endure, permanently, half slave and half free.” The crisis that",
+          "ttft_ms": 65.821845,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 4,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p4-recompute",
+        "response": {
+          "e2e_ms": 499.574618,
+          "engine_request_id": "cmpl-cal-p4-recompute",
+          "generated_token_ids": [
+            26278,
+            11,
+            264,
+            1697,
+            448,
+            264,
+            7743,
+            11,
+            323,
+            264,
+            1697,
+            448,
+            264,
+            6249,
+            271,
+            4710
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p4-recompute",
+          "status": 200,
+          "text": " piano, a person with a voice, and a person with a camera\n\n \n\n",
+          "ttft_ms": 65.5932,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 5,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p5-recompute",
+        "response": {
+          "e2e_ms": 498.145965,
+          "engine_request_id": "cmpl-cal-p5-recompute",
+          "generated_token_ids": [
+            1616,
+            1588,
+            13,
+            1260,
+            594,
+            23939,
+            553,
+            279,
+            30157,
+            323,
+            11074,
+            264,
+            5538,
+            5530,
+            315,
+            3633
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p5-recompute",
+          "status": 200,
+          "text": " way here. He's touched by the gesture and feels a deep sense of connection",
+          "ttft_ms": 64.216182,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 6,
+        "prompt_tokens": 1536,
+        "request_id": "cal-p6-recompute",
+        "response": {
+          "e2e_ms": 499.088854,
+          "engine_request_id": "cmpl-cal-p6-recompute",
+          "generated_token_ids": [
+            32313,
+            11,
+            279,
+            1196,
+            6801,
+            264,
+            2390,
+            3293,
+            20389,
+            94674,
+            1667,
+            9308,
+            11,
+            15179,
+            11,
+            323
+          ],
+          "input_tokens": 1536,
+          "request_header": "cal-p6-recompute",
+          "status": 200,
+          "text": "Okay, the user wants a project select dropdown searcher using HTML, CSS, and",
+          "ttft_ms": 65.154099,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1536,
+            "total_tokens": 1552
+          }
+        }
+      },
+      {
+        "attempted": true,
+        "index": 7,
+        "prompt_tokens": 1024,
+        "request_id": "cal-p7-recompute",
+        "response": {
+          "e2e_ms": 501.781799,
+          "engine_request_id": "cmpl-cal-p7-recompute",
+          "generated_token_ids": [
+            25591,
+            419,
+            11,
+            582,
+            633,
+            1447,
+            91,
+            32,
+            481,
+            76782,
+            481,
+            48338,
+            40,
+            91,
+            284,
+            760
+          ],
+          "input_tokens": 1024,
+          "request_header": "cal-p7-recompute",
+          "status": 200,
+          "text": "anding this, we get:\n\n|A - BK - λI| = |",
+          "ttft_ms": 66.770122,
+          "usage": {
+            "completion_tokens": 16,
+            "prompt_tokens": 1024,
+            "total_tokens": 1040
+          }
+        }
+      }
+    ],
+    "rerun": false,
+    "reused_from": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/kv-reclaim-recompute-calibration-575-20260907-01/calibration.json",
+    "schema": 1,
+    "server_returncode": 0,
+    "started_ns": 1788820739250933538,
+    "total_output_tokens": 128
+  },
+  "cells": [
+    {
+      "arm": "stock",
+      "block": 0,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": false,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "stock",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 111.914025114,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 73.1990471404751,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.07148344447312022,
+        "warm_ttft_max_ms": 30477.64579,
+        "warm_ttft_median_ms": 25076.623476499997,
+        "warm_ttft_p95_ms": 31757.603531149995
+      },
+      "position": 0,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-0-stock"
+    },
+    {
+      "arm": "native",
+      "block": 0,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "native",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 122.956812925,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 66.62501902189736,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.06506349513857164,
+        "warm_ttft_max_ms": 31436.091738,
+        "warm_ttft_median_ms": 30249.5472285,
+        "warm_ttft_p95_ms": 31706.698037149996
+      },
+      "position": 1,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-1-native"
+    },
+    {
+      "arm": "bpf",
+      "block": 0,
+      "metrics": {
+        "adapter": {
+          "arrived": false,
+          "backing_activated": null,
+          "backing_read_stats": null,
+          "counters_total": null,
+          "decision_records": 0,
+          "diagnostics_error": null,
+          "enabled": null,
+          "expected": true,
+          "mode": null,
+          "policies_installed": 0,
+          "recompute_ns_per_token": null,
+          "recovery_records": 0
+        },
+        "arm": "bpf",
+        "barriers_recorded": 8,
+        "barriers_satisfied": 8,
+        "error": null,
+        "kv_pool_tokens": 4096,
+        "preemption_log_count": 0,
+        "ready": true,
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "server_returncode": 0,
+        "warm_attempts": 8,
+        "warm_elapsed_s": 127.052230375,
+        "warm_failures": 0,
+        "warm_output_tokens": 8192,
+        "warm_output_tokens_per_s": 64.47741984395684,
+        "warm_requests": 8,
+        "warm_requests_per_s": 0.0629662303163641,
+        "warm_ttft_max_ms": 32614.487584,
+        "warm_ttft_median_ms": 31266.9338525,
+        "warm_ttft_p95_ms": 32907.095433049995
+      },
+      "position": 2,
+      "run_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/cells/block-00/position-2-bpf"
+    }
+  ],
+  "kind": "gds-kv-reclaim-575",
+  "params": {
+    "arms": [
+      "stock",
+      "native",
+      "bpf"
+    ],
+    "attempts_per_cell": 1,
+    "blocks": 1,
+    "campaign_wall_clock_timeout": null,
+    "cold_output_tokens": 16,
+    "disk_uvm_enabled": true,
+    "disk_uvm_fault_lib": "/tmp/lmcache-diskuvm-serving-build-20260909.7dZdC8/libdiskuvm_fault.so",
+    "expected_driver": "575.57.08",
+    "gds_buffer_size_mib": 256,
+    "gds_policy_mode": "fifo",
+    "kv_cache_memory_bytes": 402653184,
+    "max_num_seqs": 2,
+    "model_path": "/home/yunwei37/.cache/huggingface/hub/models--Qwen--Qwen3-30B-A3B-FP8/snapshots/d206ba732169f29bb77fbf80fc2c4b81d4d30782",
+    "port": 18080,
+    "reclaim_modes": {
+      "bpf": "bpf",
+      "native": "native",
+      "stock": null
+    },
+    "retry": false,
+    "store_barrier_timeout_s": 120.0,
+    "warm_concurrency": 4,
+    "warm_output_tokens_bound": 1024,
+    "warm_prefix_tokens": {
+      "0": 1536,
+      "1": 1024,
+      "2": 1536,
+      "3": 1024,
+      "4": 1536,
+      "5": 1024,
+      "6": 1536,
+      "7": 1024
+    },
+    "warm_stagger_ms": 250.0
+  },
+  "summary": {
+    "cells_attempted": 3,
+    "kind": "gds-kv-reclaim-575",
+    "per_arm": {
+      "bpf": {
+        "adapter_counters": {
+          "coverage_unknown_candidates": [
+            null
+          ],
+          "disk_route_recompute_fallback": [
+            null
+          ],
+          "forced_zero_lookups": [
+            null
+          ],
+          "override_picks": [
+            null
+          ],
+          "read_pricing_missing_decisions": [
+            null
+          ],
+          "route_consumed_disk_prefix": [
+            null
+          ],
+          "route_consumed_full_recompute": [
+            null
+          ],
+          "seam_invocations": [
+            null
+          ],
+          "stock_kept": [
+            null
+          ]
+        },
+        "backing_activated": [
+          null
+        ],
+        "backing_read_stats": [
+          null
+        ],
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "decision_records": [
+          0
+        ],
+        "diagnostics_arrived": [
+          false
+        ],
+        "diagnostics_expected": [
+          true
+        ],
+        "errors": [
+          null
+        ],
+        "medians": {
+          "warm_output_tokens_per_s": 64.47741984395684,
+          "warm_requests_per_s": 0.0629662303163641,
+          "warm_ttft_median_ms": 31266.9338525
+        },
+        "per_cell_values": {
+          "kv_pool_tokens": [
+            4096
+          ],
+          "preemption_log_count": [
+            0
+          ],
+          "warm_elapsed_s": [
+            127.052230375
+          ],
+          "warm_failures": [
+            0
+          ],
+          "warm_output_tokens": [
+            8192
+          ],
+          "warm_output_tokens_per_s": [
+            64.47741984395684
+          ],
+          "warm_requests": [
+            8
+          ],
+          "warm_requests_per_s": [
+            0.0629662303163641
+          ],
+          "warm_ttft_max_ms": [
+            32614.487584
+          ],
+          "warm_ttft_median_ms": [
+            31266.9338525
+          ],
+          "warm_ttft_p95_ms": [
+            32907.095433049995
+          ]
+        },
+        "reclaim_enabled": true,
+        "reclaim_mode": "bpf",
+        "recovery_records": [
+          0
+        ],
+        "server_returncodes": [
+          0
+        ]
+      },
+      "native": {
+        "adapter_counters": {
+          "coverage_unknown_candidates": [
+            null
+          ],
+          "disk_route_recompute_fallback": [
+            null
+          ],
+          "forced_zero_lookups": [
+            null
+          ],
+          "override_picks": [
+            null
+          ],
+          "read_pricing_missing_decisions": [
+            null
+          ],
+          "route_consumed_disk_prefix": [
+            null
+          ],
+          "route_consumed_full_recompute": [
+            null
+          ],
+          "seam_invocations": [
+            null
+          ],
+          "stock_kept": [
+            null
+          ]
+        },
+        "backing_activated": [
+          null
+        ],
+        "backing_read_stats": [
+          null
+        ],
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "decision_records": [
+          0
+        ],
+        "diagnostics_arrived": [
+          false
+        ],
+        "diagnostics_expected": [
+          true
+        ],
+        "errors": [
+          null
+        ],
+        "medians": {
+          "warm_output_tokens_per_s": 66.62501902189736,
+          "warm_requests_per_s": 0.06506349513857164,
+          "warm_ttft_median_ms": 30249.5472285
+        },
+        "per_cell_values": {
+          "kv_pool_tokens": [
+            4096
+          ],
+          "preemption_log_count": [
+            0
+          ],
+          "warm_elapsed_s": [
+            122.956812925
+          ],
+          "warm_failures": [
+            0
+          ],
+          "warm_output_tokens": [
+            8192
+          ],
+          "warm_output_tokens_per_s": [
+            66.62501902189736
+          ],
+          "warm_requests": [
+            8
+          ],
+          "warm_requests_per_s": [
+            0.06506349513857164
+          ],
+          "warm_ttft_max_ms": [
+            31436.091738
+          ],
+          "warm_ttft_median_ms": [
+            30249.5472285
+          ],
+          "warm_ttft_p95_ms": [
+            31706.698037149996
+          ]
+        },
+        "reclaim_enabled": true,
+        "reclaim_mode": "native",
+        "recovery_records": [
+          0
+        ],
+        "server_returncodes": [
+          0
+        ]
+      },
+      "stock": {
+        "adapter_counters": {
+          "coverage_unknown_candidates": [
+            null
+          ],
+          "disk_route_recompute_fallback": [
+            null
+          ],
+          "forced_zero_lookups": [
+            null
+          ],
+          "override_picks": [
+            null
+          ],
+          "read_pricing_missing_decisions": [
+            null
+          ],
+          "route_consumed_disk_prefix": [
+            null
+          ],
+          "route_consumed_full_recompute": [
+            null
+          ],
+          "seam_invocations": [
+            null
+          ],
+          "stock_kept": [
+            null
+          ]
+        },
+        "backing_activated": [
+          null
+        ],
+        "backing_read_stats": [
+          null
+        ],
+        "cells_attempted": 1,
+        "cells_measured": 1,
+        "decision_records": [
+          0
+        ],
+        "diagnostics_arrived": [
+          false
+        ],
+        "diagnostics_expected": [
+          false
+        ],
+        "errors": [
+          null
+        ],
+        "medians": {
+          "warm_output_tokens_per_s": 73.1990471404751,
+          "warm_requests_per_s": 0.07148344447312022,
+          "warm_ttft_median_ms": 25076.623476499997
+        },
+        "per_cell_values": {
+          "kv_pool_tokens": [
+            4096
+          ],
+          "preemption_log_count": [
+            0
+          ],
+          "warm_elapsed_s": [
+            111.914025114
+          ],
+          "warm_failures": [
+            0
+          ],
+          "warm_output_tokens": [
+            8192
+          ],
+          "warm_output_tokens_per_s": [
+            73.1990471404751
+          ],
+          "warm_requests": [
+            8
+          ],
+          "warm_requests_per_s": [
+            0.07148344447312022
+          ],
+          "warm_ttft_max_ms": [
+            30477.64579
+          ],
+          "warm_ttft_median_ms": [
+            25076.623476499997
+          ],
+          "warm_ttft_p95_ms": [
+            31757.603531149995
+          ]
+        },
+        "reclaim_enabled": false,
+        "reclaim_mode": null,
+        "recovery_records": [
+          0
+        ],
+        "server_returncodes": [
+          0
+        ]
+      }
+    }
+  },
+  "timestamp": "20260909T015131",
+  "warm_orders": {
+    "0": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  }
+}

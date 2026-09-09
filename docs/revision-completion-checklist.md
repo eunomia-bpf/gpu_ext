@@ -1,5 +1,48 @@
 # Revision completion checklist
 
+## Experimental follow-up — 2026-09-08 PDT
+
+This update records experiment completion, not manuscript integration. This
+session does not edit the manuscript. Earlier measurements and historical
+status entries remain below; completed cells must not be repeated.
+
+- **Disk/UVM restoration is measured, no longer code-only.** The
+  [GPU-promotion report](../workloads/lmcache-disk/results-disk-uvm-gpu-promotion-20260908.md)
+  contains five completed 256 MiB runs. First GPU restoration has median
+  210.571 ms and repeated GPU read 0.251 ms. Compared with the earlier,
+  separately measured CPU-first implementation, repeated reads are 21.58x
+  faster but first restoration is 23.43% slower. This CPU-staged, explicit
+  read-only disk-UVM primitive is not NVMe-to-GPU P2P, automatic pressure
+  offload, or end-to-end LMCache KV integration. Existing LMCache serving
+  and native/BPF storage-policy results remain separate.
+- **Trampoline/work scaling and actual invocations are measured.** The
+  [Native/Off extension](../microbench/fig15-device/strict-warp-map-scaling/raw/off-scalability-20260908.d8sa7gog/RESULTS.md)
+  completes 240 timings and six separate count observations, through 8192
+  CTAs, published in `33c4b9b1`. It measures the full trampoline plus callback
+  and map update, with automatic warp execution off. At 8192 CTAs, overhead
+  is 349.524%, 88.351%, and 3.985% for work 0, 128, and 1024. Invocation
+  counts grow with CTA count. Neither constant total cost nor universally
+  small overhead is supported. The separate
+  [automatic-warp extension](../microbench/fig15-device/strict-warp-map-scaling/raw/larger-grid-20260908.bv03i7zm/RESULTS.md)
+  retains its 180 timings and 12 count observations in `bf4c108c`.
+- **Full-record GPU-local layout optimization is measured.** The
+  [SoA comparison](../workloads/llama.cpp/observability_overhead/revision-rq4/results-full-record-soa-20260908.md)
+  completes five blocks / 15 cells, published in `6fbf4c37`, retaining all
+  23,068,672 records per tool cell. Paired SoA/AoS throughput gain is median
+  19.229%; paired baseline losses are 27.621% / 39.385%. Readback is reported
+  separately. This is a layout comparison with automatic warp execution
+  off, not a replacement for the original Table 1 data or a claim of
+  identical record semantics across historical campaigns.
+- **XSched Level-2 host/device follow-up remains unfinished.** Existing
+  Level-1 results are unchanged. The
+  [latest tool-route attempt](../workloads/xsched/raw/level2-replay-diagnostic-20260908.d9Gydm/README.md)
+  observes real reactivation and resume launches, but two background
+  processes report missing output; the native SASS route still fails with
+  CUDA 700. `b83a66d7` preserves the diagnostic records and corrects the
+  earlier inference from a launch counter. These failed attempts are not
+  performance comparisons. Local OpenCode sessions continue implementation;
+  only failed cells need retry after a concrete repair.
+
 ## Current manuscript snapshot — 2026-09-07 PDT
 
 The current paper is `ccb5cf5`, compiled from `docs/paper/main.tex` with

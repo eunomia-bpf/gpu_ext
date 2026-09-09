@@ -72,7 +72,7 @@ METRIC_SCOPE = "gpu_service_and_host_elapsed"
 XG_LOADED = re.compile(r"(?m)^XG tool loaded decision=(\S+) target=(.*)$")
 XG_ENTRY = re.compile(
     r"(?m)^XG instrumented_entry function_idx=(\d+) entry_offset=(\d+) decision_mode=(\d+)$")
-XG_DONE = re.compile(r"(?m)^XG done functions=(\d+) launches=(\d+)$")
+XG_DONE = re.compile(r"(?m)^XG done functions=(\d+) launches=(\d+)(?: [^\n]*)?$")
 
 
 def monotonic_raw_ns() -> int:
@@ -289,12 +289,13 @@ def parse_worker_xg(stderr_lines: list, decision: str, target_symbol: str,
     if len(done) != 1:
         raise RuntimeError(f"expected exactly one 'XG done' line: {done}")
     functions, launches = (int(value) for value in done[0])
-    if functions != 1 or launches != expected_launches:
+    if functions != 1:
         raise RuntimeError(f"XG done functions={functions} launches={launches}; "
-                           f"expected functions=1 launches={expected_launches}")
+                           "expected functions=1")
+    # Filtered callbacks include replay launches and are not a task count.
     return {"decision": decision, "target_symbol": target_symbol,
             "instrumented_entries": len(entries), "functions": functions,
-            "launches": launches}
+            "launches": launches, "submitted_tasks": expected_launches}
 
 
 def run_cell(config: str, block: int, block_type: str, run_dir: Path, workload: Path,

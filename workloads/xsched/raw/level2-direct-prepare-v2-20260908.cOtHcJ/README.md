@@ -69,3 +69,19 @@ not identify whether the earlier busy state was residual execution or
 stale driver accounting, but it must not be reported as a clean idle
 return immediately after the failed retry. The completed Hummingbird
 campaign predates this XSched attempt and is not rerun.
+
+## Runner compatibility correction — 22:31 PDT
+
+Source review found a separate collection defect: `run_tool_pair.py` still
+required an `XG done` footer ending immediately after `launches`, whereas
+the tool now appends `sets`, `cbs`, and `disarms`. It also required callback
+count to equal submitted task count, although successful replay can add
+callbacks. The runner now accepts trailing diagnostic fields and records
+`launches` and `submitted_tasks` separately without that equality condition.
+The existing workload-output and service-sample behavior is unchanged.
+
+Root exercised the parser on this run's saved LC1 and BE1 stderr and checked
+both old and extended footer syntax. No GPU cell was repeated, no raw JSON
+was rewritten, and the missing-output failures above remain failures.
+This parser correction is not a repair of the device resume path or a new
+Level-2 performance result.

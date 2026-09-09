@@ -72,6 +72,49 @@ cannot reuse objects from the other layout. The collector prints
 AoS`). SoA measurements live in their own raw directories and results
 report and do not alter the measured AoS numbers above.
 
+## Opt-in 32-slot grouped SoA (AoSoA) layout (default OFF)
+
+`make LAYOUT=aosoa` builds a 32-slot grouped SoA (AoSoA) variant of the
+same bank value. It is opt-in and off by default; the default build keeps
+the measured record-major AoS layout, `LAYOUT=soa` keeps the measured
+field-major SoA layout, and neither alters the measured results above.
+
+For bank-local slot `s`, record index `k`, and field `f` in [0, 10), the
+grouped build places the u64 at `fields[k][s / 32][f][s % 32]`, i.e. u64
+index `(((k * (16384 / 32) + s / 32) * 10 + f) * 32 + s % 32)`. All ten
+fields of the 32 slots of one group then occupy 2,560 contiguous bytes at
+a fixed `k`: the 32 lanes of a group write 8 bytes apart within each
+field, and a slot's ten fields stay inside that 2,560-byte window instead
+of ten widely separated field planes. These logical 32-slot groups are
+not an assumption that every launch geometry maps them to exactly one
+physical warp.
+
+The BPF writer and the host collector select the layout from the same
+`FRDB_AOSOA_LAYOUT` compile flag through the shared
+`full_record_device_buffer_value.h`, so both sides always match.
+
+Unchanged across all three layouts: all ten u64 fields and per-thread
+timestamps (80 bytes/event), the per-slot counters, 256 records per slot,
+32 banks x 16384 slots, the coordinate mapping and bank ids, the single
+host drain buffer, and the post-client 32 whole-value drains. No
+sampling, deduplication, or leader-only filtering is introduced. Each
+bank value stays 335675408 bytes in every layout, so the observed BTF
+size truncation remains avoided.
+
+The AoSoA build goes to a separate object tree (`.output-aosoa/`) and a
+distinct binary (`full-record-device-buffer-aosoa`), so toggling `LAYOUT`
+cannot reuse objects from the other layouts. The collector prints
+`Full-record layout: 32-slot grouped SoA (AoSoA)`. AoSoA measurements
+live in their own raw directories and results report and do not alter
+the measured AoS and SoA numbers above.
+
+The five-block grouped-SoA versus current-SoA versus uninstrumented
+baseline comparison reuses the existing runner pattern in
+`paired-aosoa.py`: copy it into the new campaign raw directory next to
+the copied `full-record-device-buffer-aosoa` binary (renamed
+`kernelretsnoop`), then run it from that directory. The SoA arm reuses
+the frozen `raw/full-record-soa-20260908.HWfuRS/kernelretsnoop` binary.
+
 ## Coordinate mapping
 
 The BPF program reuses the existing per-thread linear coordinate
@@ -120,8 +163,11 @@ counts are reported without gating.
 - `full-record-device-buffer.c` — host collector (32 drains, one reused
   buffer).
 - `Makefile` — builds `full-record-device-buffer` (BPF object, skeleton,
-  collector).
-- `.gitignore` — ignores the local `.output/` build tree and binary.
+  collector) and the opt-in `LAYOUT=soa` / `LAYOUT=aosoa` variants.
+- `paired-aosoa.py` — five-block AoSoA/SoA/baseline paired runner template
+  for the new grouped-SoA comparison (copied into the campaign raw
+  directory at run time).
+- `.gitignore` — ignores the local `.output*` build trees and binaries.
 
 ## Build
 

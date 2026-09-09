@@ -1,0 +1,385 @@
+{
+  "formulas": {
+    "aosoa_vs_soa_pct": "100*(aosoa/soa-1)",
+    "aosoa_loss_pct": "100*(1-aosoa/baseline)",
+    "soa_loss_pct": "100*(1-soa/baseline)"
+  },
+  "rows": [
+    {
+      "block": 1,
+      "arm": "aosoa",
+      "throughput_tok_s": 23302.636206,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-01-aosoa",
+      "probe_log": "auto_warp_off_run_01/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "32-slot grouped SoA (AoSoA)",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1501484576,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 1,
+      "arm": "soa",
+      "throughput_tok_s": 27731.831886,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-01-soa",
+      "probe_log": "auto_warp_off_run_01/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "field-major SoA",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1496052858,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 1,
+      "arm": "baseline",
+      "throughput_tok_s": 38339.656257,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-01-baseline",
+      "probe_log": null
+    },
+    {
+      "block": 2,
+      "arm": "soa",
+      "throughput_tok_s": 27763.563111,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-02-soa",
+      "probe_log": "auto_warp_off_run_02/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "field-major SoA",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1523190551,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 2,
+      "arm": "baseline",
+      "throughput_tok_s": 38191.30742,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-02-baseline",
+      "probe_log": null
+    },
+    {
+      "block": 2,
+      "arm": "aosoa",
+      "throughput_tok_s": 23283.284125,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-02-aosoa",
+      "probe_log": "auto_warp_off_run_02/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "32-slot grouped SoA (AoSoA)",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1496518951,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 3,
+      "arm": "baseline",
+      "throughput_tok_s": 38274.255674,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-03-baseline",
+      "probe_log": null
+    },
+    {
+      "block": 3,
+      "arm": "aosoa",
+      "throughput_tok_s": 23249.143131,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-03-aosoa",
+      "probe_log": "auto_warp_off_run_03/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "32-slot grouped SoA (AoSoA)",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1514555078,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 3,
+      "arm": "soa",
+      "throughput_tok_s": 27768.426724,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-03-soa",
+      "probe_log": "auto_warp_off_run_03/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "field-major SoA",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1494318509,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 4,
+      "arm": "aosoa",
+      "throughput_tok_s": 23199.306739,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-04-aosoa",
+      "probe_log": "auto_warp_off_run_04/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "32-slot grouped SoA (AoSoA)",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1537781379,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 4,
+      "arm": "soa",
+      "throughput_tok_s": 27780.139512,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-04-soa",
+      "probe_log": "auto_warp_off_run_04/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "field-major SoA",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1495369166,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 4,
+      "arm": "baseline",
+      "throughput_tok_s": 38316.27224,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-04-baseline",
+      "probe_log": null
+    },
+    {
+      "block": 5,
+      "arm": "soa",
+      "throughput_tok_s": 27703.092753,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-05-soa",
+      "probe_log": "auto_warp_off_run_05/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "field-major SoA",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1484152860,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    },
+    {
+      "block": 5,
+      "arm": "baseline",
+      "throughput_tok_s": 38158.605798,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-05-baseline",
+      "probe_log": null
+    },
+    {
+      "block": 5,
+      "arm": "aosoa",
+      "throughput_tok_s": 23181.249846,
+      "returncode": 0,
+      "probe_teardown_error": null,
+      "cell_root": "pair-05-aosoa",
+      "probe_log": "auto_warp_off_run_05/probe.log",
+      "collector": {
+        "bank count": 32,
+        "slots per bank": 16384,
+        "total slots": 524288,
+        "records per slot": 256,
+        "record bytes": 80,
+        "layout": "32-slot grouped SoA (AoSoA)",
+        "value bytes (per bank)": 335675408,
+        "drain bytes": 10741613056,
+        "drain time ns": 1474305930,
+        "committed records": 23068672,
+        "active slots": 524288,
+        "overflow records": 0,
+        "out-of-range threads": 0,
+        "nonzero timestamps": 23068672
+      }
+    }
+  ],
+  "blocks": [
+    {
+      "block": 1,
+      "aosoa": 23302.636206,
+      "soa": 27731.831886,
+      "baseline": 38339.656257,
+      "aosoa_vs_soa_pct": -15.971522177862374,
+      "aosoa_loss_pct": 39.220539564056644,
+      "soa_loss_pct": 27.668021590734114
+    },
+    {
+      "block": 2,
+      "soa": 27763.563111,
+      "baseline": 38191.30742,
+      "aosoa": 23283.284125,
+      "aosoa_vs_soa_pct": -16.137262238595383,
+      "aosoa_loss_pct": 39.03512160778496,
+      "soa_loss_pct": 27.3039731117956
+    },
+    {
+      "block": 3,
+      "baseline": 38274.255674,
+      "aosoa": 23249.143131,
+      "soa": 27768.426724,
+      "aosoa_vs_soa_pct": -16.274899683438036,
+      "aosoa_loss_pct": 39.25644608474169,
+      "soa_loss_pct": 27.44881321659951
+    },
+    {
+      "block": 4,
+      "aosoa": 23199.306739,
+      "soa": 27780.139512,
+      "baseline": 38316.27224,
+      "aosoa_vs_soa_pct": -16.489595997245623,
+      "aosoa_loss_pct": 39.45312165628354,
+      "soa_loss_pct": 27.49780214005494
+    },
+    {
+      "block": 5,
+      "soa": 27703.092753,
+      "baseline": 38158.605798,
+      "aosoa": 23181.249846,
+      "aosoa_vs_soa_pct": -16.32252018688537,
+      "aosoa_loss_pct": 39.25027038798415,
+      "soa_loss_pct": 27.400144282912976
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "median": 38274.255674,
+      "min": 38158.605798,
+      "max": 38339.656257
+    },
+    "soa": {
+      "median": 27763.563111,
+      "min": 27703.092753,
+      "max": 27780.139512,
+      "drain_ms_median": 1495.369166
+    },
+    "aosoa": {
+      "median": 23249.143131,
+      "min": 23181.249846,
+      "max": 23302.636206,
+      "drain_ms_median": 1501.484576
+    },
+    "aosoa_vs_soa_pct": {
+      "median": -16.274899683438036,
+      "min": -16.489595997245623,
+      "max": -15.971522177862374
+    },
+    "aosoa_loss_pct": {
+      "median": 39.25027038798415,
+      "min": 39.03512160778496,
+      "max": 39.45312165628354
+    },
+    "soa_loss_pct": {
+      "median": 27.44881321659951,
+      "min": 27.3039731117956,
+      "max": 27.668021590734114
+    }
+  }
+}

@@ -104,7 +104,13 @@
 #   platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h (new)
 #   platforms/cuda/shim/src/intercept.cpp                     (4 hooks)
 #   platforms/cuda/shim/src/shim.cpp                          (grown-passthrough guard)
-#   platforms/cuda/hal/src/common/cuda_command.cpp            (original-layout marshal
+#   platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h (relay state)
+#   platforms/cuda/hal/src/common/cuda_command.cpp            (original-layout
+#                                                             marshal, relay fill)
+#   platforms/cuda/hal/src/level2/instrument.cpp              (relay adoption at
+#                                                             launch, fail-fast
+#                                                             XQueue launch, probe-2
+#                                                             entry printed %llx)
 #
 # Module images may also arrive wrapped in the CUDA runtime fatbin wrapper
 # (__fatBinC_Wrapper_t from fatbinary_section.h: magic 0x466243b1, version
@@ -143,6 +149,34 @@
 # changes the source compiles as g++ -O2 and as
 # -O3 -DRELEASE_MODE -DNDEBUG -Wall -Wextra -Werror,
 # for both the shim file and the HAL file.
+#
+# RESTORE TRANSFER TAIL. In the constant0-grown run (raw oAKEda) all six
+# workers grew both constant0 banks to 0x18a0, the first-launch 701 is
+# gone and the LC workers exit 0, but every BE hit CUDA 700 (illegal
+# address) around the level-2 restore: type=2 resume launches return 0
+# and the next EventSynchronize reports 700. The compiled resume
+# transfer of the sm_120 stub - HFMA2 R21=0, MOV R20 (call end 0x150),
+# CALL.REL.NOINC R2 0xfffffffc with the full-VA register target - was
+# verified on the actual instruction words and then REPLACED in the
+# emitted blob by the extractor (repo file level2/native/ldc_patcher.cpp,
+# not a patch file) with the tail byte-identical in both runtime-proven
+# upstream resume stubs (sm_70 and sm_86): LDC R21, c[0x0][0x188c];
+# LDC R20, c[0x0][0x1888]; RET.ABS.NODEC R20 0x0 (encodings
+# 0x00062300ff157b82, 0x00062200ff147b82, 0x0000000014007950 with
+# control words 0x000fc00000000800 x2 and 0x001fea0003e00000, copied
+# verbatim from both upstream arrays). Shared old-arch encodings are a
+# candidate, not proof of sm_120 support; only the run decides. The stub
+# sources were rebuilt from scratch and the extractor run reported
+# guardian 640 B and resume 336 B ending at the rewritten RET.ABS at
+# 0x140 (header native-retabs-20260909.20tGK7); the isolated HAL was
+# rebuilt with that header.
+# RUN OUTCOME (build owner, raw level2-native-retabs-20260909.oJDCbU):
+# one real native_blob cell completes with exit 0 (10:49:08 PDT
+# 2026-09-09) with no repeat of the previous CUDA 700; recorded summary
+# LC service p99 960855.232 us, BE 10.1635246925 kernels/s, one block
+# only. Bring-up scale, not a full paired performance result. The patch
+# set also now ships the two previously unlisted HAL files
+# (cuda_command.h and instrument.cpp) so it matches the isolated tree.
 #
 # BUILD NOTE: window_meta_extend.cpp enters the shim sources via
 # file(GLOB_RECURSE) evaluated at CMAKE CONFIGURE time. A build directory
@@ -1838,6 +1872,34 @@
  }
  
  static inline CUresult XLaunchHostFuncImpl(CUstream stream, CUhostFn fn, void *data)
+--- a/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h
++++ b/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h
+@@ -48,6 +48,14 @@
+     virtual ~CudaKernelCommand();
+     virtual unsigned int BlockCnt() const = 0;
+ 
++    // Native sm_120 window-args relay: marshal the kernel's real params plus
++    // the 28-byte guardian window args (c[0x0][0x1880..]) into one
++    // CU_LAUNCH_PARAM_BUFFER blob and adopt it for exactly the next launch.
++    // Returns an opaque token; pass it to RestoreWindowRelayExtra() after the
++    // launch to restore the previous configuration and free the blob.
++    void *AdoptWindowRelayExtra(const void *window_args);
++    void RestoreWindowRelayExtra(void *token);
++
+     // After CUDA 12, kFunc could be a CUkernel. We convert CUkernel to CUfunction
+     // by calling cuKernelGetFunction, the actual CUfunction is stored in kFuncHandle.
+     const CUfunction kFunc;
+@@ -73,6 +81,10 @@
+     char *param_data_ = nullptr;
+     char *extra_data_ = nullptr;
+     size_t extra_buffer_size_ = 0;
++    // window-args relay state (adopted/restored under the launch mutex)
++    void **relay_extra_ = nullptr;
++    char *relay_blob_ = nullptr;
++    size_t relay_blob_size_ = 0;
+ };
+ 
+ class CudaKernelLaunchCommand : public CudaKernelCommand
 --- a/platforms/cuda/hal/src/common/cuda_command.cpp
 +++ b/platforms/cuda/hal/src/common/cuda_command.cpp
 @@ -1,4 +1,5 @@
@@ -2190,3 +2252,45 @@
  CudaKernelLaunchExCommand::CudaKernelLaunchExCommand(const CUlaunchConfig *cfg, CUfunction func,
                                                       void **params, void **extra, bool deep_copy)
      : CudaKernelCommand(func, params, extra, deep_copy)
+--- a/platforms/cuda/hal/src/level2/instrument.cpp
++++ b/platforms/cuda/hal/src/level2/instrument.cpp
+@@ -194,7 +194,7 @@
+     // compute_task whose declared c[0x0] extent is only 0x3a0 bytes.
+     // Logging only: launch behavior is unchanged.
+     XINFO("native-700 probe 2: type=%d preempt_buf=0x%llx guardian=0x%llx"
+-          " entry=0x%llu idx=%lld killable=%u",
++          " entry=0x%llx idx=%lld killable=%u",
+           (int)type, *(unsigned long long *)preempt_buf,
+           *(unsigned long long *)guardian, (unsigned long long)entry_point,
+           (long long)*kernel_idx, *killable);
+@@ -207,9 +207,18 @@
+           memcmp(args_buf, dbg_readback, sizeof(args_buf)) == 0 ? 1 : 0,
+           (unsigned)dbg_readback[0], (unsigned)dbg_readback[8],
+           (unsigned)dbg_readback[16]);
++    // sm_120 window-args relay: adopt a launch blob carrying the kernel's
++    // real params and the 28-byte window args (absolute c[0x0][0x1880],
++    // blob-relative 0x1500 on this sm_120 parameter base) so the
++    // guardian/resume prefix reads real values through the normal parameter
++    // upload, independently of the debugger-window staging. The launch form
++    // (extra/params pointers) is adopted under this launch-mutex critical
++    // section and restored right after the launch.
++    void *relay_token = kernel->AdoptWindowRelayExtra(args_buf);
+     if (std::getenv("XG_NATIVE_ORIGINAL_ENTRY_CONTROL") == nullptr)
+         cuXtraSetEntryPoint(kernel->kFuncHandle, entry_point);
+     CUresult ret = kernel->LaunchWrapper(stream);
++    kernel->RestoreWindowRelayExtra(relay_token);
+     XINFO("native-700 probe 2: launch ret=%d", (int)ret);
+     cuXtraSetEntryPoint(kernel->kFuncHandle, kernel->entry_point_original);
+     launch_mtx_.unlock();
+@@ -362,7 +371,10 @@
+                     ? kKernelLaunchResume // the first preempted kernel
+                     : kKernelLaunchGuardian;
+     }
+-    instrument_ctx_->Launch(kernel, stream, launch_type);
++    // A failed XQueue launch must fail fast: the launch never reaches the
++    // device, so any wait that relies on the started stamp (device-written
++    // at kernel entry) would spin forever with no launch error reported.
++    CUDA_ASSERT(instrument_ctx_->Launch(kernel, stream, launch_type));
+ }
+ 
+ void InstrumentManager::Instrument(std::shared_ptr<CudaKernelCommand> kernel)

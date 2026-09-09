@@ -519,3 +519,102 @@ serving leases; the span fix, include dedup and both growth orders
 passed only structural review, brace/paren balance and the parse-
 back arithmetic simulation. Build owner compiles and re-runs when
 leases release.
+
+### 5.7 Restore/resume 700 -> RET.ABS transfer tail (this session)
+
+Run bc7d9583 (oAKEda) closed the constant0 question and exposed the next
+one. All six workers grew both .nv.constant0 banks to the declared
+0x18a0 extent (timer +0x1518, compute +0x1500, total +0x2a20 inside the
+0x2a40 reserve; fatbin-cubin repack 0x4808 -> 0x7228 with the grown
+elt0 padded size), the first launch no longer fails with 701, and both
+LC workers complete their 200 records and exit 0. Every BE then failed:
+after LC finished, the per-queue type=2 resume launches (each ret 0)
+are followed ~0.1 s later by CUDA 700 (illegal address) reported at
+CudaCommand::Synchronize (cuda_command.cpp:168), BE exit -11. 27 prior
+type=1 guardian launches per BE had all been accepted. Separate logger
+UnicodeDecodeError in three threads = run_tool_pair.py logging bug,
+owned elsewhere; not touched.
+
+Decode of the failing sequence (be1):
+- probe-2 prints entry with 0x%llu (decimal + misleading 0x prefix):
+  type=1 entry 129035017388544 = 0x755b4e600200 (ep_inst), type=2 entry
+  129035017388032 = 0x755b4e600000 (resume blob base), guardian arg
+  real hex 0x755b4e600200 in both. Instrument region: resume blob at
+  +0x000 (ROUND_UP(336,256) = 512 B), instrumented image (guardian 640 B
+  + kernel body) at +0x200. Debugger-window readback equal=1 (the 28
+  window bytes stage correctly; the relay double-writes the same bytes
+  via the normal param upload).
+- Restore selection is per XQueue: InstrumentContext::Launch picks
+  kKernelLaunchResume (entry = resume blob) iff the manager's
+  preempt_idx equals this kernel's idx, else the guardian entry. The
+  09:33:01 burst re-launches logged cmds idx >= resume_cmd_idx per
+  queue: two type=2 (idx 2, idx 3) plus type=1 fresh guardian relaunches
+  idx 2..5 across the four slots.
+
+Transfer mechanism evidence (root directive: inspect type2 target vs
+entry addresses and the actual call/reg ABI bytes; do not assume the
+REL/full-VA pair):
+- sm_120 stub (restore_exec_port.cubin, ptxas 12.9): tail is
+  0x100 LDC.64 R2, c[0x0][0x1888]; 0x110 STG.E clear restore flag;
+  0x120 HFMA2 R21 = 0; 0x130 MOV R20, 0x150 (call end = return site);
+  0x140 CALL.REL.NOINC R2 (callinfo imm 0xfffffffc); 0x150 EXIT ex-
+  cluded from the blob. This compiled full-VA-in-register REL call had
+  never been runtime-proven on sm_120.
+- Upstream sm_70 and sm_86 resume streams (arch/sm70.cpp, sm86.cpp)
+  transfer instead with LDC R20, c[0x0][0x1888]; LDC R21, c[0x0]
+  [0x188c]; RET.ABS.NODEC R20 0x0 - and carry byte-identical words:
+  enc 0x00062200ff147b82 / 0x00062300ff157b82 / 0x0000000014007950,
+  ctl 0x000fc00000000800 x2 / 0x001fea0003e00000. The sm_120 array's
+  own dead LDC.64 R2 load proves the 0x7b82 LDC opcode and 0x622
+  c-window addressing work on sm_120; the RET.ABS words had no sm_120
+  specimen.
+- RET.ABS semantics fit the launch-level entry: PC = (R21<<32)|R20,
+  no depth decrement; the whole block transfers to the instrumented
+  image at c[0x0][0x1888]; blocks whose restore flag == 0 exit via the
+  predicated EXIT at 0xe0 and skip the done blocks (per-block resume).
+
+Bounded change (apply_patch, level2/native/ldc_patcher.cpp only):
+after the existing word-level verifications of the compiled tail
+(exit structure, CALL encoding 0x...7344 with callinfo 0xfffffffc,
+MOV R20 restore_end preload, R21 zero marker, in-window entry load at
+dbg+8), the emitted blob's last three slots are rewritten to the
+shared sm_70/sm_86 triplet above; cubin/disasm-side checks stay on the
+compiled form so future compiler drift still fails loudly; emitted
+header comment, run log line and top-of-file doc updated. Live HAL
+touched only by the one-line probe-2 fix entry=0x%llu -> 0x%llx
+(instrument.cpp:197) so the next run prints the real VA.
+
+Validation by the build owner (no agent GPU/compiler use):
+- First retabs attempt accidentally rebuilt from stale cubins and was
+  retained as the wrong-old-cubin try.
+- Stub sources rebuilt from scratch, extractor run: guardian 640 B,
+  resume 336 B ending at the rewritten RET.ABS at 0x140 (emitted
+  header level2-build/.output/native-retabs-20260909.20tGK7/xg
+  _sm120_guardian_arrays.h); raw level2-native-retabs-20260909.oJDCbU.
+- RUN RESULT: real build + install exit 0; one real native_blob cell
+  completes exit 0 at 10:49:08 PDT 2026-09-09 with NO repeat of the
+  previous CUDA 700. cells/summary.json: LC service p99 960855.232 us,
+  BE 10.1635246925 kernels/s, one block only - bring-up scale, not a
+  full paired performance result.
+
+Portable patch refreshed (xsched-native-meta-extend.patch, 2296
+lines): now SEVEN sections - the two new-file window_meta_extend
+sections (regenerated current: put16/put32 helpers really gone, put64
+kept as used), intercept.cpp, shim.cpp, and the three HAL sections
+(two newly added to the patch): cuda_command.h (relay token decls + relay
+state fields), cuda_command.cpp (original-layout marshal + blob fill/
+adopt/restore) and instrument.cpp (relay adoption around LaunchWrapper,
+fail-fast CUDA_ASSERT launch, probe-2 %llx). The reported pristine-vs-live
+comparison covers five modified files and two new files, seven in total;
+no other platform file drifted. Forward apply onto the pristine tree
+byte-matches the live source for all 7 files; reverse apply restores
+pristine and drops the 2 new files. Original wrong-old-cubin attempt
+and all failed tries retained in the raw tree by the build owner.
+
+Status: the restore/resume CUDA 700 is cleared on the bring-up cell;
+A real launch/restore cycle now completes. What this run does NOT
+establish: multi-block and multi-cell paired performance, repeated
+preempt/restore cycles under load, and whether the shared old-arch
+control words leave scheduling margin on sm_120 (no hang observed;
+one experimental block is not a multi-block performance campaign; it
+contains six worker processes, 24 XQueues and 340 CUDA blocks per launch).

@@ -7,13 +7,21 @@ resume prefix that `GuardianSM120` copies into instruction memory:
   preemption buffer (`c[0x0][0x1880]`) and the kernel arguments
   (`kernel_idx` at `+16`), and it retains a conditional exit behind the
   build-only `xg_check_exit_marker` store. The marker keeps the exit
-  predicated after optimization; it writes to an otherwise unused local
-  buffer and does not affect the extracted stream.
+  predicated after optimization; it writes an otherwise unused device
+  marker and does not affect the extracted stream.
 - `restore_exec_port.cu` compiles to the resume stub. It reloads the
-  instrumented kernel entry point (`c[0x0][0x1888]`) and transfers through
-  an intact register-target `CALL.REL.NOINC R2`. The 0x1500-byte by-value
-  pad parameter forces both stubs' parameter regions into the debugger
-  window at `c[0x0][0x1880]..`, so no LDC immediate rewriting is needed.
+  instrumented kernel entry point (`c[0x0][0x1888]`). The 0x1500-byte
+  by-value pad parameter forces both stubs' parameter regions into the
+  debugger window at `c[0x0][0x1880]..`, so no LDC immediate rewriting is
+  needed. The extractor verifies the stub's compiled transfer tail
+  (`HFMA2 R21=0`, `MOV R20` call-end preload, `CALL.REL.NOINC R2
+  0xfffffffc`) on the actual instruction words, then rewrites the last
+  three slots of the emitted resume stream to the transfer mechanism
+  byte-identical in both runtime-proven upstream resume stubs (sm_70 and
+  sm_86): `LDC R21, c[0x0][0x188c]`, `LDC R20, c[0x0][0x1888]`,
+  `RET.ABS.NODEC R20 0x0`. The shared old-arch encodings are a candidate,
+  not proof of sm_120 support on their own; the passing native run
+  (raw `level2-native-retabs-20260909.oJDCbU`) is the evidence.
 
 `ldc_patcher.cpp` consumes the two compiled cubins plus `nvdisasm` and emits
 `xg_sm120_guardian_arrays.h`:
@@ -55,11 +63,17 @@ device of proof for the LDC immediate analysis).
   it. If the marker were removed from the stub, nvcc would collapse both
   exits into one unconditional `EXIT` and extraction fails (`exit_n != 2`).
 - The restore blob cuts at the final `EXIT` and keeps, in order: the
-  `@!P0 EXIT` (`0x...894d`), the R20/R21 return-site preload (`R20 = call
-  end offset`, `R21 = 0`), and the preserved `CALL.REL.NOINC R2 0xfffffffc`.
-  The call target is the full absolute entry address loaded from the
-  debugger arguments; the called instrumented image ends with the original
-  kernel `EXIT`, so the call never returns into the copied prefix.
+  `@!P0 EXIT` (`0x...894d`), the entry-point load, and the rewritten
+  transfer tail (`LDC R21/R20` from `0x188c/0x1888`, `RET.ABS.NODEC
+  R20 0x0`). The compiled call tail - `HFMA2 R21=0`, `MOV R20` (call end),
+  `CALL.REL.NOINC R2 0xfffffffc` - is still verified word-by-word before
+  the rewrite (it pins the compiler-observed shape); the emitted stream
+  replaces it. The transfer target is the full absolute entry address
+  loaded from the debugger arguments; the transferred-to instrumented
+  image ends with the original kernel `EXIT`, so nothing returns into the
+  copied prefix. First run with this form (raw
+  `level2-native-retabs-20260909.oJDCbU`) completed exit 0 with no repeat
+  of the previous CUDA 700.
 
 ## Header contract
 
@@ -78,9 +92,18 @@ HAL memcpy's. `static_assert`s pin `sizeof(array)` to the macros.
   wrong blob. Opcode constants (`0x094d`/`0x894d`/`0x794d`, `0x7344`,
   `0x7802`, `0x7431`) are pinned to the CUDA 12.9 (ptxas V12.9.86)
   specimens and must be re-derived for a newer toolkit.
-- The CALL `callinfo` immediate stays `0xfffffffc` exactly as compiled and
-  the return site (`R20 = 0x150`) lies past the blob end; both are benign
-  only because the callee never returns into the prefix.
+- The REPLACEMENT transfer words (`0x00062300ff157b82`,
+  `0x00062200ff147b82`, `0x0000000014007950` with control words
+  `0x000fc00000000800` x2 and `0x001fea0003e00000`) are copied verbatim
+  from the sm_70 and sm_86 upstream resume streams (the two archs carry
+  identical words). sm_120 does not emit them itself; they are a shared
+  old-arch candidate that the run validated under CUDA 12.9 / driver
+  575.57.08.
+- The compiled CALL `callinfo` immediate stays `0xfffffffc` exactly as
+  compiled and the return site (`R20 = 0x150`) lies past the blob end; in
+  the EMITTED stream both are replaced together with the call, so they
+  survive only inside the cubin verification path, never in what the HAL
+  copies.
 - The marker literal is `HFMA2`-encoded; there is no token-search fallback
   for it (EIATTR exit offsets are the cut mechanism).
 - Single-kernel cubins only; `.nv.merc.*` mirrored sections and

@@ -90,9 +90,10 @@ rerun from a fresh checkout.
 
 ## CPU-only reproduction
 
-For the supplemental LMCache physical-reclaim and XSched Level-2 campaigns,
-the following standard-library-only command reads all 30 published cell
-summaries and recomputes per-arm medians and within-block comparisons:
+For LMCache's paper-selected write-budget campaign and the supplemental
+physical-reclaim and XSched Level-2 campaigns, the following
+standard-library-only command reads all 55 published cell summaries
+(25 + 15 + 15) and recomputes per-arm medians and within-block comparisons:
 
 ```sh
 python3 -B scripts/artifact/reanalyze.py --campaign all
@@ -100,12 +101,21 @@ python3 -B scripts/artifact/reanalyze.py --campaign all
 
 It also works from another working directory when called by its absolute
 script path. This was executed successfully on 2026-09-09; the numbers match
-the recorded summaries. `--campaign lm` or `--campaign xsched` selects one,
+the recorded summaries. `--campaign storage`, `--campaign lm` or
+`--campaign xsched` selects one,
 and `--output NEW_FILE` saves the report without overwriting an existing file.
 This recomputes statistics from cell summaries, not GPU measurements or every
 per-request timestamp. Missing records are reported explicitly.
 See the [entrypoint reference](docs/artifact/reanalysis.md) for source maps,
 output files and the exact statistic definitions.
+
+The storage mode retains all five arms (FIFO, native/BPF with 10 ms and
+200 ms write-delay budgets), including per-block read-p99 and write-throughput
+comparisons. It reproduces 323.706609 / 123.141164 / 118.096937 ms for
+FIFO/native200/BPF200 and the BPF200/FIFO paired median change of -61.904198%.
+The BPF200/native200 comparison includes two adverse pairs. These are
+scheduled-arrival storage latencies, not vLLM TTFT or evidence of GPU-direct
+P2P. The command does not recompute percentiles from individual requests.
 
 To regenerate the paper-selected observability and seven-policy figures,
 run from the repository root with Python 3 and Matplotlib available. Outputs
@@ -193,7 +203,7 @@ to fill optional diagnostics.
 
 ## Open items
 
-- Extend portable CPU reanalysis beyond the two supplemental campaigns and
+- Extend portable CPU reanalysis beyond the three campaigns and
   two paper figures above; the complete paper is not yet a one-command rerun.
 - Check fresh-checkout build/run instructions per workload; a successful
   recorded run is not yet proof that all local build dependencies are published.

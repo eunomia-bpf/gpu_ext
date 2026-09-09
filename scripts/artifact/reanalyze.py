@@ -2,11 +2,20 @@
 """CPU-only reanalysis entrypoint for completed raw evidence.
 
 Recomputes cell metrics and paired statistics from existing raw
-result.json records. Two supplemental campaigns are supported:
+result.json records. Three campaigns are supported; the default
+(``--campaign all``) includes all three:
 
-  lm      LMCache disk physical-reclaim serving, pXYN4F
-  xsched  XSched Level-2 device policy pair, buBjns (+ reused bOiYh5
-          native block 0)
+  lm       LMCache disk physical-reclaim serving, pXYN4F
+  xsched   XSched Level-2 device policy pair, buBjns (+ reused bOiYh5
+           native block 0)
+  storage  LMCache GDS write-budget serving, five-block-02
+           (25 cells: 5 blocks x fifo/native10/bpf10/native200/bpf200)
+
+The storage campaign is a cell-summary statistical reanalysis: it
+recomputes arm medians and within-block paired ratios from the
+per-cell metrics recorded in each result.json. It does not re-derive
+percentiles from the per-request records retained in the same files,
+and it is not a new GPU measurement.
 
 Read-only: opens JSON records only. No GPU, no builds, no process
 control, no gates. The default action prints the report to stdout.
@@ -38,6 +47,24 @@ LM_REL = "workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F"
 XS_BUBJNS_REL = "workloads/xsched/raw/level2-device-policy-pair-20260909.buBjns"
 XS_BOIYH5_REL = "workloads/xsched/raw/level2-perlaunch-enable-20260909.bOiYh5"
 XS_ARMS = ("baseline", "native_port", "bpf_port")
+ST_REL = "workloads/lmcache-disk/raw/gds-write-budget-575-20260907-five-block-02"
+ST_ARMS = ("fifo", "native10", "bpf10", "native200", "bpf200")
+ST_PAIRS = (
+    ("bpf200", "bpf10"),
+    ("native200", "native10"),
+    ("bpf200", "native200"),
+    ("bpf10", "native10"),
+    ("bpf200", "fifo"),
+    ("native200", "fifo"),
+    ("bpf10", "fifo"),
+    ("native10", "fifo"),
+)
+ST_KEY_MAP = (
+    ("read_scheduled_p99_ms", "read_scheduled_offer_to_completion_p99_ms"),
+    ("read_scheduled_p50_ms", "read_scheduled_offer_to_completion_p50_ms"),
+    ("write_throughput_mib_s", "write_completion_throughput_mib_s"),
+    ("total_bandwidth_mib_s", "total_storage_bandwidth_mib_s"),
+)
 
 
 def die(msg: str, code: int = 1) -> None:
@@ -345,6 +372,209 @@ def xsched_report(root: Path, cells: dict, missing: List[str]) -> str:
     return "\n".join(lines)
 
 
+# ------------------------------------------------------------- storage campaign
+
+
+def load_st_cells(root: Path) -> Tuple[Dict[Tuple[int, str], dict], List[str]]:
+    """Return {(block, arm): record} plus human-readable notes.
+
+    Arm is taken from the position-<n>-<arm> directory name created by the
+    runner; per-cell metrics come from each cell's result.json. The
+    budget-exhausted write count is read from the campaign's existing
+    paired-analysis.json row for the same (block, position).
+    """
+    base = root / ST_REL
+    cells: Dict[Tuple[int, str], dict] = {}
+    notes: List[str] = []
+    if not base.is_dir():
+        return cells, [f"campaign directory not found: {ST_REL}"]
+    summary = read_json(base / "paired-analysis.json")
+    rows: Dict[Tuple[int, int], dict] = {}
+    if isinstance(summary, dict):
+        for row in summary.get("rows") or []:
+            if isinstance(row, dict):
+                b, p = num(row.get("block")), num(row.get("position"))
+                if b is not None and p is not None:
+                    rows[(int(b), int(p))] = row
+    for result_path in sorted(base.glob("block-*/position-*/result.json")):
+        rec = read_json(result_path)
+        if not isinstance(rec, dict):
+            notes.append(f"not a JSON object: {result_path.relative_to(root)}")
+            continue
+        parts = result_path.parent.name.split("-", 2)
+        bpart = result_path.parent.parent.name.split("-", 1)
+        if len(parts) != 3 or parts[0] != "position" or len(bpart) != 2:
+            notes.append(f"unexpected cell directory name: {result_path.relative_to(root)}")
+            continue
+        try:
+            block, position = int(bpart[1]), int(parts[1])
+        except ValueError:
+            notes.append(f"unexpected cell directory name: {result_path.relative_to(root)}")
+            continue
+        arm = parts[2]
+        if arm not in ST_ARMS:
+            notes.append(f"unexpected arm {arm!r}: {result_path.relative_to(root)}")
+        metrics = rec.get("metrics") if isinstance(rec.get("metrics"), dict) else {}
+        row = rows.get((block, position), {})
+        cells[(block, arm)] = {
+            "path": str(result_path.relative_to(root)),
+            "read_scheduled_p99_ms": num(metrics.get("read_scheduled_offer_to_completion_p99_ms")),
+            "read_scheduled_p50_ms": num(metrics.get("read_scheduled_offer_to_completion_p50_ms")),
+            "write_throughput_mib_s": num(metrics.get("write_completion_throughput_mib_s")),
+            "total_bandwidth_mib_s": num(metrics.get("total_storage_bandwidth_mib_s")),
+            "budget_exhausted": num(row.get("write_budget_exhausted")),
+            "error": rec.get("error"),
+            "cleanup_errors": rec.get("cleanup_errors") or [],
+        }
+    missing = []
+    for block in BLOCKS:
+        for arm in ST_ARMS:
+            if (block, arm) not in cells:
+                missing.append(f"block {block} arm {arm}: no result.json")
+    return cells, missing + notes
+
+
+def st_incomplete(cells: Dict[Tuple[int, str], dict]) -> List[str]:
+    notes = []
+    for (block, arm), rec in sorted(cells.items()):
+        for key in ST_KEY_MAP:
+            if rec[key[0]] is None:
+                notes.append(f"block {block} arm {arm}: {key[0]} missing")
+        if rec["error"] is not None:
+            notes.append(f"block {block} arm {arm}: error={rec['error']}")
+        if rec["cleanup_errors"]:
+            notes.append(f"block {block} arm {arm}: cleanup_errors={rec['cleanup_errors']}")
+    return notes
+
+
+def st_report(root: Path, cells: dict, missing: List[str], incomplete: List[str]) -> str:
+    lines = [f"== LMCache GDS write budget ({ST_REL.split('/')[-1]}) =="]
+    lines.append(f"source: {ST_REL}")
+    lines.append(f"cells: {len(cells)} present / {len(BLOCKS) * len(ST_ARMS)} expected")
+    lines.append(
+        "note: cell-summary statistical reanalysis. Arm medians and paired"
+    )
+    lines.append(
+        "      ratios are recomputed from the per-cell metrics recorded in each"
+    )
+    lines.append(
+        "      result.json; the per-request records in the same files are not"
+    )
+    lines.append(
+        "      reprocessed. This is not a raw-request reconstruction, not a new"
+    )
+    lines.append("      GPU measurement, and not evidence for GPUDirect P2P.")
+    if missing:
+        lines.append("missing cells:")
+        lines.extend(f"  {n}" for n in missing)
+    if incomplete:
+        lines.append("incomplete cells:")
+        lines.extend(f"  {n}" for n in incomplete)
+    if not cells:
+        lines.append("no usable cells; stopping campaign report.")
+        return "\n".join(lines)
+
+    lines.append(
+        "per-cell scheduled-arrival read p99/p50 (ms), write and total storage"
+    )
+    lines.append(
+        "throughput (MiB/s); budget-exhausted writes from paired-analysis.json:"
+    )
+    for block in BLOCKS:
+        for arm in ST_ARMS:
+            rec = cells.get((block, arm))
+            if rec is None:
+                continue
+            lines.append(
+                f"  block {block} {arm:<10} p99_ms={fmt(rec['read_scheduled_p99_ms'], '.3f')} "
+                f"p50_ms={fmt(rec['read_scheduled_p50_ms'], '.3f')} "
+                f"write_mib_s={fmt(rec['write_throughput_mib_s'], '.3f')} "
+                f"total_mib_s={fmt(rec['total_bandwidth_mib_s'], '.3f')} "
+                f"budget_exhausted={fmt(rec['budget_exhausted'], '.0f')}  ({rec['path']})"
+            )
+
+    lines.append("per-arm marginal medians over complete blocks:")
+    med: Dict[Tuple[str, str], Optional[float]] = {}
+    for key, _src in ST_KEY_MAP:
+        for arm in ST_ARMS:
+            vals = [
+                r[key] for (b, a), r in cells.items()
+                if a == arm and r[key] is not None
+            ]
+            med[(key, arm)] = median(vals) if vals else None
+            lines.append(f"  {key:<28} {arm:<10} {fmt(med[(key, arm)], '.6f')}")
+
+    lines.append(
+        "paired statistics, percent (p99: positive = slower tail; "
+        "write throughput: positive = higher):"
+    )
+    for cand, ref in ST_PAIRS:
+        for key in ("read_scheduled_p99_ms", "write_throughput_mib_s"):
+            per_block: Dict[int, float] = {}
+            for block in BLOCKS:
+                c = cells.get((block, cand), {}).get(key)
+                r = cells.get((block, ref), {}).get(key)
+                if c is not None and r:
+                    per_block[block] = 100.0 * (c / r - 1.0)
+            lines.append(f"  {key} {cand}_vs_{ref}:")
+            if not per_block:
+                lines.append("    insufficient complete blocks")
+                continue
+            lines.append(
+                "    per block: "
+                + " ".join(f"b{b}={fmt(v, '.4f')}" for b, v in sorted(per_block.items()))
+            )
+            lines.append(
+                f"    median of paired ratios: {fmt(median(list(per_block.values())), '.6f')}%"
+            )
+            cand_vals = [cells[(b, cand)][key] for b in per_block]
+            ref_vals = [cells[(b, ref)][key] for b in per_block]
+            lines.append(
+                f"    ratio of medians:         {fmt(100.0 * (median(cand_vals) / median(ref_vals) - 1.0), '.6f')}%"
+            )
+
+    lines.append("cross-check against existing paired-analysis.json:")
+    summary = read_json(root / ST_REL / "paired-analysis.json")
+    if not isinstance(summary, dict):
+        lines.append("  paired-analysis.json not present; skipped.")
+        return "\n".join(lines)
+    ok = True
+    arms = summary.get("arms") if isinstance(summary.get("arms"), dict) else {}
+    for arm in ST_ARMS:
+        entry = arms.get(arm) if isinstance(arms, dict) else None
+        src_med = entry.get("medians") if isinstance(entry, dict) else None
+        src_med = src_med if isinstance(src_med, dict) else {}
+        for key, src in ST_KEY_MAP:
+            ref_v = num(src_med.get(src))
+            mine = med.get((key, arm))
+            if ref_v is None or mine is None or abs(ref_v - mine) > 1e-9 * abs(ref_v):
+                ok = False
+                lines.append(f"  medians.{arm}.{src}: summary={ref_v} recomputed={mine} (MISMATCH)")
+    comparisons = summary.get("comparisons") if isinstance(summary.get("comparisons"), dict) else {}
+    for cand, ref in ST_PAIRS:
+        entry = comparisons.get(f"{cand}/{ref}") if isinstance(comparisons, dict) else None
+        for key in ("read_scheduled_p99_ms", "write_throughput_mib_s"):
+            _, src = next(item for item in ST_KEY_MAP if item[0] == key)
+            src_entry = entry.get(src) if isinstance(entry, dict) else None
+            ref_v = num(src_entry.get("median_pct")) if isinstance(src_entry, dict) else None
+            per_block: Dict[int, float] = {}
+            for block in BLOCKS:
+                c = cells.get((block, cand), {}).get(key)
+                r = cells.get((block, ref), {}).get(key)
+                if c is not None and r:
+                    per_block[block] = 100.0 * (c / r - 1.0)
+            mine = median(list(per_block.values())) if per_block else None
+            if ref_v is None or mine is None or abs(ref_v - mine) > 1e-9 * abs(ref_v):
+                ok = False
+                lines.append(
+                    f"  comparisons.{cand}/{ref}.{src}.median_pct: "
+                    f"summary={ref_v} recomputed={mine} (MISMATCH)"
+                )
+    if ok:
+        lines.append("  all arm medians and paired medians match the existing summary.")
+    return "\n".join(lines)
+
+
 # --------------------------------------------------------------------- output
 
 
@@ -353,7 +583,7 @@ def guarded_output(path: Path, root: Path) -> Path:
     paper = (root / "docs" / "paper").resolve()
     if target == paper or paper in target.parents:
         die("--output must be outside docs/paper")
-    for rel in (LM_REL, XS_BUBJNS_REL, XS_BOIYH5_REL):
+    for rel in (LM_REL, XS_BUBJNS_REL, XS_BOIYH5_REL, ST_REL):
         raw = (root / rel).resolve()
         if target == raw or raw in target.parents:
             die(f"--output must not write into raw campaign directory {rel}")
@@ -366,7 +596,9 @@ def main() -> None:
     )
     parser.add_argument("--repo-root", type=Path, default=None,
                         help="repository root (default: derived from this file's location)")
-    parser.add_argument("--campaign", choices=("all", "lm", "xsched"), default="all")
+    parser.add_argument("--campaign", choices=("all", "lm", "xsched", "storage"),
+                        default="all",
+                        help="campaign to reanalyze; default runs all three")
     parser.add_argument("--output", type=Path, default=None,
                         help="write the report to this path instead of stdout "
                              "(created exclusively, never overwritten; rejected "
@@ -385,6 +617,10 @@ def main() -> None:
     if args.campaign in ("all", "xsched"):
         cells, missing = load_xsched_cells(root)
         sections.append(xsched_report(root, cells, missing))
+    if args.campaign in ("all", "storage"):
+        cells, missing = load_st_cells(root)
+        incomplete = st_incomplete(cells)
+        sections.append(st_report(root, cells, missing, incomplete))
     if not sections:
         die("no campaign data found; nothing to report")
 

@@ -52,3 +52,20 @@ python3 -B -u workloads/xsched/level2/run_tool_pair.py run \
 `cells/protocol.json`, worker JSON files and `runner.log` retain paths,
 configuration, commands, environment, stdout/stderr and exit codes.
 No Level-2 performance claim or equivalence claim follows from this run.
+
+## Post-run busy-state observation and recovery
+
+At 21:57--21:59 PDT, after all workload processes had exited, the driver
+continued reporting GPU utilization 100%, memory 1 MiB, P0 and about
+106 W. There were no listed compute applications; only persistence held
+the GPU device nodes. Root restarted `nvidia-persistenced` under both
+experiment locks. The recorded query immediately fell to 2% / 51 W, and
+a subsequent query reached 0% / P8 / 11.45 W with 1 MiB retained. Both
+GDM and persistence services were active. No module reload, explicit GPU
+reset or host reboot was used; no OpenCode session was stopped.
+
+`persistence-recovery.log` records this operation. The observation does
+not identify whether the earlier busy state was residual execution or
+stale driver accounting, but it must not be reported as a clean idle
+return immediately after the failed retry. The completed Hummingbird
+campaign predates this XSched attempt and is not rerun.

@@ -193,7 +193,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  #include <cuxtra/cuxtra.h>
  
  #include "xsched/utils/common.h"
-@@ -9,10 +12,34 @@
+@@ -9,10 +12,41 @@
  #include "xsched/cuda/hal/common/cuda_assert.h"
  #include "xsched/cuda/hal/level2/instrument.h"
  
@@ -202,23 +202,30 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +#define XG_TOOL_CTX_SLOTS 8192
 +#define XG_TOOL_CTX_POOL_BYTES (XG_TOOL_CTX_STRIDE * XG_TOOL_CTX_SLOTS)
 +
-+/* Publish/unpublish the context block of the launch running on this thread.
-+ * The NVBit gate tool exports xg_host_publish and consumes the pointer in
-+ * its at-launch callback (one-shot per launch on the same thread). The tool
-+ * must be preloaded ahead of libhalcuda when the tool actuator is enabled. */
-+static void ToolPublish(CUdeviceptr ctx_dev)
++/* Arm the context block of the launch running on this thread in the NVBit
++ * gate tool. The tool exports xg_host_prepare and arms
++ * nvbit_set_at_launch directly with the provided (context, function), so
++ * value delivery does not depend on NVBit pre-callbacks, which are not
++ * delivered on every thread that issues a launch. All actuator launches
++ * serialize on launch_mtx_, so the armed value always belongs to the launch
++ * that follows it on the same thread. The trailing zero call clears the
++ * tool's one-shot marker only: the armed value must remain in place until
++ * the next launch overwrites it, because CTAs may enter after the launch
++ * call returns. The tool must be preloaded ahead of libhalcuda when the
++ * tool actuator is enabled. */
++static void ToolPrepare(CUcontext ctx, CUfunction func, CUdeviceptr ctx_dev)
 +{
-+    typedef void (*PublishFn)(uint64_t);
-+    static PublishFn publish = nullptr;
++    typedef void (*PrepareFn)(CUcontext, CUfunction, uint64_t);
++    static PrepareFn prepare = nullptr;
 +    static bool looked_up = false;
 +    if (!looked_up) {
-+        publish = (PublishFn)dlsym(RTLD_DEFAULT, "xg_host_publish");
++        prepare = (PrepareFn)dlsym(RTLD_DEFAULT, "xg_host_prepare");
 +        looked_up = true;
 +    }
-+    XASSERT(publish != nullptr,
-+            "Level-2 tool actuator enabled but xg_host_publish was not found; "
++    XASSERT(prepare != nullptr,
++            "Level-2 tool actuator enabled but xg_host_prepare was not found; "
 +            "preload the NVBit instrument tool first");
-+    publish((uint64_t)ctx_dev);
++    prepare(ctx, func, (uint64_t)ctx_dev);
 +}
 +
  using namespace xsched::cuda;
@@ -229,7 +236,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  {
      // check current context
      CUcontext current_ctx;
-@@ -28,13 +55,34 @@
+@@ -28,13 +62,34 @@
  
      CUdevice dev;
      CUDA_ASSERT(Driver::CtxGetDevice(&dev));
@@ -266,7 +273,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      // prepare the resume instructions
      size_t resume_size;
      const void *resume_host;
-@@ -71,6 +119,24 @@
+@@ -71,6 +126,25 @@
          size_t buf_size = 2 * sizeof(uint64_t) + 2 * sizeof(uint32_t) * block_cnt;
          preempt_buf_->ExpandTo(buf_size, op_stream_);
  
@@ -280,10 +287,11 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +            *(uint64_t *)(args + 0) = (uint64_t)preempt_buf_->Ptr();
 +            *(uint32_t *)(args + 24) = kKernelLaunchOriginal;
 +            launch_mtx_.lock();
-+            ToolPublish(tool_ctx_pool_dev_ +
++            ToolPrepare(kCtx, kernel->kFuncHandle,
++                        tool_ctx_pool_dev_ +
 +                        kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
 +            CUresult ret = kernel->LaunchWrapper(stream);
-+            ToolPublish(0);
++            ToolPrepare(kCtx, kernel->kFuncHandle, 0);
 +            launch_mtx_.unlock();
 +            return ret;
 +        }
@@ -291,7 +299,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
          // only preempt_buf is useful in this case
          memset(args_buf, 0, sizeof(args_buf));
          *preempt_buf = preempt_buf_->Ptr(); // use default (empty) preempt buffer
-@@ -86,6 +152,47 @@
+@@ -86,6 +160,48 @@
      *guardian    = kernel->entry_point_guardian;
      *kernel_idx  = kernel->GetIdx();
      *killable    = kernel->killable;
@@ -319,7 +327,8 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +            }
 +        }
 +        launch_mtx_.lock();
-+        ToolPublish(tool_ctx_pool_dev_ +
++        ToolPrepare(kCtx, kernel->kFuncHandle,
++                    tool_ctx_pool_dev_ +
 +                    kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
 +        CUresult ret = kernel->LaunchWrapper(stream);
 +        {
@@ -331,7 +340,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
 +                      (unsigned int)type, (int)ret);
 +            }
 +        }
-+        ToolPublish(0);
++        ToolPrepare(kCtx, kernel->kFuncHandle, 0);
 +        launch_mtx_.unlock();
 +        return ret;
 +    }
@@ -339,7 +348,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      CUdeviceptr entry_point = type == kKernelLaunchResume
                              ? entry_point_resume_ // launch to resume
                              : kernel->entry_point_guardian;
-@@ -110,6 +217,20 @@
+@@ -110,6 +226,20 @@
  {
      CUfunction func = kernel->kFuncHandle;
  
@@ -360,7 +369,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      {
          std::lock_guard<std::mutex> lock(instrument_mtx_);
          auto it = kernels_.find(func);
-@@ -172,6 +293,16 @@
+@@ -172,6 +302,16 @@
      preempt_buf_ptr_ = preempt_buf_->Ptr();
      instrument_ctx_ = InstrumentContext::Instance(ctx);
      op_stream_ = instrument_ctx_->OpStream();
@@ -377,7 +386,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  }
  
  /* preempt buffer layout: (see also tools/instrument/inject.cu)
-@@ -180,12 +311,14 @@
+@@ -180,12 +320,14 @@
   */
  void InstrumentManager::Deactivate()
  {
@@ -392,7 +401,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
      // read preempt_idx from preempt buffer
      CUDA_ASSERT(Driver::MemcpyDtoHAsync_v2(&preempt_idx_, preempt_buf_ptr_ + sizeof(uint64_t),
                                             sizeof(uint64_t), op_stream_));
-@@ -193,6 +326,9 @@
+@@ -193,6 +335,9 @@
      CUDA_ASSERT(Driver::MemsetD8Async(preempt_buf_ptr_, 0, 2 * sizeof(uint64_t), op_stream_));
      CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
  
@@ -402,7 +411,7 @@ diff --git a/platforms/cuda/hal/src/level2/instrument.cpp b/platforms/cuda/hal/s
  #define MAX_DEBUG_BLOCK_SIZE    1024
  #define PREEMPT_BUFFER_DEBUG    false
  
-@@ -218,6 +354,15 @@
+@@ -218,6 +363,15 @@
                      ? kKernelLaunchResume // the first preempted kernel
                      : kKernelLaunchGuardian;
      }

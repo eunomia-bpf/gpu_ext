@@ -14,6 +14,7 @@ Newer measurements do not silently replace the paper's selected cohort.
 | Find additional experiments and negative results | [Supplementary and historical results](#supplementary-and-historical-results) |
 | Build and run a workload again | [Runtime reproduction](#runtime-reproduction) |
 | Understand remaining release gaps | [Open items](#open-items) |
+| Navigate implementation, commands and records by role | [Artifact documentation index](docs/artifact/README.md) |
 
 The organization is logical; existing source and raw-data paths stay in place
 so old reports and commands retain their meaning:

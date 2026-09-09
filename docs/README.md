@@ -5,7 +5,7 @@ commands, start with the repository [artifact guide](../ARTIFACT.md).
 This directory index describes where documents live, not completion status.
 The manuscript submodule is kept separate from artifact maintenance.
 
-- `artifact/` — portable result-reanalysis and figure-reproduction instructions
+- [artifact/](artifact/README.md) — reproduction navigation, CPU commands and runtime dependencies
 - `paper/` — paper source (submodule → gbpf-paper)
 - `paper-material/` — reference papers (MSched, XRP, etc.)
 - `resubmission-v2/` — SOSP resubmission drafts and analysis

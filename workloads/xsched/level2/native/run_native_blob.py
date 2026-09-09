@@ -33,6 +33,15 @@ capture) is reused unchanged from the shared runner; that module owns all
 process cleanup semantics. This wrapper owns only the native environment
 and the single native-blob arm. It takes no GPU lock: root wraps the GPU
 lease around the invocation.
+
+The isolated native HAL install directory and the native xserver binary
+are explicit --hal-install-dir / --xserver-native options that retain the
+original hardcoded locations as defaults. main() resolves them once and
+threads the resolved paths through the required-component check, the
+worker LD_LIBRARY_PATH, the server launch, the recorded protocol, and
+each cell; nothing here mutates module globals. Callers that invoke the
+per-cell helpers without a paths argument get the original hardcoded
+paths.
 """
 
 from __future__ import annotations
@@ -66,8 +75,33 @@ NOT_APPLICABLE = ("not_applicable: the native cuXtra blob route runs without the
 HAL_LIB_NAMES = ("libshimcuda.so", "libhalcuda.so", "libpreempt.so", "libcuda.so.1")
 
 
-def native_worker_env(role: str) -> dict:
+def default_paths() -> dict:
+    """Component paths exactly as the runner hardcoded them before the CLI overrides."""
+    return {
+        "xserver_native": rtp.XSERVER_NATIVE,
+        "native_hal_install_dir": NATIVE_HAL_INSTALL,
+        "hal_lib_dir": NATIVE_HAL_LIB_DIR,
+    }
+
+
+def resolve_paths(args) -> dict:
+    """Resolve the CLI overrides (or the original defaults) once per invocation."""
+    def choose(value, default):
+        return (Path(value).expanduser().resolve()
+                if value else Path(default).expanduser().resolve())
+
+    hal_install = choose(args.hal_install_dir, NATIVE_HAL_INSTALL)
+    return {
+        "xserver_native": choose(args.xserver_native, rtp.XSERVER_NATIVE),
+        "native_hal_install_dir": hal_install,
+        "hal_lib_dir": hal_install / "lib",
+    }
+
+
+def native_worker_env(role: str, paths: dict = None) -> dict:
     """Native-blob worker environment (no target symbol, no tool preload)."""
+    if paths is None:
+        paths = default_paths()
     env = rtp.clean_env()
     env.update({
         "XSCHED_SCHEDULER": "GLB",
@@ -81,7 +115,7 @@ def native_worker_env(role: str) -> dict:
         # native cuXtra blob route: tool actuator explicitly OFF
         "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
         # shim isolation via LD_LIBRARY_PATH only (no NVBit LD_PRELOAD)
-        "LD_LIBRARY_PATH": str(NATIVE_HAL_LIB_DIR),
+        "LD_LIBRARY_PATH": str(paths["hal_lib_dir"]),
     })
     env["XG_SERVICE_ONLY"] = "1"
     if "XG_NATIVE_ORIGINAL_ENTRY_CONTROL" in os.environ:
@@ -101,21 +135,26 @@ def native_server_env() -> dict:
     return rtp.clean_env()
 
 
-def required_files(workload: Path) -> list:
-    required = [workload, rtp.XSERVER_NATIVE]
-    required += [NATIVE_HAL_LIB_DIR / name for name in HAL_LIB_NAMES]
+def required_files(workload: Path, paths: dict = None) -> list:
+    if paths is None:
+        paths = default_paths()
+    required = [workload, paths["xserver_native"]]
+    required += [paths["hal_lib_dir"] / name for name in HAL_LIB_NAMES]
     return [str(path) for path in required if not path.is_file()]
 
 
 def run_native_cell(block: int, block_type: str, run_dir: Path, workload: Path,
                     streams: int, tasks: int, reps: int, blocks: int,
-                    threads: int) -> dict:
+                    threads: int, paths: dict = None) -> dict:
+    if paths is None:
+        paths = default_paths()
     cpus = rtp.allowed_cpus(10)
     server = None
     workers = []
     try:
         server = rtp.ManagedProcess("xserver",
-                                    [str(rtp.XSERVER_NATIVE), "HPF", rtp.HPF_QUANTUM],
+                                    [str(paths["xserver_native"]), "HPF",
+                                     rtp.HPF_QUANTUM],
                                     native_server_env(), cpus[0])
         time.sleep(0.5)
         if server.proc.poll() is not None:
@@ -129,7 +168,8 @@ def run_native_cell(block: int, block_type: str, run_dir: Path, workload: Path,
                        str(reps), str(blocks), str(threads),
                        "1" if role == "be" else "0", "0"]
             workers.append(rtp.ManagedProcess(f"{role}{pid}", command,
-                                              native_worker_env(role), cpus[2:]))
+                                              native_worker_env(role, paths),
+                                              cpus[2:]))
         for worker in workers:
             worker.wait_event("ready")
 
@@ -222,7 +262,9 @@ def run_native_cell(block: int, block_type: str, run_dir: Path, workload: Path,
     return record
 
 
-def build_protocol(args, workload: Path) -> dict:
+def build_protocol(args, workload: Path, paths: dict = None) -> dict:
+    if paths is None:
+        paths = default_paths()
     return {
         "phase": "level2-native-blob-run",
         "scope": ("sm_120 Level-2 native cuXtra blob route bring-up on the isolated "
@@ -247,9 +289,9 @@ def build_protocol(args, workload: Path) -> dict:
         "paths": {
             "workload": str(workload),
             "workload_original_measured": str(ORIGINAL_MEASURED_WORKLOAD),
-            "xserver_native": str(rtp.XSERVER_NATIVE),
-            "native_hal_install_dir": str(NATIVE_HAL_INSTALL),
-            "hal_lib_dir": str(NATIVE_HAL_LIB_DIR),
+            "xserver_native": str(paths["xserver_native"]),
+            "native_hal_install_dir": str(paths["native_hal_install_dir"]),
+            "hal_lib_dir": str(paths["hal_lib_dir"]),
             "guard_tool": None,
         },
     }
@@ -299,6 +341,10 @@ def main() -> int:
                              "mismatch-diagnostic build; the original measured "
                              "worker is preserved unchanged at "
                              "service-output-20260908.66ppYl)")
+    parser.add_argument("--hal-install-dir", type=Path, default=None,
+                        help="override the isolated native HAL install directory")
+    parser.add_argument("--xserver-native", type=Path, default=None,
+                        help="override the native xserver binary")
     parser.add_argument("--reps", type=int, required=True,
                         help="kernel recurrence repetitions; set directly (the "
                              "campaign used 9511106)")
@@ -316,7 +362,8 @@ def main() -> int:
         parser.error("reps/tasks/blocks/threads must be positive")
     if args.repetitions < 1:
         parser.error("--repetitions must be positive")
-    missing = required_files(args.workload)
+    paths = resolve_paths(args)
+    missing = required_files(args.workload, paths)
     if missing:
         print(json.dumps({"error": "missing required components", "missing": missing},
                          indent=2))
@@ -325,7 +372,7 @@ def main() -> int:
     out_root = args.output or (XSCHED_DIR / "raw"
                                / f"level2-native-blob-{time.strftime('%Y%m%d.%H%M%S')}")
     out_root.mkdir(parents=True, exist_ok=False)
-    protocol = build_protocol(args, args.workload)
+    protocol = build_protocol(args, args.workload, paths)
     (out_root / "protocol.json").write_text(json.dumps(protocol, indent=2) + "\n")
     print(json.dumps(protocol, indent=2), flush=True)
 
@@ -335,7 +382,7 @@ def main() -> int:
         try:
             record = run_native_cell(block, "paired", cell_dir, args.workload,
                                      rtp.STREAMS, args.tasks, args.reps,
-                                     args.blocks, args.threads)
+                                     args.blocks, args.threads, paths)
             print(json.dumps(record), flush=True)
         except BaseException as exc:
             (cell_dir / "failure.json").write_text(json.dumps(

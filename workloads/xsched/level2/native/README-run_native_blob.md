@@ -56,6 +56,13 @@ GPU execution does not. Those attempts produced no native Level-2 service result
 
 ## Components (prebuilt; the runner builds nothing)
 
+The runner now accepts `--hal-install-dir` and `--xserver-native` alongside
+the existing `--workload` option. Supply locations from your own build;
+the historical paths below remain the defaults and execution records.
+The resolved overrides are used consistently by component lookup, worker
+library paths, the server command and `protocol.json`. This does not change
+the native cuXtra actuator or imply a new GPU measurement.
+
 | component | path |
 | --- | --- |
 | workload (default) | `workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload` (adds first-sink-index and actual/expected hex-float diagnostics to the existing failure print; same pass/fail/compute/timing logic, source `16a9aece`) |

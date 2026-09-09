@@ -1,5 +1,16 @@
 # XSched Level-2 sm_120 source checkpoint
 
+Current status (2026-09-09): the completed 15-cell NVBit-actuator
+policy-port comparison is reported in
+`../raw/level2-device-policy-pair-20260909.buBjns/README.md`. The canonical
+tool source was reconciled to the tested per-launch delivery order and rebuilt
+as a host component in
+`../raw/canonical-tool-build-20260909.MnNeOe/README.md`; that rebuild is not
+a new timing measurement. The original cuXtra native SASS route remains
+separate and is not claimed complete.
+
+## Historical 2026-09-08 source checkpoint
+
 Status: the device BPF guardian, sm_120 cubin and NVBit tool library are
 **built**, but end-to-end Level-2 execution is **not measured**. The existing
 Level-1 measurements and dependency checkout are unchanged. This is not a
@@ -67,3 +78,17 @@ The current HAL patch uses an 8192-slot mapped context pool, reserves slot
 zero, and does not retire assigned slots. This is a bring-up limitation,
 not support for unbounded long-running service. No binaries, cache payloads
 or historical-result replacements are included in this checkpoint.
+
+## 2026-09-09 source reconciliation
+
+Canonical tool source: `tool/xsched_guard_tool.cu`. Tested reference source:
+`tool/xsched_guard_tool_callback.cu`. The per-launch ordering validated in
+`../raw/level2-perlaunch-enable-20260909.bOiYh5/README.md` is now reconciled
+into the canonical tool: after target-launch instrumentation, the callback
+sets the per-launch value, then re-enables instrumentation. The host-side
+`xg_host_prepare` set remains the baseline fallback, and zero/disarm behavior
+is retained. The completed 15-cell comparison is in
+`../raw/level2-device-policy-pair-20260909.buBjns/README.md`; it covers this
+same NVBit-actuator native/BPF policy-port scope, not the original cuXtra
+native SASS route. This source reconciliation does not claim that a newly
+built canonical binary was measured.

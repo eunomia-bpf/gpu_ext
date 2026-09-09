@@ -1,5 +1,10 @@
 # Disk/UVM serving with valid descriptor and ioctl handling
 
+Final status: 13 cells saved; the runner stopped between cells after actual
+OOM failures. Original UVM restoration completed at 04:05:47 PDT. See
+[RESULTS.md](RESULTS.md) for all observations and the corrected interpretation.
+The live-run statements below are retained as the earlier execution record.
+
 ## Correction: interrupted requests in the first block
 
 The earlier version of this report incorrectly described all eight requests

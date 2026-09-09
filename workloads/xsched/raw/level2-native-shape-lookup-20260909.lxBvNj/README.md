@@ -1,4 +1,17 @@
-# Native Level-2 layout lookup candidate: queued
+# Native Level-2 layout lookup candidate: build succeeded, workload failed
+
+## Execution result — 2026-09-09 04:05 PDT
+
+After LMCache released both leases, the isolated install build completed.
+The six-process native cell failed before BE execution reached the running
+event: be1 exited 1 and be2/be3/be4 exited -11 (SIGSEGV). The runner exited 1.
+Raw process JSON and failure.json are retained under cells/block-01-native_blob;
+run.log includes the completed build and runner traceback. No native Level-2
+performance result is available from this candidate. The exact new crash
+location has not yet been localized; it must not be inferred from the previous
+701/4 failures. The source remains efb36b2c, with no in-run modifications.
+
+## Original queued record
 
 Root queued run.sh behind the current LMCache campaign using both shared
 GPU/struct-ops leases. It has not yet built or run at this start record.

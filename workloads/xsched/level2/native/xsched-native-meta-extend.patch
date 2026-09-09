@@ -257,7 +257,7 @@
 +extern "C" __attribute__((visibility("default"))) int XgHasRelayLayouts(void);
 --- /dev/null
 +++ b/platforms/cuda/shim/src/window_meta_extend.cpp
-@@ -0,0 +1,1015 @@
+@@ -0,0 +1,1385 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -360,15 +360,38 @@
 +// extent. All other records (EXIT_INSTR_OFFSETS 0x1c, SW_WAR 0x36, the
 +// .nv.merc mirrors, module-wide .nv.info) are left byte-identical.
 +//
-+// Limitation kept explicit: the current implementation does not grow the
-+// bank DATA image (.nv.constant0, 0x3a0 bytes for the specimen; the
-+// compiler rule from the kpspec specimen is .nv.constant0 == param_start +
-+// max ordinal end, so the compiler shape for the fused blob would be
-+// 0x18a0). Growing the section in place requires inserting bytes and
-+// rewriting every later section/table offset. Whether the driver sizes the
-+// c[0x0] bank from the EIATTR records above (making the data section
-+// irrelevant) or from the .nv.constant0 extent is unproven and is resolved
-+// by the actual run.
++// Pass D (same XG_NATIVE_META_KPARAM opt-in as pass C, constant0 growth):
++// the compiler rule (bigparam specimen 0x18a8 == 0x380 + 0x1528; the
++// workload kernels follow it: 0x3a0 == 0x380 + 0x20) sizes .nv.constant0
++// to param_start + max ordinal end, and pass C raises the max ordinal end
++// to 0x1520. Growing only the records leaves the bank DATA image at 0x3a0
++// while the declared extent says 0x18a0, so the 0x1520-byte launch blob
++// reaches past the section image the driver matches the param upload
++// against (current first-launch 701 even under the original-entry control
++// with resolver/lookup/marshaling verified good). Pass D therefore grows
++// the kernel's .nv.constant0 section to 0x380 + 0x1520 = 0x18a0 by zero
++// insertion at the section end. Because byte insertion shifts every later
++// file byte, the ELF is repacked in the owned copy: the section's sh_size
++// grows by the exact delta while all offsets move by the 16-byte-rounded
++// shift (sh_offset of every later section, e_phoff, e_shoff, PT_LOAD
++// p_offset/file-range, and the follower gaps stay alignment-clean since
++// the shift is a multiple of 16 and all following sections are aligned <=
++// 16). Inside a fatbin container the owning entry's padded-payload field
++// grows by the shift, the trailing container bytes (later entries) move,
++// and the container fileSize field (u64 at header +8) grows by the total.
++// The insertion bytes are zero: c[0x0] content beyond the original param
++// region has no compiler-defined image bytes (the launch parameter upload
++// plus the relay window fill [0x1500,0x151c) cover everything the kernel
++// reads).
++//
++// Reserve accounting: the owned copy carries, per pass-C-growable kernel,
++// the maximum rounded shift (0x1520 bytes) so the insertion memmove always
++// has destination room; the pre-pass counter overcounts (includes kernels
++// whose walk fails later), never undercounts.
++//
++// Idempotence: an already-extended image reports extents >= 0x1520 and is
++// left byte-identical (no ordinal growth, no constant0 growth), so any
++// re-resolved load of the same already-patched image is unchanged.
 +//
 +// This is a CPU-side byte patch of the module image before the real driver
 +// loads it (cuModuleLoadData copies the image, so the mutated buffer can be
@@ -387,19 +410,6 @@
 +// validation, so XgFreeExtendedImage is NOT safe for arbitrary foreign
 +// pointers.
 +
-+#include "xsched/cuda/shim/window_meta_extend.h"
-+
-+#include <algorithm>
-+#include <array>
-+#include <cstdint>
-+#include <cstdio>
-+#include <cstdlib>
-+#include <cstring>
-+#include <mutex>
-+#include <string>
-+#include <unordered_map>
-+#include <vector>
-+
 +#include "xsched/utils/log.h"
 +
 +namespace xsched::cuda {
@@ -408,6 +418,26 @@
 +
 +constexpr uint16_t kMetaParamStart = 0x380;  // sm_120 parameter-region base
 +constexpr uint16_t kMetaParamSize  = 0x1520; // covers window args rel 0x1500 + 0x1c, 16-aligned
++
++// Compiler-shape .nv.constant0 extent for a grown kernel: param_start +
++// grown max ordinal end (bigparam specimen 0x380 + 0x1528 = 0x18a8; the
++// grown fused-window extent gives 0x380 + 0x1520 = 0x18a0).
++constexpr size_t kMetaConst0Target = (size_t)kMetaParamStart + kMetaParamSize;
++// Owned-copy reserve per pass-C-growable kernel: worst-case rounded shift
++// is align16(0x18a0 - (0x380 + 4)) = 0x1520.
++constexpr size_t kConst0GrowReserve = 0x1520;
++
++// Little-endian stores mirroring the reads done by le(); all ELF/fatbin
++// fields this patcher rewrites.
++void put64(char *p, uint64_t v)
++{
++    for (int i = 0; i < 8; ++i) p[i] = (char)((v >> (8 * i)) & 0xff);
++}
++
++size_t align_up16(size_t v)
++{
++    return (v + 0xf) & ~(size_t)0xf;
++}
 +
 +// ---------------------------------------------------------------------
 +// Relay original-layout registry: for every kernel whose KPARAM table was
@@ -728,11 +758,14 @@
 +    return false;
 +}
 +
-+// Collect per-kernel nvinfo sections: names beginning ".nv.info.", i.e. one
-+// section per kernel. The module-wide ".nv.info" and the ".nv.merc.*"
-+// mirrors carry no PARAM_CBANK records and are deliberately left out.
++// Collect the per-kernel nvinfo sections (names beginning ".nv.info.", one
++// section per kernel) and, optionally, the per-kernel bank DATA sections
++// (".nv.constant0." + kernel name) that pass D grows. The module-wide
++// ".nv.info" and the ".nv.merc.*" mirrors carry no PARAM_CBANK records and
++// are deliberately left out.
 +bool elf_kernel_info_sections(const char *base, size_t size,
-+                              std::vector<NamedRange> *nvinfo_out)
++                              std::vector<NamedRange> *nvinfo_out,
++                              std::vector<NamedRange> *cs0_out = nullptr)
 +{
 +    if (!elf64le(base, size)) return false;
 +    uint64_t shoff = le(base + 0x28, 8);
@@ -759,21 +792,229 @@
 +        if (n_ofs >= str_left) continue;
 +        const char *name = shstr + n_ofs;
 +        size_t name_left = str_left - (size_t)n_ofs;
-+        if (name_left < 10) continue; // ".nv.info." + NUL minimum
-+        if (std::memcmp(name, ".nv.info.", 9) != 0) continue;
++        bool is_info = name_left >= 10 &&
++                       std::memcmp(name, ".nv.info.", 9) == 0;
++        bool is_cs0 = cs0_out != nullptr && name_left >= 15 &&
++                      std::memcmp(name, ".nv.constant0.", 14) == 0;
++        if (!is_info && !is_cs0) continue;
 +        char buf[256];
 +        size_t n = 0;
 +        while (n + 1 < sizeof(buf) && name[n] != '\0') buf[n] = name[n], ++n;
 +        buf[n] = '\0';
-+        // kernel mangled name: the section name minus the ".nv.info." prefix
-+        NamedRange r{(size_t)s_off, (size_t)s_size, buf + 9};
-+        nvinfo_out->push_back(r);
-+        if (s_size >= 12) {
-+            XDEBG("meta-extend: scan %s (0x%llx B)", buf,
-+                  (unsigned long long)s_size);
++        // kernel mangled name: the section name minus its prefix
++        size_t prefix = is_info ? 9 : 14;
++        NamedRange r{(size_t)s_off, (size_t)s_size, std::string(buf + prefix)};
++        if (is_info) {
++            nvinfo_out->push_back(r);
++            if (s_size >= 12) {
++                XDEBG("meta-extend: scan %s (0x%llx B)", buf,
++                      (unsigned long long)s_size);
++            }
++        } else {
++            cs0_out->push_back(r);
 +        }
 +    }
 +    return true;
++}
++
++// Grow one kernel's .nv.constant0 bank DATA section to target bytes by
++// zero insertion at the section end, then repack the ELF64 image in
++// place: e_phoff/e_shoff and every later section's sh_offset move by the
++// 16-byte-rounded shift, the grown section's sh_size grows by the EXACT
++// (unrounded) delta, and PT_LOAD program headers covering the insertion
++// point gain the shift in p_filesz/p_memsz (later segments move their
++// p_offset). The shift is a multiple of 16 and observed followers (the
++// largest sh_addralign after constant0 is 16) stay alignment-clean; the
++// rounded remainder between the section end and the next section start
++// is an inter-section gap, which ELF permits. `span` is the caller's
++// writable extent (fatbin entry payload end; owned-copy end for a bare
++// cubin) so the tail memmove stays inside the owned buffer. The reserve
++// for the shift is the caller's; on structural anomaly nothing is moved
++// and false is returned (fail-open: the caller keeps the records-only
++// state it already wrote).
++bool grow_constant0(char *base, size_t span, size_t c0_off, size_t c0_size,
++                    size_t target, size_t *out_shift)
++{
++    *out_shift = 0;
++    if (!elf64le(base, span)) return false;
++    if (c0_off > span || c0_size == 0 || c0_size > span ||
++        c0_off + c0_size > span || c0_off < 64) {
++        XWARN("meta-extend: constant0 extent 0x%zx@0x%zx outside the image",
++              c0_size, c0_off);
++        return false;
++    }
++    if (target == c0_size) return true; // already exact
++    if (target < c0_size) return true;  // bank image already larger
++    size_t delta_exact = target - c0_size;
++    size_t shift = align_up16(delta_exact);
++
++    const uint64_t shoff0 = le(base + 0x28, 8);
++    const uint16_t shent = (uint16_t)le(base + 0x3a, 2);
++    const uint16_t shnum = (uint16_t)le(base + 0x3c, 2);
++    const uint64_t phoff0 = le(base + 0x20, 8);
++    const uint16_t phent = (uint16_t)le(base + 0x36, 2);
++    const uint16_t phnum = (uint16_t)le(base + 0x38, 2);
++    if (shoff0 == 0 || shnum == 0 || shent < 0x40 ||
++        shoff0 > span || shnum > (span - shoff0) / shent)
++        return false;
++
++    // locate the exact constant0 section header entry (match by off+size)
++    size_t c0_idx = shnum;
++    for (uint16_t i = 0; i < shnum; ++i) {
++        const char *h = base + shoff0 + (uint64_t)i * shent;
++        if (le(h + 0x18, 8) == c0_off && le(h + 0x20, 8) == c0_size) {
++            c0_idx = i;
++            break;
++        }
++    }
++    if (c0_idx == shnum) {
++        XWARN("meta-extend: no section header entry matches the constant0 "
++              "extent 0x%zx@0x%zx", c0_size, c0_off);
++        return false;
++    }
++    { // reject NOBITS (no file bytes to grow) and the odd non-PROGBITS types
++        const char *h = base + shoff0 + (uint64_t)c0_idx * shent;
++        uint32_t s_type = (uint32_t)le(h + 4, 4);
++        if (s_type != 1) {
++            XWARN("meta-extend: constant0 section type %u is not PROGBITS; "
++                  "left unpatched", s_type);
++            return false;
++        }
++    }
++
++    // move the tail right and zero the inserted hole
++    std::memmove(base + c0_off + c0_size + shift,
++                 base + c0_off + c0_size, span - (c0_off + c0_size));
++    std::memset(base + c0_off + c0_size, 0, shift);
++
++    // ELF header: program/section header tables behind the hole move
++    if (phoff0 >= c0_off + c0_size)
++        put64(base + 0x20, phoff0 + shift);
++    if (shoff0 >= c0_off + c0_size)
++        put64(base + 0x28, shoff0 + shift);
++
++    // program headers: every segment strictly behind the hole moves; a
++    // PT_LOAD whose file range covers the insertion point grows its size
++    const size_t insert = c0_off + c0_size;
++    for (uint16_t i = 0; i < phnum; ++i) {
++        if (phent < 0x38) break;
++        char *p = base + le(base + 0x20, 8) + (uint64_t)i * phent;
++        uint32_t p_type = (uint32_t)le(p, 4);
++        uint64_t p_off = le(p + 0x08, 8);
++        if (p_off >= insert) { put64(p + 0x08, p_off + shift); continue; }
++        if (p_type != 1 /* PT_LOAD */) continue;
++        uint64_t p_filesz = le(p + 0x20, 8);
++        uint64_t p_memsz = le(p + 0x28, 8);
++        if (p_filesz == 0 || insert < p_off || insert > p_off + p_filesz)
++            continue;
++        put64(p + 0x20, p_filesz + shift);
++        if (p_memsz >= p_filesz)
++            put64(p + 0x28, p_memsz + shift);
++        else
++            put64(p + 0x28, (uint64_t)(p_filesz + shift));
++    }
++
++    // section headers: later sections move; the grown section's size grows
++    // by the exact delta (its start is behind the hole, untouched)
++    const uint64_t shoff1 = le(base + 0x28, 8);
++    for (uint16_t i = 0; i < shnum; ++i) {
++        char *h = base + shoff1 + (uint64_t)i * shent;
++        uint64_t s_off = le(h + 0x18, 8);
++        if (s_off >= insert) {
++            put64(h + 0x18, s_off + shift);
++        } else if ((size_t)i == c0_idx) {
++            put64(h + 0x20, c0_size + delta_exact);
++        }
++    }
++    XINFO("meta-extend: .nv.constant0 0x%zx -> 0x%zx (+0x%zx bytes, tail "
++          "shift +0x%zx)", c0_size, target, delta_exact, shift);
++    *out_shift = shift;
++    return true;
++}
++
++// Read-only pre-pass counter shared by both containers: kernels whose
++// nvinfo section has an eligible PARAM_CBANK (sm_120 page base, extent
++// below the raised one) will take pass B/C and, under META_KPARAM, a
++// constant0 pass D with a bounded worst-case shift. Overcounts (walk
++// failures later are ignored), never undercounts.
++size_t probe_extendable_kernels(const char *base, size_t size)
++{
++    size_t count = 0;
++    auto count_elf = [&](const char *elf, size_t span) {
++        if (span < 64 || span > kImageMaxBytes) return;
++        if (!elf64le(elf, span)) return;
++        uint64_t shoff = le(elf + 0x28, 8);
++        uint16_t shent = (uint16_t)le(elf + 0x3a, 2);
++        uint16_t shnum = (uint16_t)le(elf + 0x3c, 2);
++        uint16_t shstrndx = (uint16_t)le(elf + 0x3e, 2);
++        if (shoff == 0 || shnum == 0 || shent < 0x40 || shstrndx >= shnum ||
++            shoff > span || shnum > (span - shoff) / shent)
++            return;
++        const char *shstr_hdr = elf + shoff + (uint64_t)shstrndx * shent;
++        uint64_t str_off = le(shstr_hdr + 0x18, 8);
++        uint64_t str_size = le(shstr_hdr + 0x20, 8);
++        if (str_off > span || str_size > span - str_off) return;
++        const char *shstr = elf + str_off;
++        size_t str_left = (size_t)(span - str_off);
++        for (uint16_t i = 0; i < shnum; ++i) {
++            const char *h = elf + shoff + (uint64_t)i * shent;
++            uint64_t s_off = le(h + 0x18, 8);
++            uint64_t s_size = le(h + 0x20, 8);
++            if (s_off > span || s_size > span - s_off) return;
++            uint64_t n_ofs = le(h, 4);
++            if (n_ofs >= str_left) continue;
++            const char *name = shstr + n_ofs;
++            size_t name_left = str_left - (size_t)n_ofs;
++            if (name_left < 10 ||
++                std::memcmp(name, ".nv.info.", 9) != 0)
++                continue;
++            if (s_size < 4 + 8 + 4) continue; // one PARAM_CBANK record at least
++            const char *sec = elf + s_off;
++            bool eligible = false;
++            size_t o = 0;
++            while (o + 4 <= s_size) {
++                uint8_t fmt = (uint8_t)sec[o];
++                uint8_t id = (uint8_t)sec[o + 1];
++                if (fmt != kNvInfoFmt4) {
++                    o += 4;
++                    continue;
++                }
++                uint64_t paylen = (uint64_t)le(sec + o + 2, 2);
++                if (paylen > kNvInfoMaxPaylen || o + 4 + paylen > s_size)
++                    return; // anomaly: stop counting this section
++                if (id == kNvInfoParamCBank && paylen == 8) {
++                    uint16_t pstart = (uint16_t)le(sec + o + 8, 2);
++                    uint16_t psize = (uint16_t)le(sec + o + 10, 2);
++                    if (pstart == kMetaParamStart && psize < kMetaParamSize)
++                        eligible = true;
++                }
++                o += (size_t)4 + paylen;
++            }
++            if (eligible) ++count;
++        }
++    };
++    if (le(base, 4) == kFatbinMagic) {
++        size_t whole = 0;
++        bool legacy = false;
++        if (!fatbin_whole_size(base, size, &whole, &legacy) || whole > size)
++            return 0;
++        uint16_t hdrsz = (uint16_t)le(base + 6, 2);
++        size_t off = hdrsz;
++        while (off + 0x20 <= whole) {
++            const char *e = base + off;
++            uint16_t kind = (uint16_t)le(e, 2);
++            uint32_t ehdr = (uint32_t)le(e + 4, 4);
++            uint64_t padded = le(e + 8, 8);
++            if (ehdr < 0x28 || off + ehdr + padded > whole) break;
++            if (kind == 2 &&
++                std::memcmp(e + ehdr, "\x7f" "ELF", 4) == 0)
++                count_elf(e + ehdr, (size_t)padded);
++            off += (size_t)ehdr + (size_t)padded;
++        }
++    } else {
++        count_elf(base, size);
++    }
++    return count;
 +}
 +
 +// Patch the parameter-extent nvinfo records of one kernel section.
@@ -787,8 +1028,10 @@
 +int extend_kernel_info_section(const char *tag, const char *kernel_name,
 +                               char *base,
 +                               size_t /*sec_walk_span*/, size_t sec_off,
-+                               size_t sec_size, bool *wrote)
++                               size_t sec_size, bool *wrote,
++                               bool *grew_relay)
 +{
++    *grew_relay = false;
 +    if (sec_size < 4) return 0;
 +    const char *sec = base + sec_off;
 +
@@ -992,6 +1235,7 @@
 +                      (unsigned)(best_end - best_off), (unsigned)new_size,
 +                      (unsigned)kMetaParamSize);
 +                ++patched;
++                *grew_relay = true;
 +                // registry entries are ordinal-indexed (the HAL marshals
 +                // params[ordinal] positionally): CUDA param ordinals are
 +                // dense 0..n-1; sort and verify before registering
@@ -1023,36 +1267,108 @@
 +// Patch all eligible kernels of one cubin ELF in place. Returns false on
 +// structural anomalies (caller then uses the unpatched copy as-is; nothing
 +// aborts the load).
-+bool extend_cubin(const char *what, char *base, size_t size, int *patched)
++// Patch all eligible kernels of one cubin ELF in place: the nvinfo extent
++// records (pass A/B) and, under META_KPARAM, the KPARAM ordinal table
++// (pass C) are rewritten first — the record offsets are all collected
++// before any byte moves — then pass D grows the constant0 banks of exactly
++// the kernels whose ordinal table grew (descending section order so each
++// insertion's tail move does not invalidate the remaining section list;
++// the grower re-derives all table positions per call anyway). `movable_span`
++// is the byte extent that a constant0 insertion may shift: for a bare
++// cubin the owned-copy slack behind `size` already absorbs the shift, for
++// a fatbin entry it must reach the CURRENT container end so already-
++// processed later entries move coherently (the entry's padded field and
++// the container fileSize are then raised by the caller). The shift
++// consumption is debited from *reserve_left, which the owner of the
++// backing buffer sized per probed kernel before the copy; when the debit
++// would go negative the growth for that kernel is skipped (fail-open:
++// records-only state, warned). Returns false on structural anomalies;
++// *patched counts kernels with rewritten records and *grown the total
++// byte shift applied.
++bool extend_cubin(const char *what, char *base, size_t size,
++                  size_t movable_span, int *patched,
++                  size_t *reserve_left, size_t *grown)
 +{
 +    std::vector<NamedRange> sections;
-+    if (!elf_kernel_info_sections(base, size, &sections)) {
++    std::vector<NamedRange> cs0;
++    if (!elf_kernel_info_sections(base, size, &sections, &cs0)) {
 +        XDEBG("meta-extend: %s is not a supported ELF64 cubin", what);
 +        return false;
 +    }
++    // constant0 bank of every kernel whose ordinal table grew (first
++    // name match wins)
++    std::vector<const NamedRange *> grows;
 +    char tag[128];
 +    int idx = 0;
 +    bool wrote = false;
 +    for (const NamedRange &r : sections) {
 +        std::snprintf(tag, sizeof(tag), "%s[%d]", what, idx++);
++        bool grew = false;
 +        int rc = extend_kernel_info_section(tag, r.name.c_str(), base, size,
-+                                            r.off, r.size, &wrote);
++                                            r.off, r.size, &wrote, &grew);
 +        if (rc < 0) {
 +            XWARN("meta-extend: %s nvinfo parse anomaly; kernel left "
 +                  "unpatched", tag);
++            continue;
++        }
++        if (!grew || cs0.empty()) continue;
++        const NamedRange *c0 = nullptr;
++        for (const NamedRange &c : cs0) {
++            if (c.name == r.name) { c0 = &c; break; }
++        }
++        if (c0 == nullptr) {
++            XWARN("meta-extend: %s ordinal table grew but no .nv.constant0."
++                  "%s section exists; bank image left small", tag,
++                  r.name.c_str());
++        } else {
++            grows.push_back(c0);
 +        }
 +    }
 +    *patched = wrote ? 1 : 0;
++    if (grows.empty()) return true;
++
++    // descending constant0 offsets: each insertion shifts everything after
++    // it, so process the highest bank first; the grower re-derives all
++    // table positions per call. The movable span grows by every shift:
++    // earlier growths already extended the image tail, and a later
++    // insertion must move that WHOLE extended tail (tables included), so
++    // the span is re-based after each growth, not fixed at the original.
++    std::sort(grows.begin(), grows.end(),
++              [](const NamedRange *a, const NamedRange *b)
++              { return a->off > b->off; });
++    size_t grow_span = movable_span;
++    for (const NamedRange *g : grows) {
++        size_t shift = 0;
++        if (*reserve_left < kConst0GrowReserve) {
++            XWARN("meta-extend: owned-copy reserve exhausted before %s "
++                  ".nv.constant0 %s; bank image left small", what,
++                  g->name.c_str());
++            continue;
++        }
++        if (!grow_constant0(base, grow_span, g->off, g->size,
++                            kMetaConst0Target, &shift)) {
++            XWARN("meta-extend: %s .nv.constant0 %s growth failed; bank "
++                  "image left small", what, g->name.c_str());
++            continue;
++        }
++        *reserve_left -= shift;
++        *grown += shift;
++        grow_span += shift;
++    }
 +    return true;
 +}
 +
-+// Copy-and-patch the whole image held in data[0..size). Returns the number
-+// of kernels for which a record was rewritten (only used for the log line).
-+void meta_extend_image(char *data, size_t size)
++// Copy-and-patch the whole image held in data[0..size). The owned buffer
++// extends beyond `size` by the probe-sized slack (*reserve_left on entry,
++// debited as constant0 growth consumes it). Returns the total byte shift
++// applied through *grown.
++void meta_extend_image(char *data, size_t size, size_t *reserve_left,
++                       size_t *grown)
 +{
 +    if (le(data, 4) != kFatbinMagic) {
 +        int kernels = 0;
-+        extend_cubin("cubin", data, size, &kernels);
++        extend_cubin("cubin", data, size, size, &kernels, reserve_left,
++                     grown);
 +        if (kernels == 0) {
 +            XDEBG("meta-extend: cubin untouched (no eligible kernel)");
 +        }
@@ -1068,25 +1384,60 @@
 +        XWARN("meta-extend: fatbin bound re-check failed; loading unpatched");
 +        return;
 +    }
-+    uint16_t hdrsz = (uint16_t)le(data + 6, 2);
-+    size_t off = hdrsz;
++    // collect every kind-2 ELF entry first, then patch the payloads from
++    // the LAST entry back to the first: a constant0 growth moves the
++    // container tail (all later entries) coherently, which is only safe
++    // when those entries are already processed
++    struct FatEntry { size_t off; uint32_t hdr; uint64_t padded; };
++    std::vector<FatEntry> entries;
++    {
++        uint16_t hdrsz = (uint16_t)le(data + 6, 2);
++        size_t off = hdrsz;
++        while (off + 0x20 <= whole) {
++            const char *e = data + off;
++            uint16_t kind = (uint16_t)le(e, 2);
++            uint32_t ehdr = (uint32_t)le(e + 4, 4);
++            uint64_t padded = le(e + 8, 8);
++            if (ehdr < 0x28 || off + ehdr + padded > whole) {
++                XWARN("meta-extend: fatbin entry beyond container (off "
++                      "0x%llx); leaving the rest unpatched",
++                      (unsigned long long)off);
++                break;
++            }
++            if (kind == 2 &&
++                std::memcmp(e + ehdr, "\x7f" "ELF", 4) == 0)
++                entries.push_back({off, ehdr, padded});
++            off += (size_t)ehdr + (size_t)padded;
++        }
++    }
++    std::sort(entries.begin(), entries.end(),
++              [](const FatEntry &a, const FatEntry &b)
++              { return a.off > b.off; });
 +    int kernels = 0;
-+    while (off + 0x20 <= whole) {
-+        const char *e = data + off;
-+        uint16_t kind = (uint16_t)le(e, 2);
-+        uint32_t ehdr = (uint32_t)le(e + 4, 4);
-+        uint64_t padded = le(e + 8, 8);
-+        if (ehdr < 0x28 || off + ehdr + padded > whole) {
-+            XWARN("meta-extend: fatbin entry beyond container (off 0x%llx); "
-+                  "leaving the rest unpatched", (unsigned long long)off);
-+            break;
++    for (size_t i = 0; i < entries.size(); ++i) {
++        const FatEntry &en = entries[i];
++        char *elf = data + en.off + en.hdr;
++        size_t grown_before = *grown;
++        // container current end: grows with every growth so far
++        size_t cont_end = (size_t)le(data + 8, 8) +
++                          (size_t)le(data + 6, 2);
++        int k = 0;
++        // per-kernel tags inside one cubin keep the prior "what[kernel]"
++        // log shape; entry identity is not needed (nvcc containers hold
++        // one sm cubin entry per architecture)
++        extend_cubin("fatbin-cubin", elf, (size_t)en.padded,
++                     cont_end - (en.off + en.hdr),
++                     &k, reserve_left, grown);
++        kernels += k;
++        size_t delta = *grown - grown_before;
++        if (delta != 0) {
++            // the payload's file extent grew; raise the entry's
++            // padded-payload size and the container fileSize (the grower
++            // already moved the trailing container bytes)
++            put64(data + en.off + 8, en.padded + delta);
++            put64(data + 8, (uint64_t)(cont_end - (size_t)le(data + 6, 2)) +
++                                delta);
 +        }
-+        if (kind == 2) {
-+            char *elf = const_cast<char *>(e) + ehdr;
-+            if (std::memcmp(elf, "\x7f" "ELF", 4) == 0)
-+                extend_cubin("fatbin-cubin", elf, (size_t)padded, &kernels);
-+        }
-+        off += (size_t)ehdr + (size_t)padded;
 +    }
 +    if (kernels == 0) {
 +        XDEBG("meta-extend: fatbin had no eligible kernel");
@@ -1178,13 +1529,28 @@
 +    }
 +
 +    size_t wrap = wrapped ? kFatbinWrapCopy : 0;
++    // pass D reserve: worst-case constant0 shift per pass-C-growable
++    // kernel (probe counts eligible nvinfo sections over the SOURCE
++    // layout; collection precedes all byte moves in the patcher)
++    size_t grown_total = 0;
++    size_t reserve = 0;
++    if (meta_kparam_enabled()) {
++        size_t kernels = probe_extendable_kernels(wrapped ? nest : b, size);
++        reserve = kernels * kConst0GrowReserve;
++        if (kernels != 0) {
++            XINFO("meta-extend: %zu growable kernel(s) probed, constant0 "
++                  "reserve 0x%llx bytes", kernels,
++                  (unsigned long long)reserve);
++        }
++    }
 +    try {
 +        void *base = nullptr;
-+        // header-checked allocation: [kRectMagic | copy size | image bytes];
-+        // the wrapper case prepends a 32-byte retargeted wrapper copy
-+        // (24 bytes per fatbinary_section.h plus 8 zero pad) in front of
-+        // the nested container copy, so one free covers both
-+        void *block = std::malloc(kRectHdrSize + wrap + size);
++        // header-checked allocation: [kRectMagic | copy size | image bytes
++        // (+ constant0 growth slack)]; the wrapper case prepends a
++        // 32-byte retargeted wrapper copy (24 bytes per
++        // fatbinary_section.h plus 8 zero pad) in front of the nested
++        // container copy, so one free covers both
++        void *block = std::malloc(kRectHdrSize + wrap + size + reserve);
 +        base = block;
 +        if (base == nullptr) {
 +            XWARN("meta-extend: image copy allocation failed; loading "
@@ -1192,7 +1558,6 @@
 +            return out;
 +        }
 +        *(uint64_t *)base = kRectMagic;
-+        *((uint64_t *)base + 1) = (uint64_t)(wrap + size);
 +        char *data = (char *)base + kRectHdrSize;
 +        if (wrapped) {
 +            std::memcpy(data, b, kFatbinWrapSize);
@@ -1200,16 +1565,21 @@
 +            // retarget the copy's data field at the nested fatbin copy
 +            *(char **)(data + 8) = data + wrap;
 +            std::memcpy(data + wrap, nest, size);
-+            meta_extend_image(data + wrap, size);
++            meta_extend_image(data + wrap, size, &reserve, &grown_total);
++            *((uint64_t *)base + 1) = (uint64_t)(wrap + size + grown_total);
 +            XINFO("meta-extend: owned fatbin-wrapper copy 0x%llx + 0x%llx "
-+                  "bytes (source wrapper 0x%llx)",
++                  "bytes (constant0 grown +0x%llx, source wrapper 0x%llx)",
 +                  (unsigned long long)wrap, (unsigned long long)size,
++                  (unsigned long long)grown_total,
 +                  (unsigned long long)(uintptr_t)image);
 +        } else {
 +            std::memcpy(data, b, size);
-+            meta_extend_image(data, size);
-+            XINFO("meta-extend: owned copy 0x%llx bytes "
-+                  "(source image 0x%llx)", (unsigned long long)size,
++            meta_extend_image(data, size, &reserve, &grown_total);
++            *((uint64_t *)base + 1) = (uint64_t)(size + grown_total);
++            XINFO("meta-extend: owned copy 0x%llx bytes (constant0 grown "
++                  "+0x%llx, source image 0x%llx)",
++                  (unsigned long long)size,
++                  (unsigned long long)grown_total,
 +                  (unsigned long long)(uintptr_t)image);
 +        }
 +        out.ptr = data;

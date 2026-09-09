@@ -1,0 +1,23 @@
+2026-09-09T09:30:06-07:00
+-- Building platform: cuda
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/build
+[ 11%] Built target boost_container
+[ 19%] Built target utils
+[ 29%] Built target ipc
+[ 29%] Built target protocol
+[ 55%] Built target sched
+[ 70%] Built target preempt
+[ 93%] Built target halcuda
+[ 94%] Building CXX object platforms/cuda/CMakeFiles/shimcuda.dir/shim/src/window_meta_extend.cpp.o
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/shim/src/window_meta_extend.cpp:178:6: error: ‘void xsched::cuda::{anonymous}::put32(char*, uint32_t)’ defined but not used [-Werror=unused-function]
+  178 | void put32(char *p, uint32_t v)
+      |      ^~~~~
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/shim/src/window_meta_extend.cpp:172:6: error: ‘void xsched::cuda::{anonymous}::put16(char*, uint16_t)’ defined but not used [-Werror=unused-function]
+  172 | void put16(char *p, uint16_t v)
+      |      ^~~~~
+cc1plus: all warnings being treated as errors
+gmake[2]: *** [platforms/cuda/CMakeFiles/shimcuda.dir/build.make:118: platforms/cuda/CMakeFiles/shimcuda.dir/shim/src/window_meta_extend.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:604: platforms/cuda/CMakeFiles/shimcuda.dir/all] Error 2
+gmake: *** [Makefile:136: all] Error 2

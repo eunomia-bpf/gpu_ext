@@ -436,3 +436,86 @@ shape MISS, shrunken ordinal MISS, empty registry lacks entries and
 misses. Patch regenerated (1822 lines, five file sections incl.
 shim.cpp and cuda_command.cpp), forward apply byte-matches the live
 tree, reverse apply restores pristine.
+
+### 5.6 First-launch 701 localization + .nv.constant0 pass D (this session)
+
+Failure chain (root artifacts; no new GPU work needed): the lxBvNj run
+(build efb36b2c, both knobs) died on the FIRST instrumented launch:
+launch ret 0x2bd (701 CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) at
+instrument.cpp:377 CUDA_ASSERT inside InstrumentManager::Launch, first
+launch = guardian (kKernelLaunchGuardian, preempt_idx 0); the BE's
+exit(1) is what the other workers' SIGSEGV teardown (exit-handler
+races, window-relay refusals at cuda_command.cpp:348 after registry
+destructors) rode on - those are symptoms, not causes.
+
+Root's three read-only diagnostics exonerated the layers built in
+5.3-5.5: (a) KKFqHz snapshot #1 - the resolver returns the shim's own
+exports (nm-matching addresses); (b) snapshot #2 - the FIRST compute
+ctor's GetXgOriginalLayout returns TRUE and marshals the registered
+original sizes (8/8/4/4/8) - lookup/marshaling work end to end;
+(c) the matched original-entry control (efb36b2c + META_EXTEND +
+META_KPARAM + ORIGINAL_ENTRY_CONTROL) still 701s the FIRST LaunchWrapper
+- so the rejection happens at the driver's launch validation of the
+declared image extents, not in the shim's blob or relay path.
+
+The remaining declared-vs-image gap is the bank DATA section. The
+compiler rule recorded on the bigparam specimen (5.3, re-verified by
+parsing the freshly compiled bigk.cubin: V2 records index/ord/off/
+plain_size/attrs with ordinal 0 = 0x1520-byte struct, PARAM_CBANK
+psize CBANK_PARAM_SIZE = 0x1528 = max ordinal end, .nv.constant0 =
+0x380 + 0x1528 = 0x18a8) extends to our kernels: their .nv.constant0
+(0x388/0x3a0 = 0x380 + original max end) matches the OLD extent. Pass C
+grows the max ordinal end to 0x1520, so a blob-form launch declares a
+param region that reaches 0x18a0 while the bank image stops at 0x3a0 -
+the 0x1500-block window args read past the compiled bank image. The
+HX4CV3 0x20-buffer acceptance on this image shows bank-overrun alone
+did not gate the OLD (< grown extent) launches; the grown-declared
+launch is the first one that must source bytes beyond 0x3a0, which
+makes the constant0 extent the one declared-shape candidate left.
+
+Pass D (in window_meta_extend.cpp, same XG_NATIVE_META_KPARAM gate as
+pass C): grow each grown kernel's .nv.constant0 to 0x380 + 0x1520 =
+0x18a0 by zero insertion at the section end and an ELF64 repack in the
+owned copy - sh_size +delta_exact (0x1500 compute / 0x1518 timer),
+sh_offset of every later section +aligned shift (align_up16; 0x1520/
+0x1500 both, keeping follower alignments <= 16 and p_align 8 congruence),
+e_phoff/e_shoff, and PT_LOAD p_offset/p_filesz/p_memsz moved per the
+insertion point; inside the fatbin container the owning entry's
+padded-payload field and the container fileSize are raised by the
+entry's total and the trailing bytes move with each growth. The
+movable span is re-based by every shift (root caught the fixed-span
+bug: after the first growth the ELF tables sit beyond the old span, so
+the second growth would have been rejected by the table-bounds check or
+moved a stale tail). Reserve: one worst-case shift (0x1520) per probe-
+counted growable kernel, probed read-only before the owned copy is
+allocated (overcounts, never undercounts); the shift consumption is
+debited at growth time and a drained reserve fails open (records-only
+state, warned). Idempotent: extents >= 0x1520 take the no-write path.
+
+Record facts driving the code (read-only parses, exact): workload
+container at the priority_workload binary offset 0x9bb88 = nested
+fatbin 0x4818 in one kind-2 entry (padded 0x4790, entry hdr 0x78,
+vaddr(p_offset) values 0x0 for LOADs, all p_align 8, PH table last,
+one 39-section cubin); inserts at 0x3228 (compute, +0x1500) then
+0x2e88 (timer, +0x1520) both inside PH[4]'s file range; totals: grown
+0x2a20, padded 0x4790 -> 0x71b0, fsize 0x4808 -> 0x7228, owned copy
+0x4818 + reserve 0x2a40 = fits. The entry header's unknown fields (u32
+0x58 at +0x14, name string inside 0x78) look like flags/metadata, not
+extents (the +0x10 u64 is 0); if the driver validates a hidden size
+field the run will say so. Windows relay blob [0x1500,0x151c) stays
+inside the grown bank; marshaling (orginals registry) is untouched.
+
+Patch regenerated in place (workloads/xsched/level2/native/
+xsched-native-meta-extend.patch, 2203 lines: same five file sections;
+the two window_meta_extend files remain new-file diffs,
+intercept/shim/cuda_command modifications unchanged - originals
+registry, RTLD_DEFAULT resolver and visibility fixes all preserved).
+Forward apply to the pristine tree (/tmp/opencode/relay_pristine)
+byte-matches the live source for all five files; reverse apply
+restores pristine exactly (two new files dropped again). The dup
+include block in window_meta_extend.cpp is removed (one copy left).
+NOT REPEATED here: compile of the new code was not possible during the
+serving leases; the span fix, include dedup and both growth orders
+passed only structural review, brace/paren balance and the parse-
+back arithmetic simulation. Build owner compiles and re-runs when
+leases release.

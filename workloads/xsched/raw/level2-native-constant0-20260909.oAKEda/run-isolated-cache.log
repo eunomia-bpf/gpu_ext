@@ -1,0 +1,104 @@
+2026-09-09T09:32:32-07:00
+warning: `--no-sync` has no effect when used alongside `--no-project`
+{
+  "phase": "level2-native-blob-run",
+  "scope": "sm_120 Level-2 native cuXtra blob route bring-up on the isolated native HAL install: GuardianSM120 serves the captured SASS arrays; no NVBit tool, no tool-entry accounting (not applicable); service-only metrics; the completed historical baseline is not rerun and no BPF raw-blob arm is run",
+  "config_order": [
+    "native_blob"
+  ],
+  "pair_blocks": 1,
+  "initial_run": false,
+  "streams": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "tasks_per_stream": 50,
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "fixed_delay_ns": 5000000,
+  "clock_offset_ns": 0,
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "worker_environments": {
+    "lc": {
+      "CUDA_HOME": "/usr/local/cuda-12.9",
+      "XSCHED_SCHEDULER": "GLB",
+      "XSCHED_AUTO_XQUEUE": "ON",
+      "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+      "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+      "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+      "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+      "XSCHED_CUDA_LV2_PORT_120": "1",
+      "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+      "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+      "XG_SERVICE_ONLY": "1",
+      "XG_NATIVE_META_EXTEND": "1",
+      "XG_NATIVE_META_KPARAM": "1"
+    },
+    "be": {
+      "CUDA_HOME": "/usr/local/cuda-12.9",
+      "XSCHED_SCHEDULER": "GLB",
+      "XSCHED_AUTO_XQUEUE": "ON",
+      "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+      "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+      "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+      "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+      "XSCHED_CUDA_LV2_PORT_120": "1",
+      "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+      "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+      "XG_SERVICE_ONLY": "1",
+      "XG_NATIVE_META_EXTEND": "1",
+      "XG_NATIVE_META_KPARAM": "1"
+    }
+  },
+  "paths": {
+    "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "workload_original_measured": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-output-20260908.66ppYl/priority_workload",
+    "xserver_native": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "native_hal_install_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install",
+    "hal_lib_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+    "guard_tool": null
+  }
+}
+Exception in thread Thread-6 (_reader):
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 188, in _reader
+    for line in iter(pipe.readline, ""):
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3 in position 59: invalid continuation byte
+Exception in thread Thread-10 (_reader):
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 188, in _reader
+    for line in iter(pipe.readline, ""):
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3 in position 583: invalid continuation byte
+Exception in thread Thread-4 (_reader):
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 188, in _reader
+    for line in iter(pipe.readline, ""):
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb8 in position 60: invalid start byte
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 350, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 336, in main
+    record = run_native_cell(block, "paired", cell_dir, args.workload,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 151, in run_native_cell
+    event = worker.wait_service_result()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/run_tool_pair.py", line 226, in wait_service_result
+    raise RuntimeError(
+RuntimeError: be1 exited -11 before the service result: [XSCHED INFO @ T 917347 @ 09:33:01.262781] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x755b4e600200 entry=0x129035017388544 idx=4 killable=0; [XSCHED INFO @ T 917347 @ 09:33:01.262783] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x04; [XSCHED INFO @ T 917347 @ 09:33:01.262788] native-700 probe 2: launch ret=0; [XSCHED INFO @ T 917347 @ 09:33:01.262789] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x755b4e600200 entry=0x129035017388544 idx=5 killable=0; [XSCHED INFO @ T 917347 @ 09:33:01.262791] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x05; [XSCHED INFO @ T 917347 @ 09:33:01.262797] native-700 probe 2: launch ret=0; [XSCHED ERRO @ T 917345 @ 09:33:01.373739] cuda error 700: an illegal memory access was encountered @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:168; [XSCHED ERRO @ T 917347 @ 09:33:01.373746] cuda error 700: an illegal memory access was encountered @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:168

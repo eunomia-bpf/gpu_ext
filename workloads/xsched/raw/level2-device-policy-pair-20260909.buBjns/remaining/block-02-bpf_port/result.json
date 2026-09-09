@@ -1,0 +1,117 @@
+{
+  "block": 2,
+  "block_type": "paired",
+  "config": "bpf_port",
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "decision": "bpf",
+  "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+  "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload",
+  "streams": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "tasks_per_stream": 50,
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "be_go_ns": 231869195030783,
+  "all_be_running_ns": 231869439902621,
+  "lc_go_ns": 231869444902751,
+  "be_running_events": [
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 1,
+      "host_ns": 231869382272519,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 2,
+      "host_ns": 231869439700985,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 3,
+      "host_ns": 231869420468415,
+      "stream0_task0_active": true
+    },
+    {
+      "event": "running",
+      "role": "be",
+      "process_id": 4,
+      "host_ns": 231869403851783,
+      "stream0_task0_active": true
+    }
+  ],
+  "lc_service": {
+    "kernels": 400,
+    "mean_us": 489860.10704000003,
+    "p50_us": 489169.184,
+    "p95_us": 669667.68,
+    "p99_us": 892468.448
+  },
+  "lc_host_elapsed_ns": 27609489587,
+  "be_service": {
+    "kernels": 800,
+    "mean_us": 1032027.2941599999,
+    "p50_us": 963323.232,
+    "p95_us": 1312271.776,
+    "p99_us": 1492370.368
+  },
+  "be_host_elapsed_ns": 80727191190,
+  "be_kernels_per_s": 9.909919919263823,
+  "engagement": {
+    "be1": {
+      "decision": "bpf",
+      "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+      "instrumented_entries": 1,
+      "functions": 1,
+      "launches": 201,
+      "submitted_tasks": 200
+    },
+    "be2": {
+      "decision": "bpf",
+      "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+      "instrumented_entries": 1,
+      "functions": 1,
+      "launches": 203,
+      "submitted_tasks": 200
+    },
+    "be3": {
+      "decision": "bpf",
+      "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+      "instrumented_entries": 1,
+      "functions": 1,
+      "launches": 201,
+      "submitted_tasks": 200
+    },
+    "be4": {
+      "decision": "bpf",
+      "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+      "instrumented_entries": 1,
+      "functions": 1,
+      "launches": 201,
+      "submitted_tasks": 200
+    },
+    "lc1": {
+      "decision": "bpf",
+      "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+      "instrumented_entries": 1,
+      "functions": 1,
+      "launches": 200,
+      "submitted_tasks": 200
+    },
+    "lc2": {
+      "decision": "bpf",
+      "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+      "instrumented_entries": 1,
+      "functions": 1,
+      "launches": 200,
+      "submitted_tasks": 200
+    }
+  },
+  "sample_diagnostics": []
+}

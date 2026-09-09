@@ -50,3 +50,10 @@ baseline/native/BPF LC service p99 is 2168.047584/769.950592/793.632992 ms;
 BE throughput is 10.199266/9.891486/9.874405 kernels/s. This second block
 retains the same tail/throughput tradeoff; BPF's LC p99 is higher than native.
 Six of fifteen cells are complete. The remaining three blocks continue.
+
+Global block 2 completes all three arms: baseline/native/BPF LC service p99
+is 2089.770304/786.260608/892.468448 ms; BE throughput is
+10.181734/9.889721/9.909920 kernels/s. All six workers in each arm exit
+zero, with no sample_diagnostics. The larger BPF/native tail difference in
+this block is retained, not excluded. Nine of fifteen cells are complete;
+the final two blocks continue.

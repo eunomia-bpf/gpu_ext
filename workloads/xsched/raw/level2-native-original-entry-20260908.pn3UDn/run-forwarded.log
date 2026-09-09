@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 341, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 319, in main
+    protocol = build_protocol(args, args.workload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 235, in build_protocol
+    role: rtp.runtime_environment(native_worker_env(role))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2/native/run_native_blob.py", line 86, in native_worker_env
+    if "XG_NATIVE_ORIGINAL_ENTRY_CONTROL" in os.environ:
+                                             ^^
+NameError: name 'os' is not defined. Did you forget to import 'os'?

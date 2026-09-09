@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 from pathlib import Path
 import sys
@@ -83,6 +84,8 @@ def native_worker_env(role: str) -> dict:
         "LD_LIBRARY_PATH": str(NATIVE_HAL_LIB_DIR),
     })
     env["XG_SERVICE_ONLY"] = "1"
+    if "XG_NATIVE_ORIGINAL_ENTRY_CONTROL" in os.environ:
+        env["XG_NATIVE_ORIGINAL_ENTRY_CONTROL"] = os.environ["XG_NATIVE_ORIGINAL_ENTRY_CONTROL"]
     return env
 
 

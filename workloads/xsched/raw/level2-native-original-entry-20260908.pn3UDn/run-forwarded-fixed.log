@@ -1,0 +1,73 @@
+{
+  "phase": "level2-native-blob-run",
+  "scope": "sm_120 Level-2 native cuXtra blob route bring-up on the isolated native HAL install: GuardianSM120 serves the captured SASS arrays; no NVBit tool, no tool-entry accounting (not applicable); service-only metrics; the completed historical baseline is not rerun and no BPF raw-blob arm is run",
+  "config_order": [
+    "native_blob"
+  ],
+  "pair_blocks": 1,
+  "initial_run": false,
+  "streams": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "tasks_per_stream": 50,
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "fixed_delay_ns": 5000000,
+  "clock_offset_ns": 0,
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "worker_environments": {
+    "lc": {
+      "CUDA_HOME": "/usr/local/cuda-12.9",
+      "XSCHED_SCHEDULER": "GLB",
+      "XSCHED_AUTO_XQUEUE": "ON",
+      "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+      "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+      "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+      "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+      "XSCHED_CUDA_LV2_PORT_120": "1",
+      "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+      "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+      "XG_SERVICE_ONLY": "1",
+      "XG_NATIVE_ORIGINAL_ENTRY_CONTROL": "1"
+    },
+    "be": {
+      "CUDA_HOME": "/usr/local/cuda-12.9",
+      "XSCHED_SCHEDULER": "GLB",
+      "XSCHED_AUTO_XQUEUE": "ON",
+      "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+      "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+      "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+      "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+      "XSCHED_CUDA_LV2_PORT_120": "1",
+      "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+      "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+      "XG_SERVICE_ONLY": "1",
+      "XG_NATIVE_ORIGINAL_ENTRY_CONTROL": "1"
+    }
+  },
+  "paths": {
+    "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "workload_original_measured": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-output-20260908.66ppYl/priority_workload",
+    "xserver_native": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "native_hal_install_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install",
+    "hal_lib_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+    "guard_tool": null
+  }
+}
+{"block": 1, "block_type": "paired", "config": "native_blob", "metric_scope": "gpu_service_and_host_elapsed", "actuator": "native-cuxtra-blob", "decision": null, "target_symbol": null, "tool_actuator": false, "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 181684992100301, "all_be_running_ns": 181685627895152, "lc_go_ns": 181685632895381, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 181685009003272, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 181685006618160, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 181685627510105, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 181685011155292, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 521655.48136000003, "p50_us": 483816.896, "p95_us": 950791.104, "p99_us": 1725332.128}, "lc_host_elapsed_ns": 29017916827, "be_service": {"kernels": 800, "mean_us": 949384.4564, "p50_us": 943157.824, "p95_us": 1283308.8, "p99_us": 1568220.864}, "be_host_elapsed_ns": 78912472278, "be_kernels_per_s": 10.13781442788521, "engagement": {"nvbit_entry_accounting": "not_applicable: the native cuXtra blob route runs without the NVBit tool, so no 'XG tool loaded/instrumented entry/done' lines exist by design"}, "sample_diagnostics": []}
+{
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "scope": "sm_120 Level-2 native cuXtra blob route bring-up on the isolated native HAL install: GuardianSM120 serves the captured SASS arrays; no NVBit tool, no tool-entry accounting (not applicable); service-only metrics; the completed historical baseline is not rerun and no BPF raw-blob arm is run",
+  "configs": {
+    "native_blob": {
+      "pair_blocks": 1,
+      "lc_service_p99_median_us": 1725332.128,
+      "lc_service_mean_median_us": 521655.48136000003,
+      "be_service_p99_median_us": 1568220.864,
+      "be_kernels_per_s_median": 10.13781442788521,
+      "lc_host_elapsed_median_ns": 29017916827,
+      "be_host_elapsed_median_ns": 78912472278
+    }
+  }
+}

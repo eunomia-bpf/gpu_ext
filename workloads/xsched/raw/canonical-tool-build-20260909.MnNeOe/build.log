@@ -1,0 +1,18 @@
+2026-09-09T08:58:23-07:00
+make: Entering directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'
+mkdir -p /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/canonical-tool-build-20260909.MnNeOe/build/
+/usr/local/cuda-12.9/bin/nvcc -c -arch=sm_120 -O3 -std=c++14 -Xcompiler -fPIC -I../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core \
+	/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/canonical-tool-build-20260909.MnNeOe/source/tool/xsched_guard_tool.cu -o /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/canonical-tool-build-20260909.MnNeOe/build/xsched_guard_tool.o
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/canonical-tool-build-20260909.MnNeOe/source/tool/xsched_guard_tool.cu(77): warning #177-D: function "launch_stream" was declared but never referenced
+  static CUstream launch_stream(nvbit_api_cuda_t cbid, const void *params)
+                  ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/usr/local/cuda-12.9/bin/nvcc -arch=sm_120 -O3 \
+	/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/canonical-tool-build-20260909.MnNeOe/build/xsched_guard_tool.o /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/level2-xg5-build-20260909.yiBj3W/xg_guardian_carrier.o \
+	-L../../llama.cpp/observability_overhead/revision-rq4/deps/nvbit_release_x86_64/core -lnvbit -L/usr/local/cuda-12.9/targets/x86_64-linux/lib -lcuda -lcudart_static \
+	-shared -o /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/canonical-tool-build-20260909.MnNeOe/build/xsched_guard_tool.so
+XG tool built: /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/raw/canonical-tool-build-20260909.MnNeOe/build/xsched_guard_tool.so
+make: Leaving directory '/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build'
+2026-09-09T08:58:25-07:00

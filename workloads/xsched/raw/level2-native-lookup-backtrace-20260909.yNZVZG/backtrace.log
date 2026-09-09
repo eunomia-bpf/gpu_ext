@@ -1,0 +1,143 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 557166 @ 04:45:38.912460] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 557169)]
+[New Thread 0x7ffff67fe000 (LWP 557170)]
+[New Thread 0x7ffff4ae1000 (LWP 557175)]
+[New Thread 0x7fffea5ff000 (LWP 557176)]
+[XSCHED INFO @ T 557166 @ 04:45:39.148330] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 557166 @ 04:45:39.148353] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 557177)]
+[New Thread 0x7ffddd7fe000 (LWP 557178)]
+[New Thread 0x7ffddcffd000 (LWP 557179)]
+[New Thread 0x7ffdb1fff000 (LWP 557180)]
+{"event":"ready","role":"be","process_id":2,"streams":4,"tasks":50}
+[XSCHED INFO @ T 557166 @ 04:45:39.150183] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520
+[XSCHED INFO @ T 557166 @ 04:45:39.150189] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520
+[XSCHED INFO @ T 557166 @ 04:45:39.150191] meta-extend: fatbin-cubin[0] KPARAM(V2) ordinal 0 offset 0x0 size 0x8 -> 0x1520 (declared launch extent 0x1520)
+[XSCHED INFO @ T 557166 @ 04:45:39.150194] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 557166 @ 04:45:39.150196] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520
+[XSCHED INFO @ T 557166 @ 04:45:39.150197] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520
+[XSCHED INFO @ T 557166 @ 04:45:39.150198] meta-extend: fatbin-cubin[1] KPARAM(V2) ordinal 4 offset 0x18 size 0x8 -> 0x1508 (declared launch extent 0x1520)
+[XSCHED INFO @ T 557166 @ 04:45:39.150200] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 557166 @ 04:45:39.150201] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x55555560e058)
+[XSCHED INFO @ T 557166 @ 04:45:39.160174] native-700 probe 3: binary kernel=1408 B guardian=640 B ep_inst=0x7ffdb6600200 regs=16->32 barriers=1->1
+[XSCHED INFO @ T 557179 @ 04:45:39.160350] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 557179 @ 04:45:39.160367] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[XSCHED INFO @ T 557179 @ 04:45:39.160381] native-700 probe 2: launch ret=701
+[XSCHED ERRO @ T 557179 @ 04:45:39.160386] cuda error 701: too many resources requested for launch @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/level2/instrument.cpp:377
+[XSCHED INFO @ T 557180 @ 04:45:39.160394] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 557180 @ 04:45:39.160406] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[XSCHED INFO @ T 557180 @ 04:45:39.160412] native-700 probe 2: launch ret=4
+[XSCHED ERRO @ T 557180 @ 04:45:39.160414] cuda error 4: hÝ_VUU @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/level2/instrument.cpp:377
+[XSCHED INFO @ T 557178 @ 04:45:39.160417] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 557178 @ 04:45:39.160432] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[XSCHED ERRO @ T 557178 @ 04:45:39.160434] window relay unsupported: kernel 0x5555565d6500 params end at 0x1520, past blob-relative window base 0x1500 @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:348
+[XSCHED INFO @ T 557178 @ 04:45:39.160445] native-700 probe 2: launch ret=4
+[XSCHED ERRO @ T 557178 @ 04:45:39.160448] cuda error 4: è¯_VUU @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/level2/instrument.cpp:377
+[XSCHED INFO @ T 557177 @ 04:45:39.160450] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 557177 @ 04:45:39.160464] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[XSCHED ERRO @ T 557177 @ 04:45:39.160466] window relay unsupported: kernel 0x5555565d6500 params end at 0x1520, past blob-relative window base 0x1500 @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:348
+[XSCHED INFO @ T 557177 @ 04:45:39.160469] native-700 probe 2: launch ret=4
+[XSCHED ERRO @ T 557177 @ 04:45:39.160470] cuda error 4: øhUUU @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/level2/instrument.cpp:377
+[XSCHED WARN @ T 557169 @ 04:45:39.160606] scheduler not initialized, event type(11) dropped @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/preempt/src/sched/agent.cpp:55
+[Thread 0x7ffff6fff000 (LWP 557169) exited]
+
+Thread 9 "priority_worklo" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffdb1fff000 (LWP 557180)]
+0x00007ffff704798b in __run_exit_handlers (status=1, listp=<optimized out>, run_list_atexit=run_list_atexit@entry=true, run_dtors=run_dtors@entry=true) at ./stdlib/exit.c:69
+warning: 69	./stdlib/exit.c: No such file or directory
+
+Thread 9 (Thread 0x7ffdb1fff000 (LWP 557180) "priority_worklo"):
+#0  0x00007ffff704798b in __run_exit_handlers (status=1, listp=<optimized out>, run_list_atexit=run_list_atexit@entry=true, run_dtors=run_dtors@entry=true) at ./stdlib/exit.c:69
+#1  0x00007ffff7047bbe in __GI_exit (status=<optimized out>) at ./stdlib/exit.c:138
+#2  0x00007ffff7325c18 in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#3  0x00007ffff7321dbf in xsched::cuda::CudaQueueLv2::Launch(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#4  0x00007ffff7292cf2 in xsched::preempt::LaunchWorker::LaunchHwCommand(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#5  0x00007ffff7294a1a in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#6  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#7  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#8  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 8 (Thread 0x7ffddcffd000 (LWP 557179) "priority_worklo"):
+#0  futex_wait (private=0, expected=2, futex_word=0x7ffff7204fa8 <__exit_funcs_lock>) at ../sysdeps/nptl/futex-internal.h:146
+#1  __GI___lll_lock_wait_private (futex=futex@entry=0x7ffff7204fa8 <__exit_funcs_lock>) at ./nptl/lowlevellock.c:34
+#2  0x00007ffff7047a90 in __run_exit_handlers (status=1, listp=<optimized out>, run_list_atexit=run_list_atexit@entry=true, run_dtors=run_dtors@entry=true) at ./stdlib/exit.c:109
+#3  0x00007ffff7047bbe in __GI_exit (status=<optimized out>) at ./stdlib/exit.c:138
+#4  0x00007ffff7325c18 in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#5  0x00007ffff7321dbf in xsched::cuda::CudaQueueLv2::Launch(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#6  0x00007ffff7292cf2 in xsched::preempt::LaunchWorker::LaunchHwCommand(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007ffff7294a1a in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#8  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#9  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#10 0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 7 (Thread 0x7ffddd7fe000 (LWP 557178) "priority_worklo"):
+#0  futex_wait (private=0, expected=2, futex_word=0x7ffff7204fa8 <__exit_funcs_lock>) at ../sysdeps/nptl/futex-internal.h:146
+#1  __GI___lll_lock_wait_private (futex=futex@entry=0x7ffff7204fa8 <__exit_funcs_lock>) at ./nptl/lowlevellock.c:34
+#2  0x00007ffff7047a90 in __run_exit_handlers (status=1, listp=<optimized out>, run_list_atexit=run_list_atexit@entry=true, run_dtors=run_dtors@entry=true) at ./stdlib/exit.c:109
+#3  0x00007ffff7047bbe in __GI_exit (status=<optimized out>) at ./stdlib/exit.c:138
+#4  0x00007ffff7325c18 in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#5  0x00007ffff7321dbf in xsched::cuda::CudaQueueLv2::Launch(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#6  0x00007ffff7292cf2 in xsched::preempt::LaunchWorker::LaunchHwCommand(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007ffff7294a1a in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#8  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#9  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#10 0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 6 (Thread 0x7ffdddfff000 (LWP 557177) "priority_worklo"):
+#0  futex_wait (private=0, expected=2, futex_word=0x7ffff7204fa8 <__exit_funcs_lock>) at ../sysdeps/nptl/futex-internal.h:146
+#1  __GI___lll_lock_wait_private (futex=futex@entry=0x7ffff7204fa8 <__exit_funcs_lock>) at ./nptl/lowlevellock.c:34
+#2  0x00007ffff7047b8e in __run_exit_handlers (status=1, listp=0x7ffff7203680 <__exit_funcs>, run_list_atexit=run_list_atexit@entry=true, run_dtors=run_dtors@entry=true) at ./stdlib/exit.c:43
+#3  0x00007ffff7047bbe in __GI_exit (status=<optimized out>) at ./stdlib/exit.c:138
+#4  0x00007ffff7325c18 in xsched::cuda::InstrumentManager::Launch(std::shared_ptr<xsched::cuda::CudaKernelCommand>, CUstream_st*, XPreemptLevel) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#5  0x00007ffff7321dbf in xsched::cuda::CudaQueueLv2::Launch(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#6  0x00007ffff7292cf2 in xsched::preempt::LaunchWorker::LaunchHwCommand(std::shared_ptr<xsched::preempt::HwCommand>) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#7  0x00007ffff7294a1a in xsched::preempt::LaunchWorker::WorkerLoop() () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libpreempt.so
+#8  0x00007ffff74f5c79 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+#9  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#10 0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 5 (Thread 0x7fffea5ff000 (LWP 557176) "cuda-EvtHandlr"):
+#0  0x00007ffff711b5fd in __GI___poll (fds=0x7ffdd8000c20, nfds=10, timeout=29) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffea95f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007fffeaa4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 4 (Thread 0x7ffff4ae1000 (LWP 557175) "priority_worklo"):
+#0  0x00007ffff7098e51 in __futex_abstimed_wait_common64 (private=32767, cancel=true, abstime=0x7ffff4ade800, op=393, expected=0, futex_word=0x555555671928) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=32767, abstime=0x7ffff4ade800, clockid=0, expected=0, futex_word=0x555555671928) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x555555671928, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x7ffff4ade800, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff709bd6e in __pthread_cond_wait_common (abstime=0x7ffff4ade800, clockid=0, mutex=0x55555569d498, cond=0x555555671900) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_timedwait64 (cond=0x555555671900, mutex=0x55555569d498, abstime=0x7ffff4ade800) at ./nptl/pthread_cond_wait.c:652
+#5  0x00007fffea8bb35a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#6  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#7  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#8  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 3 (Thread 0x7ffff67fe000 (LWP 557170) "cuda00001c00008"):
+#0  0x00007ffff711b5fd in __GI___poll (fds=0x555555642e80, nfds=3, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+#1  0x00007fffea95f0f7 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#2  0x00007fffeaa4430a in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#3  0x00007fffea94f123 in ?? () from /lib/x86_64-linux-gnu/libcuda.so
+#4  0x00007ffff709cb84 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:447
+#5  0x00007ffff7129d6c in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Thread 1 (Thread 0x7ffff7f7e000 (LWP 557166) "priority_worklo"):
+#0  0x000055555555d463 in main ()
+=> 0x7ffff704798b <__run_exit_handlers+123>:	mov    0x10(%rax),%rcx
+   0x7ffff704798f <__run_exit_handlers+127>:	cmp    $0x3,%rcx
+   0x7ffff7047993 <__run_exit_handlers+131>:	je     0x7ffff7047a98 <__run_exit_handlers+392>
+   0x7ffff7047999 <__run_exit_handlers+137>:	cmp    $0x4,%rcx
+   0x7ffff704799d <__run_exit_handlers+141>:	je     0x7ffff7047a40 <__run_exit_handlers+304>
+   0x7ffff70479a3 <__run_exit_handlers+147>:	cmp    $0x2,%rcx
+   0x7ffff70479a7 <__run_exit_handlers+151>:	jne    0x7ffff7047968 <__run_exit_handlers+88>
+   0x7ffff70479a9 <__run_exit_handlers+153>:	mov    0x18(%rax),%rcx

@@ -9,10 +9,20 @@
 #   soa: the field-major SoA layout; builds a separate .output-soa/ object
 #        tree and the distinct full-record-device-buffer-soa binary, so
 #        toggling LAYOUT can never reuse objects from the other layout.
+#   aosoa: the 32-slot grouped SoA (AoSoA) layout; builds a separate
+#        .output-aosoa/ object tree and the distinct
+#        full-record-device-buffer-aosoa binary, so toggling LAYOUT can
+#        never reuse objects from the other layouts.
 LAYOUT ?= aos
 ifneq ($(LAYOUT),aos)
 LAYOUT_SUFFIX := -$(LAYOUT)
+endif
+ifeq ($(LAYOUT),soa)
 EXTRA_LAYOUT_CFLAGS := -DFRDB_SOA_LAYOUT
+else ifeq ($(LAYOUT),aosoa)
+EXTRA_LAYOUT_CFLAGS := -DFRDB_AOSOA_LAYOUT
+else ifneq ($(LAYOUT),aos)
+$(error unsupported LAYOUT '$(LAYOUT)'; use aos, soa, or aosoa)
 endif
 OUTPUT := .output$(LAYOUT_SUFFIX)
 CLANG ?= clang
@@ -68,8 +78,8 @@ all: $(APPS)
 .PHONY: clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)rm -rf .output .output-soa full-record-device-buffer \
-	    full-record-device-buffer-soa
+	$(Q)rm -rf .output .output-soa .output-aosoa full-record-device-buffer \
+	    full-record-device-buffer-soa full-record-device-buffer-aosoa
 
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)

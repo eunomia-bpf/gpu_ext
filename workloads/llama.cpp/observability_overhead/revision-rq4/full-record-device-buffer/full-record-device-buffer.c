@@ -28,7 +28,9 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include "full_record_device_buffer_value.h"
-#ifdef FRDB_SOA_LAYOUT
+#if defined(FRDB_AOSOA_LAYOUT)
+#include "./.output-aosoa/full-record-device-buffer.skel.h"
+#elif defined(FRDB_SOA_LAYOUT)
 #include "./.output-soa/full-record-device-buffer.skel.h"
 #else
 #include "./.output/full-record-device-buffer.skel.h"
@@ -162,7 +164,15 @@ int main(void)
 			active_slots += 1;
 			committed += count;
 			for (uint64_t k = 0; k < count; k++) {
-#ifdef FRDB_SOA_LAYOUT
+#if defined(FRDB_AOSOA_LAYOUT)
+				/* The timestamp is field 9; the slot's ten
+				 * fields sit at
+				 * fields[k][slot / 32][f][slot % 32]. */
+				nonzero_timestamps +=
+					v->fields[k][slot / FRDB_GROUP_SLOTS]
+						       [9]
+						       [slot % FRDB_GROUP_SLOTS] != 0;
+#elif defined(FRDB_SOA_LAYOUT)
 				const uint64_t plane_index =
 					k * FRDB_SLOTS_PER_BANK + slot;
 

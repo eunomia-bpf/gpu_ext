@@ -78,7 +78,29 @@ int cuda__retprobe(void)
 		value->total_overflow += 1;
 		return 0;
 	}
-	#ifdef FRDB_SOA_LAYOUT
+	#if defined(FRDB_AOSOA_LAYOUT)
+	{
+		/* 32-slot grouped SoA (AoSoA): for record counter and slot,
+		 * fields[counter][slot / 32][f][slot % 32] is u64 index
+		 * (((counter * (16384 / 32) + slot / 32) * 10 + f) * 32 +
+		 * slot % 32); the 32 lanes of one group are 8 bytes apart
+		 * within each field, and a slot's ten fields stay inside
+		 * 2560 contiguous bytes at this record index. */
+		const u64 group = slot / FRDB_GROUP_SLOTS;
+		const u64 lane = slot % FRDB_GROUP_SLOTS;
+
+		value->fields[counter][group][0][lane] = record.block_x;
+		value->fields[counter][group][1][lane] = record.block_y;
+		value->fields[counter][group][2][lane] = record.block_z;
+		value->fields[counter][group][3][lane] = record.thread_x;
+		value->fields[counter][group][4][lane] = record.thread_y;
+		value->fields[counter][group][5][lane] = record.thread_z;
+		value->fields[counter][group][6][lane] = record.block_dim_x;
+		value->fields[counter][group][7][lane] = record.block_dim_y;
+		value->fields[counter][group][8][lane] = record.block_dim_z;
+		value->fields[counter][group][9][lane] = record.timestamp;
+	}
+	#elif defined(FRDB_SOA_LAYOUT)
 	{
 		/* Field-major SoA: one 8-byte store per field plane; for a
 		 * fixed record index, adjacent lanes are 8 bytes apart. */

@@ -10,12 +10,17 @@
  * Each value stays below 512 MiB: the first 1.25-GiB bank was truncated
  * in the actual compiler BTF output despite its correct C sizeof.
  *
- * Two bank value layouts share this header and the same 335675408-byte
- * value size. The default (FRDB_SOA_LAYOUT undefined) is the measured
- * record-major AoS array of 80-byte records. With FRDB_SOA_LAYOUT
- * defined, the bank value is field-major SoA: ten field planes, each a
- * contiguous array of the bank's 16384 thread slots per record index, so
- * adjacent lanes write 8 bytes apart instead of 80.
+ * Three bank value layouts share this header and the same 335675408-byte
+ * value size. The default (no layout flag) is the measured record-major
+ * AoS array of 80-byte records. With FRDB_SOA_LAYOUT defined, the bank
+ * value is field-major SoA: ten field planes, each a contiguous array of
+ * the bank's 16384 thread slots per record index, so adjacent lanes write
+ * 8 bytes apart instead of 80. With FRDB_AOSOA_LAYOUT defined, the bank
+ * value is 32-slot grouped SoA (AoSoA): within each record index, every
+ * group of 32 consecutive bank slots keeps its ten fields in 2560
+ * contiguous bytes, so the 32 lanes of a group write 8 bytes apart within
+ * each field while one slot's ten fields stay inside that 2560-byte
+ * window instead of ten widely separated planes.
  */
 #ifndef FULL_RECORD_DEVICE_BUFFER_VALUE_H
 #define FULL_RECORD_DEVICE_BUFFER_VALUE_H
@@ -33,6 +38,11 @@ typedef uint64_t frdb_u64;
 #define FRDB_RECORDS_PER_SLOT 256ULL
 /* One SoA field plane: all record indices x all thread slots of a bank. */
 #define FRDB_PLANE_ELEMS (FRDB_RECORDS_PER_SLOT * FRDB_SLOTS_PER_BANK)
+/* Grouped SoA (AoSoA): 32 consecutive bank slots per group; ten fields
+ * per record. */
+#define FRDB_GROUP_SLOTS 32ULL
+#define FRDB_GROUPS_PER_BANK (FRDB_SLOTS_PER_BANK / FRDB_GROUP_SLOTS) /* 512 */
+#define FRDB_NUM_FIELDS 10ULL
 
 /* One original kernelretsnoop record: all ten u64 fields, 80 bytes. */
 struct frdb_record {
@@ -84,7 +94,32 @@ struct frdb_value_soa {
 	frdb_u64 timestamp[FRDB_PLANE_ELEMS];
 };
 
-#ifdef FRDB_SOA_LAYOUT
+/* Opt-in layout (FRDB_AOSOA_LAYOUT): 32-slot grouped SoA (AoSoA). For a
+ * bank-local slot s, record index k, and field f in [0, 10), the u64 sits
+ * at fields[k][s / 32][f][s % 32], i.e. u64 index
+ * (((k * (16384 / 32) + s / 32) * 10 + f) * 32 + s % 32). All ten fields
+ * of the 32 slots of one group occupy 2560 contiguous bytes at a fixed
+ * k, so the 32 lanes of a group write 8 bytes apart within each field
+ * while a slot's ten fields stay inside that 2560-byte window. The
+ * counters, per-slot capacity, and value size are identical to the AoS
+ * and SoA layouts. */
+struct frdb_value_aosoa {
+	frdb_u64 total_overflow;
+	frdb_u64 total_out_of_range;
+	frdb_u64 slot_counters[FRDB_SLOTS_PER_BANK];
+	frdb_u64 fields[FRDB_RECORDS_PER_SLOT][FRDB_GROUPS_PER_BANK]
+		   [FRDB_NUM_FIELDS][FRDB_GROUP_SLOTS];
+};
+
+#if defined(FRDB_AOSOA_LAYOUT) && defined(FRDB_SOA_LAYOUT)
+#error FRDB_AOSOA_LAYOUT and FRDB_SOA_LAYOUT are mutually exclusive
+#endif
+
+#if defined(FRDB_AOSOA_LAYOUT)
+typedef struct frdb_value_aosoa frdb_value;
+#define FRDB_VALUE_TYPE struct frdb_value_aosoa
+#define FRDB_LAYOUT_LABEL "32-slot grouped SoA (AoSoA)"
+#elif defined(FRDB_SOA_LAYOUT)
 typedef struct frdb_value_soa frdb_value;
 #define FRDB_VALUE_TYPE struct frdb_value_soa
 #define FRDB_LAYOUT_LABEL "field-major SoA"
@@ -96,10 +131,14 @@ typedef struct frdb_value_aos frdb_value;
 
 _Static_assert(sizeof(struct frdb_record) == 80,
 	       "frdb record must stay 80 bytes");
+_Static_assert(FRDB_NUM_FIELDS * 8 == sizeof(struct frdb_record),
+	       "frdb field count must match the 80-byte record");
 _Static_assert(sizeof(struct frdb_value_aos) == 335675408ULL,
 	       "frdb AoS bank value layout drifted from the 320 MiB payload");
 _Static_assert(sizeof(struct frdb_value_soa) == 335675408ULL,
 	       "frdb SoA bank value layout drifted from the 320 MiB payload");
+_Static_assert(sizeof(struct frdb_value_aosoa) == 335675408ULL,
+	       "frdb AoSoA bank value layout drifted from the 320 MiB payload");
 _Static_assert(sizeof(frdb_value) == 335675408ULL,
 	       "frdb bank value layout drifted from the 320 MiB payload");
 

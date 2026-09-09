@@ -33,3 +33,14 @@ bOiYh5, with no rebuild between measurements. Both experiment leases cover
 the run; the prior tool is restored on exit. No module change, calibration,
 clock check, extra gate or new paper experiment is introduced. No manuscript
 is edited. Runtime results are pending.
+
+## First complete block (remaining four blocks running)
+
+All three global block-0 arms now finish 1200 kernels and six worker exits
+zero, with no sample_diagnostics. LC service p99 is baseline 2183.887968 ms,
+native 760.289344 ms, BPF 767.745984 ms. BE throughput is respectively
+10.195219, 9.894779 and 9.897796 kernels/s. Thus the first block shows a
+large LC tail improvement with lower BE throughput; BPF/native LC p99 is
+about 0.98% higher. The reused native timing gap and enabled diagnostics
+remain limitations. These are partial-campaign observations, not the
+completed five-block result. The other four blocks continue unchanged.

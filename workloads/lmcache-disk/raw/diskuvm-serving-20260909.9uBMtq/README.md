@@ -34,7 +34,7 @@ measurements**, not yet conclusive evidence of successful disk/UVM restoration
 for all requests. The performance is retained without a counter gate; a small
 engine-close dump repair is the next implementation task.
 
-The next run uses one block of the existing stock/native/BPF KV-reclaim
+The run used one block of the existing stock/native/BPF KV-reclaim
 workload, with disk/UVM transport enabled identically in all three arms.
 It reuses the measured 62502 ns/token calibration from
 `../kv-reclaim-recompute-calibration-575-20260907-01/calibration.json`.
@@ -100,3 +100,14 @@ all GPU use. The transport remains driver fault hydration through CPU
 staging, not demonstrated NVMe-to-GPU P2P or automatic memory-pressure
 offload. Previous application results and disk/UVM primitive results remain
 unchanged. This session does not edit the manuscript.
+
+## Payload cleanup
+
+After all raw records and this report were pushed in `7fad6676`, root
+removed only the three completed cells' `cache` directories. Each had an
+apparent directory size of 1208352768 bytes (3625058304 bytes in total,
+about 3.38 GiB). No serving process remained. These were generated KV
+payloads, excluded from Git; the original files cannot be restored from
+Git, but the workload can regenerate its cache. All original request
+responses, server logs, timing records, diagnostic files, and adverse
+outcomes remain committed. No model weights or source worktrees were removed.

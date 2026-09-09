@@ -74,3 +74,30 @@ check succeeds against the isolated source after the build repair; this
 records source correspondence, not a successful runtime result. The next
 implementation must resolve module-load coverage and launch 701. All
 completed comparisons and earlier failed attempts remain unchanged.
+
+## Module-wrapper diagnosis supersedes the coverage uncertainty
+
+`debug-module-path.gdb` / `.log` instrument the existing failed worker
+with debugger breakpoints, not a performance campaign. They observe the
+actual chain `cuLibraryLoadData` (shim) -> `XgMetaExtendImage` ->
+`cuLibraryLoadData` (driver). The metadata extender is entered once, so
+missing wrapper dispatch is not the explanation. The initial launch still
+returns 701; no owned-copy log is emitted.
+
+`debug-module-image.gdb` / `.log` then stop at that first extender entry,
+inspect its actual argument, and quit before a workload kernel launch.
+The first 64-bit word is `0x00000001466243b1`, followed by a pointer and a
+null pointer: CUDA's version-1 `__fatBinC_Wrapper_t`, whose definition is
+available in `/usr/local/cuda-12.9/include/fatbinary_section.h`. It is not
+the bare `0xba55ed50` fatbin container or ELF image recognized by the current
+candidate. The unknown-format branch therefore passes this real runtime
+input through unchanged. The observed failure does not test extended
+metadata at all.
+
+Root returned this concrete missing-format case to the same GLM session:
+preserve the wrapper ABI while owning the patched nested container and its
+wrapper through the driver load call. No proc-address or export-table
+interception change is indicated by these observations. This repairs the
+next implementation direction, not the runtime result; no successful
+Level-2 measurement is claimed. The explicit debugger stop is local to
+this diagnostic worker and does not terminate any OpenCode session.

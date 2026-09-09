@@ -1,0 +1,44 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+Function "xsched::cuda::XgMetaExtendImage(void const*)" not defined.
+Breakpoint 1 (xsched::cuda::XgMetaExtendImage(void const*)) pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 59293 @ 23:22:22.259346] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 59297)]
+[New Thread 0x7ffff67fe000 (LWP 59298)]
+[New Thread 0x7ffff4ae1000 (LWP 59302)]
+[New Thread 0x7fffea5ff000 (LWP 59303)]
+[XSCHED INFO @ T 59293 @ 23:22:22.487416] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 59293 @ 23:22:22.487436] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 59304)]
+[New Thread 0x7ffddd7fe000 (LWP 59305)]
+[New Thread 0x7ffddcffd000 (LWP 59306)]
+[New Thread 0x7ffdb1fff000 (LWP 59307)]
+{"event":"ready","role":"be","process_id":1,"streams":4,"tasks":50}
+
+Thread 1 "priority_worklo" hit Breakpoint 1, 0x00007ffff73d5588 in xsched::cuda::XgMetaExtendImage(void const*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+TRACE metadata image argument
+rdi            0x55555560e058      93824992993368
+rsi            0x55555560e058      93824992993368
+0x55555560e058 <_ZL15__fatDeviceText>:	0x00000001466243b1	0x00005555555efb88
+0x55555560e068 <_ZL15__fatDeviceText+16>:	0x0000000000000000	0x0000000000000000
+0x55555560e078:	0x0000000000000000	0x00007ffff7697230
+0x55555560e088 <_ZSt4cout@GLIBCXX_3.4+8>:	0x00007ffff7697258	0x0000000000000006
+=> 0x7ffff73d5588 <_ZN6xsched4cuda17XgMetaExtendImageEPKv+8>:	push   %r15
+   0x7ffff73d558a <_ZN6xsched4cuda17XgMetaExtendImageEPKv+10>:	push   %r14
+   0x7ffff73d558c <_ZN6xsched4cuda17XgMetaExtendImageEPKv+12>:	push   %r13
+   0x7ffff73d558e <_ZN6xsched4cuda17XgMetaExtendImageEPKv+14>:	push   %r12
+   0x7ffff73d5590 <_ZN6xsched4cuda17XgMetaExtendImageEPKv+16>:	push   %rbx
+   0x7ffff73d5591 <_ZN6xsched4cuda17XgMetaExtendImageEPKv+17>:	sub    $0x118,%rsp
+   0x7ffff73d5598 <_ZN6xsched4cuda17XgMetaExtendImageEPKv+24>:	mov    %fs:0x28,%rax
+   0x7ffff73d55a1 <_ZN6xsched4cuda17XgMetaExtendImageEPKv+33>:	mov    %rax,-0x38(%rbp)
+#0  0x00007ffff73d5588 in xsched::cuda::XgMetaExtendImage(void const*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+#1  0x00007ffff73a4c9b in cuLibraryLoadData () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+#2  0x00005555555749f3 in libcudart_static_75850eae7f28cc1e55e9fe1048eae31a136b4f28 ()
+#3  0x00005555555d7108 in libcudart_static_f819957d10e6023af1d90b177e9706eb1ae2ea98 ()
+#4  0x0000555555577fd0 in libcudart_static_963dbe518da27ad62a57079a1a0c90814a2710ec ()

@@ -74,7 +74,9 @@ status entries remain below; completed cells must not be repeated.
   first exposes omitted-source and empty-debug-body build problems, now
   repaired. The subsequent actual launch still fails; a debugger records
   initial CUDA 701 followed by teardown errors and a host exit-handler
-  crash. Module-load coverage of the new metadata wrapper remains unresolved.
+  crash. Subsequent debugger observations show the metadata wrapper is
+  called, but receives an unhandled CUDA fatbin wrapper and passes it through
+  unchanged. That concrete format case is now in local-model repair.
   No native Level-2 performance sample is added by this attempt.
 - **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are

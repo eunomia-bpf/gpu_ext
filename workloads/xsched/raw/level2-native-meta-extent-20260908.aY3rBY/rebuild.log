@@ -1,0 +1,23 @@
+[ 11%] Built target boost_container
+[ 19%] Built target utils
+[ 23%] Built target protocol
+[ 29%] Built target ipc
+[ 55%] Built target sched
+[ 70%] Built target preempt
+[ 93%] Built target halcuda
+[ 94%] Building CXX object platforms/cuda/CMakeFiles/shimcuda.dir/shim/src/window_meta_extend.cpp.o
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/shim/src/window_meta_extend.cpp: In function ‘bool xsched::cuda::{anonymous}::elf_kernel_info_sections(const char*, size_t, std::vector<Range>*)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/shim/src/window_meta_extend.cpp:217:46: error: suggest braces around empty body in an ‘if’ statement [-Werror=empty-body]
+  217 |                   (unsigned long long)s_size);
+      |                                              ^
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/shim/src/window_meta_extend.cpp: In function ‘void xsched::cuda::{anonymous}::meta_extend_image(char*, size_t)’:
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/shim/src/window_meta_extend.cpp:361:71: error: suggest braces around empty body in an ‘if’ statement [-Werror=empty-body]
+  361 |             XDEBG("meta-extend: cubin untouched (no eligible kernel)");
+      |                                                                       ^
+/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/shim/src/window_meta_extend.cpp:395:60: error: suggest braces around empty body in an ‘if’ statement [-Werror=empty-body]
+  395 |         XDEBG("meta-extend: fatbin had no eligible kernel");
+      |                                                            ^
+cc1plus: all warnings being treated as errors
+gmake[2]: *** [platforms/cuda/CMakeFiles/shimcuda.dir/build.make:118: platforms/cuda/CMakeFiles/shimcuda.dir/shim/src/window_meta_extend.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:604: platforms/cuda/CMakeFiles/shimcuda.dir/all] Error 2
+gmake: *** [Makefile:136: all] Error 2

@@ -1,0 +1,23 @@
+{
+  "name": "xserver",
+  "command": [
+    "taskset",
+    "-c",
+    "0",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "HPF",
+    "50000"
+  ],
+  "returncode": 0,
+  "stdout": [],
+  "stderr": [
+    "[XSCHED INFO @ T 29724 @ 23:02:23.761285] scheduler created with policy HPF",
+    "[XSCHED INFO @ T 29724 @ 23:02:23.761351] pidfd_open is supported, using pidfd_wait method",
+    "[XSCHED INFO @ T 29724 @ 23:02:23.761395] events receiver started",
+    "[XSCHED INFO @ T 29729 @ 23:02:23.761400] HTTP server listening on port 50000",
+    "[IPC WARN @ T 29724 @ 23:02:24.965762] Fail to receive from MessageQueue \"CPPIPC-1\" (key: 0x1) @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/3rdparty/ipc/src/msgq/msgq.cpp:258"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9"
+  }
+}

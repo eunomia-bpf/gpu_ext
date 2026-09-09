@@ -86,6 +86,10 @@ def native_worker_env(role: str) -> dict:
     env["XG_SERVICE_ONLY"] = "1"
     if "XG_NATIVE_ORIGINAL_ENTRY_CONTROL" in os.environ:
         env["XG_NATIVE_ORIGINAL_ENTRY_CONTROL"] = os.environ["XG_NATIVE_ORIGINAL_ENTRY_CONTROL"]
+    # opt-in fused-window metadata extension is propagated only when the
+    # user asks for it (presence-based at the shim: XG_NATIVE_META_EXTEND)
+    if "XG_NATIVE_META_EXTEND" in os.environ:
+        env["XG_NATIVE_META_EXTEND"] = os.environ["XG_NATIVE_META_EXTEND"]
     return env
 
 

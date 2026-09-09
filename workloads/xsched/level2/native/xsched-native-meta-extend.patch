@@ -59,7 +59,7 @@
 # Plain passthrough launches (app's raw pointers; the CHECK_STREAM
 # fallback and the no-XQueue direct launch in shim.cpp) construct an
 # owned deep copy when the kernel's ordinal table was grown
-# (XgKernelGrown: registry name lookup); non-grown kernels keep the
+# (XgKernelGrown grew-kernel detection); non-grown kernels keep the
 # zero-cost passthrough. Preserving original KPARAM metadata for the
 # timer instead (do not grow at all) is not implementable at image-patch
 # time: the extender cannot know which kernels ride the relay, so
@@ -67,6 +67,44 @@
 # remains only for XLaunchKernelEx with a null config (driver rejects
 # the null config before any parameter copy) and direct Driver:: calls
 # outside the shim's launch entries.
+#
+# FIFTH PIECE - ACTUAL LOOKUP CLOSURE (build owner raw eluxHm: with the
+# export fixed to nm -D T, the BE still misses the layout lookup and the
+# relay adoption sees the GROWN params end 0x1520 past the window base
+# 0x1500). Two independent failure candidates are closed without
+# guessing about driver internals:
+# (1) SYMBOL ACQUISITION: the HAL process may hold TWO libcuda.so.1
+#     objects (the shim loaded via LD_LIBRARY_PATH and the real driver
+#     loaded by full path from the system dirs through
+#     Driver::GetSymbol), so the by-name dlopen(RTLD_NOLOAD) handle
+#     could resolve the wrong object. The resolver now probes
+#     dlsym(RTLD_DEFAULT, ...) first, which covers the shim under any
+#     name/path it was loaded by; the prior by-name handle probes remain
+#     as fallback, and the visibility attributes on the header
+#     declarations are preserved.
+# (2) KERNEL IDENTIFICATION WITHOUT NAMES: a new exported loaded-shape
+#     match XgFindRelayOriginalParams identifies the registered ORIGINAL
+#     layout from the LOADED layout alone. The meta extend keeps the
+#     KPARAM record count and every ordinal offset unchanged and
+#     inflates exactly one ordinal's size so its blob-relative end
+#     equals 0x1520; a registered entry matches when count/offsets agree
+#     and every registered size is <= the loaded size, with zero diffs
+#     (no-op) or exactly one strictly-grown ordinal ending exactly at
+#     0x1520. Value-identical duplicate registrations (module reloads)
+#     are equivalent; differing candidates are ambiguous and refused
+#     instead of guessed. This removes the dependency on the exact
+#     string cuFuncGetName reports. XgHasRelayLayouts is a cheap gate so
+#     corridors skip the param-info enumeration when the knob is off.
+#     Constructor and relay adoption materialize the loaded layout
+#     first (alloc truth), then marshal from the original layout via
+#     the name query first and the shape match second; the shim's
+#     passthrough grown-kernel detection uses the same shape match.
+# Files (isolated native source tree):
+#   platforms/cuda/shim/src/window_meta_extend.cpp            (new)
+#   platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h (new)
+#   platforms/cuda/shim/src/intercept.cpp                     (4 hooks)
+#   platforms/cuda/shim/src/shim.cpp                          (grown-passthrough guard)
+#   platforms/cuda/hal/src/common/cuda_command.cpp            (original-layout marshal
 #
 # Module images may also arrive wrapped in the CUDA runtime fatbin wrapper
 # (__fatBinC_Wrapper_t from fatbinary_section.h: magic 0x466243b1, version
@@ -119,7 +157,7 @@
 # from the source root (level2-build/.output/<native dir>/source).
 --- /dev/null
 +++ b/platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,97 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -184,9 +222,42 @@
 +                                        unsigned int *sizes,
 +                                        size_t max_entries,
 +                                        size_t *out_entries);
++
++/// @brief Name-free identification of a grown kernel's ORIGINAL layout
++///        from its LOADED layout. The meta extend keeps the KPARAM count
++///        and every ordinal offset unchanged and inflates exactly one
++///        ordinal's size so its blob-relative end equals 0x1520; a
++///        registered entry matches when count/offsets agree and every
++///        registered size is <= the loaded size, with zero diffs (no-op)
++///        or exactly one strictly-grown ordinal ending at 0x1520.
++///        Value-identical duplicate registrations are equivalent;
++///        differing candidates are ambiguous and refused (fall back).
++///        This closes the lookup without depending on the exact string
++///        cuFuncGetName reports.
++/// @param count loaded param count (0 skipped)
++/// @param offsets/sizes loaded per-ordinal offsets and sizes (not nullptr)
++/// @param ordinals/out_offsets/out_sizes caller buffers (may be nullptr
++///        to only query the entry count)
++/// @param max_entries capacity of the caller buffers
++/// @param out_entries receives the entry count (not nullptr)
++/// @return 1 when a registered layout matches the loaded shape, else 0
++extern "C" __attribute__((visibility("default"))) int XgFindRelayOriginalParams(unsigned int count,
++                                        const unsigned int *offsets,
++                                        const unsigned int *sizes,
++                                        unsigned int *ordinals,
++                                        unsigned int *out_offsets,
++                                        unsigned int *out_sizes,
++                                        size_t max_entries,
++                                        size_t *out_entries);
++
++/// @brief Cheap gate: 1 when at least one original layout is registered
++///        (i.e. the KPARAM knob grew at least one kernel in this
++///        process), else 0. Lets zero-cost passthrough corridors skip
++///        the param-info enumeration entirely when the knob is off.
++extern "C" __attribute__((visibility("default"))) int XgHasRelayLayouts(void);
 --- /dev/null
 +++ b/platforms/cuda/shim/src/window_meta_extend.cpp
-@@ -0,0 +1,913 @@
+@@ -0,0 +1,1015 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// sm_120 compiler-declared extended-parameter meta extend (Level-2 native
@@ -404,6 +475,86 @@
 +        }
 +    }
 +    *out_entries = e.count;
++    return true;
++}
++
++// Identify the registered ORIGINAL layout of a grown kernel from its
++// LOADED (grown) layout, without any name dependency. The meta extend
++// keeps the KPARAM record count and every ordinal offset unchanged and
++// inflates exactly one ordinal's size so that its blob-relative end
++// equals kMetaParamSize (0x1520); all other sizes stay original. A
++// registered entry therefore matches when count and offsets agree and
++// every registered size is <= the loaded size, with zero diffs (no-op:
++// loaded already equals the original; marshaling is unchanged) or with
++// exactly one strictly-grown ordinal whose end is exactly the window
++// extent. Several different-value one-diff candidates mean the shape is
++// ambiguous: refuse rather than guess (value-identical duplicates are
++// equivalent and fine).
++bool find_relay_originals_by_layout(
++    unsigned int count, const unsigned int *offsets, const unsigned int *sizes,
++    size_t max_entries, size_t *out_entries,
++    unsigned int *ordinals_out, unsigned int *offsets_out,
++    unsigned int *sizes_out)
++{
++    static bool ambiguous_warned = false;
++    *out_entries = 0;
++    if (count == 0 || count > kRelayLayoutMaxParams) return false;
++    if (offsets == nullptr || sizes == nullptr || out_entries == nullptr) return false;
++
++    const RelayParamEntries *unique = nullptr;
++    const RelayParamEntries *noop = nullptr;
++    bool ambiguous = false;
++    {
++        std::lock_guard<std::mutex> lock(g_relay_layout_mutex);
++        for (const auto &kv : g_relay_layouts) {
++            const RelayParamEntries &e = kv.second;
++            if (e.count != count) continue;
++            bool compatible = true;
++            size_t diffs = 0, diff_idx = 0;
++            for (size_t i = 0; i < count; ++i) {
++                if (e.offsets[i] != offsets[i]) { compatible = false; break; }
++                if (sizes[i] < e.sizes[i]) { compatible = false; break; }
++                if (sizes[i] > e.sizes[i]) { ++diffs; diff_idx = i; }
++            }
++            if (!compatible) continue;
++            if (diffs == 0) { if (noop == nullptr) noop = &e; continue; }
++            if (diffs > 1) continue; // the extender grows at most one ordinal
++            uint32_t end = offsets[diff_idx] + sizes[diff_idx];
++            if ((size_t)end != (size_t)kMetaParamSize) continue;
++            if (unique != nullptr) {
++                // value-identical registrations (module reloads) are benign
++                bool same = unique->count == e.count;
++                for (size_t i = 0; same && i < count; ++i) {
++                    same = unique->ordinals[i] == e.ordinals[i] &&
++                           unique->offsets[i] == e.offsets[i] &&
++                           unique->sizes[i] == e.sizes[i];
++                }
++                if (same) continue;
++                ambiguous = true;
++                break;
++            }
++            unique = &e;
++        }
++    }
++    if (ambiguous) {
++        if (!ambiguous_warned) {
++            ambiguous_warned = true;
++            XWARN("meta-extend: relay layout shape ambiguous (%u params); "
++                  "falling back to loaded param info", count);
++        }
++        return false;
++    }
++    const RelayParamEntries *sel = (unique != nullptr) ? unique : noop;
++    if (sel == nullptr) return false;
++    if (ordinals_out != nullptr && offsets_out != nullptr && sizes_out != nullptr &&
++        max_entries >= count) {
++        for (size_t i = 0; i < count; ++i) {
++            ordinals_out[i] = sel->ordinals[i];
++            offsets_out[i] = sel->offsets[i];
++            sizes_out[i] = sel->sizes[i];
++        }
++    }
++    *out_entries = count;
 +    return true;
 +}
 +
@@ -1100,6 +1251,28 @@
 +    XDEBG("meta-extend: no registered original layout for %s", kernel_name);
 +    return 0;
 +}
++
++int XgHasRelayLayouts(void)
++{
++    std::lock_guard<std::mutex> lock(xsched::cuda::g_relay_layout_mutex);
++    return xsched::cuda::g_relay_layouts.empty() ? 0 : 1;
++}
++
++int XgFindRelayOriginalParams(unsigned int count, const unsigned int *offsets,
++                              const unsigned int *sizes, unsigned int *ordinals,
++                              unsigned int *out_offsets, unsigned int *out_sizes,
++                              size_t max_entries, size_t *out_entries)
++{
++    if (out_entries != nullptr) *out_entries = 0;
++    if (out_entries == nullptr) return 0;
++    if (xsched::cuda::find_relay_originals_by_layout(
++            count, offsets, sizes, max_entries, out_entries,
++            ordinals, out_offsets, out_sizes))
++        return 1;
++    XDEBG("meta-extend: no registered original layout matches loaded shape "
++          "(%u params)", count);
++    return 0;
++}
 --- a/platforms/cuda/shim/src/intercept.cpp
 +++ b/platforms/cuda/shim/src/intercept.cpp
 @@ -4,6 +4,7 @@
@@ -1177,7 +1350,15 @@
  DEFINE_EXPORT_C_REDIRECT_CALL(Driver::LibraryGetKernel, CUresult, cuLibraryGetKernel, CUkernel *, pKernel, CUlibrary, library, const char *, name);
 --- a/platforms/cuda/shim/src/shim.cpp
 +++ b/platforms/cuda/shim/src/shim.cpp
-@@ -20,6 +20,37 @@
+@@ -9,6 +9,7 @@
+ #include "xsched/preempt/xqueue/xqueue.h"
+ #include "xsched/cuda/hal.h"
+ #include "xsched/cuda/shim/shim.h"
++#include "xsched/cuda/shim/window_meta_extend.h"
+ #include "xsched/cuda/hal/common/cuda.h"
+ #include "xsched/cuda/hal/common/levels.h"
+ #include "xsched/cuda/hal/common/options.h"
+@@ -20,6 +21,41 @@
  namespace xsched::cuda
  {
  
@@ -1193,29 +1374,33 @@
 +// only the original per-ordinal bytes (cuda_command.cpp). Non-grown
 +// kernels keep the zero-cost passthrough. Relay/instrumented launches
 +// are unaffected (they adopt the relay blob under the launch mutex).
-+extern "C" int XgGetRelayOriginalParams(const char *kernel_name,
-+                                        unsigned int *ordinals,
-+                                        unsigned int *offsets,
-+                                        unsigned int *sizes,
-+                                        size_t max_entries,
-+                                        size_t *out_entries);
-+
 +static bool XgKernelGrown(CUfunction f)
 +{
-+    const char *name = nullptr;
-+    if (Driver::FuncGetName(&name, f) != CUDA_SUCCESS || name == nullptr) return false;
-+    unsigned int ordinals[32];
++    // cheap gate first: nothing registered -> nothing can be grown
++    if (XgHasRelayLayouts() != 1) return false;
++    // enumerate the loaded param layout (count/offsets/sizes)
 +    unsigned int offsets[32];
 +    unsigned int sizes[32];
-+    size_t cnt = 0;
-+    if (XgGetRelayOriginalParams(name, ordinals, offsets, sizes, 32, &cnt) != 1) return false;
-+    return cnt != 0;
++    unsigned int cnt = 0;
++    for (unsigned int i = 0; i < 32; ++i) {
++        size_t off = 0, sz = 0;
++        if (Driver::FuncGetParamInfo(f, i, &off, &sz) != CUDA_SUCCESS) break;
++        offsets[i] = (unsigned int)off;
++        sizes[i] = (unsigned int)sz;
++        ++cnt;
++    }
++    if (cnt == 0) return false;
++    // name-free identification: match the loaded shape against the
++    // registered original layouts (does not depend on cuFuncGetName)
++    size_t ocnt = 0;
++    return XgFindRelayOriginalParams(cnt, offsets, sizes, nullptr, nullptr,
++                                     nullptr, 0, &ocnt) == 1 && ocnt != 0;
 +}
 +
  static utils::ObjectMap<CUevent, std::shared_ptr<CudaEventRecordCommand>> g_events;
  
  CUstream GetPTDS()
-@@ -119,10 +150,11 @@
+@@ -119,10 +155,11 @@
  }
  
  template <typename CmdT, typename... Args>
@@ -1229,7 +1414,7 @@
      if (xq == nullptr) return DirectLaunch(kernel, stream);
      xq->Submit(kernel);
      return CUDA_SUCCESS;
-@@ -136,10 +168,11 @@
+@@ -136,10 +173,11 @@
      XDEBG("XLaunchKernel(func: %p, stream: %p, grid: [%u, %u, %u], block: [%u, %u, %u], "
            "shm: %u, params: %p, extra: %p)", f, stream, gdx, gdy, gdz, bdx, bdy, bdz,
            shmem, params, extra);
@@ -1243,7 +1428,7 @@
  }
  
  CUresult XLaunchKernel_ptsz(CUfunction f,
-@@ -150,10 +183,11 @@
+@@ -150,10 +188,11 @@
      XDEBG("XLaunchKernel_ptsz(func: %p, stream: %p, grid: [%u, %u, %u], block: [%u, %u, %u], "
            "shm: %u, params: %p, extra: %p)", f, stream, gdx, gdy, gdz, bdx, bdy, bdz,
            shmem, params, extra);
@@ -1257,7 +1442,7 @@
  }
  
  CUresult XLaunchKernelEx(const CUlaunchConfig *config, CUfunction f, void **params, void **extra)
-@@ -167,9 +201,10 @@
+@@ -167,9 +206,10 @@
            config, f, params, extra, config->hStream);
  
      CUlaunchConfig cfg = *config;
@@ -1270,7 +1455,7 @@
  }
  
  CUresult XLaunchKernelEx_ptsz(const CUlaunchConfig *config, CUfunction f, void **params, void **extra)
-@@ -183,9 +218,10 @@
+@@ -183,9 +223,10 @@
            config, f, params, extra, config->hStream);
  
      CUlaunchConfig cfg = *config;
@@ -1291,7 +1476,7 @@
  #include <cuxtra/cuxtra.h>
  
  #include "xsched/utils/log.h"
-@@ -10,6 +11,92 @@
+@@ -10,6 +11,142 @@
  
  using namespace xsched::cuda;
  
@@ -1311,63 +1496,113 @@
 +
 +typedef int (*XgRelayQueryFn)(const char *, unsigned int *, unsigned int *,
 +                              unsigned int *, size_t, size_t *);
++typedef int (*XgRelayFindFn)(unsigned int, const unsigned int *,
++                             const unsigned int *, unsigned int *,
++                             unsigned int *, unsigned int *, size_t, size_t *);
++typedef int (*XgRelayHasFn)(void);
 +
 +// The shim registers grown kernels' original layouts at image-patch time
-+// (opt-in XG_NATIVE_META_KPARAM extend, window_meta_extend.cpp) and exports
-+// the lookup by mangled kernel name. The shim is loaded first (the HAL
-+// runs against it as libcuda.so.1), so the symbol is probed without
-+// creating a load-time dependency: a HAL process without the shim simply
-+// gets a null function pointer.
-+XgRelayQueryFn XgRelayQuerySymbol()
++// (opt-in XG_NATIVE_META_KPARAM extend, window_meta_extend.cpp) and
++// exports the name lookup and the name-free loaded-shape lookup. The
++// symbols are probed without creating a load-time dependency. Resolve
++// from the default scope first (RTLD_DEFAULT searches every globally
++// loaded object, which covers the shim under any name/path it was
++// loaded by); only if that misses, fall back to a name-probe of
++// libcuda.so.1 / libcuda.so: the process also holds the real driver
++// (the HAL dlopens it by full path from the system dirs), so the
++// by-name handle may resolve the wrong object and its dlsym must not
++// be trusted alone. A HAL process without the shim simply gets null
++// pointers and marshals from loaded param info.
++struct XgRelayApi
 +{
-+    static XgRelayQueryFn fn = nullptr;
++    XgRelayQueryFn name_fn;
++    XgRelayFindFn find_fn;
++    XgRelayHasFn has_fn;
++};
++
++XgRelayApi XgRelayResolve()
++{
++    static XgRelayApi api = {nullptr, nullptr, nullptr};
 +    static bool probed = false;
-+    if (!probed) {
-+        probed = true;
-+        void *h = dlopen("libcuda.so.1", RTLD_NOW | RTLD_NOLOAD);
-+        if (h == nullptr) h = dlopen("libcuda.so", RTLD_NOW | RTLD_NOLOAD);
-+        if (h != nullptr) fn = (XgRelayQueryFn)dlsym(h, "XgGetRelayOriginalParams");
++    if (probed) return api;
++    probed = true;
++    // default scope first: covers the shim regardless of which library
++    // name or path it was loaded under
++    api.name_fn = (XgRelayQueryFn)dlsym(RTLD_DEFAULT, "XgGetRelayOriginalParams");
++    api.find_fn = (XgRelayFindFn)dlsym(RTLD_DEFAULT, "XgFindRelayOriginalParams");
++    api.has_fn = (XgRelayHasFn)dlsym(RTLD_DEFAULT, "XgHasRelayLayouts");
++    if (api.name_fn != nullptr && api.find_fn != nullptr) return api;
++    // fallback: by-name handle probe (retained wiring; a hit not already
++    // covered by RTLD_DEFAULT, e.g. shim loaded in a local namespace)
++    void *h = dlopen("libcuda.so.1", RTLD_NOW | RTLD_NOLOAD);
++    if (h == nullptr) h = dlopen("libcuda.so", RTLD_NOW | RTLD_NOLOAD);
++    if (h != nullptr) {
++        if (api.name_fn == nullptr)
++            api.name_fn = (XgRelayQueryFn)dlsym(h, "XgGetRelayOriginalParams");
++        if (api.find_fn == nullptr)
++            api.find_fn = (XgRelayFindFn)dlsym(h, "XgFindRelayOriginalParams");
++        if (api.has_fn == nullptr)
++            api.has_fn = (XgRelayHasFn)dlsym(h, "XgHasRelayLayouts");
 +    }
-+    return fn;
++    return api;
 +}
 +
 +// Query the registered ORIGINAL layout by kernel name. Returns false when
 +// the shim export is absent, the kernel has no registered growth (marshal
 +// with the loaded param info), or the registry disagrees with the loaded
-+// param table (fall back, never guess).
-+bool GetXgOriginalLayout(CUfunction func, size_t param_cnt, XgParamLayout *out)
++// param table (fall back, never guess). When the name-based query misses,
++// the name-free loaded-shape match is consulted next: the meta extend
++// keeps count/offsets unchanged and inflates exactly one ordinal to end
++// at 0x1520, so the registered original layout is identifiable without
++// depending on the exact string cuFuncGetName reports.
++bool GetXgOriginalLayout(CUfunction func, size_t param_cnt,
++                         const XgParamLayout *loaded, XgParamLayout *out)
 +{
-+    XgRelayQueryFn fn = XgRelayQuerySymbol();
-+    if (fn == nullptr) return false;
-+    const char *name = nullptr;
-+    if (Driver::FuncGetName(&name, func) != CUDA_SUCCESS || name == nullptr) return false;
++    XgRelayApi api = XgRelayResolve();
 +    unsigned int ordinals[kXgRelayMaxParams];
 +    unsigned int offsets[kXgRelayMaxParams];
 +    unsigned int sizes[kXgRelayMaxParams];
 +    size_t cnt = 0;
-+    if (!fn(name, ordinals, offsets, sizes, kXgRelayMaxParams, &cnt)) return false;
-+    if (cnt == 0 || cnt != param_cnt || cnt > kXgRelayMaxParams) {
++    const char *name = nullptr;
++    if (api.name_fn != nullptr &&
++        Driver::FuncGetName(&name, func) == CUDA_SUCCESS && name != nullptr &&
++        api.name_fn(name, ordinals, offsets, sizes, kXgRelayMaxParams, &cnt)) {
++        if (cnt != 0 && cnt == param_cnt && cnt <= kXgRelayMaxParams &&
++            (size_t)offsets[cnt - 1] == loaded->offset[cnt - 1]) {
++            out->count = cnt;
++            for (size_t i = 0; i < cnt; ++i) {
++                out->offset[i] = offsets[i];
++                out->size[i] = sizes[i];
++            }
++            return true;
++        }
 +        XWARN("kernel %s: registered original layout (%zu entries) does not "
-+              "match the loaded param count (%zu); using loaded param info",
-+              name, cnt, param_cnt);
-+        return false;
++              "match the loaded param table (%zu params, last offset 0x%zx); "
++              "trying the loaded-shape match", name, cnt, param_cnt,
++              loaded->offset[loaded->count ? loaded->count - 1 : 0]);
 +    }
-+    // the meta extend keeps offsets unchanged: cross-check the registry
-+    // against the loaded param table's last position before trusting it
-+    size_t last_offset = 0, last_size = 0;
-+    cuXtraGetParamInfo(func, cnt - 1, &last_offset, &last_size, nullptr);
-+    if (last_offset != (size_t)offsets[cnt - 1]) {
-+        XWARN("kernel %s: registered offsets disagree with the loaded param "
-+              "info (0x%x vs 0x%zx); using loaded param info", name,
-+              offsets[cnt - 1], last_offset);
-+        return false;
++    if (api.find_fn != nullptr) {
++        cnt = 0;
++        unsigned int loaded_offsets[kXgRelayMaxParams];
++        unsigned int loaded_sizes[kXgRelayMaxParams];
++        for (size_t i = 0; i < param_cnt && i < kXgRelayMaxParams; ++i) {
++            loaded_offsets[i] = (unsigned int)loaded->offset[i];
++            loaded_sizes[i] = (unsigned int)loaded->size[i];
++        }
++        if (api.find_fn((unsigned int)param_cnt, loaded_offsets, loaded_sizes,
++                        ordinals, offsets, sizes, kXgRelayMaxParams, &cnt) &&
++            cnt != 0 && cnt == param_cnt) {
++            out->count = cnt;
++            for (size_t i = 0; i < cnt; ++i) {
++                out->offset[i] = offsets[i];
++                out->size[i] = sizes[i];
++            }
++            XDEBG("kernel %p: original layout restored via loaded-shape "
++                  "match (%zu params)", (void *)func, cnt);
++            return true;
++        }
 +    }
-+    out->count = cnt;
-+    for (size_t i = 0; i < cnt; ++i) {
-+        out->offset[i] = offsets[i];
-+        out->size[i] = sizes[i];
-+    }
-+    return true;
++    return false;
 +}
 +
 +// Fill the layout from the loaded (grown) param table.
@@ -1384,7 +1619,7 @@
  CudaCommand::CudaCommand(preempt::XCommandProperties props)
      : HwCommand(GetCudaLv3Implementation() == kCudaLv3ImplementationTsg
                  ? props | preempt::kCommandPropertyDeactivatable : props)
-@@ -73,19 +160,39 @@
+@@ -73,19 +210,41 @@
      deep_copy_ = true;
      params_ = (void **)malloc(param_cnt_ * sizeof(void *));
  
@@ -1394,15 +1629,17 @@
 +    // used for host-side copies (the app's own argument sizes are the
 +    // deep-copy truth; plain, non-relay launches never marshal grown
 +    // sizes with this wiring).
-+    XgParamLayout layout;
-+    bool have_orig = GetXgOriginalLayout(kFuncHandle, param_cnt_, &layout);
-+    if (!have_orig) GetLoadedLayout(kFuncHandle, param_cnt_, &layout);
-+    // marshal truth = original layout when registered; the alloc extent
-+    // comes from the loaded (grown) layout, which equals the original
-+    // one when no growth is registered
++    // alloc truth = the loaded (grown) extent, always materialized;
++    // marshal truth = the registered original layout when the lookup
++    // succeeds (name first, then the name-free loaded-shape match), and
++    // falls back to the loaded layout when no registration applies
++    // (unpatched kernels: loaded == original).
 +    XgParamLayout alloc_layout;
-+    if (have_orig) GetLoadedLayout(kFuncHandle, param_cnt_, &alloc_layout);
-+    else alloc_layout = layout;
++    GetLoadedLayout(kFuncHandle, param_cnt_, &alloc_layout);
++    XgParamLayout layout;
++    bool have_orig = GetXgOriginalLayout(kFuncHandle, param_cnt_,
++                                         &alloc_layout, &layout);
++    if (!have_orig) layout = alloc_layout;
 +    XgParamLayout &marshal = layout;
 +    XgParamLayout &alloc = alloc_layout;
 +
@@ -1434,7 +1671,7 @@
          }
      } else if (extra != nullptr) {
          // Get extra buffer and its size from extra map.
-@@ -109,18 +216,18 @@
+@@ -109,18 +268,18 @@
  
          // Set params_ to point to extra_data_.
          for (size_t i = 0; i < param_cnt_; ++i) {
@@ -1458,7 +1695,7 @@
      if (!deep_copy_) return;
      if (param_data_) free(param_data_);
      if (extra_data_) free(extra_data_);
-@@ -128,6 +235,121 @@
+@@ -128,6 +287,124 @@
      if (extra_) free(extra_);
  }
  
@@ -1508,10 +1745,13 @@
 +    // constructor): the deep-copied params carry original-sized data, so
 +    // the blob fill must read original sizes as well. The window branch
 +    // below still pads the blob to the declared 0x1520 extent for the
-+    // driver's launch-side validation.
++    // driver's launch-side validation. Same lookup order as the ctor:
++    // loaded layout first, name query, then the name-free shape match.
++    XgParamLayout alloc_layout;
++    GetLoadedLayout(kFuncHandle, param_cnt_, &alloc_layout);
 +    XgParamLayout layout;
-+    if (!GetXgOriginalLayout(kFuncHandle, param_cnt_, &layout))
-+        GetLoadedLayout(kFuncHandle, param_cnt_, &layout);
++    if (!GetXgOriginalLayout(kFuncHandle, param_cnt_, &alloc_layout, &layout))
++        layout = alloc_layout;
 +    size_t last_idx = layout.count - 1;
 +    size_t last_offset = layout.offset[last_idx], last_size = layout.size[last_idx];
 +    size_t rel_param_end = last_offset + last_size;

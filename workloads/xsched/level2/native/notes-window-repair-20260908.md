@@ -374,3 +374,65 @@ Compile-checked after the changes: window_meta_extend.cpp,
 cuda_command.cpp and shim.cpp all pass g++ -O2 and
 -O3 -DRELEASE_MODE -DNDEBUG -Wall -Wextra -Werror in the isolated tree.
 No new tests or gates were added.
+
+### 5.5 Actual-lookup closure (root raw eluxHm: export T but lookup still missed)
+
+Root's build0 fixed the SIGBUS (ctor fallback init) and export visibility
+(nm -D T XgGetRelayOriginalParams in libshimcuda.so, SONAME
+libshimcuda.so per objdump). The eluxHm BE still missed the layout
+lookup: the relay adoption log showed the GROWN params end 0x1520 past
+the window base 0x1500, i.e. GetXgOriginalLayout returned false and
+marshal truth fell back to the grown layout. Two candidate causes were
+inspected in the source this session:
+
+(1) SYMBOL ACQUISITION: the BE process holds TWO libcuda.so.1 objects -
+    the shim (loaded via worker LD_LIBRARY_PATH install/lib softlinks,
+    SONAME libshimcuda.so) and the real driver, which the HAL's own
+    Driver::GetSymbol dlopens by FULL PATH from the default system dirs
+    (FindLibrary search {"libcuda.so","libcuda.so.1"} over
+    /lib/x86_64-linux-gnu, /usr/lib/...). The HAL lookup helper's
+    dlopen("libcuda.so.1", RTLD_NOLOAD) resolves by name through the
+    search path, so which object it returns is load-order dependent -
+    root's inference was structurally real. The resolver now probes
+    dlsym(RTLD_DEFAULT, ...) first: the default scope covers the shim
+    under any name/path it was loaded by, and the real driver carryng no
+    XSched symbol cannot produce a false positive. The prior by-name
+    handle probes remain as fallback; root's visibility attributes are
+    preserved.
+
+(2) KERNEL IDENTIFICATION WITHOUT NAMES: the registry was keyed by the
+    section-table mangled name under the assumption cuFuncGetName
+    reports exactly that string; that is unverifiable on CPU and is the
+    second candidate root named. A new exported loaded-shape match
+    (XgFindRelayOriginalParams) identifies the registered ORIGINAL
+    layout from the LOADED layout alone: the meta extend keeps the
+    KPARAM record count and every ordinal offset unchanged and inflates
+    exactly one ordinal's size so its blob-relative end equals 0x1520
+    (growth applies known_size = kMetaParamSize - offset), so a
+    registered entry matches when count/offsets agree and every
+    registered size is <= the loaded size, with zero diffs (no-op,
+    marshaling unchanged) or exactly one strictly-grown ordinal ending
+    exactly at 0x1520; XgHasRelayLayouts (registry-empty gate) keeps
+    non-corridor processes at zero cost, and shape-ambiguity (differing
+    candidates) is refused instead of guessed. The name-based lookup
+    stays first in line (works whenever cuFuncGetName does report the
+    module name); the shape match runs on its miss.
+
+Wiring: constructor and relay adoption materialize the LOADED layout
+first (alloc truth - superseding the two-branch init with a branchless
+always-init that preserves root's fix), then marshal from the original
+layout (name query, then shape match); shim.cpp's passthrough
+grown-kernel detection (XgKernelGrown) dropped the name query and uses
+the same shape match over Driver::FuncGetParamInfo enumeration.
+
+CPU verification this session (no GPU): window_meta_extend.cpp, shim.cpp
+and cuda_command.cpp compile in both -O2 and the Release -Wall -Wextra
+-Werror modes; all three exports show T in the object file; the local
+specimen harness validates the matcher on seven cases: grown compute
+shape HIT with exact original sizes (8/8/4/4/8 at 0/8/0x10/0x14/0x18),
+timer 1-param grown shape HIT (0x1520 -> 8), zero-diff no-op HIT,
+genuine non-grown big parameter MISS (end != 0x1520), wrong-offset
+shape MISS, shrunken ordinal MISS, empty registry lacks entries and
+misses. Patch regenerated (1822 lines, five file sections incl.
+shim.cpp and cuda_command.cpp), forward apply byte-matches the live
+tree, reverse apply restores pristine.

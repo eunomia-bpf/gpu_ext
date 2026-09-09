@@ -41,6 +41,37 @@ program and the host collector:
 - `slot_counters[16384]`: one 64-bit append counter per thread slot.
 - `records[16384 * 256]`: record-major storage, 80 bytes each.
 
+## Opt-in field-major SoA layout (default OFF)
+
+`make LAYOUT=soa` builds a field-major SoA variant of the same bank value.
+It is opt-in and off by default; the default build keeps the measured
+record-major AoS layout, the `.output/` object tree, and the
+`full-record-device-buffer` binary, and the measured AoS results in
+[results-full-record-device-buffer-20260908.md](../results-full-record-device-buffer-20260908.md)
+are untouched.
+
+For the SoA build, within each record index k the ten fields become ten
+contiguous field planes of 16384 u64 thread slots: `plane[k * 16384 +
+slot]`. Simultaneous appends by adjacent lanes then write 8 bytes apart
+instead of 80 bytes apart. The BPF writer and the host collector select
+the layout from the same `FRDB_SOA_LAYOUT` compile flag through the shared
+`full_record_device_buffer_value.h`, so both sides always match.
+
+Unchanged between layouts: all ten u64 fields and per-thread timestamps,
+the per-slot counters, 256 records per slot, 32 banks x 16384 slots, the
+coordinate mapping and bank ids, the single host drain buffer, and the
+post-client 32 whole-value drains. No sampling, deduplication, or
+leader-only filtering is introduced. Each bank value stays 335675408
+bytes in both layouts, so the observed BTF size truncation remains
+avoided.
+
+The SoA build goes to a separate object tree (`.output-soa/`) and a
+distinct binary (`full-record-device-buffer-soa`), so toggling `LAYOUT`
+cannot reuse objects from the other layout. The collector prints
+`Full-record layout: field-major SoA` (the default prints `record-major
+AoS`). SoA measurements live in their own raw directories and results
+report and do not alter the measured AoS numbers above.
+
 ## Coordinate mapping
 
 The BPF program reuses the existing per-thread linear coordinate

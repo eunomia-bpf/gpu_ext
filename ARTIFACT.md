@@ -161,6 +161,15 @@ installed on the host, but none of its original workload builds, model caches
 or driver modules. It validates this CPU path, not a fresh OS installation or
 all live GPU experiments.
 
+Storage extension, 2026-09-09: the same independent GitHub clone was
+fast-forwarded to `49f0f92c` and populated with the 25 published storage cell
+records and their paired summary. Running its own
+`python3 -B scripts/artifact/reanalyze.py --campaign all --output NEW_FILE`
+completed all 55 cells with matching recorded summary statistics. The
+output was written outside the clone; both the parent and manuscript
+submodule stayed clean. This confirms the published CPU reanalysis path,
+without the original workload builds, model cache or a GPU run.
+
 Use the estimator named in each report. A ratio of medians, median of paired
 ratios, geometric mean of paired ratios, and mean per-pair overhead are
 different quantities. Retain units, timing boundaries, cohort sizes and all

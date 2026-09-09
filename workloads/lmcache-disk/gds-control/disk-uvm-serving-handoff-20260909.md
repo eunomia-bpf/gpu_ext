@@ -5,7 +5,18 @@ disk-UVM GPU-promotion primitive into the real LMCache KV path so completed
 immutable KV chunks are restored to GPU through driver fault hydration + D2D
 instead of the stock GDS read. All work is opt-in; default-off.
 
-## Current state
+## Status update after this handoff
+
+The OOM and incomplete runs described below are historical. The later
+physical-reclaim driver repair (`95097e20`) completed all 15 cells in
+[pXYN4F](../raw/diskuvm-physical-reclaim-20260909.pXYN4F/RESULTS.md).
+The [current analysis](physical-reclaim-performance-analysis-20260909.md)
+reports stock/native/BPF warm throughput of 73.574518 / 68.608032 /
+65.422796 token/s: successful execution, but no throughput benefit for the
+policy on this workload. The old failures and fixes below remain as the
+development history; they are not the current completion status.
+
+## Historical state at handoff
 
 - **`aodtQv` ended 04:05:47 after 13 cells** (deferred stop). It was **not
   request-successful**: block0 native/BPF warm phase hit `EngineCore`

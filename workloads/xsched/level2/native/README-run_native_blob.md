@@ -8,11 +8,19 @@ runner's process machinery (`run_tool_pair.py`) unchanged for spawn, log
 capture, affinity, the ready/GO/running bar, and process cleanup; the
 shared runner file itself is not modified.
 
-Current status: the [first native run](../../raw/level2-native-blob-20260908.NhiJna/)
+Current status, 2026-09-09: the later
+[RET.ABS native bring-up](../../raw/level2-native-retabs-20260909.oJDCbU/README.md)
+completed one cell with all six workers exiting zero, 400 LC / 800 BE
+service records and a resume launch in each BE process. A matched
+multi-arm performance comparison using this original actuator is still
+open. Component paths and failures below describe the earlier attempts;
+they do not supersede the later successful run.
+
+Historical status: the [first native run](../../raw/level2-native-blob-20260908.NhiJna/)
 and [targeted launch diagnostic](../../raw/level2-native-diag700-20260908.lGURrN/)
 both fail with CUDA 700 before a service result. Instruction-copy sync,
 host parameter readback, and launch submission succeed in the latter;
-GPU execution does not. No native Level-2 performance result is available.
+GPU execution does not. Those attempts produced no native Level-2 service result.
 
 ## What differs from the tool-actuator route
 

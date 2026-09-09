@@ -5,7 +5,9 @@ Current status (2026-09-09): the NVBit-actuator policy port has
 The [canonical host-tool rebuild](../raw/canonical-tool-build-20260909.MnNeOe/README.md)
 completed using this Makefile and the existing measured device carrier.
 That isolated rebuild is not a fresh build of the entire device pipeline or
-a new timing run. The original cuXtra path remains unfinished. Start with the
+a new timing run. The original cuXtra path subsequently completed a
+[single native bring-up cell](../raw/level2-native-retabs-20260909.oJDCbU/README.md);
+its matched multi-arm performance comparison remains open. Start with the
 [source status](../level2/README.md) and [artifact guide](../../../ARTIFACT.md)
 before following the original component notes below.
 

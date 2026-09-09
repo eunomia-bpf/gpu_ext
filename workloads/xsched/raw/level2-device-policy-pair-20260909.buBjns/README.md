@@ -1,5 +1,42 @@
 # XSched Level-2 host/device policy comparison
 
+## Completed result — 2026-09-09
+
+All 15 cells completed; all 90 worker processes returned zero. The enclosing
+runner exited zero at 08:09:49 PDT. The previous tool was restored (direct
+byte comparison returned zero); GPU observation after exit was 0% utilization,
+1 MiB used, P8. No driver module was changed.
+
+| Median metric | baseline | native_port | bpf_port |
+| --- | ---: | ---: | ---: |
+| LC GPU-service p99, ms | 2159.611520 | 773.483680 | 892.468448 |
+| BE completed kernels/s | 10.192943 | 9.889721 | 9.897796 |
+
+Median within-block percentage changes (not ratios of the above medians):
+native/baseline LC p99 -64.184129%; BPF/baseline -58.418822%; BPF/native
++13.507969% (range +0.980763% to +19.378926%, all five adverse). BE changes
+are respectively -3.017672%, -2.917277%, and +0.030487%. Prioritization
+improves LC service tails while reducing BE throughput; this campaign does
+not establish performance parity between the native and BPF ports.
+
+| Global block | baseline p99 ms | native p99 ms | BPF p99 ms |
+| --- | ---: | ---: | ---: |
+| 0 | 2183.887968 | 760.289344 | 767.745984 |
+| 1 | 2168.047584 | 769.950592 | 793.632992 |
+| 2 | 2089.770304 | 786.260608 | 892.468448 |
+| 3 | 2159.611520 | 773.483680 | 897.991904 |
+| 4 | 2062.818464 | 776.006528 | 926.388256 |
+
+These are supplemental Level-2 policy-port measurements, not the paper's
+Level-1 submission-to-first-block results. Reused block-0 timing and enabled
+diagnostics remain the limitations described below. All old cells and
+intermediate observations remain available. Each arm's result.json is the
+cell summary; worker JSON files retain commands, output and return codes.
+The remaining/summary.json covers only its four newly run blocks, not the
+combined five-block campaign.
+
+## Original execution plan and intermediate record
+
 Continue the repaired NVBit-actuator path with five blocks and three arms:
 baseline (no XSched), native_port (original host HPF plus device C guardian
 policy port), bpf_port (bpftime host HPF plus device eBPF guardian decisions).
@@ -32,7 +69,8 @@ The corrected host tool and XG5 carrier are the exact built artifacts from
 bOiYh5, with no rebuild between measurements. Both experiment leases cover
 the run; the prior tool is restored on exit. No module change, calibration,
 clock check, extra gate or new paper experiment is introduced. No manuscript
-is edited. Runtime results are pending.
+is edited. At the time of this plan, runtime results were pending; the final
+result is above.
 
 ## First complete block (remaining four blocks running)
 

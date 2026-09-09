@@ -1,0 +1,316 @@
+2026-09-09T07:50:27-07:00
+{
+  "phase": "level2-tool-actuator-pair",
+  "scope": "sm_120 Level-2 tool-actuator port bring-up: native-C vs device-BPF decisions on the same trusted NVBit actuator; not an upstream cuXtra reproduction; service-only metrics, no queue or cross-clock metric",
+  "initial_run": false,
+  "pair_blocks": 1,
+  "config_order": [
+    "bpf_port",
+    "baseline"
+  ],
+  "streams": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "tasks_per_stream": 50,
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "fixed_delay_ns": 5000000,
+  "tool_ctx_slots": 8192,
+  "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+  "clock_offset_ns": 0,
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "worker_environments": {
+    "baseline": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XG_SERVICE_ONLY": "1"
+      }
+    },
+    "native_port": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "native",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "native",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      }
+    },
+    "bpf_port": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "bpf",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "bpf",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      }
+    }
+  },
+  "paths": {
+    "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload",
+    "xserver_native": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "xserver_bpftime": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/xserver-bpftime",
+    "bpftime_hpf_code": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bpftime_hpf.bin",
+    "guard_tool": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+    "hal_lib_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib"
+  }
+}
+{"block": 1, "block_type": "paired", "config": "bpf_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231289472638312, "all_be_running_ns": 231290335855474, "lc_go_ns": 231290340855700, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231289695006386, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231290333030400, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231290335717048, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231289705980936, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 487906.44208, "p50_us": 481895.168, "p95_us": 664098.976, "p99_us": 767745.984}, "lc_host_elapsed_ns": 27322181258, "be_service": {"kernels": 800, "mean_us": 1061178.33052, "p50_us": 958677.312, "p95_us": 1316568.064, "p99_us": 1550636.384}, "be_host_elapsed_ns": 80826073872, "be_kernels_per_s": 9.89779611548271, "engagement": {"be1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "be2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be3": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be4": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "lc1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 1, "block_type": "paired", "config": "baseline", "metric_scope": "gpu_service_and_host_elapsed", "decision": null, "target_symbol": null, "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231372144362272, "all_be_running_ns": 231372775240290, "lc_go_ns": 231372780240543, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231372774915385, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231372763482710, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231372156735433, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231372767713374, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 1420579.05576, "p50_us": 1430143.328, "p95_us": 1915914.752, "p99_us": 2183887.968}, "lc_host_elapsed_ns": 78043583503, "be_service": {"kernels": 800, "mean_us": 1422369.96896, "p50_us": 1430233.44, "p95_us": 1902573.344, "p99_us": 2091496.896}, "be_host_elapsed_ns": 78468153386, "be_kernels_per_s": 10.195218894277344, "engagement": {}, "sample_diagnostics": []}
+{
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "complete_pair_blocks": [
+    1
+  ],
+  "configs": {
+    "bpf_port": {
+      "pair_blocks": 1,
+      "lc_service_p99_median_us": 767745.984,
+      "lc_service_mean_median_us": 487906.44208,
+      "be_service_p99_median_us": 1550636.384,
+      "be_kernels_per_s_median": 9.89779611548271,
+      "lc_host_elapsed_median_ns": 27322181258,
+      "be_host_elapsed_median_ns": 80826073872
+    },
+    "baseline": {
+      "pair_blocks": 1,
+      "lc_service_p99_median_us": 2183887.968,
+      "lc_service_mean_median_us": 1420579.05576,
+      "be_service_p99_median_us": 2091496.896,
+      "be_kernels_per_s_median": 10.195218894277344,
+      "lc_host_elapsed_median_ns": 78043583503,
+      "be_host_elapsed_median_ns": 78468153386
+    }
+  },
+  "paired": {},
+  "scope": "sm_120 Level-2 tool-actuator port bring-up: native-C vs device-BPF decisions on the same trusted NVBit actuator; not an upstream cuXtra reproduction; service-only metrics, no queue or cross-clock metric"
+}
+{
+  "phase": "level2-tool-actuator-pair",
+  "scope": "sm_120 Level-2 tool-actuator port bring-up: native-C vs device-BPF decisions on the same trusted NVBit actuator; not an upstream cuXtra reproduction; service-only metrics, no queue or cross-clock metric",
+  "initial_run": false,
+  "pair_blocks": 4,
+  "config_order": [
+    "bpf_port",
+    "baseline",
+    "native_port"
+  ],
+  "streams": 4,
+  "lc_processes": 2,
+  "be_processes": 4,
+  "tasks_per_stream": 50,
+  "reps": 9511106,
+  "blocks": 340,
+  "threads": 256,
+  "fixed_delay_ns": 5000000,
+  "tool_ctx_slots": 8192,
+  "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+  "clock_offset_ns": 0,
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "worker_environments": {
+    "baseline": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XG_SERVICE_ONLY": "1"
+      }
+    },
+    "native_port": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "native",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "native",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      }
+    },
+    "bpf_port": {
+      "lc": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "1",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "16",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "8",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "bpf",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      },
+      "be": {
+        "CUDA_HOME": "/usr/local/cuda-12.9",
+        "XSCHED_SCHEDULER": "GLB",
+        "XSCHED_AUTO_XQUEUE": "ON",
+        "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+        "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+        "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+        "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+        "XSCHED_CUDA_LV2_PORT_120": "1",
+        "XSCHED_LEVEL2_TOOL_ACTUATOR": "1",
+        "XG_DECISION": "bpf",
+        "XG_TARGET_SYMBOL": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy",
+        "LD_PRELOAD": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+        "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib",
+        "XG_SERVICE_ONLY": "1"
+      }
+    }
+  },
+  "paths": {
+    "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload",
+    "xserver_native": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/deps/xsched/output/bin/xserver",
+    "xserver_bpftime": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/xserver-bpftime",
+    "bpftime_hpf_code": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/build/bpftime_hpf.bin",
+    "guard_tool": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/xsched_guard_tool.so",
+    "hal_lib_dir": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-tool-install-20260908/lib"
+  }
+}
+{"block": 1, "block_type": "paired", "config": "bpf_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231454563693910, "all_be_running_ns": 231455436877065, "lc_go_ns": 231455441877328, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231454762377923, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231454745699746, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231455436580780, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231454766178579, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 488581.62656, "p50_us": 486118.24, "p95_us": 662613.056, "p99_us": 793632.992}, "lc_host_elapsed_ns": 27403147725, "be_service": {"kernels": 800, "mean_us": 1005370.8337999999, "p50_us": 976891.456, "p95_us": 1296766.976, "p99_us": 1424761.568}, "be_host_elapsed_ns": 81017542954, "be_kernels_per_s": 9.874404614494697, "engagement": {"be1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 207, "submitted_tasks": 200}, "be2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 207, "submitted_tasks": 200}, "be3": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be4": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 207, "submitted_tasks": 200}, "lc1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 1, "block_type": "paired", "config": "baseline", "metric_scope": "gpu_service_and_host_elapsed", "decision": null, "target_symbol": null, "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231538976703087, "all_be_running_ns": 231539606452659, "lc_go_ns": 231539611453064, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231538982280955, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231539606208931, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231539603414589, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231538986716163, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 1409834.34552, "p50_us": 1441630.56, "p95_us": 1907677.28, "p99_us": 2168047.584}, "lc_host_elapsed_ns": 78071412140, "be_service": {"kernels": 800, "mean_us": 1421181.74632, "p50_us": 1429910.368, "p95_us": 1915394.72, "p99_us": 2104543.808}, "be_host_elapsed_ns": 78437015698, "be_kernels_per_s": 10.199266161274906, "engagement": {}, "sample_diagnostics": []}
+{"block": 1, "block_type": "paired", "config": "native_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231620912723314, "all_be_running_ns": 231621806085115, "lc_go_ns": 231621811085217, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231621100961127, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231621104987156, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231621140063810, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231621805768386, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 488076.07216000004, "p50_us": 486549.472, "p95_us": 672025.12, "p99_us": 769950.592}, "lc_host_elapsed_ns": 27444939695, "be_service": {"kernels": 800, "mean_us": 995966.9096, "p50_us": 953753.088, "p95_us": 1308667.52, "p99_us": 1476749.696}, "be_host_elapsed_ns": 80877637150, "be_kernels_per_s": 9.891485807334815, "engagement": {"be1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 207, "submitted_tasks": 200}, "be2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 207, "submitted_tasks": 200}, "be3": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 207, "submitted_tasks": 200}, "be4": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "lc1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 2, "block_type": "paired", "config": "baseline", "metric_scope": "gpu_service_and_host_elapsed", "decision": null, "target_symbol": null, "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231703594486692, "all_be_running_ns": 231704228631584, "lc_go_ns": 231704233631695, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231704228343979, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231703597818390, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231703595495358, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231703602352790, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 1417921.6698399999, "p50_us": 1430407.296, "p95_us": 1920379.968, "p99_us": 2089770.304}, "lc_host_elapsed_ns": 78159774625, "be_service": {"kernels": 800, "mean_us": 1418819.1754400001, "p50_us": 1416272.992, "p95_us": 1914652.544, "p99_us": 2131538.88}, "be_host_elapsed_ns": 78572081527, "be_kernels_per_s": 10.181733568113417, "engagement": {}, "sample_diagnostics": []}
+{"block": 2, "block_type": "paired", "config": "native_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231785935946013, "all_be_running_ns": 231786802086587, "lc_go_ns": 231786807086753, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231786801885436, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231786149570651, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231786162074909, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231786171476168, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 486943.60512, "p50_us": 480837.408, "p95_us": 662367.616, "p99_us": 786260.608}, "lc_host_elapsed_ns": 27339088805, "be_service": {"kernels": 800, "mean_us": 1070697.4758, "p50_us": 974771.008, "p95_us": 1309054.112, "p99_us": 1451540.0}, "be_host_elapsed_ns": 80892071459, "be_kernels_per_s": 9.889720779439783, "engagement": {"be1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 208, "submitted_tasks": 200}, "be3": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "be4": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "lc1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 2, "block_type": "paired", "config": "bpf_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231869195030783, "all_be_running_ns": 231869439902621, "lc_go_ns": 231869444902751, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231869382272519, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231869439700985, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231869420468415, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231869403851783, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 489860.10704000003, "p50_us": 489169.184, "p95_us": 669667.68, "p99_us": 892468.448}, "lc_host_elapsed_ns": 27609489587, "be_service": {"kernels": 800, "mean_us": 1032027.2941599999, "p50_us": 963323.232, "p95_us": 1312271.776, "p99_us": 1492370.368}, "be_host_elapsed_ns": 80727191190, "be_kernels_per_s": 9.909919919263823, "engagement": {"be1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 203, "submitted_tasks": 200}, "be3": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be4": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "lc1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 3, "block_type": "paired", "config": "native_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 231952786675591, "all_be_running_ns": 231953626595860, "lc_go_ns": 231953631595992, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 231953626515443, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 231952971510291, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 231952996081812, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 231952999347253, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 485901.12552, "p50_us": 480791.584, "p95_us": 675052.64, "p99_us": 773483.68}, "lc_host_elapsed_ns": 27482177250, "be_service": {"kernels": 800, "mean_us": 1068784.63788, "p50_us": 971028.448, "p95_us": 1308564.16, "p99_us": 1512864.96}, "be_host_elapsed_ns": 80948459087, "be_kernels_per_s": 9.882831730498953, "engagement": {"be1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 208, "submitted_tasks": 200}, "be3": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be4": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "lc1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 3, "block_type": "paired", "config": "bpf_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 232036099300834, "all_be_running_ns": 232036355205479, "lc_go_ns": 232036360205549, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 232036354844534, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 232036314030959, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 232036296534286, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 232036330904759, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 488838.53096, "p50_us": 483146.848, "p95_us": 670390.272, "p99_us": 897991.904}, "lc_host_elapsed_ns": 27560308010, "be_service": {"kernels": 800, "mean_us": 1066632.77904, "p50_us": 968073.856, "p95_us": 1298982.56, "p99_us": 1438271.968}, "be_host_elapsed_ns": 80661465382, "be_kernels_per_s": 9.917994871669215, "engagement": {"be1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 204, "submitted_tasks": 200}, "be2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be3": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be4": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "lc1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 3, "block_type": "paired", "config": "baseline", "metric_scope": "gpu_service_and_host_elapsed", "decision": null, "target_symbol": null, "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 232120192425582, "all_be_running_ns": 232120823329110, "lc_go_ns": 232120828329222, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 232120192930686, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 232120823119537, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 232120202277980, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 232120198001924, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 1413986.74504, "p50_us": 1427934.304, "p95_us": 1902160.032, "p99_us": 2159611.52}, "lc_host_elapsed_ns": 78009674184, "be_service": {"kernels": 800, "mean_us": 1417265.33204, "p50_us": 1425868.864, "p95_us": 1913011.008, "p99_us": 2169387.392}, "be_host_elapsed_ns": 78485676208, "be_kernels_per_s": 10.192942695427226, "engagement": {}, "sample_diagnostics": []}
+{"block": 4, "block_type": "paired", "config": "bpf_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 232201618255407, "all_be_running_ns": 232201865784752, "lc_go_ns": 232201870784901, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 232201857337929, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 232201865636722, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 232201845941352, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 232201849768001, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 490146.3972, "p50_us": 481272.064, "p95_us": 668839.456, "p99_us": 926388.256}, "lc_host_elapsed_ns": 27615340010, "be_service": {"kernels": 800, "mean_us": 1031951.76364, "p50_us": 967446.624, "p95_us": 1301164.864, "p99_us": 1478766.432}, "be_host_elapsed_ns": 80943689026, "be_kernels_per_s": 9.883414131805027, "engagement": {"be1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 203, "submitted_tasks": 200}, "be3": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be4": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "lc1": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "bpf", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{"block": 4, "block_type": "paired", "config": "baseline", "metric_scope": "gpu_service_and_host_elapsed", "decision": null, "target_symbol": null, "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 232284425820793, "all_be_running_ns": 232285060890721, "lc_go_ns": 232285065890835, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 232285059243186, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 232284431700272, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 232285060626628, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 232285047819138, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 1421717.17728, "p50_us": 1430008.16, "p95_us": 1902398.304, "p99_us": 2062818.464}, "lc_host_elapsed_ns": 78088217124, "be_service": {"kernels": 800, "mean_us": 1415557.5588800001, "p50_us": 1415989.152, "p95_us": 1916627.36, "p99_us": 2119858.752}, "be_host_elapsed_ns": 78487289935, "be_kernels_per_s": 10.192733124847699, "engagement": {}, "sample_diagnostics": []}
+{"block": 4, "block_type": "paired", "config": "native_port", "metric_scope": "gpu_service_and_host_elapsed", "decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "workload": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/blocks-done-20260909.ykPiLQ/priority_workload", "streams": 4, "lc_processes": 2, "be_processes": 4, "tasks_per_stream": 50, "reps": 9511106, "blocks": 340, "threads": 256, "be_go_ns": 232366896342533, "all_be_running_ns": 232367768855815, "lc_go_ns": 232367773855922, "be_running_events": [{"event": "running", "role": "be", "process_id": 1, "host_ns": 232367138928145, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 2, "host_ns": 232367768592049, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 3, "host_ns": 232367129656638, "stream0_task0_active": true}, {"event": "running", "role": "be", "process_id": 4, "host_ns": 232367117827024, "stream0_task0_active": true}], "lc_service": {"kernels": 400, "mean_us": 485728.4452, "p50_us": 485291.872, "p95_us": 647638.4, "p99_us": 776006.528}, "lc_host_elapsed_ns": 27376582904, "be_service": {"kernels": 800, "mean_us": 1025458.9923200001, "p50_us": 960095.552, "p95_us": 1328253.12, "p99_us": 1549000.96}, "be_host_elapsed_ns": 80941734672, "be_kernels_per_s": 9.883652768770501, "engagement": {"be1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 201, "submitted_tasks": 200}, "be2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "be3": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "be4": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 208, "submitted_tasks": 200}, "lc1": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}, "lc2": {"decision": "native", "target_symbol": "_ZN49_GLOBAL__N__c4a841cd_20_priority_workload_cu_main12compute_taskEPNS_9TaskStampEPfiiy", "instrumented_entries": 1, "functions": 1, "launches": 200, "submitted_tasks": 200}}, "sample_diagnostics": []}
+{
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "complete_pair_blocks": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "configs": {
+    "bpf_port": {
+      "pair_blocks": 4,
+      "lc_service_p99_median_us": 895230.176,
+      "lc_service_mean_median_us": 489349.319,
+      "be_service_p99_median_us": 1458519.2000000002,
+      "be_kernels_per_s_median": 9.896667025534425,
+      "lc_host_elapsed_median_ns": 27584898798.5,
+      "be_host_elapsed_median_ns": 80835440108.0
+    },
+    "baseline": {
+      "pair_blocks": 4,
+      "lc_service_p99_median_us": 2124690.912,
+      "lc_service_mean_median_us": 1415954.20744,
+      "be_service_p99_median_us": 2125698.8159999996,
+      "be_kernels_per_s_median": 10.192837910137463,
+      "lc_host_elapsed_median_ns": 78079814632.0,
+      "be_host_elapsed_median_ns": 78486483071.5
+    },
+    "native_port": {
+      "pair_blocks": 4,
+      "lc_service_p99_median_us": 774745.104,
+      "lc_service_mean_median_us": 486422.36532,
+      "be_service_p99_median_us": 1494807.328,
+      "be_kernels_per_s_median": 9.886686774105142,
+      "lc_host_elapsed_median_ns": 27410761299.5,
+      "be_host_elapsed_median_ns": 80916903065.5
+    }
+  },
+  "paired": {
+    "bpf_port_vs_native_port": {
+      "metric": "lc_service_p99_us_delta",
+      "per_block_us": [
+        23682.400000000023,
+        106207.83999999997,
+        124508.22399999993,
+        150381.728
+      ],
+      "mean_us": 101195.04799999998
+    }
+  },
+  "scope": "sm_120 Level-2 tool-actuator port bring-up: native-C vs device-BPF decisions on the same trusted NVBit actuator; not an upstream cuXtra reproduction; service-only metrics, no queue or cross-clock metric"
+}
+2026-09-09T08:09:49-07:00

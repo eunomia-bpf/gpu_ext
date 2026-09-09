@@ -1,0 +1,51 @@
+{
+  "metric_scope": "gpu_service_and_host_elapsed",
+  "complete_pair_blocks": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "configs": {
+    "bpf_port": {
+      "pair_blocks": 4,
+      "lc_service_p99_median_us": 895230.176,
+      "lc_service_mean_median_us": 489349.319,
+      "be_service_p99_median_us": 1458519.2000000002,
+      "be_kernels_per_s_median": 9.896667025534425,
+      "lc_host_elapsed_median_ns": 27584898798.5,
+      "be_host_elapsed_median_ns": 80835440108.0
+    },
+    "baseline": {
+      "pair_blocks": 4,
+      "lc_service_p99_median_us": 2124690.912,
+      "lc_service_mean_median_us": 1415954.20744,
+      "be_service_p99_median_us": 2125698.8159999996,
+      "be_kernels_per_s_median": 10.192837910137463,
+      "lc_host_elapsed_median_ns": 78079814632.0,
+      "be_host_elapsed_median_ns": 78486483071.5
+    },
+    "native_port": {
+      "pair_blocks": 4,
+      "lc_service_p99_median_us": 774745.104,
+      "lc_service_mean_median_us": 486422.36532,
+      "be_service_p99_median_us": 1494807.328,
+      "be_kernels_per_s_median": 9.886686774105142,
+      "lc_host_elapsed_median_ns": 27410761299.5,
+      "be_host_elapsed_median_ns": 80916903065.5
+    }
+  },
+  "paired": {
+    "bpf_port_vs_native_port": {
+      "metric": "lc_service_p99_us_delta",
+      "per_block_us": [
+        23682.400000000023,
+        106207.83999999997,
+        124508.22399999993,
+        150381.728
+      ],
+      "mean_us": 101195.04799999998
+    }
+  },
+  "scope": "sm_120 Level-2 tool-actuator port bring-up: native-C vs device-BPF decisions on the same trusted NVBit actuator; not an upstream cuXtra reproduction; service-only metrics, no queue or cross-clock metric"
+}

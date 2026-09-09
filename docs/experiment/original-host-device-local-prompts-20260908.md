@@ -169,3 +169,49 @@ Read split_grid.h, prepare/build scripts and pipeline/{prepare.py,Makefile,runne
 Native device mapping vs BPF device mapping must use same context and same host inputs. Provide modes sufficient to distinguish original native host+native device, BPF host+native device, and BPF host+BPF device; baseline continues to use existing unsplit native frontend. Avoid duplicating full framework or inventing new workloads; implementation plus existing runner integration is task. Preserve thread/CTA semantics: coordinates must actually drive original kernel memory accesses. A trusted wrapper may apply BPF outputs, but C fallback must never provide BPF decisions silently.
 Deliver real source patch and ordinary build command, plus minimal invocation for current frontend and honest hook limitations if any. No GPU runs yet; root serializes measurement. Do not turn this into new feedback algorithm or separate observability benchmark.
 ```
+
+## Current continuation — 2026-09-08 22:20 PDT
+
+The Hummingbird comparison is complete in `eb4574c5`: five blocks / twenty
+cells. Do not repeat it. Its existing session
+`ses_f80c496aeffeBh330rKhrRwPgX` now uses direct Qwen 27B and has consumed
+the queued LMCache task. Root's scope message `msg_08491dab20018rwwf8DDgmq6F5`
+specifies real serving/KV integration with driver `dea1fefc`, reusing the
+measured disk-UVM primitive. The current read-only backing contract applies
+to completed immutable chunks, not the mutable live vLLM KV pool. The
+existing native/BPF policy comparison and ordinary serving runner should
+be retained. Code integration and new serving performance remain unfinished.
+The unused Hummingbird launcher is WIP, not a prerequisite for LMCache.
+
+Two other sessions remain live; root has not stopped or replaced them:
+
+- Tool actuator: direct Qwen 27B, `ses_f7d8b1dbeffeMN1yhvQzVm7VsS`.
+  Root's source observation in `msg_08496b81f001Y8J1JJ9P5MjFDI` is that
+  `LaunchWorker` calls `OnXQueueCreate` to set the current CUDA context,
+  whereas scheduler-thread `AsyncXQueue::Resume` calls
+  `CudaQueueLv2::Reactivate` without that setup. This is a candidate
+  explanation for the difference between ordinary and replay submissions,
+  not a demonstrated cause. Existing counters run after API/function
+  filters; their absence does not prove that no NVBit callback occurred.
+  The model is checking scoped context setup before a broader replay-worker
+  rewrite. Only a changed failed configuration will be retried.
+- Native actuator: GLM, `ses_f7d4e2503ffesJKDZlvxdw0z0A`.
+  Its metadata-extension candidate remains in the isolated native source.
+  Root's `msg_08499264e001nAFMjI2Eb7EQZV` identifies two concrete defects:
+  the returned vector data pointer is incorrectly deleted as a vector
+  object, and the inferred 10,856-byte ELF extent truncates the real
+  11,136-byte input. Existing local crash output is consistent with the
+  first defect; no new GPU run of this candidate has occurred. The model
+  must also preserve non-target kernels and reconcile the parameter-size
+  records with the constant section, rather than assume a single changed
+  field implements compiler-equivalent metadata. Its launch-error
+  propagation patch is already published separately in `2b04ecaf`.
+
+At the scoped status check all three sessions were busy with no pending
+permissions. GLM's automatic context compaction resumed in the same session;
+historical SSE error/idle events are not its current state. GPU was idle and
+root held neither experiment lock. Root reviews, builds, measures and
+publishes; local models implement nontrivial code. No manuscript, new paper
+reproduction, clock gate, or extra correctness campaign is part of this
+continuation. These are implementation findings and task handoffs, not new
+performance results.

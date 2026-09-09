@@ -32,3 +32,24 @@ build-driver.sh contains the command. The three source files are available
 in driver commit 95097e20; local source snapshots and module binaries are
 not a separate publication requirement. lifecycle.log and runner.log retain
 the current run. Runtime completion and results are pending.
+
+## First completed block (partial campaign)
+
+All three block-0 cells finish with 8192 completed/observed output tokens,
+zero HTTP failures and server exit zero. The remaining four blocks continue;
+these rows are not a completed five-block comparison.
+
+| Arm | Warm token/s | UVM restores | Restore fallback/error |
+| --- | ---: | ---: | --- |
+| stock | 71.698241 | 72 | 0 / 0 |
+| native | 69.291949 | 40 | 0 / 0 |
+| BPF | 66.487342 | unavailable | unavailable |
+
+BPF is slower in this first block; no improvement or tight overhead bound
+is claimed. Its disk-UVM diagnostic file is zero bytes, and the final policy
+diagnostic file was not produced before shutdown. The raw performance result
+is retained without turning this missing diagnostic into another run gate;
+unavailable counters must not be presented as zero. Stock/native have complete
+disk-UVM counters, including 48 prepared ranges each. Earlier OOM results are
+not overwritten, and the later blocks will determine whether completion is
+stable across the campaign.

@@ -1,0 +1,57 @@
+{
+  "name": "be2",
+  "command": [
+    "taskset",
+    "-c",
+    "2,3,4,5,6,7,8,9",
+    "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/service-mismatch-20260908.sHSYtE/priority_workload",
+    "be",
+    "2",
+    "4",
+    "50",
+    "9511106",
+    "340",
+    "256",
+    "1",
+    "0"
+  ],
+  "returncode": -11,
+  "stdout": [
+    "{\"event\":\"ready\",\"role\":\"be\",\"process_id\":2,\"streams\":4,\"tasks\":50}"
+  ],
+  "stderr": [
+    "[XSCHED INFO @ T 3862117 @ 18:12:03.750151] using global scheduler",
+    "[XSCHED INFO @ T 3862117 @ 18:12:04.394410] native-700 probe 1: resume blob VA 0x77b3b4600000 size 336, syncing",
+    "[XSCHED INFO @ T 3862117 @ 18:12:04.394417] native-700 probe 1: resume blob copy synced clean",
+    "[XSCHED INFO @ T 3862117 @ 18:12:04.409822] native-700 probe 3: binary kernel=1408 B guardian=640 B ep_inst=0x77b3b4600200 regs=16->32 barriers=1->1",
+    "[XSCHED INFO @ T 3862180 @ 18:12:04.409955] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x77b3b4600200 entry=0x131613709042176 idx=1 killable=0",
+    "[XSCHED INFO @ T 3862180 @ 18:12:04.409960] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01",
+    "[XSCHED INFO @ T 3862180 @ 18:12:04.409974] native-700 probe 2: launch ret=0",
+    "[XSCHED INFO @ T 3862181 @ 18:12:04.410041] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x77b3b4600200 entry=0x131613709042176 idx=1 killable=0",
+    "[XSCHED INFO @ T 3862181 @ 18:12:04.410054] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01",
+    "[XSCHED INFO @ T 3862181 @ 18:12:04.410068] native-700 probe 2: launch ret=0",
+    "[XSCHED INFO @ T 3862182 @ 18:12:04.410310] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x77b3b4600200 entry=0x131613709042176 idx=1 killable=0",
+    "[XSCHED INFO @ T 3862182 @ 18:12:04.410316] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01",
+    "[XSCHED INFO @ T 3862182 @ 18:12:04.410327] native-700 probe 2: launch ret=0",
+    "[XSCHED INFO @ T 3862183 @ 18:12:04.410337] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x77b3b4600200 entry=0x131613709042176 idx=1 killable=0",
+    "[XSCHED INFO @ T 3862183 @ 18:12:04.410342] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01",
+    "[XSCHED INFO @ T 3862183 @ 18:12:04.410348] native-700 probe 2: launch ret=0",
+    "[XSCHED ERRO @ T 3862182 @ 18:12:04.658309] cuda error 700: an illegal memory access was encountered @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:31",
+    "[XSCHED ERRO @ T 3862180 @ 18:12:04.658309] cuda error 700: an illegal memory access was encountered @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:31",
+    "[XSCHED ERRO @ T 3862183 @ 18:12:04.658314] cuda error 700: an illegal memory access was encountered @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:31",
+    "[XSCHED ERRO @ T 3862181 @ 18:12:04.658398] cuda error 700: (null) @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:31"
+  ],
+  "runtime_environment": {
+    "CUDA_HOME": "/usr/local/cuda-12.9",
+    "XSCHED_SCHEDULER": "GLB",
+    "XSCHED_AUTO_XQUEUE": "ON",
+    "XSCHED_AUTO_XQUEUE_LEVEL": "2",
+    "XSCHED_AUTO_XQUEUE_PRIORITY": "0",
+    "XSCHED_AUTO_XQUEUE_THRESHOLD": "4",
+    "XSCHED_AUTO_XQUEUE_BATCH_SIZE": "2",
+    "XSCHED_CUDA_LV2_PORT_120": "1",
+    "XSCHED_LEVEL2_TOOL_ACTUATOR": "0",
+    "LD_LIBRARY_PATH": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib",
+    "XG_SERVICE_ONLY": "1"
+  }
+}

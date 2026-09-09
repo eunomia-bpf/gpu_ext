@@ -1,5 +1,11 @@
 # docs/
 
+For current paper-to-data links, completed experiments and reproduction
+commands, start with the repository [artifact guide](../ARTIFACT.md).
+This directory index describes where documents live, not completion status.
+The manuscript submodule is kept separate from artifact maintenance.
+
+- `artifact/` — portable result-reanalysis and figure-reproduction instructions
 - `paper/` — paper source (submodule → gbpf-paper)
 - `paper-material/` — reference papers (MSched, XRP, etc.)
 - `resubmission-v2/` — SOSP resubmission drafts and analysis

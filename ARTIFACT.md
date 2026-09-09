@@ -33,6 +33,34 @@ an execution record, not necessarily a portable launcher: it may contain the
 original machine's build paths, module locations or process IDs. Failed runs
 are retained as failures, not counted as successful performance measurements.
 
+## Reading status and adding results
+
+Keep these completion claims separate:
+
+| Status | What it establishes | What it does not establish |
+| --- | --- | --- |
+| Measured | The linked campaign completed its stated cells and produced the reported metric. | A full original-system reproduction, or a win over every control. |
+| Built | The stated source and configuration compiled. | A newly measured performance result. |
+| Reanalyzed / rendered | Published summaries or plot inputs reproduce the stated statistics or figure. | A fresh GPU run or reconstruction from every request log. |
+| Runtime-reproduced | The documented workload was built and run in the stated environment. | Portability to an untested machine or driver. |
+| Open / historical | Work remains, or the record describes an earlier state. | Current completion. |
+
+For each completed step, keep the dated report beside its workload, link the
+source/build/run entrypoints and raw cohort there, and add its navigation link
+here. Record baseline, native-policy and BPF arms by their actual meaning;
+include units, timing boundaries, estimator, sample count and limitations.
+Keep new optimizations and extra blocks separate from the paper-selected
+cohort. Do not replace old numbers, failed attempts or adverse comparisons.
+Publish source, small records and reports; keep regenerable builds, models
+and cache payloads outside Git. No directory move or data deletion is needed
+to follow this organization.
+
+The [documentation index](docs/README.md) and
+[workload index](workloads/README.md) route readers here. Earlier plans remain
+historical context; the dated evidence and open items below distinguish what
+has actually been completed. Paper integration is separate and this session
+does not edit the manuscript.
+
 ## Paper-to-evidence map
 
 The current manuscript entry is [main.tex](docs/paper/main.tex), which includes

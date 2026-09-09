@@ -2,7 +2,15 @@
 
 This directory contains all benchmark workloads used in the gpu_ext paper evaluation.
 
-Paper-facing note: when benchmark configs, baseline policies, or headline results change, sync this file with `README.md` and `docs/gpu-ext/paper/README.md`. If the change touches device-side claims, check the current bpftime implementation first.
+For the current revision's measured cohorts, native/BPF comparisons and
+supplementary results, start with the [artifact guide](../ARTIFACT.md).
+The original experiment numbering and setup descriptions below are retained;
+they are not a current revision-completion checklist. Use each linked dated
+report for its hardware, configuration, metric and source version.
+
+Artifact maintenance updates repository instructions and evidence links;
+manuscript edits require separate authorization. If a change touches
+device-side behavior, check the corresponding bpftime implementation first.
 
 ## Hardware Requirements
 

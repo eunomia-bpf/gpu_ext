@@ -1,0 +1,51 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+Function "(anonymous namespace)::GetXgOriginalLayout(CUfunc_st*, unsigned long, (anonymous namespace)::XgParamLayout const*, (anonymous namespace)::XgParamLayout*)" not defined.
+Breakpoint 1 ('(anonymous namespace)::GetXgOriginalLayout(CUfunc_st*, unsigned long, (anonymous namespace)::XgParamLayout const*, (anonymous namespace)::XgParamLayout*)' if $rsi == 5) pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 604319 @ 05:33:44.764619] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 604322)]
+[New Thread 0x7ffff67fe000 (LWP 604323)]
+[New Thread 0x7ffff4ae1000 (LWP 604327)]
+[New Thread 0x7fffea5ff000 (LWP 604328)]
+[XSCHED INFO @ T 604319 @ 05:33:44.997212] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 604319 @ 05:33:44.997235] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 604330)]
+[New Thread 0x7ffddd7fe000 (LWP 604331)]
+[New Thread 0x7ffddcffd000 (LWP 604332)]
+[New Thread 0x7ffdb1fff000 (LWP 604333)]
+{"event":"ready","role":"be","process_id":2,"streams":4,"tasks":50}
+[XSCHED INFO @ T 604319 @ 05:33:44.998665] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520
+[XSCHED INFO @ T 604319 @ 05:33:44.998670] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520
+[XSCHED INFO @ T 604319 @ 05:33:44.998673] meta-extend: fatbin-cubin[0] KPARAM(V2) ordinal 0 offset 0x0 size 0x8 -> 0x1520 (declared launch extent 0x1520)
+[XSCHED INFO @ T 604319 @ 05:33:44.998675] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 604319 @ 05:33:44.998677] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520
+[XSCHED INFO @ T 604319 @ 05:33:44.998678] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520
+[XSCHED INFO @ T 604319 @ 05:33:44.998679] meta-extend: fatbin-cubin[1] KPARAM(V2) ordinal 4 offset 0x18 size 0x8 -> 0x1508 (declared launch extent 0x1520)
+[XSCHED INFO @ T 604319 @ 05:33:44.998681] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 604319 @ 05:33:44.998682] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x55555560e058)
+
+Thread 1 "priority_worklo" hit Breakpoint 1, 0x00007ffff7312330 in (anonymous namespace)::GetXgOriginalLayout(CUfunc_st*, unsigned long, (anonymous namespace)::XgParamLayout const*, (anonymous namespace)::XgParamLayout*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#0  0x00007ffff7312330 in (anonymous namespace)::GetXgOriginalLayout(CUfunc_st*, unsigned long, (anonymous namespace)::XgParamLayout const*, (anonymous namespace)::XgParamLayout*) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#1  0x00007ffff7316250 in xsched::cuda::CudaKernelCommand::CudaKernelCommand(CUfunc_st*, void**, void**, bool) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+#2  0x00007ffff73ce3b5 in cudaError_enum xsched::cuda::XLaunchKernelImpl<xsched::cuda::CudaKernelLaunchCommand, CUfunc_st*&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, void**&, void**&>(CUstream_st*, bool, CUfunc_st*&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, unsigned int&, void**&, void**&) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+#3  0x00007ffff73ca240 in xsched::cuda::XLaunchKernel(CUfunc_st*, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, CUstream_st*, void**, void**) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+0x7fffffffd230:	0x0000000000000005	0x0000000000000000
+0x7fffffffd240:	0x0000000000000008	0x0000000000000010
+0x7fffffffd250:	0x0000000000000014	0x0000000000000018
+0x7fffffffd338:	0x0000000000000008	0x0000000000000008
+0x7fffffffd348:	0x0000000000000004	0x0000000000000004
+0x7fffffffd358:	0x0000000000001508
+0x00007ffff7316250 in xsched::cuda::CudaKernelCommand::CudaKernelCommand(CUfunc_st*, void**, void**, bool) () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libhalcuda.so
+$1 = 0x1
+0x7fffffffd440:	0x0000000000000005	0x0000000000000000
+0x7fffffffd450:	0x0000000000000008	0x0000000000000010
+0x7fffffffd460:	0x0000000000000014	0x0000000000000018
+0x7fffffffd548:	0x0000000000000008	0x0000000000000008
+0x7fffffffd558:	0x0000000000000004	0x0000000000000004
+0x7fffffffd568:	0x0000000000000008

@@ -47,3 +47,27 @@ backtrace.log, lifecycle.log and xserver-debug.log retain the outputs.
 The prior debug-go.txt input is referenced by its preserved absolute path.
 No manuscript or previous measurement is changed.
 
+## Follow-up: the first compute constructor recovers the original layout
+
+A second targeted snapshot at 05:33:44 PDT stops on the first five-parameter
+GetXgOriginalLayout invocation, captures its input/output pointers in GDB
+convenience variables, and steps to its return. It does not change target
+memory or call new inferior functions.
+
+| Layout | Count | Offsets | Sizes |
+| --- | ---: | --- | --- |
+| Loaded input | 5 | 0, 8, 0x10, 0x14, 0x18 | 8, 8, 4, 4, 0x1508 |
+| Returned original | 5 | 0, 8, 0x10, 0x14, 0x18 | 8, 8, 4, 4, 8 |
+
+The boolean return is 1. Hence the initial constructor lookup succeeds and
+recovers the original 0x20-byte extent. A missing initial original-layout
+lookup is not an explanation of the first launch 701. The later overlap
+message must not be assumed to precede that first failure. This does not yet
+prove the later relay upload is correct or explain the driver's rejection
+of the grown launch buffer.
+
+load-layout.gdb, run-layout.sh, layout.log, layout-lifecycle.log and
+xserver-layout.log retain the exact second observation. It uses the same
+frozen binary, workload/environment, shared leases and deliberate post-snapshot
+exit. No throughput measurement or completed native Level-2 run is claimed.
+

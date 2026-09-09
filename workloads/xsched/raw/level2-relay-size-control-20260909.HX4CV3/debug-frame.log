@@ -1,0 +1,32 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+Function "cuLaunchKernel" not defined.
+Breakpoint 1 (cuLaunchKernel) pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 190619 @ 00:32:24.682234] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 190622)]
+[New Thread 0x7ffff67fe000 (LWP 190623)]
+[New Thread 0x7ffff4ae1000 (LWP 190627)]
+[New Thread 0x7fffea5ff000 (LWP 190628)]
+[XSCHED INFO @ T 190619 @ 00:32:24.903227] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 190619 @ 00:32:24.903247] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 190631)]
+[New Thread 0x7ffddd7fe000 (LWP 190632)]
+[New Thread 0x7ffddcffd000 (LWP 190633)]
+[New Thread 0x7ffdb1fff000 (LWP 190634)]
+{"event":"ready","role":"be","process_id":1,"streams":4,"tasks":50}
+[XSCHED INFO @ T 190619 @ 00:32:24.904957] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520
+[XSCHED INFO @ T 190619 @ 00:32:24.904962] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520
+[XSCHED INFO @ T 190619 @ 00:32:24.904963] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 190619 @ 00:32:24.904964] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520
+[XSCHED INFO @ T 190619 @ 00:32:24.904965] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520
+[XSCHED INFO @ T 190619 @ 00:32:24.904966] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 190619 @ 00:32:24.904966] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x55555560e058)
+cuLaunchKernel in section .text of /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+workloads/xsched/raw/level2-relay-size-control-20260909.HX4CV3/control-frame.gdb:34: Error in sourced command file:
+Cannot access memory at address 0x100000100

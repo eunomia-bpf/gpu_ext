@@ -92,6 +92,13 @@ status entries remain below; completed cells must not be repeated.
   not necessary for this launch rejection; the common parameter/resource
   setup remains under repair. This single-BE diagnostic adds no performance
   sample and does not repeat the earlier, pre-relay successful control.
+  The subsequent [driver relay-size control](../workloads/xsched/raw/level2-relay-size-control-20260909.HX4CV3/README.md)
+  keeps that metadata and original-entry setting, but shortens only the
+  launch buffer's declared size from `0x1520` to `0x20`: all 200 kernels
+  complete and the worker exits normally. This localizes the rejection to
+  the large relay declaration. It is not a repair or performance sample:
+  the short buffer omits the guardian argument block, and full accepted
+  argument delivery remains unfinished.
 - **Hummingbird host/device mapping five-block comparison is complete.**
   Existing host-policy and pipeline measurements remain complete and are
   not device-BPF evidence. The opt-in follow-up must consume BPF-computed

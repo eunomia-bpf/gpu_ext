@@ -1,0 +1,953 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+Function "cuLaunchKernel" not defined.
+Breakpoint 1 (cuLaunchKernel) pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 193413 @ 00:34:10.184606] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 193416)]
+[New Thread 0x7ffff67fe000 (LWP 193417)]
+[New Thread 0x7ffff4ae1000 (LWP 193421)]
+[New Thread 0x7fffea5ff000 (LWP 193422)]
+[XSCHED INFO @ T 193413 @ 00:34:10.415086] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 193413 @ 00:34:10.415106] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 193423)]
+[New Thread 0x7ffddd7fe000 (LWP 193424)]
+[New Thread 0x7ffddcffd000 (LWP 193425)]
+[New Thread 0x7ffdb1fff000 (LWP 193426)]
+{"event":"ready","role":"be","process_id":1,"streams":4,"tasks":50}
+[XSCHED INFO @ T 193413 @ 00:34:10.416620] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520
+[XSCHED INFO @ T 193413 @ 00:34:10.416626] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520
+[XSCHED INFO @ T 193413 @ 00:34:10.416627] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 193413 @ 00:34:10.416628] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520
+[XSCHED INFO @ T 193413 @ 00:34:10.416629] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520
+[XSCHED INFO @ T 193413 @ 00:34:10.416630] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 193413 @ 00:34:10.416631] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x55555560e058)
+
+Thread 1 "priority_worklo" hit Breakpoint 1.2, 0x00007ffff73a19d0 in cuLaunchKernel () from /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/install/lib/libcuda.so.1
+CONTROL driver handle 0x555555641d10 launch entry 0x7fffea9dd180
+Breakpoint 2 at 0x7fffea9dd180
+[XSCHED INFO @ T 193413 @ 00:34:10.451764] native-700 probe 3: binary kernel=1408 B guardian=640 B ep_inst=0x7ffdb6600200 regs=16->32 barriers=1->1
+[XSCHED INFO @ T 193423 @ 00:34:10.451932] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:10.451951] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:10.455349] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:10.455357] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:10.455372] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+{"event":"running","role":"be","process_id":1,"host_ns":205111787643217,"stream0_task0_active":true}
+[XSCHED INFO @ T 193425 @ 00:34:10.455736] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:10.455745] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:10.455781] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:10.456132] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:10.456142] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=2 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:10.456144] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x02
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:10.456571] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:10.456578] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:10.456598] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:10.457019] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:10.457025] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=2 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:10.457027] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x02
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:10.457320] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:10.457324] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=3 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:10.457325] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x03
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:10.457618] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:10.457621] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=4 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:10.457622] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x04
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:10.457909] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:10.457915] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=3 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:10.457918] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x03
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:10.458216] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:10.458226] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=4 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:10.458229] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x04
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:10.458518] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:10.602403] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=2 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:10.602436] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x02
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:10.603391] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:10.603398] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=3 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:10.603400] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x03
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:10.603904] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:10.603907] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=4 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:10.603909] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x04
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:10.604236] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:10.604240] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=5 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:10.604242] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x05
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:10.604660] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:10.604814] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=2 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:10.604828] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x02
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:10.605369] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:10.605379] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=3 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:10.605382] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x03
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:10.606011] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:10.606021] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=4 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:10.606024] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x04
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:10.606383] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:10.606387] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=5 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:10.606389] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x05
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:10.606686] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:10.693450] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=5 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:10.693484] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x05
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:10.695158] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:10.780203] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=5 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:10.780244] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x05
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:10.781689] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:11.029059] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=6 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:11.029086] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x06
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:11.029955] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:11.029971] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=7 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:11.029974] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x07
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:11.030302] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:11.079142] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=6 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:11.079175] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x06
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:11.080477] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:11.080495] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=7 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:11.080498] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x07
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:11.080964] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:11.136435] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=6 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:11.136480] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x06
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:11.137555] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:11.137581] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=7 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:11.137587] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x07
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:11.138348] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:11.196131] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=6 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:11.196163] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x06
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:11.197724] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:11.197756] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=7 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:11.197759] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x07
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:11.198613] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:11.477123] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=8 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:11.477165] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x08
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:11.478513] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:11.478528] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=9 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:11.478531] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x09
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:11.478870] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:11.533413] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=8 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:11.533456] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x08
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:11.534607] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:11.534616] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=9 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:11.534619] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x09
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:11.535663] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:11.590088] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=8 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:11.590121] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x08
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:11.591694] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:11.591719] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=9 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:11.591725] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x09
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:11.592550] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:11.647410] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=8 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:11.647456] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x08
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:11.648416] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:11.648430] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=9 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:11.648434] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x09
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:11.649184] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:11.931714] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=10 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:11.931745] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0a
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:11.932955] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:11.932975] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=11 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:11.932978] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:11.933488] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:11.986938] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=10 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:11.986960] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0a
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:11.987990] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:11.988003] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=11 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:11.988005] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:11.989002] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:12.045237] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=10 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:12.045276] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0a
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:12.046708] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:12.046724] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=11 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:12.046727] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:12.047318] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:12.100469] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=10 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:12.100498] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0a
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:12.101923] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:12.101939] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=11 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:12.101942] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:12.103133] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:12.383328] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=12 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:12.383373] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0c
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:12.384614] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:12.384634] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=13 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:12.384636] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:12.385479] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:12.439958] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=12 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:12.439984] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0c
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:12.441224] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:12.441240] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=13 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:12.441243] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:12.441933] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:12.496590] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=12 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:12.496635] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0c
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:12.498272] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:12.498298] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=13 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:12.498305] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:12.499179] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:12.553825] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=12 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:12.553893] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0c
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:12.555377] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:12.555394] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=13 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:12.555397] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:12.556274] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:12.837143] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=14 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:12.837176] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0e
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:12.838399] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:12.838408] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=15 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:12.838410] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:12.839178] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:12.893385] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=14 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:12.893413] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0e
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:12.894498] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:12.894512] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=15 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:12.894516] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:12.895393] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:12.949153] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=14 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:12.949191] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0e
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:12.950375] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:12.950391] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=15 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:12.950393] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:12.951085] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:13.005500] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=14 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:13.005536] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0e
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:13.006939] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:13.006972] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=15 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:13.006979] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x0f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:13.007883] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:13.288188] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=16 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:13.288220] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x10
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:13.289523] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:13.289541] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=17 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:13.289544] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x11
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:13.290299] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:13.346171] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=16 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:13.346201] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x10
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:13.347339] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:13.347359] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=17 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:13.347361] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x11
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:13.348203] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:13.402694] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=16 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:13.402733] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x10
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:13.404074] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:13.404100] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=17 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:13.404102] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x11
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:13.404993] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:13.457520] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=16 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:13.457547] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x10
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:13.458937] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:13.458969] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=17 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:13.458979] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x11
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:13.459606] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:13.740398] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=18 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:13.740429] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x12
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:13.741739] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:13.741759] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=19 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:13.741762] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x13
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:13.742703] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:13.798014] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=18 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:13.798041] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x12
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:13.799354] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:13.799373] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=19 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:13.799376] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x13
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:13.800037] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:13.853545] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=18 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:13.853585] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x12
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:13.855043] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:13.855060] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=19 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:13.855063] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x13
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:13.856056] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:13.910164] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=18 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:13.910200] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x12
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:13.911476] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:13.911507] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=19 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:13.911514] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x13
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:13.912304] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:14.193095] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=20 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:14.193123] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x14
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:14.194422] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:14.194436] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=21 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:14.194440] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x15
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:14.194932] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:14.249437] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=20 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:14.249469] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x14
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:14.251109] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:14.251129] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=21 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:14.251132] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x15
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:14.251990] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:14.306039] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=20 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:14.306077] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x14
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:14.307351] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:14.307366] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=21 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:14.307369] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x15
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:14.308269] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:14.362643] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=20 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:14.362684] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x14
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:14.364139] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:14.364157] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=21 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:14.364159] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x15
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:14.364911] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:14.645475] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=22 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:14.645505] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x16
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:14.646979] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:14.646992] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=23 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:14.646995] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x17
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:14.648286] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:14.702103] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=22 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:14.702135] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x16
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:14.703541] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:14.703561] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=23 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:14.703565] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x17
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:14.704460] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:14.758864] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=22 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:14.758897] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x16
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:14.760239] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:14.760252] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=23 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:14.760255] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x17
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:14.760969] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:14.815099] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=22 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:14.815139] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x16
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:14.816297] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:14.816314] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=23 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:14.816317] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x17
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:14.817159] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:15.097732] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=24 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:15.097755] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x18
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:15.098964] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:15.098972] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=25 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:15.098974] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x19
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:15.099710] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:15.154389] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=24 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:15.154410] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x18
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:15.155661] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:15.155678] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=25 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:15.155680] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x19
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:15.156498] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:15.210788] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=24 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:15.210808] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x18
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:15.212245] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:15.212259] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=25 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:15.212261] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x19
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:15.213072] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:15.267213] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=24 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:15.267241] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x18
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:15.268329] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:15.268356] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=25 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:15.268361] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x19
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:15.269263] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:15.550315] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=26 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:15.550345] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1a
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:15.551641] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:15.551660] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=27 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:15.551663] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:15.552417] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:15.606787] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=26 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:15.606810] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1a
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:15.608275] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:15.608292] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=27 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:15.608295] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:15.609277] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:15.663408] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=26 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:15.663438] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1a
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:15.664817] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:15.664845] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=27 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:15.664852] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:15.665736] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:15.720082] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=26 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:15.720118] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1a
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:15.721519] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:15.721547] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=27 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:15.721553] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:15.722444] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:16.003039] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=28 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:16.003085] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1c
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:16.004299] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:16.004305] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=29 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:16.004307] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:16.004903] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:16.059631] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=28 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:16.059664] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1c
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:16.061358] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:16.061376] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=29 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:16.061379] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:16.062518] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:16.116203] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=28 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:16.116221] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1c
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:16.117492] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:16.117504] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=29 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:16.117507] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:16.118242] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:16.172759] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=28 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:16.172800] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1c
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:16.174475] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:16.174507] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=29 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:16.174511] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:16.175399] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:16.455505] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=30 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:16.455536] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1e
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:16.457015] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:16.457048] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=31 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:16.457055] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:16.457710] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:16.511971] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=30 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:16.512011] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1e
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:16.513002] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:16.513019] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=31 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:16.513025] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:16.513402] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:16.568727] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=30 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:16.568765] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1e
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:16.570192] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:16.570208] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=31 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:16.570210] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:16.570825] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:16.625013] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=30 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:16.625044] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1e
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:16.626247] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:16.626260] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=31 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:16.626262] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x1f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:16.627256] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:16.907103] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=32 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:16.907126] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x20
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:16.908825] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:16.908845] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=33 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:16.908848] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x21
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:16.909714] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:16.964181] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=32 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:16.964201] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x20
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:16.965426] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:16.965438] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=33 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:16.965442] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x21
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:16.965964] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:17.020397] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=32 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:17.020421] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x20
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:17.021926] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:17.021941] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=33 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:17.021946] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x21
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:17.022581] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:17.077459] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=32 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:17.077486] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x20
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:17.078656] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:17.078669] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=33 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:17.078673] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x21
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:17.079651] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:17.359214] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=34 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:17.359239] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x22
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:17.360471] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:17.360490] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=35 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:17.360494] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x23
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:17.361415] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:17.415215] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=34 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:17.415238] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x22
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:17.416217] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:17.416234] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=35 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:17.416239] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x23
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:17.417016] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:17.472028] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=34 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:17.472042] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x22
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:17.472691] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:17.472702] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=35 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:17.472705] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x23
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:17.473394] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:17.528160] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=34 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:17.528176] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x22
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:17.528973] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:17.528979] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=35 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:17.528981] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x23
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:17.529664] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:17.810626] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=36 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:17.810657] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x24
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:17.811996] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:17.812013] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=37 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:17.812016] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x25
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:17.813078] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:17.869111] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=36 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:17.869132] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x24
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:17.870219] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:17.870232] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=37 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:17.870234] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x25
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:17.871025] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:17.926526] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=36 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:17.926547] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x24
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:17.927958] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:17.927974] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=37 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:17.927977] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x25
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:17.928750] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:17.980298] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=36 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:17.980315] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x24
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:17.981117] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:17.981131] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=37 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:17.981134] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x25
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:17.982074] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:18.263421] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=38 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:18.263452] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x26
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:18.264642] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:18.264659] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=39 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:18.264663] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x27
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:18.265300] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:18.319190] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=38 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:18.319204] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x26
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:18.320136] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:18.320147] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=39 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:18.320150] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x27
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:18.320864] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:18.375774] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=38 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:18.375793] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x26
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:18.376740] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:18.376751] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=39 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:18.376754] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x27
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:18.377330] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:18.431610] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=38 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:18.431621] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x26
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:18.432375] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:18.432385] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=39 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:18.432388] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x27
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:18.433002] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:18.713364] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=40 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:18.713393] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x28
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:18.714649] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:18.714659] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=41 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:18.714661] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x29
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:18.715575] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:18.769134] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=40 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:18.769159] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x28
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:18.770138] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:18.770154] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=41 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:18.770157] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x29
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:18.770713] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:18.825519] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=40 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:18.825537] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x28
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:18.826491] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:18.826506] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=41 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:18.826509] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x29
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:18.827345] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:18.884270] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=40 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:18.884294] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x28
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:18.885446] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:18.885464] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=41 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:18.885467] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x29
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:18.887017] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:19.163481] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=42 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:19.163510] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2a
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:19.164794] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:19.164808] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=43 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:19.164811] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:19.165716] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:19.220124] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=42 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:19.220150] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2a
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:19.221353] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:19.221369] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=43 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:19.221372] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:19.222338] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:19.276988] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=42 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:19.277005] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2a
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:19.278249] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:19.278265] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=43 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:19.278268] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:19.279258] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:19.334080] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=42 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:19.334102] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2a
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:19.335281] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:19.335293] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=43 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:19.335296] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2b
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:19.335950] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:19.615401] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=44 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:19.615432] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2c
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:19.616854] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:19.616868] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=45 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:19.616871] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:19.617721] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:19.674538] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=44 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:19.674556] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2c
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:19.675583] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:19.675607] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=45 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:19.675610] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:19.676335] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:19.728193] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=44 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:19.728212] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2c
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:19.729616] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:19.729630] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=45 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:19.729632] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:19.730554] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:19.784711] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=44 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:19.784730] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2c
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:19.785947] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:19.785963] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=45 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:19.785966] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2d
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:19.787156] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:20.066518] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=46 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:20.066548] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2e
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:20.067876] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:20.067893] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=47 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:20.067896] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:20.068709] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:20.123971] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=46 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:20.123987] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2e
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:20.124747] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:20.124758] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=47 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:20.124760] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:20.125456] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:20.179412] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=46 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:20.179436] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2e
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:20.180581] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:20.180603] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=47 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:20.180606] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:20.181337] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:20.234794] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=46 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:20.234835] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2e
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:20.236412] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:20.236438] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=47 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:20.236441] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x2f
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:20.237219] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:20.516895] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=48 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:20.516922] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x30
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:20.518467] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:20.518485] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=49 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:20.518488] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x31
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:20.519199] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:20.575240] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=48 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:20.575265] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x30
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:20.576420] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:20.576431] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=49 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:20.576434] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x31
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:20.577255] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:20.630374] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=48 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:20.630398] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x30
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:20.631565] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:20.631579] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=49 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:20.631582] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x31
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:20.632378] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:20.686168] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=48 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:20.686195] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x30
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:20.687171] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:20.687180] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=49 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:20.687182] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x31
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:20.687630] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193423 @ 00:34:20.967770] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=50 killable=0
+[XSCHED INFO @ T 193423 @ 00:34:20.967800] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x32
+[Switching to Thread 0x7ffdddfff000 (LWP 193423)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193423 @ 00:34:20.969128] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193425 @ 00:34:21.024263] native-700 probe 2: type=1 preempt_buf=0x3c2000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=50 killable=0
+[XSCHED INFO @ T 193425 @ 00:34:21.024287] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x32
+[Switching to Thread 0x7ffddcffd000 (LWP 193425)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193425 @ 00:34:21.025858] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193426 @ 00:34:21.082667] native-700 probe 2: type=1 preempt_buf=0x402000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=50 killable=0
+[XSCHED INFO @ T 193426 @ 00:34:21.082688] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x32
+[Switching to Thread 0x7ffdb1fff000 (LWP 193426)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193426 @ 00:34:21.083607] native-700 probe 2: launch ret=0
+[XSCHED INFO @ T 193424 @ 00:34:21.137366] native-700 probe 2: type=1 preempt_buf=0x382000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=50 killable=0
+[XSCHED INFO @ T 193424 @ 00:34:21.137394] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x32
+[Switching to Thread 0x7ffddd7fe000 (LWP 193424)]
+CONTROL relay bytes 0x1520 -> 0x20
+[XSCHED INFO @ T 193424 @ 00:34:21.138642] native-700 probe 2: launch ret=0
+{"event":"result","role":"be","process_id":1,"service_only":true,"metric_scope":"gpu_service_and_host_elapsed","start_host_ns":205111748393809,"completion_host_ns":205123109151377,"host_elapsed_ns":11360757568,"outputs_validated":17408000,"samples":[{"entry_ns":1788939250446212672,"exit_ns":1788939250593009472,"service_ns":146796800,"blocks_done":340},{"entry_ns":1788939250594257760,"exit_ns":1788939250776914720,"service_ns":182656960,"blocks_done":340},{"entry_ns":1788939250826049504,"exit_ns":1788939251019819488,"service_ns":193769984,"blocks_done":340},{"entry_ns":1788939251047096960,"exit_ns":1788939251239295296,"service_ns":192198336,"blocks_done":340},{"entry_ns":1788939251271446272,"exit_ns":1788939251467527200,"service_ns":196080928,"blocks_done":340},{"entry_ns":1788939251493241920,"exit_ns":1788939251696576864,"service_ns":203334944,"blocks_done":340},{"entry_ns":1788939251719133760,"exit_ns":1788939251922049344,"service_ns":202915584,"blocks_done":340},{"entry_ns":1788939251942747712,"exit_ns":1788939252149053920,"service_ns":206306208,"blocks_done":340},{"entry_ns":1788939252167936320,"exit_ns":1788939252373732800,"service_ns":205796480,"blocks_done":340},{"entry_ns":1788939252392937952,"exit_ns":1788939252600114496,"service_ns":207176544,"blocks_done":340},{"entry_ns":1788939252616796128,"exit_ns":1788939252827751392,"service_ns":210955264,"blocks_done":340},{"entry_ns":1788939252842830368,"exit_ns":1788939253052990432,"service_ns":210160064,"blocks_done":340},{"entry_ns":1788939253067097920,"exit_ns":1788939253278775776,"service_ns":211677856,"blocks_done":340},{"entry_ns":1788939253291648160,"exit_ns":1788939253506052160,"service_ns":214404000,"blocks_done":340},{"entry_ns":1788939253517509312,"exit_ns":1788939253730964480,"service_ns":213455168,"blocks_done":340},{"entry_ns":1788939253742236416,"exit_ns":1788939253957410144,"service_ns":215173728,"blocks_done":340},{"entry_ns":1788939253967857792,"exit_ns":1788939254183551296,"service_ns":215693504,"blocks_done":340},{"entry_ns":1788939254193043680,"exit_ns":1788939254409570336,"service_ns":216526656,"blocks_done":340},{"entry_ns":1788939254418432256,"exit_ns":1788939254635965376,"service_ns":217533120,"blocks_done":340},{"entry_ns":1788939254644273248,"exit_ns":1788939254861837664,"service_ns":217564416,"blocks_done":340},{"entry_ns":1788939254869595552,"exit_ns":1788939255088352192,"service_ns":218756640,"blocks_done":340},{"entry_ns":1788939255095536640,"exit_ns":1788939255314192448,"service_ns":218655808,"blocks_done":340},{"entry_ns":1788939255319502016,"exit_ns":1788939255540739712,"service_ns":221237696,"blocks_done":340},{"entry_ns":1788939255545249344,"exit_ns":1788939255767000352,"service_ns":221751008,"blocks_done":340},{"entry_ns":1788939255770768448,"exit_ns":1788939255993479008,"service_ns":222710560,"blocks_done":340},{"entry_ns":1788939255995996896,"exit_ns":1788939256220326272,"service_ns":224329376,"blocks_done":340},{"entry_ns":1788939256220910496,"exit_ns":1788939256446055584,"service_ns":225145088,"blocks_done":340},{"entry_ns":1788939256446930912,"exit_ns":1788939256671974752,"service_ns":225043840,"blocks_done":340},{"entry_ns":1788939256672021088,"exit_ns":1788939256897628864,"service_ns":225607776,"blocks_done":340},{"entry_ns":1788939256897866848,"exit_ns":1788939257124054784,"service_ns":226187936,"blocks_done":340},{"entry_ns":1788939257124058304,"exit_ns":1788939257349707840,"service_ns":225649536,"blocks_done":340},{"entry_ns":1788939257349711744,"exit_ns":1788939257575300768,"service_ns":225589024,"blocks_done":340},{"entry_ns":1788939257575304480,"exit_ns":1788939257801117376,"service_ns":225812896,"blocks_done":340},{"entry_ns":1788939257801122496,"exit_ns":1788939258027382560,"service_ns":226260064,"blocks_done":340},{"entry_ns":1788939258027386720,"exit_ns":1788939258253881632,"service_ns":226494912,"blocks_done":340},{"entry_ns":1788939258253886208,"exit_ns":1788939258478216736,"service_ns":224330528,"blocks_done":340},{"entry_ns":1788939258478220256,"exit_ns":1788939258703969536,"service_ns":225749280,"blocks_done":340},{"entry_ns":1788939258703975712,"exit_ns":1788939258928713088,"service_ns":224737376,"blocks_done":340},{"entry_ns":1788939258928716096,"exit_ns":1788939259154037312,"service_ns":225321216,"blocks_done":340},{"entry_ns":1788939259154042144,"exit_ns":1788939259378925312,"service_ns":224883168,"blocks_done":340},{"entry_ns":1788939259379199616,"exit_ns":1788939259605953056,"service_ns":226753440,"blocks_done":340},{"entry_ns":1788939259605957344,"exit_ns":1788939259833362976,"service_ns":227405632,"blocks_done":340},{"entry_ns":1788939259833366784,"exit_ns":1788939260056999456,"service_ns":223632672,"blocks_done":340},{"entry_ns":1788939260057003776,"exit_ns":1788939260282311776,"service_ns":225308000,"blocks_done":340},{"entry_ns":1788939260282315200,"exit_ns":1788939260507419424,"service_ns":225104224,"blocks_done":340},{"entry_ns":1788939260507423616,"exit_ns":1788939260734425184,"service_ns":227001568,"blocks_done":340},{"entry_ns":1788939260734428416,"exit_ns":1788939260958308672,"service_ns":223880256,"blocks_done":340},{"entry_ns":1788939260958336288,"exit_ns":1788939261185421120,"service_ns":227084832,"blocks_done":340},{"entry_ns":1788939261185423712,"exit_ns":1788939261412274816,"service_ns":226851104,"blocks_done":340},{"entry_ns":1788939261412279392,"exit_ns":1788939261635159968,"service_ns":222880576,"blocks_done":340},{"entry_ns":1788939250588688960,"exit_ns":1788939250770831296,"service_ns":182142336,"blocks_done":340},{"entry_ns":1788939250770837408,"exit_ns":1788939250957008640,"service_ns":186171232,"blocks_done":340},{"entry_ns":1788939250992898176,"exit_ns":1788939251186693536,"service_ns":193795360,"blocks_done":340},{"entry_ns":1788939251212717568,"exit_ns":1788939251411749920,"service_ns":199032352,"blocks_done":340},{"entry_ns":1788939251439087776,"exit_ns":1788939251637870656,"service_ns":198782880,"blocks_done":340},{"entry_ns":1788939251662514400,"exit_ns":1788939251864337856,"service_ns":201823456,"blocks_done":340},{"entry_ns":1788939251887106784,"exit_ns":1788939252090937696,"service_ns":203830912,"blocks_done":340},{"entry_ns":1788939252112174496,"exit_ns":1788939252317140256,"service_ns":204965760,"blocks_done":340},{"entry_ns":1788939252333275456,"exit_ns":1788939252544321696,"service_ns":211046240,"blocks_done":340},{"entry_ns":1788939252560972000,"exit_ns":1788939252769712768,"service_ns":208740768,"blocks_done":340},{"entry_ns":1788939252786205824,"exit_ns":1788939252996069568,"service_ns":209863744,"blocks_done":340},{"entry_ns":1788939253011000288,"exit_ns":1788939253222499008,"service_ns":211498720,"blocks_done":340},{"entry_ns":1788939253235294016,"exit_ns":1788939253448126560,"service_ns":212832544,"blocks_done":340},{"entry_ns":1788939253461214080,"exit_ns":1788939253675153536,"service_ns":213939456,"blocks_done":340},{"entry_ns":1788939253686968064,"exit_ns":1788939253900766880,"service_ns":213798816,"blocks_done":340},{"entry_ns":1788939253911960608,"exit_ns":1788939254127160320,"service_ns":215199712,"blocks_done":340},{"entry_ns":1788939254136430240,"exit_ns":1788939254353067840,"service_ns":216637600,"blocks_done":340},{"entry_ns":1788939254363306016,"exit_ns":1788939254580083648,"service_ns":216777632,"blocks_done":340},{"entry_ns":1788939254587734784,"exit_ns":1788939254805621248,"service_ns":217886464,"blocks_done":340},{"entry_ns":1788939254813787552,"exit_ns":1788939255031526016,"service_ns":217738464,"blocks_done":340},{"entry_ns":1788939255039212736,"exit_ns":1788939255257739264,"service_ns":218526528,"blocks_done":340},{"entry_ns":1788939255263712736,"exit_ns":1788939255484253504,"service_ns":220540768,"blocks_done":340},{"entry_ns":1788939255488715584,"exit_ns":1788939255710507200,"service_ns":221791616,"blocks_done":340},{"entry_ns":1788939255714107616,"exit_ns":1788939255936845504,"service_ns":222737888,"blocks_done":340},{"entry_ns":1788939255939799680,"exit_ns":1788939256163126176,"service_ns":223326496,"blocks_done":340},{"entry_ns":1788939256164632896,"exit_ns":1788939256389491360,"service_ns":224858464,"blocks_done":340},{"entry_ns":1788939256390330528,"exit_ns":1788939256615523200,"service_ns":225192672,"blocks_done":340},{"entry_ns":1788939256615996160,"exit_ns":1788939256842189248,"service_ns":226193088,"blocks_done":340},{"entry_ns":1788939256842193760,"exit_ns":1788939257068018816,"service_ns":225825056,"blocks_done":340},{"entry_ns":1788939257068024672,"exit_ns":1788939257292978368,"service_ns":224953696,"blocks_done":340},{"entry_ns":1788939257292981568,"exit_ns":1788939257518751360,"service_ns":225769792,"blocks_done":340},{"entry_ns":1788939257518755904,"exit_ns":1788939257745048224,"service_ns":226292320,"blocks_done":340},{"entry_ns":1788939257745051904,"exit_ns":1788939257970920608,"service_ns":225868704,"blocks_done":340},{"entry_ns":1788939257970925280,"exit_ns":1788939258197037792,"service_ns":226112512,"blocks_done":340},{"entry_ns":1788939258197041792,"exit_ns":1788939258422151712,"service_ns":225109920,"blocks_done":340},{"entry_ns":1788939258422156064,"exit_ns":1788939258647550464,"service_ns":225394400,"blocks_done":340},{"entry_ns":1788939258647554848,"exit_ns":1788939258874870432,"service_ns":227315584,"blocks_done":340},{"entry_ns":1788939258874874784,"exit_ns":1788939259098352224,"service_ns":223477440,"blocks_done":340},{"entry_ns":1788939259098355264,"exit_ns":1788939259324463840,"service_ns":226108576,"blocks_done":340},{"entry_ns":1788939259324467456,"exit_ns":1788939259548686272,"service_ns":224218816,"blocks_done":340},{"entry_ns":1788939259548691040,"exit_ns":1788939259775191360,"service_ns":226500320,"blocks_done":340},{"entry_ns":1788939259775196992,"exit_ns":1788939260002123872,"service_ns":226926880,"blocks_done":340},{"entry_ns":1788939260002128640,"exit_ns":1788939260225318464,"service_ns":223189824,"blocks_done":340},{"entry_ns":1788939260225322976,"exit_ns":1788939260452521984,"service_ns":227199008,"blocks_done":340},{"entry_ns":1788939260452525312,"exit_ns":1788939260676752064,"service_ns":224226752,"blocks_done":340},{"entry_ns":1788939260676756384,"exit_ns":1788939260905564544,"service_ns":228808160,"blocks_done":340},{"entry_ns":1788939260905569216,"exit_ns":1788939261127931488,"service_ns":222362272,"blocks_done":340},{"entry_ns":1788939261127935904,"exit_ns":1788939261353378304,"service_ns":225442400,"blocks_done":340},{"entry_ns":1788939261353382208,"exit_ns":1788939261579567008,"service_ns":226184800,"blocks_done":340},{"entry_ns":1788939261579570464,"exit_ns":1788939261768196768,"service_ns":188626304,"blocks_done":340},{"entry_ns":1788939250446602304,"exit_ns":1788939250593484032,"service_ns":146881728,"blocks_done":340},{"entry_ns":1788939250645796256,"exit_ns":1788939250856594656,"service_ns":210798400,"blocks_done":340},{"entry_ns":1788939250880568032,"exit_ns":1788939251069693472,"service_ns":189125440,"blocks_done":340},{"entry_ns":1788939251103511712,"exit_ns":1788939251298837280,"service_ns":195325568,"blocks_done":340},{"entry_ns":1788939251327157440,"exit_ns":1788939251524001952,"service_ns":196844512,"blocks_done":340},{"entry_ns":1788939251550020928,"exit_ns":1788939251750679744,"service_ns":200658816,"blocks_done":340},{"entry_ns":1788939251774596928,"exit_ns":1788939251977343072,"service_ns":202746144,"blocks_done":340},{"entry_ns":1788939251999403328,"exit_ns":1788939252203941024,"service_ns":204537696,"blocks_done":340},{"entry_ns":1788939252224171040,"exit_ns":1788939252430406848,"service_ns":206235808,"blocks_done":340},{"entry_ns":1788939252448186976,"exit_ns":1788939252656701440,"service_ns":208514464,"blocks_done":340},{"entry_ns":1788939252673810176,"exit_ns":1788939252883995520,"service_ns":210185344,"blocks_done":340},{"entry_ns":1788939252897805760,"exit_ns":1788939253109489120,"service_ns":211683360,"blocks_done":340},{"entry_ns":1788939253121390240,"exit_ns":1788939253336665952,"service_ns":215275712,"blocks_done":340},{"entry_ns":1788939253349134304,"exit_ns":1788939253561730400,"service_ns":212596096,"blocks_done":340},{"entry_ns":1788939253573415488,"exit_ns":1788939253788525440,"service_ns":215109952,"blocks_done":340},{"entry_ns":1788939253799751904,"exit_ns":1788939254013439008,"service_ns":213687104,"blocks_done":340},{"entry_ns":1788939254024407296,"exit_ns":1788939254239849728,"service_ns":215442432,"blocks_done":340},{"entry_ns":1788939254249312928,"exit_ns":1788939254466821024,"service_ns":217508096,"blocks_done":340},{"entry_ns":1788939254475215808,"exit_ns":1788939254692580160,"service_ns":217364352,"blocks_done":340},{"entry_ns":1788939254700603808,"exit_ns":1788939254919939840,"service_ns":219336032,"blocks_done":340},{"entry_ns":1788939254926046464,"exit_ns":1788939255144826144,"service_ns":218779680,"blocks_done":340},{"entry_ns":1788939255150388608,"exit_ns":1788939255370736704,"service_ns":220348096,"blocks_done":340},{"entry_ns":1788939255376260448,"exit_ns":1788939255597224000,"service_ns":220963552,"blocks_done":340},{"entry_ns":1788939255601228832,"exit_ns":1788939255823732096,"service_ns":222503264,"blocks_done":340},{"entry_ns":1788939255827335616,"exit_ns":1788939256050055584,"service_ns":222719968,"blocks_done":340},{"entry_ns":1788939256052774688,"exit_ns":1788939256276912544,"service_ns":224137856,"blocks_done":340},{"entry_ns":1788939256278046304,"exit_ns":1788939256502558592,"service_ns":224512288,"blocks_done":340},{"entry_ns":1788939256502897856,"exit_ns":1788939256728570720,"service_ns":225672864,"blocks_done":340},{"entry_ns":1788939256728575104,"exit_ns":1788939256954758752,"service_ns":226183648,"blocks_done":340},{"entry_ns":1788939256954763040,"exit_ns":1788939257181470848,"service_ns":226707808,"blocks_done":340},{"entry_ns":1788939257181475008,"exit_ns":1788939257405688032,"service_ns":224213024,"blocks_done":340},{"entry_ns":1788939257405990784,"exit_ns":1788939257631386656,"service_ns":225395872,"blocks_done":340},{"entry_ns":1788939257631390016,"exit_ns":1788939257859595168,"service_ns":228205152,"blocks_done":340},{"entry_ns":1788939257859599136,"exit_ns":1788939258083380896,"service_ns":223781760,"blocks_done":340},{"entry_ns":1788939258083556480,"exit_ns":1788939258309673376,"service_ns":226116896,"blocks_done":340},{"entry_ns":1788939258309677856,"exit_ns":1788939258535432160,"service_ns":225754304,"blocks_done":340},{"entry_ns":1788939258535437184,"exit_ns":1788939258759641600,"service_ns":224204416,"blocks_done":340},{"entry_ns":1788939258759647328,"exit_ns":1788939258984728096,"service_ns":225080768,"blocks_done":340},{"entry_ns":1788939258984731840,"exit_ns":1788939259210489216,"service_ns":225757376,"blocks_done":340},{"entry_ns":1788939259210494272,"exit_ns":1788939259435762848,"service_ns":225268576,"blocks_done":340},{"entry_ns":1788939259435766624,"exit_ns":1788939259665031552,"service_ns":229264928,"blocks_done":340},{"entry_ns":1788939259665035936,"exit_ns":1788939259887531168,"service_ns":222495232,"blocks_done":340},{"entry_ns":1788939259887536384,"exit_ns":1788939260114392192,"service_ns":226855808,"blocks_done":340},{"entry_ns":1788939260114397952,"exit_ns":1788939260338301344,"service_ns":223903392,"blocks_done":340},{"entry_ns":1788939260338306432,"exit_ns":1788939260565965152,"service_ns":227658720,"blocks_done":340},{"entry_ns":1788939260565969888,"exit_ns":1788939260790226912,"service_ns":224257024,"blocks_done":340},{"entry_ns":1788939260790231296,"exit_ns":1788939261014929728,"service_ns":224698432,"blocks_done":340},{"entry_ns":1788939261015017952,"exit_ns":1788939261240181312,"service_ns":225163360,"blocks_done":340},{"entry_ns":1788939261240644640,"exit_ns":1788939261466744672,"service_ns":226100032,"blocks_done":340},{"entry_ns":1788939261466747968,"exit_ns":1788939261689901568,"service_ns":223153600,"blocks_done":340},{"entry_ns":1788939250446997888,"exit_ns":1788939250684044480,"service_ns":237046592,"blocks_done":340},{"entry_ns":1788939250730594816,"exit_ns":1788939250897412960,"service_ns":166818144,"blocks_done":340},{"entry_ns":1788939250935805152,"exit_ns":1788939251127014400,"service_ns":191209248,"blocks_done":340},{"entry_ns":1788939251160202688,"exit_ns":1788939251356289120,"service_ns":196086432,"blocks_done":340},{"entry_ns":1788939251382325376,"exit_ns":1788939251580440320,"service_ns":198114944,"blocks_done":340},{"entry_ns":1788939251606536320,"exit_ns":1788939251807608608,"service_ns":201072288,"blocks_done":340},{"entry_ns":1788939251830886176,"exit_ns":1788939252035739936,"service_ns":204853760,"blocks_done":340},{"entry_ns":1788939252053318144,"exit_ns":1788939252260375360,"service_ns":207057216,"blocks_done":340},{"entry_ns":1788939252280963200,"exit_ns":1788939252487007552,"service_ns":206044352,"blocks_done":340},{"entry_ns":1788939252504217216,"exit_ns":1788939252713204992,"service_ns":208987776,"blocks_done":340},{"entry_ns":1788939252729538560,"exit_ns":1788939252939540736,"service_ns":210002176,"blocks_done":340},{"entry_ns":1788939252955395200,"exit_ns":1788939253166007328,"service_ns":210612128,"blocks_done":340},{"entry_ns":1788939253179889664,"exit_ns":1788939253393264576,"service_ns":213374912,"blocks_done":340},{"entry_ns":1788939253404295424,"exit_ns":1788939253617917376,"service_ns":213621952,"blocks_done":340},{"entry_ns":1788939253630727008,"exit_ns":1788939253844038304,"service_ns":213311296,"blocks_done":340},{"entry_ns":1788939253855469952,"exit_ns":1788939254070464736,"service_ns":214994784,"blocks_done":340},{"entry_ns":1788939254081705024,"exit_ns":1788939254296508576,"service_ns":214803552,"blocks_done":340},{"entry_ns":1788939254305992192,"exit_ns":1788939254523328032,"service_ns":217335840,"blocks_done":340},{"entry_ns":1788939254531532384,"exit_ns":1788939254749289792,"service_ns":217757408,"blocks_done":340},{"entry_ns":1788939254757080576,"exit_ns":1788939254975361920,"service_ns":218281344,"blocks_done":340},{"entry_ns":1788939254982452512,"exit_ns":1788939255201113152,"service_ns":218660640,"blocks_done":340},{"entry_ns":1788939255207799680,"exit_ns":1788939255427760384,"service_ns":219960704,"blocks_done":340},{"entry_ns":1788939255432174976,"exit_ns":1788939255653818080,"service_ns":221643104,"blocks_done":340},{"entry_ns":1788939255658045056,"exit_ns":1788939255880426016,"service_ns":222380960,"blocks_done":340},{"entry_ns":1788939255883275552,"exit_ns":1788939256106570496,"service_ns":223294944,"blocks_done":340},{"entry_ns":1788939256109358592,"exit_ns":1788939256333035424,"service_ns":223676832,"blocks_done":340},{"entry_ns":1788939256334008992,"exit_ns":1788939256559319552,"service_ns":225310560,"blocks_done":340},{"entry_ns":1788939256559437344,"exit_ns":1788939256785025184,"service_ns":225587840,"blocks_done":340},{"entry_ns":1788939256785045408,"exit_ns":1788939257011080896,"service_ns":226035488,"blocks_done":340},{"entry_ns":1788939257011085120,"exit_ns":1788939257236512928,"service_ns":225427808,"blocks_done":340},{"entry_ns":1788939257236568352,"exit_ns":1788939257462661280,"service_ns":226092928,"blocks_done":340},{"entry_ns":1788939257462667168,"exit_ns":1788939257688225056,"service_ns":225557888,"blocks_done":340},{"entry_ns":1788939257688229120,"exit_ns":1788939257916934080,"service_ns":228704960,"blocks_done":340},{"entry_ns":1788939257916939936,"exit_ns":1788939258140449888,"service_ns":223509952,"blocks_done":340},{"entry_ns":1788939258140454656,"exit_ns":1788939258366298304,"service_ns":225843648,"blocks_done":340},{"entry_ns":1788939258366304064,"exit_ns":1788939258590070496,"service_ns":223766432,"blocks_done":340},{"entry_ns":1788939258590074144,"exit_ns":1788939258816007712,"service_ns":225933568,"blocks_done":340},{"entry_ns":1788939258816013312,"exit_ns":1788939259041052960,"service_ns":225039648,"blocks_done":340},{"entry_ns":1788939259041057472,"exit_ns":1788939259267482720,"service_ns":226425248,"blocks_done":340},{"entry_ns":1788939259267487104,"exit_ns":1788939259493585376,"service_ns":226098272,"blocks_done":340},{"entry_ns":1788939259493589536,"exit_ns":1788939259718600896,"service_ns":225011360,"blocks_done":340},{"entry_ns":1788939259718605568,"exit_ns":1788939259944505120,"service_ns":225899552,"blocks_done":340},{"entry_ns":1788939259944508128,"exit_ns":1788939260169855616,"service_ns":225347488,"blocks_done":340},{"entry_ns":1788939260169861024,"exit_ns":1788939260396592736,"service_ns":226731712,"blocks_done":340},{"entry_ns":1788939260396595424,"exit_ns":1788939260620977440,"service_ns":224382016,"blocks_done":340},{"entry_ns":1788939260620983200,"exit_ns":1788939260846654752,"service_ns":225671552,"blocks_done":340},{"entry_ns":1788939260846658432,"exit_ns":1788939261073200864,"service_ns":226542432,"blocks_done":340},{"entry_ns":1788939261073205056,"exit_ns":1788939261299252448,"service_ns":226047392,"blocks_done":340},{"entry_ns":1788939261299255552,"exit_ns":1788939261522291360,"service_ns":223035808,"blocks_done":340},{"entry_ns":1788939261522295936,"exit_ns":1788939261736316448,"service_ns":214020512,"blocks_done":340}]}
+XSCHED_AUDIT pid=193413 xqueue=17547525348125105264 level=2 threshold=4 batch=2 suspend_ok=0 resume_ok=0
+[Thread 0x7ffdddfff000 (LWP 193423) exited]
+XSCHED_AUDIT pid=193413 xqueue=17547525348128441136 level=2 threshold=4 batch=2 suspend_ok=0 resume_ok=0
+[Thread 0x7ffddd7fe000 (LWP 193424) exited]
+XSCHED_AUDIT pid=193413 xqueue=17547525348128449696 level=2 threshold=4 batch=2 suspend_ok=0 resume_ok=0
+[Thread 0x7ffddcffd000 (LWP 193425) exited]
+XSCHED_AUDIT pid=193413 xqueue=17547525348128458512 level=2 threshold=4 batch=2 suspend_ok=0 resume_ok=0
+[Thread 0x7ffdb1fff000 (LWP 193426) exited]
+[Thread 0x7fffea5ff000 (LWP 193422) exited]
+[Thread 0x7ffff4ae1000 (LWP 193421) exited]
+[Thread 0x7ffff6fff000 (LWP 193416) exited]
+[Thread 0x7ffff7f7e000 (LWP 193413) exited]
+[Thread 0x7ffff67fe000 (LWP 193417) exited]
+[New process 193413]
+[Inferior 1 (process 193413) exited normally]
+CONTROL total shortened launches: 200

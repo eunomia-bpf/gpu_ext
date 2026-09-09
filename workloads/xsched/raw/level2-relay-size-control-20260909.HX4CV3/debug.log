@@ -1,0 +1,48 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+Function "cuLaunchKernel" not defined.
+Breakpoint 1 (cuLaunchKernel) pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[XSCHED INFO @ T 187449 @ 00:30:21.480314] using global scheduler
+[New Thread 0x7ffff6fff000 (LWP 187499)]
+[New Thread 0x7ffff67fe000 (LWP 187500)]
+[New Thread 0x7ffff4ae1000 (LWP 187527)]
+[New Thread 0x7fffea5ff000 (LWP 187528)]
+[XSCHED INFO @ T 187449 @ 00:30:21.704452] native-700 probe 1: resume blob VA 0x7ffdb6600000 size 336, syncing
+[XSCHED INFO @ T 187449 @ 00:30:21.704476] native-700 probe 1: resume blob copy synced clean
+[New Thread 0x7ffdddfff000 (LWP 187530)]
+[New Thread 0x7ffddd7fe000 (LWP 187531)]
+[New Thread 0x7ffddcffd000 (LWP 187532)]
+[New Thread 0x7ffdb1fff000 (LWP 187533)]
+{"event":"ready","role":"be","process_id":1,"streams":4,"tasks":50}
+[XSCHED INFO @ T 187449 @ 00:30:21.705809] meta-extend: fatbin-cubin[0] CBANK_PARAM_SIZE 0x8 -> 0x1520
+[XSCHED INFO @ T 187449 @ 00:30:21.705814] meta-extend: fatbin-cubin[0] PARAM_CBANK param_size 0x8 -> 0x1520
+[XSCHED INFO @ T 187449 @ 00:30:21.705816] meta-extend: fatbin-cubin[0] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 187449 @ 00:30:21.705817] meta-extend: fatbin-cubin[1] CBANK_PARAM_SIZE 0x20 -> 0x1520
+[XSCHED INFO @ T 187449 @ 00:30:21.705818] meta-extend: fatbin-cubin[1] PARAM_CBANK param_size 0x20 -> 0x1520
+[XSCHED INFO @ T 187449 @ 00:30:21.705819] meta-extend: fatbin-cubin[1] declared c[0x0] param region [0x380, 0x18a0]
+[XSCHED INFO @ T 187449 @ 00:30:21.705819] meta-extend: owned fatbin-wrapper copy 0x20 + 0x4818 bytes (source wrapper 0x55555560e058)
+[XSCHED INFO @ T 187449 @ 00:30:21.717924] native-700 probe 3: binary kernel=1408 B guardian=640 B ep_inst=0x7ffdb6600200 regs=16->32 barriers=1->1
+[XSCHED INFO @ T 187530 @ 00:30:21.718096] native-700 probe 2: type=1 preempt_buf=0x302000000 guardian=0x7ffdb6600200 entry=0x140727663198720 idx=1 killable=0
+[XSCHED INFO @ T 187530 @ 00:30:21.718121] native-700 probe 2: readback equal=1 byte0=0x00 byte8=0x00 byte16=0x01
+[Switching to Thread 0x7ffdddfff000 (LWP 187530)]
+[XSCHED INFO @ T 187530 @ 00:30:21.721036] native-700 probe 2: launch ret=701
+[XSCHED ERRO @ T 187530 @ 00:30:21.721057] cuda error 701: too many resources requested for launch @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/level2/instrument.cpp:377
+[XSCHED ERRO @ T 187449 @ 00:30:21.721150] cuda error 4: PDT @ /home/yunwei37/workspace/gpu/gpu_ext/workloads/xsched/level2-build/.output/hal-native-20260908.i8na51/source/platforms/cuda/hal/src/common/cuda_command.cpp:17
+[Thread 0x7ffff6fff000 (LWP 187499) exited]
+[Thread 0x7ffddcffd000 (LWP 187532) exited]
+[Thread 0x7ffdddfff000 (LWP 187530) exited]
+[Thread 0x7fffea5ff000 (LWP 187528) exited]
+[Thread 0x7ffff7f7e000 (LWP 187449) exited]
+[Thread 0x7ffddd7fe000 (LWP 187531) exited]
+[Thread 0x7ffff4ae1000 (LWP 187527) exited]
+[Thread 0x7ffff67fe000 (LWP 187500) exited]
+[Thread 0x7ffdb1fff000 (LWP 187533) exited]
+[New process 187449]
+[Inferior 1 (process 187449) exited with code 01]
+CONTROL total shortened launches: 0

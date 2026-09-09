@@ -1,8 +1,9 @@
-# First actual KV disk/UVM serving run — prepared, not executed
+# First actual KV disk/UVM serving run — running
 
-2026-09-09 PDT. This directory currently contains the root-owned driver and
-serving lifecycle only. There are no request measurements here yet. The
-published backing module and CUDA helper are not a completed serving result.
+2026-09-09 PDT. The real campaign started at 01:51:30 PDT with runner
+`6993574f`. At this update it is loading the model for stock, position 0.
+There is no completed serving comparison yet. The published backing module
+and CUDA helper alone are not a completed serving result.
 
 The next run uses one block of the existing stock/native/BPF KV-reclaim
 workload, with disk/UVM transport enabled identically in all three arms.
@@ -15,11 +16,28 @@ the original GDS backend. The ordinary throughput, request latency, failures,
 and restore/fallback observations must all remain visible.
 
 `run-serving.sh` adapts the completed disk-UVM primitive lifecycle to this
-runner. Root has syntax-checked the shell script, but has not loaded the new
-UVM or launched this serving campaign. The local model is still finishing
-the `--disk-uvm` and `--disk-uvm-fault-lib` runner wiring and per-cell result
-collection; do not execute a half-wired CLI. Existing source work continues,
-not cancelled or timed out. Both shared leases must cover the actual run.
+runner. Root syntax-checked the shell script and runner, then loaded the new
+UVM and started the real campaign. The local model supplied the per-cell
+environment forwarding; root supplied the two CLI flags and campaign-to-cell
+keyword forwarding. Later diagnostic-collection helper work remains separate
+from the already-imported runner version. The per-cell raw diagnostic output
+path is enabled in the actual server environment. Main backing, bootstrap,
+and CUDA sources are frozen for the run. Both shared leases cover it.
+
+The first invocation (`sudo flock ...`) exited 66 before touching the
+driver because root could not create/open the user-owned lock in `/tmp`;
+that error is preserved in `lifecycle.log`. Root acquired both locks as the
+workspace user and invoked only the lifecycle via sudo instead:
+
+```sh
+flock /tmp/gpubpf-revision-gpu0.lock \
+  flock /tmp/gpubpf-revision-struct-ops.lock \
+  sudo -n bash workloads/lmcache-disk/raw/diskuvm-serving-20260909.9uBMtq/run-serving.sh
+```
+
+`lifecycle-run.log` records the actual module change and active policy
+loaders 330946/330947; both report `attached`. The failed lock invocation
+was not a serving attempt and did not rerun any cell.
 
 Prepared components:
 

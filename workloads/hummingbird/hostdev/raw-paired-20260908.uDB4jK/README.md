@@ -57,3 +57,20 @@ their completion and final performance are not established by this record.
 Large cubins remain in the existing temporary build directory, not Git.
 Completed raw logs are preserved verbatim. The two earlier ioctl startup
 failures and the original host-only/pipeline results remain unchanged.
+
+At 21:38 PDT, blocks 01 and 02 have also completed all four arms with zero
+exits. Their eight logs are retained here; block 03 is running. This remains
+an incomplete five-block campaign, not a final estimate.
+
+## Existing-cubin resource inspection
+
+The three `resources-*.txt` files are read-only `cuobjdump
+--dump-resource-usage` outputs for the exact existing original, native
+adapter and BPF cubins used by the client. No cubin was rebuilt. The
+original reports `STACK:0` for all 44 kernels. Both callable variants
+report `STACK:48` for 43 kernels and `STACK:0` for one. Register allocation
+also differs for some kernels. This is a plausible contributor to callable
+adapter cost, not an isolated causal measurement or proof that the stack
+accounts for the entire performance difference. Native-adapter versus
+inline-host-BPF isolates the adapter implementation comparison; BPF-device
+versus native-adapter measures the incremental BPF implementation difference.

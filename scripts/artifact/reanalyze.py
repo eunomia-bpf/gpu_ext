@@ -493,7 +493,7 @@ def st_report(root: Path, cells: dict, missing: List[str], incomplete: List[str]
                 f"budget_exhausted={fmt(rec['budget_exhausted'], '.0f')}  ({rec['path']})"
             )
 
-    lines.append("per-arm marginal medians over complete blocks:")
+    lines.append("per-arm marginal medians over available per-arm numeric values:")
     med: Dict[Tuple[str, str], Optional[float]] = {}
     for key, _src in ST_KEY_MAP:
         for arm in ST_ARMS:

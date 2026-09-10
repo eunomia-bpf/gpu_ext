@@ -1,0 +1,1621 @@
+diff --git a/core/parallel/expert_dispatcher.cpp b/core/parallel/expert_dispatcher.cpp
+index f3b525a..c11e590 100644
+--- a/core/parallel/expert_dispatcher.cpp
++++ b/core/parallel/expert_dispatcher.cpp
+@@ -19,14 +19,50 @@
+ #include <c10/cuda/CUDAGuard.h>
+ #include <c10/cuda/CUDAStream.h>
+ 
++#include <algorithm>
++#include <chrono>
+ #include <future>
+ #include <regex>
+ #include <sstream>
++#include <cstring>
++#include <dlfcn.h>
++#include <cstdint>
++#include <moe_spec_admission.h>
++#include <limits>
+ 
+ extern void fp8_dequant_blockwise_cuda(const void* weight, const void* scale,
+                                        void* out, int N, int K,
+                                        cudaStream_t stream);
+ 
++using PendingAccumulation =
++    std::tuple<int64_t, torch::Tensor, torch::Tensor>;
++
++static void AccumulateInExpertOrder(
++    torch::Tensor& final_hidden_states, const torch::Tensor& router_weight,
++    int64_t batch_size, std::vector<PendingAccumulation> pending) {
++  std::sort(pending.begin(), pending.end(),
++            [](const PendingAccumulation& lhs,
++               const PendingAccumulation& rhs) {
++              return std::get<0>(lhs) < std::get<0>(rhs);
++            });
++  for (const auto& item : pending) {
++    int64_t expert_idx = std::get<0>(item);
++    const auto& output_tensor = std::get<1>(item);
++    const auto& token_mask = std::get<2>(item);
++    if (batch_size == 1) {
++      final_hidden_states.add_(
++          output_tensor *
++          router_weight.index({torch::indexing::Slice(), expert_idx}));
++    } else {
++      auto token_indices = torch::nonzero(token_mask).squeeze(1);
++      auto weights =
++          router_weight.index({token_mask, expert_idx}).unsqueeze(1);
++      final_hidden_states.index_add_(0, token_indices,
++                                     output_tensor * weights);
++    }
++  }
++}
++
+ static torch::Tensor _fp8_dequant_on_device(const torch::Tensor& w_fp8,
+                                             const torch::Tensor& scale,
+                                             cudaStream_t stream) {
+@@ -124,6 +160,7 @@ ExpertDispatcher::ExpertDispatcher(int num_experts, int num_layers, int dtype,
+     auto cache_limit =
+         kTopologyHandle->GetSparseCacheLimit(torch::Device(torch::kCUDA, i));
+     cache_sizes_.push_back(cache_limit);
++    cache_budget_bytes_ += static_cast<uint64_t>(cache_limit);
+   }
+ 
+   for (int i = 0; i < kNumDevices() * num_threads; ++i) {
+@@ -195,12 +232,18 @@ void ExpertDispatcher::Enqueue(CallArgs& args) {
+   int layer_idx = args.layer_idx;
+   int expert_idx = args.expert_idx;
+   auto expert_node = experts_[expert_idx][layer_idx];
++  args.prefill = hidden_states_.size(0) > 1;
++
++  // Serialize paper-prefetch claims with demand's IDLE -> FETCHING claim.
++  std::unique_lock<std::mutex> activation_claim(activation_mutex_, std::defer_lock);
++  if (activation_mode_.load(std::memory_order_acquire)) activation_claim.lock();
+ 
+   {
+     auto expected = NodeExecState::IDLE;
+     if (!expert_node->node->exec_state.compare_exchange_strong(
+             expected, NodeExecState::FETCHING, std::memory_order_acq_rel)) {
+       if (expert_node->node->is_prefetching.load(std::memory_order_acquire)) {
++        RecordDemandAccess(args.prefill, false);
+         expert_node->node->pending_dispatches.fetch_add(
+             1, std::memory_order_acq_rel);
+         args.wait_for_prefetch = true;
+@@ -214,9 +257,12 @@ void ExpertDispatcher::Enqueue(CallArgs& args) {
+           expert_node->node->str(), " state=", static_cast<int>(expected), ")");
+     }
+   }
++  if (activation_claim.owns_lock()) activation_claim.unlock();
+   expert_node->node->last_access_time = MCIROSECONDS_SINCE_EPOCH;
+ 
+   if (expert_node->node->device.is_cuda()) {
++    RecordDemandAccess(args.prefill, true);
++    RecordActivationUse((uint64_t(layer_idx) << 32) | uint64_t(expert_idx));
+     // Cache-hit path: expert already on GPU, skip fetch queue entirely.
+     // transfer_event stays nullptr — GPUExecFunc will skip cudaStreamWaitEvent.
+     args.gpu_id = expert_node->node->device.index();
+@@ -243,6 +289,7 @@ void ExpertDispatcher::Enqueue(CallArgs& args) {
+     // exec_queue_[args.gpu_id].push_back(std::move(exec_args));
+     exec_queue_[args.gpu_id].Push(exec_args);
+   } else {
++    RecordDemandAccess(args.prefill, false);
+     // std::unique_lock<std::mutex> lock(input_mutex_[args.gpu_id]);
+     // input_queue_[args.gpu_id].push_back(std::move(args));
+     input_queue_[args.gpu_id].Push(args);
+@@ -333,12 +380,90 @@ double ExpertDispatcher::GetCacheHitRate() const {
+   return static_cast<double>(hits) / static_cast<double>(access);
+ }
+ 
++std::tuple<std::uint64_t, std::uint64_t>
++ExpertDispatcher::GetCacheCounts() const {
++  return {
++      cache_access_count_.load(std::memory_order_relaxed),
++      cache_hit_count_.load(std::memory_order_relaxed),
++  };
++}
++
+ // void ExpertDispatcher::GPUThreadFunc(int gpu_id) {
+ //   while (!main_thread_stop_flag_.load()) {
+ //   }
+ // }
+ 
+-ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id) {
++ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id, uint64_t prediction_epoch) {
++  if (activation_mode_.load(std::memory_order_acquire)) {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    if (prediction_epoch && !activation_prediction_.Current(prediction_epoch))
++      return nullptr;
++    std::vector<moe_expert_scored_candidate> snapshot;
++    snapshot.reserve(cached_experts_[gpu_id].size());
++    uint64_t protected_skips = 0;
++    for (auto key : cached_experts_[gpu_id]) {
++      // Upstream prefetch protects every member of its current prediction set.
++      // This common executor restriction applies identically before either
++      // selector; demand (epoch == 0) still considers all safely idle residents.
++      if (prediction_epoch && !activation_prediction_.MayEvict(prediction_epoch, key)) {
++        ++protected_skips;
++        continue;
++      }
++      auto layer = key >> 32;
++      auto expert = key & 0xffffffffULL;
++      auto node = experts_[expert][layer]->node;
++      mep_u32 flags = 0;
++      if (node) {
++        flags |= MOE_EXPERT_NODE_PRESENT;
++        if (node->device.is_cuda()) flags |= MOE_EXPERT_DEVICE_CUDA;
++        if (node->pending_dispatches.load(std::memory_order_acquire) == 0)
++          flags |= MOE_EXPERT_PENDING_ZERO;
++        if (node->exec_state.load(std::memory_order_acquire) == NodeExecState::IDLE)
++          flags |= MOE_EXPERT_EXEC_IDLE;
++      }
++      double score = activation_scores_.at(layer * num_experts_ + expert);
++      mep_u64 bits;
++      std::memcpy(&bits, &score, sizeof(bits));
++      snapshot.push_back({key, bits, flags, 0});
++    }
++    if (protected_skips)
++      activation_protected_skips_.fetch_add(protected_skips, std::memory_order_relaxed);
++    auto native = [&]() {
++      mep_u64 selected = MOE_EXPERT_NONE;
++      double minimum = std::numeric_limits<double>::infinity();
++      for (mep_u64 i = 0; i < snapshot.size(); ++i) {
++        double score;
++        std::memcpy(&score, &snapshot[i].score_bits, sizeof(score));
++        if ((snapshot[i].flags & MOE_EXPERT_ELIGIBLE) == MOE_EXPERT_ELIGIBLE &&
++            score < minimum) {
++          minimum = score;
++          selected = i;
++        }
++      }
++      return selected;
++    };
++    activation_eviction_calls_.fetch_add(1);
++    mep_u64 index = MOE_EXPERT_NONE;
++    if (activation_mode_.load() == 2) {
++      int rc = activation_select_(snapshot.data(), snapshot.size(), &index);
++      activation_bpf_calls_.fetch_add(1);
++      if (prediction_epoch)
++        activation_bpf_prefetch_calls_.fetch_add(1, std::memory_order_relaxed);
++      else
++        activation_bpf_demand_calls_.fetch_add(1, std::memory_order_relaxed);
++      DLOG_FATAL_IF(rc != 0 || (index != MOE_EXPERT_NONE && index >= snapshot.size()),
++                    "paper BPF eviction failed; no fallback");
++      if (activation_verify_ && index != native()) {
++        activation_mismatches_.fetch_add(1);
++        DLOG_FATAL("paper BPF/native eviction mismatch");
++      }
++    } else {
++      index = native();
++    }
++    if (index == MOE_EXPERT_NONE) return nullptr;
++    auto key = snapshot[index].identity;
++    return experts_[key & 0xffffffffULL][key >> 32];
++  }
+   uint64_t min_visit_count = INT_MAX;
+   ExpertNodePtr evict_expert_node = nullptr;
+ 
+@@ -358,6 +483,308 @@ ExpertNodePtr ExpertDispatcher::FindExpertEvict(int gpu_id) {
+   return evict_expert_node;
+ }
+ 
++void ExpertDispatcher::ConfigureActivationPolicy(
++    int mode, const std::string& library, const std::string& bytecode, bool verify,
++    bool prefetch_enabled) {
++  TORCH_CHECK(mode == 1 || mode == 2, "paper policy mode must be native=1 or BPF=2");
++  TORCH_CHECK(activation_mode_.load() == 0, "paper policy already configured");
++  if (mode == 2) {
++    TORCH_CHECK(!library.empty() && library[0] == '/' && !bytecode.empty() &&
++                bytecode[0] == '/', "absolute BPF artifact paths required");
++    activation_library_ = dlopen(library.c_str(), RTLD_NOW | RTLD_LOCAL);
++    TORCH_CHECK(activation_library_, "cannot load paper BPF library");
++    auto init = reinterpret_cast<int (*)(const char*)>(
++        dlsym(activation_library_, "moe_expert_scored_init_v1"));
++    activation_select_ = reinterpret_cast<decltype(activation_select_)>(
++        dlsym(activation_library_, "moe_expert_scored_select_v1"));
++    TORCH_CHECK(init && activation_select_ && init(bytecode.c_str()) == 0,
++                "paper BPF init failed; no fallback");
++  }
++  activation_scores_.assign(num_experts_ * experts_[0].size(), 1.0);
++  activation_verify_ = verify;
++  activation_prefetch_enabled_ = prefetch_enabled;
++  activation_mode_.store(mode, std::memory_order_release);
++}
++
++void ExpertDispatcher::SetActivationScores(const std::vector<double>& scores) {
++  TORCH_CHECK(activation_mode_.load(), "paper policy not configured");
++  TORCH_CHECK(scores.size() == num_experts_ * experts_[0].size(),
++              "paper score dimensions mismatch");
++  {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    activation_prediction_.Invalidate();
++    activation_scores_ = scores;
++    for (auto& queue : input_queue_) queue.ReplaceBackground({}, {}, 0);
++  }
++}
++
++void ExpertDispatcher::SubmitActivationPrefetch(const std::vector<uint64_t>& identities) {
++  TORCH_CHECK(activation_mode_.load(), "paper policy not configured");
++  if (!activation_prefetch_enabled_) {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    activation_prediction_.Invalidate();
++    for (auto& queue : input_queue_) queue.ReplaceBackground({}, {}, 0);
++    return;
++  }
++  // Governor admission (experiment axis): modes 2/3 keep only the largest
++  // ranked whole-expert prefix fitting the live byte headroom rule; mode 1
++  // publishes the full rank, meaning identical behavior to pre-governor arms.
++  std::vector<uint64_t> admitted_identities;
++  if (governor_mode_ == 2 || governor_mode_ == 3) {
++    TORCH_CHECK(governor_fixed_budget_bytes_ > 0,
++                "governor configured without a positive byte budget");
++    // Whole-expert payload bytes: the same node byte_size the executor uses
++    // for demand/speculative logical-byte accounting.
++    std::vector<uint64_t> payload_bytes;
++    payload_bytes.reserve(identities.size());
++    for (auto key : identities) {
++      const auto layer = key >> 32;
++      const auto expert = key & 0xffffffffULL;
++      payload_bytes.push_back(experts_[expert][layer]->node->byte_size);
++    }
++    const size_t admitted_count = AdmitSpeculativePrefix(payload_bytes);
++    governor_admission_submitted_.fetch_add(identities.size(),
++                                            std::memory_order_relaxed);
++    governor_admission_admitted_.fetch_add(admitted_count,
++                                           std::memory_order_relaxed);
++    admitted_identities.assign(identities.begin(),
++                               identities.begin() + admitted_count);
++  } else {
++    admitted_identities = identities;
++  }
++  std::vector<std::vector<CallArgs>> work(kNumDevices());
++  for (auto key : admitted_identities) {
++    auto layer = key >> 32;
++    auto expert = key & 0xffffffffULL;
++    TORCH_CHECK(expert < experts_.size() && layer < experts_[expert].size(),
++                "paper prefetch returned invalid expert identity");
++    CallArgs item;
++    item.layer_idx = layer;
++    item.expert_idx = expert;
++    item.gpu_id = expert % kNumDevices();
++    item.activation_prefetch = true;
++    work[item.gpu_id].push_back(item);
++  }
++  std::lock_guard<std::mutex> lock(activation_mutex_);
++  const auto epoch = activation_prediction_.Replace(admitted_identities);
++  activation_submitted_.fetch_add(admitted_identities.size());
++  for (int gpu = 0; gpu < kNumDevices(); ++gpu) {
++    std::vector<uint64_t> item_bytes;
++    item_bytes.reserve(work[gpu].size());
++    uint64_t queued_bytes = 0;
++    for (auto& item : work[gpu]) {
++      item.prediction_epoch = epoch;
++      const uint64_t bytes = experts_[item.expert_idx][item.layer_idx]->node->byte_size;
++      item_bytes.push_back(bytes);
++      queued_bytes += bytes;
++    }
++    input_queue_[gpu].ReplaceBackground(std::move(work[gpu]), item_bytes,
++                                        queued_bytes);
++  }
++}
++
++void ExpertDispatcher::RecordActivationUse(uint64_t key) {
++  if (!activation_mode_.load()) return;
++  std::lock_guard<std::mutex> lock(activation_mutex_);
++  if (unused_activation_prefetch_.erase(key)) {
++    activation_hits_.fetch_add(1);
++    auto layer = key >> 32;
++    auto expert = key & 0xffffffffULL;
++    activation_hit_bytes_.fetch_add(experts_[expert][layer]->node->byte_size);
++  }
++}
++
++void ExpertDispatcher::RecordDemandAccess(bool prefill, bool hit) {
++  if (!activation_mode_.load(std::memory_order_acquire)) return;
++  auto& accesses = prefill ? demand_prefill_accesses_ : demand_decode_accesses_;
++  auto& hits = prefill ? demand_prefill_hits_ : demand_decode_hits_;
++  accesses.fetch_add(1, std::memory_order_relaxed);
++  if (hit) hits.fetch_add(1, std::memory_order_relaxed);
++}
++
++void ExpertDispatcher::DrainActivationPrefetch() {
++  if (!activation_mode_.load(std::memory_order_acquire)) return;
++  {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    activation_prediction_.Invalidate();
++    for (auto& queue : input_queue_) queue.ReplaceBackground({}, {}, 0);
++  }
++  // Never wait while holding activation_mutex_: a copy already issued is
++  // allowed to finish, account its residency and release its claimed node.
++  for (auto& queue : input_queue_) queue.DrainBackground();
++  for (auto& queue : input_queue_) {
++    while (queue.BackgroundOutstandingSnapshot() != 0) {
++      std::this_thread::yield();
++    }
++  }
++}
++
++
++bool ExpertDispatcher::EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id,
++                                             uint64_t prediction_epoch) {
++  if (!victim || !victim->node) return false;
++  std::lock_guard<std::mutex> lock(activation_mutex_);
++  uint64_t key = (uint64_t(victim->layer_idx) << 32) | victim->expert_idx;
++  if (prediction_epoch && !activation_prediction_.MayEvict(prediction_epoch, key)) {
++    activation_victim_recheck_rejected_.fetch_add(1, std::memory_order_relaxed);
++    return false;  // prediction/protection may have changed since selection
++  }
++  auto node = victim->node;
++  if (!node->device.is_cuda() || node->pending_dispatches.load() != 0) return false;
++  auto expected = NodeExecState::IDLE;
++  if (!node->exec_state.compare_exchange_strong(expected, NodeExecState::FETCHING))
++    return false;  // demand may have claimed it after the selection snapshot
++  // Enqueue takes the same mutex: it cannot observe or execute freed storage.
++  node->SetDevice(node->default_host);
++  cache_sizes_[gpu_id] += node->byte_size;
++  cached_experts_[gpu_id].erase(key);
++  if (unused_activation_prefetch_.erase(key)) {
++    activation_wasted_.fetch_add(1);
++    activation_wasted_bytes_.fetch_add(node->byte_size);
++  }
++  activation_evictions_.fetch_add(1);
++  if (prediction_epoch)
++    activation_prefetch_evictions_.fetch_add(1, std::memory_order_relaxed);
++  else
++    activation_demand_evictions_.fetch_add(1, std::memory_order_relaxed);
++  node->exec_state.store(NodeExecState::IDLE, std::memory_order_release);
++  cache_cv_[gpu_id].notify_all();
++  return true;
++}
++
++void ExpertDispatcher::FetchActivationPrefetch(const CallArgs& args, int gpu_id) {
++  auto expert = experts_[args.expert_idx][args.layer_idx];
++  auto node = expert->node;
++  if (!node) return;
++  {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    if (!activation_prediction_.Current(args.prediction_epoch)) {
++      activation_stale_.fetch_add(1, std::memory_order_relaxed);
++      return;
++    }
++    if (node->device.is_cuda() || node->pending_dispatches.load() != 0 ||
++        node->exec_state.load() != NodeExecState::IDLE) return;
++    node->is_prefetching.store(true, std::memory_order_release);
++    auto expected = NodeExecState::IDLE;
++    if (!node->exec_state.compare_exchange_strong(expected, NodeExecState::FETCHING)) {
++      node->is_prefetching.store(false, std::memory_order_release);
++      return;
++    }
++  }
++  auto release = [&]() {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    node->is_prefetching.store(false, std::memory_order_release);
++    node->exec_state.store(NodeExecState::IDLE, std::memory_order_release);
++    cache_cv_[gpu_id].notify_all();
++  };
++  while (cache_sizes_[gpu_id] < node->byte_size) {
++    auto victim = FindExpertEvict(gpu_id, args.prediction_epoch);
++    if (!EvictActivationVictim(victim, gpu_id, args.prediction_epoch)) {
++      {
++        std::lock_guard<std::mutex> lock(activation_mutex_);
++        if (!activation_prediction_.Current(args.prediction_epoch))
++          activation_stale_.fetch_add(1, std::memory_order_relaxed);
++        else
++          activation_no_victim_.fetch_add(1, std::memory_order_relaxed);
++      }
++      release(); return;  // never stall demand for speculation
++    }
++  }
++  cudaEvent_t done = nullptr;
++  {
++    std::unique_lock<std::mutex> lock(activation_mutex_);
++    if (!activation_prediction_.Current(args.prediction_epoch)) {
++      activation_stale_.fetch_add(1, std::memory_order_relaxed);
++      lock.unlock();
++      release(); return;
++    }
++    // Last stale check and physical issue share the publisher's mutex. A new
++    // prediction cannot slip between them. Do not hold this mutex through the
++    // event wait: an already-issued transfer may complete under a newer epoch.
++    node->SetDevice(CUDA_DEVICE(gpu_id), true, fetch_streams_[gpu_id], &done);
++    activation_copy_started_.fetch_add(1, std::memory_order_relaxed);
++  }
++  if (done) {
++    // Whole-entry copy is physically in flight between issue and completion;
++    // the queue ledger already carries the popped entry bytes as inflight,
++    // so no extra bookkeeping is needed here. Wait for the copy, then the
++    // worker's CompleteBackground() releases the bytes from the snapshot.
++    auto wait_started = std::chrono::steady_clock::now();
++    CUDA_CHECK(cudaEventSynchronize(done));
++    auto wait_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - wait_started).count();
++    prefetch_copy_waits_.fetch_add(1, std::memory_order_relaxed);
++    prefetch_copy_wait_ns_.fetch_add(wait_ns, std::memory_order_relaxed);
++    kCudaEventPool->Release(done);
++  }
++  uint64_t key = (uint64_t(args.layer_idx) << 32) | args.expert_idx;
++  cache_sizes_[gpu_id] -= node->byte_size;
++  cached_experts_[gpu_id].insert(key);
++  {
++    std::lock_guard<std::mutex> lock(activation_mutex_);
++    unused_activation_prefetch_.insert(key);
++  }
++  activation_completed_.fetch_add(1);
++  activation_bytes_.fetch_add(node->byte_size);
++  release();
++}
++
++std::map<std::string, uint64_t> ExpertDispatcher::GetActivationStats() const {
++  std::lock_guard<std::mutex> lock(activation_mutex_);
++  uint64_t unused_resident_bytes = 0;
++  for (auto key : unused_activation_prefetch_) {
++    auto layer = key >> 32;
++    auto expert = key & 0xffffffffULL;
++    unused_resident_bytes += experts_[expert][layer]->node->byte_size;
++  }
++  return {{"mode", activation_mode_.load()},
++          {"prefetch_enabled", activation_prefetch_enabled_ ? 1 : 0},
++          {"cache_budget_bytes", cache_budget_bytes_},
++          {"temporary_slot_enabled", activation_mode_.load() ? 0 : 1},
++          {"eviction_selections", activation_eviction_calls_.load()},
++          {"bpf_eviction_calls", activation_bpf_calls_.load()},
++          {"bpf_demand_eviction_calls", activation_bpf_demand_calls_.load()},
++          {"bpf_prefetch_eviction_calls", activation_bpf_prefetch_calls_.load()},
++          {"eviction_mismatches", activation_mismatches_.load()},
++          {"evictions", activation_evictions_.load()},
++          {"demand_evictions", activation_demand_evictions_.load()},
++          {"prefetch_evictions", activation_prefetch_evictions_.load()},
++          {"prefetch_submitted", activation_submitted_.load()},
++          {"prefetch_completed", activation_completed_.load()},
++          {"prefetch_hits", activation_hits_.load()},
++          {"prefetch_hit_bytes", activation_hit_bytes_.load()},
++          {"prefetch_wasted", activation_wasted_.load()},
++          {"prefetch_bytes", activation_bytes_.load()},
++          {"prefetch_wasted_bytes", activation_wasted_bytes_.load()},
++          {"prefetch_unused_resident", unused_activation_prefetch_.size()},
++          {"prefetch_unused_resident_bytes", unused_resident_bytes},
++          {"prefetch_prediction_epoch", activation_prediction_.Epoch()},
++          {"prefetch_protected_candidates", activation_prediction_.Size()},
++          {"prefetch_protected_resident_skips", activation_protected_skips_.load()},
++          {"prefetch_stale_discarded", activation_stale_.load()},
++          {"prefetch_no_victim", activation_no_victim_.load()},
++          {"prefetch_copy_started", activation_copy_started_.load()},
++          {"prefetch_victim_recheck_rejected", activation_victim_recheck_rejected_.load()},
++          {"prefetch_copy_waits", prefetch_copy_waits_.load()},
++          {"prefetch_copy_wait_ns", prefetch_copy_wait_ns_.load()},
++          {"demand_prefill_accesses", demand_prefill_accesses_.load()},
++          {"demand_prefill_hits", demand_prefill_hits_.load()},
++          {"demand_prefill_misses", demand_prefill_accesses_.load() - demand_prefill_hits_.load()},
++          {"demand_decode_accesses", demand_decode_accesses_.load()},
++          {"demand_decode_hits", demand_decode_hits_.load()},
++          {"demand_decode_misses", demand_decode_accesses_.load() - demand_decode_hits_.load()},
++          {"demand_copy_started", demand_copy_started_.load()},
++          {"demand_bytes", demand_bytes_.load()},
++          {"demand_prefetch_waits", demand_prefetch_waits_.load()},
++          {"demand_prefetch_wait_ns", demand_prefetch_wait_ns_.load()},
++          {"demand_cache_waits", demand_cache_waits_.load()},
++          {"demand_cache_wait_ns", demand_cache_wait_ns_.load()},
++          {"temporary_slot_uses", temporary_slot_uses_.load()},
++          {"temporary_slot_bytes", temporary_slot_bytes_.load()},
++          {"temporary_slot_waits", temporary_slot_waits_.load()},
++          {"temporary_slot_wait_ns", temporary_slot_wait_ns_.load()}};
++}
++
+ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+ #ifndef NVTX_DISABLE
+   nvtx3::scoped_range r("gpu_fetch");
+@@ -392,6 +819,12 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+       break;
+     }
+ 
++    if (args.activation_prefetch) {
++      FetchActivationPrefetch(args, gpu_id);
++      input_queue_[gpu_id].CompleteBackground();
++      continue;
++    }
++
+     auto device = CUDA_DEVICE(gpu_id);
+     auto original_device = (args.remote) ? CPU_DEVICE : hidden_states_.device();
+     int64_t layer_idx = args.layer_idx;
+@@ -401,20 +834,28 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+     auto expert_node = experts_[expert_idx][layer_idx];
+ 
+     if (args.wait_for_prefetch) {
+-      while (expert_node->node->exec_state.load(std::memory_order_acquire) !=
+-                 NodeExecState::IDLE &&
+-             !main_thread_stop_flag_.load(std::memory_order_acquire)) {
+-        std::this_thread::sleep_for(std::chrono::microseconds(10));
+-      }
+-      if (main_thread_stop_flag_.load(std::memory_order_acquire)) break;
+-      {
++      auto wait_started = std::chrono::steady_clock::now();
++      bool claimed = false;
++      while (!main_thread_stop_flag_.load(std::memory_order_acquire)) {
++        std::unique_lock<std::mutex> claim(activation_mutex_, std::defer_lock);
++        if (activation_mode_.load()) claim.lock();
+         auto expected = NodeExecState::IDLE;
+-        expert_node->node->exec_state.compare_exchange_strong(
++        claimed = expert_node->node->exec_state.compare_exchange_strong(
+             expected, NodeExecState::FETCHING, std::memory_order_acq_rel);
++        if (claim.owns_lock()) claim.unlock();
++        if (claimed) break;
++        std::this_thread::sleep_for(std::chrono::microseconds(10));
+       }
++      if (!claimed) break;
++      demand_prefetch_waits_.fetch_add(1, std::memory_order_relaxed);
++      demand_prefetch_wait_ns_.fetch_add(
++          std::chrono::duration_cast<std::chrono::nanoseconds>(
++              std::chrono::steady_clock::now() - wait_started).count(),
++          std::memory_order_relaxed);
+       expert_node->node->pending_dispatches.fetch_sub(
+           1, std::memory_order_acq_rel);
+       if (expert_node->node->device.is_cuda()) {
++        RecordActivationUse((uint64_t(layer_idx) << 32) | uint64_t(expert_idx));
+         expert_node->node->incache_visit_count += 1;
+         expert_node->SetTensorsFromBlob(expert_node->node->device);
+         ExecArgs exec_args;
+@@ -443,21 +884,52 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+                cached_experts_[gpu_id].size());
+ 
+     if (!cache_hit && cache_sizes_[gpu_id] < expert_node->node->byte_size) {
+-      if (batch_size > 1) {
++      if (activation_mode_.load()) {
++        bool waited_for_victim = false;
++        auto wait_started = std::chrono::steady_clock::now();
++        while (cache_sizes_[gpu_id] < expert_node->node->byte_size &&
++               !main_thread_stop_flag_.load(std::memory_order_acquire)) {
++          if (!EvictActivationVictim(FindExpertEvict(gpu_id), gpu_id)) {
++            waited_for_victim = true;
++            std::this_thread::sleep_for(std::chrono::milliseconds(1));
++          }
++        }
++        if (waited_for_victim) {
++          demand_cache_waits_.fetch_add(1, std::memory_order_relaxed);
++          demand_cache_wait_ns_.fetch_add(
++              std::chrono::duration_cast<std::chrono::nanoseconds>(
++                  std::chrono::steady_clock::now() - wait_started).count(),
++              std::memory_order_relaxed);
++        }
++        if (main_thread_stop_flag_.load(std::memory_order_acquire)) break;
++      } else if (batch_size > 1) {
+         // force fetch to GPU regardless of cache size, only for prefill
+         // only one extra cache slot for prefill
+         DLOG_DEBUG("overloading expert cache: gpu_id ", gpu_id, " cache size ",
+                    cache_sizes_[gpu_id], " incache count ",
+                    cached_experts_[gpu_id].size(), " layer_idx ", layer_idx,
+                    " expert_idx ", expert_idx);
++        bool waited_for_slot = false;
++        auto wait_started = std::chrono::steady_clock::now();
+         while (gpu_overload_[gpu_id].load(std::memory_order_acquire) &&
+                !main_thread_stop_flag_.load(std::memory_order_acquire)) {
++          waited_for_slot = true;
+           std::this_thread::sleep_for(std::chrono::microseconds(1));
+         }
+         if (main_thread_stop_flag_.load(std::memory_order_acquire)) {
+           break;
+         }
+         gpu_overload_[gpu_id].store(true, std::memory_order_release);
++        temporary_slot_uses_.fetch_add(1, std::memory_order_relaxed);
++        temporary_slot_bytes_.fetch_add(expert_node->node->byte_size,
++                                        std::memory_order_relaxed);
++        if (waited_for_slot) {
++          temporary_slot_waits_.fetch_add(1, std::memory_order_relaxed);
++          temporary_slot_wait_ns_.fetch_add(
++              std::chrono::duration_cast<std::chrono::nanoseconds>(
++                  std::chrono::steady_clock::now() - wait_started).count(),
++              std::memory_order_relaxed);
++        }
+       } else {
+         // find the expert in gpu and min incache_visit_count
+         ExpertNodePtr evict_expert_node = FindExpertEvict(gpu_id);
+@@ -471,10 +943,10 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+               " expert_idx ", expert_idx);
+           {
+             std::unique_lock<std::mutex> lock(cache_mutex_[gpu_id]);
+-            cache_cv_[gpu_id].wait(lock, [&] {
++            while (!cache_cv_[gpu_id].wait_for(lock, std::chrono::milliseconds(1), [&] {
+               return main_thread_stop_flag_.load(std::memory_order_acquire) ||
+                      FindExpertEvict(gpu_id) != nullptr;
+-            });
++            })) {}
+           }
+           if (main_thread_stop_flag_.load(std::memory_order_acquire)) break;
+           evict_expert_node = FindExpertEvict(gpu_id);
+@@ -533,6 +1005,14 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+ 
+         // std::lock_guard<std::mutex> lock(cache_mutex_[gpu_id]);
+         uint64_t evict_key = (evict_layer_idx << 32) + evict_expert_idx;
++        if (activation_mode_.load()) {
++          std::lock_guard<std::mutex> lock(activation_mutex_);
++          activation_evictions_.fetch_add(1);
++          if (unused_activation_prefetch_.erase(evict_key)) {
++            activation_wasted_.fetch_add(1);
++            activation_wasted_bytes_.fetch_add(evict_node->byte_size);
++          }
++        }
+         auto it = cached_experts_[gpu_id].find(evict_key);
+         if (it != cached_experts_[gpu_id].end()) {
+           cached_experts_[gpu_id].erase(it);
+@@ -552,6 +1032,11 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+ 
+     cudaEvent_t transfer_done = nullptr;
+     expert_node->node->SetDevice(device, true, stream, &transfer_done);
++    if (!cache_hit) {
++      demand_copy_started_.fetch_add(1, std::memory_order_relaxed);
++      demand_bytes_.fetch_add(expert_node->node->byte_size,
++                              std::memory_order_relaxed);
++    }
+     expert_node->node->incache_visit_count += 1;
+     expert_node->SetTensorsFromBlob(device);
+     // module_->SetTensorsFromIds(expert_node->node->tensor_ids);
+@@ -588,6 +1073,9 @@ void ExpertDispatcher::GPUFetchFunc(int gpu_id) {
+ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
+   cudaSetDevice(gpu_id);
+   cudaStream_t stream = exec_streams_[thread_idx];
++  c10::cuda::CUDAStream torch_stream =
++      c10::cuda::getStreamFromExternal(stream, gpu_id);
++  c10::cuda::CUDAStreamGuard guard(torch_stream);
+ 
+   while (!main_thread_stop_flag_.load(std::memory_order_acquire)) {
+     ExecArgs args;
+@@ -635,10 +1123,6 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
+         }
+       }
+ 
+-      c10::cuda::CUDAStream torch_stream =
+-          c10::cuda::getStreamFromExternal(stream, gpu_id);
+-      c10::cuda::CUDAStreamGuard guard(torch_stream);
+-
+       if (expert_type_ == GPT_OSS_MOE_DENSE_ACT_DENSE) {
+         modules_[thread_idx]->DequantMxfp4Params(stream);
+       }
+@@ -659,6 +1143,16 @@ void ExpertDispatcher::GPUExecFunc(int gpu_id, int thread_idx) {
+       DLOG_WARN("GPUExecFunc: expert forward failed: ", e.what(),
+                 " (expert_idx=", args.expert_node->expert_idx,
+                 " layer_idx=", args.expert_node->layer_idx, ")");
++      {
++        std::lock_guard<std::mutex> error_lock(worker_error_mutex_);
++        if (worker_error_.empty()) {
++          std::ostringstream message;
++          message << "expert forward failed: " << e.what()
++                  << " (expert_idx=" << args.expert_node->expert_idx
++                  << " layer_idx=" << args.expert_node->layer_idx << ")";
++          worker_error_ = message.str();
++        }
++      }
+       args.expert_node->node->exec_state.store(NodeExecState::IDLE,
+                                                std::memory_order_release);
+       pending_.fetch_sub(1);
+@@ -674,6 +1168,8 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+   auto output_device =
+       (args.out_gpu_id < 0) ? CPU_DEVICE : CUDA_DEVICE(args.out_gpu_id);
+   torch::Tensor output_tensor = output.to(output_device).to(torch::kFloat32);
++  CUDA_CHECK(
++      cudaStreamSynchronize(at::cuda::getCurrentCUDAStream(gpu_id).stream()));
+ 
+   DLOG_TRACE("ExpertDispatcher::OutputFunc: output_tensor ",
+              output_tensor.sizes().vec(), "(", output_tensor.device().str(),
+@@ -682,7 +1178,6 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+   // args.expert_node->node->mutex.unlock();
+   int64_t expert_idx = args.expert_node->expert_idx;
+   int64_t layer_idx = args.expert_node->layer_idx;
+-  int64_t batch_size = hidden_states_.size(0);
+ 
+   args.expert_node->node->exec_state.store(NodeExecState::IDLE,
+                                            std::memory_order_release);
+@@ -698,17 +1193,7 @@ void ExpertDispatcher::OutputFunc(ExecArgs args, torch::Tensor output,
+ 
+   {
+     std::lock_guard<std::mutex> lock(accum_mutex_);
+-    if (batch_size == 1) {
+-      final_hidden_states_.add_(
+-          output_tensor *
+-          router_weight_.index({torch::indexing::Slice(), expert_idx}));
+-    } else {
+-      auto token_indices = torch::nonzero(token_mask).squeeze(1);
+-      auto weights =
+-          router_weight_.index({token_mask, expert_idx}).unsqueeze(1);
+-      auto weighted_output = output_tensor * weights;
+-      final_hidden_states_.index_add_(0, token_indices, weighted_output);
+-    }
++    pending_accumulations_.emplace_back(expert_idx, output_tensor, token_mask);
+   }
+   pending_.fetch_sub(1);
+   if (pending_.load() == 0) {
+@@ -720,7 +1205,8 @@ std::vector<ExpertDispatcher::CallResult> ExpertDispatcher::Wait() {
+   // int wait_count = 0;
+ 
+   std::unique_lock<std::mutex> lock(pending_mutex_);
+-  pending_cv_.wait(lock, [&] { return pending_.load() == 0; });
++  while (!pending_cv_.wait_for(lock, std::chrono::milliseconds(1),
++                              [&] { return pending_.load() == 0; })) {}
+ 
+   num_enqueued_.store(0);
+   std::vector<CallResult> output_queue;
+@@ -737,8 +1223,23 @@ torch::Tensor ExpertDispatcher::WaitHiddenStates() {
+   nvtx3::scoped_range r("expert_wait_barrier");
+ #endif
+   std::unique_lock<std::mutex> lock(pending_mutex_);
+-  pending_cv_.wait(lock, [&] { return pending_.load() == 0; });
++  while (!pending_cv_.wait_for(lock, std::chrono::milliseconds(1),
++                              [&] { return pending_.load() == 0; })) {}
++  lock.unlock();
+   num_enqueued_.store(0);
++  std::string worker_error;
++  {
++    std::lock_guard<std::mutex> error_lock(worker_error_mutex_);
++    worker_error.swap(worker_error_);
++  }
++  std::vector<PendingAccumulation> pending;
++  {
++    std::lock_guard<std::mutex> accum_lock(accum_mutex_);
++    pending.swap(pending_accumulations_);
++  }
++  TORCH_CHECK(worker_error.empty(), worker_error);
++  AccumulateInExpertOrder(final_hidden_states_, router_weight_,
++                          hidden_states_.size(0), std::move(pending));
+   return final_hidden_states_;
+ }
+ 
+@@ -748,8 +1249,258 @@ void ExpertDispatcher::SetInputs(const torch::Tensor& hidden_states,
+   int device = at::cuda::current_device();
+   auto options =
+       torch::TensorOptions().dtype(torch::kFloat32).device(CUDA_DEVICE(device));
++  {
++    std::lock_guard<std::mutex> lock(accum_mutex_);
++    TORCH_CHECK(pending_accumulations_.empty(),
++                "previous expert accumulations were not consumed");
++  }
++  {
++    std::lock_guard<std::mutex> error_lock(worker_error_mutex_);
++    TORCH_CHECK(worker_error_.empty(),
++                "previous expert worker error was not consumed");
++  }
+   hidden_states_ = hidden_states;
+   router_mask_ = router_mask;
+   router_weight_ = router_weight;  // this can be float32
+   final_hidden_states_ = torch::zeros_like(hidden_states, options);
+ }
++
++std::vector<double>
++ExpertDispatcher::NumericalDeterministicAccumulationCheck(
++    int64_t rows, double rtol, double atol) {
++  TORCH_CHECK(rows == 353, "deterministic accumulation test requires 353 rows");
++  constexpr int64_t hdim = 64;
++  constexpr int64_t experts = 4;
++  auto options = torch::TensorOptions()
++                     .dtype(torch::kFloat32)
++                     .device(CUDA_DEVICE(at::cuda::current_device()));
++  auto base = torch::arange(rows * hdim, options).reshape({rows, hdim});
++  auto mask = torch::ones({rows}, options.dtype(torch::kBool));
++  auto router_weight = torch::empty({rows, experts}, options);
++  std::vector<torch::Tensor> outputs;
++  for (int64_t expert = 0; expert < experts; ++expert) {
++    router_weight.index_put_({torch::indexing::Slice(), expert},
++                             0.1 * static_cast<double>(expert + 1));
++    outputs.push_back(
++        torch::sin(base * (0.003 * static_cast<double>(expert + 1))));
++  }
++
++  auto reference = torch::zeros({rows, hdim}, options);
++  for (int64_t expert = 0; expert < experts; ++expert) {
++    reference.add_(outputs[expert] *
++                   router_weight.index(
++                       {torch::indexing::Slice(), expert}).unsqueeze(1));
++  }
++  CUDA_CHECK(cudaStreamSynchronize(
++      at::cuda::getCurrentCUDAStream().stream()));
++
++  std::vector<int64_t> order = {3, 1, 0, 2};
++  double max_abs = 0.0;
++  double max_rel = 0.0;
++  bool exact = true;
++  for (int repetition = 0; repetition < 4; ++repetition) {
++    std::vector<PendingAccumulation> pending;
++    for (int64_t expert : order) {
++      pending.emplace_back(expert, outputs[expert], mask);
++    }
++    auto actual = torch::zeros({rows, hdim}, options);
++    AccumulateInExpertOrder(actual, router_weight, rows, std::move(pending));
++    CUDA_CHECK(cudaStreamSynchronize(
++        at::cuda::getCurrentCUDAStream().stream()));
++    auto absolute = (actual - reference).abs();
++    max_abs = std::max(max_abs, absolute.max().item<double>());
++    auto denominator = reference.abs().clamp_min(1.0e-6);
++    max_rel = std::max(
++        max_rel, (absolute / denominator).max().item<double>());
++    exact = exact && torch::equal(actual, reference) &&
++            torch::allclose(actual, reference, rtol, atol);
++    std::rotate(order.begin(), order.begin() + 1, order.end());
++  }
++  return {max_abs, max_rel, exact ? 1.0 : 0.0};
++}
++
++// ---- Adaptive speculative-admission governor (experiment-local) ----
++// Modes: 1 unbounded (rule bypassed; publish the full rank), 2 fixed budget,
++// 3 adaptive (same live headroom rule; budget feeded back per request).
++// Bytes are logical expert payloads; all arithmetic is saturating u64.
++
++namespace {
++constexpr uint64_t kGovernorQuantumBytes = 128ULL << 20;  // 128 MiB
++constexpr uint64_t kGovernorFloorBytes = 64ULL << 20;     // 64 MiB
++constexpr const char* kGovernorEnv = "MOE_SPEC_ADMISSION_CODE";
++
++uint64_t governor_sub_saturate(uint64_t a, uint64_t b) {
++  return a > b ? a - b : 0ULL;
++}
++uint64_t governor_add_saturate(uint64_t a, uint64_t b) {
++  return a > UINT64_MAX - b ? UINT64_MAX : a + b;
++}
++}  // namespace
++
++void ExpertDispatcher::ConfigureSpeculativeGovernor(
++    int mode, const std::string& library, const std::string& bytecode,
++    bool verify, uint64_t initial_fixed_budget_bytes) {
++  TORCH_CHECK(governor_mode_ == 0, "speculative governor already configured");
++  TORCH_CHECK(mode == 1 || mode == 2 || mode == 3,
++              "governor mode must be unbounded=1, fixed=2, or adaptive=3");
++  TORCH_CHECK(initial_fixed_budget_bytes > 0,
++              "fixed governor budget must be positive");
++  if (mode == 3) {
++    // "native-rule" selects the built-in C++ admission rule below; anything
++    // else must be an absolute real-JIT bridge. A BPF failure is fatal; the
++    // native arm never silently degrades into the BPF path.
++    if (library == "native-rule") {
++      TORCH_CHECK(!verify,
++                  "native admission governor takes no BPF program");
++    } else {
++      TORCH_CHECK(!library.empty() && library[0] == '/' && !bytecode.empty() &&
++                      bytecode[0] == '/' && verify,
++                  "adaptive governor requires absolute real-JIT artifacts");
++      governor_library_ = dlopen(library.c_str(), RTLD_NOW | RTLD_LOCAL);
++      TORCH_CHECK(governor_library_, "cannot load speculative governor library");
++      auto init = reinterpret_cast<int (*)(const char*)>(
++          dlsym(governor_library_, "moe_spec_admission_init_v1"));
++      governor_admit_ = reinterpret_cast<int (*)(const moe_spec_candidate*, mep_u32,
++                                                 mep_u64, mep_u64, mep_u64*)>(
++          dlsym(governor_library_, "moe_spec_admission_prefix_v1"));
++      TORCH_CHECK(init && governor_admit_ && init(bytecode.c_str()) == 0,
++                  "speculative governor BPF init failed; no fallback");
++    }
++  }
++  governor_fixed_budget_bytes_ = initial_fixed_budget_bytes;
++  governor_budget_bytes_ = initial_fixed_budget_bytes;
++  governor_initial_budget_bytes_ = initial_fixed_budget_bytes;
++  governor_mode_ = mode;
++}
++
++void ExpertDispatcher::RecordRequestSpeculativeOutcome(
++    const std::map<std::string, int64_t>& outcome) {
++  if (!governor_mode_ || governor_mode_ != 3) return;
++  auto read = [&outcome](const char* key) {
++    auto it = outcome.find(key);
++    TORCH_CHECK(it != outcome.end(), "governor outcome missing key ", key);
++    return static_cast<int64_t>(it->second);
++  };
++  const int64_t hit = read("prefetch_hit_bytes");
++  const int64_t evicted_unused = read("prefetch_wasted_bytes");
++  //(prefetch_unused_resident_bytes - newly used resident bytes) can go
++  // negative when a kept-but-unused expert is revived by demand in the same
++  // request; the conservation observer saturates, the rule uses signs only.
++  const int64_t censor = read("prefetch_unused_resident_bytes");
++  const int64_t wait_ns = read("demand_prefetch_wait_ns") +
++                          read("demand_cache_wait_ns");
++  const int64_t resolved = hit + evicted_unused;
++  // Signed useful-minus-unused fraction, damped by the censored fraction.
++  // Only the sign of (useful - unused) moves the budget; the useful/unused
++  // magnitudes never scale the quantum, keeping the rule exact and cheap.
++  const int64_t useful = hit;
++  const int64_t unused = evicted_unused;
++  const int64_t observed_raw = resolved + censor;
++  const uint64_t observed =
++      observed_raw > 0 ? static_cast<uint64_t>(observed_raw) : 0;
++  {
++    std::lock_guard<std::mutex> lock(governor_mutex_);
++    uint64_t budget = governor_budget_bytes_;
++    uint64_t before = budget;
++    if (observed == 0) {
++      // No resolved or censored outcome in this request: hold the budget.
++      ++governor_budget_unchanged_;
++    } else if (wait_ns > 0) {
++      // Live mandatory demand waited on this executor: reduce at least one
++      // quantum. One quantum per observed demand-wait event, not per ns.
++      budget = governor_sub_saturate(budget, kGovernorQuantumBytes);
++      if (budget < kGovernorFloorBytes) budget = kGovernorFloorBytes;
++    } else if (useful > unused) {
++      budget = governor_add_saturate(budget, kGovernorQuantumBytes);
++      const uint64_t max_budget = governor_initial_budget_bytes_ * 4;
++      if (budget > max_budget) budget = max_budget;
++    } else if (unused > useful) {
++      budget = governor_sub_saturate(budget, kGovernorQuantumBytes);
++      if (budget < kGovernorFloorBytes) budget = kGovernorFloorBytes;
++    } else {
++      ++governor_budget_unchanged_;
++    }
++    governor_budget_bytes_ = budget;
++    governor_history_budget_.push_back(budget);
++    governor_history_new_hit_bytes_.push_back(hit);
++    governor_history_new_evicted_unused_bytes_.push_back(evicted_unused);
++    governor_history_censored_bytes_.push_back(censor);
++    governor_history_demand_wait_ns_.push_back(wait_ns);
++    ++governor_budget_updates_;
++    if (budget > before) ++governor_budget_increases_;
++    else if (budget < before) ++governor_budget_decreases_;
++  }
++}
++
++// Live whole-expert prefix admission: returns how many ranked candidates fit
++// under the current budget minus outstanding speculative bytes. Called by
++// SubmitActivationPrefetch with the publisher's activation mutex held; the
++// queue read below is the shared-executor outstanding-byte source of truth.
++size_t ExpertDispatcher::AdmitSpeculativePrefix(
++    const std::vector<uint64_t>& payload_bytes) {
++  TORCH_CHECK(governor_mode_ != 0,
++              "speculative governor used without configuration");
++  if (governor_mode_ == 1) return payload_bytes.size();
++  std::lock_guard<std::mutex> lock(governor_mutex_);
++  ++governor_admission_calls_;
++  const uint64_t budget = governor_budget_bytes_;
++  uint64_t outstanding = 0;
++  for (const auto& queue : input_queue_) {
++    outstanding = governor_add_saturate(
++        outstanding, queue.BackgroundOutstandingSnapshot());
++  }
++  const uint64_t allowed = governor_sub_saturate(budget, outstanding);
++  governor_last_allowed_bytes_ = allowed;
++  governor_last_outstanding_bytes_ = outstanding;
++  governor_last_used_bytes_ = 0;
++  governor_last_candidate_count_ = payload_bytes.size();
++  if (governor_mode_ == 3 && governor_admit_) {
++    // Real-JIT route: marshal the exact snapshot the BPF rule sees. Payload
++    // sizes ride in the entry array; a failure is fatal, never a native
++    // fallback. The C++ rule below runs only for the native governor mode.
++    std::vector<moe_spec_candidate> candidates(payload_bytes.size());
++    for (size_t index = 0; index < payload_bytes.size(); ++index)
++      candidates[index] = {payload_bytes[index], 0};
++    mep_u64 admitted = MOE_SPEC_NONE;
++    const int rc = governor_admit_(candidates.data(),
++                                   static_cast<mep_u32>(candidates.size()),
++                                   budget, outstanding, &admitted);
++    TORCH_CHECK(rc == 0, "speculative governor BPF admission failed; no fallback");
++    TORCH_CHECK(admitted == MOE_SPEC_NONE || admitted <= candidates.size(),
++                "speculative governor BPF returned invalid prefix");
++    const size_t admitted_count =
++        admitted == MOE_SPEC_NONE ? 0 : static_cast<size_t>(admitted);
++    for (size_t index = 0; index < admitted_count; ++index)
++      governor_last_used_bytes_ = governor_add_saturate(
++          governor_last_used_bytes_, payload_bytes[index]);
++    return admitted_count;
++  }
++  uint64_t used = 0;
++  size_t admitted = 0;
++  while (admitted < payload_bytes.size()) {
++    const uint64_t bytes = payload_bytes[admitted];
++    if (bytes == 0 || used + bytes > allowed) break;
++    used = governor_add_saturate(used, bytes);
++    ++admitted;
++  }
++  governor_last_used_bytes_ = used;
++  return admitted;
++}
++
++std::map<std::string, uint64_t> ExpertDispatcher::GetGovernorStats() const {
++  std::lock_guard<std::mutex> lock(governor_mutex_);
++  return {{"governor_mode", static_cast<uint64_t>(governor_mode_)},
++          {"governor_initial_budget_bytes", governor_initial_budget_bytes_},
++          {"governor_budget_bytes", governor_budget_bytes_},
++          {"governor_admission_calls", governor_admission_calls_},
++          {"governor_admission_submitted", governor_admission_submitted_.load()},
++          {"governor_admission_admitted", governor_admission_admitted_.load()},
++          {"governor_budget_updates", governor_budget_updates_},
++          {"governor_budget_unchanged", governor_budget_unchanged_},
++          {"governor_budget_decreases", governor_budget_decreases_},
++          {"governor_budget_increases", governor_budget_increases_},
++          {"governor_last_allowed_bytes", governor_last_allowed_bytes_},
++          {"governor_last_outstanding_bytes", governor_last_outstanding_bytes_},
++          {"governor_last_used_bytes", governor_last_used_bytes_},
++          {"governor_last_candidate_count", governor_last_candidate_count_}};
++}
+diff --git a/core/parallel/expert_dispatcher.h b/core/parallel/expert_dispatcher.h
+index 47d3b69..c05f43b 100644
+--- a/core/parallel/expert_dispatcher.h
++++ b/core/parallel/expert_dispatcher.h
+@@ -14,6 +14,7 @@
+ #include <memory>
+ #include <string>
+ #include <thread>
++#include <tuple>
+ #include <unordered_map>
+ #include <vector>
+ 
+@@ -26,6 +27,9 @@
+ #include "base/thread.h"
+ #include "utils/threadsafe_queue.h"
+ #include "expert_module.h"
++#include "revision_fetch_queue.h"
++#include <moe_expert_policy.h>
++#include <moe_spec_admission.h>
+ 
+ enum MUTEX_TYPE {
+   INPUT_MUTEX = 0,
+@@ -45,6 +49,9 @@ class ExpertDispatcher : public base::noncopyable {
+     int gpu_id = -1;
+     bool remote = false;
+     bool wait_for_prefetch = false;
++    bool activation_prefetch = false;
++    bool prefill = false;
++    uint64_t prediction_epoch = 0;
+   } CallArgs;
+   typedef struct {
+     torch::Tensor hidden_states =
+@@ -110,7 +117,26 @@ class ExpertDispatcher : public base::noncopyable {
+   void ClearExpertCacheCounts();
+   // Read-only observability accessors; neither alters routing/dispatch.
+   std::int64_t GetCacheOccupancyBytes();
++  std::tuple<std::uint64_t, std::uint64_t> GetCacheCounts() const;
+   double GetCacheHitRate() const;
++  void ConfigureActivationPolicy(int mode, const std::string& library,
++                                 const std::string& bytecode, bool verify,
++                                 bool prefetch_enabled);
++  void SetActivationScores(const std::vector<double>& scores);
++  void SubmitActivationPrefetch(const std::vector<uint64_t>& identities);
++  void DrainActivationPrefetch();
++  std::map<std::string, uint64_t> GetActivationStats() const;
++  // Adaptive byte-admission governor protocol (RQ1 policy experiment only).
++  // configure sets the fixed budget; mechanical rule recomputes nothing else.
++  void ConfigureSpeculativeGovernor(int mode, const std::string& library,
++                                    const std::string& bytecode, bool verify,
++                                    uint64_t initial_fixed_budget_bytes);
++  size_t AdmitSpeculativePrefix(const std::vector<uint64_t>& payload_bytes);
++  void RecordRequestSpeculativeOutcome(
++      const std::map<std::string, int64_t>& outcome);
++  std::map<std::string, uint64_t> GetGovernorStats() const;
++  static std::vector<double> NumericalDeterministicAccumulationCheck(
++      int64_t rows, double rtol, double atol);
+   void SetExpectedQueue(int expected_pending = 0) {
+     pending_.store(expected_pending);
+   }
+@@ -133,13 +159,18 @@ class ExpertDispatcher : public base::noncopyable {
+   void OutputFunc(ExecArgs args, torch::Tensor output, torch::Tensor token_mask,
+                   int gpu_id);
+ 
+-  ExpertNodePtr FindExpertEvict(int gpu_id);
++  ExpertNodePtr FindExpertEvict(int gpu_id, uint64_t prediction_epoch = 0);
++  void FetchActivationPrefetch(const CallArgs& args, int gpu_id);
++  bool EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id,
++                              uint64_t prediction_epoch = 0);
++  void RecordActivationUse(uint64_t identity);
++  void RecordDemandAccess(bool prefill, bool hit);
+ 
+  private:
+   std::vector<std::unique_ptr<base::Thread>> threads_;
+   std::mutex mutex_;
+   // std::vector<std::deque<CallArgs>> input_queue_;
+-  std::vector<ThreadSafeQueue<CallArgs>> input_queue_;
++  std::vector<RevisionFetchQueue<CallArgs>> input_queue_;
+   // std::vector<std::deque<ExecArgs>> exec_queue_;
+   std::vector<ThreadSafeQueue<ExecArgs>> exec_queue_;
+   std::vector<CallResult> output_queue_;
+@@ -170,6 +201,10 @@ class ExpertDispatcher : public base::noncopyable {
+ 
+   std::mutex output_mutex_;
+   std::mutex accum_mutex_;
++  std::vector<std::tuple<int64_t, torch::Tensor, torch::Tensor>>
++      pending_accumulations_;
++  std::mutex worker_error_mutex_;
++  std::string worker_error_;
+ 
+   std::vector<cudaStream_t> exec_streams_;
+   std::vector<cudaStream_t> fetch_streams_;
+@@ -182,8 +217,70 @@ class ExpertDispatcher : public base::noncopyable {
+   torch::Tensor router_weight_;
+ 
+   std::vector<int64_t> cache_sizes_;
++  uint64_t cache_budget_bytes_ = 0;
+   std::vector<std::unordered_set<uint64_t>> cached_experts_;
+ 
++  std::atomic<int> activation_mode_{0};  // 0 upstream, 1 paper native, 2 paper BPF
++  bool activation_prefetch_enabled_ = true;
++  bool activation_verify_ = false;
++  void* activation_library_ = nullptr;
++  int (*activation_select_)(const moe_expert_scored_candidate*, mep_u32,
++                           mep_u64*) = nullptr;
++  mutable std::mutex activation_mutex_;
++  std::vector<double> activation_scores_;
++  RevisionPredictionSet activation_prediction_;
++  std::unordered_set<uint64_t> unused_activation_prefetch_;
++  std::atomic<uint64_t> activation_eviction_calls_{0}, activation_bpf_calls_{0};
++  std::atomic<uint64_t> activation_mismatches_{0}, activation_evictions_{0};
++  std::atomic<uint64_t> activation_submitted_{0}, activation_completed_{0};
++  std::atomic<uint64_t> activation_hits_{0}, activation_wasted_{0};
++  std::atomic<uint64_t> activation_bytes_{0}, activation_wasted_bytes_{0};
++  std::atomic<uint64_t> activation_protected_skips_{0}, activation_stale_{0};
++  std::atomic<uint64_t> activation_no_victim_{0}, activation_copy_started_{0};
++  std::atomic<uint64_t> activation_victim_recheck_rejected_{0};
++  std::atomic<uint64_t> activation_demand_evictions_{0};
++  std::atomic<uint64_t> activation_prefetch_evictions_{0};
++  std::atomic<uint64_t> temporary_slot_uses_{0}, temporary_slot_bytes_{0};
++  std::atomic<uint64_t> temporary_slot_waits_{0}, temporary_slot_wait_ns_{0};
++  std::atomic<uint64_t> activation_bpf_demand_calls_{0},
++      activation_bpf_prefetch_calls_{0};
++  std::atomic<uint64_t> demand_prefill_accesses_{0}, demand_decode_accesses_{0};
++  std::atomic<uint64_t> demand_prefill_hits_{0}, demand_decode_hits_{0};
++  std::atomic<uint64_t> demand_copy_started_{0}, demand_bytes_{0};
++
++  // ---- Adaptive speculative-admission governor state (experiment-local) ----
++  // mode: 0 disabled, 1 unbounded (no admission rule), 2 fixed budget,
++  // 3 adaptive (same live headroom rule + budget updates). All arithmetic
++  // is unsigned 64-bit and saturating; budgets never wrap.
++  int governor_mode_ = 0;
++  uint64_t governor_fixed_budget_bytes_ = 0;   // arms fixed/adaptive share it
++  uint64_t governor_budget_bytes_ = 0;         // current adaptive budget
++  uint64_t governor_initial_budget_bytes_ = 0; // diagnostic only
++  mutable std::mutex governor_mutex_;          // guards the scalars below
++  std::vector<uint64_t> governor_history_budget_;
++  std::vector<uint64_t> governor_history_new_hit_bytes_;
++  std::vector<uint64_t> governor_history_new_evicted_unused_bytes_;
++  std::vector<int64_t> governor_history_censored_bytes_;
++  std::vector<int64_t> governor_history_demand_wait_ns_;
++  void* governor_library_ = nullptr;
++  int (*governor_admit_)(const moe_spec_candidate*, mep_u32, mep_u64,
++                         mep_u64, mep_u64*) = nullptr;
++  std::atomic<uint64_t> governor_admission_submitted_{0};   // submitted-candidate counter
++  std::atomic<uint64_t> governor_admission_admitted_{0};    // admitted prefix counter
++  uint64_t governor_admission_calls_{0};       // live rule evaluations
++  uint64_t governor_budget_updates_{0};        // completed-request events
++  uint64_t governor_budget_unchanged_{0};      // holds
++  uint64_t governor_budget_decreases_{0};
++  uint64_t governor_budget_increases_{0};
++  std::atomic<uint64_t> demand_prefetch_waits_{0}, demand_prefetch_wait_ns_{0};
++  std::atomic<uint64_t> demand_cache_waits_{0}, demand_cache_wait_ns_{0};
++  std::atomic<uint64_t> prefetch_copy_waits_{0}, prefetch_copy_wait_ns_{0};
++  std::atomic<uint64_t> activation_hit_bytes_{0};
++  uint64_t governor_last_allowed_bytes_ = 0;
++  uint64_t governor_last_outstanding_bytes_ = 0;
++  uint64_t governor_last_used_bytes_ = 0;
++  uint64_t governor_last_candidate_count_ = 0;
++
+   int cache_capacity_ = 0;
+   int num_threads_ = 1;
+ 
+diff --git a/core/parallel/expert_module.cpp b/core/parallel/expert_module.cpp
+index c92a1c9..e3f92de 100644
+--- a/core/parallel/expert_module.cpp
++++ b/core/parallel/expert_module.cpp
+@@ -3,6 +3,8 @@
+ 
+ // EfficientMoE Team
+ 
++#include <algorithm>
++
+ #include "expert_module.h"
+ #include "utils/cuda_utils.h"
+ #include "utils/logger.h"
+@@ -191,62 +193,142 @@ torch::Tensor MoEMLP::forward(torch::Tensor hidden_states,
+   auto& output_ = buffer_[1];
+ 
+   int64_t batch_size = hidden_states.size(0);
+-  int64_t hdim = hidden_states.size(1);
+-
+-  DLOG_FATAL_IF(batch_size > kMaxTokens || batch_size <= 0,
+-                "batch_size should be (0,", kMaxTokens, "] , but got",
++  DLOG_FATAL_IF(batch_size <= 0, "batch_size should be positive, but got",
+                 batch_size);
+   TORCH_CHECK(hidden_states.scalar_type() == input_.scalar_type(),
+               "hidden_states dtype must match expert input dtype");
+ 
+-  // Use async copy with the provided execution stream
+-  cudaMemcpyAsync(input_.data_ptr(), hidden_states.data_ptr(),
+-                  hidden_states.numel() * hidden_states.element_size(),
+-                  cudaMemcpyDeviceToDevice, stream);
+-
+-  // Dynamically reshape buffers to match actual batch_size, avoiding
+-  // computation on padded rows. The underlying memory is unchanged.
+-  for (auto& buffer : buffer_) {
+-    auto shape_vec = buffer.sizes().vec();
+-    if (shape_vec.size() != 2) continue;
+-    int64_t row = buffer.size(0);
+-    int64_t col = buffer.size(1);
+-    auto dtype = buffer.dtype();
+-
+-    if (row == kMaxTokens) {
+-      buffer.set_data(torch::from_blob(
+-          buffer.data_ptr(), {batch_size, col}, DoNothingDeleter<void>{},
+-          torch::TensorOptions().dtype(dtype).device(
+-              CUDA_DEVICE(at::cuda::current_device()))));
++  auto resize_buffers = [&](int64_t rows) {
++    for (auto& buffer : buffer_) {
++      auto shape_vec = buffer.sizes().vec();
++      if (shape_vec.size() != 2) continue;
++      int64_t col = buffer.size(1);
++      auto dtype = buffer.dtype();
++      if (buffer.size(0) != rows) {
++        // Every buffer owns storage for kMaxTokens rows. Only its logical view
++        // changes between chunks; no allocation or data movement occurs here.
++        TORCH_CHECK(rows <= kMaxTokens,
++                    "expert buffer view exceeds allocated row capacity");
++        buffer.set_data(torch::from_blob(
++            buffer.data_ptr(), {rows, col}, DoNothingDeleter<void>{},
++            torch::TensorOptions().dtype(dtype).device(
++                CUDA_DEVICE(at::cuda::current_device()))));
++      }
+     }
++  };
++
++  // Preserve the original single-workspace path for every previously
++  // supported invocation. This keeps decode and ordinary prefill calls on the
++  // same copy, compute, synchronize, and clone sequence as upstream.
++  if (batch_size <= kMaxTokens) {
++    cudaMemcpyAsync(input_.data_ptr(), hidden_states.data_ptr(),
++                    hidden_states.numel() * hidden_states.element_size(),
++                    cudaMemcpyDeviceToDevice, stream);
++    resize_buffers(batch_size);
++    cudaStreamSynchronize(stream);
++
++    ForwardHelper(stream);
++    param_set_ = false;
++    cudaStreamSynchronize(stream);
++
++    auto output = output_.clone();
++    resize_buffers(kMaxTokens);
++    return output;
++  }
++
++  // Some prefill routes contain more than kMaxTokens rows for one expert.
++  // Keep the fixed reusable workspace, execute consecutive row chunks with
++  // the already resident/dequantized expert weights, and restore the original
++  // order in a full-sized output tensor.
++  auto hidden_contiguous = hidden_states.contiguous();
++  auto output = torch::empty_like(hidden_contiguous);
++  for (int64_t row_begin = 0; row_begin < batch_size;
++       row_begin += kMaxTokens) {
++    int64_t chunk_rows = std::min(kMaxTokens, batch_size - row_begin);
++    resize_buffers(chunk_rows);
++
++    auto input_chunk = hidden_contiguous.narrow(0, row_begin, chunk_rows);
++    cudaMemcpyAsync(input_.data_ptr(), input_chunk.data_ptr(),
++                    input_chunk.numel() * input_chunk.element_size(),
++                    cudaMemcpyDeviceToDevice, stream);
++    cudaStreamSynchronize(stream);
++
++    ForwardHelper(stream);
++    output.narrow(0, row_begin, chunk_rows).copy_(output_);
+   }
+-  cudaStreamSynchronize(stream);
+ 
+-  ForwardHelper(stream);
+   param_set_ = false;
+   cudaStreamSynchronize(stream);
+ 
+-  auto output = output_.clone();
+-
+-  // Restore buffers to kMaxTokens shape for next invocation
+-  for (auto& buffer : buffer_) {
+-    auto shape_vec = buffer.sizes().vec();
+-    if (shape_vec.size() != 2) continue;
+-    int64_t row = buffer.size(0);
+-    int64_t col = buffer.size(1);
+-    auto dtype = buffer.dtype();
+-
+-    if (row == batch_size && batch_size != kMaxTokens) {
+-      buffer.set_data(torch::from_blob(
+-          buffer.data_ptr(), {kMaxTokens, col}, DoNothingDeleter<void>{},
+-          torch::TensorOptions().dtype(dtype).device(
+-              CUDA_DEVICE(at::cuda::current_device()))));
+-    }
+-  }
++  // Restore reusable buffers to their allocation-capacity shape.
++  resize_buffers(kMaxTokens);
+ 
+   return output;
+ }
+ 
++std::vector<double> MoEMLP::NumericalRowChunkingCheck(int64_t rows,
++                                                       double rtol,
++                                                       double atol) {
++  TORCH_CHECK(rows == 1 || rows == 256 || rows == 257 || rows == 353,
++              "unsupported row-chunking self-test size");
++  TORCH_CHECK(rtol >= 0.0 && atol >= 0.0,
++              "row-chunking self-test tolerances must be non-negative");
++
++  constexpr int64_t hdim = 64;
++  constexpr int64_t idim = 96;
++  auto float_options = torch::TensorOptions()
++                           .dtype(torch::kFloat32)
++                           .device(CUDA_DEVICE(at::cuda::current_device()));
++  auto bf16_options = float_options.dtype(torch::kBFloat16);
++  auto stream = at::cuda::getCurrentCUDAStream().stream();
++
++  auto hidden = (torch::sin(torch::arange(rows * hdim, float_options) * 0.013)
++                     .reshape({rows, hdim}) *
++                 0.125)
++                    .to(torch::kBFloat16);
++  auto first_weight =
++      (torch::cos(torch::arange(idim * hdim, float_options) * 0.017)
++           .reshape({idim, hdim}) *
++       0.0625)
++          .to(torch::kBFloat16);
++  auto second_weight =
++      (torch::sin(torch::arange(hdim * idim, float_options) * 0.019)
++           .reshape({hdim, idim}) *
++       0.0625)
++          .to(torch::kBFloat16);
++
++  MoEMLP module(DTYPE_BFLOAT16, NLLB_MOE_DENSE_ACT_DENSE);
++  module.buffer_[0] = torch::empty({kMaxTokens, hdim}, bf16_options);
++  module.buffer_[1] = torch::empty({kMaxTokens, hdim}, bf16_options);
++  module.param_[0] = first_weight;
++  module.param_[1] = second_weight;
++  module.param_init_ = true;
++  module.param_set_ = true;
++
++  auto actual = module.forward(hidden, stream);
++  cudaStreamSynchronize(stream);
++
++  auto reference = torch::empty_like(hidden);
++  for (int64_t row_begin = 0; row_begin < rows;
++       row_begin += kMaxTokens) {
++    int64_t chunk_rows = std::min(kMaxTokens, rows - row_begin);
++    auto input_chunk = hidden.narrow(0, row_begin, chunk_rows);
++    auto reference_chunk = torch::matmul(
++        torch::relu(torch::matmul(input_chunk, first_weight.transpose(0, 1))),
++        second_weight.transpose(0, 1));
++    reference.narrow(0, row_begin, chunk_rows).copy_(reference_chunk);
++  }
++  cudaStreamSynchronize(stream);
++
++  auto absolute = (actual.to(torch::kFloat32) - reference.to(torch::kFloat32))
++                      .abs();
++  double max_abs = absolute.max().item<double>();
++  auto denominator = reference.to(torch::kFloat32).abs().clamp_min(1.0e-6);
++  double max_rel = (absolute / denominator).max().item<double>();
++  bool close = torch::allclose(actual, reference, rtol, atol);
++  return {max_abs, max_rel, close ? 1.0 : 0.0};
++}
++
+ void MoEMLP::ForwardHelper(cudaStream_t stream) {
+   torch::NoGradGuard no_grad;
+   auto& input = buffer_[0];
+diff --git a/core/parallel/expert_module.h b/core/parallel/expert_module.h
+index 3af2ce8..0f7feef 100644
+--- a/core/parallel/expert_module.h
++++ b/core/parallel/expert_module.h
+@@ -195,6 +195,9 @@ torch::Tensor launch_fused_moe_ffn(torch::Tensor hidden,  // [M, K]
+ struct MoEMLP : public torch::nn::Module {
+   explicit MoEMLP(int dtype, int expert_type);
+   torch::Tensor forward(torch::Tensor hidden_states, cudaStream_t stream);
++  static std::vector<double> NumericalRowChunkingCheck(int64_t rows,
++                                                        double rtol,
++                                                        double atol);
+ 
+   void SetTensorsFromIds(const std::vector<std::uint32_t>& tensor_ids);
+   void DequantMxfp4Params(cudaStream_t stream);
+diff --git a/core/python/py_archer_prefetch.cpp b/core/python/py_archer_prefetch.cpp
+index 18591ce..710ee09 100644
+--- a/core/python/py_archer_prefetch.cpp
++++ b/core/python/py_archer_prefetch.cpp
+@@ -105,6 +105,13 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+   m.def("gelu_and_mul", &gelu_and_mul, "Fused GeLU(gate) * up");
+   m.def("gelu_tanh_and_mul", &gelu_tanh_and_mul, "Fused GeLU-tanh(gate) * up");
+   m.def("fatrelu_and_mul", &fatrelu_and_mul, "Fused FatReLU(gate) * up");
++  m.def("row_chunking_numerical_check", &MoEMLP::NumericalRowChunkingCheck,
++        py::arg("rows"), py::arg("rtol"), py::arg("atol"),
++        "Run the repaired MoEMLP row path against a chunked GPU reference.");
++  m.def("deterministic_accumulation_check",
++        &ExpertDispatcher::NumericalDeterministicAccumulationCheck,
++        py::arg("rows"), py::arg("rtol"), py::arg("atol"),
++        "Verify expert outputs reduce identically across arrival orders.");
+ 
+   py::class_<ExpertDispatcher>(m, "expert_dispatcher")
+       .def(py::init<int, int, int, int, int>())
+@@ -118,7 +125,21 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+            &ExpertDispatcher::ClearExpertCacheCounts)
+       .def("get_cache_occupancy_bytes",
+            &ExpertDispatcher::GetCacheOccupancyBytes)
++      .def("get_cache_counts", &ExpertDispatcher::GetCacheCounts)
+       .def("get_cache_hit_rate", &ExpertDispatcher::GetCacheHitRate)
++      .def("configure_activation_policy", &ExpertDispatcher::ConfigureActivationPolicy)
++      .def("set_activation_scores", &ExpertDispatcher::SetActivationScores)
++      .def("submit_activation_prefetch", &ExpertDispatcher::SubmitActivationPrefetch)
++      .def("drain_activation_prefetch", &ExpertDispatcher::DrainActivationPrefetch)
++      .def("get_activation_stats", &ExpertDispatcher::GetActivationStats)
++      .def("configure_speculative_governor",
++           &ExpertDispatcher::ConfigureSpeculativeGovernor,
++           py::arg("mode"), py::arg("library"), py::arg("bytecode"),
++           py::arg("verify"), py::arg("initial_fixed_budget_bytes"))
++      .def("record_request_speculative_outcome",
++           &ExpertDispatcher::RecordRequestSpeculativeOutcome,
++           py::arg("outcome"))
++      .def("get_governor_stats", &ExpertDispatcher::GetGovernorStats)
+       .def("set_scales", &ExpertDispatcher::SetScales,
+            "Store fp8 block scales for dequant-on-copy (fp8-in-store path)");
+ }
+diff --git a/moe_infinity/distributed/expert_executor.py b/moe_infinity/distributed/expert_executor.py
+index 37072b7..53f3b02 100644
+--- a/moe_infinity/distributed/expert_executor.py
++++ b/moe_infinity/distributed/expert_executor.py
+@@ -215,6 +215,11 @@ class DistributedExpertExecutor:
+                 )
+                 expected_wait_cnt = len(expert_list)
+ 
++        activation = getattr(self, "revision_activation", None)
++        prediction = activation.observe(layer_id, expert_count) if activation else None
++        if prediction is not None:
++            self.expert_dispatcher.set_activation_scores(prediction.reuse_scores.tolist())
++
+         self.expert_dispatcher.set_inputs(
+             hidden_states, router_mask.bool(), router_weights
+         )
+@@ -241,6 +246,8 @@ class DistributedExpertExecutor:
+                         layer_id, expert_id, gpu_id, False
+                     )
+         self.expert_dispatcher.notify_fetch_start()
++        if prediction is not None:
++            self.expert_dispatcher.submit_activation_prefetch(prediction.prefetch_identities)
+ 
+         if prefetcher is None:
+             prefetcher = self.prefetcher
+diff --git a/core/parallel/revision_fetch_queue.h b/core/parallel/revision_fetch_queue.h
+new file mode 100644
+--- /dev/null
++++ b/core/parallel/revision_fetch_queue.h
+@@ -0,0 +1,161 @@
++#pragma once
++
++#include <condition_variable>
++#include <cstdint>
++#include <deque>
++#include <limits>
++#include <mutex>
++#include <stdexcept>
++#include <unordered_set>
++#include <vector>
++
++// Shared executor constraint, not an additional ranking policy. The owner must
++// hold its activation mutex for every call and through the corresponding victim
++// removal / physical-copy issue. Demand does not consult this protection set.
++class RevisionPredictionSet {
++ public:
++  uint64_t Invalidate() {
++    if (epoch_ == std::numeric_limits<uint64_t>::max())
++      throw std::overflow_error("paper prediction epoch exhausted");
++    ++epoch_;
++    candidates_.clear();
++    return epoch_;
++  }
++  uint64_t Replace(const std::vector<uint64_t>& candidates) {
++    // Build before publishing so allocation failure cannot expose a partial set.
++    std::unordered_set<uint64_t> replacement(candidates.begin(), candidates.end());
++    Invalidate();
++    candidates_.swap(replacement);
++    return epoch_;
++  }
++  bool Current(uint64_t epoch) const { return epoch != 0 && epoch == epoch_; }
++  bool MayEvict(uint64_t epoch, uint64_t resident) const {
++    return Current(epoch) && candidates_.find(resident) == candidates_.end();
++  }
++  uint64_t Epoch() const { return epoch_; }
++  uint64_t Size() const { return candidates_.size(); }
++ private:
++  uint64_t epoch_ = 0;
++  std::unordered_set<uint64_t> candidates_;
++};
++
++// One worker owns cache accounting. Demand always wins over queued prefetch;
++// replacing predictions discards only unstarted background work, never demand.
++template <typename T>
++class RevisionFetchQueue {
++ public:
++  void Push(T& item) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    if (!closed_) demand_.push_back(std::move(item));
++    ready_.notify_one();
++  }
++  // Replaces the pending background stream atomically; the publisher holds
++  // the activation mutex and reports the exact queued whole-entry bytes.
++  void ReplaceBackground(std::vector<T> items, const std::vector<uint64_t>& item_bytes,
++                         uint64_t queued_bytes) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    background_.clear();
++    background_bytes_.clear();
++    background_pop_bytes_.clear();
++    if (!closed_) {
++      for (auto& item : items) background_.push_back(std::move(item));
++      background_bytes_.assign(item_bytes.begin(), item_bytes.end());
++    }
++    background_queued_bytes_ = queued_bytes;
++    ready_.notify_one();
++  }
++  // Exact live outstanding speculative bytes: what the publisher queued plus
++  // what the fetch worker still carries. Set from the completion path.
++  uint64_t BackgroundOutstandingSnapshot() const {
++    std::lock_guard<std::mutex> lock(mutex_);
++    return background_queued_bytes_ + inflight_bytes_;
++  }
++  void CompleteBackgroundBytes(uint64_t bytes) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    if (inflight_bytes_ >= bytes)
++      inflight_bytes_ -= bytes;
++    else
++      inflight_bytes_ = 0;
++  }
++  void TrackInflightBytes(uint64_t bytes) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    inflight_bytes_ += bytes;
++  }
++  bool Pop(T& item) {
++    std::unique_lock<std::mutex> lock(mutex_);
++    ready_.wait(lock, [&] {
++      return closed_ || !demand_.empty() || !background_.empty();
++    });
++    if (closed_) return false;
++    bool background = demand_.empty();
++    auto& queue = background ? background_ : demand_;
++    item = std::move(queue.front());
++    queue.pop_front();
++    if (background) {
++      ++background_inflight_;
++      // Move the popped entry's bytes from queued to inflight so the live
++      // outstanding sum stays exact: debit queued, the worker immediately
++      // re-credits the same amount through TrackInflightBytes.
++      if (!background_bytes_.empty()) {
++        const uint64_t bytes = background_bytes_.front();
++        background_bytes_.pop_front();
++        background_queued_bytes_ -=
++            background_queued_bytes_ < bytes ? background_queued_bytes_ : bytes;
++        background_pop_bytes_.push_back(bytes);
++      }
++    }
++    return true;
++  }
++
++  void CompleteBackground() {
++    std::lock_guard<std::mutex> lock(mutex_);
++    --background_inflight_;
++    // Release the popped entry's bytes from the inflight ledger; the fetch
++    // worker additionally calls TrackInflightBytes at issue and
++    // CompleteBackgroundBytes after the CUDA copy, both of which must pair
++    // with the ledger handoff below to keep the snapshot exact.
++    if (!background_pop_bytes_.empty()) {
++      const uint64_t bytes = background_pop_bytes_.front();
++      background_pop_bytes_.pop_front();
++      if (inflight_bytes_ >= bytes) inflight_bytes_ -= bytes;
++      else inflight_bytes_ = 0;
++    }
++    ready_.notify_all();
++  }
++  void DrainBackground() {
++    std::unique_lock<std::mutex> lock(mutex_);
++    // Discarding queued work also discards its queued bytes; popped entries
++    // release through the pop-ledger side in CompleteBackground.
++    for (const uint64_t bytes : background_bytes_)
++      background_queued_bytes_ -=
++          background_queued_bytes_ < bytes ? background_queued_bytes_ : bytes;
++    background_bytes_.clear();
++    background_.clear();
++    ready_.wait(lock, [&] { return background_inflight_ == 0; });
++  }
++  void Close() {
++    std::lock_guard<std::mutex> lock(mutex_);
++    closed_ = true;
++    for (const uint64_t bytes : background_bytes_)
++      background_queued_bytes_ -=
++          background_queued_bytes_ < bytes ? background_queued_bytes_ : bytes;
++    background_bytes_.clear();
++    background_pop_bytes_.clear();
++    background_.clear();
++    ready_.notify_all();
++  }
++  void NotifyAll() { ready_.notify_all(); }
++private:
++  mutable std::mutex mutex_;
++  std::condition_variable ready_;
++  std::deque<T> demand_, background_;
++  // Parallel byte ledger: queued totals per not-yet-popped background entry,
++  // then bytes of entries popped but not yet completed. Keeps the outstanding
++  // snapshot exact without requiring T to know its payload size.
++  std::deque<uint64_t> background_bytes_;
++  std::deque<uint64_t> background_pop_bytes_;
++  bool closed_ = false;
++  unsigned background_inflight_ = 0;
++  uint64_t background_queued_bytes_ = 0;
++  uint64_t inflight_bytes_ = 0;
++};

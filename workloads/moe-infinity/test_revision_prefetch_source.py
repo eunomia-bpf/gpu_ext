@@ -58,9 +58,9 @@ class PrefetchSourceWiring(unittest.TestCase):
         submit = body("void ExpertDispatcher::SubmitActivationPrefetch(",
                       "void ExpertDispatcher::RecordActivationUse(")
         enabled = submit.split("std::vector<std::vector<CallArgs>> work", 1)[1]
-        self.assertLess(enabled.index("activation_prediction_.Replace(identities)"),
+        self.assertLess(enabled.index("activation_prediction_.Replace(admitted_identities)"),
                         enabled.index("ReplaceBackground"))
-        self.assertIn("item.prediction_epoch = epoch", enabled)
+        self.assertIn("item.prediction_epoch = epoch", enabled)  # per-GPU loop below
 
     def test_native_off_drain_stays_policy_neutral(self):
         drain = body("void ExpertDispatcher::DrainActivationPrefetch()",

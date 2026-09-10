@@ -4,7 +4,7 @@
 
 int main() {
   RevisionFetchQueue<int> queue;
-  queue.ReplaceBackground({10, 11});
+  queue.ReplaceBackground({10, 11}, {21, 0}, 21);
   int demand = 1, value = -1;
   queue.Push(demand);
   assert(queue.Pop(value) && value == 1);
@@ -12,7 +12,7 @@ int main() {
   queue.CompleteBackground();
   demand = 2;
   queue.Push(demand);
-  queue.ReplaceBackground({20});
+  queue.ReplaceBackground({20}, {20}, 20);
   assert(queue.Pop(value) && value == 2);
   assert(queue.Pop(value) && value == 20);
   auto drain = std::async(std::launch::async, [&] { queue.DrainBackground(); });
@@ -22,6 +22,6 @@ int main() {
   auto waiter = std::async(std::launch::async, [&] { return queue.Pop(value); });
   queue.Close();
   assert(!waiter.get());
-  queue.ReplaceBackground({30});
+  queue.ReplaceBackground({30}, {30}, 30);
   assert(!queue.Pop(value));
 }

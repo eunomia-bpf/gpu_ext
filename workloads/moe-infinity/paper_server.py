@@ -46,6 +46,47 @@ class PaperEngine(ContinuousBatchingEngine):
             os.environ.get("MOE_EXPERT_SCORED_CODE", ""), verify,
             prefetch_enabled)
         executor.revision_activation = self.revision_activation
+        self._configure_speculative_governor()
+
+    def _configure_speculative_governor(self):
+        """Adaptive byte-admission axis: disabled unless explicitly armed."""
+        dispatcher = self.engine.expert_dispatcher
+        spec = os.environ.get("MOE_REVISION_SPEC_ADMISSION", "off")
+        initial_budget_text = os.environ.get("MOE_REVISION_SPEC_BUDGET_BYTES", "")
+        budget = int(initial_budget_text) if initial_budget_text else 0
+        if spec == "off":
+            return  # zero-governor modes unchanged
+        if spec not in {"unbounded", "fixed", "adaptive-native", "adaptive-bpf"}:
+            raise ValueError("unknown MOE_REVISION_SPEC_ADMISSION mode")
+        if spec == "unbounded":
+            dispatcher.configure_speculative_governor(
+                1, "", "", False, budget or (1 << 30))
+        elif spec == "fixed":
+            if budget <= 0:
+                raise ValueError("fixed admission needs a positive budget")
+            dispatcher.configure_speculative_governor(
+                2, "", "", False, budget)
+        elif spec == "adaptive-native":
+            if budget <= 0:
+                raise ValueError("adaptive admission needs a positive budget")
+            dispatcher.configure_speculative_governor(
+                3, "native-rule", "", False, budget)
+        else:  # adaptive-bpf
+            if budget <= 0:
+                raise ValueError("adaptive admission needs a positive budget")
+            library = os.environ["MOE_SPEC_ADMISSION_LIBRARY"]
+            code = os.environ["MOE_SPEC_ADMISSION_CODE"]
+            dispatcher.configure_speculative_governor(
+                3, library, code, True, budget)
+        self._spec_governor_mode = spec
+
+    def _speculative_outcome_snapshot(self, before, after):
+        """Exact completed-request speculative outcome for the governor."""
+        keys = ("prefetch_hit_bytes", "prefetch_wasted_bytes",
+                "prefetch_unused_resident_bytes", "demand_prefetch_wait_ns",
+                "demand_cache_wait_ns")
+        return {key: after["dispatcher"][key] - before["dispatcher"][key]
+                for key in keys}
 
     def _execute_batch(self, batch):
         activation = self.revision_activation
@@ -62,6 +103,9 @@ class PaperEngine(ContinuousBatchingEngine):
         activation.end_iteration()
         return result
 
+    def _activation_snapshot(self):
+        return {"dispatcher": self.engine.expert_dispatcher.get_activation_stats()}
+
     def step(self):
         with self._revision_abort_lock:
             aborts = self._revision_aborts
@@ -70,13 +114,20 @@ class PaperEngine(ContinuousBatchingEngine):
             super().abort_request(request_id)
         if self.revision_activation:
             self.revision_activation.drain_aborted()
+        if getattr(self, "_spec_governor_mode", None) and self.revision_activation is not None:
+            self._spec_before = self._activation_snapshot()
         outputs = super().step()
         if self.revision_activation:
             for output in outputs:
                 if output.finished:
                     self.revision_activation.finish_request(output.seq_id)
-            if any(output.finished for output in outputs):
-                self.engine.expert_dispatcher.drain_activation_prefetch()
+        if any(output.finished for output in outputs):
+            self.engine.expert_dispatcher.drain_activation_prefetch()
+            if getattr(self, "_spec_governor_mode", None) and self._spec_before is not None:
+                after = self._activation_snapshot()
+                self.engine.expert_dispatcher.record_request_speculative_outcome(
+                    self._speculative_outcome_snapshot(self._spec_before, after))
+                self._spec_before = after
         return outputs
 
     def abort_request(self, request_id):
@@ -104,8 +155,8 @@ async def activation_stats():
             "prefetch_enabled": os.environ.get("MOE_REVISION_PREFETCH", "1") == "1",
             "features": "shared-float64-EAMC-cosine-and-probability",
             "controller": activation.snapshot_stats() if activation else {},
-            "dispatcher": runtime.engine.expert_dispatcher.get_activation_stats()}
-
+            "dispatcher": runtime.engine.expert_dispatcher.get_activation_stats(),
+            "governor": runtime.engine.expert_dispatcher.get_governor_stats()}
 
 @server.app.post("/revision/activation/drain")
 async def drain_activation():

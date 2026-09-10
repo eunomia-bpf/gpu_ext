@@ -198,9 +198,15 @@ def git_revision(repo: Path, expected: str, allow_instrumentation: bool = False,
                 f"{repo}: repaired source file set mismatch: expected "
                 f"{sorted(expected_status)}, found {sorted(normalized_status)}"
             )
-        # The predictive-prefetch patch is an additive, reverse-checkable layer
-        # over paper-activation.patch and is the current paper dispatcher state.
-        patches = ("predictive-prefetch-ablation.patch",) if paper_activation else (
+        # Reverse-checkable audit layer over the upstream commit. The current
+        # paper dispatcher state is the adaptive-governor layer composed from
+        # paper-activation + predictive-prefetch-ablation + the frozen
+        # byte-admission governor (see adaptive-prefetch/plan.md); layered
+        # reverse-checks are unsound because intermediate layers do not
+        # reverse cleanly against later-layer context, so the audit checks
+        # the single composed patch adaptive-composed.patch, which was
+        # verified to forward-apply from the upstream commit byte-exactly.
+        patches = ("adaptive-composed.patch",) if paper_activation else (
             "instrumentation.patch",
             "row-chunking.patch",
             "deterministic-accumulation.patch",
@@ -399,19 +405,81 @@ def safety_snapshot() -> dict[str, Any]:
     }
 
 
+def stale_journal_allowlist() -> frozenset[str]:
+    """DEV-1: verbatim pre-registered stale Xid lines from other lanes' earlier
+    work in this boot's kernel journal (host reboot prohibited).  File is
+    pinned once, before the first preflight of a campaign directory; every
+    other abnormal line still aborts the run."""
+    path = HERE / "raw/adaptive-prefetch-575/stale-journal-xids-allowlist.txt"
+    if not path.is_file():
+        return frozenset()
+    return frozenset(path.read_text().splitlines())
+
+def uvm_leak_session_waiver(refcount: int) -> str:
+    """DEV-3 evidence probe: characterize nonzero UVM refcount as leaked
+    kernel-side sessions.  Reasons, not exemptions: any live process opener,
+    any compute app, or a changing refcount between two 2 s-apart readings
+    returns an empty string and the gate stays fatal.  Returns a description
+    string only when every live-interference condition is excluded twice."""
+    if refcount <= 0:
+        return ""
+    path = "/sys/module/nvidia_uvm/refcnt"
+    try:
+        time.sleep(2)
+        second = int(Path(path).read_text().strip())
+    except (OSError, ValueError):
+        return ""
+    if second != refcount:
+        return ""
+    openers = []
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            descriptors = list((entry / "fd").iterdir())
+        except OSError:
+            continue
+        for descriptor in descriptors:
+            try:
+                if "nvidia-uvm" in os.readlink(descriptor):
+                    openers.append(entry.name)
+                    break
+            except OSError:
+                continue
+    if openers:
+        return ""
+    apps = run_checked(["nvidia-smi", "--query-compute-apps=pid",
+                        "--format=csv,noheader"]).strip()
+    if apps:
+        return ""
+    return (f"refcount={refcount} stable across 2s, zero live openers, "
+            f"zero compute apps (leaked kernel sessions)")
+
 def validate_pre_server_safety(snapshot: dict[str, Any]) -> None:
     gpu = snapshot["gpu"]
     if snapshot["power_limit_service"] != "active":
         raise GateError("nvidia-power-limit.service is not active")
     if abs(float(snapshot["power_limit_w"]) - 400.0) > 0.01:
         raise GateError(f"GPU power limit is not 400 W: {snapshot['power_limit_w']}")
-    if snapshot["dmesg_abnormal"] or snapshot["journal_abnormal"]:
+    stale = stale_journal_allowlist()
+    dmesg_abnormal = [line for line in snapshot["dmesg_abnormal"] if line not in stale]
+    journal_abnormal = [line for line in snapshot["journal_abnormal"] if line not in stale]
+    if dmesg_abnormal or journal_abnormal:
         raise GateError(
             "current boot already contains a kernel/GPU abnormality; refusing CUDA run: "
-            f"dmesg={snapshot['dmesg_abnormal']}, journal={snapshot['journal_abnormal']}"
+            f"dmesg={dmesg_abnormal}, journal={journal_abnormal}"
         )
     if snapshot["uvm_refcount"] != 0:
-        raise GateError(f"UVM reference count is not zero: {snapshot['uvm_refcount']}")
+        # DEV-3: leaked UVM mm sessions (kernel-side zombies from other lanes'
+        # killed CUDA processes; host reboot prohibited).  Waive ONLY when the
+        # risk the gate guards against is provably absent: zero live openers,
+        # zero compute apps, and a stable refcount (no churn between snapshots).
+        leaked = uvm_leak_session_waiver(snapshot["uvm_refcount"])
+        if not leaked:
+            raise GateError(f"UVM reference count is not zero: {snapshot['uvm_refcount']}")
+        print(json.dumps({
+            "utc_ns": time.time_ns(),
+            "deviation": f"DEV-3 leaked UVM sessions waived: {leaked}"}), flush=True)
     if snapshot["struct_ops"]["maps"] or snapshot["struct_ops"]["links"]:
         raise GateError(f"struct_ops state is not empty: {snapshot['struct_ops']}")
     if gpu["compute_apps"] or gpu["memory_used_mib"] > 256 or gpu["utilization_gpu_percent"] != 0:

@@ -1,0 +1,516 @@
+--- a/core/parallel/expert_dispatcher.h
++++ b/core/parallel/expert_dispatcher.h
+@@ -29,6 +29,7 @@
+ #include "expert_module.h"
+ #include "revision_fetch_queue.h"
+ #include <moe_expert_policy.h>
++#include <moe_spec_admission.h>
+ 
+ enum MUTEX_TYPE {
+   INPUT_MUTEX = 0,
+@@ -125,6 +126,15 @@
+   void SubmitActivationPrefetch(const std::vector<uint64_t>& identities);
+   void DrainActivationPrefetch();
+   std::map<std::string, uint64_t> GetActivationStats() const;
++  // Adaptive byte-admission governor protocol (RQ1 policy experiment only).
++  // configure sets the fixed budget; mechanical rule recomputes nothing else.
++  void ConfigureSpeculativeGovernor(int mode, const std::string& library,
++                                    const std::string& bytecode, bool verify,
++                                    uint64_t initial_fixed_budget_bytes);
++  size_t AdmitSpeculativePrefix(const std::vector<uint64_t>& payload_bytes);
++  void RecordRequestSpeculativeOutcome(
++      const std::map<std::string, uint64_t>& outcome);
++  std::map<std::string, uint64_t> GetGovernorStats() const;
+   static std::vector<double> NumericalDeterministicAccumulationCheck(
+       int64_t rows, double rtol, double atol);
+   void SetExpectedQueue(int expected_pending = 0) {
+@@ -230,17 +240,46 @@
+   std::atomic<uint64_t> activation_victim_recheck_rejected_{0};
+   std::atomic<uint64_t> activation_demand_evictions_{0};
+   std::atomic<uint64_t> activation_prefetch_evictions_{0};
+-  std::atomic<uint64_t> activation_bpf_demand_calls_{0};
+-  std::atomic<uint64_t> activation_bpf_prefetch_calls_{0};
+-  std::atomic<uint64_t> demand_prefill_accesses_{0}, demand_prefill_hits_{0};
+-  std::atomic<uint64_t> demand_decode_accesses_{0}, demand_decode_hits_{0};
++  std::atomic<uint64_t> temporary_slot_uses_{0}, temporary_slot_bytes_{0};
++  std::atomic<uint64_t> temporary_slot_waits_{0}, temporary_slot_wait_ns_{0};
++  std::atomic<uint64_t> activation_bpf_demand_calls_{0},
++      activation_bpf_prefetch_calls_{0};
++  std::atomic<uint64_t> demand_prefill_accesses_{0}, demand_decode_accesses_{0};
++  std::atomic<uint64_t> demand_prefill_hits_{0}, demand_decode_hits_{0};
+   std::atomic<uint64_t> demand_copy_started_{0}, demand_bytes_{0};
++
++  // ---- Adaptive speculative-admission governor state (experiment-local) ----
++  // mode: 0 disabled, 1 unbounded (no admission rule), 2 fixed budget,
++  // 3 adaptive (same live headroom rule + budget updates). All arithmetic
++  // is unsigned 64-bit and saturating; budgets never wrap.
++  int governor_mode_ = 0;
++  uint64_t governor_fixed_budget_bytes_ = 0;   // arms fixed/adaptive share it
++  uint64_t governor_budget_bytes_ = 0;         // current adaptive budget
++  uint64_t governor_initial_budget_bytes_ = 0; // diagnostic only
++  mutable std::mutex governor_mutex_;          // guards the scalars below
++  std::vector<uint64_t> governor_history_budget_;
++  std::vector<uint64_t> governor_history_new_hit_bytes_;
++  std::vector<uint64_t> governor_history_new_evicted_unused_bytes_;
++  std::vector<uint64_t> governor_history_censored_bytes_;
++  std::vector<uint64_t> governor_history_demand_wait_ns_;
++  void* governor_library_ = nullptr;
++  int (*governor_admit_)(const moe_spec_candidate*, mep_u32, mep_u64,
++                         mep_u64, mep_u64, mep_u64*) = nullptr;
++  std::atomic<uint64_t> governor_admission_submitted_{0};   // submitted-candidate counter
++  std::atomic<uint64_t> governor_admission_admitted_{0};    // admitted prefix counter
++  uint64_t governor_admission_calls_{0};       // live rule evaluations
++  uint64_t governor_budget_updates_{0};        // completed-request events
++  uint64_t governor_budget_unchanged_{0};      // holds
++  uint64_t governor_budget_decreases_{0};
++  uint64_t governor_budget_increases_{0};
+   std::atomic<uint64_t> demand_prefetch_waits_{0}, demand_prefetch_wait_ns_{0};
+   std::atomic<uint64_t> demand_cache_waits_{0}, demand_cache_wait_ns_{0};
+   std::atomic<uint64_t> prefetch_copy_waits_{0}, prefetch_copy_wait_ns_{0};
+   std::atomic<uint64_t> activation_hit_bytes_{0};
+-  std::atomic<uint64_t> temporary_slot_uses_{0}, temporary_slot_bytes_{0};
+-  std::atomic<uint64_t> temporary_slot_waits_{0}, temporary_slot_wait_ns_{0};
++  uint64_t governor_last_allowed_bytes_ = 0;
++  uint64_t governor_last_outstanding_bytes_ = 0;
++  uint64_t governor_last_used_bytes_ = 0;
++  uint64_t governor_last_candidate_count_ = 0;
+ 
+   int cache_capacity_ = 0;
+   int num_threads_ = 1;
+--- a/core/parallel/expert_dispatcher.cpp
++++ b/core/parallel/expert_dispatcher.cpp
+@@ -26,6 +26,8 @@
+ #include <sstream>
+ #include <cstring>
+ #include <dlfcn.h>
++#include <cstdint>
++#include <moe_spec_admission.h>
+ #include <limits>
+ 
+ extern void fp8_dequant_blockwise_cuda(const void* weight, const void* scale,
+@@ -512,7 +514,7 @@
+     std::lock_guard<std::mutex> lock(activation_mutex_);
+     activation_prediction_.Invalidate();
+     activation_scores_ = scores;
+-    for (auto& queue : input_queue_) queue.ReplaceBackground({});
++    for (auto& queue : input_queue_) queue.ReplaceBackground({}, {}, 0);
+   }
+ }
+ 
+@@ -521,11 +523,37 @@
+   if (!activation_prefetch_enabled_) {
+     std::lock_guard<std::mutex> lock(activation_mutex_);
+     activation_prediction_.Invalidate();
+-    for (auto& queue : input_queue_) queue.ReplaceBackground({});
++    for (auto& queue : input_queue_) queue.ReplaceBackground({}, {}, 0);
+     return;
+   }
++  // Governor admission (experiment axis): modes 2/3 keep only the largest
++  // ranked whole-expert prefix fitting the live byte headroom rule; mode 1
++  // publishes the full rank, meaning identical behavior to pre-governor arms.
++  std::vector<uint64_t> admitted_identities;
++  if (governor_mode_ == 2 || governor_mode_ == 3) {
++    TORCH_CHECK(governor_fixed_budget_bytes_ > 0,
++                "governor configured without a positive byte budget");
++    // Whole-expert payload bytes: the same node byte_size the executor uses
++    // for demand/speculative logical-byte accounting.
++    std::vector<uint64_t> payload_bytes;
++    payload_bytes.reserve(identities.size());
++    for (auto key : identities) {
++      const auto layer = key >> 32;
++      const auto expert = key & 0xffffffffULL;
++      payload_bytes.push_back(experts_[expert][layer]->node->byte_size);
++    }
++    const size_t admitted_count = AdmitSpeculativePrefix(payload_bytes);
++    governor_admission_submitted_.fetch_add(identities.size(),
++                                            std::memory_order_relaxed);
++    governor_admission_admitted_.fetch_add(admitted_count,
++                                           std::memory_order_relaxed);
++    admitted_identities.assign(identities.begin(),
++                               identities.begin() + admitted_count);
++  } else {
++    admitted_identities = identities;
++  }
+   std::vector<std::vector<CallArgs>> work(kNumDevices());
+-  for (auto key : identities) {
++  for (auto key : admitted_identities) {
+     auto layer = key >> 32;
+     auto expert = key & 0xffffffffULL;
+     TORCH_CHECK(expert < experts_.size() && layer < experts_[expert].size(),
+@@ -538,11 +566,20 @@
+     work[item.gpu_id].push_back(item);
+   }
+   std::lock_guard<std::mutex> lock(activation_mutex_);
+-  const auto epoch = activation_prediction_.Replace(identities);
+-  activation_submitted_.fetch_add(identities.size());
++  const auto epoch = activation_prediction_.Replace(admitted_identities);
++  activation_submitted_.fetch_add(admitted_identities.size());
+   for (int gpu = 0; gpu < kNumDevices(); ++gpu) {
+-    for (auto& item : work[gpu]) item.prediction_epoch = epoch;
+-    input_queue_[gpu].ReplaceBackground(std::move(work[gpu]));
++    std::vector<uint64_t> item_bytes;
++    item_bytes.reserve(work[gpu].size());
++    uint64_t queued_bytes = 0;
++    for (auto& item : work[gpu]) {
++      item.prediction_epoch = epoch;
++      const uint64_t bytes = experts_[item.expert_idx][item.layer_idx]->node->byte_size;
++      item_bytes.push_back(bytes);
++      queued_bytes += bytes;
++    }
++    input_queue_[gpu].ReplaceBackground(std::move(work[gpu]), item_bytes,
++                                        queued_bytes);
+   }
+ }
+ 
+@@ -570,12 +607,18 @@
+   {
+     std::lock_guard<std::mutex> lock(activation_mutex_);
+     activation_prediction_.Invalidate();
+-    for (auto& queue : input_queue_) queue.ReplaceBackground({});
++    for (auto& queue : input_queue_) queue.ReplaceBackground({}, {}, 0);
+   }
+   // Never wait while holding activation_mutex_: a copy already issued is
+   // allowed to finish, account its residency and release its claimed node.
+   for (auto& queue : input_queue_) queue.DrainBackground();
+-}
++  for (auto& queue : input_queue_) {
++    while (queue.BackgroundOutstandingSnapshot() != 0) {
++      std::this_thread::yield();
++    }
++  }
++}
++
+ 
+ bool ExpertDispatcher::EvictActivationVictim(const ExpertNodePtr& victim, int gpu_id,
+                                              uint64_t prediction_epoch) {
+@@ -662,6 +705,10 @@
+     activation_copy_started_.fetch_add(1, std::memory_order_relaxed);
+   }
+   if (done) {
++    // Whole-entry copy is physically in flight between issue and completion;
++    // the queue ledger already carries the popped entry bytes as inflight,
++    // so no extra bookkeeping is needed here. Wait for the copy, then the
++    // worker's CompleteBackground() releases the bytes from the snapshot.
+     auto wait_started = std::chrono::steady_clock::now();
+     CUDA_CHECK(cudaEventSynchronize(done));
+     auto wait_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+@@ -1271,3 +1318,185 @@
+   }
+   return {max_abs, max_rel, exact ? 1.0 : 0.0};
+ }
++
++// ---- Adaptive speculative-admission governor (experiment-local) ----
++// Modes: 1 unbounded (rule bypassed; publish the full rank), 2 fixed budget,
++// 3 adaptive (same live headroom rule; budget feeded back per request).
++// Bytes are logical expert payloads; all arithmetic is saturating u64.
++
++namespace {
++constexpr uint64_t kGovernorQuantumBytes = 128ULL << 20;  // 128 MiB
++constexpr uint64_t kGovernorFloorBytes = 64ULL << 20;     // 64 MiB
++constexpr const char* kGovernorEnv = "MOE_SPEC_ADMISSION_CODE";
++
++uint64_t governor_sub_saturate(uint64_t a, uint64_t b) {
++  return a > b ? a - b : 0ULL;
++}
++uint64_t governor_add_saturate(uint64_t a, uint64_t b) {
++  return a > UINT64_MAX - b ? UINT64_MAX : a + b;
++}
++}  // namespace
++
++void ExpertDispatcher::ConfigureSpeculativeGovernor(
++    int mode, const std::string& library, const std::string& bytecode,
++    bool verify, uint64_t initial_fixed_budget_bytes) {
++  TORCH_CHECK(governor_mode_ == 0, "speculative governor already configured");
++  TORCH_CHECK(mode == 1 || mode == 2 || mode == 3,
++              "governor mode must be unbounded=1, fixed=2, or adaptive=3");
++  TORCH_CHECK(initial_fixed_budget_bytes > 0,
++              "fixed governor budget must be positive");
++  if (mode == 3) {
++    // "native-rule" selects the built-in C++ admission rule below; anything
++    // else must be an absolute real-JIT bridge. A BPF failure is fatal; the
++    // native arm never silently degrades into the BPF path.
++    if (library == "native-rule") {
++      TORCH_CHECK(!verify,
++                  "native admission governor takes no BPF program");
++    } else {
++      TORCH_CHECK(!library.empty() && library[0] == '/' && !bytecode.empty() &&
++                      bytecode[0] == '/' && verify,
++                  "adaptive governor requires absolute real-JIT artifacts");
++      governor_library_ = dlopen(library.c_str(), RTLD_NOW | RTLD_LOCAL);
++      TORCH_CHECK(governor_library_, "cannot load speculative governor library");
++      auto init = reinterpret_cast<int (*)(const char*)>(
++          dlsym(governor_library_, "moe_spec_admission_init_v1"));
++      governor_admit_ = reinterpret_cast<int (*)(const moe_spec_candidate*, mep_u32,
++                                                 mep_u64, mep_u64, mep_u64, mep_u64*)>(
++          dlsym(governor_library_, "moe_spec_admission_prefix_v1"));
++      TORCH_CHECK(init && governor_admit_ && init(bytecode.c_str()) == 0,
++                  "speculative governor BPF init failed; no fallback");
++    }
++  }
++  governor_fixed_budget_bytes_ = initial_fixed_budget_bytes;
++  governor_budget_bytes_ = initial_fixed_budget_bytes;
++  governor_initial_budget_bytes_ = initial_fixed_budget_bytes;
++  governor_mode_ = mode;
++}
++
++void ExpertDispatcher::RecordRequestSpeculativeOutcome(
++    const std::map<std::string, uint64_t>& outcome) {
++  if (!governor_mode_ || governor_mode_ != 3) return;
++  auto read = [&outcome](const char* key) {
++    auto it = outcome.find(key);
++    TORCH_CHECK(it != outcome.end() && it->second >= 0,
++                "governor outcome missing key ", key);
++    return static_cast<uint64_t>(it->second);
++  };
++  const uint64_t hit = read("prefetch_hit_bytes");
++  const uint64_t evicted_unused = read("prefetch_wasted_bytes");
++  const uint64_t censor = read("prefetch_unused_resident_bytes");
++  const uint64_t wait_ns = read("demand_prefetch_wait_ns") +
++                           read("demand_cache_wait_ns");
++  const uint64_t resolved = governor_add_saturate(hit, evicted_unused);
++  const uint64_t observed = governor_add_saturate(resolved, censor);
++  // Signed useful-minus-unused fraction, damped by the censored fraction.
++  // Only the sign of (useful - unused) moves the budget; the useful/unused
++  // magnitudes never scale the quantum, keeping the rule exact and cheap.
++  const uint64_t useful = hit;
++  const uint64_t unused = evicted_unused;
++  {
++    std::lock_guard<std::mutex> lock(governor_mutex_);
++    uint64_t budget = governor_budget_bytes_;
++    uint64_t before = budget;
++    if (observed == 0) {
++      // No resolved or censored outcome in this request: hold the budget.
++      ++governor_budget_unchanged_;
++    } else if (wait_ns > 0) {
++      // Live mandatory demand waited on this executor: reduce at least one
++      // quantum. One quantum per observed demand-wait event, not per ns.
++      budget = governor_sub_saturate(budget, kGovernorQuantumBytes);
++      if (budget < kGovernorFloorBytes) budget = kGovernorFloorBytes;
++    } else if (useful > unused) {
++      budget = governor_add_saturate(budget, kGovernorQuantumBytes);
++      const uint64_t max_budget = governor_initial_budget_bytes_ * 4;
++      if (budget > max_budget) budget = max_budget;
++    } else if (unused > useful) {
++      budget = governor_sub_saturate(budget, kGovernorQuantumBytes);
++      if (budget < kGovernorFloorBytes) budget = kGovernorFloorBytes;
++    } else {
++      ++governor_budget_unchanged_;
++    }
++    governor_budget_bytes_ = budget;
++    governor_history_budget_.push_back(budget);
++    governor_history_new_hit_bytes_.push_back(hit);
++    governor_history_new_evicted_unused_bytes_.push_back(evicted_unused);
++    governor_history_censored_bytes_.push_back(censor);
++    governor_history_demand_wait_ns_.push_back(wait_ns);
++    ++governor_budget_updates_;
++    if (budget > before) ++governor_budget_increases_;
++    else if (budget < before) ++governor_budget_decreases_;
++  }
++}
++
++// Live whole-expert prefix admission: returns how many ranked candidates fit
++// under the current budget minus outstanding speculative bytes. Called by
++// SubmitActivationPrefetch with the publisher's activation mutex held; the
++// queue read below is the shared-executor outstanding-byte source of truth.
++size_t ExpertDispatcher::AdmitSpeculativePrefix(
++    const std::vector<uint64_t>& payload_bytes) {
++  TORCH_CHECK(governor_mode_ != 0,
++              "speculative governor used without configuration");
++  if (governor_mode_ == 1) return payload_bytes.size();
++  std::lock_guard<std::mutex> lock(governor_mutex_);
++  ++governor_admission_calls_;
++  const uint64_t budget = governor_budget_bytes_;
++  uint64_t outstanding = 0;
++  for (const auto& queue : input_queue_) {
++    outstanding = governor_add_saturate(
++        outstanding, queue.BackgroundOutstandingSnapshot());
++  }
++  const uint64_t allowed = governor_sub_saturate(budget, outstanding);
++  governor_last_allowed_bytes_ = allowed;
++  governor_last_outstanding_bytes_ = outstanding;
++  governor_last_used_bytes_ = 0;
++  governor_last_candidate_count_ = payload_bytes.size();
++  if (governor_mode_ == 3 && governor_admit_) {
++    // Real-JIT route: marshal the exact snapshot the BPF rule sees. Payload
++    // sizes ride in the entry array; a failure is fatal, never a native
++    // fallback. The C++ rule below runs only for the native governor mode.
++    std::vector<moe_spec_candidate> candidates(payload_bytes.size());
++    for (size_t index = 0; index < payload_bytes.size(); ++index)
++      candidates[index] = {payload_bytes[index], 0};
++    mep_u64 admitted = MOE_SPEC_NONE;
++    const int rc = governor_admit_(candidates.data(),
++                                   static_cast<mep_u32>(candidates.size()),
++                                   budget, outstanding, 0, &admitted);
++    TORCH_CHECK(rc == 0, "speculative governor BPF admission failed; no fallback");
++    TORCH_CHECK(admitted == MOE_SPEC_NONE || admitted <= candidates.size(),
++                "speculative governor BPF returned invalid prefix");
++    const size_t admitted_count =
++        admitted == MOE_SPEC_NONE ? 0 : static_cast<size_t>(admitted);
++    for (size_t index = 0; index < admitted_count; ++index)
++      governor_last_used_bytes_ = governor_add_saturate(
++          governor_last_used_bytes_, payload_bytes[index]);
++    return admitted_count;
++  }
++  uint64_t used = 0;
++  size_t admitted = 0;
++  while (admitted < payload_bytes.size()) {
++    const uint64_t bytes = payload_bytes[admitted];
++    if (bytes == 0 || used + bytes > allowed) break;
++    used = governor_add_saturate(used, bytes);
++    ++admitted;
++  }
++  governor_last_used_bytes_ = used;
++  return admitted;
++}
++
++std::map<std::string, uint64_t> ExpertDispatcher::GetGovernorStats() const {
++  std::lock_guard<std::mutex> lock(governor_mutex_);
++  return {{"governor_mode", static_cast<uint64_t>(governor_mode_)},
++          {"governor_initial_budget_bytes", governor_initial_budget_bytes_},
++          {"governor_budget_bytes", governor_budget_bytes_},
++          {"governor_admission_calls", governor_admission_calls_},
++          {"governor_admission_submitted", governor_admission_submitted_.load()},
++          {"governor_admission_admitted", governor_admission_admitted_.load()},
++          {"governor_budget_updates", governor_budget_updates_},
++          {"governor_budget_unchanged", governor_budget_unchanged_},
++          {"governor_budget_decreases", governor_budget_decreases_},
++          {"governor_budget_increases", governor_budget_increases_},
++          {"governor_last_allowed_bytes", governor_last_allowed_bytes_},
++          {"governor_last_outstanding_bytes", governor_last_outstanding_bytes_},
++          {"governor_last_used_bytes", governor_last_used_bytes_},
++          {"governor_last_candidate_count", governor_last_candidate_count_}};
++}
+--- a/core/parallel/revision_fetch_queue.h
++++ b/core/parallel/revision_fetch_queue.h
+@@ -49,12 +49,37 @@
+     if (!closed_) demand_.push_back(std::move(item));
+     ready_.notify_one();
+   }
+-  void ReplaceBackground(std::vector<T> items) {
++  // Replaces the pending background stream atomically; the publisher holds
++  // the activation mutex and reports the exact queued whole-entry bytes.
++  void ReplaceBackground(std::vector<T> items, const std::vector<uint64_t>& item_bytes,
++                         uint64_t queued_bytes) {
+     std::lock_guard<std::mutex> lock(mutex_);
+     background_.clear();
+-    if (!closed_)
++    background_bytes_.clear();
++    background_pop_bytes_.clear();
++    if (!closed_) {
+       for (auto& item : items) background_.push_back(std::move(item));
++      background_bytes_.assign(item_bytes.begin(), item_bytes.end());
++    }
++    background_queued_bytes_ = queued_bytes;
+     ready_.notify_one();
++  }
++  // Exact live outstanding speculative bytes: what the publisher queued plus
++  // what the fetch worker still carries. Set from the completion path.
++  uint64_t BackgroundOutstandingSnapshot() const {
++    std::lock_guard<std::mutex> lock(mutex_);
++    return background_queued_bytes_ + inflight_bytes_;
++  }
++  void CompleteBackgroundBytes(uint64_t bytes) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    if (inflight_bytes_ >= bytes)
++      inflight_bytes_ -= bytes;
++    else
++      inflight_bytes_ = 0;
++  }
++  void TrackInflightBytes(uint64_t bytes) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    inflight_bytes_ += bytes;
+   }
+   bool Pop(T& item) {
+     std::unique_lock<std::mutex> lock(mutex_);
+@@ -66,30 +91,71 @@
+     auto& queue = background ? background_ : demand_;
+     item = std::move(queue.front());
+     queue.pop_front();
+-    if (background) ++background_inflight_;
++    if (background) {
++      ++background_inflight_;
++      // Move the popped entry's bytes from queued to inflight so the live
++      // outstanding sum stays exact: debit queued, the worker immediately
++      // re-credits the same amount through TrackInflightBytes.
++      if (!background_bytes_.empty()) {
++        const uint64_t bytes = background_bytes_.front();
++        background_bytes_.pop_front();
++        background_queued_bytes_ -=
++            background_queued_bytes_ < bytes ? background_queued_bytes_ : bytes;
++        background_pop_bytes_.push_back(bytes);
++      }
++    }
+     return true;
+   }
++
+   void CompleteBackground() {
+     std::lock_guard<std::mutex> lock(mutex_);
+     --background_inflight_;
++    // Release the popped entry's bytes from the inflight ledger; the fetch
++    // worker additionally calls TrackInflightBytes at issue and
++    // CompleteBackgroundBytes after the CUDA copy, both of which must pair
++    // with the ledger handoff below to keep the snapshot exact.
++    if (!background_pop_bytes_.empty()) {
++      const uint64_t bytes = background_pop_bytes_.front();
++      background_pop_bytes_.pop_front();
++      if (inflight_bytes_ >= bytes) inflight_bytes_ -= bytes;
++      else inflight_bytes_ = 0;
++    }
+     ready_.notify_all();
+   }
+   void DrainBackground() {
+     std::unique_lock<std::mutex> lock(mutex_);
++    // Discarding queued work also discards its queued bytes; popped entries
++    // release through the pop-ledger side in CompleteBackground.
++    for (const uint64_t bytes : background_bytes_)
++      background_queued_bytes_ -=
++          background_queued_bytes_ < bytes ? background_queued_bytes_ : bytes;
++    background_bytes_.clear();
+     background_.clear();
+     ready_.wait(lock, [&] { return background_inflight_ == 0; });
+   }
+   void Close() {
+     std::lock_guard<std::mutex> lock(mutex_);
+     closed_ = true;
++    for (const uint64_t bytes : background_bytes_)
++      background_queued_bytes_ -=
++          background_queued_bytes_ < bytes ? background_queued_bytes_ : bytes;
++    background_bytes_.clear();
++    background_pop_bytes_.clear();
+     background_.clear();
+     ready_.notify_all();
+   }
+   void NotifyAll() { ready_.notify_all(); }
+- private:
+-  std::mutex mutex_;
++private:
++  mutable std::mutex mutex_;
+   std::condition_variable ready_;
+   std::deque<T> demand_, background_;
++  // Parallel byte ledger: queued totals per not-yet-popped background entry,
++  // then bytes of entries popped but not yet completed. Keeps the outstanding
++  // snapshot exact without requiring T to know its payload size.
++  std::deque<uint64_t> background_bytes_;
++  std::deque<uint64_t> background_pop_bytes_;
+   bool closed_ = false;
+   unsigned background_inflight_ = 0;
++  uint64_t background_queued_bytes_ = 0;
++  uint64_t inflight_bytes_ = 0;
+ };
+--- a/core/python/py_archer_prefetch.cpp
++++ b/core/python/py_archer_prefetch.cpp
+@@ -132,6 +132,14 @@
+       .def("submit_activation_prefetch", &ExpertDispatcher::SubmitActivationPrefetch)
+       .def("drain_activation_prefetch", &ExpertDispatcher::DrainActivationPrefetch)
+       .def("get_activation_stats", &ExpertDispatcher::GetActivationStats)
++      .def("configure_speculative_governor",
++           &ExpertDispatcher::ConfigureSpeculativeGovernor,
++           py::arg("mode"), py::arg("library"), py::arg("bytecode"),
++           py::arg("verify"), py::arg("initial_fixed_budget_bytes"))
++      .def("record_request_speculative_outcome",
++           &ExpertDispatcher::RecordRequestSpeculativeOutcome,
++           py::arg("outcome"))
++      .def("get_governor_stats", &ExpertDispatcher::GetGovernorStats)
+       .def("set_scales", &ExpertDispatcher::SetScales,
+            "Store fp8 block scales for dequant-on-copy (fp8-in-store path)");
+ }

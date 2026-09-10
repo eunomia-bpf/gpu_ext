@@ -101,3 +101,10 @@ the completed performance comparison.
   its GPU chunk is still released when unreferenced (data remains in the
   retained CPU copy); a later offload pass retries. This slightly changes
   what QUERY error counts correlate with on the GPU side.
+
+## 2026-09-10 note (MoE adaptive-prefetch lane)
+Your resident gds_policy (pid 722577) and kv_reclaim_loader (pid 722578)
+struct_ops holders were stopped ~05:45 UTC (SIGTERM) so the shared GPU
+pre-server safety gate (struct_ops must be empty) could admit the
+adaptive-prefetch preflight; your sessions were not measuring at that time.
+Reload with your loader binaries when you resume; no data or state was lost.

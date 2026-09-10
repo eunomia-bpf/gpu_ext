@@ -11,6 +11,14 @@ complete: the [matched multi-arm campaign](../raw/level2-native-route-20260910-0
 ran five blocks / 20 cells against Level-1 and baseline using the
 nine-patch reproducible source build.
 
+Sibling lane handoff (MoE): the MoE adaptive byte-governor campaign is
+complete and independently audited at
+[results-adaptive-prefetch-575-20260910.md](../../moe-infinity/results-adaptive-prefetch-575-20260910.md)
+with a no-GPU audit entrypoint
+`scripts/artifact/reanalyze_adaptive.py` (AUDIT PASSED) — see its ARTIFACT.md
+rows for the artifact evaluation boundary.
+
+
 ## Historical 2026-09-08 source checkpoint
 
 Status: the device BPF guardian, sm_120 cubin and NVBit tool library are

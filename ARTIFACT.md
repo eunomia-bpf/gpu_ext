@@ -251,6 +251,7 @@ to fill optional diagnostics.
 - Record manuscript/evidence discrepancies here without editing the paper:
   the current seven-panel English caption says medians generally, while POD's
   selected source reports operator means. Detailed artifact statistics must
+  preserve the source estimator.
 - Original cuXtra Level-2 on sm_120 now completes a
   [native resume bring-up cell](workloads/xsched/raw/level2-native-retabs-20260909.oJDCbU/README.md):
   six worker exits zero, 400 LC / 800 BE service records, and a resume

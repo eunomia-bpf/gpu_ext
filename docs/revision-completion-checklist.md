@@ -21,6 +21,17 @@ and must not be rerun just because an older status entry describes them as pendi
   overhead or proof of universal OOM elimination. The earlier
   [per-range reclaim attempt](../workloads/lmcache-disk/raw/diskuvm-serving-reclaim-20260909.EFVUGf/RESULTS.md)
   and its two EngineCore OOM failures remain preserved.
+- **XSched Level-2 is now complete at its scoped comparison**, superseding the
+  "still under repair" / "remains unfinished" status in the entries below. Two
+  supplemental Level-2 sm_120 service-time campaigns are committed and
+  reanalyzed: the [matched native route](../workloads/xsched/raw/level2-native-route-20260910-082400/README.md)
+  (`2147f577`) records five blocks / 20 cells against Level-1 and baseline using
+  the nine-patch reproducible source build, and the
+  [shared-actuator policy port](../workloads/xsched/raw/level2-device-policy-pair-20260909.buBjns/README.md)
+  (`5395aa4e`) records five blocks / 15 cells. These are service-only
+  comparisons; they are not the paper's Level-1 launch-latency headline, and
+  completed Level-1 results remain separate and unchanged. Both are now recorded
+  in the [experiment ledger](revision-experiment-status.md).
 - XSched Level-1 remains complete; Level-2 is still under repair. The
   [current native snapshots](../workloads/xsched/raw/level2-native-resolver-snapshot-20260909.KKFqHz/README.md)
   show that the first original-layout lookup succeeds, while a matched

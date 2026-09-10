@@ -1,0 +1,233 @@
+# xsched-native-level2-source-sync: level2-era deltas
+# that existed only in the successful live HAL source and had no
+# published patch. As chain step 8 it closes the file-level gap against
+# that source (verified: live level2-build/.output/hal-native
+# -20260908.i8na51/source; cmp on the two files below; the async_xqueue
+# audit step follows separately as step 9).
+#
+# instruments carried (no upstream or earlier-chain content is touched):
+#   platforms/cuda/hal/src/level2/instrument.cpp
+#     - ToolPrepare renamed ToolPublish: the OLD code dlsym'ed
+#       xg_host_prepare and armed (ctx, func, dev) plus a trailing
+#       zero-call; the NEW ABI exports xg_host_publish and receives the
+#       single ctx_dev pointer in the tool's at-launch callback (the
+#       ABI the successful runs used). All three call sites switch to
+#       the single publish(dev) call (no trailing zero-call);
+#     - launch_mtx_ lock/unlock dropped around the direct-launch actuator
+#       and publish pairs (InstrumentContext::Launch holds launch_mtx_
+#       already for the relay path; the removed pairs were around
+#       ToolPrepare in the original-entry path);
+#     - xg2/xg3 bounded (512) debug counters and the XG2
+#       Deactivate/Reactivate/Launch logs dropped;
+#     - at-create preempt buffer header MemsetD8Async + StreamSynchronize
+#       dropped from InstrumentManager::Create;
+#     - includes: <atomic> no longer needed, <cstdlib> moved below
+#       <cstring>.
+#   platforms/cuda/hal/src/level2/cuda_queue.cpp
+#     - Reactivate(): the NVBit-era CtxPushCurrent_v2 context push/pop
+#       around the replay loop is removed; Reactivate runs on the
+#       caller's context again, matching the native gate-tool flow.
+#
+# Apply AFTER native/xsched-native-meta-extend.patch (see
+# native/README.md "Reproducible source preparation" and
+# native/prepare_native_source.sh). patch -p1, plain.
+--- a/platforms/cuda/hal/src/level2/instrument.cpp
++++ b/platforms/cuda/hal/src/level2/instrument.cpp
+@@ -1,7 +1,6 @@
+ #include <mutex>
+-#include <atomic>
+-#include <cstdlib>
+ #include <cstring>
++#include <cstdlib>
+ #include <unordered_map>
+ #include <dlfcn.h>
+ #include "xsched/cuda/hal/common/options.h"
+@@ -18,30 +17,23 @@
+ #define XG_TOOL_CTX_SLOTS 8192
+ #define XG_TOOL_CTX_POOL_BYTES (XG_TOOL_CTX_STRIDE * XG_TOOL_CTX_SLOTS)
+ 
+-/* Arm the context block of the launch running on this thread in the NVBit
+- * gate tool. The tool exports xg_host_prepare and arms
+- * nvbit_set_at_launch directly with the provided (context, function), so
+- * value delivery does not depend on NVBit pre-callbacks, which are not
+- * delivered on every thread that issues a launch. All actuator launches
+- * serialize on launch_mtx_, so the armed value always belongs to the launch
+- * that follows it on the same thread. The trailing zero call clears the
+- * tool's one-shot marker only: the armed value must remain in place until
+- * the next launch overwrites it, because CTAs may enter after the launch
+- * call returns. The tool must be preloaded ahead of libhalcuda when the
+- * tool actuator is enabled. */
+-static void ToolPrepare(CUcontext ctx, CUfunction func, CUdeviceptr ctx_dev)
++/* Publish/unpublish the context block of the launch running on this thread.
++ * The NVBit gate tool exports xg_host_publish and consumes the pointer in
++ * its at-launch callback (one-shot per launch on the same thread). The tool
++ * must be preloaded ahead of libhalcuda when the tool actuator is enabled. */
++static void ToolPublish(CUdeviceptr ctx_dev)
+ {
+-    typedef void (*PrepareFn)(CUcontext, CUfunction, uint64_t);
+-    static PrepareFn prepare = nullptr;
++    typedef void (*PublishFn)(uint64_t);
++    static PublishFn publish = nullptr;
+     static bool looked_up = false;
+     if (!looked_up) {
+-        prepare = (PrepareFn)dlsym(RTLD_DEFAULT, "xg_host_prepare");
++        publish = (PublishFn)dlsym(RTLD_DEFAULT, "xg_host_publish");
+         looked_up = true;
+     }
+-    XASSERT(prepare != nullptr,
+-            "Level-2 tool actuator enabled but xg_host_prepare was not found; "
++    XASSERT(publish != nullptr,
++            "Level-2 tool actuator enabled but xg_host_publish was not found; "
+             "preload the NVBit instrument tool first");
+-    prepare(ctx, func, (uint64_t)ctx_dev);
++    publish((uint64_t)ctx_dev);
+ }
+ 
+ using namespace xsched::cuda;
+@@ -147,13 +139,10 @@
+             memset(args, 0, XG_TOOL_CTX_BYTES);
+             *(uint64_t *)(args + 0) = (uint64_t)preempt_buf_->Ptr();
+             *(uint32_t *)(args + 24) = kKernelLaunchOriginal;
+-            launch_mtx_.lock();
+-            ToolPrepare(kCtx, kernel->kFuncHandle,
+-                        tool_ctx_pool_dev_ +
++            ToolPublish(tool_ctx_pool_dev_ +
+                         kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
+             CUresult ret = kernel->LaunchWrapper(stream);
+-            ToolPrepare(kCtx, kernel->kFuncHandle, 0);
+-            launch_mtx_.unlock();
++            ToolPublish(0);
+             return ret;
+         }
+ 
+@@ -184,33 +173,10 @@
+         *(uint64_t *)(args + 8) = (uint64_t)kernel->entry_point_guardian;
+         *(int64_t *)(args + 16) = (int64_t)kernel->GetIdx();
+         *(uint32_t *)(args + 24) = (uint32_t)type;
+-        {
+-            static std::atomic<uint64_t> xg2_pub_cnt{0};
+-            if (xg2_pub_cnt.fetch_add(1) < 512) {
+-                XINFO("XG2 toolpub slot=" FMT_64U " buf=%p cmd_idx=" FMT_64D
+-                      " type=%u ctx_dev=%p",
+-                      (uint64_t)kernel->tool_ctx, (void *)kernel->preempt_buffer,
+-                      (int64_t)kernel->GetIdx(), (unsigned int)type,
+-                      (void *)(tool_ctx_pool_dev_ +
+-                               kernel->tool_ctx * XG_TOOL_CTX_STRIDE));
+-            }
+-        }
+-        launch_mtx_.lock();
+-        ToolPrepare(kCtx, kernel->kFuncHandle,
+-                    tool_ctx_pool_dev_ +
++        ToolPublish(tool_ctx_pool_dev_ +
+                     kernel->tool_ctx * XG_TOOL_CTX_STRIDE);
+         CUresult ret = kernel->LaunchWrapper(stream);
+-        {
+-            static std::atomic<uint64_t> xg3_submit_cnt{0};
+-            if (xg3_submit_cnt.fetch_add(1) < 512) {
+-                XINFO("XG3 submit slot=" FMT_64U " cmd_idx=" FMT_64D
+-                      " type=%u ret=%d",
+-                      (uint64_t)kernel->tool_ctx, (int64_t)kernel->GetIdx(),
+-                      (unsigned int)type, (int)ret);
+-            }
+-        }
+-        ToolPrepare(kCtx, kernel->kFuncHandle, 0);
+-        launch_mtx_.unlock();
++        ToolPublish(0);
+         return ret;
+     }
+ 
+@@ -359,16 +325,6 @@
+     preempt_buf_ptr_ = preempt_buf_->Ptr();
+     instrument_ctx_ = InstrumentContext::Instance(ctx);
+     op_stream_ = instrument_ctx_->OpStream();
+-
+-    // ResizableBuffer does not zero its initial PM chunk (ExpandTo only
+-    // clears newly expanded regions). Clear it before first use, mirroring
+-    // the InstrumentContext constructor: the Level-2 protocol requires the
+-    // header (global exit flag, preempt_idx) to start clean, otherwise the
+-    // first aborted leader can read a stale nonzero preempt_idx, skip
+-    // recording, and its command is never relaunched by Reactivate.
+-    CUDA_ASSERT(Driver::MemsetD8Async(preempt_buf_ptr_, 0,
+-                                      preempt_buf_->Size(), op_stream_));
+-    CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
+ }
+ 
+ /* preempt buffer layout: (see also tools/instrument/inject.cu)
+@@ -377,14 +333,12 @@
+  */
+ void InstrumentManager::Deactivate()
+ {
+-    XINFO("XG2 Deactivate mgr=%p buf=%p", (void *)this, (void *)preempt_buf_ptr_);
+     // set global_exit_flag to 1
+     CUDA_ASSERT(Driver::MemsetD32Async(preempt_buf_ptr_, 1, 1, op_stream_));
+ }
+ 
+ uint64_t InstrumentManager::Reactivate()
+ {
+-    XINFO("XG2 Reactivate in mgr=%p", (void *)this);
+     // read preempt_idx from preempt buffer
+     CUDA_ASSERT(Driver::MemcpyDtoHAsync_v2(&preempt_idx_, preempt_buf_ptr_ + sizeof(uint64_t),
+                                            sizeof(uint64_t), op_stream_));
+@@ -392,9 +346,6 @@
+     CUDA_ASSERT(Driver::MemsetD8Async(preempt_buf_ptr_, 0, 2 * sizeof(uint64_t), op_stream_));
+     CUDA_ASSERT(Driver::StreamSynchronize(op_stream_));
+ 
+-    XINFO("XG2 Reactivate out idx=" FMT_64U " mgr=%p",
+-          preempt_idx_, (void *)this);
+-
+ #define MAX_DEBUG_BLOCK_SIZE    1024
+ #define PREEMPT_BUFFER_DEBUG    false
+ 
+@@ -420,15 +371,6 @@
+                     ? kKernelLaunchResume // the first preempted kernel
+                     : kKernelLaunchGuardian;
+     }
+-    {
+-        static std::atomic<uint64_t> xg2_log_cnt{0};
+-        if (xg2_log_cnt.fetch_add(1) < 512) {
+-            XINFO("XG2 Launch mgr=%p cmd_idx=" FMT_64D " type=%d level=%d"
+-                  " preempt_idx=" FMT_64U,
+-                  (void *)this, (int64_t)kernel->GetIdx(), (int)launch_type,
+-                  (int)level, preempt_idx_);
+-        }
+-    }
+     // A failed XQueue launch must fail fast: the launch never reaches the
+     // device, so any wait that relies on the started stamp (device-written
+     // at kernel entry) would spin forever with no launch error reported.
+--- a/platforms/cuda/hal/src/level2/cuda_queue.cpp
++++ b/platforms/cuda/hal/src/level2/cuda_queue.cpp
+@@ -29,29 +29,15 @@
+ void CudaQueueLv2::Reactivate(const preempt::CommandLog &log)
+ {
+     XASSERT(level_ >= kPreemptLevelDeactivate, "Reactivate() not supported on level-%d", level_);
+-
+-    // Reactivate() runs on the caller's thread (e.g. the scheduler), which
+-    // unlike worker launch threads may have no current CUDA context (workers
+-    // get one via OnXQueueCreate()). NVBit's interception of the replayed
+-    // launches keys off the current context: nvbit_is_func_kernel(ctx, f)
+-    // filters the pre-launch callback and the set_at_launch value is associated
+-    // per-context. Push the queue's context for the replay, then restore the
+-    // caller's context, so the resume launch is intercepted on the same context
+-    // the value was armed on.
+-    CUcontext popped_ctx = nullptr;
+-    CUDA_ASSERT(Driver::CtxPushCurrent_v2(context_));
+-
+     this->Synchronize();
+ 
+     uint64_t resume_cmd_idx = instrument_manager_->Reactivate();
+-    if (resume_cmd_idx != 0) {
+-        for (auto cmd : log) {
+-            if (cmd->GetIdx() < (int64_t)resume_cmd_idx) continue;
+-            this->Launch(cmd);
+-        }
+-    }
++    if (resume_cmd_idx == 0) return;
+ 
+-    CUDA_ASSERT(Driver::CtxPopCurrent_v2(&popped_ctx));
++    for (auto cmd : log) {
++        if (cmd->GetIdx() < (int64_t)resume_cmd_idx) continue;
++        this->Launch(cmd);
++    }
+ }
+ 
+ void CudaQueueLv2::OnPreemptLevelChange(XPreemptLevel level)

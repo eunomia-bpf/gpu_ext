@@ -104,13 +104,12 @@
 #   platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h (new)
 #   platforms/cuda/shim/src/intercept.cpp                     (4 hooks)
 #   platforms/cuda/shim/src/shim.cpp                          (grown-passthrough guard)
-#   platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h (relay state)
 #   platforms/cuda/hal/src/common/cuda_command.cpp            (original-layout
 #                                                             marshal, relay fill)
-#   platforms/cuda/hal/src/level2/instrument.cpp              (relay adoption at
-#                                                             launch, fail-fast
-#                                                             XQueue launch, probe-2
-#                                                             entry printed %llx)
+#   platforms/cuda/hal/src/level2/instrument.cpp              (probe-2 entry printed
+#                                                             %llx; relay adoption
+#                                                             and fail-fast launch
+#                                                             come from patches 5/6)
 #
 # Module images may also arrive wrapped in the CUDA runtime fatbin wrapper
 # (__fatBinC_Wrapper_t from fatbinary_section.h: magic 0x466243b1, version
@@ -174,9 +173,48 @@
 # one real native_blob cell completes with exit 0 (10:49:08 PDT
 # 2026-09-09) with no repeat of the previous CUDA 700; recorded summary
 # LC service p99 960855.232 us, BE 10.1635246925 kernels/s, one block
-# only. Bring-up scale, not a full paired performance result. The patch
-# set also now ships the two previously unlisted HAL files
-# (cuda_command.h and instrument.cpp) so it matches the isolated tree.
+# only. Bring-up scale, not a full paired performance result.
+#
+# BASE CHAIN (re-expressed as a strict delta; see native/README.md).
+# This patch applies ONLY on top of the deploy XSched source at
+# revision f49289f0220931df78de948ed841ecbaf960a919 with these six
+# preceding patches, in this order:
+#   1. level2/xsched-level2-sm120.patch                (sm_120 port)
+#   2. native/xsched-native-diag700-instrument.patch   (probes 1/2/3)
+#   3. native/xsched-native-resume-allocation-padding.patch
+#   4. native/xsched-native-original-entry-control.patch
+#   5. native/xsched-native-window-args-relay.patch
+#   6. native/xsched-native-launch-error-propagation.patch
+#   7. this patch (meta extend + marshal)
+# and ends with the final step
+#   8. native/xsched-native-level2-source-sync.patch   (level2-era sync:
+#      ToolPrepare renamed ToolPublish for the single-argument
+#      xg_host_publish gate-tool ABI, launch_mtx_ pairs around the actuator
+#      calls dropped, xg2/xg3 debug counters and XG2 logs dropped, the
+#      at-create preempt-buffer header memset dropped, includes reordered,
+#      and the NVBit-era context push/pop removed from Reactivate).
+# The earlier published form of this meta-extend patch re-included the
+# cuda_command.h and instrument.cpp hunks that patches 5 and 6 already
+# carry; those hunk groups are now REMOVED here as superseded instead of
+# being applied twice. This patch's remaining sections are strictly:
+# the two new shim files, the four module-load hooks (intercept.cpp),
+# the shim grown-passthrough guard (shim.cpp), the host-side
+# original-layout marshal (cuda_command.cpp - registry lookup + ctor and
+# blob marshal over the relay implementation that patch 5 landed), and
+# a one-line probe-2 hex fix (instrument.cpp, %llu -> %llx; the relay
+# adoption hunks belong to patch 5 and the fail-fast CUDA_ASSERT to
+# patch 6). The level2-era deltas that once separated the prepared tree
+# from the successful live HAL source are now published as patch 8;
+# with that step applied the chain reproduces the live source
+# byte-for-byte for every file it touches. The async_xqueue audit
+# counters and destructor XSCHED_AUDIT report that also lived only in
+# the successful source are published as the final step
+#   9. native/xsched-native-async-xqueue-audit.patch
+# so a reproduced tree carries the same measured-source overhead.
+# native/prepare_native_source.sh automates the whole nine-patch chain,
+# fills the 3rdparty submodules from their pinned commits (git archive
+# alone leaves them empty), and prints an informational cmp report when
+# given an existing live source tree.
 #
 # BUILD NOTE: window_meta_extend.cpp enters the shim sources via
 # file(GLOB_RECURSE) evaluated at CMAKE CONFIGURE time. A build directory
@@ -187,8 +225,10 @@
 #
 # Experimental and unintegrated until the build owner tests it; this is an
 # sm_120 native actuator port, not an unchanged upstream artifact.
-# Apply plain: patch -p1 < xsched-native-meta-extend.patch
-# from the source root (level2-build/.output/<native dir>/source).
+# Apply plain, AFTER the six-chain patches listed above (BASE CHAIN):
+#   patch -p1 < xsched-native-meta-extend.patch
+# from the source root prepared by native/prepare_native_source.sh
+# (historically level2-build/.output/<native dir>/source).
 --- /dev/null
 +++ b/platforms/cuda/shim/include/xsched/cuda/shim/window_meta_extend.h
 @@ -0,0 +1,97 @@
@@ -1872,34 +1912,6 @@
  }
  
  static inline CUresult XLaunchHostFuncImpl(CUstream stream, CUhostFn fn, void *data)
---- a/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h
-+++ b/platforms/cuda/hal/include/xsched/cuda/hal/common/cuda_command.h
-@@ -48,6 +48,14 @@
-     virtual ~CudaKernelCommand();
-     virtual unsigned int BlockCnt() const = 0;
- 
-+    // Native sm_120 window-args relay: marshal the kernel's real params plus
-+    // the 28-byte guardian window args (c[0x0][0x1880..]) into one
-+    // CU_LAUNCH_PARAM_BUFFER blob and adopt it for exactly the next launch.
-+    // Returns an opaque token; pass it to RestoreWindowRelayExtra() after the
-+    // launch to restore the previous configuration and free the blob.
-+    void *AdoptWindowRelayExtra(const void *window_args);
-+    void RestoreWindowRelayExtra(void *token);
-+
-     // After CUDA 12, kFunc could be a CUkernel. We convert CUkernel to CUfunction
-     // by calling cuKernelGetFunction, the actual CUfunction is stored in kFuncHandle.
-     const CUfunction kFunc;
-@@ -73,6 +81,10 @@
-     char *param_data_ = nullptr;
-     char *extra_data_ = nullptr;
-     size_t extra_buffer_size_ = 0;
-+    // window-args relay state (adopted/restored under the launch mutex)
-+    void **relay_extra_ = nullptr;
-+    char *relay_blob_ = nullptr;
-+    size_t relay_blob_size_ = 0;
- };
- 
- class CudaKernelLaunchCommand : public CudaKernelCommand
 --- a/platforms/cuda/hal/src/common/cuda_command.cpp
 +++ b/platforms/cuda/hal/src/common/cuda_command.cpp
 @@ -1,4 +1,5 @@
@@ -2103,7 +2115,7 @@
          }
      } else if (extra != nullptr) {
          // Get extra buffer and its size from extra map.
-@@ -109,18 +268,18 @@
+@@ -109,12 +268,10 @@
  
          // Set params_ to point to extra_data_.
          for (size_t i = 0; i < param_cnt_; ++i) {
@@ -2119,60 +2131,13 @@
          }
      }
  }
- 
- CudaKernelCommand::~CudaKernelCommand()
- {
-+    if (relay_extra_) delete[] relay_extra_;
-+    if (relay_blob_) free(relay_blob_);
-     if (!deep_copy_) return;
-     if (param_data_) free(param_data_);
-     if (extra_data_) free(extra_data_);
-@@ -128,6 +287,124 @@
-     if (extra_) free(extra_);
- }
- 
-+// Opaque token saved by AdoptWindowRelayExtra(): the launch configuration
-+// (extra_/params_) in effect before the relay was adopted. A no-op token is
-+// produced when the relay cannot be adopted or is already active.
-+struct WindowRelayToken
-+{
-+    void **extra;
-+    void **params;
-+    bool noop;
-+};
-+
-+void *CudaKernelCommand::AdoptWindowRelayExtra(const void *window_args)
-+{
-+    WindowRelayToken *token = new WindowRelayToken{extra_, params_, false};
-+    // single active relay per command (adoption runs under the launch mutex);
-+    // a second adoption restores as a no-op
-+    if (relay_extra_ != nullptr) {
-+        token->noop = true;
-+        return token;
-+    }
-+
-+    // sm_120 window-args relay: the guardian/resume prefix consumes the
-+    // 28-byte argument block at the absolute debugger window base
-+    // XG_DEBUGGER_BASE (0x1880, xsched_guardian_abi.h), which lies outside
-+    // the workload kernel's declared constant-bank extent and is therefore
-+    // not covered by the kernel params. CU_LAUNCH_PARAM_BUFFER bytes are
-+    // argument-buffer-relative (same coordinate system the ctor uses with
-+    // cuXtraGetParamInfo offsets for extra_data_), so the window is placed
-+    // at (absolute window base - sm_120 parameter base) inside the blob and
-+    // both the real kernel params and the window args ride one blob through
-+    // the normal launch-parameter upload.
-+    const size_t kWindowBaseAbs = 0x1880; // XG_DEBUGGER_BASE
-+    const size_t kWindowBytes = 28;       // XG_ARGS_BYTES
-+    // constant-bank parameter base established for this explicitly
-+    // sm_120-scoped adapter from the dagger workload cubins; not derived
-+    // from cuXtraGetParamInfo
-+    const size_t kParamBaseAbs = 0x380;
-+    if (param_cnt_ == 0 || params_ == nullptr) {
-+        XERRO_NOEXIT("window relay unsupported: kernel %p has param_cnt=%zu params_=%p",
-+              (void *)kFunc, param_cnt_, (void *)params_);
-+        token->noop = true;
-+        return token; // launch as before (window stays undelivered)
-+    }
+@@ -172,9 +329,19 @@
+         token->noop = true;
+         return token; // launch as before (window stays undelivered)
+     }
+-    size_t last_offset = 0, last_size = 0;
+-    cuXtraGetParamInfo(kFuncHandle, param_cnt_ - 1, &last_offset, &last_size,
+-                       nullptr);
 +    // Marshal the blob from the ORIGINAL per-ordinal layout (see the
 +    // constructor): the deep-copied params carry original-sized data, so
 +    // the blob fill must read original sizes as well. The window branch
@@ -2186,75 +2151,28 @@
 +        layout = alloc_layout;
 +    size_t last_idx = layout.count - 1;
 +    size_t last_offset = layout.offset[last_idx], last_size = layout.size[last_idx];
-+    size_t rel_param_end = last_offset + last_size;
-+    size_t rel_window_base = kWindowBaseAbs - kParamBaseAbs; // 0x1500
-+    if (rel_param_end > rel_window_base) {
-+        XERRO_NOEXIT("window relay unsupported: kernel %p params end at 0x%zx, "
-+                     "past blob-relative window base 0x%zx",
-+                     (void *)kFunc, rel_param_end, rel_window_base);
-+        token->noop = true;
-+        return token; // launch as before (window stays undelivered)
-+    }
-+    size_t blob_size = rel_param_end > rel_window_base + kWindowBytes
-+                     ? rel_param_end : rel_window_base + kWindowBytes;
-+    blob_size = (blob_size + 0xf) & ~(size_t)0xf;
-+    char *blob = (char *)malloc(blob_size);
-+    XASSERT(blob != nullptr, "window relay blob malloc failed (%zu B)", blob_size);
-+    memset(blob, 0, blob_size);
-+    for (size_t i = 0; i != param_cnt_; ++i) {
+     size_t rel_param_end = last_offset + last_size;
+     size_t rel_window_base = kWindowBaseAbs - kParamBaseAbs; // 0x1500
+     if (rel_param_end > rel_window_base) {
+@@ -191,12 +358,10 @@
+     XASSERT(blob != nullptr, "window relay blob malloc failed (%zu B)", blob_size);
+     memset(blob, 0, blob_size);
+     for (size_t i = 0; i != param_cnt_; ++i) {
+-        size_t offset, size;
+-        cuXtraGetParamInfo(kFuncHandle, i, &offset, &size, nullptr);
+-        XASSERT(offset + size <= blob_size,
 +        XASSERT(layout.offset[i] + layout.size[i] <= blob_size,
-+                "window relay param %zu out of blob range: %zu + %zu > %zu",
+                 "window relay param %zu out of blob range: %zu + %zu > %zu",
+-                i, offset, size, blob_size);
+-        memcpy(blob + offset, params_[i], size);
 +                i, layout.offset[i], layout.size[i], blob_size);
 +        memcpy(blob + layout.offset[i], params_[i], layout.size[i]);
-+    }
-+    memcpy(blob + rel_window_base, window_args, kWindowBytes);
-+
-+    // relay_blob_size_ must outlive the launch (extra_[3] points to it)
-+    relay_blob_ = blob;
-+    relay_blob_size_ = blob_size;
-+    relay_extra_ = new void *[5];
-+    relay_extra_[0] = CU_LAUNCH_PARAM_BUFFER_POINTER;
-+    relay_extra_[1] = relay_blob_;
-+    relay_extra_[2] = CU_LAUNCH_PARAM_BUFFER_SIZE;
-+    relay_extra_[3] = (void *)&relay_blob_size_;
-+    relay_extra_[4] = CU_LAUNCH_PARAM_END;
-+    // launch with the blob only, regardless of the command's original form;
-+    // the saved token restores both members after the launch. Original
-+    // extra-buffer commands still marshal correctly: their params_[i] point
-+    // into extra_data_, which this loop reads.
-+    extra_ = relay_extra_;
-+    params_ = nullptr;
-+    return token;
-+}
-+
-+void CudaKernelCommand::RestoreWindowRelayExtra(void *token_v)
-+{
-+    WindowRelayToken *token = (WindowRelayToken *)token_v;
-+    if (token == nullptr) return;
-+    bool noop = token->noop;
-+    if (!noop) {
-+        extra_ = token->extra;
-+        params_ = token->params;
-+    }
-+    delete token;
-+    if (noop) return;
-+    if (relay_extra_ != nullptr) {
-+        delete[] relay_extra_;
-+        relay_extra_ = nullptr;
-+    }
-+    if (relay_blob_ != nullptr) {
-+        free(relay_blob_);
-+        relay_blob_ = nullptr;
-+    }
-+    relay_blob_size_ = 0;
-+}
-+
- CudaKernelLaunchExCommand::CudaKernelLaunchExCommand(const CUlaunchConfig *cfg, CUfunction func,
-                                                      void **params, void **extra, bool deep_copy)
-     : CudaKernelCommand(func, params, extra, deep_copy)
+     }
+     memcpy(blob + rel_window_base, window_args, kWindowBytes);
+ 
 --- a/platforms/cuda/hal/src/level2/instrument.cpp
 +++ b/platforms/cuda/hal/src/level2/instrument.cpp
-@@ -194,7 +194,7 @@
+@@ -228,7 +194,7 @@
      // compute_task whose declared c[0x0] extent is only 0x3a0 bytes.
      // Logging only: launch behavior is unchanged.
      XINFO("native-700 probe 2: type=%d preempt_buf=0x%llx guardian=0x%llx"
@@ -2263,34 +2181,3 @@
            (int)type, *(unsigned long long *)preempt_buf,
            *(unsigned long long *)guardian, (unsigned long long)entry_point,
            (long long)*kernel_idx, *killable);
-@@ -207,9 +207,18 @@
-           memcmp(args_buf, dbg_readback, sizeof(args_buf)) == 0 ? 1 : 0,
-           (unsigned)dbg_readback[0], (unsigned)dbg_readback[8],
-           (unsigned)dbg_readback[16]);
-+    // sm_120 window-args relay: adopt a launch blob carrying the kernel's
-+    // real params and the 28-byte window args (absolute c[0x0][0x1880],
-+    // blob-relative 0x1500 on this sm_120 parameter base) so the
-+    // guardian/resume prefix reads real values through the normal parameter
-+    // upload, independently of the debugger-window staging. The launch form
-+    // (extra/params pointers) is adopted under this launch-mutex critical
-+    // section and restored right after the launch.
-+    void *relay_token = kernel->AdoptWindowRelayExtra(args_buf);
-     if (std::getenv("XG_NATIVE_ORIGINAL_ENTRY_CONTROL") == nullptr)
-         cuXtraSetEntryPoint(kernel->kFuncHandle, entry_point);
-     CUresult ret = kernel->LaunchWrapper(stream);
-+    kernel->RestoreWindowRelayExtra(relay_token);
-     XINFO("native-700 probe 2: launch ret=%d", (int)ret);
-     cuXtraSetEntryPoint(kernel->kFuncHandle, kernel->entry_point_original);
-     launch_mtx_.unlock();
-@@ -362,7 +371,10 @@
-                     ? kKernelLaunchResume // the first preempted kernel
-                     : kKernelLaunchGuardian;
-     }
--    instrument_ctx_->Launch(kernel, stream, launch_type);
-+    // A failed XQueue launch must fail fast: the launch never reaches the
-+    // device, so any wait that relies on the started stamp (device-written
-+    // at kernel entry) would spin forever with no launch error reported.
-+    CUDA_ASSERT(instrument_ctx_->Launch(kernel, stream, launch_type));
- }
- 
- void InstrumentManager::Instrument(std::shared_ptr<CudaKernelCommand> kernel)

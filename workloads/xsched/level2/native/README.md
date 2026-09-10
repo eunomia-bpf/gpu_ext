@@ -226,7 +226,13 @@ defect). The install at
 `level2-build/.output/native-repro-supervisor-20260910.wEUkbn/install-gcc`
 is wired to the same `20tGK7` arrays header and the normal
 `libcuda.so.1 -> libshimcuda.so` shim links. Build completion alone is
-not a performance result. What the chain does NOT include: build steps
+not a performance result. Independent reproducibility re-check
+(2026-09-10): the committed `prepare_native_source.sh` was re-run from
+`deps/xsched` at the pinned revision into a fresh output directory; all
+nine patches applied clean and every `CHAIN_FINAL` file matched the
+validated `wEUkbn/source` tree byte-for-byte (`cmp` `MATCH` on all nine
+files), confirming the committed recipe reproduces the build that produced
+the install. What the chain does NOT include: build steps
 (ldc-patch extraction of the sm_120 guardian arrays header, cmake
 configure, install), the repo-side artifacts (stub `.cu` sources,
 `ldc_patcher.cpp`, gate tool, run scripts, notes - all already in the

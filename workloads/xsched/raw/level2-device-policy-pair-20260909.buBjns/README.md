@@ -35,6 +35,13 @@ cell summary; worker JSON files retain commands, output and return codes.
 The remaining/summary.json covers only its four newly run blocks, not the
 combined five-block campaign.
 
+The above medians are recomputed CPU-only from the retained `result.json`
+files by `scripts/artifact/reanalyze.py --campaign xsched`, which
+cross-checks the `block0-missing/summary.json` and
+`remaining/summary.json` runner medians against those recomputed values
+(all match). This is provenance of the recorded medians, not a new
+measurement.
+
 ## Original execution plan and intermediate record
 
 Continue the repaired NVBit-actuator path with five blocks and three arms:

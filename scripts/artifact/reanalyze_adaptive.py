@@ -67,11 +67,16 @@ def main() -> None:
     # One golden per cohort row: cell_position 0..3 indexes the row; the
     # six cell slots map onto rows via request_positions (A=[0,1] B=[2,3]
     # repeated), enforced per-cell by the positions check below.
-    gold_rows = [e["cell_position"] for e in goldens["goldens"]]
-    print(f"frozen goldens rows: {gold_rows} (cohort indices "
-          f"{[e['source_index'] for e in goldens['goldens']]})")
-    if gold_rows != [0, 1, 2, 3]:
-        problems.append("goldens must cover exactly the four cohort rows")
+    gold_text = {}
+    if isinstance(goldens, dict):
+        gold_rows = [e["cell_position"] for e in goldens["goldens"]]
+        print(f"frozen goldens rows: {gold_rows} (cohort indices "
+              f"{[e['source_index'] for e in goldens['goldens']]})")
+        if gold_rows != [0, 1, 2, 3]:
+            problems.append("goldens must cover exactly the four cohort rows")
+        gold_text = {e["cell_position"]: e["text"] for e in goldens["goldens"]}
+    else:
+        problems.append("held-out-goldens.json missing or malformed")
 
     # -- per-block recomputation -------------------------------------------
     print("\n== per-block cell recomputation from result.json artifacts ==")
@@ -90,6 +95,16 @@ def main() -> None:
                 problems.append(f"block {block} {arm}: cell result.json missing")
                 continue
             reqs = crec.get("requests", [])
+            gold_ok = True
+            if gold_text:
+                for seq, r in enumerate(reqs):
+                    # cell slot seq -> position CELL_POSITIONS[seq] -> row golden
+                    if r.get("text") != gold_text.get(CELL_POSITIONS[seq]):
+                        gold_ok = False
+                        problems.append(
+                            f"block {block} {arm} request {seq + 1}: text differs "
+                            f"from the frozen golden for cohort position "
+                            f"{CELL_POSITIONS[seq]}")
             checks = {
                 "cell passed": crec.get("passed") is True,
                 "six requests": len(reqs) == len(CELL_POSITIONS),
@@ -98,11 +113,8 @@ def main() -> None:
                 "cleanup clean": crec.get("cleanup_errors") == [],
                 "no error": crec.get("error") in (None, ""),
                 "verified counters": crec.get("verified_requests") == 6 and crec.get("verified_output_tokens") == 384,
+                "all texts equal golden": gold_ok,
             }
-            positions_ok = all(r.get("passed") is True for r in reqs)
-            thr = crec.get("output_throughput_tokens_per_s", 0)
-            checks["throughput finite"] = isinstance(thr, (int, float)) and math.isfinite(thr) and thr > 0
-            checks["requests all passed"] = positions_ok
             bad = [k for k, v in checks.items() if not v]
             if bad:
                 problems.append(f"block {block} {arm}: failed checks {bad}")

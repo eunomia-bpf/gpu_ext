@@ -22,6 +22,17 @@ no-overload executor, requires a separate four-arm real preflight, and fixes the
 full matrix at five randomized paired blocks / 20 cells / 120 exact-checked
 measured requests.
 
+The follow-up [adaptive byte-admission governor](adaptive-prefetch/plan.md)
+campaign is complete and independently audited: an outcome/demand-pressure
+adaptive speculative byte cap evaluated on a held-out A→B→A cohort against
+unbounded-native, fixed 512 MiB-native, the same adaptive rule in host-uBPF
+JIT, and demand-only. Adaptive-native wins over unbounded by 1.06% paired
+throughput (95% block bootstrap [1.002, 1.020]) while cutting logical
+prefetch traffic 11.4× and absolute unused-resident bytes 9.2×; the BPF port
+costs 1.5% vs native and is inconclusive vs unbounded end-to-end.
+Protocol, raw records, audit entrypoint, and the full analysis with scope
+limits: [results report](results-adaptive-prefetch-575-20260910.md).
+
 The BPF selectors execute in the host ubpf JIT; this is not the old kernel-UVM
 stride/LFU program or reproduction of the authors' original hardware/model
 numbers. The shared executor includes prediction-set protection and stale-task

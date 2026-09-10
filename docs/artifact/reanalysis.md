@@ -175,6 +175,32 @@ ratios paper-bpf/paper-native 0.996540 (throughput) / 0.995129
 (TTFT) and paper-bpf/native-off 0.930786 / 0.775152, matching the
 audited analysis.
 
+## `scripts/artifact/reanalyze_adaptive.py`
+
+Independent CPU-only audit of the MoE adaptive byte-admission governor
+campaign
+(`workloads/moe-infinity/raw/adaptive-prefetch-575/full-20260910-s`, 25 cells
+across 5 blocks x unbounded-native/fixed-native/adaptive-native/
+adaptive-bpf/demand-only). Recomputes, directly from the per-arm
+`result.json` records: cell validity gates, per-arm medians (e2e/TTFT/
+throughput), whole-block paired geometric throughput ratios, 10k-draw
+block-resample 95% percentile intervals (same published seed 20260910), the
+governor engagement sums, and the per-request frozen-golden text equality
+from `held-out-goldens.json` (one golden per cohort row, cell slots mapped
+by the `[0,1,2,3,0,1]` request pattern). Cross-checks every recomputed value
+against the runner's `analysis.json`.
+
+```sh
+python3 scripts/artifact/reanalyze_adaptive.py
+```
+
+Verified 2026-09-10: exit 0, `AUDIT PASSED`; medians and all six paired
+ratio/CI pairs match `analysis.json` to 1e-9; the 150 request texts match
+the frozen goldens. Tamper-tested: corrupting one token in a copied
+cell flips the verdict to failure (exit 1). Standalone stdlib-only script
+with no runner import. Results report:
+[results-adaptive-prefetch-575-20260910.md](../../workloads/moe-infinity/results-adaptive-prefetch-575-20260910.md).
+
 ## `scripts/artifact/reproduce_figures.py`
 
 Reproduces the paper-selected observability figure without touching the

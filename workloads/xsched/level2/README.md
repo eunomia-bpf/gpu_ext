@@ -1,13 +1,15 @@
 # XSched Level-2 sm_120 source checkpoint
 
-Current status (2026-09-09): the completed 15-cell NVBit-actuator
+Current status (2026-09-10): the completed 15-cell NVBit-actuator
 policy-port comparison is reported in
 `../raw/level2-device-policy-pair-20260909.buBjns/README.md`. The canonical
 tool source was reconciled to the tested per-launch delivery order and rebuilt
 as a host component in
 `../raw/canonical-tool-build-20260909.MnNeOe/README.md`; that rebuild is not
-a new timing measurement. The original cuXtra native SASS route remains
-separate and is not claimed complete.
+a new timing measurement. The original cuXtra native SASS route is now
+complete: the [matched multi-arm campaign](../raw/level2-native-route-20260910-082400/README.md)
+ran five blocks / 20 cells against Level-1 and baseline using the
+nine-patch reproducible source build.
 
 ## Historical 2026-09-08 source checkpoint
 

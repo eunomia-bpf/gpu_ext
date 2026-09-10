@@ -58,6 +58,14 @@ LM_REL = "workloads/lmcache-disk/raw/diskuvm-physical-reclaim-20260909.pXYN4F"
 XS_BUBJNS_REL = "workloads/xsched/raw/level2-device-policy-pair-20260909.buBjns"
 XS_BOIYH5_REL = "workloads/xsched/raw/level2-perlaunch-enable-20260909.bOiYh5"
 XS_ARMS = ("baseline", "native_port", "bpf_port")
+XS_ROUTE_REL = ("workloads/xsched/raw/level2-native-route-20260910-082400")
+XS_ROUTE_ARMS = ("baseline", "l1_native", "l2_cuxtra", "l2_bpfhost")
+XS_ROUTE_PAIRS = (
+    ("l2_cuxtra", "l1_native"),
+    ("l1_native", "baseline"),
+    ("l2_cuxtra", "baseline"),
+    ("l2_bpfhost", "l2_cuxtra"),
+)
 ST_REL = "workloads/lmcache-disk/raw/gds-write-budget-575-20260907-five-block-02"
 ST_ARMS = ("fifo", "native10", "bpf10", "native200", "bpf200")
 ST_PAIRS = (
@@ -398,6 +406,136 @@ def xsched_report(root: Path, cells: dict, missing: List[str]) -> str:
             tag = "match" if (ref_us is not None and mine_us is not None and abs(ref_us - mine_us) <= 1e-6 * max(1.0, abs(ref_us))) else "MISMATCH"
             lines.append(f"  {label} {arm} lc p99 median_us: summary={ref_us} recomputed={mine_us} ({tag})")
     return "\n".join(lines)
+
+# ------------------------------------------ xsched native route comparison
+
+
+def load_xsroute_cells(root: Path) -> Tuple[Dict[Tuple[int, str], dict], List[str]]:
+    """Matched native route comparison: 5 blocks x 4 arms, block-NN-<arm>/."""
+    cells: Dict[Tuple[int, str], dict] = {}
+    missing: List[str] = []
+    for block in range(1, 6):
+        for arm in XS_ROUTE_ARMS:
+            path = root / XS_ROUTE_REL / f"block-{block:02d}-{arm}" / "result.json"
+            rec = read_json(path)
+            if not isinstance(rec, dict):
+                missing.append(f"block {block} arm {arm}: no result.json at {path.relative_to(root)}")
+                continue
+            lc = rec.get("lc_service") if isinstance(rec.get("lc_service"), dict) else {}
+            be = rec.get("be_service") if isinstance(rec.get("be_service"), dict) else {}
+            engagement = rec.get("engagement") if isinstance(rec.get("engagement"), dict) else {}
+            gates = engagement.get("gates") if isinstance(engagement.get("gates"), dict) else {}
+            cells[(block, arm)] = {
+                "path": str(path.relative_to(root)),
+                "lc_service_p99_ms": (num(lc.get("p99_us")) / 1000.0) if num(lc.get("p99_us")) is not None else None,
+                "be_service_p99_ms": (num(be.get("p99_us")) / 1000.0) if num(be.get("p99_us")) is not None else None,
+                "be_kernels_per_s": num(rec.get("be_kernels_per_s")),
+                "lc_host_elapsed_ns": num(rec.get("lc_host_elapsed_ns")),
+                "be_host_elapsed_ns": num(rec.get("be_host_elapsed_ns")),
+                "gates_passed": all(bool(v) for v in gates.values()) if gates else False,
+                "gate_failures": sorted(k for k, v in gates.items() if not v),
+                "sample_diagnostics": rec.get("sample_diagnostics") or [],
+            }
+    return cells, missing
+
+
+def xsroute_report(root: Path, cells: dict, missing: List[str]) -> str:
+    lines = [f"== XSched Level-2 matched native route comparison ({XS_ROUTE_REL.split('/')[-1]}) =="]
+    lines.append("arms: baseline (no XSched) / l1_native (Level-1 queue actuation) / "
+                 "l2_cuxtra (original cuXtra SASS actuator) / "
+                 "l2_bpfhost (same actuator, BPF host HPF)")
+    lines.append(f"cells: {len(cells)} present / {5 * len(XS_ROUTE_ARMS)} expected")
+    if missing:
+        lines.append("missing cells:")
+        lines.extend(f"  {n}" for n in missing)
+    diag = [(b, a) for (b, a), r in sorted(cells.items()) if r["sample_diagnostics"]]
+    if diag:
+        lines.append(f"cells with sample_diagnostics: {sorted(diag)}")
+    else:
+        lines.append("sample_diagnostics: empty in all present cells")
+    gate_fail = [(b, a) for (b, a), r in sorted(cells.items()) if not r["gates_passed"]]
+    if gate_fail:
+        lines.append(f"cells failing engagement gates (excluded from paired stats, retained raw): "
+                     f"{sorted(gate_fail)}")
+    else:
+        lines.append("engagement gates: all present cells passed")
+    if not cells:
+        lines.append("no usable cells; stopping campaign report.")
+        return "\n".join(lines)
+
+    lines.append("per-cell metrics (service p99 in ms, be kernels/s; host elapsed retained in ns):")
+    for block in range(1, 6):
+        for arm in XS_ROUTE_ARMS:
+            rec = cells.get((block, arm))
+            if rec is None:
+                continue
+            lines.append(
+                f"  block {block} {arm:<12} lc_p99_ms={fmt(rec['lc_service_p99_ms'])} "
+                f"be_kps={fmt(rec['be_kernels_per_s'])} be_p99_ms={fmt(rec['be_service_p99_ms'])} "
+                f"lc_host_ns={fmt(rec['lc_host_elapsed_ns'], '.0f')} "
+                f"be_host_ns={fmt(rec['be_host_elapsed_ns'], '.0f')}  ({rec['path']})"
+            )
+
+    lines.append("per-arm marginal medians over gate-passing blocks:")
+    for metric in ("lc_service_p99_ms", "be_kernels_per_s"):
+        for arm in XS_ROUTE_ARMS:
+            vals = [
+                r[metric] for (b, a), r in cells.items()
+                if a == arm and r["gates_passed"] and isinstance(r.get(metric), float)
+            ]
+            med = median(vals) if vals else None
+            lines.append(f"  {metric:<20} {arm:<12} {fmt(med)}")
+
+    lines.append(
+        "paired statistics, percent (positive = candidate above reference; for p99, positive = worse tail):"
+    )
+    for metric in ("lc_service_p99_ms", "be_kernels_per_s"):
+        for cand, ref in XS_ROUTE_PAIRS:
+            per_block: Dict[int, float] = {}
+            for block in range(1, 6):
+                c = cells.get((block, cand))
+                r = cells.get((block, ref))
+                if c and r and c["gates_passed"] and r["gates_passed"] \
+                        and isinstance(c.get(metric), float) and isinstance(r.get(metric), float) and r[metric]:
+                    per_block[block] = 100.0 * (c[metric] / r[metric] - 1.0)
+            lines.append(f"  {metric} {cand}_vs_{ref}:")
+            if not per_block:
+                lines.append("    insufficient gate-passing blocks")
+                continue
+            lines.append(
+                "    per block: "
+                + " ".join(f"b{b}={fmt(v, '.4f')}" for b, v in sorted(per_block.items()))
+            )
+            lines.append(
+                f"    median of paired ratios: {fmt(median(list(per_block.values())), '.6f')}%"
+            )
+            cand_vals = [cells[(b, cand)][metric] for b in per_block]
+            ref_vals = [cells[(b, ref)][metric] for b in per_block]
+            lines.append(
+                f"    ratio of medians:         {fmt(100.0 * (median(cand_vals) / median(ref_vals) - 1.0), '.6f')}%"
+            )
+
+    lines.append("cross-check against the campaign's summary.json:")
+    summary = read_json(root / XS_ROUTE_REL / "summary.json")
+    if not isinstance(summary, dict):
+        lines.append("  summary.json: not present; skipped")
+    else:
+        configs = summary.get("configs") if isinstance(summary.get("configs"), dict) else {}
+        for arm in XS_ROUTE_ARMS:
+            entry = configs.get(arm) if isinstance(configs, dict) else None
+            if not isinstance(entry, dict):
+                continue
+            ref_us = num(entry.get("lc_service_p99_median_us"))
+            subset = [
+                r["lc_service_p99_ms"] * 1000.0 for (b, a), r in cells.items()
+                if a == arm and r["gates_passed"] and isinstance(r.get("lc_service_p99_ms"), float)
+            ]
+            mine_us = median(subset) if subset else None
+            tag = "match" if (ref_us is not None and mine_us is not None
+                              and abs(ref_us - mine_us) <= 1e-6 * max(1.0, abs(ref_us))) else "MISMATCH"
+            lines.append(f"  summary.json {arm} lc p99 median_us: summary={ref_us} recomputed={mine_us} ({tag})")
+    return "\n".join(lines)
+
 
 
 # ------------------------------------------------------------- storage campaign
@@ -863,9 +1001,9 @@ def main() -> None:
     parser.add_argument("--repo-root", type=Path, default=None,
                         help="repository root (default: derived from this file's location)")
     parser.add_argument("--campaign",
-                        choices=("all", "lm", "xsched", "storage", "moe"),
+                        choices=("all", "lm", "xsched", "xsched-route", "storage", "moe"),
                         default="all",
-                        help="campaign to reanalyze; default runs all four")
+                        help="campaign to reanalyze; default runs all five")
     parser.add_argument("--output", type=Path, default=None,
                         help="write the report to this path instead of stdout "
                              "(created exclusively, never overwritten; rejected "
@@ -892,6 +1030,9 @@ def main() -> None:
         cells, missing = load_moe_cells(root)
         incomplete = moe_incomplete(cells)
         sections.append(moe_report(root, cells, missing, incomplete))
+    if args.campaign in ("all", "xsched-route"):
+        cells, missing = load_xsroute_cells(root)
+        sections.append(xsroute_report(root, cells, missing))
     if not sections:
         die("no campaign data found; nothing to report")
 

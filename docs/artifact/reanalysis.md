@@ -15,9 +15,10 @@ GPU workload reproduction is a separate task.
 ## `scripts/artifact/reanalyze.py`
 
 Recomputes cell metrics and paired statistics for the paper-selected
-LMCache write-budget campaign, the two supplemental campaigns, and
-the MoE paper-v3-575 postboot timing campaign, from their raw
-`result.json` records.
+LMCache write-budget campaign, the two supplemental campaigns, the MoE
+paper-v3-575 postboot timing campaign, and the XSched Level-2 matched
+native route comparison, from their raw `result.json` records (90
+published cell summaries across the five campaigns).
 
 Campaigns and source maps:
 
@@ -59,6 +60,26 @@ Campaigns and source maps:
    per-cell table. Cross-checks the per-arm `lc_service_p99_median_us`
    medians against the two existing sub-summaries
    (`block0-missing/summary.json`, `remaining/summary.json`).
+- `xsched-route` - XSched Level-2 matched native route comparison,
+  level2-native-route-20260910-082400 (20 cells: 5 blocks x
+  baseline/l1_native/l2_cuxtra/l2_bpfhost):
+  `workloads/xsched/raw/level2-native-route-20260910-082400/
+  block-0{1..5}-<arm>/result.json`. This is the original-actuator cuXtra
+  sm_120 campaign, separate from the `xsched` policy-port campaign
+  (`xsched-route` runs the original-actuator cuXtra route on the
+  reproducible nine-patch source install; the `xsched` campaign runs the
+  measured reference's executable-logic policy port). Arms: `baseline`
+  has no shim and no server; `l1_native` is the same HAL with upstream
+  Level-1 queue actuation; `l2_cuxtra` and `l2_bpfhost` are the original
+  cuXtra/SASS Level-2 actuator (captured SASS guardian and resume blobs,
+  binary surgery) with native and BPF host HPF respectively. Metrics:
+  `lc_service.p99_us`/`mean_us` converted to ms and `be_kernels_per_s`;
+  `be_service.p99_us` and the host elapsed times are retained in the
+  per-cell table. Engagement gates are recorded per arm (level-2 queues
+  audited on the cuXtra arms, level-1 on `l1_native`, none on the
+  baseline); gate-failed cells are excluded from the medians and listed.
+  Cross-checks the per-arm `lc_service_p99_median_us` medians against the
+  campaign's `summary.json` (match/MISMATCH lines).
 - `moe` - MoE paper-v3-575 postboot timing,
   `workloads/moe-infinity/raw/paper-v3-575/
   timing-849ea75d-02-postboot/` (15 cells: 5 blocks x
@@ -105,8 +126,9 @@ Statistics vocabulary (kept explicit in the report):
   median of paired ratios; the two differ in general, and only the
   geometric mean is reported for `moe`.
 
-For `lm`, `xsched` and `storage`, the median of paired ratios and ratio of
-medians are reported separately; `moe` uses the geometric-mean ratio above.
+For `lm`, `xsched`, `xsched-route` and `storage`, the median of paired
+ratios and ratio of medians are reported separately; `moe` uses the
+geometric-mean ratio above.
 Pairs use available numeric values for both arms; missing or incomplete
 status is reported separately, never filled in. The tool never
 stops running jobs or imposes gates.

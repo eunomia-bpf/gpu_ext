@@ -95,8 +95,9 @@ rerun from a fresh checkout.
 
 For the paper-selected MoE and LMCache write-budget campaigns and the
 supplemental physical-reclaim and XSched Level-2 campaigns, the following
-standard-library-only command reads all 70 published cell summaries
-(15 + 25 + 15 + 15) and recomputes per-arm medians and within-block comparisons:
+standard-library-only command reads all 90 published cell summaries
+(15 + 25 + 15 + 15 + 20) and recomputes per-arm medians and within-block
+comparisons:
 
 ```sh
 python3 -B scripts/artifact/reanalyze.py --campaign all
@@ -104,8 +105,8 @@ python3 -B scripts/artifact/reanalyze.py --campaign all
 
 It also works from another working directory when called by its absolute
 script path. This was executed successfully on 2026-09-09; the numbers match
-the recorded summaries. `--campaign moe`, `--campaign storage`,
-`--campaign lm` or `--campaign xsched` selects one,
+`--campaign moe`, `--campaign storage`, `--campaign lm`, `--campaign xsched`
+or `--campaign xsched-route` selects one,
 and `--output NEW_FILE` saves the report without overwriting an existing file.
 This recomputes statistics from cell summaries, not GPU measurements or every
 per-request timestamp. Missing records are reported explicitly.
@@ -226,7 +227,7 @@ signal a historical PID or load a module solely because an old log names it.
 | Runtime | Build/source entry | Run record and current boundary |
 | --- | --- | --- |
 | Table 1 observability | [Runtime dependency map](docs/artifact/table1-runtime.md), [tool build](workloads/llama.cpp/observability_overhead/revision-rq4/raw/table1-component-build-20260909.jqAD9c/README.md), [fresh bpftime runtime build](workloads/llama.cpp/observability_overhead/revision-rq4/raw/runtime-published-build-20260909.IktLa7/README.md) | The tools built; agent and syscall-server also compiled from a new public-source checkout. No measurement cells were run. Fresh llama.cpp/model preparation and execution with the new runtime remain open. Keep the historical and paper-selected cohorts separate. |
-| XSched Level-2 | [Component build instructions](workloads/xsched/level2-build/README.md), [runner instructions](workloads/xsched/level2/README.md) | The runner accepts explicit native/BPF server, HPF, guard-tool and HAL locations. Its completed policy-port campaign is separate from the [single-cell native cuXtra bring-up](workloads/xsched/raw/level2-native-retabs-20260909.oJDCbU/README.md); a matched multi-arm comparison with that native actuator remains open. |
+| XSched Level-2 | [Component build instructions](workloads/xsched/level2-build/README.md), [runner instructions](workloads/xsched/level2/README.md) | The runner accepts explicit native/BPF server, HPF, guard-tool and HAL locations and now runs four matched arms. Its completed policy-port campaign is separate from the [single-cell native cuXtra bring-up](workloads/xsched/raw/level2-native-retabs-20260909.oJDCbU/README.md); the matched multi-arm native route comparison is complete at [five blocks x four arms, 20 cells, all engagement gates passing](workloads/xsched/raw/level2-native-route-20260910-082400/README.md). |
 | LMCache write-budget storage | [Runtime guide](docs/artifact/lmcache-runtime.md), [published-source component build](workloads/lmcache-disk/raw/published-component-build-20260909.VqA85f/README.md) | Four storage components built in the independent GitHub checkout. The [25-cell commands](workloads/lmcache-disk/raw/gds-write-budget-575-20260907-five-block-02/run-plan.json) preserve the measured configuration; Python environment, modified-driver deployment and relocation remain separate runtime work. No performance cell was repeated. |
 
 Build targets produce components; dated run records describe executions.
@@ -241,7 +242,7 @@ to fill optional diagnostics.
 
 ## Open items
 
-- Extend portable CPU reanalysis beyond the four campaigns and
+- Extend portable CPU reanalysis beyond the five campaigns and
   two paper figures above; the complete paper is not yet a one-command rerun.
 - Check fresh-checkout build/run instructions per workload; a successful
   recorded run is not yet proof that all local build dependencies are published.
@@ -250,12 +251,14 @@ to fill optional diagnostics.
 - Record manuscript/evidence discrepancies here without editing the paper:
   the current seven-panel English caption says medians generally, while POD's
   selected source reports operator means. Detailed artifact statistics must
-  preserve the source estimator.
 - Original cuXtra Level-2 on sm_120 now completes a
   [native resume bring-up cell](workloads/xsched/raw/level2-native-retabs-20260909.oJDCbU/README.md):
   six worker exits zero, 400 LC / 800 BE service records, and a resume
-  launch in each BE process. A matched multi-arm performance campaign with
-  this native actuator remains open; the completed shared-actuator
-  policy-port comparison is a separate result. The earlier
+  launch in each BE process. The matched multi-arm campaign it left open
+  is complete:
+  [five blocks x four arms (20 cells, all engagement gates passing)](workloads/xsched/raw/level2-native-route-20260910-082400/README.md)
+  on the reproducible nine-patch source install. The completed
+  shared-actuator policy-port comparison remains a separate result. The
+  earlier
   [constant-bank attempt](workloads/xsched/raw/level2-native-constant0-20260909.oAKEda/README.md)
   remains a failed CUDA 700 resume attempt, not a performance sample.

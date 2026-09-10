@@ -3,7 +3,7 @@
 Completed 2026-09-10 UTC. The campaign has **five valid paired blocks, 25
 cells, 150 measured requests, and 9,600 exactly verified output tokens**. The
 independent CPU-only audit
-([`scripts/artifact/reanalyze_adaptive.py`](../../../scripts/artifact/reanalyze_adaptive.py))
+([`scripts/artifact/reanalyze_adaptive.py`](../../scripts/artifact/reanalyze_adaptive.py))
 recomputes every gate, median, paired ratio, and bootstrap interval from the
 raw per-cell records and passes: `AUDIT PASSED`. Plan:
 [`adaptive-prefetch/plan.md`](adaptive-prefetch/plan.md); deviation journal:

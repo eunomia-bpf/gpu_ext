@@ -1,0 +1,1041 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,6 +1,11 @@
+ project(GPreempt)
+ cmake_minimum_required(VERSION 3.10)
+ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
++option(GPREEMPT_LOAD_STUDY "Isolated FIFO load study with complete arrival accounting" OFF)
++if(GPREEMPT_LOAD_STUDY)
++    add_definitions(-DGPREEMPT_LOAD_STUDY)
++    include_directories("${GPREEMPT_ARTIFACT_DIR}")
++endif()
+ 
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_FLAGS "-O3 ${CMAKE_CXX_FLAGS}")
+@@ -16,8 +21,11 @@
+     find_package(CUDA)
+     message(STATUS "CUDA found")
+     set(USE_CUDA ON)
++    set(GPREEMPT_CUDA_ARCH 80 CACHE STRING "CUDA SM architecture for GPreempt")
++    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
++        set(CMAKE_CUDA_ARCHITECTURES ${GPREEMPT_CUDA_ARCH})
++    endif()
+     enable_language(CUDA)
+-    set(CMAKE_CUDA_ARCHITECTURES 80)
+     set(CMAKE_CUDA_FLAGS "-O3 ${CMAKE_CUDA_FLAGS}")
+     add_definitions(-DCUDA)
+     include_directories(${CUDA_INCLUDE_DIRS})
+@@ -50,7 +58,7 @@
+ include_directories("${PROJECT_SOURCE_DIR}/third_party/disb/include")
+ 
+ add_definitions(-DMODEL_PATH="${CMAKE_CURRENT_LIST_DIR}/model")
+-add_definitions(-DBUILD_PATH="${CMAKE_CURRENT_LIST_DIR}/build")
++add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
+ 
+ include_directories("${PROJECT_SOURCE_DIR}/include")
+ 
+@@ -98,7 +106,7 @@
+ if (USE_CUDA)
+     add_custom_command(
+         OUTPUT ${CUBIN_OUTPUT}
+-        COMMAND ${CMAKE_CUDA_COMPILER} -arch=sm_80 ${PROJECT_SOURCE_DIR}/src/block.cu -o ${CUBIN_OUTPUT} -cubin
++        COMMAND ${CMAKE_CUDA_COMPILER} -arch=sm_${GPREEMPT_CUDA_ARCH} ${PROJECT_SOURCE_DIR}/src/block.cu -o ${CUBIN_OUTPUT} -cubin
+         DEPENDS ${PROJECT_SOURCE_DIR}/src/block.cu
+         COMMENT "Compiling block.cu to CUBIN"
+     )
+@@ -124,6 +132,17 @@
+     set_source_files_properties(${CLIENT_SOURCES} PROPERTIES LANGUAGE HIP)
+ endif()
+ 
++set(GPREEMPT_ARTIFACT_DIR "" CACHE PATH "Local comparison instrumentation")
++set(GPREEMPT_BRIDGE_DIR "" CACHE PATH "gpubpf extension bridge directory")
++if(NOT EXISTS "${GPREEMPT_ARTIFACT_DIR}/client_checks.h" OR
++   NOT EXISTS "${GPREEMPT_BRIDGE_DIR}/.output/libgpreempt_bridge.so")
++    message(FATAL_ERROR "Build the gpreempt extension bridge and set both comparison paths")
++endif()
++include_directories("${GPREEMPT_ARTIFACT_DIR}" "${GPREEMPT_BRIDGE_DIR}")
++add_library(gpreempt_policy_bridge SHARED IMPORTED)
++set_target_properties(gpreempt_policy_bridge PROPERTIES IMPORTED_LOCATION
++    "${GPREEMPT_BRIDGE_DIR}/.output/libgpreempt_bridge.so")
++
+ foreach(CLIENT_SOURCE ${CLIENT_SOURCES})
+     get_filename_component(CLIENT_NAME ${CLIENT_SOURCE} NAME_WE)
+     add_executable(${CLIENT_NAME} ${CLIENT_SOURCE})
+@@ -134,6 +153,11 @@
+         glog::glog
+         jsoncpp_lib
+     )
++endforeach()
++foreach(GPREEMPT_CLIENT baseclient gpreemptclient gpreemptclient_wo)
++    if(TARGET ${GPREEMPT_CLIENT})
++        target_link_libraries(${GPREEMPT_CLIENT} gpreempt_policy_bridge)
++    endif()
+ endforeach()
+ 
+ if(USE_HIP)
+@@ -167,4 +191,3 @@
+         jsoncpp_lib
+     )
+ endforeach()
+-
+--- a/model/makefile
++++ b/model/makefile
+@@ -5,8 +5,9 @@
+ 
+ USE_CUDA = $(shell command -v nvcc >/dev/null 2>&1 && echo yes || echo no)
+ ifeq ($(USE_CUDA), yes)
++	CUDA_ARCH ?= 80
+ 	COMPILER = nvcc
+-	FLAGS = -arch=sm_80 -O3 --cubin
++	FLAGS = -arch=sm_$(CUDA_ARCH) -O3 --cubin
+ else
+ 	COMPILER = hipcc
+ 	FLAGS = --offload-arch=gfx908 --genco -O3
+--- a/src/common-clients/baseclient.cpp
++++ b/src/common-clients/baseclient.cpp
+@@ -1,4 +1,7 @@
+ #include "disb.h"
++#include "client_checks.h"
++#include "load_study_measurement.h"
++#include "gpreempt_bridge.h"
+ 
+ #include <string>
+ #include <memory>
+@@ -23,6 +26,7 @@
+         model_name = config["model_name"].asString();
+         priority = config["priority"].asInt();
+         preprocess_time = config["preprocess_time"].asUInt64();
++        gpreempt_artifact::validate_config(priority, preprocess_time);
+         setName(config["name"].asString());
+         if(config.isMember("use_cuda_graph")) {
+             use_cuda_graph = config["use_cuda_graph"].asBool();
+@@ -40,6 +44,11 @@
+     
+     virtual void initInThread() override {
+         bind_core(cores.fetch_add(1));
++#ifdef GPREEMPT_LOAD_STUDY
++        // A CUDA current context is per host thread; bind the same primary context.
++        foo::util::init_cuda();
++#endif
++        checks.begin_timed();
+     }
+ 
+     virtual void init() override
+@@ -52,13 +61,24 @@
+         CHECK_STATUS(executor->init(model_name));
+         input_size = executor->get_data_size("data");
+         output_size = executor->get_data_size("heads");
++#ifndef GPREEMPT_LOAD_STUDY
+         GPUStreamCreate(&stream, 0);
++#endif
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&input, input_size, CU_MEMHOSTALLOC_PORTABLE));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE));
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+ 
+         int least_priority = 0, greatest_priority = 0; 
+-        GPUCtxGetStreamPriorityRange(&least_priority, &greatest_priority);
+-        GPUStreamCreateWithPriority(&stream, 0, priority ? least_priority : greatest_priority);
++        GPREEMPT_STUDY_CUDA(GPUCtxGetStreamPriorityRange(&least_priority, &greatest_priority));
++        GPREEMPT_STUDY_CUDA(GPUStreamCreateWithPriority(&stream, 0, priority ? least_priority : greatest_priority));
++#ifdef GPREEMPT_LOAD_STUDY
++        int actual_priority = 0;
++        ASSERT_CUDA_ERROR(cuStreamGetPriority(stream, &actual_priority));
++        CHECK_EQ(actual_priority, priority ? least_priority : greatest_priority);
++        fprintf(stderr, "GPREEMPT_LOAD_PRIORITY task=%s role=%d actual=%d least=%d greatest=%d\n",
++                getName().c_str(), priority, actual_priority, least_priority, greatest_priority);
++#endif
+         if(use_cuda_graph){
+             executor->capture_graph(stream);
+         }
+@@ -74,23 +94,24 @@
+     virtual void copyInput() override
+     {
+         CHECK_STATUS(executor->set_input("data", input, input_size, stream));
+-        GPUStreamSynchronize(stream);
++        GPREEMPT_STUDY_CUDA(GPUStreamSynchronize(stream));
+     }
+ 
+     virtual void infer() override
+     {
+-        executor->execute(stream);
+-        GPUStreamSynchronize(stream);
++        CHECK_STATUS(executor->execute(stream));
++        GPREEMPT_STUDY_CUDA(GPUStreamSynchronize(stream));
+     }
+ 
+     virtual void copyOutput() override
+     {
+         CHECK_STATUS(executor->get_output("heads", output, output_size, stream));
+-        GPUStreamSynchronize(stream);
++        GPREEMPT_STUDY_CUDA(GPUStreamSynchronize(stream));
+     }
+ 
+-    virtual void postprocess() override {}
++    virtual void postprocess() override { checks.check(output, output_size); }
+ private:
++    gpreempt_artifact::OutputCheck checks;
+     std::string model_name;
+     int priority;
+     std::shared_ptr<foo::BaseExecutor> executor;
+@@ -111,6 +132,10 @@
+ 
+ int main(int argc, char** argv)
+ {
++    if (gpreempt_bpf_enabled() != 0) {
++        std::cerr << "native baseclient cannot be labeled as the BPF arm" << std::endl;
++        return 1;
++    }
+     if (argc != 2) {
+         std::cout << "Usage: " << argv[0] << " config.json" << std::endl;
+         return -1;
+--- a/src/cuda-clients/gpreemptclient.cpp
++++ b/src/cuda-clients/gpreemptclient.cpp
+@@ -14,7 +14,11 @@
+ #include "executor.h"
+ #include "gpreempt.h"
+ #include "block.h"
+-
++#include "client_checks.h"
++#include "load_study_measurement.h"
++#include "gpreempt_bridge.h"
++
++#include "flag_transport.h"
+ 
+ #define PATH_OF(name) MODEL_PATH "/" #name
+ 
+@@ -28,10 +32,7 @@
+ // tsp - Time Slice with Preprocess
+ // Base on time slice version, add optimizations during preprocess
+ bool reserve_preempt = true;
+-GPUdeviceptr d_pool;
+-int *h_pool;
+-int pool_top;
+-gdr_mh_t g_mh;
++gpreempt_artifact::FlagPool flag_pool;
+ struct GdrEntry {
+     GPUdeviceptr d;
+     GPUdeviceptr* d_ptr;
+@@ -77,40 +78,17 @@
+ }
+ 
+ void end_blocking_stream(GdrEntry *signal) {
+-    *(int*)signal->cpu_map = 1;
++    CHECK_EQ(flag_pool.store(signal->cpu_map, 1), 0);
++}
++
++void reset_blocking_stream(GdrEntry *signal) {
++    CHECK_EQ(flag_pool.store(signal->cpu_map, 0), 0);
+ }
+ 
+ int get_gdr_map(GdrEntry *entry) {
+-    if(h_pool == nullptr) {
+-        gdr_t g = gdr_open();
+-        if(g == nullptr) {
+-            LOG(ERROR) << "Failed to open gdr";
+-            return -1;
+-        }
+-        ASSERT_CUDA_ERROR(GPUMemAlloc(&d_pool, GPU_PAGE_SIZE  * 2));
+-        d_pool = (d_pool + GPU_PAGE_SIZE ) & ~(GPU_PAGE_SIZE - 1);
+-        gdr_mh_t mh;
+-        if(gdr_pin_buffer(g, (unsigned long)d_pool, GPU_PAGE_SIZE , 0, 0, &g_mh) != 0) {
+-            LOG(ERROR) << "Failed to pin input buffer";
+-            return -1;
+-        }
+-        if (gdr_map(g, g_mh, (void**)&h_pool, GPU_PAGE_SIZE ) != 0) {
+-            LOG(ERROR) << "Failed to map input GPU buffer";
+-            return -1;
+-        }
+-        gdr_info_t info;
+-        if(gdr_get_info(g, g_mh, &info) != 0) {
+-            LOG(ERROR) << "Failed to get info";
+-            return -1;
+-        }
+-        int off = info.va - d_pool;
+-        h_pool = (int*)((char*)h_pool + off);
+-    }
+-    entry->d = d_pool + pool_top * sizeof(int);
++    int result = flag_pool.allocate(&entry->d, &entry->cpu_map);
+     entry->d_ptr = &entry->d;
+-    entry->cpu_map = h_pool + pool_top;
+-    pool_top++;
+-    return 0;
++    return result;
+ }
+ 
+ class FooClient: public DISB::DependentClient
+@@ -120,6 +98,7 @@
+         model_name = config["model_name"].asString();
+         priority = config["priority"].asInt();
+         preprocess_time = config["preprocess_time"].asUInt64();
++        gpreempt_artifact::validate_config(priority, preprocess_time);
+         setName(config["name"].asString());
+         if(config.isMember("use_cuda_graph")) {
+             use_cuda_graph = config["use_cuda_graph"].asBool();
+@@ -145,9 +124,11 @@
+         CHECK_STATUS(executor->init(model_name));
+         input_size = executor->get_data_size("data");
+         output_size = executor->get_data_size("heads");
+-        GPUStreamCreate(&stream, 0);
++        GPREEMPT_STUDY_CUDA(GPUStreamCreate(&stream, 0));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&input, input_size, CU_MEMHOSTALLOC_PORTABLE));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE));
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+ 
+         if(use_cuda_graph){
+             executor->capture_graph(stream);
+@@ -159,33 +140,44 @@
+     virtual void initInThread() override 
+     {
+         bind_core(cores.fetch_add(1));
++#ifdef GPREEMPT_LOAD_STUDY
++        // Warmup resources belong to the shared primary context on the main thread.
++        foo::util::init_cuda();
++#endif
+         executor->clear();
+         GPUMemFreeHost(input);
+         GPUMemFreeHost(output);
+-        GPUStreamDestroy(stream);
++        GPREEMPT_STUDY_CUDA(GPUStreamDestroy(stream));
+         GPUdevice dev;
+-        GPUDeviceGet(&dev, 0);
++        GPREEMPT_STUDY_CUDA(GPUDeviceGet(&dev, 0));
+         mtx.lock();
+         if(g_ctx[priority] == nullptr) {
+-            GPUCtxCreate(&g_ctx[priority], 0, dev);
+-            NvContext nvctx;
++            CHECK_EQ(gpreempt_ctx_begin(priority), 0);
++            ASSERT_CUDA_ERROR(GPUCtxCreate(&g_ctx[priority], flag_pool.context_flags(), dev));
++            NvContext nvctx{};
+             nvctx.hClient = util_gettid();
+-            NVRMCHECK(NvRmQuery(&nvctx));
+-            if(set_priority(nvctx, priority)){
++            CHECK_EQ(NvRmQuery(&nvctx), NV_OK);
++            if(!gpreempt_bpf_enabled() && set_priority(nvctx, priority)){
+                 LOG(ERROR) << "Failed to set priority";
+                 exit(-1);
+             }
+-        }
+-        GPUCtxSetCurrent(g_ctx[priority]);
++            CHECK_EQ(gpreempt_ctx_register(reinterpret_cast<gp_u64>(g_ctx[priority]),
++                                           nvctx.hClient, nvctx.hObject, priority), 0);
++            CHECK_EQ(gpreempt_ctx_end(), 0);
++        }
++        GPREEMPT_STUDY_CUDA(GPUCtxSetCurrent(g_ctx[priority]));
+         if(!priority) {
+             int res = get_gdr_map(&gdr_stop);
+-            assert(res == 0);
+-        }
+-        GPUStreamCreate(&stream, 0);
+-        GPUStreamCreate(&copy_stream, 0);
++            CHECK_EQ(res, 0); // Also fatal in Release builds; never fall back.
++        }
++        GPREEMPT_STUDY_CUDA(GPUStreamCreate(&stream, 0));
++        GPREEMPT_STUDY_CUDA(GPUStreamCreate(&copy_stream, 0));
++        if (!priority) flag_pool.track_stream(stream);
+         CHECK_STATUS(executor->init(model_name));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&input, input_size, CU_MEMHOSTALLOC_PORTABLE));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE)); 
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+         if(priority == 0 && block_module == nullptr)
+             load_block();
+ 
+@@ -195,16 +187,21 @@
+ 
+         mtx.unlock();
+         initialized = 1;
++        checks.begin_timed();
+         LOG(INFO) << "Init in thread " << getName() << " done" << std::endl;
+     }
+     
+     virtual void prepareInput() override {}
+ 
+     virtual void preprocess() override {
+-        if(priority == 0 && initialized) {
++        const int action = gpreempt_hint_decide(GP_PREPROCESS, priority, 0, 0,
++                                                initialized, reserve_preempt);
++        CHECK_GE(action, 0);
++        if(action & GP_RESET)
++            reset_blocking_stream(&gdr_stop);
++        if(action & (GP_HINT | GP_BLOCK)) {
+             DeamonHint *hint;
+-            *(int*)(gdr_stop.cpu_map) = 0;
+-            if(reserve_preempt){
++            if(action & GP_HINT){
+                 hint = new DeamonHint({system_clock::now() + microseconds(preprocess_time - SWITCH_TIME), stream, &gdr_stop});
+                 DeamonHint *nu = nullptr;
+                 while(!g_hint.compare_exchange_weak(nu, hint)) {
+@@ -222,32 +219,34 @@
+     {
+         if(initialized) {
+             CHECK_STATUS(executor->set_input("data", input, input_size, copy_stream));
+-            GPUStreamSynchronize(copy_stream);
++            GPREEMPT_STUDY_CUDA(GPUStreamSynchronize(copy_stream));
+         } else {
+             CHECK_STATUS(executor->set_input("data", input, input_size, stream));
+-            GPUStreamSynchronize(stream);
++            GPREEMPT_STUDY_CUDA(GPUStreamSynchronize(stream));
+         }
+     }
+ 
+     virtual void infer() override
+     {
+-        if(!priority && initialized) {
+-            executor->execute(stream);
++        const int action = gpreempt_hint_decide(GP_INFER, priority, 0, 0,
++                                                initialized, reserve_preempt);
++        CHECK_GE(action, 0);
++        CHECK_STATUS(executor->execute(stream));
++        if(action & GP_RELEASE) {
+             end_blocking_stream(&gdr_stop);
+-        } else {
+-            executor->execute(stream);
+-        }
+-        GPUStreamSynchronize(stream);
++        }
++        GPREEMPT_STUDY_CUDA(GPUStreamSynchronize(stream));
+     }
+ 
+     virtual void copyOutput() override
+     {
+         CHECK_STATUS(executor->get_output("heads", output, output_size, stream));
+-        GPUStreamSynchronize(stream);
+-    }
+-
+-    virtual void postprocess() override {}
++        GPREEMPT_STUDY_CUDA(GPUStreamSynchronize(stream));
++    }
++
++    virtual void postprocess() override { checks.check(output, output_size); }
+ private:
++    gpreempt_artifact::OutputCheck checks;
+     std::string model_name;
+     int priority;
+     std::shared_ptr<foo::BaseExecutor> executor;
+@@ -271,7 +270,7 @@
+     while(g_ctx[0] == nullptr) {
+         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+     }
+-    GPUCtxSetCurrent(g_ctx[0]);
++    GPREEMPT_STUDY_CUDA(GPUCtxSetCurrent(g_ctx[0]));
+ 
+     std::set<DeamonHint> hints;
+     DeamonHint *nu = nullptr;
+@@ -283,7 +282,15 @@
+             hints.insert(*hint);
+             delete hint;
+         }
+-        while(hints.size() && system_clock::now() > hints.begin()->t) {
++        while(hints.size()) {
++            const auto now_ns = std::chrono::duration_cast<nanoseconds>(
++                system_clock::now().time_since_epoch()).count();
++            const auto deadline_ns = std::chrono::duration_cast<nanoseconds>(
++                hints.begin()->t.time_since_epoch()).count();
++            const int action = gpreempt_hint_decide(GP_DUE, GP_LC, now_ns, deadline_ns,
++                                                    1, reserve_preempt);
++            CHECK_GE(action, 0);
++            if (!(action & GP_BLOCK)) break;
+             start_blocking_stream(hints.begin()->stream, hints.begin()->signal);
+             hints.erase(hints.begin());
+         }
+@@ -298,15 +305,20 @@
+ int main(int argc, char** argv)
+ {
+     if (argc < 2) {
+-        std::cout << "Usage: " << argv[0] << " config.json <reserve_preempt=true>" << std::endl;
++        std::cout << "Usage: " << argv[0] << " config.json [true|false] [--flag-transport gdr|host_mapped]" << std::endl;
+         return -1;
+     }
+-    if (argc == 3) {
+-        std::string arg = argv[2];
++    for (int i = 2; i < argc; ++i) {
++        std::string arg = argv[i];
+         if (arg == "true") {
+             reserve_preempt = true;
+         } else if (arg == "false") {
+             reserve_preempt = false;
++        } else if (arg == "--flag-transport" && i + 1 < argc) {
++            if (flag_pool.configure(argv[++i]) != 0) {
++                std::cerr << "Invalid or repeated flag transport" << std::endl;
++                return 1;
++            }
+         } else {
+             std::cout << "Invalid argument: " << arg << std::endl;
+             return -1;
+@@ -320,5 +332,5 @@
+     benchmark.run();
+     Json::Value report = benchmark.generateReport();
+     std::cout << report << std::endl;
+-    return 0;
+-}
++    return flag_pool.cleanup() == 0 ? 0 : 1;
++}
+--- a/src/cuda-clients/gpreemptclient_wo.cpp
++++ b/src/cuda-clients/gpreemptclient_wo.cpp
+@@ -1,4 +1,6 @@
+ #include "disb.h"
++#include "client_checks.h"
++#include "gpreempt_bridge.h"
+ 
+ #include <string>
+ #include <memory>
+@@ -28,6 +30,7 @@
+         model_name = config["model_name"].asString();
+         priority = config["priority"].asInt();
+         preprocess_time = config["preprocess_time"].asUInt64();
++        gpreempt_artifact::validate_config(priority, preprocess_time);
+         setName(config["name"].asString());
+         if(config.isMember("use_cuda_graph")) {
+             use_cuda_graph = config["use_cuda_graph"].asBool();
+@@ -56,6 +59,8 @@
+         GPUStreamCreate(&stream, 0);
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&input, input_size, CU_MEMHOSTALLOC_PORTABLE));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE));
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+ 
+         if(use_cuda_graph){
+             executor->capture_graph(stream);
+@@ -75,26 +80,33 @@
+         GPUDeviceGet(&dev, 0);
+         mtx.lock();
+         if(g_ctx[priority] == nullptr) {
+-            GPUCtxCreate(&g_ctx[priority], 0, dev);
+-            NvContext nvctx;
++            CHECK_EQ(gpreempt_ctx_begin(priority), 0);
++            ASSERT_CUDA_ERROR(GPUCtxCreate(&g_ctx[priority], 0, dev));
++            NvContext nvctx{};
+             nvctx.hClient = util_gettid();
+-            NVRMCHECK(NvRmQuery(&nvctx));
+-            if(set_priority(nvctx, priority)){
++            CHECK_EQ(NvRmQuery(&nvctx), NV_OK);
++            if(!gpreempt_bpf_enabled() && set_priority(nvctx, priority)){
+                 LOG(ERROR) << "Failed to set priority";
+                 exit(-1);
+             }
++            CHECK_EQ(gpreempt_ctx_register(reinterpret_cast<gp_u64>(g_ctx[priority]),
++                                           nvctx.hClient, nvctx.hObject, priority), 0);
++            CHECK_EQ(gpreempt_ctx_end(), 0);
+         }
+         GPUCtxSetCurrent(g_ctx[priority]);
+         GPUStreamCreate(&stream, 0);
+         CHECK_STATUS(executor->init(model_name));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&input, input_size, CU_MEMHOSTALLOC_PORTABLE));
+         ASSERT_CUDA_ERROR(GPUMemHostAlloc(&output, output_size, CU_MEMHOSTALLOC_PORTABLE)); 
++        checks.initialize(getName(), std::string(MODEL_PATH) + "/" + model_name + "/reference.f32",
++                          input, input_size, output_size);
+ 
+         if(use_cuda_graph){
+             executor->capture_graph(stream);
+         }
+ 
+         mtx.unlock();
++        checks.begin_timed();
+         LOG(INFO) << "Init in thread " << getName() << " done" << std::endl;
+     }
+     
+@@ -111,7 +123,7 @@
+ 
+     virtual void infer() override
+     {
+-        executor->execute(stream);
++        CHECK_STATUS(executor->execute(stream));
+         GPUStreamSynchronize(stream);
+     }
+ 
+@@ -121,8 +133,9 @@
+         GPUStreamSynchronize(stream);
+     }
+ 
+-    virtual void postprocess() override {}
++    virtual void postprocess() override { checks.check(output, output_size); }
+ private:
++    gpreempt_artifact::OutputCheck checks;
+     std::string model_name;
+     int priority;
+     std::shared_ptr<foo::BaseExecutor> executor;
+--- a/src/executor.cpp
++++ b/src/executor.cpp
+@@ -1,4 +1,5 @@
+ #include "executor.h"
++#include "load_study_measurement.h"
+ #include "model.h"
+ 
+ #include "util/gpu_util.h"
+@@ -175,11 +176,11 @@
+ 
+ void Executor::capture_graph(GPUstream stream){
+     use_cuda_graph = true;
+-    GPUGraphCreate(&graph, 0);
+-    GPUStreamBeginCapture(stream, GPU_STREAM_CAPTURE_MODE_GLOBAL);
++    GPREEMPT_STUDY_CUDA(GPUGraphCreate(&graph, 0));
++    GPREEMPT_STUDY_CUDA(GPUStreamBeginCapture(stream, GPU_STREAM_CAPTURE_MODE_GLOBAL));
+     if(type == "dnn") {
+         for (size_t i = 0; i < get_kernel_num(); i++) {
+-            launch_kernel(i, stream);
++            GPREEMPT_STUDY_STATUS(launch_kernel(i, stream));
+         }
+     } else if(type == "graph") {
+         use_cuda_graph = false;
+@@ -187,11 +188,11 @@
+     } else {
+         SciComputeRaw::perform_timestep(stream);
+     }
+-    GPUStreamEndCapture(stream, &graph);
++    GPREEMPT_STUDY_CUDA(GPUStreamEndCapture(stream, &graph));
+ #ifdef CUDA
+-    GPUGraphInstantiate(&graph_exec, graph, 0);
++    GPREEMPT_STUDY_CUDA(GPUGraphInstantiate(&graph_exec, graph, 0));
+ #else
+-    GPUGraphInstantiate(&graph_exec, graph, NULL, NULL, 0);
++    GPREEMPT_STUDY_CUDA(GPUGraphInstantiate(&graph_exec, graph, NULL, NULL, 0));
+ #endif
+ }
+ 
+--- a/src/gpreempt.cpp
++++ b/src/gpreempt.cpp
+@@ -1,5 +1,6 @@
+ #include "gpreempt.h"
+ #include <stdio.h>
++#include <errno.h>
+ 
+ #ifdef CUDA
+ 
+@@ -12,13 +13,15 @@
+     NvP64 params, 
+     NvU32 paramsSize
+ ) {
++    if (hClient == 0 || hObject == 0 || params == nullptr || paramsSize == 0)
++        return NV_ERR_GENERIC;
+     if (fd < 0) {
+-        fd = open("/dev/nvidiactl", O_RDWR);
++        fd = open("/dev/nvidiactl", O_RDWR | O_CLOEXEC);
+         if (fd < 0) {
+             return NV_ERR_GENERIC;
+         }
+     }
+-    NVOS54_PARAMETERS controlArgs;
++    NVOS54_PARAMETERS controlArgs{};
+     controlArgs.hClient = hClient;
+     controlArgs.hObject = hObject;
+     controlArgs.cmd = cmd;
+@@ -26,24 +29,41 @@
+     controlArgs.paramsSize = paramsSize;
+     controlArgs.flags = 0x0;
+     controlArgs.status = 0x0;
+-    ioctl(fd, OP_CONTROL, &controlArgs);
++    if (ioctl(fd, OP_CONTROL, &controlArgs) < 0) {
++        fprintf(stderr, "NvRmControl ioctl failed: errno=%d\n", errno);
++        return NV_ERR_GENERIC;
++    }
+     return controlArgs.status;
+ }
+ 
+ NV_STATUS NvRmQuery(
+     NvContext *pContext
+ ) {
++    if (pContext == nullptr || pContext->hClient == 0)
++        return NV_ERR_GENERIC;
++    const NvHandle creatorTid = pContext->hClient;
++    *pContext = NvContext{};
+     if (fd < 0) {
+-        fd = open("/dev/nvidiactl", O_RDWR);
++        fd = open("/dev/nvidiactl", O_RDWR | O_CLOEXEC);
+         if (fd < 0) {
+             return NV_ERR_GENERIC;
+         }
+     }
+-    NVOS54_PARAMETERS queryArgs;
+-    queryArgs.hClient = pContext->hClient;
++    NVOS54_PARAMETERS queryArgs{};
++    queryArgs.hClient = creatorTid;
+     queryArgs.status = 0x0;
+     queryArgs.params = (NvP64)&pContext->channels;
+-    ioctl(fd, OP_QUERY, &queryArgs);
++    queryArgs.paramsSize = sizeof(pContext->channels);
++    if (ioctl(fd, OP_QUERY, &queryArgs) < 0) {
++        fprintf(stderr, "NvRmQuery ioctl failed: errno=%d\n", errno);
++        return NV_ERR_GENERIC;
++    }
++    if (queryArgs.status != NV_OK)
++        return queryArgs.status;
++    if (queryArgs.hClient == 0 || queryArgs.hObject == 0 ||
++        pContext->channels.numChannels == 0 ||
++        pContext->channels.numChannels > NV2080_CTRL_FIFO_DISABLE_CHANNELS_MAX_ENTRIES)
++        return NV_ERR_GENERIC;
+     pContext->hClient = queryArgs.hClient;
+     pContext->hObject = queryArgs.hObject;
+     return queryArgs.status;
+@@ -53,9 +73,24 @@
+     NvContext ctx,
+     NvU64 timesliceUs
+ ) {
+-    NVA06C_CTRL_TIMESLICE_PARAMS timesliceParams0;
++    if (!ctx.hClient || !ctx.hObject || !timesliceUs || fd < 0)
++        return NV_ERR_GENERIC;
++    NVA06C_CTRL_TIMESLICE_PARAMS timesliceParams0{};
+     timesliceParams0.timesliceUs = timesliceUs;
+-    return NvRmControl(ctx.hClient, ctx.hObject, NVA06C_CTRL_CMD_SET_TIMESLICE, (NvP64)&timesliceParams0, sizeof(timesliceParams0));
++    // 575 compatibility transport: driver revalidates ownership and permits
++    // only SET_TIMESLICE; general RM_CONTROL security checks remain intact.
++    NVOS54_PARAMETERS control{};
++    control.hClient = ctx.hClient;
++    control.hObject = ctx.hObject;
++    control.cmd = NVA06C_CTRL_CMD_SET_TIMESLICE;
++    control.flags = 0x00010001; // Version 1, operation 1.
++    control.params = &timesliceParams0;
++    control.paramsSize = sizeof(timesliceParams0);
++    if (ioctl(fd, OP_QUERY, &control) < 0) {
++        fprintf(stderr, "NvRmModifyTS scoped ioctl failed: errno=%d\n", errno);
++        return NV_ERR_GENERIC;
++    }
++    return control.status;
+ }
+ 
+ int set_priority(NvContext ctx, int priority) {
+@@ -74,7 +109,7 @@
+ NV_STATUS NvRmPreempt(
+     NvContext ctx
+ ) {
+-    NVA06C_CTRL_PREEMPT_PARAMS preemptParams;
++    NVA06C_CTRL_PREEMPT_PARAMS preemptParams{};
+     preemptParams.bWait = NV_FALSE;
+     preemptParams.bManualTimeout = NV_FALSE;
+     return NvRmControl(ctx.hClient, ctx.hObject, NVA06C_CTRL_CMD_PREEMPT, (NvP64)&preemptParams, sizeof(preemptParams));
+--- a/src/tests/test-basic.cpp
++++ b/src/tests/test-basic.cpp
+@@ -3,54 +3,54 @@
+ #include <gdrapi.h>
+ #include "util/gpu_util.h"
+ 
+-int main(){
+-    foo::util::init_cuda();
+-    GPUcontext g_ctx;
+-    GPUdevice dev;
+-    GPUDeviceGet(&dev, 0);
+-    GPUCtxCreate(&g_ctx, 0, dev);
+-    NvContext nvctx;
++#define CHECK_CUDA(call) do { if ((call) != CUDA_SUCCESS) { \
++    fprintf(stderr, "CUDA smoke failed: %s\n", #call); goto cleanup; } } while (0)
++#define CHECK_GDR(call) do { if ((call) != 0) { \
++    fprintf(stderr, "GDR smoke failed: %s\n", #call); goto cleanup; } } while (0)
++
++int main() {
++    GPUcontext context = nullptr;
++    GPUdevice device = 0;
++    GPUdeviceptr allocation = 0, aligned = 0;
++    gdr_t g = nullptr;
++    gdr_mh_t handle{};
++    gdr_info_t info{};
++    void *mapping = nullptr;
++    bool pinned = false;
++    NvContext nvctx{};
++    unsigned int expected = 0x13579bdfU, observed = 0;
++    int result = 1;
++    CHECK_CUDA(GPUInit(0));
++    CHECK_CUDA(GPUDeviceGet(&device, 0));
++    CHECK_CUDA(GPUCtxCreate(&context, 0, device));
+     nvctx.hClient = util_gettid();
+-    NVRMCHECK(NvRmQuery(&nvctx));
+-    if(set_priority(nvctx, 1)){
+-        LOG(ERROR) << "Failed to set priority";
+-        return -1;
++    if (NvRmQuery(&nvctx) != NV_OK || set_priority(nvctx, 1) != 0) {
++        fprintf(stderr, "GPreempt owned-context query/timeslice failed\n");
++        goto cleanup;
+     }
+-    printf("PASS set priority\n");
+-
+-    // Test GDRcopy
+-    gdr_t g = gdr_open();
+-    if(g == nullptr) {
+-        LOG(ERROR) << "Failed to open gdr";
+-        return -1;
+-    }
+-    GPUdeviceptr mem_pool;
+-    ASSERT_CUDA_ERROR(GPUMemAlloc(&mem_pool, GPU_PAGE_SIZE  * 2));
+-    mem_pool = (mem_pool + GPU_PAGE_SIZE ) & ~(GPU_PAGE_SIZE - 1);
+-    gdr_mh_t g_mh;
+-    if(gdr_pin_buffer(g, (unsigned long)mem_pool, GPU_PAGE_SIZE , 0, 0, &g_mh) != 0) {
+-        LOG(ERROR) << "GDRError Failed to pin input buffer";
+-        return -1;
+-    }
+-    int *h_pool;
+-    if (gdr_map(g, g_mh, (void**)&h_pool, GPU_PAGE_SIZE ) != 0) {
+-        LOG(ERROR) << "GDRError Failed to map input GPU buffer";
+-        return -1;
+-    }
+-    gdr_info_t info;
+-    if(gdr_get_info(g, g_mh, &info) != 0) {
+-        LOG(ERROR) << "GDRError Failed to get info";
+-        return -1;
+-    }
+-    printf("PASS GDRcopy\n");
+-
+-    // Release GDRcopy
+-    gdr_unpin_buffer(g, g_mh);
+-    gdr_close(g);
+-    
+-    GPUMemFree(mem_pool);
+-    GPUMemFreeHost(h_pool);
+-
+-    printf("PASS all\n");
+-    return 0;
+-}
+\ No newline at end of file
++    printf("PASS set priority (request accepted; effective timeslice needs driver evidence)\n");
++    g = gdr_open();
++    if (!g) goto cleanup;
++    CHECK_CUDA(GPUMemAlloc(&allocation, GPU_PAGE_SIZE * 2));
++    aligned = (allocation + GPU_PAGE_SIZE - 1) & ~(GPU_PAGE_SIZE - 1);
++    CHECK_GDR(gdr_pin_buffer(g, aligned, GPU_PAGE_SIZE, 0, 0, &handle));
++    pinned = true;
++    CHECK_GDR(gdr_map(g, handle, &mapping, GPU_PAGE_SIZE));
++    CHECK_GDR(gdr_get_info(g, handle, &info));
++    if (aligned < info.va || aligned - info.va + sizeof(expected) > GPU_PAGE_SIZE)
++        goto cleanup;
++    CHECK_GDR(gdr_copy_to_mapping(handle, static_cast<char *>(mapping) +
++                                 (aligned - info.va), &expected, sizeof(expected)));
++    CHECK_CUDA(GPUMemcpyDtoH(&observed, aligned, sizeof(observed)));
++    if (observed != expected) goto cleanup;
++    printf("PASS GDRcopy flag roundtrip\n");
++    result = 0;
++cleanup:
++    if (mapping && gdr_unmap(g, handle, mapping, GPU_PAGE_SIZE)) result = 1;
++    if (pinned && gdr_unpin_buffer(g, handle)) result = 1;
++    if (g && gdr_close(g)) result = 1;
++    if (allocation && GPUMemFree(allocation) != CUDA_SUCCESS) result = 1;
++    if (context && GPUCtxDestroy(context) != CUDA_SUCCESS) result = 1;
++    if (!result) printf("PASS all (finite smoke only; not scheduling performance)\n");
++    return result;
++}
+--- a/third_party/disb/include/benchmark.h
++++ b/third_party/disb/include/benchmark.h
+@@ -35,6 +35,9 @@
+ #include <memory>
+ #include <string>
+ #include <json/json.h>
++#ifdef GPREEMPT_LOAD_STUDY
++#include "load_study_measurement.h"
++#endif
+ 
+ #define WARMUP_TIME                         10
+ #define STANDALONE_LATENCY_MEASURE_TIME     100
+@@ -51,6 +54,11 @@
+     std::shared_ptr<Client> client;
+     std::shared_ptr<Load> load;
+     std::shared_ptr<StandAloneLatency> standAloneLatency;
++#ifdef GPREEMPT_LOAD_STUDY
++    std::shared_ptr<gpreempt_load_study::CommonStart> studyStart;
++    int64_t studyIntervalNs = 0;
++    int64_t studyVerifiedReadyNs = 0;
++#endif
+ 
+     BenchmarkTask(): id("UNKNOWN") {}
+     BenchmarkTask(std::string taskId, std::shared_ptr<Client> clt, std::shared_ptr<Load> stg);
+--- a/third_party/disb/src/analyzer.cpp
++++ b/third_party/disb/src/analyzer.cpp
+@@ -99,6 +99,7 @@
+     nanoseconds copyOutputLatencyAvg(0);
+     nanoseconds postprocessLatencyAvg(0);
+     nanoseconds totalLatencyAvg(0);
++    Json::Value requestLatencyNs(Json::arrayValue);
+ 
+     if (records.size() > 0) {
+         // analysis records and calculate latency & throughput
+@@ -115,6 +116,14 @@
+ 
+         for (auto record : records) {
+             std::shared_ptr<TimePoints> tps = record->timePoints;
++            // Same six measured stages as the original average; report-time only.
++            const auto requestLatency = (tps->prepareInputEnd - tps->prepareInputBegin)
++                + (tps->preprocessEnd - tps->preprocessBegin)
++                + (tps->copyInputEnd - tps->copyInputBegin)
++                + (tps->inferEnd - tps->inferBegin)
++                + (tps->copyOutputEnd - tps->copyOutputBegin)
++                + (tps->postprocessEnd - tps->postprocessBegin);
++            requestLatencyNs.append(static_cast<Json::Value::Int64>(requestLatency.count()));
+ 
+             // f << "infer id: " << inferId++ << "\n";
+             // f << "prepare: " << (tps->prepareInputBegin - beginTime).count()/1000 << "us ~ " << (tps->prepareInputEnd - beginTime).count()/1000 << "us\n";
+@@ -154,6 +163,9 @@
+     Json::Value report;
+     report["type"] = "basic";
+     report["avgThroughput(req/s)"] = avgThroughput;
++    report["completedRequests"] = static_cast<Json::Value::UInt64>(records.size());
++    report["requestLatencyNs"] = requestLatencyNs;
++    report["latencyDefinition"] = "sum_of_original_six_recorded_stages";
+ 
+     // measured in microseconds
+     report["standAloneTotalLatency(us)"] = (Json::Value::Int64) standAloneLatency.count() / THOUSAND;
+--- a/third_party/disb/src/benchmark.cpp
++++ b/third_party/disb/src/benchmark.cpp
+@@ -33,6 +33,7 @@
+ #include <iostream>
+ #include <json/json.h>
+ #include <atomic>
++#include <cstdio>
+ 
+ namespace DISB
+ {
+@@ -116,6 +117,9 @@
+     for (auto record : records) record->analyzer->onPostprocess(record);
+     timePoints->postprocessBegin = system_clock::now();
+     client->postprocess();
++#ifdef GPREEMPT_LOAD_STUDY
++    studyVerifiedReadyNs = gpreempt_load_study::now_ns();
++#endif
+     timePoints->postprocessEnd = system_clock::now();
+ 
+     // give the record back to the analyzer produced it
+@@ -141,6 +145,50 @@
+                                  system_clock::time_point endTime)
+ {
+     client->initInThread();
++#ifdef GPREEMPT_LOAD_STUDY
++    const auto window = studyStart->wait();
++    beginTime = window.wall_begin;
++    endTime = window.wall_end;
++    client->startAnalyzers(beginTime);
++    gpreempt_load_study::Schedule schedule(window.begin_ns, window.end_ns, studyIntervalNs);
++    std::vector<gpreempt_load_study::Request> requests;
++    requests.reserve(studyIntervalNs ? schedule.offered() : 65536);
++    while (true) {
++        std::this_thread::sleep_until(gpreempt_load_study::at_ns(schedule.next_ns()));
++        gpreempt_load_study::Request request;
++        // Recheck after sleeping. At end, no new admission, even if FIFO is backlogged.
++        if (!schedule.admit(gpreempt_load_study::now_ns(), request)) break;
++        inferOnce();
++        request.verified_ready_ns = studyVerifiedReadyNs;
++        requests.push_back(request);
++    }
++    client->stopAnalyzers(endTime);
++    Json::Value study;
++    study["task"] = id;
++    study["clock"] = "steady_clock";
++    study["mode"] = studyIntervalNs ? "periodic_fifo" : "continuous_closed_loop";
++    study["phase_ns"] = Json::Int64(0);
++    study["begin_ns"] = Json::Int64(window.begin_ns);
++    study["end_ns"] = Json::Int64(window.end_ns);
++    study["interval_ns"] = Json::Int64(studyIntervalNs);
++    study["offered"] = studyIntervalNs ? Json::Value(Json::UInt64(schedule.offered())) : Json::Value();
++    study["started"] = Json::UInt64(schedule.started());
++    study["request_fields"] = "id,scheduled_ns,started_ns,verified_ready_ns";
++    study["requests"] = Json::Value(Json::arrayValue);
++    for (const auto &request : requests) {
++        Json::Value row(Json::arrayValue);
++        row.append(Json::UInt64(request.id));
++        row.append(Json::Int64(request.scheduled_ns));
++        row.append(Json::Int64(request.started_ns));
++        row.append(Json::Int64(request.verified_ready_ns));
++        study["requests"].append(row);
++    }
++    Json::StreamWriterBuilder writer;
++    writer["indentation"] = "";
++    const auto line = Json::writeString(writer, study);
++    // One locked stdio write per task, after all timed requests, avoids interleaving.
++    fprintf(stderr, "GPREEMPT_LOAD_STUDY %s\n", line.c_str());
++#else
+     initializedTaskCount.fetch_add(1);
+     while(initializedTaskCount.load() < taskCount);
+     auto delta = system_clock::now() + seconds(DELAY_BEGIN_SECONDS) - beginTime;
+@@ -156,6 +204,7 @@
+ 
+     load->stop();
+     client->stopAnalyzers(endTime);
++#endif
+ }
+ 
+ BenchmarkSuite::BenchmarkSuite()
+@@ -197,6 +246,18 @@
+             client->initAnalyzers();
+             load->init();
+             tasks[taskId] = BenchmarkTask(taskId, client, load);
++#ifdef GPREEMPT_LOAD_STUDY
++            const auto &arrival = taskConfig["load"];
++            const auto mode = arrival["type"].asString();
++            if (mode == "periodic_fifo") {
++                const int rate = arrival["frequency"].asInt();
++                if (rate <= 0 || 1000000000 % rate != 0)
++                    throw std::invalid_argument("FIFO rate must divide one second");
++                tasks[taskId].studyIntervalNs = 1000000000 / rate;
++            } else if (mode != "continuous") {
++                throw std::invalid_argument("load-study requires periodic_fifo or continuous");
++            }
++#endif
+         } 
+     }
+ 
+@@ -304,7 +365,9 @@
+         auto &task = taskPair.second;
+         loadInfos.emplace_back(task.load, task.standAloneLatency);
+     }
++#ifndef GPREEMPT_LOAD_STUDY
+     loadCoordinator(loadInfos);
++#endif
+ 
+     // 4. launch benchmark
+     beginTime = system_clock::now() + seconds(DELAY_BEGIN_SECONDS);
+@@ -322,14 +385,26 @@
+     }
+ 
+     taskCount = tasks.size();
++#ifdef GPREEMPT_LOAD_STUDY
++    auto studyStart = std::make_shared<gpreempt_load_study::CommonStart>(taskCount,
++        std::chrono::duration_cast<nanoseconds>(benchmarkTime).count(),
++        std::chrono::duration_cast<nanoseconds>(seconds(DELAY_BEGIN_SECONDS)).count());
++#endif
+     for (auto &taskPair : tasks) {
+         auto &task = taskPair.second;
++#ifdef GPREEMPT_LOAD_STUDY
++        task.studyStart = studyStart;
++#endif
+         benchmarkThreads.emplace_back(&BenchmarkTask::runBenchmark, task, beginTime, endTime);
+     }
+     
+     for (auto &thread : benchmarkThreads) {
+         thread.join();
+     }
++#ifdef GPREEMPT_LOAD_STUDY
++    beginTime = studyStart->window().wall_begin;
++    endTime = studyStart->window().wall_end;
++#endif
+ 
+     if(daemonThreadCreated) {
+         stopFlag = true;
+@@ -343,6 +418,12 @@
+     report["beginTime"] = timepointToString(beginTime);
+     report["endTime"] = timepointToString(endTime);
+     report["benchmarkTime(s)"] = (Json::Value::Int64) benchmarkTime.count();
++#ifdef GPREEMPT_LOAD_STUDY
++    const auto window = tasks.begin()->second.studyStart->window();
++    report["loadStudyBeginNs"] = Json::Int64(window.begin_ns);
++    report["loadStudyEndNs"] = Json::Int64(window.end_ns);
++    report["loadStudyClock"] = "steady_clock";
++#endif
+ 
+     Json::Value results;
+     for (auto &taskPair : tasks) {
+@@ -353,4 +434,4 @@
+     return report;
+ }
+ 
+-}
+\ No newline at end of file
++}
+--- a/third_party/disb/src/load.cpp
++++ b/third_party/disb/src/load.cpp
+@@ -70,6 +70,11 @@
+ 
+ std::shared_ptr<Load> builtinLoadFactory(const Json::Value &config)
+ {
++#ifdef GPREEMPT_LOAD_STUDY
++    // BenchmarkTask supplies the FIFO scheduler; this object is never coordinated/run.
++    if (config["type"].asString() == "periodic_fifo")
++        return std::make_shared<PeriodicLoad>(config);
++#endif
+     std::string type = config["type"].asString();
+ 
+     if (type == "continuous") {

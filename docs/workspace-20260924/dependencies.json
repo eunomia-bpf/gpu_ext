@@ -1,0 +1,263 @@
+[
+  {
+    "name": "gpreempt",
+    "checkout": "workloads/gpreempt/deps/upstream",
+    "upstream": "https://github.com/thustorage/GPreempt.git",
+    "base_commit": "249ee3e56d01068451e172e691853b4d055c0dec",
+    "patch": "dependencies/gpreempt.patch",
+    "files": [
+      {
+        "path": "CMakeLists.txt",
+        "bytes": 6666,
+        "change": "modified"
+      },
+      {
+        "path": "model/makefile",
+        "bytes": 930,
+        "change": "modified"
+      },
+      {
+        "path": "src/common-clients/baseclient.cpp",
+        "bytes": 4926,
+        "change": "modified"
+      },
+      {
+        "path": "src/cuda-clients/gpreemptclient.cpp",
+        "bytes": 11419,
+        "change": "modified"
+      },
+      {
+        "path": "src/cuda-clients/gpreemptclient_wo.cpp",
+        "bytes": 5350,
+        "change": "modified"
+      },
+      {
+        "path": "src/executor.cpp",
+        "bytes": 12376,
+        "change": "modified"
+      },
+      {
+        "path": "src/gpreempt.cpp",
+        "bytes": 7270,
+        "change": "modified"
+      },
+      {
+        "path": "src/tests/test-basic.cpp",
+        "bytes": 2384,
+        "change": "modified"
+      },
+      {
+        "path": "third_party/disb/include/benchmark.h",
+        "bytes": 3206,
+        "change": "modified"
+      },
+      {
+        "path": "third_party/disb/src/analyzer.cpp",
+        "bytes": 7602,
+        "change": "modified"
+      },
+      {
+        "path": "third_party/disb/src/benchmark.cpp",
+        "bytes": 16798,
+        "change": "modified"
+      },
+      {
+        "path": "third_party/disb/src/load.cpp",
+        "bytes": 12216,
+        "change": "modified"
+      }
+    ],
+    "verification": "Applied to base-revision source files in a temporary directory; exact contents of every changed and added file matched the local checkout.",
+    "local_origin": "/home/yunwei37/workspace/gpu/gpu_ext/workloads/gpreempt/../../docs/driver_docs/sched/GPreempt"
+  },
+  {
+    "name": "tvm",
+    "checkout": "workloads/gpreempt/deps/tvm",
+    "upstream": "https://github.com/apache/tvm.git",
+    "base_commit": "513c2be0c3b853a3b77de729f0ea75d448ee3c37",
+    "patch": "dependencies/tvm.patch",
+    "files": [
+      {
+        "path": "src/runtime/cuda/cuda_device_api.cc",
+        "bytes": 12993,
+        "change": "modified"
+      },
+      {
+        "path": "src/runtime/cuda/cuda_module.cc",
+        "bytes": 10921,
+        "change": "modified"
+      },
+      {
+        "path": "src/runtime/graph_executor/graph_executor.cc",
+        "bytes": 31898,
+        "change": "modified"
+      },
+      {
+        "path": "src/runtime/rocm/rocm_device_api.cc",
+        "bytes": 10430,
+        "change": "modified"
+      },
+      {
+        "path": "src/runtime/rocm/rocm_module.cc",
+        "bytes": 9279,
+        "change": "modified"
+      },
+      {
+        "path": "src/runtime/rocm/rocm_module.h",
+        "bytes": 1898,
+        "change": "modified"
+      },
+      {
+        "path": "src/target/llvm/codegen_amdgpu.cc",
+        "bytes": 14745,
+        "change": "modified"
+      },
+      {
+        "path": "src/target/opt/build_rocm_off.cc",
+        "bytes": 1784,
+        "change": "modified"
+      },
+      {
+        "path": "include/tvm/runtime/func_arg_recorder.h",
+        "bytes": 3666,
+        "change": "added"
+      },
+      {
+        "path": "src/runtime/func_arg_recorder.cc",
+        "bytes": 3003,
+        "change": "added"
+      }
+    ],
+    "verification": "Applied to base-revision source files in a temporary directory; exact contents of every changed and added file matched the local checkout."
+  },
+  {
+    "name": "xsched",
+    "checkout": "workloads/xsched/deps/xsched",
+    "upstream": "https://github.com/XpuOS/xsched.git",
+    "base_commit": "f49289f0220931df78de948ed841ecbaf960a919",
+    "patch": "dependencies/xsched.patch",
+    "files": [
+      {
+        "path": "preempt/include/xsched/preempt/xqueue/async_xqueue.h",
+        "bytes": 1625,
+        "change": "modified"
+      },
+      {
+        "path": "preempt/src/xqueue/async_xqueue.cpp",
+        "bytes": 8338,
+        "change": "modified"
+      }
+    ],
+    "verification": "Applied to base-revision source files in a temporary directory; exact contents of every changed and added file matched the local checkout."
+  },
+  {
+    "name": "moe-infinity",
+    "checkout": "workloads/moe-infinity/deps/MoE-Infinity",
+    "upstream": "https://github.com/EfficientMoE/MoE-Infinity.git",
+    "base_commit": "b766f8f1f6379fac6cd23594713ba6f4c7650ad9",
+    "patch": "dependencies/moe-infinity.patch",
+    "files": [
+      {
+        "path": "core/parallel/expert_dispatcher.cpp",
+        "bytes": 64317,
+        "change": "modified"
+      },
+      {
+        "path": "core/parallel/expert_dispatcher.h",
+        "bytes": 11599,
+        "change": "modified"
+      },
+      {
+        "path": "core/parallel/expert_module.cpp",
+        "bytes": 15979,
+        "change": "modified"
+      },
+      {
+        "path": "core/parallel/expert_module.h",
+        "bytes": 8004,
+        "change": "modified"
+      },
+      {
+        "path": "core/python/py_archer_prefetch.cpp",
+        "bytes": 7816,
+        "change": "modified"
+      },
+      {
+        "path": "moe_infinity/distributed/expert_executor.py",
+        "bytes": 13742,
+        "change": "modified"
+      },
+      {
+        "path": "core/parallel/revision_fetch_queue.h",
+        "bytes": 6134,
+        "change": "added"
+      },
+      {
+        "path": "moe_infinity/entrypoints/openai/revision_server.py",
+        "bytes": 4805,
+        "change": "added"
+      }
+    ],
+    "verification": "Applied to base-revision source files in a temporary directory; exact contents of every changed and added file matched the local checkout."
+  },
+  {
+    "name": "finemoe",
+    "checkout": "workloads/finemoe/deps/FineMoE-EuroSys26",
+    "upstream": "https://github.com/IntelliSys-Lab/FineMoE-EuroSys26.git",
+    "base_commit": "5c584686da077676e3854a363832e9e7b973a054",
+    "patch": "dependencies/finemoe.patch",
+    "files": [
+      {
+        "path": "core/aio/archer_prio_aio_handle.h",
+        "bytes": 2352,
+        "change": "modified"
+      },
+      {
+        "path": "core/memory/memory_pool.cpp",
+        "bytes": 5627,
+        "change": "modified"
+      },
+      {
+        "path": "core/model/model_topology.cpp",
+        "bytes": 26722,
+        "change": "modified"
+      },
+      {
+        "path": "core/model/model_topology.h",
+        "bytes": 6576,
+        "change": "modified"
+      },
+      {
+        "path": "core/prefetch/archer_prefetch_handle.cpp",
+        "bytes": 16528,
+        "change": "modified"
+      },
+      {
+        "path": "core/prefetch/task_scheduler.cpp",
+        "bytes": 23392,
+        "change": "modified"
+      },
+      {
+        "path": "core/prefetch/task_scheduler.h",
+        "bytes": 3846,
+        "change": "modified"
+      },
+      {
+        "path": "core/python/py_archer_prefetch.cpp",
+        "bytes": 6848,
+        "change": "modified"
+      },
+      {
+        "path": "finemoe/models/modeling_qwen/modeling_qwen2_moe.py",
+        "bytes": 83353,
+        "change": "modified"
+      },
+      {
+        "path": "finemoe/runtime/model_offload.py",
+        "bytes": 43448,
+        "change": "modified"
+      }
+    ],
+    "verification": "Applied to base-revision source files in a temporary directory; exact contents of every changed and added file matched the local checkout."
+  }
+]

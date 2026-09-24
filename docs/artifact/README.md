@@ -14,6 +14,9 @@ This folder documents reproduction; it does not contain the manuscript.
 | Build/run XSched Level-2 | [Native runtime guide](xsched-native-runtime.md), [shared-actuator runner](../../workloads/xsched/level2/README.md) | Separate shared-actuator policy ports from original-actuator bring-up. |
 | Build components or find LMCache disk experiments | [LMCache runtime guide](lmcache-runtime.md) | Published-source build, storage-request latency versus serving throughput, and remaining runtime dependencies. |
 
+For the 2026-09-24 workspace source inventory, dependency recovery patches and
+local-only asset policy, see [the collection index](../workspace-20260924/README.md).
+
 ## Where material belongs
 
 - `scripts/artifact/`: portable CPU entrypoints, not historical launch scripts.

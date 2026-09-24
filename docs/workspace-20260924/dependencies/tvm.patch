@@ -1,0 +1,612 @@
+--- a/src/runtime/cuda/cuda_device_api.cc
++++ b/src/runtime/cuda/cuda_device_api.cc
+@@ -17,6 +17,10 @@
+  * under the License.
+  */
+ 
++/*
++Modified by rtx and frw in 2025
++*/
++
+ /*!
+  * \file cuda_device_api.cc
+  * \brief GPU specific API
+@@ -31,6 +35,8 @@
+ #include <cstring>
+ 
+ #include "cuda_common.h"
++
++#include <tvm/runtime/func_arg_recorder.h>
+ 
+ namespace tvm {
+ namespace runtime {
+@@ -255,7 +261,9 @@
+   }
+ 
+   void* AllocWorkspace(Device dev, size_t size, DLDataType type_hint) final {
+-    return CUDAThreadEntry::ThreadLocal()->pool.AllocWorkspace(dev, size);
++    void* ret = CUDAThreadEntry::ThreadLocal()->pool.AllocWorkspace(dev, size);
++    global_recorder.AllocArg(ret, size);
++    return ret;
+   }
+ 
+   void FreeWorkspace(Device dev, void* data) final {
+--- a/src/runtime/cuda/cuda_module.cc
++++ b/src/runtime/cuda/cuda_module.cc
+@@ -16,6 +16,10 @@
+  * specific language governing permissions and limitations
+  * under the License.
+  */
++ 
++/*
++Modified by rtx and frw in 2025
++*/
+ 
+ /*!
+  * \file cuda_module.cc
+@@ -37,6 +41,8 @@
+ #include "../pack_args.h"
+ #include "../thread_storage_scope.h"
+ #include "cuda_common.h"
++
++#include <tvm/runtime/func_arg_recorder.h>
+ 
+ namespace tvm {
+ namespace runtime {
+@@ -164,6 +170,7 @@
+     func_name_ = func_name;
+     std::fill(fcache_.begin(), fcache_.end(), nullptr);
+     launch_param_config_.Init(num_void_args, launch_param_tags);
++    _num_void_args = num_void_args;
+   }
+   // invoke the function with void arguments
+   void operator()(TVMArgs args, TVMRetValue* rv, void** void_args) const {
+@@ -185,6 +192,11 @@
+       }
+     }
+     CUstream strm = static_cast<CUstream>(CUDAThreadEntry::ThreadLocal()->stream);
++    std::vector<void*> arg_pointers;
++    for (int i = 0; i < _num_void_args; i++) {
++      arg_pointers.push_back(args.values[i].v_handle);
++    }
++    global_recorder.NewDeviceRecord(func_name_, arg_pointers, wl.work_size);
+     CUresult result = cuLaunchKernel(fcache_[device_id], wl.grid_dim(0), wl.grid_dim(1),
+                                      wl.grid_dim(2), wl.block_dim(0), wl.block_dim(1),
+                                      wl.block_dim(2), wl.dyn_shmem_size, strm, void_args, nullptr);
+@@ -219,6 +231,7 @@
+   mutable std::array<CUfunction, kMaxNumGPUs> fcache_;
+   // launch parameters configuration
+   LaunchParamConfig launch_param_config_;
++  int _num_void_args;
+ };
+ 
+ class CUDAPrepGlobalBarrier {
+--- a/src/runtime/graph_executor/graph_executor.cc
++++ b/src/runtime/graph_executor/graph_executor.cc
+@@ -16,6 +16,10 @@
+  * specific language governing permissions and limitations
+  * under the License.
+  */
++ 
++/*
++Modified by rtx and frw in 2025
++*/
+ 
+ /*!
+  * \file graph_executor.cc
+@@ -31,6 +35,7 @@
+ #include <tvm/runtime/profiling.h>
+ #include <tvm/runtime/registry.h>
+ #include <tvm/runtime/serializer.h>
++#include <tvm/runtime/func_arg_recorder.h>
+ 
+ #include <algorithm>
+ #include <functional>
+@@ -622,10 +627,15 @@
+   tvm::runtime::PackedFunc pf = module_.GetFunction(param.func_name, true);
+   ICHECK(pf != nullptr) << "no such function in module: " << param.func_name;
+ 
+-  auto fexec = [arg_ptr, pf]() {
++  auto fexec = [arg_ptr, pf, param]() {
+     TVMRetValue rv;
+     TVMArgs targs(arg_ptr->arg_values.data(), arg_ptr->arg_tcodes.data(),
+                   static_cast<int>(arg_ptr->arg_values.size()));
++    std::vector<void*> arg_pointers;
++    for (size_t i = 0; i < arg_ptr->args.size(); i++) {
++      arg_pointers.push_back(((DLTensor*)arg_ptr->arg_values[i].v_handle)->data);
++    }
++    global_recorder.NewHostRecord(param.func_name, arg_pointers);
+     pf.CallPacked(targs, &rv);
+   };
+   return {fexec, arg_ptr};
+@@ -761,6 +771,10 @@
+       input_info.Set("dtype", dtype_info);
+       *rv = input_info;
+     });
++  } else if(name == "get_host_json") {
++    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
++      *rv = global_recorder.ToJson();
++    });
+   } else {
+     return PackedFunc();
+   }
+--- a/src/runtime/rocm/rocm_device_api.cc
++++ b/src/runtime/rocm/rocm_device_api.cc
+@@ -16,6 +16,10 @@
+  * specific language governing permissions and limitations
+  * under the License.
+  */
++ 
++/*
++Modified by rtx and frw in 2025
++*/
+ 
+ /*!
+  * \file rocm_device_api.cc
+@@ -28,6 +32,7 @@
+ #include <tvm/runtime/logging.h>
+ #include <tvm/runtime/profiling.h>
+ #include <tvm/runtime/registry.h>
++#include <tvm/runtime/func_arg_recorder.h>
+ 
+ #include "rocm_common.h"
+ 
+@@ -221,7 +226,9 @@
+   }
+ 
+   void* AllocWorkspace(Device dev, size_t size, DLDataType type_hint) final {
+-    return ROCMThreadEntry::ThreadLocal()->pool.AllocWorkspace(dev, size);
++    void* ret = ROCMThreadEntry::ThreadLocal()->pool.AllocWorkspace(dev, size);
++    global_recorder.AllocArg(ret, size);
++    return ret;
+   }
+ 
+   void FreeWorkspace(Device dev, void* data) final {
+--- a/src/runtime/rocm/rocm_module.cc
++++ b/src/runtime/rocm/rocm_module.cc
+@@ -16,6 +16,10 @@
+  * specific language governing permissions and limitations
+  * under the License.
+  */
++ 
++/*
++Modified by rtx and frw in 2025
++*/
+ 
+ /*!
+  * \file rocm_module.cc
+@@ -24,6 +28,7 @@
+ 
+ #include <hip/hip_runtime_api.h>
+ #include <tvm/runtime/registry.h>
++#include <tvm/runtime/func_arg_recorder.h>
+ 
+ #include <array>
+ #include <mutex>
+@@ -48,8 +53,8 @@
+  public:
+   explicit ROCMModuleNode(std::string data, std::string fmt,
+                           std::unordered_map<std::string, FunctionInfo> fmap,
+-                          std::string hip_source, std::string assembly)
+-      : data_(data), fmt_(fmt), fmap_(fmap), hip_source_(hip_source), assembly_(assembly) {
++                          std::string hip_source, std::string llvm_source, std::string assembly)
++      : data_(data), fmt_(fmt), fmap_(fmap), hip_source_(hip_source), llvm_source_(llvm_source), assembly_(assembly) {
+     std::fill(module_.begin(), module_.end(), nullptr);
+   }
+   // destructor
+@@ -88,10 +93,13 @@
+       return data_;
+     }
+     if (format == "llvm" || format == "") {
+-      return hip_source_;
++      return llvm_source_;
+     }
+     if (format == "asm") {
+       return assembly_;
++    }
++    if (format == "hip") {
++      return hip_source_;
+     }
+     return "";
+   }
+@@ -136,6 +144,8 @@
+   std::unordered_map<std::string, FunctionInfo> fmap_;
+   // The hip source.
+   std::string hip_source_;
++  // The llvm source.
++  std::string llvm_source_;
+   // The gcn asm.
+   std::string assembly_;
+   // the internal modules per GPU, to be lazily initialized.
+@@ -170,6 +180,11 @@
+     void* config[] = {HIP_LAUNCH_PARAM_BUFFER_POINTER, packed_args, HIP_LAUNCH_PARAM_BUFFER_SIZE,
+                       &packed_nbytes, HIP_LAUNCH_PARAM_END};
+     // HIP supports only extra_args.
++    std::vector<void*> arg_pointers;
++    for (size_t i = 0; i < (packed_nbytes / 8); i++) {
++      arg_pointers.push_back(((void**)packed_args)[i]);
++    }
++    global_recorder.NewDeviceRecord(func_name_.c_str(), arg_pointers, wl.work_size);
+     ROCM_DRIVER_CALL(hipModuleLaunchKernel(fcache_[device_id], wl.grid_dim(0), wl.grid_dim(1),
+                                            wl.grid_dim(2), wl.block_dim(0), wl.block_dim(1),
+                                            wl.block_dim(2), wl.dyn_shmem_size, strm, nullptr,
+@@ -202,9 +217,10 @@
+ }
+ 
+ Module ROCMModuleCreate(std::string data, std::string fmt,
+-                        std::unordered_map<std::string, FunctionInfo> fmap, std::string hip_source,
++                        std::unordered_map<std::string, FunctionInfo> fmap, 
++                        std::string hip_source, std::string llvm_source,
+                         std::string assembly) {
+-  auto n = make_object<ROCMModuleNode>(data, fmt, fmap, hip_source, assembly);
++  auto n = make_object<ROCMModuleNode>(data, fmt, fmap, hip_source, llvm_source, assembly);
+   return Module(n);
+ }
+ 
+@@ -215,7 +231,7 @@
+   std::string meta_file = GetMetaFilePath(file_name);
+   LoadBinaryFromFile(file_name, &data);
+   LoadMetaDataFromFile(meta_file, &fmap);
+-  return ROCMModuleCreate(data, fmt, fmap, std::string(), std::string());
++  return ROCMModuleCreate(data, fmt, fmap, std::string(),std::string(), std::string());
+ }
+ 
+ Module ROCMModuleLoadBinary(void* strm) {
+@@ -226,7 +242,7 @@
+   stream->Read(&fmt);
+   stream->Read(&fmap);
+   stream->Read(&data);
+-  return ROCMModuleCreate(data, fmt, fmap, std::string(), std::string());
++  return ROCMModuleCreate(data, fmt, fmap, std::string(),std::string(), std::string());
+ }
+ 
+ TVM_REGISTER_GLOBAL("runtime.module.loadbinary_hsaco").set_body_typed(ROCMModuleLoadBinary);
+--- a/src/runtime/rocm/rocm_module.h
++++ b/src/runtime/rocm/rocm_module.h
+@@ -16,6 +16,10 @@
+  * specific language governing permissions and limitations
+  * under the License.
+  */
++ 
++/*
++Modified by rtx and frw in 2025
++*/
+ 
+ /*!
+  * \file rocm_module.h
+@@ -48,7 +52,8 @@
+  * \param rocm_source Optional, rocm source file
+  */
+ Module ROCMModuleCreate(std::string data, std::string fmt,
+-                        std::unordered_map<std::string, FunctionInfo> fmap, std::string rocm_source,
++                        std::unordered_map<std::string, FunctionInfo> fmap, 
++                        std::string hip_source, std::string rocm_source,
+                         std::string assembly);
+ }  // namespace runtime
+ }  // namespace tvm
+--- a/src/target/llvm/codegen_amdgpu.cc
++++ b/src/target/llvm/codegen_amdgpu.cc
+@@ -16,6 +16,10 @@
+  * specific language governing permissions and limitations
+  * under the License.
+  */
++ 
++/*
++Modified by rtx and frw in 2025
++*/
+ 
+ /*!
+  * \file codegen_amdgpu.cc
+@@ -55,6 +59,7 @@
+ #include "../build_common.h"
+ #include "codegen_llvm.h"
+ #include "llvm_instance.h"
++#include "../source/codegen_cuda.h"
+ 
+ namespace tvm {
+ namespace codegen {
+@@ -352,7 +357,35 @@
+ 
+   std::string hsaco = (*f)(arr);
+   std::string ll(data_ll.begin(), data_ll.end());
+-  return ROCMModuleCreate(hsaco, "hsaco", ExtractFuncInfo(mod), ll, assembly);
++  
++  // Use CodeGenCUDA to generate the source code
++  bool output_ssa = false;
++  CodeGenCUDA cuda_gen;
++  cuda_gen.Init(output_ssa);
++  for (auto kv : mod->functions) {
++    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "Can only lower IR Module with PrimFuncs";
++    auto f = Downcast<PrimFunc>(kv.second);
++    cuda_gen.AddFunction(kv.first, f);
++  }
++  std::string hip_code = cuda_gen.Finish();
++
++  // TODO: replace these codes with a new code gen class
++  std::map<std::string, std::string> replace_map = {
++    {"llvm.amdgcn.mbcnt.hi", "__mbcnt_hi"},
++    {"llvm.amdgcn.mbcnt.lo", "__mbcnt_lo"},
++    {"llvm.amdgcn.ds.bpermute", "__hip_ds_bpermute"},
++  };
++  for (auto &pair : replace_map) {
++    size_t find_pos = hip_code.find(pair.first);
++    while(find_pos != std::string::npos) {
++      hip_code = hip_code.replace(find_pos, pair.first.size(), pair.second);
++      find_pos = hip_code.find(pair.first, find_pos);
++    }
++  }
++
++  std::string header = "#include <hip/hip_runtime.h>\n";
++  std::string final_code = header + hip_code;
++  return ROCMModuleCreate(hsaco, "hsaco", ExtractFuncInfo(mod), final_code, ll, assembly);
+ }
+ 
+ TVM_REGISTER_GLOBAL("target.build.rocm").set_body_typed(BuildAMDGPU);
+--- a/src/target/opt/build_rocm_off.cc
++++ b/src/target/opt/build_rocm_off.cc
+@@ -16,6 +16,10 @@
+  * specific language governing permissions and limitations
+  * under the License.
+  */
++ 
++/*
++Modified by rtx and frw in 2025
++*/
+ 
+ /*!
+  *  Optional module when build rocm is switched to off
+@@ -27,7 +31,9 @@
+ namespace runtime {
+ 
+ Module ROCMModuleCreate(std::string data, std::string fmt,
+-                        std::unordered_map<std::string, FunctionInfo> fmap, std::string rocm_source,
++                        std::unordered_map<std::string, FunctionInfo> fmap, 
++                        std::string hip_source,
++                        std::string rocm_source,
+                         std::string assembly) {
+   LOG(WARNING) << "ROCM runtime is not enabled, return a source module...";
+   auto fget_source = [rocm_source, assembly](const std::string& format) {
+--- /dev/null
++++ b/include/tvm/runtime/func_arg_recorder.h
+@@ -0,0 +1,122 @@
++//
++// Original Created by hmc on 2021/2/26.
++// Modified by rtx and frw in 2025
++//
++
++#ifndef TVM_FUNC_ARG_RECORDER_H
++#define TVM_FUNC_ARG_RECORDER_H
++
++#include <tvm/runtime/module.h>
++#include <dmlc/json.h>
++#include <queue>
++
++namespace tvm {
++namespace runtime {
++
++
++class FunctionArgRecorder : public ModuleNode {
++public:
++  const char* type_key() const final { return "FunctionArgRecorder";}
++
++  PackedFunc GetFunction(const String& name, const ObjectPtr<Object>& sptr_to_self);
++
++  void NewHostRecord(std::string name, std::vector<void*> args);
++  void AllocArg(void* arg, size_t size);
++
++  void NewDeviceRecord(std::string name, std::vector<void*> args, size_t launch_params[6]);
++
++  void Print();
++
++ std::string ToJson();
++private:
++  class DeviceRecord {
++   public:
++    std::string device_func_name;
++    std::vector<void*> device_args;
++    size_t launch_params[6];
++    std::vector<int> device_arg_idx;
++    void Save(dmlc::JSONWriter* writer) const {
++      writer->BeginObject();
++      writer->WriteObjectKeyValue("name", this->device_func_name);
++      std::vector<size_t> params;
++      for (int i = 0; i < 6; i++) params.push_back(launch_params[i]);
++      writer->WriteObjectKeyValue("launch_params", params);
++      writer->WriteObjectKeyValue("args", device_arg_idx);
++      writer->EndObject();
++    }
++  };
++  class HostRecord {
++   public:
++    std::string host_func_name;
++    std::unordered_map<void*, size_t> host_args; // arg_ptr -> arg_idx
++    std::unordered_map<void*, size_t> alloc_args; // arg_ptr -> arg_size
++    std::vector<DeviceRecord> device_records;
++    void Save(dmlc::JSONWriter* writer) const {
++      writer->BeginObject();
++      writer->WriteObjectKeyValue("name", host_func_name);
++      writer->WriteObjectKeyValue("kernels", device_records);
++      writer->EndObject();
++    }
++  };
++  std::vector<HostRecord> records;
++
++  std::vector<size_t> getTempArgs() {
++    std::vector<std::priority_queue<size_t>> tmp;
++    std::vector<size_t> temp_args;
++    for (auto &host : records) {
++      std::priority_queue<size_t> host_queue;
++      for (auto alloc_arg : host.alloc_args) {
++        host_queue.push(alloc_arg.second);
++      }
++     tmp.push_back(host_queue);
++    }
++
++    while (true) {
++      size_t max = 0;
++      for (auto& queue : tmp) {
++        if (queue.empty()) continue;
++         size_t top = queue.top();
++         queue.pop();
++        if (max < top) max = top;
++      }
++      if (max == 0) break;
++      temp_args.push_back(max);
++    }
++    return temp_args;
++  }
++
++  void prepare_device_arg_idx() {
++    for (auto &host : records) {
++      // sort the host allocated args by size.
++      std::vector<std::pair<void*, size_t>> sorted_array;
++      for (auto p : host.alloc_args)
++        sorted_array.push_back(p);
++      std::sort(sorted_array.begin(), sorted_array.end(), [](const std::pair<void*, size_t> &l, const std::pair<void*, size_t> &r) {
++        return l.second > r.second;
++      });
++      std::unordered_map<void*, int> alloc_arg_idx;
++      for (size_t i = 0; i < sorted_array.size(); i++)
++        alloc_arg_idx[sorted_array[i].first] = i;
++
++      for (auto &dev : host.device_records) {
++        for (auto &arg : dev.device_args) {
++          if (host.host_args.find(arg) != host.host_args.end()) {
++            dev.device_arg_idx.push_back((int)host.host_args[arg]);
++          } else if (alloc_arg_idx.find(arg) != alloc_arg_idx.end()) {
++            dev.device_arg_idx.push_back(-(alloc_arg_idx[arg] + 1));
++          } else {
++            LOG(FATAL) << "DEV ARG ERROR";
++          }
++        }
++      }
++    }
++  }
++}; // class FunctionArgRecorder
++
++extern FunctionArgRecorder global_recorder;
++
++} // namespace runtime
++
++
++} // namespace tvm
++#endif  // TVM_FUNC_ARG_RECORDER_H
+--- /dev/null
++++ b/src/runtime/func_arg_recorder.cc
+@@ -0,0 +1,115 @@
++//
++// Original created by hmc on 2021/2/26.
++// Modified by rtx and frw in 2025
++//
++
++#include <tvm/runtime/func_arg_recorder.h>
++#include <dmlc/json.h>
++
++namespace tvm {
++namespace runtime {
++
++
++FunctionArgRecorder global_recorder;
++
++PackedFunc FunctionArgRecorder::GetFunction(const String& name, const ObjectPtr<Object>& sptr_to_self) {
++  return PackedFunc();
++}
++
++void FunctionArgRecorder::NewHostRecord(std::string name, std::vector<void*> args) {
++  HostRecord r;
++  r.host_func_name = name;
++  for (size_t i = 0; i < args.size(); i++)
++    r.host_args[args[i]] = i;
++  records.push_back(r);
++}
++
++void FunctionArgRecorder::AllocArg(void* arg, size_t size) {
++  if (records.empty()) return;
++  HostRecord &r = records.back();
++  r.alloc_args[arg] = size;
++}
++
++void FunctionArgRecorder::NewDeviceRecord(std::string name, std::vector<void*> args, size_t launch_params[6]) {
++  if (records.empty()) return;
++  HostRecord &r = records.back();
++  DeviceRecord dr;
++  dr.device_func_name = name;
++  dr.device_args = args;
++  for (int i = 0; i < 6; i++)
++    dr.launch_params[i] = launch_params[i];
++  r.device_records.push_back(dr);
++}
++
++void FunctionArgRecorder::Print() {
++//  for (HostRecord &hr : records) {
++//    printf("==========================");
++//    printf("Host: %s\nHostArgs: ", hr.host_func_name.c_str());
++//    for (size_t i = 0; i < hr.host_args.size(); i++) {
++//      if (i != 0) printf(",");
++//      for (auto arg: hr.host_args) {
++//        if (arg.second == i) {
++//          printf("%p", arg.first);
++//        }
++//      }
++//    }
++//    printf("\nAllocArgs: ");
++//    size_t i = 0;
++//    for (auto arg: hr.alloc_args) {
++//      if (i != 0) printf(",");
++//      printf("[%lu]%p", arg.second, arg.first);
++//      i++;
++//    }
++//    for (auto &dev : hr.device_records) {
++//      printf("\nDevice: %s\nDeviceArgs: ", dev.device_func_name.c_str());
++//      for (i = 0; i < dev.device_args.size(); i++) {
++//        if (i != 0) printf(",");
++//        printf("%p", dev.device_args[i]);
++//      }
++//    }
++//    printf("\n");
++//  }
++    printf("%s\n", ToJson().c_str());
++}
++
++//
++//  {
++//      "temp_args": [1024, 2048], // size
++//      "funcs": [
++//          {
++//            "name": "fused_add_10",
++//            "kernels": [
++//              {
++//                "name": "fused_add_10_kernel0",
++//                "launch_params": [147, 1, 1, 1024, 1, 1],
++//                "args": [1, -1, 0] // 0, 1 means the first arg of fused_add_10; -1 means the first arg of temp_args
++//              }
++//            ]
++//          },
++//      ]
++//  }
++std::string FunctionArgRecorder::ToJson() {
++
++  std::vector<size_t> alloc_args = getTempArgs();
++  prepare_device_arg_idx();
++
++  std::ostringstream os;
++  dmlc::JSONWriter writer(&os);
++  writer.BeginObject(true);
++  writer.WriteObjectKeyValue("temp_args", alloc_args);
++  writer.WriteObjectKeyValue("funcs", records);
++  writer.EndObject();
++
++//  for (size_t i = 0; i < this->records.size(); i++) {
++//    auto &r = records[i];
++//
++//  }
++  return os.str();
++}
++
++
++
++
++} // namespace runtime
++
++} // namespace tvm
+\ No newline at end of file

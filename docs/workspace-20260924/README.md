@@ -70,8 +70,9 @@ builds, binaries and caches remain local. The empty `../results/` directory
 contains no records. Prior worktree payload archives remain under
 `../.worktree-archives/20260907/`; their recovery procedure is documented in
 [the earlier cleanup report](../workspace-cleanup-20260907.md). They are large
-local backups, not source files to duplicate into Git. Workspace `AGENTS.md`
-and local agent configuration stay in place.
+local backups, not source files to duplicate into Git. The shared [workspace instructions](workspace-files/workspace-AGENTS.md) are
+also retained here; the original `AGENTS.md` and local agent configuration
+stay in place.
 
 The active top-level repositories/worktrees are gpu_ext, bpftime,
 bpftime-auto-warp, bpftime-sass-existing-application,
